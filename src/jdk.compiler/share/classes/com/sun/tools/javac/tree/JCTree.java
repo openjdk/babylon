@@ -816,14 +816,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public MethodSymbol codeModel;
 
         public Type getDescriptorType(Types types) {
-            if (target == null) {
-                return types.createErrorType(null);
-            } else if (target.hasTag(TypeTag.METHOD)) {
-                // this is a quoted expression
-                return target;
-            } else {
-                return types.findDescriptorType(target);
-            }
+            return target != null ? types.findDescriptorType(target) : types.createErrorType(null);
         }
     }
 

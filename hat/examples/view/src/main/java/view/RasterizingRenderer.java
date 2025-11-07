@@ -53,11 +53,11 @@ public record RasterizingRenderer(int width, int height,  DisplayMode displayMod
         return of(width, height, DisplayMode.FILL);
     }
 
-    private void kernel(int gid, boolean old) {
+    private void kernel(int gid) {
         int x = gid % width;
         int y = gid / height;
         int col = 0x404040;
-        if (old) {
+
             for (int t = 0; t < F32Triangle2D.f32Triangle2DPool.count; t++) {
                 int v0 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.V0];
                 int v1 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.V1];
@@ -74,24 +74,13 @@ public record RasterizingRenderer(int width, int height,  DisplayMode displayMod
                     col = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.RGB];
                 }
             }
-        } else {
-            for (F32.TriangleVec2 t : F32.TriangleVec2.arr) {
-                var v0 = t.v0();
-                var v1 = t.v1();
-                var v2 = t.v2();
-                if (displayMode.filled && F32.TriangleVec2.intriangle(x, y, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y())) {
-                    col = t.rgb();
-                } else if (displayMode.wire && F32.TriangleVec2.onedge(x, y, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y())) {
-                    col = t.rgb();
-                }
-            }
-        }
+
         offscreenRgb[gid] = col;
     }
 
     @Override
-    public void render(boolean old) {
-        IntStream.range(0, width * height).parallel().forEach(id -> kernel(id, old));
+    public void render() {
+        IntStream.range(0, width * height).parallel().forEach(this::kernel);
         System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
     }
 

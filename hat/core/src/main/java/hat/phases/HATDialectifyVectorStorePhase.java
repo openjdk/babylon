@@ -59,7 +59,8 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     }
 
     public enum StoreView {
-        FLOAT4_STORE("storeFloat4View");
+        FLOAT4_STORE("storeFloat4View"),
+        FLOAT2_STORE("storeFloat2View");
         final String methodName;
         StoreView(String methodName) {
             this.methodName = methodName;
@@ -154,6 +155,12 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     public static class Float4StorePhase extends HATDialectifyVectorStorePhase{
         public Float4StorePhase(Accelerator accelerator) {
             super(accelerator, StoreView.FLOAT4_STORE);
+        }
+    }
+
+    public static class Float2StorePhase extends HATDialectifyVectorStorePhase{
+        public Float2StorePhase(Accelerator accelerator) {
+            super(accelerator, StoreView.FLOAT2_STORE);
         }
     }
 }

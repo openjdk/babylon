@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,28 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package hat.types;
 
-/*
- * @test /nodynamiccopyright/
- * @modules jdk.incubator.code
- * @compile/fail/ref=TestRecovery.out -Xlint:-incubating -XDrawDiagnostics TestRecovery.java
- */
+import jdk.incubator.code.CodeReflection;
 
-import jdk.incubator.code.Quoted;
+public interface _V2 extends _V {
 
-public class TestRecovery {
-    void testRecoveryInAssignment() {
-        Quoted res = (x) -> { System.out.println(nonExistent); };
+    @CodeReflection
+    @Override
+    default int width() {
+        return 2;
     }
-
-    void testRecoveryInMethodCall() {
-        apply((x) -> { System.out.println(nonExistent); });
-    }
-
-    void testRecoveryInGenericMethodCall() {
-        apply(Quoted.class, (x) -> { System.out.println(nonExistent); });
-    }
-
-    void apply(Quoted quoted) { }
-    <Z> void apply(Class<Z> clazz, Z quoted) { }
 }

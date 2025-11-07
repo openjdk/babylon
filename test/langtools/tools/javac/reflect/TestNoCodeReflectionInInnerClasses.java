@@ -16,10 +16,6 @@ class TestNoCodeReflectionInInnerClasses {
         }
 
         void test3() {
-            Quoted q = () -> { };
-        }
-
-        void test4() {
             Quotable q = (Runnable & Quotable) this::test2;
         }
     }

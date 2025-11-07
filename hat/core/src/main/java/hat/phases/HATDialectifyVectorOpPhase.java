@@ -91,6 +91,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
     public enum OpView {
         FLOAT4_LOAD("float4View"),
+        FLOAT2_LOAD("float2View"),
         OF("of"),
         ADD("add"),
         SUB("sub"),
@@ -439,6 +440,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         switch (Objects.requireNonNull(vectorOperation)) {
             case FLOAT4_LOAD -> funcOp = dialectifyVectorLoad(funcOp);
+            case FLOAT2_LOAD ->  funcOp = dialectifyVectorLoad(funcOp);
             case OF -> funcOp = dialectifyVectorOf(funcOp);
             case MAKE_MUTABLE -> funcOp = dialectifyMutableOf(funcOp);
             default -> {
@@ -475,6 +477,13 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
         public Float4LoadPhase(Accelerator accelerator) {
             super(accelerator, OpView.FLOAT4_LOAD);
+        }
+    }
+
+    public static class Float2LoadPhase extends HATDialectifyVectorOpPhase {
+
+        public Float2LoadPhase(Accelerator accelerator) {
+            super(accelerator, OpView.FLOAT2_LOAD);
         }
     }
 

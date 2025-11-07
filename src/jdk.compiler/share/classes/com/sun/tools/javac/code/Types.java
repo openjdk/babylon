@@ -5419,15 +5419,6 @@ public class Types {
     // This is deliberate, as we cannot initialize symbols in modules
     // other than java.base at startup.
 
-    public boolean isQuoted(Type type) {
-        Symbol s = type.tsym;
-        return s != null &&
-                s.kind == TYP &&
-                s.name.equals(names.quoted) &&
-                s.packge().fullname.equals(names.jdk_incubator_code) &&
-                s.packge().modle.name.equals(names.jdk_incubator_code);
-    }
-
     public boolean isQuotable(Type type) {
         Symbol s = type.tsym;
         return s != null &&
