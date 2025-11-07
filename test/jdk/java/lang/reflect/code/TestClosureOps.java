@@ -29,6 +29,7 @@
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -131,8 +132,8 @@ public class TestClosureOps {
 
     @Test
     public void testQuotableModel() {
-        Quoted quoted = () -> {};
-        Op qop = quoted.op();
+        Quotable quoted = (Runnable & Quotable) () -> {};
+        Op qop = Op.ofQuotable(quoted).get().op();
         Op top = qop.ancestorOp().ancestorOp();
         Assertions.assertTrue(top instanceof CoreOp.FuncOp);
 
