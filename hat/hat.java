@@ -266,7 +266,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                  stats.unsupported+=Integer.parseInt(matcher.group(3));
                               }
                           });
-                          System.out.printf("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%",
+                          System.out.printf("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%\\n",
                                 stats.passed, stats.failed, stats.unsupported, ((float)(stats.passed * 100 / (stats.passed + stats.failed + stats.unsupported))));
                         } else {
                            System.err.println("Failed to find backend   " + backendName);
