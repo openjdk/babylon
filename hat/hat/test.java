@@ -48,7 +48,7 @@ class Config {
 
         var testJARFile = buildDir.jarFile("hat-tests-1.0.jar");
         if (testJARFile.exists()) {
-            testMainClassName = "hat.test.engine.HatTestEngine";
+            testMainClassName = "hat.test.engine.HATTestEngine";
             exampleJar = testJARFile;
             if (exampleJar.exists()) {
                 classpath.add(exampleJar);
@@ -92,11 +92,15 @@ class Config {
 class Stats {
     int passed = 0;
     int failed = 0;
+    int unsupported = 0;
     public void incrementPassed(int val) {
-        passed += val;
+        this.passed += val;
     }
     public void incrementFailed(int fail) {
-        failed += fail;
+        this.failed += fail;
+    }
+    public void incrementUnsupported(int unsupporeted) {
+        this.unsupported += unsupporeted;
     }
 
     public int getPassed() {
@@ -105,10 +109,14 @@ class Stats {
     public int getFailed() {
         return failed;
     }
+    public int getUnsupported() {
+        return unsupported;
+    }
 
     @Override
     public String toString() {
-        return String.format("Global passed: %d, failed: %d, pass-rate: %.2f%%", passed, failed, ((float)(passed * 100 / (passed + failed))));
+        return String.format("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%",
+                passed, failed, unsupported, ((float)(passed * 100 / (passed + failed + unsupported))));
     }
 }
 
@@ -192,7 +200,7 @@ void main(String[] argv) {
         }
 
         // Final report
-        String regex = "passed: (\\d+), failed: (\\d+)";
+        String regex = "passed: (\\d+), failed: (\\d+), unsupported: (\\d+)";
         Pattern pattern = Pattern.compile(regex);
         Stats stats = new Stats();
 
@@ -208,8 +216,10 @@ void main(String[] argv) {
                 if (matcher.find()) {
                     int passed = Integer.parseInt(matcher.group(1));
                     int fail = Integer.parseInt(matcher.group(2));
+                    int unsupported = Integer.parseInt(matcher.group(3));
                     stats.incrementPassed(passed);
                     stats.incrementFailed(fail);
+                    stats.incrementUnsupported(unsupported);
                 }
             }
         } catch (IOException e) {

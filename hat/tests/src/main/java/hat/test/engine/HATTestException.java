@@ -24,9 +24,8 @@
  */
 package hat.test.engine;
 
-public class HATAssertionError extends HATTestException {
-
-    public HATAssertionError(String errorMessage) {
-        super(errorMessage);
+public class HATTestException extends RuntimeException {
+    public HATTestException(String message) {
+        super(message);
     }
 }

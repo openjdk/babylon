@@ -29,6 +29,12 @@ import hat.buffer.Float4;
 
 public class HATAsserts {
 
+    public static void assertEquals(short expected, short actual) {
+        if (expected != actual) {
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
+        }
+    }
+
     public static void assertEquals(int expected, int actual) {
         if (expected != actual) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);

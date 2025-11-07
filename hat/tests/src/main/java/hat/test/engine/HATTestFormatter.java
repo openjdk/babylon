@@ -27,7 +27,11 @@ package hat.test.engine;
 public class HATTestFormatter {
 
     public static void appendClass(StringBuilder builder, String className) {
-        builder.append(Colours.CYAN).append("Class: " + className).append(Colours.RESET).append("\n");;
+        builder.append(Colours.CYAN)
+                .append("Class: ")
+                .append(className)
+                .append(Colours.RESET)
+                .append("\n");;
     }
 
     public static void testing(StringBuilder builder, String methodName) {
@@ -47,6 +51,16 @@ public class HATTestFormatter {
     public static void fail(StringBuilder builder) {
         builder.append(Colours.RED)
                 .append("[fail]")
+                .append(Colours.RESET)
+                .append("\n");;
+    }
+
+    public static void expectedToFail(StringBuilder builder, String reason) {
+        builder.append(Colours.YELLOW)
+                .append("[FAIL][EXPECTED]")
+                .append(Colours.RED)
+                .append(" Reason: ")
+                .append(reason)
                 .append(Colours.RESET)
                 .append("\n");;
     }

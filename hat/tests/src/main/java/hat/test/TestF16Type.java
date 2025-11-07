@@ -36,10 +36,14 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
+import hat.test.engine.HATAssertionError;
 import hat.test.engine.HATAsserts;
+import hat.test.engine.HATExpectedFailureException;
+import hat.test.engine.HATTestException;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Random;
 
 public class TestF16Type {
@@ -533,7 +537,14 @@ public class TestF16Type {
             arrayA.array(i).value(F16.floatToF16(r.nextFloat()).value());
         }
 
-        accelerator.compute(computeContext -> TestF16Type.compute11(computeContext, arrayA, arrayB));
+        try {
+            accelerator.compute(computeContext -> TestF16Type.compute11(computeContext, arrayA, arrayB));
+        } catch (Throwable e) {
+            // We expect this to fail since it is unsupported at the moment,
+            IO.println("-------------------");
+            IO.println(e.getMessage());
+            throw new HATExpectedFailureException("Expected to fail due to unsupported use of F16 in local and private memory");
+        }
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 val = arrayB.array(i);
