@@ -35,7 +35,7 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
@@ -167,7 +167,7 @@ public class TestReductions {
 
         int finalResultHat = partialSums.array(0) + partialSums.array(1);
         int finalResultSeq = results[0] + results[1];
-        HatAsserts.assertEquals(finalResultSeq, finalResultHat);
+        HATAsserts.assertEquals(finalResultSeq, finalResultHat);
     }
 
     @HatTest
@@ -201,6 +201,6 @@ public class TestReductions {
 
         int finalResultHat = partialSums.array(0) + partialSums.array(1);
         int finalResultSeq = results[0] + results[1];
-        HatAsserts.assertEquals(finalResultSeq, finalResultHat);
+        HATAsserts.assertEquals(finalResultSeq, finalResultHat);
     }
 }

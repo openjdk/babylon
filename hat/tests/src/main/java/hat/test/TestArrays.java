@@ -35,7 +35,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -120,7 +120,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), array.array(i));
+            HATAsserts.assertEquals(test.array(i), array.array(i));
         }
     }
 
@@ -146,7 +146,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i));
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i));
         }
     }
 
@@ -176,7 +176,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
         }
     }
 

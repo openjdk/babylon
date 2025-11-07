@@ -24,7 +24,7 @@
  */
 package hat.test.engine;
 
-public class HatTestFormatter {
+public class HATTestFormatter {
 
     public static void appendClass(StringBuilder builder, String className) {
         builder.append(Colours.CYAN).append("Class: " + className).append(Colours.RESET).append("\n");;

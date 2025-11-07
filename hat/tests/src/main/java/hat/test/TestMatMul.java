@@ -37,7 +37,7 @@ import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
@@ -310,7 +310,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -344,7 +344,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -379,7 +379,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -413,7 +413,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -447,7 +447,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(
+                HATAsserts.assertEquals(
                         Float.float16ToFloat(resultSeq.array(i * size + j).value()),
                         Float.float16ToFloat(matrixC.array(i * size + j).value()),
                         0.01f);
@@ -484,7 +484,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -780,7 +780,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -814,7 +814,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }

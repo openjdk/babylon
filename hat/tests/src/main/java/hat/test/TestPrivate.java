@@ -35,7 +35,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
@@ -96,7 +96,7 @@ public class TestPrivate {
                 //break;
             }
         }
-        HatAsserts.assertTrue(isCorrect);
+        HATAsserts.assertTrue(isCorrect);
     }
 
 }

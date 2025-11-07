@@ -35,7 +35,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HatTestEngine {
+public class HATTestEngine {
 
     public static boolean DETAIL_ERROR_STACK_TRACE = false;
 
@@ -66,18 +66,18 @@ public class HatTestEngine {
 
     private static void testMethod(StringBuilder builder, Method method, Stats stats, Object instance) {
         try {
-            HatTestFormatter.testing(builder, method.getName());
+            HATTestFormatter.testing(builder, method.getName());
             method.invoke(instance);
-            HatTestFormatter.ok(builder);
+            HATTestFormatter.ok(builder);
             stats.incrementPassed();
-        } catch (HatAssertionError e) {
-                HatTestFormatter.fail(builder);
+        } catch (HATAssertionError e) {
+                HATTestFormatter.fail(builder);
                 stats.incrementFailed();
         } catch (IllegalAccessException | InvocationTargetException e) {
-            if (e.getCause() instanceof HatAssertionError hatAssertionError) {
-                HatTestFormatter.failWithReason(builder, hatAssertionError.getMessage());
+            if (e.getCause() instanceof HATAssertionError hatAssertionError) {
+                HATTestFormatter.failWithReason(builder, hatAssertionError.getMessage());
             }  else {
-                HatTestFormatter.fail(builder);
+                HATTestFormatter.fail(builder);
                 if (DETAIL_ERROR_STACK_TRACE) {
                     e.printStackTrace();
                 }
@@ -148,7 +148,7 @@ public class HatTestEngine {
             Object instance = testClass.getDeclaredConstructor().newInstance();
 
             StringBuilder builder = new StringBuilder();
-            HatTestFormatter.appendClass(builder, classNameToTest);
+            HATTestFormatter.appendClass(builder, classNameToTest);
             Stats stats = new Stats();
 
             for (Method method : methodToTest) {

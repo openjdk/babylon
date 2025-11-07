@@ -35,7 +35,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
@@ -124,7 +124,7 @@ public class TestMandel {
             for (int x = 0; x<width/subsample; x++) {
                 int palletteValue = s32Array2D.get(x * subsample, y * subsample); // so 0->8
                 int palletteValueSeq = s32Array2D.get(x * subsample, y * subsample); // so 0->8
-                HatAsserts.assertEquals(palletteValueSeq, palletteValue);
+                HATAsserts.assertEquals(palletteValueSeq, palletteValue);
             }
         }
     }

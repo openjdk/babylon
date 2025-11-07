@@ -36,7 +36,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
@@ -373,7 +373,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph01(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals((arrayA.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
         }
 
     }
@@ -393,8 +393,8 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph02(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i += 2) {
-            HatAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 1)), arrayB.array(i + 1), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 1)), arrayB.array(i + 1), 0.001f);
         }
     }
 
@@ -413,8 +413,8 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph03(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i += 2) {
-            HatAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
         }
     }
 
@@ -433,8 +433,8 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph04(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i += 2) {
-            HatAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
         }
     }
 
@@ -455,7 +455,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph05(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals((arrayA.array(i) + arrayB.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i) + arrayB.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
         }
     }
 
@@ -476,7 +476,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph06(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals((arrayA.array(i) - arrayB.array(i)), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i) - arrayB.array(i)), arrayC.array(i), 0.001f);
         }
     }
 
@@ -497,7 +497,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph07(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayC.array(i), 0.001f);
         }
     }
 
@@ -519,7 +519,7 @@ public class TestFloat2 {
 
         for (int i = 0; i < size; i++) {
             float val = (((arrayA.array(i) + arrayB.array(i)) * arrayA.array(i)) / arrayB.array(i));
-            HatAsserts.assertEquals(val, arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals(val, arrayC.array(i), 0.001f);
         }
     }
 
@@ -541,7 +541,7 @@ public class TestFloat2 {
 
         for (int i = 0; i < size; i++) {
             float val = (arrayA.array(i) + (arrayB.array(i)) * arrayA.array(i));
-            HatAsserts.assertEquals(val, arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals(val, arrayC.array(i), 0.001f);
         }
     }
 
@@ -561,7 +561,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph10(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
@@ -581,7 +581,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph11(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
@@ -601,7 +601,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph12(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
@@ -615,25 +615,25 @@ public class TestFloat2 {
                 vA.x() + vB.x(),
                 vA.y() + vB.y());
 
-        HatAsserts.assertEquals(expectedSum, vC, 0.001f);
+        HATAsserts.assertEquals(expectedSum, vC, 0.001f);
 
         Float2 vD = Float2.sub(vA, vB);
         Float2 expectedSub = Float2.of(
                 vA.x() - vB.x(),
                 vA.y() - vB.y());
-        HatAsserts.assertEquals(expectedSub, vD, 0.001f);
+        HATAsserts.assertEquals(expectedSub, vD, 0.001f);
 
         Float2 vE = Float2.mul(vA, vB);
         Float2 expectedMul = Float2.of(
                 vA.x() * vB.x(),
                 vA.y() * vB.y());
-        HatAsserts.assertEquals(expectedMul, vE, 0.001f);
+        HATAsserts.assertEquals(expectedMul, vE, 0.001f);
 
         Float2 vF = Float2.div(vA, vB);
         Float2 expectedDiv = Float2.of(
                 vA.x() / vB.x(),
                 vA.y() / vB.y());
-        HatAsserts.assertEquals(expectedDiv, vF, 0.001f);
+        HATAsserts.assertEquals(expectedDiv, vF, 0.001f);
     }
 
     @HatTest
@@ -650,7 +650,7 @@ public class TestFloat2 {
         accelerator.compute(cc -> TestFloat2.computeGraph14(cc, arrayA, size));
 
         for (int i = 0; i < size; i += 2) {
-            HatAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
+            HATAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
         }
     }
 
@@ -669,8 +669,8 @@ public class TestFloat2 {
 
         Float2 v = Float2.of(1.0f, 2.0f);
         for (int i = 0; i < size; i += 2) {
-            HatAsserts.assertEquals(v.x(), arrayA.array(i), 0.001f);
-            HatAsserts.assertEquals(v.y(), arrayA.array(i + 1), 0.001f);
+            HATAsserts.assertEquals(v.x(), arrayA.array(i), 0.001f);
+            HATAsserts.assertEquals(v.y(), arrayA.array(i + 1), 0.001f);
         }
     }
 }

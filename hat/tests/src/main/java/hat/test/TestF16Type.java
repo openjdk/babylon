@@ -36,7 +36,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
@@ -315,7 +315,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 val = arrayB.array(i);
-            HatAsserts.assertEquals((float)i, F16.f16ToFloat(val), 0.001f);
+            HATAsserts.assertEquals((float)i, F16.f16ToFloat(val), 0.001f);
         }
     }
 
@@ -342,7 +342,7 @@ public class TestF16Type {
             F16 val = arrayC.array(i);
             float fa = Float.float16ToFloat(arrayA.array(i).value());
             float fb = Float.float16ToFloat(arrayB.array(i).value());
-            HatAsserts.assertEquals((fa + fb), F16.f16ToFloat(val), 0.001f);
+            HATAsserts.assertEquals((fa + fb), F16.f16ToFloat(val), 0.001f);
         }
     }
 
@@ -369,7 +369,7 @@ public class TestF16Type {
             F16 val = arrayC.array(i);
             float fa = Float.float16ToFloat(arrayA.array(i).value());
             float fb = Float.float16ToFloat(arrayB.array(i).value());
-            HatAsserts.assertEquals((fa + fb + fb), F16.f16ToFloat(val), 0.001f);
+            HATAsserts.assertEquals((fa + fb + fb), F16.f16ToFloat(val), 0.001f);
         }
     }
 
@@ -404,7 +404,7 @@ public class TestF16Type {
             F16 r4 = F16.add(r1, r2);
             F16 r5 = F16.add(r4, r3);
 
-            HatAsserts.assertEquals(Float.float16ToFloat(r5.value()), Float.float16ToFloat(gotResult), 0.01f);
+            HATAsserts.assertEquals(Float.float16ToFloat(r5.value()), Float.float16ToFloat(gotResult), 0.01f);
         }
     }
 
@@ -424,7 +424,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayA.length(); i++) {
             short val = arrayA.array(i).value();
-            HatAsserts.assertEquals(2.1f, Float.float16ToFloat(val), 0.01f);
+            HATAsserts.assertEquals(2.1f, Float.float16ToFloat(val), 0.01f);
         }
     }
 
@@ -444,7 +444,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayA.length(); i++) {
             short val = arrayA.array(i).value();
-            HatAsserts.assertEquals(i, Float.float16ToFloat(val), 0.01f);
+            HATAsserts.assertEquals(i, Float.float16ToFloat(val), 0.01f);
         }
     }
 
@@ -454,16 +454,16 @@ public class TestF16Type {
         F16 a = F16.of(2.5f);
         F16 b = F16.of(3.5f);
         F16 c = F16.add(a, b);
-        HatAsserts.assertEquals((2.5f + 3.5f), Float.float16ToFloat(c.value()), 0.01f);
+        HATAsserts.assertEquals((2.5f + 3.5f), Float.float16ToFloat(c.value()), 0.01f);
 
         F16 d = F16.sub(a, b);
-        HatAsserts.assertEquals((2.5f - 3.5f), Float.float16ToFloat(d.value()), 0.01f);
+        HATAsserts.assertEquals((2.5f - 3.5f), Float.float16ToFloat(d.value()), 0.01f);
 
         F16 e = F16.mul(a, b);
-        HatAsserts.assertEquals((2.5f * 3.5f), Float.float16ToFloat(e.value()), 0.01f);
+        HATAsserts.assertEquals((2.5f * 3.5f), Float.float16ToFloat(e.value()), 0.01f);
 
         F16 f = F16.div(a, b);
-        HatAsserts.assertEquals((2.5f / 3.5f), Float.float16ToFloat(f.value()), 0.01f);
+        HATAsserts.assertEquals((2.5f / 3.5f), Float.float16ToFloat(f.value()), 0.01f);
     }
 
     @HatTest
@@ -482,7 +482,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayA.length(); i++) {
             short val = arrayA.array(i).value();
-            HatAsserts.assertEquals(i, Float.float16ToFloat(val), 0.01f);
+            HATAsserts.assertEquals(i, Float.float16ToFloat(val), 0.01f);
         }
     }
 
@@ -503,7 +503,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 val = arrayB.array(i);
-            HatAsserts.assertEquals(arrayA.array(i).value(), val.value());
+            HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
         }
     }
 
@@ -517,7 +517,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayA.length(); i++) {
             F16 val = arrayA.array(i);
-            HatAsserts.assertEquals(1.1f, F16.f16ToFloat(val), 0.01f);
+            HATAsserts.assertEquals(1.1f, F16.f16ToFloat(val), 0.01f);
         }
     }
 
@@ -537,7 +537,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 val = arrayB.array(i);
-            HatAsserts.assertEquals(arrayA.array(i).value(), val.value());
+            HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
         }
     }
 
@@ -559,7 +559,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 result = arrayC.array(i);
-            HatAsserts.assertEquals(F16.f16ToFloat(F16.add(arrayA.array(i), arrayB.array(i))), F16.f16ToFloat(result), 0.01f);
+            HATAsserts.assertEquals(F16.f16ToFloat(F16.add(arrayA.array(i), arrayB.array(i))), F16.f16ToFloat(result), 0.01f);
         }
     }
 
@@ -581,7 +581,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 result = arrayC.array(i);
-            HatAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)), F16.f16ToFloat(result), 0.01f);
+            HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)), F16.f16ToFloat(result), 0.01f);
         }
     }
 
@@ -602,7 +602,7 @@ public class TestF16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 result = arrayB.array(i);
-            HatAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) + 32.1f, F16.f16ToFloat(result), 0.1f);
+            HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) + 32.1f, F16.f16ToFloat(result), 0.1f);
         }
     }
 

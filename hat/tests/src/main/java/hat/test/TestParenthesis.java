@@ -33,7 +33,7 @@ import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
@@ -101,7 +101,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / (TN * TF);
-        HatAsserts.assertEquals(c, data.array(0));
+        HATAsserts.assertEquals(c, data.array(0));
     }
 
     @HatTest
@@ -119,7 +119,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / ((TN * TF) / (TN * TN));
-        HatAsserts.assertEquals(c, data.array(0));
+        HATAsserts.assertEquals(c, data.array(0));
     }
 
     @HatTest
@@ -137,7 +137,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX * (TF + 2) / ((TN * TF) / (TN * TN));
-        HatAsserts.assertEquals(c, data.array(0));
+        HATAsserts.assertEquals(c, data.array(0));
     }
 
 }
