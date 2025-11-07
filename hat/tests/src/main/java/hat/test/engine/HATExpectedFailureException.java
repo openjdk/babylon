@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,14 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
+package hat.test.engine;
 
-public class IndexPool extends Pool {
+public class HATExpectedFailureException extends HATTestException {
 
-    public final int entries[];
-
-    IndexPool(int stride, int max) {
-      super(stride,max);
-        this.entries = new int[max * stride];
+    public HATExpectedFailureException(String message) {
+        super(message);
     }
 }

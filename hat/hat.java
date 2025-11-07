@@ -162,8 +162,9 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         class Stats {
             int passed = 0;
             int failed = 0;
+            int unsupported = 0;
         }
-        var testEngine = "hat.test.engine.HatTestEngine";
+        var testEngine = "hat.test.engine.HATTestEngine";
 
         while (!args.isEmpty()) {
             var arg = args.removeFirst();
@@ -250,21 +251,23 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                   tests.run(testEngine, orderedDag, vmOpts,List.of(matched.group(1).replace('/','.')));
                               }
                            }
-                            System.out.println("\n\n");
+                           System.out.println("\n\n");
+                           System.out.println("*****************************************************************");
                            logo();
-                           System.out.println("                 HAT Test Report ");
-                           System.out.println("************************************************");
-                           var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+)");
+                           System.out.println("                     HAT Test Report ");
+                           System.out.println("*****************************************************************");
+                           var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+), unsupported: (\\d+)");
                            var stats = new Stats();
                            Files.readAllLines(test_reports_txt).forEach(line->{
                               System.out.println(line);
                               if (pattern.matcher(line) instanceof Matcher matcher && matcher.find()){
                                  stats.passed+=Integer.parseInt(matcher.group(1));
                                  stats.failed+=Integer.parseInt(matcher.group(2));
+                                 stats.unsupported+=Integer.parseInt(matcher.group(3));
                               }
                           });
-                          System.out.printf("Global passed: %d, failed: %d, pass-rate: %.2f%%",
-                                stats.passed, stats.failed, ((float)(stats.passed * 100 / (stats.passed + stats.failed))));
+                          System.out.printf("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%\\n",
+                                stats.passed, stats.failed, stats.unsupported, ((float)(stats.passed * 100 / (stats.passed + stats.failed + stats.unsupported))));
                         } else {
                            System.err.println("Failed to find backend   " + backendName);
                         }

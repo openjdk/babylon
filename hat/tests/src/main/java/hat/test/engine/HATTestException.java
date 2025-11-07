@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,31 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package hat.test.engine;
 
-package view;
-
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-
-public class View {
-    final BufferedImage image;
-    int[] offscreenRgb;
-
-    private View(int width, int height) {
-        image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        offscreenRgb = new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length];
-    }
-
-    static View of(int width, int height){
-        return new View(width,height);
-    }
-
-    void paint(Graphics2D g) {
-        g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
-    }
-
-    void update() {
-        System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
+public class HATTestException extends RuntimeException {
+    public HATTestException(String message) {
+        super(message);
     }
 }

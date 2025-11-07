@@ -26,9 +26,9 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
-import hat.Config;
-import static hat.Config.*;
+
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
@@ -118,9 +118,9 @@ public class Mesh {
     public static class Compute {
         @CodeReflection
         public static void initPoints(KernelContext kc, MeshData mesh) {
-            if (kc.x < kc.maxX) {
-                MeshData.Point3D point = mesh.point(kc.x);
-                point.x(kc.x);
+            if (kc.gix < kc.gsx) {
+                MeshData.Point3D point = mesh.point(kc.gix);
+                point.x(kc.gix);
                 point.y(0);
                 point.z(0);
             }
@@ -128,7 +128,7 @@ public class Mesh {
 
         @CodeReflection
         public static void buildMesh(ComputeContext cc, MeshData meshData) {
-            cc.dispatchKernel(meshData.points(),
+            cc.dispatchKernel(NDRange.of(meshData.points()),
                     kc -> initPoints(kc, meshData)
             );
 

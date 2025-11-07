@@ -24,62 +24,56 @@
  */
 package view.f32;
 
+import hat.util.StreamMutable;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class F32Mesh3D {
     String name;
-
-    int triSum;
-
     private F32Mesh3D(String name){
         this.name = name;
     }
     public static F32Mesh3D of(String name){
         return new F32Mesh3D(name);
     }
-    final int SIZE = 1; // triangle, triCenter, normal
-
-    final int MAX = 400;
-
-    public int triCount = 0;
-    public F32Triangle3D.Pool.Idx triEntries[] = new F32Triangle3D.Pool.Idx[MAX * SIZE];
-    public int triCenterVec3s[] = new int[MAX *SIZE];
-    public int normalEntries[] = new int[MAX *SIZE];
-    public int v0Vec3s[] = new int[MAX *SIZE];
-    public int vecCount = 0;
-    public int vecEntries[] = new int[MAX * SIZE];
-
-
-    public F32Mesh3D tri(int v0, int v1, int v2, int rgb) {
-        var tri = F32Triangle3D.of(v0, v1, v2, rgb);
-
-        triEntries[triCount]= tri;
-        normalEntries[triCount] = F32Triangle3D.normal(tri);
-        int triCentreVec3 = F32Triangle3D.getCentre(tri);
-        triCenterVec3s[triCount]=triCentreVec3;
-        v0Vec3s[triCount]=F32Triangle3D.getV0(tri);
-        if (triCount == 0) {
-            triSum = triCentreVec3;
-        } else {
-            triSum = F32Vec3.addVec3(triSum, triCentreVec3);
+    public record Face ( F32Triangle3D triangle, F32Vec3 centerVec3Idx, F32Vec3 normalIdx, F32Vec3 v0VecIdx){
+        static Face of (F32Triangle3D tri){
+           return  new Face(tri,  F32Triangle3D.getCentre(tri),F32Triangle3D.normal(tri),tri.v0());
         }
-        triCount++;
-        return this;
+    }
+
+    public List<Face> faces = new ArrayList<>();
+
+    public List<F32Vec3> vecEntries = new ArrayList<>();// F32Vec3.F32Vec3Pool.Idx[MAX];
+
+    public Face tri(int v0Idx, int v1Idx, int v2Idx, int rgb) {
+        Face face =Face.of(F32Triangle3D.f32Triangle3DPool.of(F32Vec3.f32Vec3Pool.idx(v0Idx), F32Vec3.f32Vec3Pool.idx(v1Idx), F32Vec3.f32Vec3Pool.idx(v2Idx), rgb));
+        faces.add(face);
+        return face;
     }
 
 
     public void fin(){
-        int meshCenterVec3 = F32Vec3.divScaler(triSum, triCount);
-        for (int t = 0; t < triCount; t++ ) {
-            var tri = triEntries[t];
-            int v0Norm = normalEntries[t]; // from v0
-            int v0 = v0Vec3s[t];
-            int v0CenterDiff = F32Vec3.subVec3(meshCenterVec3, v0);
-            float normDotProd = F32Vec3.dotProd(v0CenterDiff, v0Norm);
-            if (normDotProd >0f) { // the normal from the center from the triangle was pointing out, so re wind it
-                F32Triangle3D.rewind(tri);
+        var  triSumIdx = StreamMutable.of(0);
+        var first  = StreamMutable.of(true);
+        faces.forEach(face ->{
+            if (first.get().equals(true)){
+                triSumIdx.set(face.centerVec3Idx.idx());
+                first.set(false);
+            }else {
+                triSumIdx.set(F32Vec3.addVec3(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), face.centerVec3Idx).idx());
             }
-        }
-
-        cube(F32Vec3.getX(meshCenterVec3),F32Vec3.getY(meshCenterVec3), F32Vec3.getZ(meshCenterVec3), .1f );
+        });
+        var meshCenterVec3 = F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), faces.size());
+        faces.forEach(face ->{
+            var v0CenterDiff = F32Vec3.subVec3(meshCenterVec3,face.v0VecIdx);
+            float normDotProd = F32Vec3.dotProd(v0CenterDiff, face.normalIdx);
+            if (normDotProd >0f) { // the normal from the center from the triangle was pointing out, so re wind it
+                F32Triangle3D.rewind(face.triangle);
+            }
+        });
+        cube(meshCenterVec3.x(),meshCenterVec3.y(), meshCenterVec3.z(), .1f );
     }
 
     public F32Mesh3D quad(int v0, int v1, int v2, int v3, int rgb) {
@@ -152,30 +146,23 @@ public class F32Mesh3D {
             float y,
             float z,
             float s) {
-        int a = vec3(x - (s * .5f), y - (s * .5f), z - (s * .5f));  //000  000 111 111
-        int b = vec3(x - (s * .5f), y + (s * .5f), z - (s * .5f));  //010  010 101 101
-        int c = vec3(x + (s * .5f), y + (s * .5f), z - (s * .5f));  //110  011 001 100
-        int d = vec3(x + (s * .5f), y - (s * .5f), z - (s * .5f));  //100  001 011 110
-        int e = vec3(x - (s * .5f), y + (s * .5f), z + (s * .5f));  //011  110 100 001
-        int f = vec3(x + (s * .5f), y + (s * .5f), z + (s * .5f));  //111  111 000 000
-        int g = vec3(x + (s * .5f), y - (s * .5f), z + (s * .5f));  //101  101 010 010
-        int h = vec3(x - (s * .5f), y - (s * .5f), z + (s * .5f));  //001  100 110 011
-        quad(a, b, c, d, 0xff0000); //front
-        quad(b, e, f, c, 0x0000ff); //top
-        quad(d, c, f, g, 0xffff00); //right
-        quad(h, e, b, a, 0xffffff); //left
-        quad(g, f, e, h, 0x00ff00);//back
-        quad(g, h, a, d, 0xffa500);//bottom
+        var a = vec3(x - (s * .5f), y - (s * .5f), z - (s * .5f));  //000  000 111 111
+        var b = vec3(x - (s * .5f), y + (s * .5f), z - (s * .5f));  //010  010 101 101
+        var c = vec3(x + (s * .5f), y + (s * .5f), z - (s * .5f));  //110  011 001 100
+        var d = vec3(x + (s * .5f), y - (s * .5f), z - (s * .5f));  //100  001 011 110
+        var e = vec3(x - (s * .5f), y + (s * .5f), z + (s * .5f));  //011  110 100 001
+        var f = vec3(x + (s * .5f), y + (s * .5f), z + (s * .5f));  //111  111 000 000
+        var g = vec3(x + (s * .5f), y - (s * .5f), z + (s * .5f));  //101  101 010 010
+        var h = vec3(x - (s * .5f), y - (s * .5f), z + (s * .5f));  //001  100 110 011
+        quad(a.idx(), b.idx(), c.idx(), d.idx(), 0xff0000); //front
+        quad(b.idx(), e.idx(), f.idx(), c.idx(), 0x0000ff); //top
+        quad(d.idx(), c.idx(), f.idx(), g.idx(), 0xffff00); //right
+        quad(h.idx(), e.idx(), b.idx(), a.idx(), 0xffffff); //left
+        quad(g.idx(), f.idx(), e.idx(), h.idx(), 0x00ff00);//back
+        quad(g.idx(), h.idx(), a.idx(), d.idx(), 0xffa500);//bottom
         return this;
     }
-
-
-
-
-
     /*
-
-
 http://paulbourke.net/dataformats/obj/
 
      */
@@ -187,39 +174,39 @@ http://paulbourke.net/dataformats/obj/
             float z,
             float s) {
 
-        int v1 = vec3(x + (s * .30631559f), y + (s * .20791225f), z + (s * .12760004f));
-        int v2 = vec3(x + (s * .12671047f), y + (s * .20791227f), z + (s * .30720518f));
-        int v3 = vec3(x + (s * .12671045f), y + (s * .38751736f), z + (s * .12760002f));
-        int v4 = vec3(x + (s * .30631556f), y + (s * .20791227f), z + (s * .48681026f));
-        int v5 = vec3(x + (s * .48592068f), y + (s * .20791225f), z + (s * .30720514f));
-        int v6 = vec3(x + (s * .30631556f), y + (s * .56712254f), z + (s * .48681026f));
-        int v7 = vec3(x + (s * .12671047f), y + (s * .56712254f), z + (s * .30720512f));
-        int v8 = vec3(x + (s * .12671042f), y + (s * .3875174f), z + (s * .48681026f));
-        int v9 = vec3(x + (s * .48592068f), y + (s * .38751736f), z + (s * .1276f));
-        int v10 = vec3(x + (s * .30631556f), y + (s * .56712254f), z + (s * .1276f));
-        int v11 = vec3(x + (s * .48592068f), y + (s * .56712254f), z + (s * .30720512f));
-        int v12 = vec3(x + (s * .48592068f), y + (s * .38751743f), z + (s * .4868103f));
+        var v1 = vec3(x + (s * .30631559f), y + (s * .20791225f), z + (s * .12760004f));
+        var v2 = vec3(x + (s * .12671047f), y + (s * .20791227f), z + (s * .30720518f));
+        var v3 = vec3(x + (s * .12671045f), y + (s * .38751736f), z + (s * .12760002f));
+        var v4 = vec3(x + (s * .30631556f), y + (s * .20791227f), z + (s * .48681026f));
+        var v5 = vec3(x + (s * .48592068f), y + (s * .20791225f), z + (s * .30720514f));
+        var v6 = vec3(x + (s * .30631556f), y + (s * .56712254f), z + (s * .48681026f));
+        var v7 = vec3(x + (s * .12671047f), y + (s * .56712254f), z + (s * .30720512f));
+        var v8 = vec3(x + (s * .12671042f), y + (s * .3875174f), z + (s * .48681026f));
+        var v9 = vec3(x + (s * .48592068f), y + (s * .38751736f), z + (s * .1276f));
+        var v10 = vec3(x + (s * .30631556f), y + (s * .56712254f), z + (s * .1276f));
+        var v11 = vec3(x + (s * .48592068f), y + (s * .56712254f), z + (s * .30720512f));
+        var v12 = vec3(x + (s * .48592068f), y + (s * .38751743f), z + (s * .4868103f));
 
-        tri(v1, v2, v3, 0xff0000);
-        tri(v4, v2, v5, 0x7f8000);
-        tri(v5, v2, v1, 0x3fc000);
-        tri(v6, v7, v8, 0x1fe000);
-        tri(v9, v10, v11, 0x0ff000);
-        tri(v8, v2, v4, 0x07f800);
-        tri(v5, v1, v9, 0x03fc00);
-        tri(v3, v7, v10, 0x01fe00);
-        tri(v8, v7, v2, 0x00ff00);
-        tri(v2, v7, v3, 0x007f80);
-        tri(v8, v4, v6, 0x003fc0);
-        tri(v6, v4, v12, 0x001fe0);
-        tri(v11, v12, v9, 0x000ff0);
-        tri(v9, v12, v5, 0x0007f8);
-        tri(v7, v6, v10, 0x0003fc);
-        tri(v6, v11, v10, 0x0001fe);
-        tri(v1, v3, v9, 0x0000ff);
-        tri(v9, v3, v10, 0x00007f);
-        tri(v12, v4, v5, 0x00003f);
-        tri(v6, v12, v11, 0x00001f);
+        tri(v1.idx(), v2.idx(), v3.idx(), 0xff0000);
+        tri(v4.idx(), v2.idx(), v5.idx(), 0x7f8000);
+        tri(v5.idx(), v2.idx(), v1.idx(), 0x3fc000);
+        tri(v6.idx(), v7.idx(), v8.idx(), 0x1fe000);
+        tri(v9.idx(), v10.idx(), v11.idx(), 0x0ff000);
+        tri(v8.idx(), v2.idx(), v4.idx(), 0x07f800);
+        tri(v5.idx(), v1.idx(), v9.idx(), 0x03fc00);
+        tri(v3.idx(), v7.idx(), v10.idx(), 0x01fe00);
+        tri(v8.idx(), v7.idx(), v2.idx(), 0x00ff00);
+        tri(v2.idx(), v7.idx(), v3.idx(), 0x007f80);
+        tri(v8.idx(), v4.idx(), v6.idx(), 0x003fc0);
+        tri(v6.idx(), v4.idx(), v12.idx(), 0x001fe0);
+        tri(v11.idx(), v12.idx(), v9.idx(), 0x000ff0);
+        tri(v9.idx(), v12.idx(), v5.idx(), 0x0007f8);
+        tri(v7.idx(), v6.idx(), v10.idx(), 0x0003fc);
+        tri(v6.idx(), v11.idx(), v10.idx(), 0x0001fe);
+        tri(v1.idx(), v3.idx(), v9.idx(), 0x0000ff);
+        tri(v9.idx(), v3.idx(), v10.idx(), 0x00007f);
+        tri(v12.idx(), v4.idx(), v5.idx(), 0x00003f);
+        tri(v6.idx(), v12.idx(), v11.idx(), 0x00001f);
         return this;
     }
 
@@ -235,14 +222,9 @@ http://paulbourke.net/dataformats/obj/
         return this;
     }
 
-    public int vec3(float x, float y, float z) {
-        int newVec = F32Vec3.createVec3(x,y, z);
-        vecEntries[vecCount++]=newVec;
-    //    if (vecCount == 1 ){
-         //   vecSum =newVec;
-       // }else{
-      //      vecSum = F32Vec3.addVec3(vecSum, newVec);
-      //  }
+    public  F32Vec3.F32Vec3Pool.Idx  vec3(float x, float y, float z) {
+        var newVec = F32Vec3.f32Vec3Pool.of(x,y, z);
+        vecEntries.add(newVec);
         return newVec;
     }
 

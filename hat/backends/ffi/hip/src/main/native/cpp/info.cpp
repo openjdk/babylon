@@ -2,6 +2,6 @@
 
 int main(int argc, char **argv) {
     HipBackend hipBackend;
-    hipBackend.info();
+    hipBackend.showDeviceInfo();
 }
 

@@ -26,6 +26,7 @@ package violajones.attic;
 
 
 import hat.Accelerator;
+import hat.NDRange;
 import hat.backend.java.WorkStealer;
 import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
@@ -328,10 +329,10 @@ public class ViolaJones {
 
         if (true) {
             long start = System.currentTimeMillis();
-            WorkStealer.usingAllProcessors(accelerator)
-                    .forEachInRange(accelerator.range(scaleTable.multiScaleAccumulativeRange()), r -> {
+            WorkStealer.usingAllProcessors()
+                    .forEachInRange(accelerator.range(NDRange.of(new NDRange.Global1D(scaleTable.multiScaleAccumulativeRange()))), kc -> {
                         ReferenceJavaViolaJones.findFeatures(
-                                r.kid.x,
+                                kc.gix,
                                 xmlCascade,//cascade,//haarCascade, //or cascade
                                 integralImageF32,
                                 integralSqImageF32,

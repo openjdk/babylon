@@ -26,8 +26,7 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -36,7 +35,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -51,51 +50,51 @@ public class TestArrays {
 
     @CodeReflection
     public static void squareKernel(@RO KernelContext kc, @RW S32Array array) {
-        if (kc.x < kc.gsx){
-            int value = array.array(kc.x);
-            array.array(kc.x, squareit(value));
+        if (kc.gix < kc.gsx){
+            int value = array.array(kc.gix);
+            array.array(kc.gix, squareit(value));
         }
     }
 
     @CodeReflection
     public static void square(@RO ComputeContext cc, @RW S32Array array) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(array.length()));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(array.length()));
+        cc.dispatchKernel(ndRange,
                 kc -> squareKernel(kc, array)
         );
     }
 
     @CodeReflection
     public static void vectorAddition(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        if (kc.x < kc.gsx) {
-            int valueA = arrayA.array(kc.x);
-            int valueB = arrayB.array(kc.x);
-            arrayC.array(kc.x, (valueA + valueB));
+        if (kc.gix < kc.gsx) {
+            int valueA = arrayA.array(kc.gix);
+            int valueB = arrayB.array(kc.gix);
+            arrayC.array(kc.gix, (valueA + valueB));
         }
     }
 
     @CodeReflection
     public static void vectorAdd(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(arrayA.length()));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(arrayA.length()));
+        cc.dispatchKernel(ndRange,
                 kc -> vectorAddition(kc, arrayA, arrayB, arrayC)
         );
     }
 
     @CodeReflection
     public static void saxpy(@RO KernelContext kc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
-        if (kc.x < kc.gsx) {
-            float valueA = arrayA.array(kc.x);
-            float valueB = arrayB.array(kc.x);
+        if (kc.gix < kc.gsx) {
+            float valueA = arrayA.array(kc.gix);
+            float valueB = arrayB.array(kc.gix);
             float result = alpha * valueA + valueB;
-            arrayC.array(kc.x, result);
+            arrayC.array(kc.gix, result);
         }
     }
 
     @CodeReflection
     public static void computeSaxpy(@RO ComputeContext cc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(arrayA.length()));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(arrayA.length()));
+        cc.dispatchKernel(ndRange,
                 kc -> saxpy(kc, arrayA, arrayB, arrayC, alpha)
         );
     }
@@ -121,7 +120,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), array.array(i));
+            HATAsserts.assertEquals(test.array(i), array.array(i));
         }
     }
 
@@ -147,7 +146,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i));
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i));
         }
     }
 
@@ -177,7 +176,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
         }
     }
 

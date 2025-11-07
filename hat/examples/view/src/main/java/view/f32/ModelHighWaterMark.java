@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,32 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat;
+package view.f32;
 
-public record LocalMesh1D(int x) implements ThreadMesh {
+public record ModelHighWaterMark(
+        int markedTriangles3D,
+        int markedTriangles2D,
+        int markedVec2,
+        int markedVec3,
+        int markedMat4) {
 
-    @Override
-    public int getX() {
-        return x;
+    public ModelHighWaterMark() {
+        this(F32Triangle3D.f32Triangle3DPool.count, F32Triangle2D.f32Triangle2DPool.count, F32Vec2.f32Vec2Pool.count, F32Vec3.f32Vec3Pool.count, F32Matrix4x4.f32matrix4x4Pool.count);
     }
 
-    @Override
-    public int getY() {
-        return 1;
+    public void resetAll() {
+        reset3D();
+        F32Triangle2D.reset(markedTriangles2D);
+        F32Vec2.reset(markedVec2);
     }
 
-    @Override
-    public int getZ() {
-        return 1;
-    }
-
-    @Override
-    public int getDims() {
-        return 1;
-    }
-
-    @Override
-    public String toString() {
-        return "<1D LocalMesh: " + getX() + ">";
+    public void reset3D() {
+        F32Triangle3D.f32Triangle3DPool.count = markedTriangles3D;
+        F32Vec3.f32Vec3Pool.count = markedVec3;
+        F32Matrix4x4.f32matrix4x4Pool.count = markedMat4;
     }
 }

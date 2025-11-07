@@ -26,15 +26,14 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -106,8 +105,8 @@ public class TestNbody {
 
     @CodeReflection
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(universe.length()));
-        cc.dispatchKernel(computeRange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(universe.length()));
+        cc.dispatchKernel(ndRange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
     }
 
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {
@@ -190,12 +189,12 @@ public class TestNbody {
             Body hatBody = universe.body(i);
             Body seqBody = universeSeq.body(i);
             IO.println(i);
-            HatAsserts.assertEquals(seqBody.x(), hatBody.x(), delta);
-            HatAsserts.assertEquals(seqBody.y(), hatBody.y(), delta);
-            HatAsserts.assertEquals(seqBody.z(), hatBody.z(), delta);
-            HatAsserts.assertEquals(seqBody.vx(), hatBody.vx(), delta);
-            HatAsserts.assertEquals(seqBody.vy(), hatBody.vy(), delta);
-            HatAsserts.assertEquals(seqBody.vz(), hatBody.vz(), delta);
+            HATAsserts.assertEquals(seqBody.x(), hatBody.x(), delta);
+            HATAsserts.assertEquals(seqBody.y(), hatBody.y(), delta);
+            HATAsserts.assertEquals(seqBody.z(), hatBody.z(), delta);
+            HATAsserts.assertEquals(seqBody.vx(), hatBody.vx(), delta);
+            HATAsserts.assertEquals(seqBody.vy(), hatBody.vy(), delta);
+            HATAsserts.assertEquals(seqBody.vz(), hatBody.vz(), delta);
         }
     }
 }

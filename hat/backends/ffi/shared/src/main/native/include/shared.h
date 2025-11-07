@@ -361,12 +361,8 @@ public:
 
 class KernelContext {
 public:
-    int x;
-    int maxX;
-    int y;
-    int maxY;
-    int z;
-    int maxZ;
+
+    // Dimensions of the kernel (1D, 2D or 3D)
     int dimensions;
 
     // global index
@@ -545,7 +541,7 @@ public:
 
     virtual Buffer *getOrCreateBuffer(BufferState *bufferState) = 0;
 
-    virtual void info() = 0;
+    virtual void showDeviceInfo() = 0;
 
     virtual void computeStart() = 0;
 

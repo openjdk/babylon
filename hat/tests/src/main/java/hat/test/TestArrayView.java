@@ -26,6 +26,7 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.*;
@@ -33,7 +34,7 @@ import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -48,15 +49,15 @@ public class TestArrayView {
      */
     @CodeReflection
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
-        if (kc.x<kc.maxX){
+        if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
-            arr[kc.x] *= arr[kc.x];
+            arr[kc.gix] *= arr[kc.gix];
         }
     }
 
     @CodeReflection
     public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(s32Array.length(),
+        cc.dispatchKernel(NDRange.of(s32Array.length()),
                 kc -> squareKernel(kc, s32Array)
         );
     }
@@ -73,7 +74,7 @@ public class TestArrayView {
                 cc -> square(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            HatAsserts.assertEquals(i * i, arr.array(i));
+            HATAsserts.assertEquals(i * i, arr.array(i));
         }
     }
 
@@ -111,15 +112,15 @@ public class TestArrayView {
 
     @CodeReflection
     public static void square2DKernel(@RO  KernelContext kc, @RW S32Array2D s32Array2D) {
-        if (kc.x<kc.maxX){
+        if (kc.gix < kc.gsx){
             int[][] arr = s32Array2D.arrayView();
-            arr[kc.x][kc.y] *= arr[kc.x][kc.y];
+            arr[kc.gix][kc.giy] *= arr[kc.gix][kc.giy];
         }
     }
 
     @CodeReflection
     public static void square2D(@RO ComputeContext cc, @RW S32Array2D s32Array2D) {
-        cc.dispatchKernel(s32Array2D.width() * s32Array2D.height(),
+        cc.dispatchKernel(NDRange.of(s32Array2D.width() * s32Array2D.height()),
                 kc -> square2DKernel(kc, s32Array2D)
         );
     }
@@ -139,7 +140,7 @@ public class TestArrayView {
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.height(); i++) {
             for (int j = 0; j < arr.width(); j++) {
-                HatAsserts.assertEquals((i * 5 + j) * (i * 5 + j), arr.get(i, j));
+                HATAsserts.assertEquals((i * 5 + j) * (i * 5 + j), arr.get(i, j));
             }
         }
     }
@@ -260,15 +261,15 @@ public class TestArrayView {
 
         @CodeReflection
         public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
-            if (kc.x < kc.maxX) {
-                Compute.lifePerIdx(kc.x, control, cellGrid);
+            if (kc.gix < kc.gsx) {
+                Compute.lifePerIdx(kc.gix, control, cellGrid);
             }
         }
 
         @CodeReflection
         static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RW CellGrid grid) {
             int range = grid.width() * grid.height();
-            cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
+            cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid));
         }
     }
 
@@ -335,7 +336,7 @@ public class TestArrayView {
 
         for (int i = 0; i < cellGrid.height(); i++) {
             for (int j = 0; j < cellGrid.width(); j++) {
-                HatAsserts.assertEquals(resultGrid[i][j], cellGrid.array(((long) i * cellGrid.width()) + j));
+                HATAsserts.assertEquals(resultGrid[i][j], cellGrid.array(((long) i * cellGrid.width()) + j));
             }
         }
     }
@@ -362,13 +363,13 @@ public class TestArrayView {
 
     @CodeReflection
     public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             int[] pal = pallette.arrayView();
             int[][] s32 = s32Array2D.arrayView();
             float width = s32Array2D.width();
             float height = s32Array2D.height();
-            float x = ((kc.x % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-            float y = ((kc.x / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+            float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+            float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
             float zx = x;
             float zy = y;
             float new_zx;
@@ -380,7 +381,7 @@ public class TestArrayView {
                 colorIdx++;
             }
             int color = colorIdx < pal.length ? pal[colorIdx] : 0;
-            s32[kc.x % s32Array2D.width()][kc.x / s32Array2D.width()] = color;
+            s32[kc.gix % s32Array2D.width()][kc.gix / s32Array2D.width()] = color;
         }
     }
 
@@ -389,7 +390,7 @@ public class TestArrayView {
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
         computeContext.dispatchKernel(
-                s32Array2D.width()*s32Array2D.height(), //0..S32Array2D.size()
+                NDRange.of(s32Array2D.width()*s32Array2D.height()), //0..S32Array2D.size()
                 kc -> mandel(kc, s32Array2D, pallete, x, y, scale));
     }
 
@@ -424,7 +425,7 @@ public class TestArrayView {
                 int palletteValue = s32Array2D.get(x*subsample,y*subsample); // so 0->8
                 int paletteCheck = mandelCheck(x*subsample, y*subsample, width, height, palletteArray, originX, originY, defaultScale);
                 // System.out.print(charPallette9[palletteValue]);
-                HatAsserts.assertEquals(paletteCheck, palletteValue);
+                HATAsserts.assertEquals(paletteCheck, palletteValue);
             }
             // System.out.println();
         }
@@ -454,21 +455,21 @@ public class TestArrayView {
                                           @RO F32Array tArray,
                                           float r,
                                           float v) {
-        if (kc.x<kc.maxX){
+        if (kc.gix<kc.gsx){
             float[] callArr = call.arrayView();
             float[] putArr = put.arrayView();
             float[] sArr = sArray.arrayView();
             float[] xArr = xArray.arrayView();
             float[] tArr = tArray.arrayView();
 
-            float expNegRt = (float) Math.exp(-r * tArr[kc.x]);
-            float d1 = (float) ((Math.log(sArr[kc.x] / xArr[kc.x]) + (r + v * v * .5f) * tArr[kc.x]) / (v * Math.sqrt(tArr[kc.x])));
-            float d2 = (float) (d1 - v * Math.sqrt(tArr[kc.x]));
+            float expNegRt = (float) Math.exp(-r * tArr[kc.gix]);
+            float d1 = (float) ((Math.log(sArr[kc.gix] / xArr[kc.gix]) + (r + v * v * .5f) * tArr[kc.gix]) / (v * Math.sqrt(tArr[kc.gix])));
+            float d2 = (float) (d1 - v * Math.sqrt(tArr[kc.gix]));
             float cnd1 = CND(d1);
             float cnd2 = CND(d2);
-            float value = sArr[kc.x] * cnd1 - expNegRt * xArr[kc.x] * cnd2;
-            callArr[kc.x] = value;
-            putArr[kc.x] = expNegRt * xArr[kc.x] * (1 - cnd2) - sArr[kc.x] * (1 - cnd1);
+            float value = sArr[kc.gix] * cnd1 - expNegRt * xArr[kc.gix] * cnd2;
+            callArr[kc.gix] = value;
+            putArr[kc.gix] = expNegRt * xArr[kc.gix] * (1 - cnd2) - sArr[kc.gix] * (1 - cnd1);
         }
     }
 
@@ -502,7 +503,7 @@ public class TestArrayView {
 
     @CodeReflection
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(call.length(),
+        cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }
@@ -540,8 +541,8 @@ public class TestArrayView {
         float[] res;
         for (int i = 0; i < call.length(); i++) {
             res = blackScholesCheck(S.array(i), X.array(i), T.array(i), r, v);
-            HatAsserts.assertEquals(res[0], call.array(i), 0.0001);
-            HatAsserts.assertEquals(res[1], put.array(i), 0.0001);
+            HATAsserts.assertEquals(res[0], call.array(i), 0.0001);
+            HATAsserts.assertEquals(res[1], put.array(i), 0.0001);
         }
     }
 
@@ -593,26 +594,26 @@ public class TestArrayView {
     @CodeReflection
     public static void squareKernelWithPrivateAndLocal(@RO  KernelContext kc, @RW S32Array s32Array) {
         SharedMemory shared = SharedMemory.createLocal();
-        if (kc.x<kc.maxX){
+        if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
-            arr[kc.x] += arr[kc.x];
+            arr[kc.gix] += arr[kc.gix];
             // int[] a = new int[4];
             // a[1] = 4;
 
             PrivateArray priv = PrivateArray.createPrivate();
             int[] privView = priv.privateArrayView();
             privView[0] = 1;
-            arr[kc.x] += privView[0];
+            arr[kc.gix] += privView[0];
 
             int[] sharedView = shared.localArrayView();
             sharedView[0] = 16;
-            arr[kc.x] += sharedView[0];
+            arr[kc.gix] += sharedView[0];
         }
     }
 
     @CodeReflection
     public static void privateAndLocal(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(s32Array.length(),
+        cc.dispatchKernel(NDRange.of(s32Array.length()),
                 kc -> squareKernelWithPrivateAndLocal(kc, s32Array)
         );
     }
@@ -629,7 +630,7 @@ public class TestArrayView {
                 cc -> privateAndLocal(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            HatAsserts.assertEquals(2 * i + 17, arr.array(i));
+            HATAsserts.assertEquals(2 * i + 17, arr.array(i));
         }
     }
 }

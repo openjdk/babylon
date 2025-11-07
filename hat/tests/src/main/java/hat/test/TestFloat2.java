@@ -26,32 +26,32 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.NDRange;
 import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32ArrayPadded;
-import hat.buffer.Float4;
+import hat.buffer.Float2;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
+import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-public class TestVectorTypes {
+public class TestFloat2 {
 
     @CodeReflection
     public static void vectorOps01(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            Float4 vB = b.float4View(index * 4);
-            Float4 vC = Float4.add(vA, vB);
-            c.storeFloat4View(vC, index * 4);
+            Float2 vA = a.float2View(index * 2);
+            Float2 vB = b.float2View(index * 2);
+            Float2 vC = Float2.add(vA, vB);
+            c.storeFloat2View(vC, index * 2);
         }
     }
 
@@ -59,10 +59,10 @@ public class TestVectorTypes {
     public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4.MutableImpl vA = a.float4View(index * 4);
+            Float2.MutableImpl vA = a.float2View(index * 2);
             float scaleX = vA.x() * 10.0f;
             vA.x(scaleX);
-            b.storeFloat4View(vA, index * 4);
+            b.storeFloat2View(vA, index * 2);
         }
     }
 
@@ -73,19 +73,17 @@ public class TestVectorTypes {
 
             // Obtain a view of the input data as a float4 and
             // store that view in private memory
-            Float4 vA = a.float4View(index * 4);
+            Float2 vA = a.float2View(index * 2);
 
             // operate with the float4
             float scaleX = vA.x() * 10.0f;
             float scaleY = vA.y() * 20.0f;
-            float scaleZ = vA.z() * 30.0f;
-            float scaleW = vA.w() * 40.0f;
 
             // Create a float4 within the device code
-            Float4 vResult = Float4.of(scaleX, scaleY, scaleZ, scaleW);
+            Float2 vResult = Float2.of(scaleX, scaleY);
 
             // store the float4 from private memory to global memory
-            b.storeFloat4View(vResult, index * 4);
+            b.storeFloat2View(vResult, index * 2);
         }
     }
 
@@ -93,12 +91,10 @@ public class TestVectorTypes {
     public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4.MutableImpl vA = a.float4View(index * 4);
+            Float2.MutableImpl vA = a.float2View(index * 2);
             vA.x(vA.x() * 10.0f);
             vA.y(vA.y() * 20.0f);
-            vA.z(vA.z() * 30.0f);
-            vA.w(vA.w() * 40.0f);
-            b.storeFloat4View(vA, index * 4);
+            b.storeFloat2View(vA, index * 2);
         }
     }
 
@@ -106,10 +102,10 @@ public class TestVectorTypes {
     public static void vectorOps05(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            Float4 vB = b.float4View(index * 4);
-            Float4 vC = vA.add(vB).add(vB);
-            c.storeFloat4View(vC, index * 4);
+            Float2 vA = a.float2View(index * 2);
+            Float2 vB = b.float2View(index * 2);
+            Float2 vC = vA.add(vB).add(vB);
+            c.storeFloat2View(vC, index * 2);
         }
     }
 
@@ -117,11 +113,11 @@ public class TestVectorTypes {
     public static void vectorOps06(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            Float4 vB = b.float4View(index * 4);
-            Float4 vD = Float4.sub(vA, vB);
-            Float4 vC = vA.sub(vB);
-            c.storeFloat4View(vC, index * 4);
+            Float2 vA = a.float2View(index * 2);
+            Float2 vB = b.float2View(index * 2);
+            Float2 vD = Float2.sub(vA, vB);
+            Float2 vC = vA.sub(vB);
+            c.storeFloat2View(vC, index * 2);
         }
     }
 
@@ -129,10 +125,10 @@ public class TestVectorTypes {
     public static void vectorOps07(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            Float4 vB = b.float4View(index * 4);
-            Float4 vC = vA.add(vB).sub(vB);
-            c.storeFloat4View(vC, index * 4);
+            Float2 vA = a.float2View(index * 2);
+            Float2 vB = b.float2View(index * 2);
+            Float2 vC = vA.add(vB).sub(vB);
+            c.storeFloat2View(vC, index * 2);
         }
     }
 
@@ -140,10 +136,10 @@ public class TestVectorTypes {
     public static void vectorOps08(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            Float4 vB = b.float4View(index * 4);
-            Float4 vC = vA.add(vB).mul(vA).div(vB);
-            c.storeFloat4View(vC, index * 4);
+            Float2 vA = a.float2View(index * 2);
+            Float2 vB = b.float2View(index * 2);
+            Float2 vC = vA.add(vB).mul(vA).div(vB);
+            c.storeFloat2View(vC, index * 2);
         }
     }
 
@@ -152,42 +148,42 @@ public class TestVectorTypes {
         // Checking composition
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            Float4 vB = b.float4View(index * 4);
-            Float4 vC = vA.add(vA.mul(vB));
-            c.storeFloat4View(vC, index * 4);
+            Float2 vA = a.float2View(index * 2);
+            Float2 vB = b.float2View(index * 2);
+            Float2 vC = vA.add(vA.mul(vB));
+            c.storeFloat2View(vC, index * 2);
         }
     }
 
-    private interface SharedMemory extends Buffer {
+    private interface SharedArray extends Buffer {
         void array(long index, float value);
         float array(long index);
-        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
+        Schema<SharedArray> schema = Schema.of(SharedArray.class,
                 arr -> arr.array("array", 1024));
-        static SharedMemory create(Accelerator accelerator) {
+        static SharedArray create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
-        static SharedMemory createLocal() {
+        static SharedArray createLocal() {
             return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
-        default Float4 float4View(int index) {
+        default Float2 float2View(int index) {
             return null;
         }
-        default void storeFloat4View(Float4 float4, int index) {
+        default void storeFloat2View(Float2 float4, int index) {
         }
     }
 
     @CodeReflection
     public static void vectorOps10(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
-        SharedMemory sm = SharedMemory.createLocal();
+        SharedArray sm = SharedArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             int lix = kernelContext.lix;
-            Float4 vA = a.float4View(index * 4);
-            sm.storeFloat4View(vA, lix * 4);
+            Float2 vA = a.float2View(index * 2);
+            sm.storeFloat2View(vA, lix * 2);
             kernelContext.barrier();
-            Float4 r = sm.float4View(lix * 4);
-            b.storeFloat4View(r, index * 4);
+            Float2 r = sm.float2View(lix * 2);
+            b.storeFloat2View(r, index * 2);
         }
     }
 
@@ -202,10 +198,10 @@ public class TestVectorTypes {
         static PrivateMemory createPrivate() {
             return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
-        default Float4 float4View(int index) {
+        default Float2 float2View(int index) {
             return null;
         }
-        default void storeFloat4View(Float4 float4, int index) {
+        default void storeFloat2View(Float2 float4, int index) {
         }
     }
 
@@ -214,28 +210,26 @@ public class TestVectorTypes {
         PrivateMemory pm = PrivateMemory.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            pm.storeFloat4View(vA, 0);
+            Float2 vA = a.float2View(index * 2);
+            pm.storeFloat2View(vA, 0);
             kernelContext.barrier();
-            Float4 r = pm.float4View(0);
-            b.storeFloat4View(r, index * 4);
+            Float2 r = pm.float2View(0);
+            b.storeFloat2View(r, index * 2);
         }
     }
 
     @CodeReflection
     public static void vectorOps12(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
-        SharedMemory sm = SharedMemory.createLocal();
+        SharedArray sm = SharedArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             int lix = kernelContext.lix;
-            Float4 vA = a.float4View(index * 4);
-            sm.array(lix * 4 + 0, vA.x());
-            sm.array(lix * 4 + 1, vA.y());
-            sm.array(lix * 4 + 2, vA.z());
-            sm.array(lix * 4 + 3, vA.w());
+            Float2 vA = a.float2View(index * 2);
+            sm.array(lix * 2 + 0, vA.x());
+            sm.array(lix * 2 + 1, vA.y());
             kernelContext.barrier();
-            Float4 r = sm.float4View(lix * 4);
-            b.storeFloat4View(r, index * 4);
+            Float2 r = sm.float2View(lix * 2);
+            b.storeFloat2View(r, index * 2);
         }
     }
 
@@ -243,125 +237,127 @@ public class TestVectorTypes {
     public static void vectorOps14(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
-            Float4.MutableImpl vB = Float4.makeMutable(vA);
+            Float2 vA = a.float2View(index * 2);
+            Float2.MutableImpl vB = Float2.makeMutable(vA);
             vB.x(10.0f);
-            a.storeFloat4View(vB, index * 4);
+            a.storeFloat2View(vB, index * 2);
         }
     }
+
 
     @CodeReflection
     public static void vectorOps15(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
         // in this sample, we don't perform the vload, but rather the vstore directly
-        // from a new float4.
+        // from a new float2.
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 result = Float4.of(1.0f, 2.0f, 3.0f, 4.0f);
-            a.storeFloat4View(result, index * 4);
+            Float2 result = Float2.of(1.0f, 2.0f);
+            a.storeFloat2View(result, index * 2);
         }
     }
 
     @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4), new NDRange.Local1D(128));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps01(kernelContext, a, b, c));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2), new NDRange.Local1D(128));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps01(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps02(kernelContext, a, b));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps02(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps03(kernelContext, a, b));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps03(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps04(kernelContext, a, b));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps04(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps05(kernelContext, a, b, c));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps05(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps06(kernelContext, a, b, c));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps06(kernelContext, a, b, c));
     }
 
 
     @CodeReflection
     public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps07(kernelContext, a, b, c));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps07(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps08(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps09(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps10(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps11(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps12(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps14(kernelContext, a));
     }
 
     @CodeReflection
     public static void computeGraph15(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
-        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
-        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps15(kernelContext, a));
+        // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps15(kernelContext, a));
     }
 
+
     @HatTest
-    public void testVectorTypes01() {
+    public void testFloat2_01() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -374,7 +370,7 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph01(cc, arrayA, arrayB, arrayC, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph01(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((arrayA.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
@@ -383,7 +379,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
-    public void testVectorTypes02() {
+    public void testFloat2_02() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -394,18 +390,16 @@ public class TestVectorTypes {
             arrayA.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph02(cc, arrayA, arrayB, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph02(cc, arrayA, arrayB, size));
 
-        for (int i = 0; i < size; i += 4) {
+        for (int i = 0; i < size; i += 2) {
             HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
             HATAsserts.assertEquals((arrayA.array(i + 1)), arrayB.array(i + 1), 0.001f);
-            HATAsserts.assertEquals((arrayA.array(i + 2)), arrayB.array(i + 2), 0.001f);
-            HATAsserts.assertEquals((arrayA.array(i + 3)), arrayB.array(i + 3), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes03() {
+    public void testFloat2_03() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -416,18 +410,16 @@ public class TestVectorTypes {
             arrayA.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph03(cc, arrayA, arrayB, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph03(cc, arrayA, arrayB, size));
 
-        for (int i = 0; i < size; i += 4) {
+        for (int i = 0; i < size; i += 2) {
             HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
             HATAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
-            HATAsserts.assertEquals((arrayA.array(i + 2) * 30.0f), arrayB.array(i + 2), 0.001f);
-            HATAsserts.assertEquals((arrayA.array(i + 3) * 40.0f), arrayB.array(i + 3), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes04() {
+    public void testFloat2_04() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -438,18 +430,16 @@ public class TestVectorTypes {
             arrayA.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph04(cc, arrayA, arrayB, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph04(cc, arrayA, arrayB, size));
 
-        for (int i = 0; i < size; i += 4) {
+        for (int i = 0; i < size; i += 2) {
             HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
             HATAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
-            HATAsserts.assertEquals((arrayA.array(i + 2) * 30.0f), arrayB.array(i + 2), 0.001f);
-            HATAsserts.assertEquals((arrayA.array(i + 3) * 40.0f), arrayB.array(i + 3), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes05() {
+    public void testFloat2_05() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -462,15 +452,15 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph05(cc, arrayA, arrayB, arrayC, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph05(cc, arrayA, arrayB, arrayC, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((arrayA.array(i) + arrayB.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes06() {
+    public void testFloat2_06() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -483,15 +473,15 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph06(cc, arrayA, arrayB, arrayC, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph06(cc, arrayA, arrayB, arrayC, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((arrayA.array(i) - arrayB.array(i)), arrayC.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes07() {
+    public void testFloat2_07() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -504,15 +494,15 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph07(cc, arrayA, arrayB, arrayC, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph07(cc, arrayA, arrayB, arrayC, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals(arrayA.array(i), arrayC.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes08() {
+    public void testFloat2_08() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -525,16 +515,16 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph08(cc, arrayA, arrayB, arrayC, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph08(cc, arrayA, arrayB, arrayC, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             float val = (((arrayA.array(i) + arrayB.array(i)) * arrayA.array(i)) / arrayB.array(i));
             HATAsserts.assertEquals(val, arrayC.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes09() {
+    public void testFloat2_09() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -547,16 +537,16 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph09(cc, arrayA, arrayB, arrayC, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph09(cc, arrayA, arrayB, arrayC, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             float val = (arrayA.array(i) + (arrayB.array(i)) * arrayA.array(i));
             HATAsserts.assertEquals(val, arrayC.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes10() {
+    public void testFloat2_10() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -568,15 +558,15 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph10(cc, arrayA, arrayB, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph10(cc, arrayA, arrayB, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes11() {
+    public void testFloat2_11() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -588,15 +578,15 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph11(cc, arrayA, arrayB, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph11(cc, arrayA, arrayB, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes12() {
+    public void testFloat2_12() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -608,56 +598,46 @@ public class TestVectorTypes {
             arrayB.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph12(cc, arrayA, arrayB, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph12(cc, arrayA, arrayB, size));
 
-        for (int i = 0; i < size; i ++) {
+        for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes13() {
+    public void testFloat2_13() {
         // Test the CPU implementation of Float4
-        Float4 vA = Float4.of(1, 2, 3, 4);
-        Float4 vB = Float4.of(4, 3, 2, 1);
-        Float4 vC = Float4.add(vA, vB);
-        Float4 expectedSum = Float4.of(vA.x() + vB.x(),
-                vA.y() + vB.y(),
-                vA.z() + vB.z(),
-                vA.w() + vB.w()
-                );
+        Float2 vA = Float2.of(1, 2);
+        Float2 vB = Float2.of(3, 4);
+        Float2 vC = Float2.add(vA, vB);
+        Float2 expectedSum = Float2.of(
+                vA.x() + vB.x(),
+                vA.y() + vB.y());
+
         HATAsserts.assertEquals(expectedSum, vC, 0.001f);
 
-        Float4 vD = Float4.sub(vA, vB);
-        Float4 expectedSub = Float4.of(
+        Float2 vD = Float2.sub(vA, vB);
+        Float2 expectedSub = Float2.of(
                 vA.x() - vB.x(),
-                vA.y() - vB.y(),
-                vA.z() - vB.z(),
-                vA.w() - vB.w()
-        );
+                vA.y() - vB.y());
         HATAsserts.assertEquals(expectedSub, vD, 0.001f);
 
-        Float4 vE = Float4.mul(vA, vB);
-        Float4 expectedMul = Float4.of(
+        Float2 vE = Float2.mul(vA, vB);
+        Float2 expectedMul = Float2.of(
                 vA.x() * vB.x(),
-                vA.y() * vB.y(),
-                vA.z() * vB.z(),
-                vA.w() * vB.w()
-        );
+                vA.y() * vB.y());
         HATAsserts.assertEquals(expectedMul, vE, 0.001f);
 
-        Float4 vF = Float4.div(vA, vB);
-        Float4 expectedDiv = Float4.of(
+        Float2 vF = Float2.div(vA, vB);
+        Float2 expectedDiv = Float2.of(
                 vA.x() / vB.x(),
-                vA.y() / vB.y(),
-                vA.z() / vB.z(),
-                vA.w() / vB.w()
-        );
+                vA.y() / vB.y());
         HATAsserts.assertEquals(expectedDiv, vF, 0.001f);
     }
 
     @HatTest
-    public void testVectorTypes14() {
+    public void testFloat2_14() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -667,15 +647,15 @@ public class TestVectorTypes {
             arrayA.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph14(cc, arrayA, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph14(cc, arrayA, size));
 
-        for (int i = 0; i < size; i += 4) {
+        for (int i = 0; i < size; i += 2) {
             HATAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
         }
     }
 
     @HatTest
-    public void testVectorTypes15() {
+    public void testFloat2_15() {
         final int size = 2048;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32ArrayPadded.create(accelerator, size);
@@ -685,16 +665,12 @@ public class TestVectorTypes {
             arrayA.array(i, r.nextFloat());
         }
 
-        accelerator.compute(cc -> TestVectorTypes.computeGraph15(cc, arrayA, size));
+        accelerator.compute(cc -> TestFloat2.computeGraph15(cc, arrayA, size));
 
-        Float4 v = Float4.of(1.0f, 2.0f, 3.0f, 4.0f);
-        for (int i = 0; i < size; i += 4) {
+        Float2 v = Float2.of(1.0f, 2.0f);
+        for (int i = 0; i < size; i += 2) {
             HATAsserts.assertEquals(v.x(), arrayA.array(i), 0.001f);
             HATAsserts.assertEquals(v.y(), arrayA.array(i + 1), 0.001f);
-            HATAsserts.assertEquals(v.z(), arrayA.array(i + 2), 0.001f);
-            HATAsserts.assertEquals(v.w(), arrayA.array(i + 3), 0.001f);
         }
     }
-
 }
-

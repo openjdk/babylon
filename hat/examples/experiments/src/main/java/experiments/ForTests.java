@@ -26,6 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.F32Array;
 
@@ -38,8 +39,8 @@ public class ForTests {
 
         @CodeReflection
         static void breakAndContinue(KernelContext kc, F32Array a) {
-            long i = kc.x;
-            long size = kc.maxX;
+            long i = kc.gix;
+            long size = kc.gsx;
             outer:
             for (long j = 0; j < size; j++) {
                 float sum = 0f;
@@ -76,9 +77,9 @@ public class ForTests {
 
         @CodeReflection
         static void compute(ComputeContext computeContext, F32Array a) {
-            computeContext.dispatchKernel(a.length(), (kc) -> counted(kc, a));
-            computeContext.dispatchKernel(a.length(), (kc) -> tuple(kc, a));
-            computeContext.dispatchKernel(a.length(), (kc) -> breakAndContinue(kc, a));
+            computeContext.dispatchKernel(NDRange.of(a.length()), (kc) -> counted(kc, a));
+            computeContext.dispatchKernel(NDRange.of(a.length()), (kc) -> tuple(kc, a));
+            computeContext.dispatchKernel(NDRange.of(a.length()), (kc) -> breakAndContinue(kc, a));
         }
 
     }

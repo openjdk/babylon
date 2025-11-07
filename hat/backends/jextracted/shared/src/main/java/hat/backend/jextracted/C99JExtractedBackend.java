@@ -26,7 +26,7 @@
 package hat.backend.jextracted;
 
 import hat.Config;
-import hat.NDRange;
+import hat.KernelContext;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
@@ -65,11 +65,11 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph,  ndRangeAndArgs);
         }
 
-        public void dispatch(NDRange ndRange, Object[] args) {
-            kernelContext.maxX(ndRange.kid.maxX);
+        public void dispatch(KernelContext kernelContext, Object[] args) {
+            this.kernelContext.gsx(kernelContext.gsx);
             args[0] = this.kernelContext;
-            ArgArray.update(argArray,kernelCallGraph,  args);
-         //   c99NativeBackend.ndRange(kernelHandle, this.argArray);
+            ArgArray.update(argArray, kernelCallGraph, args);
+            //kernelBridge.ndRange(this.argArray);
         }
     }
 

@@ -22,32 +22,51 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat;
+package hat.dialect;
 
-public record GlobalMesh1D(int x) implements ThreadMesh {
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 
-    @Override
-    public int getX() {
-        return x;
+import java.util.List;
+import java.util.Map;
+
+public class HATF16ToFloatConvOp extends HATF16Op {
+
+    private final TypeElement typeElement;
+    private final boolean isLocal;
+
+    public HATF16ToFloatConvOp(TypeElement typeElement, boolean isLocal, List<Value> operands) {
+        super("", operands);
+        this.typeElement = typeElement;
+        this.isLocal = isLocal;
+    }
+
+    public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
+        this.isLocal = op.isLocal;
     }
 
     @Override
-    public int getY() {
-        return 1;
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HATF16ToFloatConvOp(this, copyContext);
     }
 
     @Override
-    public int getZ() {
-        return 1;
+    public TypeElement resultType() {
+        return typeElement;
     }
 
     @Override
-    public int getDims() {
-        return 1;
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect.f16ToFloat", typeElement);
     }
 
-    @Override
-    public String toString() {
-        return "<1D GlobalMesh: " + getX() + ">";
+    public boolean isLocal() {
+        return isLocal;
     }
+
 }

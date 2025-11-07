@@ -25,11 +25,11 @@
 package hat.tools.textmodel.ui;
 
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
 import hat.ifacemapper.MappableIface;
-import hat.tools.textmodel.ui.FuncOpViewer;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -41,11 +41,11 @@ public class TestFuncOpViewer {
     static class Compute {
         @CodeReflection
         public static void mandel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array2D s32Array2D, @MappableIface.RO S32Array pallette, float offsetx, float offsety, float scale) {
-            if (kc.x < kc.maxX) {
+            if (kc.gix < kc.gsx) {
                 float width = s32Array2D.width();
                 float height = s32Array2D.height();
-                float x = ((kc.x % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-                float y = ((kc.x / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+                float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+                float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
                 float zx = x;
                 float zy = y;
                 float new_zx;
@@ -57,7 +57,7 @@ public class TestFuncOpViewer {
                     colorIdx++;
                 }
                 int color = colorIdx < pallette.length() ? pallette.array(colorIdx) : 0;
-                s32Array2D.array(kc.x, color);
+                s32Array2D.array(kc.gix, color);
             }
         }
 
@@ -66,7 +66,7 @@ public class TestFuncOpViewer {
         static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
             computeContext.dispatchKernel(
-                    s32Array2D.width() * s32Array2D.height(), //0..S32Array2D.size()
+                    NDRange.of(s32Array2D.width() * s32Array2D.height()),         //0..S32Array2D.size()
                     kc -> mandel(kc, s32Array2D, pallete, x, y, scale));
         }
 

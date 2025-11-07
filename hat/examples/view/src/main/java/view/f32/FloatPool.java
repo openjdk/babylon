@@ -24,7 +24,7 @@
  */
 package view.f32;
 
-public class FloatPool extends Pool {
+public abstract class FloatPool<T extends FloatPool<T>> extends Pool<T> {
     public final float entries[];
     FloatPool(int stride, int max) {
         super(stride,max);

@@ -230,7 +230,6 @@ public class Names {
 
     // code reflection
     public final Name jdk_incubator_code;
-    public final Name quoted;
     public final Name quotable;
 
     // special annotation names
@@ -423,7 +422,6 @@ public class Names {
 
         // code reflection
         jdk_incubator_code = fromString("jdk.incubator.code");
-        quoted = fromString("Quoted");
         quotable = fromString("Quotable");
 
         // special annotations:

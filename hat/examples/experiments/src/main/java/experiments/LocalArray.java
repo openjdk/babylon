@@ -27,10 +27,8 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
 import hat.KernelContext;
-import hat.LocalMesh1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -85,8 +83,8 @@ public class LocalArray {
 
     @CodeReflection
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(16));
-        computeContext.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(32), new NDRange.Local1D(16));
+        computeContext.dispatchKernel(ndRange,
                 kernelContext -> compute(kernelContext, data)
         );
     }

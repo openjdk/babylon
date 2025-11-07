@@ -26,7 +26,7 @@ package mandel;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.Config;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -35,18 +35,17 @@ import hat.buffer.S32Array2D;
 import java.awt.Color;
 import java.lang.invoke.MethodHandles;
 
-import hat.ifacemapper.SegmentMapper;
 import jdk.incubator.code.CodeReflection;
 import static hat.ifacemapper.MappableIface.*;
 
 public class Main {
     @CodeReflection
     public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();
-            float x = ((kc.x % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-            float y = ((kc.x / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+            float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+            float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
             float zx = x;
             float zy = y;
             float new_zx;
@@ -58,16 +57,15 @@ public class Main {
                 colorIdx++;
             }
             int color = colorIdx < pallette.length() ? pallette.array(colorIdx) : 0;
-            s32Array2D.array(kc.x, color);
+            s32Array2D.array(kc.gix, color);
         }
     }
 
 
     @CodeReflection
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
-
         computeContext.dispatchKernel(
-                s32Array2D.width()*s32Array2D.height(), //0..S32Array2D.size()
+                NDRange.of(s32Array2D.width()*s32Array2D.height()),               //0..S32Array2D.size()
                 kc -> Main.mandel(kc, s32Array2D, pallete, x, y, scale));
     }
 
