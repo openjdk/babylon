@@ -34,8 +34,8 @@ import java.util.List;
 
 public class HATF16DivOp extends HATF16BinaryOp {
 
-    public HATF16DivOp(TypeElement typeElement, List<Boolean> references, List<Value> operands) {
-        super(typeElement, OpType.DIV, references, operands);
+    public HATF16DivOp(TypeElement typeElement, List<Boolean> references, byte f32, List<Value> operands) {
+        super(typeElement, OpType.DIV, references, f32, operands);
     }
 
     public HATF16DivOp(HATF16DivOp op, CopyContext copyContext) {

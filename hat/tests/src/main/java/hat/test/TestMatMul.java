@@ -30,6 +30,7 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
+import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
@@ -42,7 +43,6 @@ import jdk.incubator.code.CodeReflection;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.buffer.F16Array.F16;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 
@@ -435,8 +435,8 @@ public class TestMatMul {
         Random r = new Random(19);
 
         for (int j = 0; j < matrixA.length(); j++) {
-            matrixA.array(j).value(F16.floatToF16(r.nextFloat()));
-            matrixB.array(j).value(F16.floatToF16(r.nextFloat()));
+            matrixA.array(j).value(F16.floatToF16(r.nextFloat()).value());
+            matrixB.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
 
         accelerator.compute(cc ->

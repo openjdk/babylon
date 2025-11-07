@@ -31,19 +31,42 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
 import java.util.List;
+import java.util.Map;
 
-public class HATF16MulOp extends HATF16BinaryOp {
+public class HATF16ToFloatConvOp extends HATF16Op {
 
-    public HATF16MulOp(TypeElement typeElement, List<Boolean> references, byte f32, List<Value> operands) {
-        super(typeElement, OpType.MUL, references, f32, operands);
+    private final TypeElement typeElement;
+    private final boolean isLocal;
+
+    public HATF16ToFloatConvOp(TypeElement typeElement, boolean isLocal, List<Value> operands) {
+        super("", operands);
+        this.typeElement = typeElement;
+        this.isLocal = isLocal;
     }
 
-    public HATF16MulOp(HATF16MulOp op, CopyContext copyContext) {
+    public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CopyContext copyContext) {
         super(op, copyContext);
+        this.typeElement = op.typeElement;
+        this.isLocal = op.isLocal;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATF16MulOp(this, copyContext);
+        return new HATF16ToFloatConvOp(this, copyContext);
     }
+
+    @Override
+    public TypeElement resultType() {
+        return typeElement;
+    }
+
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect.f16ToFloat", typeElement);
+    }
+
+    public boolean isLocal() {
+        return isLocal;
+    }
+
 }

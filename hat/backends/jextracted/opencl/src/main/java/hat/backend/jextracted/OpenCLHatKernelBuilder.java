@@ -28,6 +28,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorOfOp;
@@ -37,8 +38,6 @@ import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-
-import java.util.List;
 
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
 
@@ -208,6 +207,13 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     @Override
     public OpenCLHatKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
         oparen().identifier(hatVectorOfOp.buildType()).cparen().oparen();
+        return self();
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+        oparen().halfType().cparen();
+        identifier(hatF16ToFloatConvOp.varName());
         return self();
     }
 

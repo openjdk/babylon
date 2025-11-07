@@ -34,8 +34,8 @@ import java.util.List;
 
 public class HATF16SubOp extends HATF16BinaryOp {
 
-    public HATF16SubOp(TypeElement typeElement, List<Boolean> references, List<Value> operands) {
-        super(typeElement, OpType.SUB, references, operands);
+    public HATF16SubOp(TypeElement typeElement, List<Boolean> references, byte f32, List<Value> operands) {
+        super(typeElement, OpType.SUB, references, f32, operands);
     }
 
     public HATF16SubOp(HATF16SubOp op, CopyContext copyContext) {
