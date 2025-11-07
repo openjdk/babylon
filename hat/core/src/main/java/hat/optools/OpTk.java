@@ -686,4 +686,27 @@ public class OpTk {
     public static boolean returnIsVoid(JavaOp.InvokeOp invokeOp){
         return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();
     }
+
+    // IMPORTANT:
+    // When we have patterns like:
+    //
+    // myiFaceArray.array().value(storeAValue);
+    //
+    // We need to generate extra parenthesis to make the struct pointer accessor "->" correct.
+    // This is a common pattern when we have a IFace type that contains a subtype based on
+    // struct or union.
+    //
+    // An example of this is for the type F16Array.
+    public static boolean needExtraParenthesis(JavaOp.InvokeOp invokeOp) {
+
+        // The following expression checks that the current invokeOp has at least 2 operands:
+        // Why 2?
+        // - The first one is another invokeOp to load the inner struct from an IFace data structure.
+        //   The first operand is also assignable.
+        // - The second one is the store value, but this depends on the semantics and definition
+        //   of the user code.
+        return invokeOp.operands().size() >= 2 && invokeOp.operands().get(0) instanceof Op.Result r1
+                && r1.op() instanceof JavaOp.InvokeOp invokeOp2
+                && OpTk.javaReturnType(invokeOp2) instanceof ClassType;
+    }
 }
