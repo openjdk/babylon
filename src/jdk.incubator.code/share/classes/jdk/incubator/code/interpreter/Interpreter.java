@@ -268,10 +268,6 @@ public final class Interpreter {
         static final Object UINITIALIZED = new Object();
     }
 
-    record ClosureRecord(CoreOp.ClosureOp op,
-                         List<Object> capturedArguments) {
-    }
-
     record TupleRecord(List<Object> components) {
         Object getComponent(int index) {
             return components.get(index);
@@ -520,17 +516,6 @@ public final class Interpreter {
             } else {
                 return fiInstance;
             }
-        } else if (o instanceof CoreOp.ClosureOp co) {
-            List<Object> capturedArguments = co.capturedValues().stream()
-                    .map(oc::getValue).toList();
-            return new ClosureRecord(co, capturedArguments);
-        } else if (o instanceof CoreOp.ClosureCallOp cco) {
-            List<Object> values = o.operands().stream().map(oc::getValue).toList();
-            ClosureRecord cr = (ClosureRecord) values.get(0);
-
-            List<Object> arguments = new ArrayList<>(values.subList(1, values.size()));
-            arguments.addAll(cr.capturedArguments);
-            return Interpreter.invoke(l, cr.op(), arguments);
         } else if (o instanceof CoreOp.VarOp vo) {
             Object v = vo.isUninitialized()
                     ? VarBox.UINITIALIZED
