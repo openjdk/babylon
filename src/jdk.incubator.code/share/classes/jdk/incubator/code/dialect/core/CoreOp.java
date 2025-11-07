@@ -390,116 +390,6 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * The closure operation, that can model a structured Java lambda expression
-     * that has no target type (a functional interface).
-     */
-    @OpDeclaration(ClosureOp.NAME)
-    public static final class ClosureOp extends CoreOp
-            implements Op.Invokable, Op.Lowerable, JavaOp.JavaExpression {
-
-        public static class Builder {
-            final Body.Builder ancestorBody;
-            final FunctionType funcType;
-
-            Builder(Body.Builder ancestorBody, FunctionType funcType) {
-                this.ancestorBody = ancestorBody;
-                this.funcType = funcType;
-            }
-
-            public ClosureOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
-                c.accept(body.entryBlock());
-                return new ClosureOp(body);
-            }
-        }
-
-        static final String NAME = "closure";
-
-        final Body body;
-
-        ClosureOp(ExternalizedOp def) {
-            this(def.bodyDefinitions().get(0));
-        }
-
-        ClosureOp(ClosureOp that, CopyContext cc, OpTransformer ot) {
-            super(that, cc);
-
-            this.body = that.body.transform(cc, ot).build(this);
-        }
-
-        @Override
-        public ClosureOp transform(CopyContext cc, OpTransformer ot) {
-            return new ClosureOp(this, cc, ot);
-        }
-
-        ClosureOp(Body.Builder bodyC) {
-            super(List.of());
-
-            this.body = bodyC.build(this);
-        }
-
-        @Override
-        public List<Body> bodies() {
-            return List.of(body);
-        }
-
-        @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
-        }
-
-        @Override
-        public Body body() {
-            return body;
-        }
-
-        @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
-            // Isolate body with respect to ancestor transformations
-            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
-            return b;
-        }
-
-        @Override
-        public TypeElement resultType() {
-            return body.bodyType();
-        }
-    }
-
-    /**
-     * The closure call operation, that models a call to a closure, by reference
-     */
-//  @@@ stack effects equivalent to the invocation of an SAM of on an instance of an anonymous functional interface
-//  that is the target of the closures lambda expression.
-    @OpDeclaration(ClosureCallOp.NAME)
-    public static final class ClosureCallOp extends CoreOp {
-        static final String NAME = "closure.call";
-
-        ClosureCallOp(ExternalizedOp def) {
-            this(def.operands());
-        }
-
-        ClosureCallOp(ClosureCallOp that, CopyContext cc) {
-            super(that, cc);
-        }
-
-        @Override
-        public ClosureCallOp transform(CopyContext cc, OpTransformer ot) {
-            return new ClosureCallOp(this, cc);
-        }
-
-        ClosureCallOp(List<Value> args) {
-            super(args);
-        }
-
-        @Override
-        public TypeElement resultType() {
-            FunctionType ft = (FunctionType) operands().getFirst().type();
-            return ft.returnType();
-        }
-    }
-
-    /**
      * The terminating return operation, that can model the Java language return statement.
      * <p>
      * This operation exits an isolated body.
@@ -1232,8 +1122,6 @@ public sealed abstract class CoreOp extends Op {
         Op op = switch (def.name()) {
             case "branch" -> new BranchOp(def);
             case "cbranch" -> new ConditionalBranchOp(def);
-            case "closure" -> new ClosureOp(def);
-            case "closure.call" -> new ClosureCallOp(def);
             case "constant" -> new ConstantOp(def);
             case "func" -> new FuncOp(def);
             case "func.call" -> new FuncCallOp(def);
@@ -1373,50 +1261,6 @@ public sealed abstract class CoreOp extends Op {
      */
     public static QuotedOp quoted(Body.Builder body) {
         return new QuotedOp(body);
-    }
-
-    /**
-     * Creates a closure operation.
-     *
-     * @param ancestorBody the ancestor of the body of the closure operation
-     * @param funcType     the closure operation's function type
-     * @return the closure operation
-     */
-    public static ClosureOp.Builder closure(Body.Builder ancestorBody,
-                                            FunctionType funcType) {
-        return new ClosureOp.Builder(ancestorBody, funcType);
-    }
-
-    /**
-     * Creates a closure operation.
-     *
-     * @param body the body of the closure operation
-     * @return the closure operation
-     */
-    public static ClosureOp closure(Body.Builder body) {
-        return new ClosureOp(body);
-    }
-
-    /**
-     * Creates a closure call operation.
-     *
-     * @param args the closure arguments. The first argument is the closure operation to be called
-     * @return the closure call operation
-     */
-    // @@@: Is this the right signature?
-    public static ClosureCallOp closureCall(Value... args) {
-        return closureCall(List.of(args));
-    }
-
-    /**
-     * Creates a closure call operation.
-     *
-     * @param args the closure arguments. The first argument is the closure operation to be called
-     * @return the closure call operation
-     */
-    // @@@: Is this the right signature?
-    public static ClosureCallOp closureCall(List<Value> args) {
-        return new ClosureCallOp(args);
     }
 
     /**

@@ -90,7 +90,6 @@ public sealed abstract class JavaOp extends Op {
             ArrayLengthOp,
             CastOp,
             ConvOp,
-            ClosureOp,
             ConcatOp,
             ConstantOp,
             FieldAccessOp.FieldLoadOp,
