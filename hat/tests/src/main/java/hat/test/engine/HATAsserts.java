@@ -27,29 +27,35 @@ package hat.test.engine;
 import hat.buffer.Float2;
 import hat.buffer.Float4;
 
-public class HatAsserts {
+public class HATAsserts {
+
+    public static void assertEquals(short expected, short actual) {
+        if (expected != actual) {
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
+        }
+    }
 
     public static void assertEquals(int expected, int actual) {
         if (expected != actual) {
-            throw new HatAssertionError("Expected: " + expected + " != actual: " + actual);
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
 
     public static void assertEquals(long expected, long actual) {
         if (expected != actual) {
-            throw new HatAssertionError("Expected: " + expected + " != actual: " + actual);
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
 
     public static void assertEquals(float expected, float actual, float delta) {
         if (Math.abs(expected - actual) > delta) {
-            throw new HatAssertionError("Expected: " + expected + " != actual: " + actual);
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
 
     public static void assertEquals(double expected, double actual, double delta) {
         if (Math.abs(expected - actual) > delta) {
-            throw new HatAssertionError("Expected: " + expected + " != actual: " + actual);
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
 
@@ -60,7 +66,7 @@ public class HatAsserts {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
             if (Math.abs(expectedValue - actualValue) > delta) {
-                throw new HatAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
+                throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
             }
         }
     }
@@ -72,14 +78,14 @@ public class HatAsserts {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
             if (Math.abs(expectedValue - actualValue) > delta) {
-                throw new HatAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
+                throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
             }
         }
     }
 
     public static void assertTrue(boolean isCorrect) {
         if (!isCorrect) {
-            throw new HatAssertionError("Expected: " + isCorrect);
+            throw new HATAssertionError("Expected: " + isCorrect);
         }
     }
 }

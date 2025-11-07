@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.S32Array;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
@@ -82,7 +82,7 @@ public class TestConstants {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i));
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i));
         }
     }
 
@@ -134,7 +134,7 @@ public class TestConstants {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i));
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i));
         }
     }
 }

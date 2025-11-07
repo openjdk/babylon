@@ -24,18 +24,21 @@
  */
 package hat.test.engine;
 
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.test.annotation.HatTest;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HatTestEngine {
+public class HATTestEngine {
 
     public static boolean DETAIL_ERROR_STACK_TRACE = false;
 
@@ -44,12 +47,14 @@ public class HatTestEngine {
     private static class Stats {
         int passed = 0;
         int failed = 0;
+        int unsupported = 0;
         public void incrementPassed() {
             passed++;
         }
         public void incrementFailed() {
             failed++;
         }
+        public void incrementUnsupported() { unsupported++; }
 
         public int getPassed() {
             return passed;
@@ -57,32 +62,41 @@ public class HatTestEngine {
         public int getFailed() {
             return failed;
         }
+        public int getUnsupported() { return unsupported; }
 
         @Override
         public String toString() {
-            return String.format("passed: %d, failed: %d", passed, failed);
+            return String.format("passed: %d, failed: %d, unsupported: %d", passed, failed, unsupported);
         }
     }
 
     private static void testMethod(StringBuilder builder, Method method, Stats stats, Object instance) {
         try {
-            HatTestFormatter.testing(builder, method.getName());
+            HATTestFormatter.testing(builder, method.getName());
             method.invoke(instance);
-            HatTestFormatter.ok(builder);
+            HATTestFormatter.ok(builder);
             stats.incrementPassed();
-        } catch (HatAssertionError e) {
-                HatTestFormatter.fail(builder);
-                stats.incrementFailed();
+        } catch (HATAssertionError e) {
+            HATTestFormatter.fail(builder);
+            stats.incrementFailed();
+        } catch (HATExpectedFailureException failureException) {
+            HATTestFormatter.expectedToFail(builder, failureException.getMessage());
+            stats.incrementUnsupported();
         } catch (IllegalAccessException | InvocationTargetException e) {
-            if (e.getCause() instanceof HatAssertionError hatAssertionError) {
-                HatTestFormatter.failWithReason(builder, hatAssertionError.getMessage());
+            if (e.getCause() instanceof HATAssertionError hatAssertionError) {
+                HATTestFormatter.failWithReason(builder, hatAssertionError.getMessage());
+                stats.incrementFailed();
+            } else if (e.getCause() instanceof HATExpectedFailureException failureException) {
+                HATTestFormatter.expectedToFail(builder, failureException.getMessage());
+                stats.incrementUnsupported();
             }  else {
-                HatTestFormatter.fail(builder);
+                e.getCause().printStackTrace();
+                HATTestFormatter.fail(builder);
                 if (DETAIL_ERROR_STACK_TRACE) {
                     e.printStackTrace();
                 }
+                stats.incrementFailed();
             }
-            stats.incrementFailed();
         }
     }
 
@@ -148,7 +162,7 @@ public class HatTestEngine {
             Object instance = testClass.getDeclaredConstructor().newInstance();
 
             StringBuilder builder = new StringBuilder();
-            HatTestFormatter.appendClass(builder, classNameToTest);
+            HATTestFormatter.appendClass(builder, classNameToTest);
             Stats stats = new Stats();
 
             for (Method method : methodToTest) {
@@ -164,7 +178,9 @@ public class HatTestEngine {
     }
 
     static void main(String[] args) {
-        System.out.println(Colours.BLUE + "HAT Engine Testing Framework" + Colours.RESET);
+        IO.println(Colours.BLUE + "HAT Engine Testing Framework" + Colours.RESET);
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        IO.println(Colours.BLUE + "Testing Backend: " + accelerator.backend.getName() + Colours.RESET);
         // We get a set of classes from the arguments
         if (args.length < 1) {
             throw new RuntimeException("No test classes provided");

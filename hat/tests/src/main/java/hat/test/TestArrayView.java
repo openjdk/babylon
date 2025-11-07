@@ -34,7 +34,7 @@ import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -72,7 +72,7 @@ public class TestArrayView {
                 cc -> square(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            HatAsserts.assertEquals(i * i, arr.array(i));
+            HATAsserts.assertEquals(i * i, arr.array(i));
         }
     }
 
@@ -106,7 +106,7 @@ public class TestArrayView {
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.height(); i++) {
             for (int j = 0; j < arr.width(); j++) {
-                HatAsserts.assertEquals((i * 5 + j) * (i * 5 + j), arr.get(i, j));
+                HATAsserts.assertEquals((i * 5 + j) * (i * 5 + j), arr.get(i, j));
             }
         }
     }
@@ -300,7 +300,7 @@ public class TestArrayView {
 
         for (int i = 0; i < cellGrid.height(); i++) {
             for (int j = 0; j < cellGrid.width(); j++) {
-                HatAsserts.assertEquals(resultGrid[i][j], cellGrid.array(((long) i * cellGrid.width()) + j));
+                HATAsserts.assertEquals(resultGrid[i][j], cellGrid.array(((long) i * cellGrid.width()) + j));
             }
         }
     }
@@ -387,7 +387,7 @@ public class TestArrayView {
                 int palletteValue = s32Array2D.get(x*subsample,y*subsample); // so 0->8
                 int paletteCheck = mandelCheck(x*subsample, y*subsample, width, height, palletteArray, originX, originY, defaultScale);
                 // System.out.print(charPallette9[palletteValue]);
-                HatAsserts.assertEquals(paletteCheck, palletteValue);
+                HATAsserts.assertEquals(paletteCheck, palletteValue);
             }
             // System.out.println();
         }
@@ -501,8 +501,8 @@ public class TestArrayView {
         float[] res;
         for (int i = 0; i < call.length(); i++) {
             res = blackScholesCheck(S.array(i), X.array(i), T.array(i), r, v);
-            HatAsserts.assertEquals(res[0], call.array(i), 0.0001);
-            HatAsserts.assertEquals(res[1], put.array(i), 0.0001);
+            HATAsserts.assertEquals(res[0], call.array(i), 0.0001);
+            HATAsserts.assertEquals(res[1], put.array(i), 0.0001);
         }
     }
 
@@ -588,7 +588,7 @@ public class TestArrayView {
                 cc -> privateAndLocal(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            HatAsserts.assertEquals(2 * i + 17, arr.array(i));
+            HATAsserts.assertEquals(2 * i + 17, arr.array(i));
         }
     }
 }
