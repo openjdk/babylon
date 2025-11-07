@@ -487,15 +487,21 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                           cascade->tree + treeIdx;
                  */
 
-                    if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
-                        oparen();
+                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
+                   boolean needExtraParenthesis = OpTk.needExtraParenthesis(invokeOp);
+                   when(needExtraParenthesis, _ -> oparen());
+
+                   if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
                         ampersand();
                         /* This is way more complicated I think we need to determine the expression type.
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
                          */
-                    }
+                   }
 
-                    recurse(buildContext, instanceResult.op());
+                   recurse(buildContext, instanceResult.op());
+
+                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
+                   when(needExtraParenthesis, _ -> cparen());
 
                     // Check if the varOpLoad that could follow corresponds to a local/private type
                     boolean isLocalOrPrivateDS = false;
@@ -510,10 +516,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
                     funcName(invokeOp);
-
-                   if (OpTk.javaReturnType(invokeOp) instanceof ClassType) {
-                       cparen();
-                   }
 
                     if (OpTk.javaReturnTypeIsVoid(invokeOp)) {
                         //   setter
