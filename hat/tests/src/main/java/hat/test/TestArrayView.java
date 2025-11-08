@@ -44,7 +44,9 @@ import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
 public class TestArrayView {
 
-    // simple square kernel example using S32Array's ArrayView
+    /*
+     * simple square kernel example using S32Array's ArrayView
+     */
     @CodeReflection
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.gix < kc.gsx){
@@ -73,6 +75,38 @@ public class TestArrayView {
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
             HATAsserts.assertEquals(i * i, arr.array(i));
+        }
+    }
+
+    /*
+     * making sure arrayviews aren't reliant on varOps
+     */
+    @CodeReflection
+    public static void squareKernelNoVarOp(@RO  KernelContext kc, @RW S32Array s32Array) {
+        if (kc.x<kc.maxX){
+            s32Array.arrayView()[kc.x] *= s32Array.arrayView()[kc.x];
+        }
+    }
+
+    @CodeReflection
+    public static void squareNoVarOp(@RO ComputeContext cc, @RW S32Array s32Array) {
+        cc.dispatchKernel(s32Array.length(),
+                kc -> squareKernelNoVarOp(kc, s32Array)
+        );
+    }
+
+    @HatTest
+    public static void testSquareNoVarOp() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var arr = S32Array.create(accelerator, 32);
+        for (int i = 0; i < arr.length(); i++) {
+            arr.array(i, i);
+        }
+        accelerator.compute(
+                cc -> squareNoVarOp(cc, arr)  //QuotableComputeContextConsumer
+        );                                     //   extends Quotable, Consumer<ComputeContext>
+        for (int i = 0; i < arr.length(); i++) {
+            HatAsserts.assertEquals(i * i, arr.array(i));
         }
     }
 
@@ -111,7 +145,9 @@ public class TestArrayView {
         }
     }
 
-    // simplified version of Game of Life using ArrayView
+    /*
+     * simplified version of Game of Life using ArrayView
+     */
     public final static byte ALIVE = (byte) 0xff;
     public final static byte DEAD = 0x00;
 
@@ -305,7 +341,9 @@ public class TestArrayView {
         }
     }
 
-    // simplified version of mandel using ArrayView
+    /*
+     * simplified version of mandel using ArrayView
+     */
     @CodeReflection
     public static int mandelCheck(int i, int j, float width, float height, int[] pallette, float offsetx, float offsety, float scale) {
         float x = (i * scale - (scale / 2f * width)) / width + offsetx;
@@ -393,7 +431,9 @@ public class TestArrayView {
         }
     }
 
-    // simplified version of BlackScholes using ArrayView
+    /*
+     * simplified version of BlackScholes using ArrayView
+     */
     @CodeReflection
     public static float[] blackScholesCheck(float s, float x, float t, float r, float v) {
         float expNegRt = (float) Math.exp(-r * t);
@@ -506,7 +546,9 @@ public class TestArrayView {
         }
     }
 
-    // basic test of local and private buffer ArrayViews
+    /*
+     * basic test of local and private buffer ArrayViews
+     */
     private interface SharedMemory extends Buffer {
         void array(long index, int value);
         int array(long index);

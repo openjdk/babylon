@@ -59,10 +59,8 @@ public interface F32ArrayPadded extends Buffer {
         return this;
     }
 
-    default float[] arrayView() {
-        float[] arr = new float[this.length()];
-        this.copyTo(arr);
-        return arr;
+    default Float4.MutableImpl[] float4ArrayView() {
+        return null;
     }
 
     default Float4.MutableImpl float4View(int index) {
