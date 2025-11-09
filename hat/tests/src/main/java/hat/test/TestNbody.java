@@ -105,7 +105,7 @@ public class TestNbody {
 
     @CodeReflection
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(universe.length()));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(universe.length()));
         cc.dispatchKernel(ndRange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
     }
 

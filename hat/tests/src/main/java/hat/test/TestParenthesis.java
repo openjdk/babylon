@@ -70,19 +70,19 @@ public class TestParenthesis {
 
     @CodeReflection
     public static void compute(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(data.length()));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute(kc, data));
     }
 
     @CodeReflection
     public static void compute2(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(data.length()));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute2(kc, data));
     }
 
     @CodeReflection
     public static void compute3(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(data.length()));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute3(kc, data));
     }
 
