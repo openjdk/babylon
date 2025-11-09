@@ -59,17 +59,8 @@ public record RasterizingRenderer(int width, int height, DisplayMode displayMode
         int y = gid / height;
         int col = 0x404040;
         for (int t = 0; t < F32Triangle2D.f32Triangle2DPool.count; t++) {
-            var tri = F32Triangle2D.f32Triangle2DPool.idx(t);
-            F32Vec2 v0 = tri.v0();
-            F32Vec2 v1 = tri.v1();
-            F32Vec2 v2 = tri.v2();
-            if (displayMode.filled && F32Triangle2D.intriangle(x, y, v0, v1, v2)) {
-                col = tri.rgb();
-            } else if (displayMode.wire && F32Triangle2D.onedge(x, y, v0, v1, v2)) {
-                col = tri.rgb();
-            }
+            col = F32Triangle2D.rgb(displayMode.filled,x, y, F32Triangle2D.f32Triangle2DPool.idx(t),col);
         }
-
         offscreenRgb[gid] = col;
     }
 

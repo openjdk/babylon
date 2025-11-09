@@ -91,7 +91,7 @@ public interface F32Triangle2D {
 
         public F32Triangle2D of(F32Vec2 v0, F32Vec2 v1, F32Vec2 v2, int rgb) {
             var i = idx(count++);
-            var side = side(v0.x(),v0.y(), v1, v2) > 0; // We need the triangle to be clock wound
+            var side = false;//side(v0.x(),v0.y(), v1, v2) > 0; // We need the triangle to be clock wound
             entries[i.v0Idx()] = v0;
             entries[i.v1Idx()] = side?v1:v2;
             entries[i.v2Idx()] = side?v2:v1;
@@ -100,14 +100,59 @@ public interface F32Triangle2D {
         }
     }
 
+    /*
+           return (
+               v1.Y() - v0.Y() * (v.X() - v0.X()) + (-v1.X() + v0.X()) * (v.Y() - v0.Y())
+               );
+
+     */
+    /*
+       return (v1.Y() - v0.Y() * (v.X() - v0.X()) + (-v1.X() + v0.X()) * (v.Y() - v0.Y()));
+
+     */
+
     F32Triangle2DPool f32Triangle2DPool = new F32Triangle2DPool(12800);
 
     static float side(float x,float y, F32Vec2 v0, F32Vec2 v1) {
-        return (v1.y() - v0.y() * x - v0.x() + (-v1.x() + v0.x()) * (y -v0.y()));
+         return    (v1.y() - v0.y() * (x - v0.x()) + (-v1.x() + v0.x()) * (y - v0.y()));
     }
 
+    /*
+              V0                V0
+              |  \              |  \
+              |    \            |    \        P2
+              |  P1  \          |      \
+              V1------V0        V1------V0
+
+
+Barycentric coordinate allows to express new p coordinates as a linear combination of p1, p2, p3.
+ More precisely, it defines 3 scalars a, b, c such that :
+
+x = a * x1 + b * x2  + c * x3
+y = a * y1 + b * y2 + c * y3
+a + b + c = 1
+
+
+a = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3))
+b = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3))
+c = 1 - a - b
+
+p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
+*/
+
+    static boolean intriangle (float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {
+        var denominator = ((y1 - y2)*(x0 - x2) + (x2 - x1)*(y0 - y2));
+        var a = ((y1 - y2)*(x - x2) + (x2 - x1)*(y - y2)) / denominator;
+        var b = ((y2 - y0)*(x - x2) + (x0 - x2)*(y - y2)) / denominator;
+        var c = 1 - a - b;
+        return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
+    }
     static boolean intriangle(float x, float y,  F32Vec2 v0, F32Vec2 v1, F32Vec2 v2) {
-        return side(x,y, v0, v1) >= 0 && side(x,y, v1, v2) >= 0 && side(x,y, v2, v0) >= 0;
+        return intriangle(x,y, v0.x(), v0.y(), v1.x(), v1.y(),v2.x(), v2.y());
+    }
+
+    static boolean intriangle(float x, float y,  F32Triangle2D tri) {
+       return intriangle(x,y, tri.v0(), tri.v1(),tri.v2());
     }
 
     static boolean online(float x, float y,  F32Vec2 v0, F32Vec2 v1, float deltaSquare) {
@@ -124,10 +169,21 @@ public interface F32Triangle2D {
         }
     }
 
-    float deltaSquare = 10000f;
+    float deltaSquare = 2000f;
 
-    static boolean onedge(float x, float y, F32Vec2 v0,F32Vec2 v1,F32Vec2 v2) {
-        return online(x, y, v0,v1, deltaSquare) || online(x, y,v1,v2, deltaSquare) || online(x, y, v2,v0, deltaSquare);
+    static boolean onedge(float x, float y, F32Triangle2D tri) {
+        return online(x, y, tri.v0(), tri.v1(), deltaSquare)
+                || online(x, y,tri.v1(),tri.v2(), deltaSquare)
+                || online(x, y, tri.v2(),tri.v0(), deltaSquare);
     }
+
+    static  boolean useRgb(boolean filled, float x, float y,  F32Triangle2D tri){
+        return filled? intriangle(x,y,tri):onedge(x,y,tri);
+    }
+
+    static  int rgb(boolean filled, float x, float y,  F32Triangle2D tri, int rgb){
+        return useRgb(filled,x,y,tri)? tri.rgb() : rgb;
+    }
+
 
 }
