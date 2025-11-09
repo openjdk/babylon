@@ -259,42 +259,42 @@ public class TestFloat2 {
     @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2), new NDRange.Local1D(128));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2), NDRange.Local1D.of(128));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps01(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps02(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps03(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps04(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps05(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps06(kernelContext, a, b, c));
     }
 
@@ -302,56 +302,56 @@ public class TestFloat2 {
     @CodeReflection
     public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps07(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps08(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps09(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps10(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps11(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps12(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps14(kernelContext, a));
     }
 
     @CodeReflection
     public static void computeGraph15(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/2));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/2));
         cc.dispatchKernel(ndRange, kernelContext -> TestFloat2.vectorOps15(kernelContext, a));
     }
 

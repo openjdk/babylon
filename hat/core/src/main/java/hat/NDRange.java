@@ -74,37 +74,37 @@ public interface NDRange {
 
     interface Global {}
 
-    record Global1D(int x) implements _1DX, Global{
+    record Global1D(int x, boolean forceUseOfOf) implements _1DX, Global{
         public static Global1D of(int x) {
-            return new Global1D(x);
+            return new Global1D(x, true);
         }
     }
-    record Global2D(int x, int y) implements _2DXY, Global {
+    record Global2D(int x, int y, boolean forceUseOfOf) implements _2DXY, Global {
         public static Global2D of(int x, int y) {
-            return new Global2D(x, y);
+            return new Global2D(x, y, true);
         }
     }
-    record Global3D(int x, int y, int z) implements _3DXZ, Global {
+    record Global3D(int x, int y, int z, boolean forceUseOfOf) implements _3DXZ, Global {
         public static Global3D of(int x, int y, int z) {
-            return new Global3D(x, y, z);
+            return new Global3D(x, y, z, true);
         }
     }
 
     interface Local{}
 
-    record Local1D(int x) implements _1DX, Local {
-        public static Local of(int x) {
-            return new Local1D(x);
+    record Local1D(int x, boolean forceUseOfOf) implements _1DX, Local {
+        public static Local1D of(int x) {
+            return new Local1D(x,true);
         }
     }
-    record Local2D(int x, int y) implements _2DXY, Local {
-        public static Local of(int x, int y) {
-            return new Local2D(x, y);
+    record Local2D(int x, int y, boolean forceUseOfOf) implements _2DXY, Local {
+        public static Local2D of(int x, int y) {
+            return new Local2D(x, y,true);
         }
     }
-    record Local3D(int x, int y, int z) implements _3DXZ, Local {
-        public static Local of(int x, int y, int z) {
-            return new Local3D(x, y, z);
+    record Local3D(int x, int y, int z, boolean forceUseOfOf) implements _3DXZ, Local {
+        public static Local3D of(int x, int y, int z) {
+            return new Local3D(x, y, z,true);
         }
     }
 
@@ -120,7 +120,7 @@ public interface NDRange {
     record NDRange3D(Global3D global, Local3D local) implements Range, _3D { }
 
     static NDRange1D of(int x) {
-        return new NDRange1D(new Global1D(x), NDRange.EMPTY_LOCAL_1D);
+        return new NDRange1D(Global1D.of(x), NDRange.EMPTY_LOCAL_1D);
     }
 
     static NDRange1D of(Global1D global) {
@@ -149,8 +149,8 @@ public interface NDRange {
         return new NDRange3D(global, local);
     }
 
-    Local1D EMPTY_LOCAL_1D = new Local1D(0);
-    Local2D EMPTY_LOCAL_2D = new Local2D(0, 0);
-    Local3D EMPTY_LOCAL_3D = new Local3D(0, 0, 0);
+    Local1D EMPTY_LOCAL_1D = Local1D.of(0);
+    Local2D EMPTY_LOCAL_2D = Local2D.of(0, 0);
+    Local3D EMPTY_LOCAL_3D = Local3D.of(0, 0, 0);
 
 }

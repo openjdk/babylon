@@ -83,14 +83,15 @@ public class TestArrayView {
      */
     @CodeReflection
     public static void squareKernelNoVarOp(@RO  KernelContext kc, @RW S32Array s32Array) {
-        if (kc.x<kc.maxX){
-            s32Array.arrayView()[kc.x] *= s32Array.arrayView()[kc.x];
+        if (kc.gix<kc.gsx){
+            s32Array.arrayView()[kc.gix] *= s32Array.arrayView()[kc.gix];
         }
     }
 
     @CodeReflection
     public static void squareNoVarOp(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(s32Array.length(),
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(s32Array.length()));
+        cc.dispatchKernel(ndRange,
                 kc -> squareKernelNoVarOp(kc, s32Array)
         );
     }
@@ -106,7 +107,7 @@ public class TestArrayView {
                 cc -> squareNoVarOp(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            HatAsserts.assertEquals(i * i, arr.array(i));
+            HATAsserts.assertEquals(i * i, arr.array(i));
         }
     }
 
