@@ -31,7 +31,6 @@ public interface F32Vec3 {
 
     float z();
 
-    int idx();
 
     default String asString() {
         return x() + "," + y() + "," + z();
@@ -81,7 +80,7 @@ public interface F32Vec3 {
             return new Idx(this, idx);
         }
 
-        F32Vec3Pool.Idx of(float x, float y, float z) {
+        public F32Vec3Pool.Idx of(float x, float y, float z) {
             F32Vec3Pool.Idx i = idx(count++);
             entries[i.xIdx()] = x;
             entries[i.yIdx()] = y;
@@ -194,35 +193,5 @@ public interface F32Vec3 {
 
     static float dotProd(F32Vec3 lhs, F32Vec3 rhs) {
         return lhs.x() * rhs.x() + lhs.y() * rhs.y() + lhs.z() * rhs.z();
-    }
-
-    record F32Vec3Impl(F32Vec3 id) implements F32Vec3 {
-        public static F32Vec3Impl of(F32Vec3 id) {
-            return new F32Vec3Impl(id);
-        }
-
-        public static F32Vec3 of(float x, float y, float z) {
-            return of(f32Vec3Pool.of(x, y, z));
-        }
-
-        public F32Vec3 add(F32Vec3Impl v) {
-            return addVec3(id, v);
-        }
-
-        public float x() {
-            return id.x();
-        }
-
-        public float y() {
-            return id.y();
-        }
-
-        public float z() {
-            return id.z();
-        }
-
-        public int idx() {
-            return id.idx();
-        }
     }
 }

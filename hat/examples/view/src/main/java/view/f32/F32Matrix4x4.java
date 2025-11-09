@@ -58,7 +58,7 @@ public interface F32Matrix4x4 {
 
     float x3y3();
 
-    int idx();
+  //  int idx();
     default String asString() {
 
         return String.format("""
@@ -355,10 +355,6 @@ public interface F32Matrix4x4 {
             return id().x3y3();
         }
 
-        @Override
-        default int idx() {
-            return id().idx();
-        }
     }
 
 
@@ -490,114 +486,6 @@ public interface F32Matrix4x4 {
                 0f, 0f, far / (far - near), (-far * near) / (far - near),
                     0f, 0f, (-far * near) / (far - near), 0f);
 
-    }
-
-    //https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-    record Transformation(F32Matrix4x4 id) implements Impl {
-        public Transformation(float x, float y, float z) {
-            this(F32Matrix4x4.f32matrix4x4Pool.of(
-                    1f, 0f, 0f, 0f,
-                    0f, 1f, 0f, 0f,
-                    0f, 0f, 1f, 0f,
-                    x, y, z, 1f
-            ));
-        }
-
-        public static Transformation of(float v) {
-            return new Transformation(v, v, v);
-        }
-    }
-
-    // https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-
-    record Scale(F32Matrix4x4 id) implements Impl {
-        Scale(float x, float y, float z) {
-            this(F32Matrix4x4.f32matrix4x4Pool.of(
-                            x, 0f, 0f, 0f,
-                            0f, y, 0f, 0f,
-                            0f, 0f, z, 0f,
-                            0f, 0f, 0f, 1f
-                    )
-            );
-        }
-
-        public static Scale of(float v) {
-            return new Scale(v, v, v);
-        }
-    }
-
-    record Rotation(F32Matrix4x4 id) implements Impl {
-
-        static F32Matrix4x4 ofX(float thetaRadians) {
-            float sinTheta = (float) Math.sin(thetaRadians);
-            float cosTheta = (float) Math.cos(thetaRadians);
-            return F32Matrix4x4.f32matrix4x4Pool.of(
-                    1, 0, 0, 0,
-                    0, cosTheta, -sinTheta, 0,
-                    0, sinTheta, cosTheta, 0,
-                    0, 0, 0, 1
-
-            );
-        }
-
-        static F32Matrix4x4 ofZ(float thetaRadians) {
-            float sinTheta = (float) Math.sin(thetaRadians);
-            float cosTheta = (float) Math.cos(thetaRadians);
-            return F32Matrix4x4.f32matrix4x4Pool.of(
-                    cosTheta, sinTheta, 0, 0,
-                    -sinTheta, cosTheta, 0, 0,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1
-            );
-        }
-
-        static F32Matrix4x4 ofY(float thetaRadians) {
-            float sinTheta = (float) Math.sin(thetaRadians);
-            float cosTheta = (float) Math.cos(thetaRadians);
-            return F32Matrix4x4.f32matrix4x4Pool.of(
-                    cosTheta, 0, sinTheta, 0,
-                    0, 1, 0, 0,
-                    -sinTheta, 0, cosTheta, 0,
-                    0, 0, 0, 1
-            );
-        }
-
-
-        public Rotation(float thetaX, float thetaY, float thetaZ) {
-            this(F32Matrix4x4.mulMat4(F32Matrix4x4.mulMat4(ofX(thetaX), ofY(thetaY)), ofZ(thetaZ)));
-        }
-
-    }
-
-    /*
-                 https://youtu.be/ih20l3pJoeU?t=973
-                 https://stackoverflow.com/questions/28075743/how-do-i-compose-a-rotation-matrix-with-human-readable-angles-from-scratch/28084380#28084380^
-                --------------------            far
-                 \                /              ^    ^
-                  \              /               |    |   far-near
-                   \            /                |    |
-                    \__________/         near    |    v
-                                          ^      |
-                                          v      v
-                        \^/
-                      [x,y,z]
-
-               */
-    record Projection(F32Matrix4x4 id) implements Impl {
-        public static Projection of(F32Matrix4x4 id) {
-            return new Projection(id);
-        }
-
-        public static Projection of(float width, float height, float near, float far, float fieldOfViewDeg) {
-            float aspectRatio = height / width;
-            float fieldOfViewRadians = (float) (1.0f / Math.tan((fieldOfViewDeg * 0.5f) / 180.0 * Math.PI));
-            return of(F32Matrix4x4.f32matrix4x4Pool.of(
-                    aspectRatio * fieldOfViewRadians, 0f, 0f, 0f,
-                    0f, fieldOfViewRadians, 0f, 0f,
-                    0f, 0f, far / (far - near), (-far * near) / (far - near),
-                    0f, 0f, (-far * near) / (far - near), 0f));
-
-        }
     }
 
 

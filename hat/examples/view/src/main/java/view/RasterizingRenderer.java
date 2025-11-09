@@ -39,7 +39,8 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.stream.IntStream;
 
-public record RasterizingRenderer(int width, int height,  DisplayMode displayMode, BufferedImage image, int[] offscreenRgb) implements Renderer {
+public record RasterizingRenderer(int width, int height, DisplayMode displayMode, BufferedImage image,
+                                  int[] offscreenRgb) implements Renderer {
     static private Renderer of(int width, int height, DisplayMode displayMode) {
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         return new RasterizingRenderer(width, height, displayMode, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length]);
@@ -57,24 +58,9 @@ public record RasterizingRenderer(int width, int height,  DisplayMode displayMod
         int x = gid % width;
         int y = gid / height;
         int col = 0x404040;
-
-            for (int t = 0; t < F32Triangle2D.f32Triangle2DPool.count; t++) {
-                int v0 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.V0];
-                int v1 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.V1];
-                int v2 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.V2];
-                float x0 = F32Vec2.f32Vec2Pool.entries[v0 * F32Vec2.f32Vec2Pool.stride + F32Vec2.F32Vec2Pool.X];
-                float y0 = F32Vec2.f32Vec2Pool.entries[v0 * F32Vec2.f32Vec2Pool.stride + F32Vec2.F32Vec2Pool.Y];
-                float x1 = F32Vec2.f32Vec2Pool.entries[v1 * F32Vec2.f32Vec2Pool.stride + F32Vec2.F32Vec2Pool.X];
-                float y1 = F32Vec2.f32Vec2Pool.entries[v1 * F32Vec2.f32Vec2Pool.stride + F32Vec2.F32Vec2Pool.Y];
-                float x2 = F32Vec2.f32Vec2Pool.entries[v2 * F32Vec2.f32Vec2Pool.stride + F32Vec2.F32Vec2Pool.X];
-                float y2 = F32Vec2.f32Vec2Pool.entries[v2 * F32Vec2.f32Vec2Pool.stride + F32Vec2.F32Vec2Pool.Y];
-                if (displayMode.filled && F32Triangle2D.intriangle(x, y, x0, y0, x1, y1, x2, y2)) {
-                    col = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.RGB];
-                } else if (displayMode.wire && F32Triangle2D.onedge(x, y, x0, y0, x1, y1, x2, y2)) {
-                    col = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.F32Triangle2DPool.RGB];
-                }
-            }
-
+        for (int t = 0; t < F32Triangle2D.f32Triangle2DPool.count; t++) {
+            col = F32Triangle2D.rgb(displayMode.filled,x, y, F32Triangle2D.f32Triangle2DPool.idx(t),col);
+        }
         offscreenRgb[gid] = col;
     }
 
