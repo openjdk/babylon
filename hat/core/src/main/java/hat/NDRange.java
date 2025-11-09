@@ -66,7 +66,7 @@ public interface NDRange {
         int y();
     }
 
-    interface _3DXZ extends _3D {
+    interface _3DXYZ extends _3D {
         int x();
         int y();
         int z();
@@ -74,37 +74,45 @@ public interface NDRange {
 
     interface Global {}
 
-    record Global1D(int x, boolean forceUseOfOf) implements _1DX, Global{
-        public static Global1D of(int x) {
-            return new Global1D(x, true);
+    interface Global1D extends  _1DX, Global{
+        record Impl(int x) implements Global1D{};
+        static Global1D of(int x) {
+            return new Impl(x);
         }
     }
-    record Global2D(int x, int y, boolean forceUseOfOf) implements _2DXY, Global {
-        public static Global2D of(int x, int y) {
-            return new Global2D(x, y, true);
+    interface Global2D extends  _2DXY, Global{
+        record Impl(int x, int y) implements Global2D{};
+        static Global2D of(int x,int y) {
+            return new Impl(x, y);
         }
     }
-    record Global3D(int x, int y, int z, boolean forceUseOfOf) implements _3DXZ, Global {
-        public static Global3D of(int x, int y, int z) {
-            return new Global3D(x, y, z, true);
+
+    interface Global3D extends  _3DXYZ, Global{
+        record Impl(int x, int y, int z) implements Global3D{};
+        static Global3D of(int x, int y, int z) {
+            return new Impl(x,y,z);
         }
     }
 
     interface Local{}
 
-    record Local1D(int x, boolean forceUseOfOf) implements _1DX, Local {
-        public static Local1D of(int x) {
-            return new Local1D(x,true);
+    interface Local1D extends  _1DX, Local{
+        record Impl(int x) implements Local1D{};
+        static Local1D of(int x) {
+            return new Impl(x);
         }
     }
-    record Local2D(int x, int y, boolean forceUseOfOf) implements _2DXY, Local {
-        public static Local2D of(int x, int y) {
-            return new Local2D(x, y,true);
+    interface Local2D extends  _2DXY, Local{
+        record Impl(int x, int y) implements Local2D{};
+        static Local2D of(int x,int y) {
+            return new Impl(x, y);
         }
     }
-    record Local3D(int x, int y, int z, boolean forceUseOfOf) implements _3DXZ, Local {
-        public static Local3D of(int x, int y, int z) {
-            return new Local3D(x, y, z,true);
+
+    interface Local3D extends  _3DXYZ, Local{
+        record Impl(int x, int y, int z) implements Local3D{};
+        static Local3D of(int x, int y, int z) {
+            return new Impl(x,y,z);
         }
     }
 
