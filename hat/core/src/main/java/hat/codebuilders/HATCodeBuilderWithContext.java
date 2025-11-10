@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 import hat.buffer.F16;
+import hat.buffer.F16Array;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATLocalVarOp;
@@ -340,7 +341,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     private boolean isHalfType(Schema.IfaceType ifaceType) {
-        return ifaceType.iface.getName().equals(F16.class.getName());
+        return (ifaceType.iface.getName().equals(F16.class.getName()) || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
@@ -435,7 +436,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)) {
+        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
+                || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())) {
             if (invokeOp.operands().size() == 1
                     && OpTk.funcName(invokeOp) instanceof String funcName
                     && funcName.startsWith("atomic")

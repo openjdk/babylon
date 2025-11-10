@@ -26,7 +26,7 @@ package hat.buffer;
 
 // Interface for Floating Point numbers of 16-bits
 // Values are stored in a short format.
-public interface F16 extends Buffer.Struct {
+public interface F16 {
     String HAT_MAPPING_TYPE = "half";
 
     short value();

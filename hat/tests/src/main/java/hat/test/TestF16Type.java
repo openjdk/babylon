@@ -36,40 +36,20 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAssertionError;
 import hat.test.engine.HATAsserts;
 import hat.test.engine.HATExpectedFailureException;
-import hat.test.engine.HATTestException;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Random;
 
 public class TestF16Type {
 
     @CodeReflection
-//    @Kernel("""
-//            HAT_KERNEL void copy01(
-//                HAT_GLOBAL_MEM KernelContext_t* kernelContext,
-//                HAT_GLOBAL_MEM F16Array_t* a,
-//                HAT_GLOBAL_MEM F16Array_t* b
-//            ){
-//                if(HAT_GIX<HAT_GSX){
-//                    HAT_GLOBAL_MEM F16_t* ha = &a->array[(long)HAT_GIX];
-//                    HAT_GLOBAL_MEM F16_t* hb = &b->array[(long)HAT_GIX];
-//                    (&b->array[(long)HAT_GIX])->value=ha->value;
-//                }
-//                return;
-//            }
-//            """)
     public static void copy01(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
-            F16 hb = b.array(kernelContext.gix);
-            // The following expression does not work
             b.array(kernelContext.gix).value(ha.value());
-            //hb.value(ha.value());
         }
     }
 
@@ -162,15 +142,17 @@ public class TestF16Type {
         }
     }
 
-    private interface MyLocalArray extends Buffer {
+    interface MyLocalArray extends Buffer {
         void array(long index, F16 value);
         F16 array(long index);
+
         Schema<MyLocalArray> schema = Schema.of(MyLocalArray.class,
                         arr -> arr.array("array", 1024));
 
         static MyLocalArray create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
+
         static MyLocalArray createLocal() {
             return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
@@ -185,6 +167,7 @@ public class TestF16Type {
 
             // store into local memory
             sm.array(lix, ha);
+            kernelContext.barrier();
 
             F16 hb = sm.array(lix);
             b.array(kernelContext.gix).value(hb.value());

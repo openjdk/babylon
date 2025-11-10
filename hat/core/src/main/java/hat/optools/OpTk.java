@@ -25,6 +25,7 @@
 package hat.optools;
 
 import hat.ComputeContext;
+import hat.buffer.F16;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
 import hat.dialect.*;
@@ -238,7 +239,8 @@ public class OpTk {
     }
 
     public static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return isAssignable(lookup, javaRefType(invokeOp), MappableIface.class);
+        return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class) ||
+                invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName()));
     }
 
     public static boolean isKernelContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
