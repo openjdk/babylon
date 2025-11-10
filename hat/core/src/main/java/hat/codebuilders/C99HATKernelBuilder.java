@@ -25,6 +25,8 @@
 package hat.codebuilders;
 
 import hat.buffer.Buffer;
+import hat.buffer.F16;
+import hat.buffer.F16Array;
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATF16BinaryOp;
 import hat.dialect.HATF16VarLoadOp;
@@ -83,7 +85,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
             globalPtrPrefix().suffix_t(classType).asterisk();
-        }else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")){
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
+            globalPtrPrefix().suffix_t(F16Array.F16Impl.NAME).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")){
             globalPtrPrefix().suffix_t("KernelContext").asterisk();
         } else {
             typeName(javaType.toString());

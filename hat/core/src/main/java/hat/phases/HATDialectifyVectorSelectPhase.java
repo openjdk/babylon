@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.NDRange;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
@@ -72,11 +73,12 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
         String typeElement = invokeOp.invokeDescriptor().refType().toString();
-        Set<Class<?>> interfaces = Set.of();
+        Set<Class<?>> interfaces;
         try {
             Class<?> aClass = Class.forName(typeElement);
             interfaces = inspectAllInterfaces(aClass);
         } catch (ClassNotFoundException _) {
+            return false;
         }
         return interfaces.contains(_V.class) && isVectorLane(invokeOp);
     }

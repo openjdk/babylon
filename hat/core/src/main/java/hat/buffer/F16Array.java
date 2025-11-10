@@ -26,11 +26,19 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
+import jdk.incubator.code.dialect.java.ClassType;
 
 public interface F16Array extends Buffer {
     int length();
 
-    F16 array(long index);
+    F16Impl array(long index);
+
+    interface F16Impl extends Buffer, F16 {
+        String NAME = "F16Impl";
+
+        short value();
+        void value(short value);
+    }
 
     Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
             f16array.arrayLen("length")
