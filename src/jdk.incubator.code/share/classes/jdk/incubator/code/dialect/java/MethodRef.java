@@ -33,6 +33,7 @@ import jdk.incubator.code.dialect.java.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -53,6 +54,8 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
 
     FunctionType type();
 
+    boolean isConstructor();
+
     // Resolutions to methods and method handles
 
     // Resolve to static or instance method declared on referenced class
@@ -63,10 +66,12 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
 
     Method resolveToMethod(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException;
 
+    Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException;
+
     // For InvokeKind.SUPER the specialCaller == l.lookupClass() for Lookup::findSpecial
     MethodHandle resolveToHandle(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException;
 
-    // Factories
+    // Method factories
 
     static MethodRef method(Method m) {
         return method(m.getDeclaringClass(), m.getName(),
@@ -99,6 +104,37 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
         return method(refType, name, functionType(retType, params));
     }
 
+    // Constructor factories
+
+    static MethodRef constructor(Constructor<?> c) {
+        return constructor(c.getDeclaringClass(),
+                c.getParameterTypes());
+    }
+
+    static MethodRef constructor(MethodType mt) {
+        return constructor(mt.returnType(), mt.parameterList());
+    }
+
+    static MethodRef constructor(Class<?> refType, Class<?>... params) {
+        return constructor(refType, List.of(params));
+    }
+
+    static MethodRef constructor(Class<?> refType, List<Class<?>> params) {
+        return constructor(JavaType.type(refType), params.stream().map(JavaType::type).toList());
+    }
+
+    static MethodRef constructor(TypeElement refType, List<? extends TypeElement> params) {
+        return constructor(functionType(refType, params));
+    }
+
+    static MethodRef constructor(TypeElement refType, TypeElement... params) {
+        return constructor(functionType(refType, params));
+    }
+
+    static MethodRef constructor(FunctionType type) {
+        return new MethodRefImpl(type.returnType(), INIT_NAME, type);
+    }
+
 
     // MethodTypeDesc factories
     // @@@ Where else to place them?
@@ -122,4 +158,6 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
 
         return jt.toNominalDescriptor();
     }
+
+    String INIT_NAME = "<init>";
 }
