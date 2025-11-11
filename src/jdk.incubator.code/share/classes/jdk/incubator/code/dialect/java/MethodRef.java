@@ -56,15 +56,9 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
 
     boolean isConstructor();
 
-    // Resolutions to methods and method handles
+    // Resolutions to methods, constructors and method handles
 
-    // Resolve to static or instance method declared on referenced class
-    Method resolveToDirectMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
-
-    // Resolve to static or instance method declared on referenced class
-    MethodHandle resolveToDirectHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
-
-    Method resolveToMethod(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException;
+    Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException;
 

@@ -59,7 +59,7 @@ public final class TypeVariableType implements JavaType {
                 yield constructor.getTypeParameters();
             }
             case MethodRef methodRef -> {
-                Method method = methodRef.resolveToDirectMethod(lookup);
+                Method method = methodRef.resolveToMethod(lookup);
                 yield method.getTypeParameters();
             }
             case JavaType type -> {

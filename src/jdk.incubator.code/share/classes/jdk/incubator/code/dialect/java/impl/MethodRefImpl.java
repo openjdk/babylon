@@ -40,6 +40,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -88,37 +89,34 @@ public final class MethodRefImpl implements MethodRef {
         return name.equals(INIT_NAME);
     }
 
-    public Method resolveToDirectMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        return resolveToDirectHandle(l, hr -> hr.mhi().reflectAs(Method.class, l));
-    }
-
-    public MethodHandle resolveToDirectHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        return resolveToDirectHandle(l, HandleResult::mh);
-    }
-
-    <T> T resolveToDirectHandle(MethodHandles.Lookup l, Function<HandleResult, T> f) throws ReflectiveOperationException {
-        ReflectiveOperationException roe = null;
-        for (JavaOp.InvokeOp.InvokeKind ik :
-                List.of(JavaOp.InvokeOp.InvokeKind.STATIC, JavaOp.InvokeOp.InvokeKind.INSTANCE)) {
-            try {
-                HandleResult hr = resolveToHandleResult(l, ik);
-                if (hr.isDirect()) {
-                    return f.apply(hr);
-                }
-            } catch (NoSuchMethodException | IllegalAccessException e) {
-                roe = e;
+    @Override
+    public Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        Class<?> refC = resolve(l, refType);
+        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
+        for (Method m : refC.getDeclaredMethods()) {
+            if (m.getName().equals(name) &&
+                    Arrays.equals(m.getParameterTypes(), mt.parameterArray()) &&
+                    m.getReturnType().equals(mt.returnType())) {
+                return m;
             }
         }
-        if (roe == null) {
-            roe = new ReflectiveOperationException("Indirect reference to method");
-        }
-        throw roe;
+        throw new NoSuchMethodException(toString());
     }
 
     @Override
-    public Method resolveToMethod(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException {
-        MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToHandle(l, kind));
-        return methodHandleInfo.reflectAs(Method.class, l);
+    public Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        if (!isConstructor()) {
+            throw new IllegalArgumentException("Not a constructor reference");
+        }
+        Class<?> refC = resolve(l, refType);
+        MethodType ct = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
+        for (Constructor<?> c : refC.getDeclaredConstructors()) {
+            if (c.getName().equals(name) &&
+                    Arrays.equals(c.getParameterTypes(), ct.parameterArray())) {
+                return c;
+            }
+        }
+        throw new NoSuchMethodException(toString());
     }
 
     @Override
@@ -137,30 +135,6 @@ public final class MethodRefImpl implements MethodRef {
             }
             return resolveToConstructorHandle(l);
         }
-    }
-
-    record HandleResult (Class<?> refC, MethodHandle mh, MethodHandleInfo mhi) {
-        boolean isDirect() {
-            return refC == mhi.getDeclaringClass();
-        }
-    }
-
-    HandleResult resolveToHandleResult(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, refType);
-        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
-        MethodHandle mh = switch (kind) {
-            case SUPER -> l.findSpecial(refC, name, mt, l.lookupClass());
-            case STATIC -> l.findStatic(refC, name, mt);
-            case INSTANCE -> l.findVirtual(refC, name, mt);
-        };
-        MethodHandleInfo mhi = l.revealDirect(resolveToHandle(l, kind));
-        return new HandleResult(refC, mh, mhi);
-    }
-
-    @Override
-    public Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToConstructorHandle(l));
-        return methodHandleInfo.reflectAs(Constructor.class, l);
     }
 
     private MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
