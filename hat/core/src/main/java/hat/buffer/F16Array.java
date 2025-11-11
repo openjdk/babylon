@@ -26,7 +26,6 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.dialect.java.ClassType;
 
 public interface F16Array extends Buffer {
     int length();

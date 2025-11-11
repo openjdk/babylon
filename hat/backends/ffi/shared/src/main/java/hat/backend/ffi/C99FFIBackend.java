@@ -46,7 +46,6 @@ import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
 import hat.phases.HATFinalDetectionPhase;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.java.ClassType;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

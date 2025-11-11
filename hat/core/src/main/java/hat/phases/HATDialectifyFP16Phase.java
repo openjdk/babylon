@@ -26,7 +26,6 @@ package hat.phases;
 
 import hat.Accelerator;
 import hat.buffer.F16;
-import hat.buffer.F16Array;
 import hat.dialect.HATF16AddOp;
 import hat.dialect.HATF16BinaryOp;
 import hat.dialect.HATF16ConvOp;
