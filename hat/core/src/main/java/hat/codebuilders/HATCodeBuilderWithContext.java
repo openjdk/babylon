@@ -26,10 +26,12 @@ package hat.codebuilders;
 
 import hat.buffer.F16;
 import hat.buffer.F16Array;
+import hat.device.DeviceType;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPhaseUtils;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
@@ -437,7 +439,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
-                || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())) {
+                || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())
+                || HATPhaseUtils.isDeviceTypeInvokeDescriptor(invokeOp)) {
             if (invokeOp.operands().size() == 1
                     && OpTk.funcName(invokeOp) instanceof String funcName
                     && funcName.startsWith("atomic")
@@ -494,7 +497,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                    when(needExtraParenthesis, _ -> oparen());
 
                    if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
-                        ampersand();
+                       ampersand();
                         /* This is way more complicated I think we need to determine the expression type.
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
                          */

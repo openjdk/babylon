@@ -38,6 +38,7 @@ import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.device.DeviceSchema;
 import hat.dialect.HATMemoryOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
@@ -47,10 +48,12 @@ import hat.phases.HATFinalDetectionPhase;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -213,25 +216,102 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // This is because no allocation was done from the host. This is kernel code, and it is reflected
             // using the code reflection API
             // 1. Add for struct for iface objects
+            Set<String> typedefs = new HashSet<>();
             for (TypeElement typeElement : localIFaceList) {
                 // 1.1 Load the class dynamically
                 try {
-                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);//Class.forName(typeElement.toString());
+                    //Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
+                    Class<?> clazz = Class.forName(typeElement.toString());
+
                     //System.out.println("!!!!!!For  "+clazz);
                     // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
                     // 1.2 Obtain the create method
+
                     Method method = clazz.getMethod("create", hat.Accelerator.class);
                     method.setAccessible(true);
                     Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
+                    if (invoke != null) {
+                        // code gen of the struct
+                        BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
+                        boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
+                            if (!already.contains(t)) {
+                                builder.typedef(boundSchema, t);
+                                already.add(t);
+                            }
+                        });
+                    } else {
+                        // new approach
+                        Field schemaField = clazz.getDeclaredField("schema");
+                        schemaField.setAccessible(true);
+                        Object schema = schemaField.get(schemaField);
 
-                    // code gen of the struct
-                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
-                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
-                        if (!already.contains(t)) {
-                            builder.typedef(boundSchema, t);
-                            already.add(t);
+                        Class<?> deviceSchemaClass = Class.forName(DeviceSchema.class.getName());
+                        Method toTextMethod = deviceSchemaClass.getDeclaredMethod("toText");
+                        toTextMethod.setAccessible(true);
+                        String toText = (String) toTextMethod.invoke(schema);
+
+                        if (toText != null) {
+                            // From here is text processing
+                            String[] split = toText.split(">");
+                            // Each item is a data struct
+                            for (String s : split) {
+                                // curate: remove first character
+                                s = s.substring(1);
+                                String dsName = s.split(":")[0];
+                                if (typedefs.contains(dsName)) {
+                                    continue;
+                                }
+                                typedefs.add(dsName);
+                                // sanitize dsName
+                                dsName = sanitize(dsName);
+                                builder.typedefKeyword()
+                                        .space()
+                                        .structKeyword()
+                                        .space()
+                                        .suffix_s(dsName)
+                                        .obrace()
+                                        .nl();
+
+                                String[] members = s.split(";");
+
+                                int j = 0;
+                                builder.in();
+                                for (int i = 0; i < members.length; i++) {
+                                    String member = members[i];
+                                    String[] field = member.split(":");
+                                    if (i == 0) { j = 1;}
+                                    String isArray = field[j++];
+                                    String type = field[j++];
+                                    String name = field[j++];
+                                    String lenValue = "";
+                                    if (isArray.equals("[")) {
+                                        lenValue = field[j];
+                                    }
+                                    j = 0;
+                                    if (typedefs.contains(type))
+                                        type = sanitize(type) + "_t";
+                                    else
+                                        type = sanitize(type);
+
+                                    builder.typeName(type)
+                                            .space()
+                                            .identifier(name);
+
+                                    if (isArray.equals("[")) {
+                                        builder.space()
+                                                .osbrace()
+                                                .identifier(lenValue)
+                                                .csbrace();
+                                    }
+                                    builder.semicolon().nl();
+                                }
+                                builder.out();
+                                builder.cbrace().suffix_t(dsName).semicolon().nl();
+                            }
+                        } else {
+                            throw new RuntimeException("[ERROR] Could not find valid device schema ");
                         }
-                    });
+                    }
                 } catch (ReflectiveOperationException e) {
                     throw new RuntimeException(e);
                 }
@@ -271,6 +351,18 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         return builder.toString();
     }
 
+
+    private String sanitize(String s) {
+        String[] split1 = s.split("\\.");
+        if (split1.length == 1) {
+            return s;
+        }
+        s = split1[split1.length - 1];
+        if (s.split("\\$").length > 1) {
+            s = sanitize(s.split("\\$")[1]);
+        }
+        return s;
+    }
 
     @Override
     public void preMutate(Buffer b) {

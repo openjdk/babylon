@@ -41,8 +41,8 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> 
         // barriers
         hatPhases.add(new HATDialectifyBarrierPhase(accelerator));
         // Memory
-        hatPhases.add(new HATDialectifyMemoryPhase.SharedPhase(accelerator));
-        hatPhases.add(new HATDialectifyMemoryPhase.PrivatePhase(accelerator));
+        hatPhases.add(new HATDialectifyMemoryPhase.LocalMemoryPhase(accelerator));
+        hatPhases.add(new HATDialectifyMemoryPhase.PrivateMemoryPhase(accelerator));
 
         // ID's /thread access
         hatPhases.add(new HATDialectifyThreadsPhase.GlobalIdPhase(accelerator));

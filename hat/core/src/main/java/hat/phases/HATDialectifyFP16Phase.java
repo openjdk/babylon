@@ -81,7 +81,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
         String invokeClassName = invokeOp.invokeDescriptor().refType().toString();
         boolean isFP16Operation = invokeClassName.replace("$", ".").startsWith(F16.class.getCanonicalName());
         return isFP16Operation
-                && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
+                //&& OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
                 && invokeOp.invokeDescriptor().name().equals(methodName);
     }
 

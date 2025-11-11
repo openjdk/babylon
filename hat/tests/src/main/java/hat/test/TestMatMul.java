@@ -29,18 +29,17 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
-import hat.ifacemapper.Schema;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 import jdk.incubator.code.CodeReflection;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static hat.ifacemapper.MappableIface.RO;
@@ -93,25 +92,24 @@ public class TestMatMul {
         }
     }
 
-    private interface MyLocalArrayFixedSize extends Buffer {
+    private interface MyLocalArrayFixedSize extends DeviceType {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MyLocalArrayFixedSize> schema = Schema.of(MyLocalArrayFixedSize.class,
+        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray
-                        // It is a bound schema, so we fix the size here
-                        .array("array", 256));
+                        .withArray("array", 256));
 
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
 
         static MyLocalArrayFixedSize createLocal(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
 
         static MyLocalArrayFixedSize createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
@@ -489,45 +487,44 @@ public class TestMatMul {
         }
     }
 
-    private interface SharedMemory extends Buffer {
+    private interface SharedMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
-                arr -> arr.array("array", 1024));
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.withArray("array", 1024));
         static SharedMemory create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static SharedMemory createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
-
-         default void storeFloat4View(Float4 float4, int index) {
+        default void storeFloat4View(Float4 float4, int index) {
         }
     }
 
-    private interface PrivateArray extends Buffer {
+    private interface PrivateArray extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
-                arr -> arr.array("array", 16));
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+                arr -> arr.withArray("array", 16));
         static PrivateArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static PrivateArray createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
-    private interface FlatPrivate extends Buffer {
+    private interface FlatPrivate extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<FlatPrivate> schema = Schema.of(FlatPrivate.class,
-                arr -> arr.array("array", 4));
+        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(FlatPrivate.class,
+                arr -> arr.withArray("array", 4));
         static FlatPrivate create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static FlatPrivate createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
@@ -749,7 +746,6 @@ public class TestMatMul {
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, size)
         );
     }
-
 
     @HatTest
     public void testMatMul2DRegisterTiling() {

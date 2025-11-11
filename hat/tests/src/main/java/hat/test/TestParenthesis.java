@@ -37,7 +37,7 @@ import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
-import static hat.ifacemapper.MappableIface.*;
+import static hat.ifacemapper.MappableIface.RW;
 
 public class TestParenthesis {
 

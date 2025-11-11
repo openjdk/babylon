@@ -31,13 +31,13 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
-import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
-import hat.ifacemapper.Schema;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
@@ -114,25 +114,25 @@ public class Main {
         }
     }
 
-    private interface MyLocalArrayFixedSize extends Buffer {
+    private interface MyLocalArrayFixedSize extends DeviceType {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MyLocalArrayFixedSize> schema = Schema.of(MyLocalArrayFixedSize.class,
+        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray
                         // It is a bound schema, so we fix the size here
-                        .array("array", 256));
+                        .withArray("array", 256));
 
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
 
         static MyLocalArrayFixedSize createLocal(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
 
         static MyLocalArrayFixedSize createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
@@ -178,42 +178,42 @@ public class Main {
         matrixC.array((long) row * size + col, sum);
     }
 
-    private interface SharedMemory extends Buffer {
+    private interface SharedMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
-                arr -> arr.array("array", 1024));
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.withArray("array", 1024));
         static SharedMemory create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static SharedMemory createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
-    private interface PrivateArray extends Buffer {
+    private interface PrivateArray extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
-                arr -> arr.array("array", 16));
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+                arr -> arr.withArray("array", 16));
         static PrivateArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static PrivateArray createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
-    private interface FlatPrivate extends Buffer {
+    private interface FlatPrivate extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<FlatPrivate> schema = Schema.of(FlatPrivate.class,
-                arr -> arr.array("array", 4));
+        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(FlatPrivate.class,
+                arr -> arr.withArray("array", 4));
         static FlatPrivate create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static FlatPrivate createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
@@ -459,42 +459,42 @@ public class Main {
         }
     }
 
-    private interface SharedMemoryHalf extends Buffer {
+    private interface SharedMemoryHalf extends DeviceType {
         void array(long index, short value);
         short array(long index);
-        Schema<SharedMemoryHalf> schema = Schema.of(SharedMemoryHalf.class,
-                arr -> arr.array("array", 1024));
+        DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(SharedMemoryHalf.class,
+                arr -> arr.withArray("array", 1024));
         static SharedMemoryHalf create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static SharedMemoryHalf createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
-    private interface PrivateArrayHalf extends Buffer {
+    private interface PrivateArrayHalf extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<PrivateArrayHalf> schema = Schema.of(PrivateArrayHalf.class,
-                arr -> arr.array("array", 16));
+        DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(PrivateArrayHalf.class,
+                arr -> arr.withArray("array", 16));
         static PrivateArrayHalf create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static PrivateArrayHalf createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
-    private interface FlatPrivateHalf extends Buffer {
+    private interface FlatPrivateHalf extends DeviceType {
         void array(long index, short value);
         short array(long index);
-        Schema<FlatPrivateHalf> schema = Schema.of(FlatPrivateHalf.class,
-                arr -> arr.array("array", 4));
+        DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(FlatPrivateHalf.class,
+                arr -> arr.withArray("array", 4));
         static FlatPrivateHalf create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static FlatPrivateHalf createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
@@ -869,8 +869,6 @@ public class Main {
      *
      */
     static void main(String[] args) {
-        System.out.println("[INFO] Running Matrix Multiplication: ");
-
         Configuration configuration = Configuration._2DTILING;
         if (args.length > 0) {
             configuration = switch (args[0]) {
@@ -894,6 +892,7 @@ public class Main {
         System.out.println(accelerator);
 
         final int size = 1024;
+        IO.println("[INFO] Starting Matrix Multiplication with size: " + size + "x" + size );
         F32Array matrixA;
         F32Array matrixB;
         F32Array matrixC;

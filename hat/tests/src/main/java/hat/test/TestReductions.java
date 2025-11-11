@@ -31,6 +31,8 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.S32Array;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
@@ -41,20 +43,19 @@ import java.lang.invoke.MethodHandles;
 
 public class TestReductions {
 
-    private interface MySharedArray extends Buffer {
+    private interface MySharedArray extends DeviceType {
         void array(long index, int value);
         int array(long index);
 
-        Schema<MySharedArray> schema = Schema.of(MySharedArray.class,
-                myPrivateArray -> myPrivateArray
-                        .array("array", 16));
+        DeviceSchema<MySharedArray> schema = DeviceSchema.of(MySharedArray.class,
+                builder -> builder.withArray("array", 16));
 
         static MySharedArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator, 1);
+            return null;
         }
 
         static MySharedArray createLocal() {
-            return create(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 

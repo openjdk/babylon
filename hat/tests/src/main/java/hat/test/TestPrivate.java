@@ -31,6 +31,8 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
@@ -43,16 +45,16 @@ import static hat.ifacemapper.MappableIface.RW;
 
 public class TestPrivate {
 
-    private interface PrivateArray extends Buffer {
+    private interface PrivateArray extends DeviceType {
         void array(long index, float value);
         float array(long index);
 
-        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
                 myPrivateArray -> myPrivateArray
-                        .array("array", 1));
+                        .withArray("array", 1));
 
         static PrivateArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator, 1);
+            return null;
         }
 
         static PrivateArray createPrivate() {

@@ -29,12 +29,12 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 import hat.test.engine.HATExpectedFailureException;
@@ -142,31 +142,32 @@ public class TestF16Type {
         }
     }
 
-    interface MyLocalArray extends Buffer {
-        void array(long index, F16 value);
-        F16 array(long index);
+    public interface DeviceLocalArray extends DeviceType {
+        F16 array(int index);
+        //void array(int index, F16 value);
 
-        Schema<MyLocalArray> schema = Schema.of(MyLocalArray.class,
-                        arr -> arr.array("array", 1024));
+        DeviceSchema<DeviceLocalArray> schema = DeviceSchema.of(DeviceLocalArray.class,
+builder -> builder.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
 
-        static MyLocalArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+        static DeviceLocalArray create(Accelerator accelerator) {
+            return null;
         }
 
-        static MyLocalArray createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        static DeviceLocalArray createLocal() {
+            return null;
         }
     }
 
     @CodeReflection
     public static void f16Ops_11(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
-        MyLocalArray sm = MyLocalArray.createLocal();
+        DeviceLocalArray sm = DeviceLocalArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
             F16 ha = a.array(kernelContext.gix);
 
             // store into local memory
-            sm.array(lix, ha);
+            sm.array(lix).value(ha.value());
             kernelContext.barrier();
 
             F16 hb = sm.array(lix);
@@ -598,6 +599,30 @@ public class TestF16Type {
             F16 result = arrayB.array(i);
             HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) + 32.1f, F16.f16ToFloat(result), 0.1f);
         }
+    }
+
+    public interface MyDeviceArray extends DeviceType {
+        F16 array(int index);
+        void array(int index, F16 value);
+
+        void x(float x);
+        float x();
+
+        DeviceSchema<MyDeviceArray> schema = DeviceSchema.of(MyDeviceArray.class, builder ->
+                builder.withArray("array", 2048)
+                .withDeps(F16.class, half -> half.withField("value"))
+                .withField("x"));
+
+        static MyDeviceArray create() {
+            return null;
+        }
+    }
+
+    @HatTest
+    public void testF16_15() {
+        // Testing mixed types
+        MyDeviceArray myDeviceArray = MyDeviceArray.create();
+        //myDeviceArray.array(0);
     }
 
 }
