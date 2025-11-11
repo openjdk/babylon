@@ -221,11 +221,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 try {
                     //Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
                     Class<?> clazz = Class.forName(typeElement.toString());
-
-                    //System.out.println("!!!!!!For  "+clazz);
-                    // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
                     // 1.2 Obtain the create method
-
                     Method method = clazz.getMethod("create", hat.Accelerator.class);
                     method.setAccessible(true);
                     Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
@@ -239,6 +235,12 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                             }
                         });
                     } else {
+
+                        // TODO: Restructure this code. Move this as follows:
+                        // Metadata
+                        // for Type
+                        // build struct
+
                         // new approach
                         Field schemaField = clazz.getDeclaredField("schema");
                         schemaField.setAccessible(true);

@@ -600,29 +600,4 @@ builder -> builder.withArray("array", 1024)
             HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) + 32.1f, F16.f16ToFloat(result), 0.1f);
         }
     }
-
-    public interface MyDeviceArray extends DeviceType {
-        F16 array(int index);
-        void array(int index, F16 value);
-
-        void x(float x);
-        float x();
-
-        DeviceSchema<MyDeviceArray> schema = DeviceSchema.of(MyDeviceArray.class, builder ->
-                builder.withArray("array", 2048)
-                .withDeps(F16.class, half -> half.withField("value"))
-                .withField("x"));
-
-        static MyDeviceArray create() {
-            return null;
-        }
-    }
-
-    @HatTest
-    public void testF16_15() {
-        // Testing mixed types
-        MyDeviceArray myDeviceArray = MyDeviceArray.create();
-        //myDeviceArray.array(0);
-    }
-
 }

@@ -24,11 +24,12 @@
  */
 package hat.device;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -36,14 +37,16 @@ import java.util.function.Consumer;
 public class DeviceSchema<T extends DeviceType> {
 
     private Class<T> klass;
-    private Set<String> fields = new HashSet<>();
+    private List<List<String>> members = new ArrayList<>();
     private Map<String, Integer> arraySize = new HashMap<>();
     private Map<Class<?>, Consumer<DeviceSchema<T>>> deps = new HashMap<>();
     private StringBuilder representationBuilder = new StringBuilder();
+    private Set<String> visited = new HashSet<>();
 
     public DeviceSchema(Class<T> klass) {
         this.klass = klass;
     }
+    int currentLevel = 0;
 
     public static <T extends DeviceType> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
         DeviceSchema<T> deviceSchema =  new DeviceSchema<>(klass);
@@ -53,88 +56,105 @@ public class DeviceSchema<T extends DeviceType> {
     }
 
     public DeviceSchema<T> withField(String fieldName) {
-        this.fields.add(fieldName);
+        if (members.isEmpty()) {
+            members.add(new ArrayList<>());
+        }
+        this.members.get(currentLevel).add(fieldName);
         return this;
     }
 
     public DeviceSchema<T> withArray(String fieldName, int size) {
-        this.fields.add(fieldName);
+        if (members.isEmpty()) {
+            members.add(new LinkedList<>());
+        }
+        this.members.get(currentLevel).add(fieldName);
         arraySize.put(fieldName, size);
         return this;
     }
 
-    public DeviceSchema<T> withDeps(Class<?> f16Class, Consumer<DeviceSchema<T>> depConsumer) {
-        deps.put(f16Class, depConsumer);
+    public DeviceSchema<T> withDeps(Class<?> klass, Consumer<DeviceSchema<T>> depConsumer) {
+        // increment the level
+        this.currentLevel++;
+        this.members.add(new LinkedList<>());
+        deps.put(klass, depConsumer);
         depConsumer.accept(this);
+        materialize(representationBuilder, klass);
         return this;
-    }
-
-    private boolean isPrimitiveType(Class<?> type) {
-        return type.isPrimitive();
     }
 
     private boolean isInterfaceType(Class<?> type) {
         return type.isInterface();
     }
 
+    // Materialize methods are only reachable within this class.
     private DeviceSchema<T> materialize() {
-        StringBuilder sb = new StringBuilder();
-        materialize(sb, klass);
+        materialize(representationBuilder, klass);
         return this;
     }
 
+    // The following method generates an intermediate representation in text form for each level
+    // of the hierarchy.
+    // It inspects each type and its members. If a member is also a non-primitive type
+    // then it recursively inspect its inner members.
+    // We keep track of all generated data structured by maintaining a visited set. Thus,
+    // we avoid duplicates in the text form. 
     private DeviceSchema<T> materialize(StringBuilder sb, Class<?> klass) {
         try {
             Class<?> aClass = Class.forName(klass.getName());
+            Method[] declaredMethods = aClass.getDeclaredMethods();
             sb.append("<");
             sb.append(klass.getName());
             sb.append(':');
-            Field[] declaredFields = aClass.getDeclaredFields();
-            Arrays.stream(declaredFields).forEach(field -> field.setAccessible(true));
-            Method[] declaredMethods = aClass.getDeclaredMethods();
-            for (String fieldName : fields) {
+            visited.add(klass.getName());
+
+            for (String fieldName : members.get(currentLevel)) {
+                boolean wasProcessed = false;
                 for (Method method : declaredMethods) {
                     method.setAccessible(true);
-                    if (method.getName().contains(fieldName)) {
-                        if (arraySize.containsKey(method.getName())) {
-                            Class<?> returnType = method.getReturnType();
-                            if (!returnType.equals(void.class)) {
-                                if (isInterfaceType(returnType)) {
-                                    // inspect the dependency and add it on top of the builder
-                                    StringBuilder depsBuilder = new StringBuilder();
-                                    materialize(depsBuilder, returnType);
-                                    sb = depsBuilder.append(sb);
-                                }
-                                sb.append("[");
-                                sb.append(":");
-                                sb.append(returnType.getName());
-                                sb.append(":");
-                                sb.append(method.getName());
-                                sb.append(":");
-                                sb.append(arraySize.get(method.getName()));
-                                sb.append(";");
-                                break;
-                            }
-                        } else {
-                            // it is an scalar value
-                            if (!method.getReturnType().equals(void.class)) {
-                                sb.append("s");
-                                sb.append(":");
-                                sb.append(method.getReturnType());
-                                sb.append(":");
-                                sb.append(method.getName());
-                                sb.append(";");
-                                break;
-                            }
+                    if (method.getName().equals(fieldName)) {
+                        Class<?> returnType = method.getReturnType();
+                        if (returnType.equals(void.class)) {
+                            continue;
                         }
+
+                        if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
+                            // inspect the dependency and add it at the front of the string builder
+                            StringBuilder depsBuilder = new StringBuilder();
+                            materialize(depsBuilder, returnType);
+                            sb = depsBuilder.append(sb);
+                        }
+
+                        if (arraySize.containsKey(method.getName())) {
+                            sb.append("[");                        // Array indicator
+                            sb.append(":");                        // separator
+                            sb.append(returnType.getName());       // type
+                            sb.append(":");                        // separator
+                            sb.append(method.getName());           // variableName
+                            sb.append(":");                        // separator
+                            sb.append(arraySize.get(method.getName()));  // Array size
+                            sb.append(";");                        // member separator
+                        } else {
+                            sb.append("s");                         // scalar indicator
+                            sb.append(":");                         // separator
+                            sb.append(method.getReturnType());      // type
+                            sb.append(":");                         // separator
+                            sb.append(method.getName());            // var name
+                            sb.append(";");                         // member separator
+                        }
+                        wasProcessed = true;
                     }
                 }
+                if (!wasProcessed) {
+                    throw new RuntimeException("could not find method " + fieldName + " in class " + klass.getName());
+                }
+                currentLevel--;
             }
+
         } catch (ClassNotFoundException e) {
             IO.println("Error during materialization of DeviceType: " + e.getMessage());
         }
+
         sb.append(">");
-        this.representationBuilder = sb;
         return this;
     }
 
