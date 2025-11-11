@@ -36,12 +36,12 @@ import java.util.function.Consumer;
 
 public class DeviceSchema<T extends DeviceType> {
 
-    private Class<T> klass;
-    private List<List<String>> members = new ArrayList<>();
-    private Map<String, Integer> arraySize = new HashMap<>();
-    private Map<Class<?>, Consumer<DeviceSchema<T>>> deps = new HashMap<>();
-    private StringBuilder representationBuilder = new StringBuilder();
-    private Set<String> visited = new HashSet<>();
+    private final Class<T> klass;
+    private final List<List<String>> members = new ArrayList<>();
+    private final Map<String, Integer> arraySize = new HashMap<>();
+    private final Map<Class<?>, Consumer<DeviceSchema<T>>> deps = new HashMap<>();
+    private final StringBuilder representationBuilder = new StringBuilder();
+    private final Set<String> visited = new HashSet<>();
 
     public DeviceSchema(Class<T> klass) {
         this.klass = klass;
@@ -97,7 +97,7 @@ public class DeviceSchema<T extends DeviceType> {
     // It inspects each type and its members. If a member is also a non-primitive type
     // then it recursively inspect its inner members.
     // We keep track of all generated data structured by maintaining a visited set. Thus,
-    // we avoid duplicates in the text form. 
+    // we avoid duplicates in the text form.
     private DeviceSchema<T> materialize(StringBuilder sb, Class<?> klass) {
         try {
             Class<?> aClass = Class.forName(klass.getName());
