@@ -26,6 +26,7 @@ package view.f32;
 
 
 import hat.util.StreamMutable;
+import view.ViewFrame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,19 +39,19 @@ public class F32Mesh3D {
     public static F32Mesh3D of(String name){
         return new F32Mesh3D(name);
     }
-    public record Face ( F32Triangle3D triangle, F32Vec3 centerVec3Idx, F32Vec3 normalIdx, F32Vec3 v0VecIdx){
-        static Face of (F32Triangle3D tri){
-           return  new Face(tri,  F32Triangle3D.getCentre(tri),F32Triangle3D.normal(tri),tri.v0());
+    public record Face (F32x3Triangle triangle, F32x3 centerVec3Idx, F32x3 normalIdx, F32x3 v0VecIdx){
+        static Face of (F32x3Triangle tri){
+           return  new Face(tri, ViewFrame.f32.centre(tri), ViewFrame.f32.normal(tri),tri.v0());
         }
     }
 
     public List<Face> faces = new ArrayList<>();
 
-    public List<F32Vec3> vecEntries = new ArrayList<>();// F32Vec3.F32Vec3Pool.Idx[MAX];
+    public List<F32x3> vecEntries = new ArrayList<>();// F32Vec3.F32Vec3Pool.Idx[MAX];
 
 
-    public Face tri(F32Vec3 v0, F32Vec3 v1, F32Vec3 v2, int rgb) {
-        Face face =Face.of(F32Triangle3D.f32Triangle3DPool.of(v0, v1, v2, rgb));
+    public Face tri(F32x3 v0, F32x3 v1, F32x3 v2, int rgb) {
+        Face face =Face.of(ViewFrame.f32.f32x3TriangleFactory().of(v0, v1, v2, rgb));
         faces.add(face);
         return face;
     }
@@ -58,20 +59,20 @@ public class F32Mesh3D {
     public void fin(){
         var  triSumIdx =StreamMutable.of(faces.getFirst().centerVec3Idx);
         faces.stream().skip(1).forEach(face -> {
-            triSumIdx.set(F32Vec3.addVec3(triSumIdx.get(), face.centerVec3Idx));
+            triSumIdx.set(ViewFrame.f32.add(triSumIdx.get(), face.centerVec3Idx));
         });
-        var meshCenterVec3 = F32Vec3.divScaler(triSumIdx.get(), faces.size());
+        var meshCenterVec3 = ViewFrame.f32.div(triSumIdx.get(), faces.size());
         faces.forEach(face ->{
-            var v0CenterDiff = F32Vec3.subVec3(meshCenterVec3,face.v0VecIdx);
-            float normDotProd = F32Vec3.dotProd(v0CenterDiff, face.normalIdx);
+            var v0CenterDiff = ViewFrame.f32.sub(meshCenterVec3,face.v0VecIdx);
+            float normDotProd = ViewFrame.f32.dotProd(v0CenterDiff, face.normalIdx);
             if (normDotProd >0f) { // the normal from the center from the triangle was pointing out, so re wind it
-                F32Triangle3D.rewind(face.triangle);
+                F32.rewind(face.triangle);
             }
         });
         cube(meshCenterVec3.x(),meshCenterVec3.y(), meshCenterVec3.z(), .1f );
     }
 
-    public F32Mesh3D quad(F32Vec3 v0, F32Vec3 v1, F32Vec3 v2, F32Vec3 v3, int rgb) {
+    public F32Mesh3D quad(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, int rgb) {
   /*
        v0-----v1
         |\    |
@@ -87,7 +88,7 @@ public class F32Mesh3D {
         return this;
     }
 
-    public F32Mesh3D pent(F32Vec3 v0, F32Vec3 v1, F32Vec3 v2, F32Vec3 v3, F32Vec3 v4, int rgb) {
+    public F32Mesh3D pent(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, F32x3 v4, int rgb) {
   /*
        v0-----v1
        |\    | \
@@ -103,7 +104,7 @@ public class F32Mesh3D {
         tri(v0, v3, v4, rgb);
         return this;
     }
-    public F32Mesh3D hex(F32Vec3 v0, F32Vec3 v1, F32Vec3 v2, F32Vec3 v3, F32Vec3 v4, F32Vec3 v5, int rgb) {
+    public F32Mesh3D hex(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, F32x3 v4, F32x3 v5, int rgb) {
   /*
        v0-----v1
       / |\    | \
@@ -217,8 +218,8 @@ http://paulbourke.net/dataformats/obj/
         return this;
     }
 
-    public  F32Vec3  vec3(float x, float y, float z) {
-        var newVec = F32Vec3.f32Vec3Pool.of(x,y, z);
+    public F32x3 vec3(float x, float y, float z) {
+        var newVec = ViewFrame.f32.f32x3Factory().of(x,y, z);
         vecEntries.add(newVec);
         return newVec;
     }

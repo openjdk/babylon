@@ -24,38 +24,67 @@
  */
 package view.f32;
 
-import view.ViewFrame;
-import view.f32.pool.F32x2Pool;
-import view.f32.pool.F32x2TrianglePool;
-import view.f32.pool.F32x3Pool;
-import view.f32.pool.F32x3TrianglePool;
+
+import view.f32.factories.Factory16;
 import view.f32.pool.F32x4x4Pool;
 
-public record ModelHighWaterMark(
-        int markedTriangles3D,
-        int markedTriangles2D,
-        int markedVec2,
-        int markedVec3,
-        int markedMat4) {
+public interface F32x4x4 {
+    float x0y0();
 
-    public ModelHighWaterMark() {
-        this(
-                ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count,
-                ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).count,
-                ((F32x2Pool)ViewFrame.f32.f32x2Factory()).count,
-                ((F32x3Pool)ViewFrame.f32.f32x3Factory()).count,
-                ((F32x4x4Pool)ViewFrame.f32.f32x4x4Factory()).count);
+    float x1y0();
+
+    float x2y0();
+
+    float x3y0();
+
+    float x0y1();
+
+    float x1y1();
+
+    float x2y1();
+
+    float x3y1();
+
+    float x0y2();
+
+    float x1y2();
+
+    float x2y2();
+
+    float x3y2();
+
+    float x0y3();
+
+    float x1y3();
+
+    float x2y3();
+
+    float x3y3();
+
+    default String asString() {
+
+        return String.format("""
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        """,
+                x0y0(), x1y0(), x2y0(), x3y0(),
+                x0y1(), x1y1(), x2y1(), x3y1(),
+                x0y2(), x1y2(), x2y2(), x3y2(),
+                x0y3(), x1y3(), x2y3(), x3y3());
     }
 
-    public void resetAll() {
-        reset3D();
-        ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).reset(markedTriangles2D);
-        ((F32x2Pool)ViewFrame.f32.f32x2Factory()).reset(markedVec2);
+
+
+    @FunctionalInterface
+    interface Factory extends Factory16<
+            Float,Float,Float,Float,
+            Float,Float,Float,Float,
+            Float,Float,Float,Float,
+            Float,Float,Float,Float,F32x4x4>{
+
     }
 
-    public void reset3D() {
-        ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count = markedTriangles3D;
-        ((F32x3Pool)ViewFrame.f32.f32x3Factory()).count = markedVec3;
-        ((F32x4x4Pool)ViewFrame.f32.f32x4x4Factory()).count = markedMat4;
-    }
+
 }
