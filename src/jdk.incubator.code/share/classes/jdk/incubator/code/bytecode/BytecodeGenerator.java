@@ -69,6 +69,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.constant.ConstantDescs.*;
+import java.util.function.Function;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 
 /**
@@ -149,18 +150,41 @@ public final class BytecodeGenerator {
     public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                          String name,
                                                                          O iop) {
-        if (!iop.capturedValues().isEmpty()) {
-            throw new UnsupportedOperationException("Operation captures values");
-        }
-
         String packageName = lookup.lookupClass().getPackageName();
         ClassDesc className = ClassDesc.of(packageName.isEmpty()
                 ? name
                 : packageName + "." + name);
+        return generateClassData(lookup, className, _ -> name, iop);
+    }
+
+    /**
+     * Transforms the invokable operation to bytecode encapsulated in a method of a class file.
+     *
+     * @param lookup the lookup
+     * @param className the name to use for the class file
+     * @param methodNamer function compiting method names from ops
+     * @param iops the invokable operation(s) to transform to bytecode
+     * @return the class file bytes
+     * @param <O> the type of the invokable operation
+     */
+    @SafeVarargs
+    public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
+                                                                         ClassDesc className,
+                                                                         Function<O, String> methodNamer,
+                                                                         O... iops) {
+        for (O iop : iops) {
+            if (!iop.capturedValues().isEmpty()) {
+                throw new UnsupportedOperationException("Operation captures values");
+            }
+        }
+
         byte[] classBytes = ClassFile.of().build(className, clb -> {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             BitSet quotable = new BitSet();
-            generateMethod(lookup, className, name, iop, clb, lambdaSink, quotable);
+            for (O iop : iops) {
+                System.out.println(iop.toText());
+                generateMethod(lookup, className, methodNamer.apply(iop), iop, clb, lambdaSink, quotable);
+            }
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
                 if (quotable.get(i)) {
@@ -796,15 +820,16 @@ public final class BytecodeGenerator {
                         }
                         // Resolve referenced class to determine if interface
                         MethodRef md = op.invokeDescriptor();
-                        JavaType refType = (JavaType)md.refType();
-                        Class<?> refClass;
-                        try {
-                             refClass = (Class<?>)refType.erasure().resolve(lookup);
-                        } catch (ReflectiveOperationException e) {
-                            throw new IllegalArgumentException(e);
-                        }
                         // Determine invoke opcode
-                        final boolean isInterface = refClass.isInterface();
+                        boolean isInterface = false;
+                        JavaType refType = (JavaType)md.refType();
+                        if (!refType.equals(JavaType.type(className))) {
+                            try {
+                                 isInterface = ((Class<?>)refType.erasure().resolve(lookup)).isInterface();
+                            } catch (ReflectiveOperationException e) {
+                                throw new IllegalArgumentException(e);
+                            }
+                        }
                         Opcode invokeOpcode = switch (op.invokeKind()) {
                             case STATIC ->
                                     Opcode.INVOKESTATIC;

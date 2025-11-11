@@ -93,7 +93,9 @@ import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
 
 import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;
+import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDescs;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -110,6 +112,13 @@ import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
 import static com.sun.tools.javac.resources.CompilerProperties.Errors.*;
 import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
+import javax.tools.JavaFileManager;
+import javax.tools.StandardLocation;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
@@ -135,6 +144,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Lower lower;
     private final TypeEnvs typeEnvs;
     private final Flow flow;
+    private final JavaFileManager fileManager;
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
@@ -163,6 +173,7 @@ public class ReflectMethods extends TreeTranslator {
         lower = Lower.instance(context);
         typeEnvs = TypeEnvs.instance(context);
         flow = Flow.instance(context);
+        fileManager = context.get(JavaFileManager.class);
         crSyms = new CodeReflectionSymbols(context);
     }
 
@@ -203,6 +214,11 @@ public class ReflectMethods extends TreeTranslator {
             currentClassSym = tree.sym;
             classOps = new ListBuffer<>();
             super.visitClassDef(tree);
+            if (!classOps.isEmpty()) {
+                String synthClassName = currentClassSym.flatname.toString() + "$Synth";
+
+                synthClassDecl(synthClassName, OpBuilder.createSupportFunctions(JavaType.type(ClassDesc.of(synthClassName))));
+            }
             tree.defs = tree.defs.prependList(classOps.toList());
         } finally {
             lambdaCount = prevLambdaCount;
@@ -380,7 +396,9 @@ public class ReflectMethods extends TreeTranslator {
         // Create the method body
         // Code model is stored as code that builds the code model
         // using the builder API and public APIs
-        var opBuilder = OpBuilder.createBuilderFunction(op,
+        var opBuilder = OpBuilder.createBuilderFunction(
+                symbolToErasedDesc(currentClassSym),
+                op,
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
         var codeModelTranslator = new CodeModelTranslator();
@@ -388,6 +406,44 @@ public class ReflectMethods extends TreeTranslator {
 
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
+    }
+
+    private Type synthClassDecl(String className, List<CoreOp.FuncOp> funcs) {
+        try {
+            JavaFileManager.Location outLocn;
+            if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
+                outLocn = fileManager.getLocationForModule(StandardLocation.CLASS_OUTPUT, currentClassSym.packge().modle.name.toString());
+            } else {
+                outLocn = StandardLocation.CLASS_OUTPUT;
+            }
+            JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, currentClassSym.sourcefile);
+
+            try (OutputStream out = outFile.openOutputStream()) {
+                out.write(BytecodeGenerator.generateClassData(
+                        MethodHandles.lookup(),
+                        ClassDesc.of(className),
+                        CoreOp.FuncOp::funcName,
+                        funcs.toArray(CoreOp.FuncOp[]::new)));
+            }
+
+            return syms.enterClass(currentClassSym.packge().modle, className);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    Type classDescToType(ClassDesc cd) {
+        return cd == ConstantDescs.CD_boolean ? syms.booleanType :
+               cd == ConstantDescs.CD_char ? syms.charType :
+               cd == ConstantDescs.CD_byte ? syms.byteType :
+               cd == ConstantDescs.CD_short ? syms.shortType :
+               cd == ConstantDescs.CD_int ? syms.intType :
+               cd == ConstantDescs.CD_long ? syms.longType :
+               cd == ConstantDescs.CD_float ? syms.floatType :
+               cd == ConstantDescs.CD_double ? syms.doubleType :
+               cd == ConstantDescs.CD_float ? syms.floatType :
+               cd.isClassOrInterface() ? types.erasure(syms.enterClass(attrEnv().toplevel.modle, cd.descriptorString().substring(1, cd.descriptorString().length() - 1))) :
+               new Type.ArrayType(classDescToType(cd.componentType()), syms.arrayClass);
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
