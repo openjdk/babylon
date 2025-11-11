@@ -114,6 +114,8 @@ import static com.sun.tools.javac.resources.CompilerProperties.Errors.*;
 import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.classfile.attribute.InnerClassInfo;
+import java.lang.classfile.attribute.InnerClassesAttribute;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
 import javax.tools.JavaFileManager;
@@ -151,8 +153,9 @@ public class ReflectMethods extends TreeTranslator {
     private final CodeModelStorageOption codeModelStorageOption;
 
     private TreeMaker make;
-    private ListBuffer<JCTree> classOps;
-    private Symbol.ClassSymbol currentClassSym;
+//    private ListBuffer<JCTree> classOps;
+    private List<CoreOp.FuncOp> classOps;
+    private Symbol.ClassSymbol currentClassSym, synthClassSym;
     private int lambdaCount;
 
     @SuppressWarnings("this-escape")
@@ -192,7 +195,7 @@ public class ReflectMethods extends TreeTranslator {
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
-                classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
+                classOps.add(opBuilder(methodName(symbolToMethodRef(tree.sym)).toString(), funcOp));
             }
         }
         super.visitMethodDef(tree);
@@ -205,25 +208,30 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitClassDef(JCClassDecl tree) {
-        ListBuffer<JCTree> prevClassOps = classOps;
+//        ListBuffer<JCTree> prevClassOps = classOps;
+        List<CoreOp.FuncOp> prevClassOps = classOps;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
+        Symbol.ClassSymbol prevSynthClassSym = synthClassSym;
         int prevLambdaCount = lambdaCount;
         JavaFileObject prev = log.useSource(tree.sym.sourcefile);
         try {
             lambdaCount = 0;
             currentClassSym = tree.sym;
-            classOps = new ListBuffer<>();
+            synthClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
+            classOps = new ArrayList<>();
             super.visitClassDef(tree);
             if (!classOps.isEmpty()) {
-                String synthClassName = currentClassSym.flatname.toString() + "$Synth";
-
-                synthClassDecl(synthClassName, OpBuilder.createSupportFunctions(JavaType.type(ClassDesc.of(synthClassName))));
+                String synthClassName = synthClassSym.flatName().toString();
+                classOps.addAll(OpBuilder.createSupportFunctions(JavaType.type(ClassDesc.of(synthClassName))));
+                synthClassDecl(synthClassName, classOps);
+                currentClassSym.members().enter(synthClassSym);
             }
-            tree.defs = tree.defs.prependList(classOps.toList());
+//            tree.defs = tree.defs.prependList(classOps.toList());
         } finally {
             lambdaCount = prevLambdaCount;
             classOps = prevClassOps;
             currentClassSym = prevClassSym;
+            synthClassSym = prevSynthClassSym;
             result = tree;
             log.useSource(prev);
         }
@@ -248,7 +256,11 @@ public class ReflectMethods extends TreeTranslator {
                 log.note(QuotedIrDump(funcOp.toText()));
             }
             // create a static method that returns the FuncOp representing the lambda
-            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
+//            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
+
+            Name lambdaName = lambdaName();
+            MethodSymbol opMethodSymbol = opMethodSymbol(lambdaName);
+            CoreOp.FuncOp opMethod = opBuilder(lambdaName.toString(), funcOp);
             classOps.add(opMethod);
 
             switch (kind) {
@@ -257,7 +269,7 @@ public class ReflectMethods extends TreeTranslator {
                     // Thereby we avoid certain dependencies and hide specific details
                     ListBuffer<JCExpression> args = new ListBuffer<>();
                     // Get the func operation
-                    JCIdent opMethodId = make.Ident(opMethod.sym);
+                    JCIdent opMethodId = make.Ident(opMethodSymbol);
                     JCExpression op = make.TypeCast(crSyms.funcOpType, make.App(opMethodId));
                     args.add(op);
                     // Append captured vars
@@ -271,7 +283,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 case QUOTABLE -> {
                     // leave the lambda in place, but also leave a trail for LambdaToMethod
-                    tree.codeModel = opMethod.sym;
+                    tree.codeModel = opMethodSymbol;
                     super.visitLambda(tree);
                 }
             }
@@ -305,9 +317,10 @@ public class ReflectMethods extends TreeTranslator {
                 log.note(QuotedIrDump(funcOp.toText()));
             }
             // create a method that returns the FuncOp representing the lambda
-            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
+//            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
+            CoreOp.FuncOp opMethod = opBuilder(lambdaName().toString(), funcOp);
             classOps.add(opMethod);
-            tree.codeModel = opMethod.sym;
+//            tree.codeModel = opMethod.sym;
             super.visitReference(tree);
             if (recvDecl != null) {
                 result = copyReferenceWithReceiverVar(tree, recvDecl);
@@ -386,26 +399,24 @@ public class ReflectMethods extends TreeTranslator {
         }
     }
 
-    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
-        // Create the method that constructs the code model stored in the class file
-        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
-                com.sun.tools.javac.util.List.nil(), syms.methodClass);
-        var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
-        currentClassSym.members().enter(ms);
-
+    private CoreOp.FuncOp opBuilder(String methodName, CoreOp.FuncOp op) {
         // Create the method body
         // Code model is stored as code that builds the code model
         // using the builder API and public APIs
-        var opBuilder = OpBuilder.createBuilderFunction(
-                symbolToErasedDesc(currentClassSym),
+        return OpBuilder.createBuilderFunction(
+                symbolToErasedDesc(synthClassSym),
+                methodName,
                 op,
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        var codeModelTranslator = new CodeModelTranslator();
-        var body = codeModelTranslator.translateFuncOp(opBuilder, ms);
 
-        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
-        return md;
+    }
+
+    private MethodSymbol opMethodSymbol(Name methodName) {
+        // Create the method that constructs the code model stored in the class file
+        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
+                com.sun.tools.javac.util.List.nil(), syms.methodClass);
+        return new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, synthClassSym);
     }
 
     private Type synthClassDecl(String className, List<CoreOp.FuncOp> funcs) {
@@ -417,13 +428,17 @@ public class ReflectMethods extends TreeTranslator {
                 outLocn = StandardLocation.CLASS_OUTPUT;
             }
             JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, currentClassSym.sourcefile);
-
-            try (OutputStream out = outFile.openOutputStream()) {
-                out.write(BytecodeGenerator.generateClassData(
+            ClassDesc synthCD = ClassDesc.of(className);
+            byte[] data = BytecodeGenerator.generateClassData(
                         MethodHandles.lookup(),
-                        ClassDesc.of(className),
+                        synthCD,
                         CoreOp.FuncOp::funcName,
-                        funcs.toArray(CoreOp.FuncOp[]::new)));
+                        clb -> {
+                            clb.with(InnerClassesAttribute.of(InnerClassInfo.of(synthCD, Optional.of(ClassDesc.of(currentClassSym.className())), Optional.of("$CM"))));
+                        },
+                        funcs.toArray(CoreOp.FuncOp[]::new));
+            try (OutputStream out = outFile.openOutputStream()) {
+                out.write(data);
             }
 
             return syms.enterClass(currentClassSym.packge().modle, className);

@@ -201,8 +201,8 @@ public class OpBuilder {
      * @param dialectFactoryF a function that builds code items to produce a dialect factory value.
      * @return the building code model.
      */
-    public static FuncOp createBuilderFunction(JavaType currentClass, Op op, Function<Block.Builder, Value> dialectFactoryF) {
-        return new OpBuilder(currentClass, dialectFactoryF).build(op);
+    public static FuncOp createBuilderFunction(JavaType currentClass, String name, Op op, Function<Block.Builder, Value> dialectFactoryF) {
+        return new OpBuilder(currentClass, dialectFactoryF).build(name, op);
     }
 
     public static List<FuncOp> createSupportFunctions(JavaType currentClass) {
@@ -258,7 +258,7 @@ public class OpBuilder {
                             // %14 : java.type:"jdk.incubator.code.Op" = invoke %8 %13 @java.ref:"jdk.incubator.code.extern.OpFactory::constructOp(jdk.incubator.code.extern.ExternalizedOp):jdk.incubator.code.Op";
                             b.op(invoke(OP_FACTORY_CONSTRUCT,
                                     // %8 : java.type:"jdk.incubator.code.extern.OpFactory" = field.load @java.ref:"jdk.incubator.code.dialect.java.JavaOp::JAVA_OP_FACTORY:jdk.incubator.code.extern.OpFactory";
-                                    b.op(fieldLoad(FieldRef.field(JavaOp.class, "JAVA_OP_FACTORY", OpFactory.class),
+                                    b.op(fieldLoad(FieldRef.field(JavaOp.class, "JAVA_OP_FACTORY", OpFactory.class))),
                                     // %13 : java.type:"jdk.incubator.code.extern.ExternalizedOp" = new %1 %2 %9 %10 %5 %11 %12 @java.ref:"jdk.incubator.code.extern.ExternalizedOp::(java.lang.String, jdk.incubator.code.Location, java.util.List, java.util.List, jdk.incubator.code.TypeElement, java.util.Map, java.util.List)";
                                     b.op(new_(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE),
                                             args.get(1),
@@ -271,7 +271,7 @@ public class OpBuilder {
                                             // %11 : java.type:"java.util.Map" = invoke %6 @java.ref:"javaapplication28.JavaApplication28::map(java.lang.Object):java.util.Map";
                                             b.op(invoke(J_U_MAP, MethodRef.method(currentClass, MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE), args.get(6))),
                                             // %12 : java.type:"java.util.List<jdk.incubator.code.Body::Builder>" = invoke %7 @java.ref:"javaapplication28.JavaApplication28::list(java.lang.Object):java.util.List";
-                                            b.op(invoke(J_U_LIST_BODY_BUILDER, listMethodRef, args.get(7)))))))))))));
+                                            b.op(invoke(J_U_LIST_BODY_BUILDER, listMethodRef, args.get(7)))))))))));
                 }),
                 func(OP_BUILDER_F_NAME, OP_BUILDER_F_OVERRIDE_2).body(bb -> {
                     Block.Builder b = bb.entryBlock();
@@ -303,15 +303,14 @@ public class OpBuilder {
         this.typeElementFactory = builder.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactory));
     }
 
-    FuncOp build(Op op) {
+    FuncOp build(String name, Op op) {
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
         Value result = buildOp(ancestorBody, op);
         // seal op
         builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
         builder.op(return_(result));
 
-        // @@@ avoid use of opName
-        return func("builder." + op.getClass().getName(), builder.parentBody());
+        return func(name, builder.parentBody());
     }
 
 
@@ -474,31 +473,35 @@ public class OpBuilder {
         return buildMap(J_L_STRING, J_L_OBJECT, keysAndValues);
     }
 
+    private Value box(TypeElement to, Value v) {
+        return builder.op(invoke(MethodRef.method(to, "valueOf", to, v.type()), v));
+    }
+
     Value buildAttributeValue(Object value) {
         return switch (value) {
             case Boolean v -> {
-                yield builder.op(constant(BOOLEAN, value));
+                yield box(J_L_BOOLEAN, builder.op(constant(BOOLEAN, value)));
             }
             case Byte v -> {
-                yield builder.op(constant(BYTE, value));
+                yield box(J_L_BYTE, builder.op(constant(BYTE, value)));
             }
             case Short v -> {
-                yield builder.op(constant(SHORT, value));
+                yield box(J_L_SHORT, builder.op(constant(SHORT, value)));
             }
             case Character v -> {
-                yield builder.op(constant(CHAR, value));
+                yield box(J_L_CHARACTER, builder.op(constant(CHAR, value)));
             }
             case Integer v -> {
-                yield builder.op(constant(INT, value));
+                yield box(J_L_INTEGER, builder.op(constant(INT, value)));
             }
             case Long v -> {
-                yield builder.op(constant(LONG, value));
+                yield box(J_L_LONG, builder.op(constant(LONG, value)));
             }
             case Float v -> {
-                yield builder.op(constant(FLOAT, value));
+                yield box(J_L_FLOAT, builder.op(constant(FLOAT, value)));
             }
             case Double v -> {
-                yield builder.op(constant(DOUBLE, value));
+                yield box(J_L_DOUBLE, builder.op(constant(DOUBLE, value)));
             }
             case Class<?> v -> {
                 yield buildType(JavaType.type(v));

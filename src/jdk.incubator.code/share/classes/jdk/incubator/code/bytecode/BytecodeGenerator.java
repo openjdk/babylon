@@ -69,6 +69,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.constant.ConstantDescs.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 
@@ -154,7 +155,7 @@ public final class BytecodeGenerator {
         ClassDesc className = ClassDesc.of(packageName.isEmpty()
                 ? name
                 : packageName + "." + name);
-        return generateClassData(lookup, className, _ -> name, iop);
+        return generateClassData(lookup, className, _ -> name, _ -> {}, iop);
     }
 
     /**
@@ -163,6 +164,7 @@ public final class BytecodeGenerator {
      * @param lookup the lookup
      * @param className the name to use for the class file
      * @param methodNamer function compiting method names from ops
+     * @param extraBuilder additional builder actions
      * @param iops the invokable operation(s) to transform to bytecode
      * @return the class file bytes
      * @param <O> the type of the invokable operation
@@ -171,6 +173,7 @@ public final class BytecodeGenerator {
     public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                          ClassDesc className,
                                                                          Function<O, String> methodNamer,
+                                                                         Consumer<ClassBuilder> extraBuilder,
                                                                          O... iops) {
         for (O iop : iops) {
             if (!iop.capturedValues().isEmpty()) {
@@ -182,7 +185,6 @@ public final class BytecodeGenerator {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             BitSet quotable = new BitSet();
             for (O iop : iops) {
-                System.out.println(iop.toText());
                 generateMethod(lookup, className, methodNamer.apply(iop), iop, clb, lambdaSink, quotable);
             }
             for (int i = 0; i < lambdaSink.size(); i++) {
@@ -199,7 +201,16 @@ public final class BytecodeGenerator {
                 }
                 generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink, quotable);
             }
+            extraBuilder.accept(clb);
         });
+        var err = ClassFile.of().verify(classBytes);
+        if (!err.isEmpty()) {
+            for (var op : iops) {
+                System.out.println(op.toText());
+            }
+            System.out.println(ClassFile.of().parse(classBytes).toDebugString());
+            err.forEach(System.out::println);
+        }
         return classBytes;
     }
 
