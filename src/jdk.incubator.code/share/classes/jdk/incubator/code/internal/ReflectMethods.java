@@ -457,13 +457,21 @@ public class ReflectMethods extends TreeTranslator {
         private final boolean isQuoted;
         private Type bodyTarget;
         private JCTree currentNode;
-        private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
+        private Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
         BodyScanner(JCMethodDecl tree) {
             this(tree, tree.body);
         }
 
         BodyScanner(JCMethodDecl tree, JCBlock body) {
+            this(tree, body, null);
+        }
+
+        BodyScanner(JCMethodDecl tree, BodyStack parent) {
+            this(tree, tree.body, parent);
+        }
+
+        BodyScanner(JCMethodDecl tree, JCBlock body, BodyStack parent) {
             this.currentNode = tree;
             this.body = body;
             this.name = tree.name;
@@ -484,7 +492,7 @@ public class ReflectMethods extends TreeTranslator {
             FunctionType bodyType = CoreType.functionType(
                     typeToTypeElement(tree.sym.type.getReturnType()), parameters);
 
-            this.stack = this.top = new BodyStack(null, tree.body, bodyType);
+            this.stack = this.top = new BodyStack(parent, tree.body, bodyType);
 
             // @@@ this as local variable? (it can never be stored to)
             for (int i = 0 ; i < tree.params.size() ; i++) {
@@ -495,6 +503,12 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             bodyTarget = tree.sym.type.getReturnType();
+        }
+
+        public BodyScanner(JCMethodDecl md, Map<Symbol, List<Symbol>> localCaptures, BodyStack stack) {
+            this(md, stack);
+
+            this.localCaptures = Objects.requireNonNull(localCaptures);
         }
 
         BodyScanner(JCLambda tree, FunctionalExpressionKind kind) {
@@ -1042,7 +1056,15 @@ public class ReflectMethods extends TreeTranslator {
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
                         } else {
-                            result = append(JavaOp.fieldLoad(resultType, fr, thisValue()));
+                            // field owner sym is mapped to a value that represents the receiver
+                            // by default, the receiver is the @CodeReflection method class instance
+                            Value receiver;
+                            try {
+                                receiver = loadVar(tree.sym.owner);
+                            } catch (NoSuchElementException e) {
+                                receiver = thisValue();
+                            }
+                            result = append(JavaOp.fieldLoad(resultType, fr, receiver)); // instead look for a symbol of the same type as field ref, in stacks
                         }
                     }
                 }
@@ -1094,7 +1116,13 @@ public class ReflectMethods extends TreeTranslator {
                 switch (sym.getKind()) {
                     case FIELD, ENUM_CONSTANT -> {
                         if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
-                            result = thisValue();
+                            try {
+                                // e.g. Foo.this
+                                // we will load the value mapped to Foo symbol
+                                result = loadVar(tree.selected.type.tsym);
+                            } catch (NoSuchElementException e) {
+                                result = thisValue();
+                            }
                         } else {
                             FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
@@ -1142,7 +1170,7 @@ public class ReflectMethods extends TreeTranslator {
                     Symbol sym = access.sym;
                     List<Value> args = new ArrayList<>();
                     JavaOp.InvokeOp.InvokeKind ik;
-                    if (!sym.isStatic()) {
+                    if (!sym.isStatic() && !sym.isConstructor()) {
                         ik = JavaOp.InvokeOp.InvokeKind.INSTANCE;
                         args.add(thisValue());
                     } else {
@@ -1151,9 +1179,27 @@ public class ReflectMethods extends TreeTranslator {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
-                    MethodRef mr = symbolToMethodRef(sym, symbolSiteType(sym));
-                    Value res = append(JavaOp.invoke(ik, tree.varargsElement != null,
-                            typeToTypeElement(meth.type.getReturnType()), mr, args));
+                    List<TypeElement> argtypes = new ArrayList<>();
+                    Value res;
+                    // @@@
+                    // I couldn't reuse InvokeOp
+                    // having MethodRef in the form JavaType::<init>(JavaType)JavaType causes parsing error
+                    // it's also clearer to use ConstructorRef, after all we're invoking a constructor
+                    // so, we come up with a new operation CInvokeOp that models constructor invocation
+                    // CInvokeOp and InvokeOp can have a super class, to share common properties
+                    if (sym.isConstructor()) {
+                        MethodRef methodRef = symbolToMethodRef(sym);
+                        argtypes.addAll(methodRef.type().parameterTypes());
+                        FunctionType constructorType = CoreType.functionType(
+                                symbolToErasedDesc(sym.owner),
+                                argtypes);
+                        ConstructorRef cr = ConstructorRef.constructor(constructorType);
+                        res = append(JavaOp.cInvoke(tree.varargsElement != null, cr , args));
+                    } else {
+                        MethodRef mr = symbolToMethodRef(sym, symbolSiteType(sym));
+                        res = append(JavaOp.invoke(ik, tree.varargsElement != null,
+                                typeToTypeElement(meth.type.getReturnType()), mr, args));
+                    }
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1389,7 +1435,8 @@ public class ReflectMethods extends TreeTranslator {
             Type type = tree.type;
             Type outer = type.getEnclosingType();
             List<Value> args = new ArrayList<>();
-            if (!outer.hasTag(TypeTag.NONE)) {
+            // do this for inner class but not for local class
+            if (!tree.type.tsym.isDirectlyOrIndirectlyLocal() && !outer.hasTag(TypeTag.NONE)) {
                 // Obtain outer value for inner class, and add as first argument
                 JCTree.JCExpression encl = tree.encl;
                 Value outerInstance;
@@ -1402,6 +1449,19 @@ public class ReflectMethods extends TreeTranslator {
                 argtypes.add(outerInstance.type());
             }
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
+                // for local class, add outer instance as arg if applicable
+                Symbol ownerMethod = tree.type.tsym.owner; // the method where the local class is defined
+                if (!ownerMethod.isStatic()) {
+                    Symbol outerClass = ownerMethod.owner;
+                    Value outerInstance;
+                    try {
+                        outerInstance = loadVar(outerClass);
+                    } catch (NoSuchElementException e) {
+                        outerInstance = thisValue();
+                    }
+                    args.add(outerInstance);
+                    argtypes.add(outerInstance.type());
+                }
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
                     args.add(loadVar(c));
                     argtypes.add(symbolToErasedDesc(c));
@@ -2482,6 +2542,68 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 FreeVarScanner fvs = new FreeVarScanner();
                 localCaptures.put(tree.sym, List.copyOf(fvs.analyzeCaptures()));
+
+                ListBuffer<Symbol> capturesSymbols = new ListBuffer<>();
+                Symbol ownerMethod = tree.sym.owner;
+                if (!ownerMethod.isStatic()) {
+                    capturesSymbols.add(ownerMethod.owner);
+                }
+                capturesSymbols.addAll(localCaptures.get(tree.sym));
+
+                pushBody(tree, FunctionType.FUNCTION_TYPE_VOID);
+
+                // fields declarations
+                List<JCTree> fieldsDec = tree.defs.stream().filter(d -> d instanceof JCVariableDecl).toList();
+                // fields for the local class captures
+                List<Op.Result> fieldsForCaptures = new ArrayList<>();
+                for (Symbol capturesSymbol : capturesSymbols) {
+                    Op.Result r = append(CoreOp.var(typeToTypeElement(capturesSymbol.type)));
+                    fieldsForCaptures.add(r);
+                    stack.localToOp.put(capturesSymbol, r);
+                }
+                // fields of the local class
+                for (JCTree fd : fieldsDec) {
+                    scan(fd);
+                }
+
+                // methods declarations
+                List<JCTree> methodsDec = tree.defs.stream().filter(d -> d instanceof JCMethodDecl).toList();
+                for (JCTree md : methodsDec) {
+                    // We pass the stack to have the mapping of captures to fields available
+                    CoreOp.FuncOp funcOp = new BodyScanner((JCMethodDecl) md, localCaptures, stack).scanMethod();
+                    if (!((JCMethodDecl) md).sym.isConstructor()) {
+                        append(funcOp);
+                        continue;
+                    }
+                    // for a constructor, we modify the created funcOp by adding params that represent captures,
+                    // plus operations that assign these params to the right fields
+                    List<TypeElement> newParamsTypes = new ArrayList<>();
+                    // add params that represent captures
+                    newParamsTypes.addAll(capturesSymbols.stream().map(s -> typeToTypeElement(s.type)).toList());
+                    // add original params expect the first one that represent the local class instance
+                    newParamsTypes.addAll(funcOp.invokableType().parameterTypes().stream().skip(1).toList());
+                    // @@@ simple way of doing this kind of transformation ?
+                    Body.Builder nfbody = Body.Builder.of(stack.body, CoreType.functionType(funcOp.resultType(), newParamsTypes));
+                    Block.Builder nfblock = nfbody.entryBlock();
+                    nfblock.body(funcOp.body(), nfblock.parameters().subList(capturesSymbols.length(), nfblock.parameters().size()),
+                            (block, op) -> {
+                                if (op instanceof Op.Terminating) {
+                                    List<Block.Parameter> paramsForCaptures = nfblock.parameters().subList(0, capturesSymbols.length());
+                                    for (int i = 0; i < paramsForCaptures.size(); i++) {
+                                        block.op(CoreOp.varStore(fieldsForCaptures.get(i), paramsForCaptures.get(i)));
+                                    }
+                                }
+                                block.op(op);
+                                return block;
+                            });
+                    funcOp = CoreOp.func(funcOp.funcName(), nfbody);
+                    append(funcOp);
+                }
+                append(CoreOp.core_yield());
+                Body.Builder body = stack.body;
+                popBody();
+
+                result = append(JavaOp.classDecOp(body));
             }
         }
 

@@ -645,6 +645,8 @@ public final class Interpreter {
             }
             lock.unlock();
             return null;
+        } if (o instanceof JavaOp.ClassDecOp) {
+            return null;
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o));
