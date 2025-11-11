@@ -25,11 +25,19 @@
 
 package view;
 
-import view.f32.F32Matrix4x4;
-import view.f32.F32Triangle3D;
-import view.f32.F32Vec3;
+import view.f32.F32x2;
+import view.f32.F32x2Triangle;
+import view.f32.F32x4x4;
+import view.f32.F32;
+import view.f32.F32x3Triangle;
+import view.f32.F32x3;
 import view.f32.ModelHighWaterMark;
 import view.f32.ZPos;
+import view.f32.pool.F32x2Pool;
+import view.f32.pool.F32x2TrianglePool;
+import view.f32.pool.F32x3Pool;
+import view.f32.pool.F32x3TrianglePool;
+import view.f32.pool.F32x4x4Pool;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -63,12 +71,26 @@ public class ViewFrame extends JFrame {
 
     static final float thetaDelta = 0.0002f;
 
-    F32Vec3 cameraVec3;
-    F32Matrix4x4 projF32Mat4x4;
-    F32Vec3 moveAwayVec3;
+    F32x3 cameraVec3;
+    F32x4x4 projF32Mat4x4;
+    F32x3 moveAwayVec3;
 
     ModelHighWaterMark mark;
+    record poolF32(F32x4x4.Factory f32x4x4Factory,
+                   F32x3.Factory f32x3Factory,
+                   F32x2.Factory f32x2Factory,
+                   F32x3Triangle.Factory f32x3TriangleFactory,
+                   F32x2Triangle.Factory f32x2TriangleFactory
 
+    ) implements F32 {
+    }
+    public static F32 f32 = new poolF32(
+             new F32x4x4Pool(100),
+            new F32x3Pool(90000),
+            new F32x2Pool(12000),
+            new F32x3TrianglePool(12800),
+            new F32x2TrianglePool(12800)
+ );
 
     private ViewFrame(String name, Renderer renderer, Runnable sceneBuilder) {
         super(name);
@@ -111,11 +133,11 @@ public class ViewFrame extends JFrame {
         float halfHeight = renderer.height() / 2f;
         float quarterHeight = renderer.height() / 4f;
 
-        cameraVec3 = F32Vec3.f32Vec3Pool.of(originX, originY, originZ);
-        var projF32Mat4x4_1 = F32Matrix4x4.projection(renderer.width(), renderer.height(), nearZ, farZ, fieldOfViewDegrees);
-        var projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1, F32Matrix4x4.scale(quarterHeight));
-        projF32Mat4x4 = F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.transformation(halfHeight));
-        moveAwayVec3 = F32Vec3.f32Vec3Pool.of(originX, originY, moveAwayZ);
+        cameraVec3 = ViewFrame.f32.f32x3Factory().of(originX, originY, originZ);
+        var projF32Mat4x4_1 = f32.projection(renderer.width(), renderer.height(), nearZ, farZ, fieldOfViewDegrees);
+        var projF32Mat4x4_2 = f32.mul(projF32Mat4x4_1, f32.scale(quarterHeight));
+        projF32Mat4x4 = f32.mul(projF32Mat4x4_2, f32.transformation(halfHeight));
+        moveAwayVec3 = ViewFrame.f32.f32x3Factory().of(originX, originY, moveAwayZ);
         mark = new ModelHighWaterMark();// mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
@@ -134,16 +156,16 @@ public class ViewFrame extends JFrame {
 
         boolean showHidden = renderer.displayMode() == Renderer.DisplayMode.WIRE_SHOW_HIDDEN;
         mark.resetAll();
-        var xyzRot4x4 = F32Matrix4x4.rotation(theta * 2, theta / 2, theta);
+        var xyzRot4x4 = f32.rot(theta * 2, theta / 2, theta);
         ModelHighWaterMark resetMark = new ModelHighWaterMark();
         List<ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
 
-        for (int tidx = 0; tidx < F32Triangle3D.f32Triangle3DPool.count; tidx++) {
-            var t = (F32Triangle3D) F32Triangle3D.f32Triangle3DPool.idx(tidx);
+        for (int tidx = 0; tidx < ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count; tidx++) {
+            var t = (F32x3Triangle) ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).entry(tidx);
 
             // here we rotate and then move into the Z plane.
-            t = F32Triangle3D.addVec3(F32Triangle3D.mulMat4(t, xyzRot4x4), moveAwayVec3);
+            t = f32.add(f32.mul(t, xyzRot4x4), moveAwayVec3);
             float howVisible = 1f;
             boolean isVisible = showHidden;
             if (!showHidden) {
@@ -158,12 +180,12 @@ public class ViewFrame extends JFrame {
 
                 // We subtract the camera from our point on the triangle so we can compare
 
-                F32Vec3 cameraDeltaVec3 = F32Vec3.subVec3(F32Triangle3D.getCentre(t), cameraVec3);// clearly our default camera is 0,0,0
+                F32x3 cameraDeltaVec3 = f32.sub(f32.centre(t), cameraVec3);// clearly our default camera is 0,0,0
 
 
                 //  howVisible = cameraDeltaVec3.mul( t.normalSumOfSquares()).sumOf();
 
-                howVisible = F32Vec3.dotProd(cameraDeltaVec3, F32Triangle3D.normal(t));
+                howVisible = f32.dotProd(cameraDeltaVec3, f32.normal(t));
                 // howVisible is a 'scalar'
                 // it's magnitude indicating how much it is 'facing away from' the camera.
                 // it's sign indicates if the camera can indeed see the location.
@@ -175,7 +197,7 @@ public class ViewFrame extends JFrame {
                 // now project the 3d triangle to 2d plane.
                 // Scale up to quarter screen height then add half height of screen
 
-                t = F32Triangle3D.mulMat4(t, projF32Mat4x4);//  projection matrix also scales to screen and translate half a screen
+                t = f32.mul(t, projF32Mat4x4);//  projection matrix also scales to screen and translate half a screen
 
                 zpos.add(new ZPos(t, howVisible));
             }

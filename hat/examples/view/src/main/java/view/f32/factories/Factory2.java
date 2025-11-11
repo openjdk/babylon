@@ -22,12 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
+package view.f32.factories;
 
-public abstract class FloatPool<T extends FloatPool<T>> extends Pool<T> {
-    public final float entries[];
-    FloatPool(int stride, int max) {
-        super(stride,max);
-        this.entries = new float[max * stride];
-    }
+@FunctionalInterface
+public
+interface Factory2<T1, T2, R> {
+    R of(T1 var1, T2 var2);
 }
