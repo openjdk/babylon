@@ -48,7 +48,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -203,14 +202,6 @@ public final class BytecodeGenerator {
             }
             extraBuilder.accept(clb);
         });
-        var err = ClassFile.of().verify(classBytes);
-        if (!err.isEmpty()) {
-            for (var op : iops) {
-                System.out.println(op.toText());
-            }
-            System.out.println(ClassFile.of().parse(classBytes).toDebugString());
-            err.forEach(System.out::println);
-        }
         return classBytes;
     }
 

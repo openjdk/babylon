@@ -111,9 +111,6 @@ public class OpBuilder {
 
     static final JavaType J_C_LOCATION = type(Location.class);
 
-    static final MethodRef LOCATION_FROM_STRING = MethodRef.method(J_C_LOCATION, "fromString",
-            J_C_LOCATION, J_L_STRING);
-
     static final FunctionType EXTERNALIZED_OP_F_TYPE = functionType(
             J_C_E_EXTERNALIZED_OP,
             J_L_STRING,
@@ -148,6 +145,16 @@ public class OpBuilder {
             J_L_OBJECT);
 
     static final FunctionType OP_BUILDER_F_OVERRIDE_1 = functionType(
+            type(Op.class),
+            J_L_STRING, // op name
+            J_C_LOCATION, // location: Location or null
+            J_L_OBJECT, // operand(s): Value, List<Value> or null
+            J_L_OBJECT, // successor(s): Block.Reference, List<Block.Reference> or null
+            J_L_OBJECT, // result type: TypeElement or null for void
+            J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
+            J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
+
+    static final FunctionType OP_BUILDER_F_OVERRIDE_2 = functionType(
             type(Op.Result.class),
             type(Block.Builder.class),
             J_L_STRING, // op name
@@ -158,7 +165,7 @@ public class OpBuilder {
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
-    static final FunctionType OP_BUILDER_F_OVERRIDE_2 = functionType(
+    static final FunctionType OP_BUILDER_F_OVERRIDE_3 = functionType(
             type(Op.Result.class),
             type(Block.Builder.class),
             J_L_STRING, // op name
@@ -197,6 +204,7 @@ public class OpBuilder {
      * that construct type elements and operations present in the given code model.
      *
      * @param currentClass type of the current class
+     * @param name method name
      * @param op the code model.
      * @param dialectFactoryF a function that builds code items to produce a dialect factory value.
      * @return the building code model.
@@ -211,72 +219,53 @@ public class OpBuilder {
                 func(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
-                    // %1 : java.type:"java.lang.Object" = constant @null;
-                    // %2 : java.type:"boolean" = eq %0 %1;
-                    // cbranch %2 ^block_1 ^block_2;
                     b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.successor(), b2.successor()));
-                    // %3 : java.type:"java.util.List<java.lang.Object>" = invoke @java.ref:"java.util.List::of():java.util.List";
-                    // return %3;
                     b1.op(return_(b1.op(invoke(LIST_EMPTY))));
-                    // %4 : java.type:"boolean" = instanceof %0 @java.type:"java.util.List";
-                    // cbranch %4 ^block_3 ^block_4;
                     b2.op(conditionalBranch(b2.op(instanceOf(J_U_LIST, arg)), b3.successor(), b4.successor()));
-                    // %5 : java.type:"java.util.List" = cast %0 @java.type:"java.util.List";
-                    // return %5;
                     b3.op(return_(b3.op(cast(J_U_LIST, arg))));
-                    // %6 : java.type:"java.util.List<java.lang.Object>" = invoke %0 @java.ref:"java.util.List::of(java.lang.Object):java.util.List";
-                    // return %6;
                     b4.op(return_(b4.op(invoke(LIST_OF_OBJECT, arg))));
                 }),
                 func(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
-                    // %1 : java.type:"java.lang.Object" = constant @null;
-                    // %2 : java.type:"boolean" = eq %0 %1;
-                    // cbranch %2 ^block_1 ^block_2;
                     b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.successor(), b2.successor()));
-                    // %3 : java.type:"java.util.Map<java.lang.Object, java.lang.Object>" = invoke @java.ref:"java.util.Map::of():java.util.Map";
-                    // return %3;
                     b1.op(return_(b1.op(invoke(MAP_EMPTY))));
-                    // %4 : java.type:"boolean" = instanceof %0 @java.type:"java.util.Map";
-                    // cbranch %4 ^block_3 ^block_4;
                     b2.op(conditionalBranch(b2.op(instanceOf(J_U_MAP, arg)), b3.successor(), b4.successor()));
-                    // %5 : java.type:"java.util.Map" = cast %0 @java.type:"java.util.Map";
-                    // return %5;
                     b3.op(return_(b3.op(cast(J_U_MAP, arg))));
-                    // %6 : java.type:"java.lang.String" = constant @"";
-                    // %7 : java.type:"java.util.Map<java.lang.String, java.lang.Object>" = invoke %6 %0 @java.ref:"java.util.Map::of(java.lang.Object, java.lang.Object):java.util.Map";
-                    // return %7;
                     b4.op(return_(b4.op(invoke(MAP_OF_OBJECT_OBJECT, b4.op(constant(J_L_STRING, "")), arg))));
                 }),
                 func(OP_BUILDER_F_NAME, OP_BUILDER_F_OVERRIDE_1).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
-                    // %15 : java.type:"jdk.incubator.code.Op$Result" = invoke %0 %14 @java.ref:"jdk.incubator.code.Block::Builder::op(jdk.incubator.code.Op):jdk.incubator.code.Op$Result";
-                    b.op(return_(b.op(invoke(BLOCK_BUILDER_OP,
-                            args.get(0),
-                            // %14 : java.type:"jdk.incubator.code.Op" = invoke %8 %13 @java.ref:"jdk.incubator.code.extern.OpFactory::constructOp(jdk.incubator.code.extern.ExternalizedOp):jdk.incubator.code.Op";
-                            b.op(invoke(OP_FACTORY_CONSTRUCT,
-                                    // %8 : java.type:"jdk.incubator.code.extern.OpFactory" = field.load @java.ref:"jdk.incubator.code.dialect.java.JavaOp::JAVA_OP_FACTORY:jdk.incubator.code.extern.OpFactory";
-                                    b.op(fieldLoad(FieldRef.field(JavaOp.class, "JAVA_OP_FACTORY", OpFactory.class))),
-                                    // %13 : java.type:"jdk.incubator.code.extern.ExternalizedOp" = new %1 %2 %9 %10 %5 %11 %12 @java.ref:"jdk.incubator.code.extern.ExternalizedOp::(java.lang.String, jdk.incubator.code.Location, java.util.List, java.util.List, jdk.incubator.code.TypeElement, java.util.Map, java.util.List)";
-                                    b.op(new_(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE),
-                                            args.get(1),
-                                            args.get(2),
-                                            // %9 : java.type:"java.util.List<jdk.incubator.code.Value>" = invoke %3 @java.ref:"javaapplication28.JavaApplication28::list(java.lang.Object):java.util.List";
-                                            b.op(invoke(J_U_LIST_VALUE, listMethodRef, args.get(3))),
-                                            // %10 : java.type:"java.util.List<jdk.incubator.code.Block$Reference>" = invoke %4 @java.ref:"javaapplication28.JavaApplication28::list(java.lang.Object):java.util.List";
-                                            b.op(invoke(J_U_LIST_BLOCK_REFERENCE, listMethodRef, args.get(4))),
-                                            args.get(5),
-                                            // %11 : java.type:"java.util.Map" = invoke %6 @java.ref:"javaapplication28.JavaApplication28::map(java.lang.Object):java.util.Map";
-                                            b.op(invoke(J_U_MAP, MethodRef.method(currentClass, MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE), args.get(6))),
-                                            // %12 : java.type:"java.util.List<jdk.incubator.code.Body::Builder>" = invoke %7 @java.ref:"javaapplication28.JavaApplication28::list(java.lang.Object):java.util.List";
-                                            b.op(invoke(J_U_LIST_BODY_BUILDER, listMethodRef, args.get(7)))))))))));
+                    b.op(return_(b.op(invoke(OP_FACTORY_CONSTRUCT,
+                            b.op(fieldLoad(FieldRef.field(JavaOp.class, "JAVA_OP_FACTORY", OpFactory.class))),
+                            b.op(new_(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE),
+                                    args.get(0),
+                                    args.get(1),
+                                    b.op(invoke(J_U_LIST_VALUE, listMethodRef, args.get(2))),
+                                    b.op(invoke(J_U_LIST_BLOCK_REFERENCE, listMethodRef, args.get(3))),
+                                    args.get(4),
+                                    b.op(invoke(J_U_MAP, MethodRef.method(currentClass, MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE), args.get(5))),
+                                    b.op(invoke(J_U_LIST_BODY_BUILDER, listMethodRef, args.get(6)))))))));
                 }),
                 func(OP_BUILDER_F_NAME, OP_BUILDER_F_OVERRIDE_2).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
-                    b.op(return_(b.op(invoke(MethodRef.method(currentClass, OP_BUILDER_F_NAME, OP_BUILDER_F_OVERRIDE_1),
+                    b.op(return_(b.op(invoke(BLOCK_BUILDER_OP,
+                            args.get(0),
+                            b.op(invoke(MethodRef.method(currentClass, OP_BUILDER_F_NAME, OP_BUILDER_F_OVERRIDE_1),
+                                    args.get(1),
+                                    args.get(2),
+                                    args.get(3),
+                                    args.get(4),
+                                    args.get(5),
+                                    args.get(6),
+                                    args.get(7)))))));
+                }),
+                func(OP_BUILDER_F_NAME, OP_BUILDER_F_OVERRIDE_3).body(bb -> {
+                    Block.Builder b = bb.entryBlock();
+                    List<Block.Parameter> args = b.parameters();
+                    b.op(return_(b.op(invoke(MethodRef.method(currentClass, OP_BUILDER_F_NAME, OP_BUILDER_F_OVERRIDE_2),
                             args.get(0),
                             args.get(1),
                             b.op(new_(ConstructorRef.constructor(Location.class, int.class, int.class), args.get(2), args.get(3))),
@@ -305,7 +294,7 @@ public class OpBuilder {
 
     FuncOp build(String name, Op op) {
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
-        Value result = buildOp(ancestorBody, op);
+        Value result = buildOp(null, ancestorBody, op);
         // seal op
         builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
         builder.op(return_(result));
@@ -314,7 +303,7 @@ public class OpBuilder {
     }
 
 
-    Value buildOp(Value ancestorBody, Op inputOp) {
+    Value buildOp(Value blockBuilder, Value ancestorBody, Op inputOp) {
         List<Value> bodies = new ArrayList<>();
         for (Body inputBody : inputOp.bodies()) {
             Value body = buildBody(ancestorBody, inputBody);
@@ -346,7 +335,8 @@ public class OpBuilder {
             successors.add(successor);
         }
 
-        Value opDef = buildOpDefinition(
+        return buildOp(
+                blockBuilder,
                 inputOp,
                 inputOp.externalizeOpName(),
                 inputOp.location(),
@@ -355,35 +345,56 @@ public class OpBuilder {
                 inputOp.resultType(),
                 inputOp.externalize(),
                 bodies);
-        return builder.op(invoke(OP_FACTORY_CONSTRUCT, opFactory, opDef));
     }
 
+    Value buildOp(Value blockBuilder,
+                  Op inputOp,
+                  String name,
+                  Location location,
+                  List<Value> operands,
+                  List<Value> successors,
+                  TypeElement resultType,
+                  Map<String, Object> attributes,
+                  List<Value> bodies) {
+        FunctionType override =
+                blockBuilder == null ? OP_BUILDER_F_OVERRIDE_1
+                : location == Location.NO_LOCATION || location.sourceRef() != null
+                ? OP_BUILDER_F_OVERRIDE_2 : OP_BUILDER_F_OVERRIDE_3;
+        List<Value> args = new ArrayList<>();
+        if (override != OP_BUILDER_F_OVERRIDE_1) {
+            args.add(blockBuilder);
+        }
+        args.add(builder.op(constant(J_L_STRING, name)));
+        if (override == OP_BUILDER_F_OVERRIDE_3) {
+            args.add(builder.op(constant(INT, location.line())));
+            args.add(builder.op(constant(INT, location.column())));
+        } else {
+            args.add(buildLocation(location));
+        }
+        args.add(buildFlexibleList(type(Value.class), operands));
+        args.add(buildFlexibleList(type(Block.Reference.class), successors));
+        args.add(buildType(resultType));
+        args.add(buildAttributeMap(inputOp, attributes));
+        args.add(buildFlexibleList(type(Body.Builder.class), bodies));
+        return builder.op(invoke(MethodRef.method(currentClass, "::op", override), args));
+    }
 
-    Value buildOpDefinition(Op inputOp,
-                            String name,
-                            Location location,
-                            List<Value> operands,
-                            List<Value> successors,
-                            TypeElement resultType,
-                            Map<String, Object> attributes,
-                            List<Value> bodies) {
-        List<Value> args = List.of(
-                builder.op(constant(J_L_STRING, name)),
-                buildLocation(location),
-                buildList(type(Value.class), operands),
-                buildList(type(Block.Reference.class), successors),
-                buildType(resultType),
-                buildAttributeMap(inputOp, attributes),
-                buildList(type(Body.Builder.class), bodies));
-        return builder.op(new_(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
+    Value buildFlexibleList(JavaType elementType, List<Value> elements) {
+        return switch (elements.size()) {
+            case 0 -> builder.op(constant(elementType, null));
+            case 1 -> elements.getFirst();
+            default -> buildList(elementType, elements);
+        };
     }
 
     Value buildLocation(Location l) {
         if (l == null) {
             return builder.op(constant(J_C_LOCATION, null));
         } else {
-            return builder.op(invoke(LOCATION_FROM_STRING,
-                    builder.op(constant(J_L_STRING, l.toString()))));
+            return builder.op(new_(ConstructorRef.constructor(Location.class, String.class, int.class, int.class),
+                    builder.op(constant(J_L_STRING, l.sourceRef())),
+                    builder.op(constant(INT, l.line())),
+                    builder.op(constant(INT, l.column()))));
         }
     }
 
@@ -418,9 +429,7 @@ public class OpBuilder {
         for (Block inputBlock : inputBody.blocks()) {
             Value block = blockMap.get(inputBlock);
             for (Op inputOp : inputBlock.ops()) {
-                Value op = buildOp(body, inputOp);
-                Value result = builder.op(invoke(BLOCK_BUILDER_OP, block, op));
-                valueMap.put(inputOp.result(), result);
+                valueMap.put(inputOp.result(), buildOp(block, body, inputOp));
             }
         }
 
@@ -463,6 +472,12 @@ public class OpBuilder {
     }
 
     Value buildAttributeMap(Op inputOp, Map<String, Object> attributes) {
+        if (attributes.isEmpty()) {
+            return builder.op(constant(type(Map.class), null));
+        }
+        if (attributes.size() == 1 && attributes.get("") instanceof Object o) {
+            return buildAttributeValue(o);
+        }
         List<Value> keysAndValues = new ArrayList<>();
         for (Map.Entry<String, Object> entry : attributes.entrySet()) {
             Value key = builder.op(constant(J_L_STRING, entry.getKey()));
@@ -479,47 +494,35 @@ public class OpBuilder {
 
     Value buildAttributeValue(Object value) {
         return switch (value) {
-            case Boolean v -> {
-                yield box(J_L_BOOLEAN, builder.op(constant(BOOLEAN, value)));
-            }
-            case Byte v -> {
-                yield box(J_L_BYTE, builder.op(constant(BYTE, value)));
-            }
-            case Short v -> {
-                yield box(J_L_SHORT, builder.op(constant(SHORT, value)));
-            }
-            case Character v -> {
-                yield box(J_L_CHARACTER, builder.op(constant(CHAR, value)));
-            }
-            case Integer v -> {
-                yield box(J_L_INTEGER, builder.op(constant(INT, value)));
-            }
-            case Long v -> {
-                yield box(J_L_LONG, builder.op(constant(LONG, value)));
-            }
-            case Float v -> {
-                yield box(J_L_FLOAT, builder.op(constant(FLOAT, value)));
-            }
-            case Double v -> {
-                yield box(J_L_DOUBLE, builder.op(constant(DOUBLE, value)));
-            }
-            case Class<?> v -> {
-                yield buildType(JavaType.type(v));
-            }
-            case String s -> {
-                yield builder.op(constant(J_L_STRING, value));
-            }
-            case TypeElement f -> {
-                yield buildType(f);
-            }
+            case Boolean _ ->
+                box(J_L_BOOLEAN, builder.op(constant(BOOLEAN, value)));
+            case Byte _ ->
+                box(J_L_BYTE, builder.op(constant(BYTE, value)));
+            case Short _ ->
+                box(J_L_SHORT, builder.op(constant(SHORT, value)));
+            case Character _ ->
+                box(J_L_CHARACTER, builder.op(constant(CHAR, value)));
+            case Integer _ ->
+                box(J_L_INTEGER, builder.op(constant(INT, value)));
+            case Long _ ->
+                box(J_L_LONG, builder.op(constant(LONG, value)));
+            case Float _ ->
+                box(J_L_FLOAT, builder.op(constant(FLOAT, value)));
+            case Double _ ->
+                box(J_L_DOUBLE, builder.op(constant(DOUBLE, value)));
+            case Class<?> v ->
+                buildType(JavaType.type(v));
+            case String s ->
+                builder.op(constant(J_L_STRING, value));
+            case TypeElement f ->
+                buildType(f);
             case InvokeOp.InvokeKind ik -> {
                 FieldRef enumValueRef = FieldRef.field(InvokeOp.InvokeKind.class, ik.name(), InvokeOp.InvokeKind.class);
                 yield builder.op(fieldLoad(enumValueRef));
             }
-            case Object o when value == ExternalizedOp.NULL_ATTRIBUTE_VALUE -> {
-                yield builder.op(fieldLoad(FieldRef.field(ExternalizedOp.class,
+            case Object o when value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ->
+                builder.op(fieldLoad(FieldRef.field(ExternalizedOp.class,
                         "NULL_ATTRIBUTE_VALUE", Object.class)));
-            }
             default -> {
                 // @@@ use the result of value.toString()?
                 throw new UnsupportedOperationException("Unsupported attribute value: " + value);
