@@ -47,6 +47,7 @@ import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
 import hat.phases.HATFinalDetectionPhase;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.java.ClassType;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -163,6 +164,68 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
+    private <T extends C99HATKernelBuilder<T>> void generateDeviceTypeStructs(T builder, String toText, Set<String> typedefs) {
+        // From here is text processing
+        String[] split = toText.split(">");
+        // Each item is a data struct
+        for (String s : split) {
+            // curate: remove first character
+            s = s.substring(1);
+            String dsName = s.split(":")[0];
+            if (typedefs.contains(dsName)) {
+                continue;
+            }
+            typedefs.add(dsName);
+            // sanitize dsName
+            dsName = sanitize(dsName);
+            builder.typedefKeyword()
+                    .space()
+                    .structKeyword()
+                    .space()
+                    .suffix_s(dsName)
+                    .obrace()
+                    .nl();
+
+            String[] members = s.split(";");
+
+            int j = 0;
+            builder.in();
+            for (int i = 0; i < members.length; i++) {
+                String member = members[i];
+                String[] field = member.split(":");
+                if (i == 0) {
+                    j = 1;
+                }
+                String isArray = field[j++];
+                String type = field[j++];
+                String name = field[j++];
+                String lenValue = "";
+                if (isArray.equals("[")) {
+                    lenValue = field[j];
+                }
+                j = 0;
+                if (typedefs.contains(type))
+                    type = sanitize(type) + "_t";
+                else
+                    type = sanitize(type);
+
+                builder.typeName(type)
+                        .space()
+                        .identifier(name);
+
+                if (isArray.equals("[")) {
+                    builder.space()
+                            .osbrace()
+                            .identifier(lenValue)
+                            .csbrace();
+                }
+                builder.semicolon().nl();
+            }
+            builder.out();
+            builder.cbrace().suffix_t(dsName).semicolon().nl();
+        }
+    }
+
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         var here = OpTk.CallSite.of(C99FFIBackend.class, "createCode");
         builder.defines().types();
@@ -222,11 +285,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             typedefs.add(F16.class.getName());
 
             for (TypeElement typeElement : localIFaceList) {
-                // 1.1 Load the class dynamically
                 try {
-                    //Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
-                    Class<?> clazz = Class.forName(typeElement.toString());
-                    // 1.2 Obtain the create method
+                    // Approach 1: The first approach support iFace and Buffer types to be used in Local and Private memory
+                    // TODO: Once we decide to move towards the DeviceType implementation, we will remove this part
+                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
                     Method method = clazz.getMethod("create", hat.Accelerator.class);
                     method.setAccessible(true);
                     Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
@@ -240,13 +302,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                             }
                         });
                     } else {
-
-                        // TODO: Restructure this code. Move this as follows:
-                        // Metadata
-                        // for Type
-                        // build struct
-
-                        // new approach
+                        // new approach for supporting DeviceTypes
                         Field schemaField = clazz.getDeclaredField("schema");
                         schemaField.setAccessible(true);
                         Object schema = schemaField.get(schemaField);
@@ -255,65 +311,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                         Method toTextMethod = deviceSchemaClass.getDeclaredMethod("toText");
                         toTextMethod.setAccessible(true);
                         String toText = (String) toTextMethod.invoke(schema);
-
                         if (toText != null) {
-                            // From here is text processing
-                            String[] split = toText.split(">");
-                            // Each item is a data struct
-                            for (String s : split) {
-                                // curate: remove first character
-                                s = s.substring(1);
-                                String dsName = s.split(":")[0];
-                                if (typedefs.contains(dsName)) {
-                                    continue;
-                                }
-                                typedefs.add(dsName);
-                                // sanitize dsName
-                                dsName = sanitize(dsName);
-                                builder.typedefKeyword()
-                                        .space()
-                                        .structKeyword()
-                                        .space()
-                                        .suffix_s(dsName)
-                                        .obrace()
-                                        .nl();
-
-                                String[] members = s.split(";");
-
-                                int j = 0;
-                                builder.in();
-                                for (int i = 0; i < members.length; i++) {
-                                    String member = members[i];
-                                    String[] field = member.split(":");
-                                    if (i == 0) { j = 1;}
-                                    String isArray = field[j++];
-                                    String type = field[j++];
-                                    String name = field[j++];
-                                    String lenValue = "";
-                                    if (isArray.equals("[")) {
-                                        lenValue = field[j];
-                                    }
-                                    j = 0;
-                                    if (typedefs.contains(type))
-                                        type = sanitize(type) + "_t";
-                                    else
-                                        type = sanitize(type);
-
-                                    builder.typeName(type)
-                                            .space()
-                                            .identifier(name);
-
-                                    if (isArray.equals("[")) {
-                                        builder.space()
-                                                .osbrace()
-                                                .identifier(lenValue)
-                                                .csbrace();
-                                    }
-                                    builder.semicolon().nl();
-                                }
-                                builder.out();
-                                builder.cbrace().suffix_t(dsName).semicolon().nl();
-                            }
+                            generateDeviceTypeStructs(builder, toText, typedefs);
                         } else {
                             throw new RuntimeException("[ERROR] Could not find valid device schema ");
                         }
