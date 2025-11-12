@@ -91,7 +91,7 @@ public final class MethodRefImpl implements MethodRef {
 
     @Override
     public Method resolveToDeclaredMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        if (!isConstructor()) {
+        if (isConstructor()) {
             throw new UnsupportedOperationException("Not a method reference");
         }
         Class<?> refC = resolve(l, refType);
