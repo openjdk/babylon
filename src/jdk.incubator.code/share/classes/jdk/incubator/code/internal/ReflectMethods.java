@@ -159,7 +159,7 @@ public class ReflectMethods extends TreeTranslator {
     protected ReflectMethods(Context context) {
         context.put(reflectMethodsKey, this);
         Options options = Options.instance(context);
-        dumpIR = options.isSet("dumpIR");
+        dumpIR = true;//options.isSet("dumpIR");
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
@@ -223,7 +223,6 @@ public class ReflectMethods extends TreeTranslator {
                 synthClassDecl(synthClassName, classOps);
                 currentClassSym.members().enter(synthClassSym);
             }
-//            tree.defs = tree.defs.prependList(classOps.toList());
         } finally {
             lambdaCount = prevLambdaCount;
             classOps = prevClassOps;
@@ -253,8 +252,6 @@ public class ReflectMethods extends TreeTranslator {
                 log.note(QuotedIrDump(funcOp.toText()));
             }
             // create a static method that returns the FuncOp representing the lambda
-//            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
-
             Name lambdaName = lambdaName();
             MethodSymbol opMethodSymbol = opMethodSymbol(lambdaName);
             CoreOp.FuncOp opMethod = opBuilder(lambdaName.toString(), funcOp);
@@ -314,10 +311,10 @@ public class ReflectMethods extends TreeTranslator {
                 log.note(QuotedIrDump(funcOp.toText()));
             }
             // create a method that returns the FuncOp representing the lambda
-//            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
-            CoreOp.FuncOp opMethod = opBuilder(lambdaName().toString(), funcOp);
+            Name lambdaName = lambdaName();
+            CoreOp.FuncOp opMethod = opBuilder(lambdaName.toString(), funcOp);
             classOps.add(opMethod);
-//            tree.codeModel = opMethod.sym;
+            tree.codeModel = opMethodSymbol(lambdaName);
             super.visitReference(tree);
             if (recvDecl != null) {
                 result = copyReferenceWithReceiverVar(tree, recvDecl);

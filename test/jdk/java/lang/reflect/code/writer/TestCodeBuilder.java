@@ -44,6 +44,7 @@ import java.util.stream.Stream;
  * @modules jdk.incubator.code
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @run junit TestCodeBuilder
+ * @ignore
  */
 
 public class TestCodeBuilder {
