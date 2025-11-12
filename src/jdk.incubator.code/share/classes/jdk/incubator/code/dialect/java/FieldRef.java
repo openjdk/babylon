@@ -70,7 +70,6 @@ public sealed interface FieldRef extends JavaRef
      * @return the field associated with this field reference
      * @param l the lookup used for resolving this field reference
      * @throws ReflectiveOperationException if a resolution error occurs
-     * @throws UnsupportedOperationException if this reference is not a constructor reference
      */
     Field resolveToField(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
