@@ -106,7 +106,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        int size =50;
+        int size = 1024;
         rand = new Random();
         var accelerator = new Accelerator(java.lang.invoke.MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var call = F32Array.create(accelerator, size);
@@ -126,7 +126,7 @@ public class Main {
         float v = 0.30f;
 
         accelerator.compute(cc -> blackScholes(cc, call, put, S, X, T, r, v));
-        for (int i = 0; i < call.length(); i++) {
+        for (int i = 0; i < 10; i++) {
             System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + call.array(i) + "\t\t put option price = " + put.array(i));
         }
     }

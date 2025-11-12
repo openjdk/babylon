@@ -31,8 +31,9 @@
  */
 package view;
 
-import view.f32.F32Triangle2D;
-import view.f32.F32Vec2;
+import view.f32.F32;
+import view.f32.F32x2Triangle;
+import view.f32.pool.F32x2TrianglePool;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -58,8 +59,8 @@ public record RasterizingRenderer(int width, int height, DisplayMode displayMode
         int x = gid % width;
         int y = gid / height;
         int col = 0x404040;
-        for (int t = 0; t < F32Triangle2D.f32Triangle2DPool.count; t++) {
-            col = F32Triangle2D.rgb(displayMode.filled,x, y, F32Triangle2D.f32Triangle2DPool.idx(t),col);
+        for (int t = 0; t < ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).count; t++) {
+            col = F32.rgb(displayMode.filled,x, y, ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).entry(t),col);
         }
         offscreenRgb[gid] = col;
     }

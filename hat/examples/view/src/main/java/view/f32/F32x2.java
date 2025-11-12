@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -24,38 +25,17 @@
  */
 package view.f32;
 
-import view.ViewFrame;
+import view.f32.factories.Factory16;
+import view.f32.factories.Factory2;
 import view.f32.pool.F32x2Pool;
-import view.f32.pool.F32x2TrianglePool;
-import view.f32.pool.F32x3Pool;
-import view.f32.pool.F32x3TrianglePool;
-import view.f32.pool.F32x4x4Pool;
 
-public record ModelHighWaterMark(
-        int markedTriangles3D,
-        int markedTriangles2D,
-        int markedVec2,
-        int markedVec3,
-        int markedMat4) {
+public interface F32x2 {
+    float x();
+    float y();
 
-    public ModelHighWaterMark() {
-        this(
-                ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count,
-                ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).count,
-                ((F32x2Pool)ViewFrame.f32.f32x2Factory()).count,
-                ((F32x3Pool)ViewFrame.f32.f32x3Factory()).count,
-                ((F32x4x4Pool)ViewFrame.f32.f32x4x4Factory()).count);
+
+    @FunctionalInterface
+    interface Factory extends Factory2<Float,Float,F32x2> {
     }
-
-    public void resetAll() {
-        reset3D();
-        ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).reset(markedTriangles2D);
-        ((F32x2Pool)ViewFrame.f32.f32x2Factory()).reset(markedVec2);
-    }
-
-    public void reset3D() {
-        ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count = markedTriangles3D;
-        ((F32x3Pool)ViewFrame.f32.f32x3Factory()).count = markedVec3;
-        ((F32x4x4Pool)ViewFrame.f32.f32x4x4Factory()).count = markedMat4;
-    }
+   // Factory factory = f32x2Pool;
 }
