@@ -114,7 +114,7 @@ public class TestTransitiveInvokeModule {
                     MethodRef r = iop.invokeDescriptor();
                     Method em = null;
                     try {
-                        em = r.resolveToDeclaredMethod(l);
+                        em = r.resolveToMethod(l);
                     } catch (ReflectiveOperationException _) {
                     }
                     if (em instanceof Method m) {

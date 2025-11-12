@@ -27,6 +27,7 @@ package jdk.incubator.code.dialect.java.impl;
 
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
@@ -90,36 +91,42 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     @Override
-    public Method resolveToDeclaredMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
         if (isConstructor()) {
             throw new UnsupportedOperationException("Not a method reference");
         }
-        Class<?> refC = resolve(l, refType);
-        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
-        for (Method m : refC.getDeclaredMethods()) {
-            if (m.getName().equals(name) &&
-                    Arrays.equals(m.getParameterTypes(), mt.parameterArray()) &&
-                    m.getReturnType().equals(mt.returnType())) {
-                return m;
+        ReflectiveOperationException c = null;
+        MethodHandle mh = null;
+        try {
+            mh = resolveToHandle(l, InvokeKind.STATIC);
+        } catch (ReflectiveOperationException ex) {
+            c = ex;
+        }
+
+        if (mh == null) {
+            try {
+                mh = resolveToHandle(l, InvokeKind.STATIC);
+            } catch (ReflectiveOperationException ex) {
+                c = ex;
             }
         }
-        throw new NoSuchMethodException(toString());
+
+        if (c != null) {
+            throw c;
+        }
+
+        assert mh != null;
+        return l.revealDirect(mh)
+                .reflectAs(Method.class, l);
     }
 
     @Override
-    public Constructor<?> resolveToDeclaredConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException {
         if (!isConstructor()) {
             throw new UnsupportedOperationException("Not a constructor reference");
         }
-        Class<?> refC = resolve(l, refType);
-        MethodType ct = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
-        for (Constructor<?> c : refC.getDeclaredConstructors()) {
-            if (c.getName().equals(name) &&
-                    Arrays.equals(c.getParameterTypes(), ct.parameterArray())) {
-                return c;
-            }
-        }
-        throw new NoSuchMethodException(toString());
+        return l.revealDirect(resolveToHandle(l, InvokeKind.SUPER))
+                .reflectAs(Constructor.class, l);
     }
 
     @Override

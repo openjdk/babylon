@@ -202,7 +202,7 @@ public final class OnnxTransformer {
 
     static CoreOp.FuncOp resolve(MethodHandles.Lookup l, JavaOp.InvokeOp io) {
         try {
-            var res = Op.ofMethod(io.invokeDescriptor().resolveToDeclaredMethod(l));
+            var res = Op.ofMethod(io.invokeDescriptor().resolveToMethod(l));
             if (res.isPresent()) {
                 return SSA.transform(evaluate(l, res.get()));
             }

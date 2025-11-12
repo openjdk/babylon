@@ -98,7 +98,7 @@ public class BufferTagger {
                     MethodRef methodRef = iop.invokeDescriptor();
                     Method invokeOpCalledMethod;
                     try {
-                        invokeOpCalledMethod = methodRef.resolveToDeclaredMethod(l, iop.invokeKind());
+                        invokeOpCalledMethod = methodRef.resolveToMethod(l);
                     } catch (ReflectiveOperationException _) {
                         throw new IllegalStateException("Could not resolve invokeOp to method");
                     }

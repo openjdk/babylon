@@ -42,7 +42,7 @@ import jdk.incubator.code.TypeElement;
  *     <li>a <em>type</em>, the type of the target field.</li>
  * </ul>
  * <p>
- * Field references can be <em>resolved</em> to their corresponding {@linkplain #resolveToDeclaredField(Lookup) target field}.
+ * Field references can be <em>resolved</em> to their corresponding {@linkplain #resolveToField(Lookup) target field}.
  * Or they can be turned into a {@linkplain #resolveToHandle(Lookup) var handle} that can be used to access the target field.
  */
 public sealed interface FieldRef extends JavaRef
@@ -66,14 +66,14 @@ public sealed interface FieldRef extends JavaRef
     // Conversions
 
     /**
-     * Resolves the target field associated with this field reference. Resolution looks for a field with the given
-     * {@linkplain #name() name} and {@linkplain #type() type} declared in the given {@linkplain #refType() owner type}.
-     * If no such field can be found, {@link NoSuchFieldException} is thrown.
-     * @return the method associated with this field reference
+     * Resolves the target field associated with this field reference.
+     * @return the field associated with this field reference
      * @param l the lookup used for resolving this field reference
      * @throws ReflectiveOperationException if a resolution error occurs
+     * @throws UnsupportedOperationException if this reference is not a constructor reference
+     * @throws IllegalArgumentException if the provided {@code kind} is unsupported for this method reference
      */
-    Field resolveToDeclaredField(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Field resolveToField(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     /**
      * {@return a var handle used to access the target field associated with this field reference}

@@ -56,8 +56,8 @@ import static jdk.incubator.code.dialect.core.CoreType.functionType;
  * Some method references, called <em>constructor references</em> are used to model a Java constructor, called
  * the <em>target constructor</em>. The name of a constructor reference is always the special name {@code "<init>"}.
  * <p>
- * Method references can be <em>resolved</em> to their corresponding {@linkplain #resolveToDeclaredMethod(Lookup) target method} or
- * {@linkplain #resolveToDeclaredMethod(Lookup) target constructor}. Or they can be turned into a
+ * Method references can be <em>resolved</em> to their corresponding {@linkplain #resolveToMethod(Lookup) target method} or
+ * {@linkplain #resolveToMethod(Lookup) target constructor}. Or they can be turned into a
  * {@linkplain #resolveToHandle(Lookup, InvokeKind) method handle} that can be used to invoke the target method or constructor.
  */
 public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
@@ -86,26 +86,23 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     // Resolutions to methods, constructors and method handles
 
     /**
-     * Resolves the target method associated with this method reference. Resolution looks for a method with the given
-     * {@linkplain #name() name} and {@linkplain #type() type} declared in the given {@linkplain #refType() owner type}.
-     * If no such method can be found, {@link NoSuchMethodException} is thrown.
+     * Resolves the target method associated with this method reference.
      * @return the method associated with this method reference
      * @param l the lookup used for resolving this method reference
      * @throws ReflectiveOperationException if a resolution error occurs
      * @throws UnsupportedOperationException if this reference is a constructor reference
      */
-    Method resolveToDeclaredMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     /**
-     * Resolves the target constructor associated with this constructor reference. Resolution looks for a constructor with the given
-     * {@linkplain #type() type} declared in the given {@linkplain #refType() owner type}.
-     * If no such constructor can be found, {@link NoSuchMethodException} is thrown.
+     * Resolves the target method associated with this method reference.
      * @return the constructor associated with this constructor reference
-     * @param l the lookup used for resolving this constructor reference
+     * @param l the lookup used for resolving this method reference
      * @throws ReflectiveOperationException if a resolution error occurs
      * @throws UnsupportedOperationException if this reference is not a constructor reference
+     * @throws IllegalArgumentException if the provided {@code kind} is unsupported for this method reference
      */
-    Constructor<?> resolveToDeclaredConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     /**
      * {@return a method handle used to invoke the target method or constructor associated with this method reference}
@@ -119,6 +116,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      *     <li>otherwise, the provided {@code kind} is unsupported for this method reference, and {@link IllegalArgumentException} is thrown</li>.
      * </ul>
      * @param l the lookup used for resolving this method reference
+     * @param kind the invocation kind to be used for resolving this method reference
      * @throws ReflectiveOperationException if a resolution error occurs
      * @throws IllegalArgumentException if the provided {@code kind} is unsupported for this method reference
      */
