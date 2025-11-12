@@ -159,7 +159,7 @@ public class ReflectMethods extends TreeTranslator {
     protected ReflectMethods(Context context) {
         context.put(reflectMethodsKey, this);
         Options options = Options.instance(context);
-        dumpIR = true;//options.isSet("dumpIR");
+        dumpIR = options.isSet("dumpIR");
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
@@ -205,7 +205,6 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitClassDef(JCClassDecl tree) {
-//        ListBuffer<JCTree> prevClassOps = classOps;
         List<CoreOp.FuncOp> prevClassOps = classOps;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
         Symbol.ClassSymbol prevSynthClassSym = synthClassSym;
