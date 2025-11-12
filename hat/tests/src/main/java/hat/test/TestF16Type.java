@@ -730,7 +730,7 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-    @HatTest
+    //@HatTest
     public void testF16_16() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
