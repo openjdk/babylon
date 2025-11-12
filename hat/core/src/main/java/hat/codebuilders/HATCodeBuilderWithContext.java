@@ -343,7 +343,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     private boolean isHalfType(Schema.IfaceType ifaceType) {
-        return (ifaceType.iface.getName().equals(F16.class.getName()) || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
+        return (ifaceType.iface.getName().equals(F16.class.getName())
+                || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
@@ -355,7 +356,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         boolean isLast = fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
                             if (isHalfType(ifaceType)) {
-                                typeName(F16.HAT_MAPPING_TYPE);
+                                typeName("half");
                             } else {
                                 typeName(primitiveField.type.getSimpleName());
                             }

@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.F16;
 import hat.util.StreamMutable;
 
 import java.util.function.Consumer;
@@ -508,7 +509,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public final T halfType() {
-        return typeName("F16_t");
+        return typeName(F16.HAT_MAPPING_TYPE + "_t");
     }
 
     @Override

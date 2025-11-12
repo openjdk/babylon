@@ -27,7 +27,7 @@ package hat.buffer;
 // Interface for Floating Point numbers of 16-bits
 // Values are stored in a short format.
 public interface F16 {
-    String HAT_MAPPING_TYPE = "half";
+    String HAT_MAPPING_TYPE = F16.class.getSimpleName();
 
     short value();
     void value(short value);
