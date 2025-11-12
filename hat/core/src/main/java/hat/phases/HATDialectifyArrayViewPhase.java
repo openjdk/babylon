@@ -303,10 +303,11 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                 case HATVectorVarLoadOp vVarLoad -> {
                     List<Value> inputOperandsVarLoad = vVarLoad.operands();
                     List<Value> outputOperandsVarLoad = bb.context().getValues(inputOperandsVarLoad);
-                    String varLoadName = findVarOp(vVarLoad).varName();
+                    Op varOp = findVarOpOrHATVarOP(vVarLoad);
+                    String name = (varOp instanceof HATVectorVarOp) ? ((HATVectorVarOp) varOp).varName() : ((CoreOp.VarOp) varOp).varName();
                     HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(vVarLoad.resultType());
                     HATVectorVarLoadOp newVectorVarLoadOp = new HATVectorVarLoadOp(
-                            varLoadName,
+                            name,
                             vVarLoad.resultType(),
                             md.vectorTypeElement(),
                             md.lanes(),
