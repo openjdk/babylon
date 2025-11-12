@@ -24,19 +24,20 @@
  */
 package view.f32.pool;
 
+import view.f32.F32x2Triangle;
 import view.f32.F32x3;
 import view.f32.F32x3Triangle;
 import view.f32.factories.Factory4;
 
-public class F32x3TrianglePool extends Pool<F32x3TrianglePool> implements F32x3Triangle.Factory{
+public class F32x3TrianglePool extends Pool<F32x3Triangle,F32x3TrianglePool> implements F32x3Triangle.Factory{
     private static final int V0 = 0;
     private static final int V1 = 1;
     private static final int V2 = 2;
 
 
 
-    public record PoolEntry(F32x3TrianglePool pool,
-                            int idx) implements Pool.PoolEntry<F32x3TrianglePool>, F32x3Triangle {
+    public record PoolEntry(F32x3TrianglePool pool, int idx)
+            implements Pool.PoolEntry<F32x3Triangle,F32x3TrianglePool>, F32x3Triangle {
         int v0Idx() {
             return F32x3TrianglePool.vecStride * idx + V0;
         }
@@ -82,14 +83,14 @@ public class F32x3TrianglePool extends Pool<F32x3TrianglePool> implements F32x3T
     }
 
     @Override
-    public PoolEntry entry(int idx) {
+    public F32x3Triangle entry(int idx) {
         return new PoolEntry(this, idx);
     }
 
 
     @Override
     public F32x3Triangle of(F32x3 v0, F32x3 v1, F32x3 v2, Integer rgb) {
-        var i = entry(count++);
+        var i = (PoolEntry)entry(count++);
         f32x3Entries[i.v0Idx()] = v0;
         f32x3Entries[i.v1Idx()] = v1;
         f32x3Entries[i.v2Idx()] = v2;

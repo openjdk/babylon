@@ -28,12 +28,12 @@ import view.f32.F32x2;
 import view.f32.F32x3;
 import view.f32.factories.Factory3;
 
-public class F32x3Pool extends F32Pool<F32x3Pool> implements F32x3.Factory {
+public class F32x3Pool extends F32Pool<F32x3,F32x3Pool> implements F32x3.Factory {
     private final static int X = 0;
     private final static int Y = 1;
     private final static int Z = 2;
 
-    public record PoolEntry(F32x3Pool pool, int idx) implements Pool.PoolEntry<F32x3Pool>, F32x3 {
+    public record PoolEntry(F32x3Pool pool, int idx) implements Pool.PoolEntry<F32x3, F32x3Pool>, F32x3 {
         private int xIdx() {
             return pool.stride * idx + X;
         }
@@ -67,13 +67,13 @@ public class F32x3Pool extends F32Pool<F32x3Pool> implements F32x3.Factory {
     }
 
     @Override
-    PoolEntry entry(int idx) {
+    public F32x3 entry(int idx) {
         return new PoolEntry(this, idx);
     }
 
     @Override
     public F32x3 of(Float x, Float y, Float z) {
-        PoolEntry i = entry(count++);
+        PoolEntry i = (PoolEntry) entry(count++);
         floatEntries[i.xIdx()] = x;
         floatEntries[i.yIdx()] = y;
         floatEntries[i.zIdx()] = z;

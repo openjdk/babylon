@@ -34,6 +34,7 @@ import view.f32.F32x3;
 import view.f32.ModelHighWaterMark;
 import view.f32.ZPos;
 import view.f32.pool.F32x3TrianglePool;
+import view.f32.pool.Pool;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -154,8 +155,8 @@ public class ViewFrame extends JFrame {
         List<ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
 
-        for (int tidx = 0; tidx < ((F32x3TrianglePool)f32.f32x3TriangleFactory()).count; tidx++) {
-            var t = (F32x3Triangle) ((F32x3TrianglePool)f32.f32x3TriangleFactory()).entry(tidx);
+        for (int tidx = 0; tidx < ((Pool<?,?>)f32.f32x3TriangleFactory()).count(); tidx++) {
+            var t = (F32x3Triangle) ((Pool<?,?>)f32.f32x3TriangleFactory()).entry(tidx);
 
             // here we rotate and then move into the Z plane.
             t = f32.add(f32.mul(t, xyzRot4x4), moveAwayVec3);
@@ -172,7 +173,6 @@ public class ViewFrame extends JFrame {
                 // intuition suggests the one with the minimal Z is best no?
 
                 // We subtract the camera from our point on the triangle so we can compare
-
                 F32x3 cameraDeltaVec3 = f32.sub(f32.centre(t), cameraVec3);// clearly our default camera is 0,0,0
 
 
