@@ -245,7 +245,7 @@ public class OpBuilder {
                 buildType(resultType),
                 buildAttributeMap(inputOp, attributes),
                 buildList(type(Body.Builder.class), bodies));
-        return builder.op(new_(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
+        return builder.op(new_(MethodRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
     }
 
     Value buildLocation(Location l) {
