@@ -211,11 +211,11 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
             return false;
         }
     }
-
+    float deltaSquare = 2000f;
     static boolean onEdge(float x, float y, F32x2Triangle tri) {
-        return onLine(x, y, tri.v0(), tri.v1(), F32x2Triangle.deltaSquare)
-                || onLine(x, y,tri.v1(),tri.v2(), F32x2Triangle.deltaSquare)
-                || onLine(x, y, tri.v2(),tri.v0(), F32x2Triangle.deltaSquare);
+        return onLine(x, y, tri.v0(), tri.v1(), deltaSquare)
+                || onLine(x, y,tri.v1(),tri.v2(), deltaSquare)
+                || onLine(x, y, tri.v2(),tri.v0(), deltaSquare);
     }
 
     static   boolean useRgb(boolean filled, float x, float y, F32x2Triangle tri){

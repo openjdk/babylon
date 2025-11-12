@@ -33,6 +33,7 @@ package view;
 
 import hat.util.Regex;
 import hat.util.StreamMutable;
+import view.f32.F32;
 import view.f32.F32Mesh3D;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -237,7 +238,7 @@ class EliteMeshReader {
         }
     }
 */
-    void load(String name) {
+    void load(F32 f32, String name) {
         final var oldMesh = StreamMutable.of((F32Mesh3D) null);
       //  final var newMesh = StreamMutable.of((F32.Mesh) null);
         final var sm = new State.Machine().awaiting_name();
@@ -249,7 +250,7 @@ class EliteMeshReader {
                     switch(sm.state){
                         case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name))->{
                             sm.awaiting_lazer();
-                                oldMesh.set(F32Mesh3D.of(name));
+                                oldMesh.set(F32Mesh3D.of(f32,name));
                         }
                         case State.awaiting_lazer s when s.r().matches(line) -> sm.awaiting_counts();
                         case State.awaiting_counts s when s.r().matches(line) -> sm.awaiting_vertices();

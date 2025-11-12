@@ -24,7 +24,6 @@
  */
 package view.f32;
 
-import view.ViewFrame;
 import view.f32.pool.F32x2Pool;
 import view.f32.pool.F32x2TrianglePool;
 import view.f32.pool.F32x3Pool;
@@ -32,30 +31,34 @@ import view.f32.pool.F32x3TrianglePool;
 import view.f32.pool.F32x4x4Pool;
 
 public record ModelHighWaterMark(
+        F32 f32,
         int markedTriangles3D,
         int markedTriangles2D,
         int markedVec2,
         int markedVec3,
         int markedMat4) {
 
-    public ModelHighWaterMark() {
-        this(
-                ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count,
-                ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).count,
-                ((F32x2Pool)ViewFrame.f32.f32x2Factory()).count,
-                ((F32x3Pool)ViewFrame.f32.f32x3Factory()).count,
-                ((F32x4x4Pool)ViewFrame.f32.f32x4x4Factory()).count);
+    public static ModelHighWaterMark of(F32 f32){
+        return new ModelHighWaterMark(
+                f32,
+                        ((F32x3TrianglePool)f32.f32x3TriangleFactory()).count,
+                ((F32x2TrianglePool)f32.f32x2TriangleFactory()).count,
+                ((F32x2Pool)f32.f32x2Factory()).count,
+                ((F32x3Pool)f32.f32x3Factory()).count,
+                ((F32x4x4Pool)f32.f32x4x4Factory()).count
+        );
+
     }
 
     public void resetAll() {
         reset3D();
-        ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).reset(markedTriangles2D);
-        ((F32x2Pool)ViewFrame.f32.f32x2Factory()).reset(markedVec2);
+        ((F32x2TrianglePool)f32.f32x2TriangleFactory()).reset(markedTriangles2D);
+        ((F32x2Pool)f32.f32x2Factory()).reset(markedVec2);
     }
 
     public void reset3D() {
-        ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count = markedTriangles3D;
-        ((F32x3Pool)ViewFrame.f32.f32x3Factory()).count = markedVec3;
-        ((F32x4x4Pool)ViewFrame.f32.f32x4x4Factory()).count = markedMat4;
+        ((F32x3TrianglePool)f32.f32x3TriangleFactory()).count = markedTriangles3D;
+        ((F32x3Pool)f32.f32x3Factory()).count = markedVec3;
+        ((F32x4x4Pool)f32.f32x4x4Factory()).count = markedMat4;
     }
 }

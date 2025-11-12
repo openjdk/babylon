@@ -24,18 +24,13 @@
  * questions.
  */
 package view.f32;
-
-import view.f32.factories.Factory16;
 import view.f32.factories.Factory2;
-import view.f32.pool.F32x2Pool;
 
 public interface F32x2 {
     float x();
     float y();
-
-
     @FunctionalInterface
     interface Factory extends Factory2<Float,Float,F32x2> {
     }
-   // Factory factory = f32x2Pool;
+
 }

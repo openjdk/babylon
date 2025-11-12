@@ -40,27 +40,27 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.stream.IntStream;
 
-public record RasterizingRenderer(int width, int height, DisplayMode displayMode, BufferedImage image,
+public record RasterizingRenderer(F32 f32,int width, int height, DisplayMode displayMode, BufferedImage image,
                                   int[] offscreenRgb) implements Renderer {
-    static private Renderer of(int width, int height, DisplayMode displayMode) {
+    static private Renderer of(F32 f32,int width, int height, DisplayMode displayMode) {
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        return new RasterizingRenderer(width, height, displayMode, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length]);
+        return new RasterizingRenderer(f32,width, height, displayMode, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length]);
     }
 
-    static public Renderer wireOf(int width, int height) {
-        return of(width, height, DisplayMode.WIRE);
+    static public Renderer wireOf(F32 f32, int width, int height) {
+        return of(f32, width, height, DisplayMode.WIRE);
     }
 
-    static public Renderer fillOf(int width, int height) {
-        return of(width, height, DisplayMode.FILL);
+    static public Renderer fillOf(F32 f32, int width, int height) {
+        return of(f32,width, height, DisplayMode.FILL);
     }
 
     private void kernel(int gid) {
         int x = gid % width;
         int y = gid / height;
         int col = 0x404040;
-        for (int t = 0; t < ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).count; t++) {
-            col = F32.rgb(displayMode.filled,x, y, ((F32x2TrianglePool)ViewFrame.f32.f32x2TriangleFactory()).entry(t),col);
+        for (int t = 0; t < ((F32x2TrianglePool)f32.f32x2TriangleFactory()).count; t++) {
+            col = F32.rgb(displayMode.filled,x, y, ((F32x2TrianglePool)f32.f32x2TriangleFactory()).entry(t),col);
         }
         offscreenRgb[gid] = col;
     }

@@ -33,11 +33,7 @@ import view.f32.F32x3Triangle;
 import view.f32.F32x3;
 import view.f32.ModelHighWaterMark;
 import view.f32.ZPos;
-import view.f32.pool.F32x2Pool;
-import view.f32.pool.F32x2TrianglePool;
-import view.f32.pool.F32x3Pool;
 import view.f32.pool.F32x3TrianglePool;
-import view.f32.pool.F32x4x4Pool;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -84,16 +80,13 @@ public class ViewFrame extends JFrame {
 
     ) implements F32 {
     }
-    public static F32 f32 = new poolF32(
-             new F32x4x4Pool(100),
-            new F32x3Pool(90000),
-            new F32x2Pool(12000),
-            new F32x3TrianglePool(12800),
-            new F32x2TrianglePool(12800)
- );
+    public  F32 f32;
 
-    private ViewFrame(String name, Renderer renderer, Runnable sceneBuilder) {
+
+
+    private ViewFrame(F32 f32,String name, Renderer renderer, Runnable sceneBuilder) {
         super(name);
+        this.f32 = f32;
         startMillis = System.currentTimeMillis();
         this.renderer = renderer;
         this.doorBell = new Object();
@@ -133,16 +126,16 @@ public class ViewFrame extends JFrame {
         float halfHeight = renderer.height() / 2f;
         float quarterHeight = renderer.height() / 4f;
 
-        cameraVec3 = ViewFrame.f32.f32x3Factory().of(originX, originY, originZ);
+        cameraVec3 = f32.f32x3Factory().of(originX, originY, originZ);
         var projF32Mat4x4_1 = f32.projection(renderer.width(), renderer.height(), nearZ, farZ, fieldOfViewDegrees);
         var projF32Mat4x4_2 = f32.mul(projF32Mat4x4_1, f32.scale(quarterHeight));
         projF32Mat4x4 = f32.mul(projF32Mat4x4_2, f32.transformation(halfHeight));
-        moveAwayVec3 = ViewFrame.f32.f32x3Factory().of(originX, originY, moveAwayZ);
-        mark = new ModelHighWaterMark();// mark all buffers.  transforms create new points so this allows us to garbage colect
+        moveAwayVec3 = f32.f32x3Factory().of(originX, originY, moveAwayZ);
+        mark = ModelHighWaterMark.of(f32);// mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
-    public static ViewFrame of(String name, Renderer renderer, Runnable sceneBuilder) {
-        return new ViewFrame(name, renderer, sceneBuilder);
+    public static ViewFrame of(F32 f32,String name, Renderer renderer, Runnable sceneBuilder) {
+        return new ViewFrame(f32, name, renderer, sceneBuilder);
     }
 
 
@@ -157,12 +150,12 @@ public class ViewFrame extends JFrame {
         boolean showHidden = renderer.displayMode() == Renderer.DisplayMode.WIRE_SHOW_HIDDEN;
         mark.resetAll();
         var xyzRot4x4 = f32.rot(theta * 2, theta / 2, theta);
-        ModelHighWaterMark resetMark = new ModelHighWaterMark();
+        ModelHighWaterMark resetMark = ModelHighWaterMark.of(f32);
         List<ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
 
-        for (int tidx = 0; tidx < ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).count; tidx++) {
-            var t = (F32x3Triangle) ((F32x3TrianglePool)ViewFrame.f32.f32x3TriangleFactory()).entry(tidx);
+        for (int tidx = 0; tidx < ((F32x3TrianglePool)f32.f32x3TriangleFactory()).count; tidx++) {
+            var t = (F32x3Triangle) ((F32x3TrianglePool)f32.f32x3TriangleFactory()).entry(tidx);
 
             // here we rotate and then move into the Z plane.
             t = f32.add(f32.mul(t, xyzRot4x4), moveAwayVec3);
@@ -199,7 +192,7 @@ public class ViewFrame extends JFrame {
 
                 t = f32.mul(t, projF32Mat4x4);//  projection matrix also scales to screen and translate half a screen
 
-                zpos.add(new ZPos(t, howVisible));
+                zpos.add(new ZPos(f32,t, howVisible));
             }
             resetMark.reset3D(); // do not move this up.
         }

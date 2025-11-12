@@ -24,25 +24,16 @@
  */
 package view.f32;
 
-import view.f32.factories.Factory3;
 import view.f32.factories.Factory4;
-import view.f32.pool.F32x2TrianglePool;
 
 public interface F32x2Triangle {
     F32x2 v0();
-
     F32x2 v1();
-
     F32x2 v2();
-
     int rgb();
 
-      @FunctionalInterface
+    @FunctionalInterface
     interface Factory extends Factory4<F32x2,F32x2,F32x2,Integer,F32x2Triangle> {
     }
-
-
-    float deltaSquare = 2000f;
-
 
 }
