@@ -33,16 +33,18 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Function;
 
-public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> {
+public class HATDialectifyTier implements Function<CoreOp.FuncOp, CoreOp.FuncOp> {
 
     private List<HATDialect> hatPhases = new ArrayList<>();
 
     public HATDialectifyTier(Accelerator accelerator) {
         // barriers
         hatPhases.add(new HATDialectifyBarrierPhase(accelerator));
+
         // Memory
         hatPhases.add(new HATDialectifyMemoryPhase.LocalMemoryPhase(accelerator));
         hatPhases.add(new HATDialectifyMemoryPhase.PrivateMemoryPhase(accelerator));
+        hatPhases.add(new HATDialectifyMemoryPhase.DeviceTypePhase(accelerator));
 
         // ID's /thread access
         hatPhases.add(new HATDialectifyThreadsPhase.GlobalIdPhase(accelerator));

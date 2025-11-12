@@ -31,6 +31,8 @@ import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
+import hat.dialect.HATMemoryLoadOp;
+import hat.dialect.HATPrivateVarInitOp;
 import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorSelectLoadOp;
@@ -150,6 +152,10 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
+    T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateVarInitOp hatPrivateVarInitOp);
+
+    T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp);
+
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -180,6 +186,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATBarrierOp $ -> barrier(buildContext, $);
             case HATLocalVarOp $ -> hatLocalVarOp(buildContext, $);
             case HATPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
+            case HATPrivateVarInitOp $ -> hatPrivateVarInitOp(buildContext, $);
             case HATGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
             case HATGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
             case HATLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
@@ -199,6 +206,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATF16ConvOp $ -> hatF16ConvOp(buildContext, $);
             case HATVectorMakeOfOp $ -> hatVectorMakeOf(buildContext, $);
             case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp(buildContext, $);
+            case HATMemoryLoadOp $ -> hatMemoryLoadOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

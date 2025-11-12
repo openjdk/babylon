@@ -34,6 +34,8 @@ import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
 import hat.dialect.HATLocalSizeOp;
 import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATMemoryLoadOp;
+import hat.dialect.HATPrivateVarInitOp;
 import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorVarLoadOp;
@@ -309,6 +311,33 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             recurse(buildContext, r.op());
         }
         cparen();
+        return self();
+    }
+
+    @Override
+    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateVarInitOp hatPrivateVarInitOp) {
+        suffix_t(hatPrivateVarInitOp.classType()).space().identifier(hatPrivateVarInitOp.varName());
+        space().equals().space();
+        Value operand = hatPrivateVarInitOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(builderContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp) {
+        List<Value> operands = hatMemoryLoadOp.operands();
+        Value base = operands.get(0);
+        if (base instanceof Op.Result r) {
+           recurse(builderContext, r.op());
+        }
+        dot().identifier("array").osbrace();
+        Value index = operands.get(1);
+        if (index instanceof Op.Result r) {
+            recurse(builderContext, r.op());
+        }
+        csbrace();
         return self();
     }
 

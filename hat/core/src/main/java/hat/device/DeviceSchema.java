@@ -24,6 +24,8 @@
  */
 package hat.device;
 
+import hat.buffer.F16;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +44,12 @@ public class DeviceSchema<T extends DeviceType> {
     private final Map<Class<?>, Consumer<DeviceSchema<T>>> deps = new HashMap<>();
     private final StringBuilder representationBuilder = new StringBuilder();
     private final Set<String> visited = new HashSet<>();
+
+    private static final Map<Class<?>, String> specialTypes = new HashMap<>();
+
+    static {
+        specialTypes.put(F16.class, "half");
+    }
 
     public DeviceSchema(Class<T> klass) {
         this.klass = klass;
@@ -87,9 +95,8 @@ public class DeviceSchema<T extends DeviceType> {
     }
 
     // Materialize methods are only reachable within this class.
-    private DeviceSchema<T> materialize() {
+    private void materialize() {
         materialize(representationBuilder, klass);
-        return this;
     }
 
     // The following method generates an intermediate representation in text form for each level
@@ -98,7 +105,7 @@ public class DeviceSchema<T extends DeviceType> {
     // then it recursively inspect its inner members.
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
-    private DeviceSchema<T> materialize(StringBuilder sb, Class<?> klass) {
+    private void materialize(StringBuilder sb, Class<?> klass) {
         try {
             Class<?> aClass = Class.forName(klass.getName());
             Method[] declaredMethods = aClass.getDeclaredMethods();
@@ -124,10 +131,15 @@ public class DeviceSchema<T extends DeviceType> {
                             sb = depsBuilder.append(sb);
                         }
 
+                        String type = returnType.getName();
+                        if (specialTypes.containsKey(klass)) {
+                            type = specialTypes.get(klass);
+                        }
+
                         if (arraySize.containsKey(method.getName())) {
                             sb.append("[");                        // Array indicator
                             sb.append(":");                        // separator
-                            sb.append(returnType.getName());       // type
+                            sb.append(type);                       // type
                             sb.append(":");                        // separator
                             sb.append(method.getName());           // variableName
                             sb.append(":");                        // separator
@@ -136,7 +148,7 @@ public class DeviceSchema<T extends DeviceType> {
                         } else {
                             sb.append("s");                         // scalar indicator
                             sb.append(":");                         // separator
-                            sb.append(method.getReturnType());      // type
+                            sb.append(type);                        // type
                             sb.append(":");                         // separator
                             sb.append(method.getName());            // var name
                             sb.append(";");                         // member separator
@@ -153,9 +165,7 @@ public class DeviceSchema<T extends DeviceType> {
         } catch (ClassNotFoundException e) {
             IO.println("Error during materialization of DeviceType: " + e.getMessage());
         }
-
         sb.append(">");
-        return this;
     }
 
     public String toText() {

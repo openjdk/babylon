@@ -29,6 +29,8 @@ import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATF16ToFloatConvOp;
+import hat.dialect.HATMemoryLoadOp;
+import hat.dialect.HATPrivateVarInitOp;
 import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorOp;
@@ -222,6 +224,18 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     @Override
     public T hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         blockComment("Float Conv Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateVarInitOp hatPrivateVarInitOp) {
+        blockComment("Private Var Init Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp) {
+        blockComment("Memory Load Op Not Implemented");
         return self();
     }
 
