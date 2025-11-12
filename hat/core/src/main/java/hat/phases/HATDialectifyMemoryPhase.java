@@ -219,7 +219,6 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
                                 Set<Op.Result> uses = result.uses();
                                 for (Op.Result use : uses) {
                                     if (use.op() instanceof CoreOp.VarOp varOp) {
-                                        IO.println("Adding " + invokeOp.invokeDescriptor().name() + " to " + varOp.toText());
                                         varTable.put(varOp, invokeOp);
                                         consumer.accept(invokeOp);
                                         consumer.accept(varOp);
