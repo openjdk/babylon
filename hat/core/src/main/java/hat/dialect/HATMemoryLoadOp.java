@@ -30,6 +30,7 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.List;
 import java.util.Map;
@@ -39,12 +40,14 @@ public class HATMemoryLoadOp extends HATMemoryDefOp {
     private final TypeElement typeElement;
     private final TypeElement invokeResultType;
     private final String varName;
+    private final String memberName;
 
-    public HATMemoryLoadOp(String varName, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+    public HATMemoryLoadOp(String varName, TypeElement typeElement, TypeElement invokeResultType, String memberName, List<Value> operands) {
         super(varName, operands);
         this.varName = varName;
         this.typeElement = typeElement;
         this.invokeResultType = invokeResultType;
+        this.memberName = memberName;
     }
 
     public HATMemoryLoadOp(HATMemoryLoadOp op, CopyContext copyContext) {
@@ -52,6 +55,7 @@ public class HATMemoryLoadOp extends HATMemoryDefOp {
         this.varName = op.varName;
         this.typeElement = op.resultType();
         this.invokeResultType = op.invokeResultType;
+        this.memberName = op.memberName;
     }
 
     @Override
@@ -66,6 +70,10 @@ public class HATMemoryLoadOp extends HATMemoryDefOp {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.hatMemoryLoadOp." + varName, typeElement);
+        return Map.of("hat.dialect.hatMemoryLoadOp." + memberName, typeElement);
+    }
+
+    public String memberName() {
+        return memberName;
     }
 }

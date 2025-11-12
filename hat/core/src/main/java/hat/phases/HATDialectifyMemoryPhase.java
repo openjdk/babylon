@@ -217,7 +217,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
                     blockBuilder.op(op);
                 } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                     List<Value> operands = blockBuilder.context().getValues(invokeOp.operands());
-                    HATMemoryLoadOp loadOp = new HATMemoryLoadOp("",  invokeOp.resultType(), invokeOp.invokeDescriptor().refType(), operands);
+                    HATMemoryLoadOp loadOp = new HATMemoryLoadOp("",  invokeOp.resultType(), invokeOp.invokeDescriptor().refType(), invokeOp.invokeDescriptor().name(), operands);
                     Op.Result resultLoad = blockBuilder.op(loadOp);
                     loadOp.setLocation(invokeOp.location());
                     blockBuilder.context().mapValue(invokeOp.result(), resultLoad);

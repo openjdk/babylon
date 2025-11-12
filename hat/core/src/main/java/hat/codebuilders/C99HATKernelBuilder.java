@@ -332,12 +332,22 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (base instanceof Op.Result r) {
            recurse(builderContext, r.op());
         }
-        dot().identifier("array").osbrace();
-        Value index = operands.get(1);
-        if (index instanceof Op.Result r) {
-            recurse(builderContext, r.op());
+        dot().identifier(hatMemoryLoadOp.memberName());
+
+        if (operands.size() > 1) {
+            // If the hatMemoryLoadOp has more than 1 operand,
+            // then we know that the second operand represents
+            // an index to access an array, since members, otherwise,
+            // will be accessed via structVarName.member1.member2.member3...,  etc.
+
+            // The following code generates [ indexValue ]
+            osbrace();
+            Value index = operands.get(1);
+            if (index instanceof Op.Result r) {
+                recurse(builderContext, r.op());
+            }
+            csbrace();
         }
-        csbrace();
         return self();
     }
 
