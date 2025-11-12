@@ -45,7 +45,7 @@ public sealed interface FieldRef extends JavaRef
 
     // Conversions
 
-    Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Field resolveToDeclaredField(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     VarHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
 

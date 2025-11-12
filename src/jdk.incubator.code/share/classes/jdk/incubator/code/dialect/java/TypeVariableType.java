@@ -55,11 +55,11 @@ public final class TypeVariableType implements JavaType {
     public Type resolve(Lookup lookup) throws ReflectiveOperationException {
         TypeVariable<?>[] typeVariables = switch (owner) {
             case MethodRef constructorRef when constructorRef.isConstructor() -> {
-                Constructor<?> constructor = constructorRef.resolveToConstructor(lookup);
+                Constructor<?> constructor = constructorRef.resolveToDeclaredConstructor(lookup);
                 yield constructor.getTypeParameters();
             }
             case MethodRef methodRef -> {
-                Method method = methodRef.resolveToMethod(lookup);
+                Method method = methodRef.resolveToDeclaredMethod(lookup);
                 yield method.getTypeParameters();
             }
             case JavaType type -> {

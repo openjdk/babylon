@@ -144,7 +144,7 @@ public final class TritonTransformer {
 
                     Field f;
                     try {
-                        f = flop.fieldDescriptor().resolveToMember(MethodHandles.lookup());
+                        f = flop.fieldDescriptor().resolveToDeclaredField(MethodHandles.lookup());
                     } catch (ReflectiveOperationException e) {
                         throw new IllegalStateException("Unsupported field load: " + flop.fieldDescriptor(), e);
                     }

@@ -62,7 +62,7 @@ public final class FieldRefImpl implements FieldRef {
     }
 
     @Override
-    public Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public Field resolveToDeclaredField(MethodHandles.Lookup l) throws ReflectiveOperationException {
         Class<?> refC = resolve(l, refType);
         Class<?> typeC = resolve(l, type);
 

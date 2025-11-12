@@ -58,9 +58,9 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
 
     // Resolutions to methods, constructors and method handles
 
-    Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Method resolveToDeclaredMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
-    Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Constructor<?> resolveToDeclaredConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     // For InvokeKind.SUPER the specialCaller == l.lookupClass() for Lookup::findSpecial
     MethodHandle resolveToHandle(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException;

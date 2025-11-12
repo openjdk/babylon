@@ -90,7 +90,7 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     @Override
-    public Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public Method resolveToDeclaredMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
         Class<?> refC = resolve(l, refType);
         MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
         for (Method m : refC.getDeclaredMethods()) {
@@ -104,7 +104,7 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     @Override
-    public Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public Constructor<?> resolveToDeclaredConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException {
         if (!isConstructor()) {
             throw new IllegalArgumentException("Not a constructor reference");
         }
