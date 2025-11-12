@@ -124,10 +124,7 @@ public class TestCodeBuilder {
     }
 
     static void test(CoreOp.FuncOp fExpected) {
-        CoreOp.FuncOp fb = OpBuilder.createBuilderFunction(
-                JavaType.type(TestCodeBuilder.class),
-                "test",
-                fExpected,
+        CoreOp.FuncOp fb = OpBuilder.createBuilderFunction(fExpected,
                 b -> b.parameter(JavaType.type(DialectFactory.class)));
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
                 fb, JavaOp.JAVA_DIALECT_FACTORY);
