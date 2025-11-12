@@ -44,26 +44,24 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-        args.add("COBRA");
+       args.add("COBRA");
         var eliteReader = new EliteMeshReader();
 
-        var wire =//RasterizingRenderer.fillOf(1024, 1024);
-              //  Graphics2DRenderer.wireOf(1024,1024);
-                RasterizingRenderer.wireOf(1024, 1024);
+        var wire = RasterizingRenderer.wireOf(1024, 1024);
         var fill = RasterizingRenderer.fillOf(1024, 1024);
         Runnable cubeoctahedron =  () -> {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {
                     for (int z = -2; z < 6; z += 2) {
-
-                            F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
-
+                            F32Mesh3D.of("cubeoctahedron").cubeoctahedron(0, y, z, 2).fin();
                     }
                 }
             }
         };
         Runnable elite = ()->eliteReader.load(args.getFirst());
-        ViewFrame viewFrame = (args.size() > 0 ? ViewFrame.of("view",wire, elite): ViewFrame.of("view", fill,cubeoctahedron));
+        ViewFrame viewFrame = (args.size() > 0
+                ? ViewFrame.of("view",fill, elite)
+                : ViewFrame.of("true", fill,cubeoctahedron));
         while (true) {
             viewFrame.update();
         }

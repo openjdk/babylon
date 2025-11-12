@@ -37,7 +37,7 @@ import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -264,42 +264,42 @@ public class TestVectorTypes {
     @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4), new NDRange.Local1D(128));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4), NDRange.Local1D.of(128));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps01(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps02(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps03(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps04(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps05(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps06(kernelContext, a, b, c));
     }
 
@@ -307,56 +307,56 @@ public class TestVectorTypes {
     @CodeReflection
     public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps07(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
     }
 
     @CodeReflection
     public static void computeGraph15(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size/4));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps15(kernelContext, a));
     }
 
@@ -377,7 +377,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph01(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i++) {
-            HatAsserts.assertEquals((arrayA.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
         }
 
     }
@@ -397,10 +397,10 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph02(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i += 4) {
-            HatAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 1)), arrayB.array(i + 1), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 2)), arrayB.array(i + 2), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 3)), arrayB.array(i + 3), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 1)), arrayB.array(i + 1), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 2)), arrayB.array(i + 2), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 3)), arrayB.array(i + 3), 0.001f);
         }
     }
 
@@ -419,10 +419,10 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph03(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i += 4) {
-            HatAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 2) * 30.0f), arrayB.array(i + 2), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 3) * 40.0f), arrayB.array(i + 3), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 2) * 30.0f), arrayB.array(i + 2), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 3) * 40.0f), arrayB.array(i + 3), 0.001f);
         }
     }
 
@@ -441,10 +441,10 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph04(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i += 4) {
-            HatAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 2) * 30.0f), arrayB.array(i + 2), 0.001f);
-            HatAsserts.assertEquals((arrayA.array(i + 3) * 40.0f), arrayB.array(i + 3), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 0) * 10.0f), arrayB.array(i + 0), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 1) * 20.0f), arrayB.array(i + 1), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 2) * 30.0f), arrayB.array(i + 2), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i + 3) * 40.0f), arrayB.array(i + 3), 0.001f);
         }
     }
 
@@ -465,7 +465,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph05(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i ++) {
-            HatAsserts.assertEquals((arrayA.array(i) + arrayB.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i) + arrayB.array(i) + arrayB.array(i)), arrayC.array(i), 0.001f);
         }
     }
 
@@ -486,7 +486,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph06(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i ++) {
-            HatAsserts.assertEquals((arrayA.array(i) - arrayB.array(i)), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals((arrayA.array(i) - arrayB.array(i)), arrayC.array(i), 0.001f);
         }
     }
 
@@ -507,7 +507,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph07(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i ++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayC.array(i), 0.001f);
         }
     }
 
@@ -529,7 +529,7 @@ public class TestVectorTypes {
 
         for (int i = 0; i < size; i ++) {
             float val = (((arrayA.array(i) + arrayB.array(i)) * arrayA.array(i)) / arrayB.array(i));
-            HatAsserts.assertEquals(val, arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals(val, arrayC.array(i), 0.001f);
         }
     }
 
@@ -551,7 +551,7 @@ public class TestVectorTypes {
 
         for (int i = 0; i < size; i ++) {
             float val = (arrayA.array(i) + (arrayB.array(i)) * arrayA.array(i));
-            HatAsserts.assertEquals(val, arrayC.array(i), 0.001f);
+            HATAsserts.assertEquals(val, arrayC.array(i), 0.001f);
         }
     }
 
@@ -571,7 +571,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph10(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i ++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
@@ -591,7 +591,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph11(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i ++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
@@ -611,7 +611,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph12(cc, arrayA, arrayB, size));
 
         for (int i = 0; i < size; i ++) {
-            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+            HATAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 
@@ -626,7 +626,7 @@ public class TestVectorTypes {
                 vA.z() + vB.z(),
                 vA.w() + vB.w()
                 );
-        HatAsserts.assertEquals(expectedSum, vC, 0.001f);
+        HATAsserts.assertEquals(expectedSum, vC, 0.001f);
 
         Float4 vD = Float4.sub(vA, vB);
         Float4 expectedSub = Float4.of(
@@ -635,7 +635,7 @@ public class TestVectorTypes {
                 vA.z() - vB.z(),
                 vA.w() - vB.w()
         );
-        HatAsserts.assertEquals(expectedSub, vD, 0.001f);
+        HATAsserts.assertEquals(expectedSub, vD, 0.001f);
 
         Float4 vE = Float4.mul(vA, vB);
         Float4 expectedMul = Float4.of(
@@ -644,7 +644,7 @@ public class TestVectorTypes {
                 vA.z() * vB.z(),
                 vA.w() * vB.w()
         );
-        HatAsserts.assertEquals(expectedMul, vE, 0.001f);
+        HATAsserts.assertEquals(expectedMul, vE, 0.001f);
 
         Float4 vF = Float4.div(vA, vB);
         Float4 expectedDiv = Float4.of(
@@ -653,7 +653,7 @@ public class TestVectorTypes {
                 vA.z() / vB.z(),
                 vA.w() / vB.w()
         );
-        HatAsserts.assertEquals(expectedDiv, vF, 0.001f);
+        HATAsserts.assertEquals(expectedDiv, vF, 0.001f);
     }
 
     @HatTest
@@ -670,7 +670,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph14(cc, arrayA, size));
 
         for (int i = 0; i < size; i += 4) {
-            HatAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
+            HATAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
         }
     }
 
@@ -689,10 +689,10 @@ public class TestVectorTypes {
 
         Float4 v = Float4.of(1.0f, 2.0f, 3.0f, 4.0f);
         for (int i = 0; i < size; i += 4) {
-            HatAsserts.assertEquals(v.x(), arrayA.array(i), 0.001f);
-            HatAsserts.assertEquals(v.y(), arrayA.array(i + 1), 0.001f);
-            HatAsserts.assertEquals(v.z(), arrayA.array(i + 2), 0.001f);
-            HatAsserts.assertEquals(v.w(), arrayA.array(i + 3), 0.001f);
+            HATAsserts.assertEquals(v.x(), arrayA.array(i), 0.001f);
+            HATAsserts.assertEquals(v.y(), arrayA.array(i + 1), 0.001f);
+            HATAsserts.assertEquals(v.z(), arrayA.array(i + 2), 0.001f);
+            HATAsserts.assertEquals(v.w(), arrayA.array(i + 3), 0.001f);
         }
     }
 

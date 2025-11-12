@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -235,8 +235,7 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitLambda(JCLambda tree) {
-        FunctionalExpressionKind kind = functionalKind(tree);
-        if (kind.isQuoted) {
+        if (isReflectable(tree)) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
                 // Quotable lambdas in inner classes are not supported
                 log.error(tree, QuotedLambdaInnerClass(currentClassSym.enclClass()));
@@ -245,7 +244,7 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             // quoted lambda - scan it
-            BodyScanner bodyScanner = new BodyScanner(tree, kind);
+            BodyScanner bodyScanner = new BodyScanner(tree);
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
@@ -257,45 +256,19 @@ public class ReflectMethods extends TreeTranslator {
             CoreOp.FuncOp opMethod = opBuilder(lambdaName.toString(), funcOp);
             classOps.add(opMethod);
 
-            switch (kind) {
-                case QUOTED_STRUCTURAL -> {
-                    // @@@ Consider replacing with invokedynamic to quoted bootstrap method
-                    // Thereby we avoid certain dependencies and hide specific details
-                    ListBuffer<JCExpression> args = new ListBuffer<>();
-                    // Get the func operation
-                    JCIdent opMethodId = make.Ident(opMethodSymbol);
-                    JCExpression op = make.TypeCast(crSyms.funcOpType, make.App(opMethodId));
-                    args.add(op);
-                    // Append captured vars
-                    ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
-                    args.appendList(capturedArgs.toList());
-                    // Get the quoted instance by calling Quoted::quotedOp
-                    JCMethodInvocation quotedInvoke = make.App(make.Ident(crSyms.quotedExtractOp), args.toList());
-                    quotedInvoke.varargsElement = syms.objectType;
-                    super.visitLambda(tree);
-                    result = quotedInvoke;
-                }
-                case QUOTABLE -> {
-                    // leave the lambda in place, but also leave a trail for LambdaToMethod
-                    tree.codeModel = opMethodSymbol;
-                    super.visitLambda(tree);
-                }
-            }
-        } else {
-            super.visitLambda(tree);
+            // leave the lambda in place, but also leave a trail for LambdaToMethod
+            tree.codeModel = opMethodSymbol;
         }
+        super.visitLambda(tree);
     }
 
     @Override
     public void visitReference(JCMemberReference tree) {
-        FunctionalExpressionKind kind = functionalKind(tree);
-        Assert.check(kind != FunctionalExpressionKind.QUOTED_STRUCTURAL,
-                "structural quoting not supported for method references");
         MemberReferenceToLambda memberReferenceToLambda = new MemberReferenceToLambda(tree, currentClassSym);
         JCVariableDecl recvDecl = memberReferenceToLambda.receiverVar();
         JCLambda lambdaTree = memberReferenceToLambda.lambda();
 
-        if (kind.isQuoted) {
+        if (isReflectable(tree)) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
                 // Quotable lambdas in inner classes are not supported
                 log.error(tree, QuotedMrefInnerClass(currentClassSym.enclClass()));
@@ -304,7 +277,7 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             // quoted lambda - scan it
-            BodyScanner bodyScanner = new BodyScanner(lambdaTree, kind);
+            BodyScanner bodyScanner = new BodyScanner(lambdaTree);
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
@@ -549,9 +522,7 @@ public class ReflectMethods extends TreeTranslator {
             bodyTarget = tree.sym.type.getReturnType();
         }
 
-        BodyScanner(JCLambda tree, FunctionalExpressionKind kind) {
-            Assert.check(kind != FunctionalExpressionKind.NOT_QUOTED);
-
+        BodyScanner(JCLambda tree) {
             this.currentNode = tree;
             this.body = tree;
             this.name = names.fromString("quotedLambda");
@@ -1510,11 +1481,7 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitLambda(JCTree.JCLambda tree) {
-            FunctionalExpressionKind kind = functionalKind(tree);
-            final FunctionType lambdaType = switch (kind) {
-                case QUOTED_STRUCTURAL -> typeToFunctionType(tree.target);
-                default -> typeToFunctionType(types.findDescriptorType(tree.target));
-            };
+            final FunctionType lambdaType = typeToFunctionType(types.findDescriptorType(tree.target));
 
             // Push quoted body
             // We can either be explicitly quoted or a structural quoted expression
@@ -1527,7 +1494,7 @@ public class ReflectMethods extends TreeTranslator {
             // also, a lambda contained in a quotable lambda, will not have its model wrapped in QuotedOp,
             // thus the condition (... body == tree)
             // @@@ better name for isQuoted ?
-            boolean toQuote = (isQuoted && body == tree) || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL;
+            boolean toQuote = (isQuoted && body == tree);
             if (toQuote) {
                 pushBody(tree.body, CoreType.FUNCTION_TYPE_VOID);
             }
@@ -1564,17 +1531,10 @@ public class ReflectMethods extends TreeTranslator {
                 }
             }
 
-            Op lambdaOp = switch (kind) {
-                case QUOTED_STRUCTURAL -> {
-                    yield CoreOp.closure(stack.body);
-                }
-                case QUOTABLE, NOT_QUOTED -> {
-                    // Get the functional interface type
-                    JavaType fiType = typeToTypeElement(tree.target);
-                    // build functional lambda
-                    yield JavaOp.lambda(fiType, stack.body, kind == FunctionalExpressionKind.QUOTABLE);
-                }
-            };
+            // Get the functional interface type
+            JavaType fiType = typeToTypeElement(tree.target);
+            // build functional lambda
+            Op lambdaOp = JavaOp.lambda(fiType, stack.body, isReflectable(tree));
 
             // Pop lambda body
             popBody();
@@ -2593,26 +2553,8 @@ public class ReflectMethods extends TreeTranslator {
         }
     }
 
-    enum FunctionalExpressionKind {
-        QUOTED_STRUCTURAL(true), // this is transitional
-        QUOTABLE(true),
-        NOT_QUOTED(false);
-
-        final boolean isQuoted;
-
-        FunctionalExpressionKind(boolean isQuoted) {
-            this.isQuoted = isQuoted;
-        }
-    }
-
-    FunctionalExpressionKind functionalKind(JCFunctionalExpression functionalExpression) {
-        if (functionalExpression.target.hasTag(TypeTag.METHOD)) {
-            return FunctionalExpressionKind.QUOTED_STRUCTURAL;
-        } else if (types.asSuper(functionalExpression.target, crSyms.quotableType.tsym) != null) {
-            return FunctionalExpressionKind.QUOTABLE;
-        } else {
-            return FunctionalExpressionKind.NOT_QUOTED;
-        }
+    boolean isReflectable(JCFunctionalExpression functionalExpression) {
+        return types.asSuper(functionalExpression.target, crSyms.quotableType.tsym) != null;
     }
 
     /*

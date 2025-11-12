@@ -35,7 +35,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
@@ -72,7 +72,7 @@ public class TestPrivate {
 
     @CodeReflection
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(32));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32));
         computeContext.dispatchKernel(ndRange,
                 kernelContext -> compute(kernelContext, data)
         );
@@ -96,7 +96,7 @@ public class TestPrivate {
                 //break;
             }
         }
-        HatAsserts.assertTrue(isCorrect);
+        HATAsserts.assertTrue(isCorrect);
     }
 
 }

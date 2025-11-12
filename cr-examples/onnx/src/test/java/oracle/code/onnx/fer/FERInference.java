@@ -45,15 +45,19 @@ public class FERInference {
         runtime = OnnxRuntime.getInstance();
     }
 
-    public float[] analyzeImage(Arena arena, OnnxProvider provider, URL url, boolean useCondensedModel) throws Exception {
+    public float[] analyzeImage(Arena arena, OnnxRuntime.SessionOptions sessionOptions, URL url, boolean isCondensed) throws Exception {
         float[] imageData = transformToFloatArray(url);
+        FERModel ferModel = new FERModel(arena);
+        float[] rawScores = ferModel.classify(imageData, sessionOptions, isCondensed);
+        return rawScores;
+    }
+
+    public OnnxRuntime.SessionOptions prepareSessionOptions(Arena arena, OnnxProvider provider) {
         var sessionOptions = runtime.createSessionOptions(arena);
         if (Objects.nonNull(provider)) {
             runtime.appendExecutionProvider(arena, sessionOptions, provider);
         }
-        FERModel ferModel = new FERModel(arena);
-        float[] rawScores = ferModel.classify(imageData, sessionOptions, useCondensedModel);
-        return rawScores;
+        return sessionOptions;
     }
 
     private float[] transformToFloatArray(URL imgUrl) throws IOException {

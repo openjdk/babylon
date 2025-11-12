@@ -35,7 +35,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -58,7 +58,7 @@ public class TestArrays {
 
     @CodeReflection
     public static void square(@RO ComputeContext cc, @RW S32Array array) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(array.length()));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(array.length()));
         cc.dispatchKernel(ndRange,
                 kc -> squareKernel(kc, array)
         );
@@ -75,7 +75,7 @@ public class TestArrays {
 
     @CodeReflection
     public static void vectorAdd(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(arrayA.length()));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(arrayA.length()));
         cc.dispatchKernel(ndRange,
                 kc -> vectorAddition(kc, arrayA, arrayB, arrayC)
         );
@@ -93,7 +93,7 @@ public class TestArrays {
 
     @CodeReflection
     public static void computeSaxpy(@RO ComputeContext cc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(arrayA.length()));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(arrayA.length()));
         cc.dispatchKernel(ndRange,
                 kc -> saxpy(kc, arrayA, arrayB, arrayC, alpha)
         );
@@ -120,7 +120,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), array.array(i));
+            HATAsserts.assertEquals(test.array(i), array.array(i));
         }
     }
 
@@ -146,7 +146,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i));
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i));
         }
     }
 
@@ -176,7 +176,7 @@ public class TestArrays {
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
         }
     }
 

@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.NDRange;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
@@ -72,11 +73,12 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
         String typeElement = invokeOp.invokeDescriptor().refType().toString();
-        Set<Class<?>> interfaces = Set.of();
+        Set<Class<?>> interfaces;
         try {
             Class<?> aClass = Class.forName(typeElement);
             interfaces = inspectAllInterfaces(aClass);
         } catch (ClassNotFoundException _) {
+            return false;
         }
         return interfaces.contains(_V.class) && isVectorLane(invokeOp);
     }
@@ -117,12 +119,11 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "vloadSelectPhase");
         before(here, funcOp);
-        Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
+        Stream<CodeElement<?, ?>> vectorSelectOps = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isVectorOperation(invokeOp) && invokeOp.resultType() != JavaType.VOID) {
-                            List<Value> inputOperandsInvoke = invokeOp.operands();
-                            Value inputOperand = inputOperandsInvoke.getFirst();
+                        if (isVectorOperation(invokeOp) && (invokeOp.resultType() != JavaType.VOID)) {
+                            Value inputOperand = invokeOp.operands().getFirst();
                             if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                                 consumer.accept(invokeOp);
                                 consumer.accept(varLoadOp);
@@ -131,9 +132,8 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                     }
                 });
 
-        Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-
-           funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
+        Set<CodeElement<?, ?>> nodesInvolved = vectorSelectOps.collect(Collectors.toSet());
+        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
@@ -162,7 +162,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
             return blockBuilder;
         });
 
-       after(here,funcOp);
+        after(here, funcOp);
         return funcOp;
     }
 

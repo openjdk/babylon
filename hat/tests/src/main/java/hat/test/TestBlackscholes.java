@@ -34,7 +34,7 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.MappableIface.RO;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -146,8 +146,8 @@ public class TestBlackscholes {
         blackScholesKernelSeq(seqCall, seqPut, S, X, T, r, v);
 
         for (int i = 0; i < call.length(); i++) {
-            HatAsserts.assertEquals(seqCall.array(i), call.array(i), 0.01f);
-            HatAsserts.assertEquals(seqPut.array(i), put.array(i), 0.01f);
+            HATAsserts.assertEquals(seqCall.array(i), call.array(i), 0.01f);
+            HATAsserts.assertEquals(seqPut.array(i), put.array(i), 0.01f);
         }
     }
 }

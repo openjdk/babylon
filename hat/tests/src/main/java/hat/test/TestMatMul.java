@@ -30,19 +30,19 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
+import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.buffer.F16Array.F16;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 
@@ -191,7 +191,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(globalSize), new NDRange.Local1D(16));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(globalSize), NDRange.Local1D.of(16));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -201,7 +201,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        NDRange ndRange = NDRange.of(new NDRange.Global1D(size));
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
@@ -209,7 +209,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(new NDRange.Global2D(globalSize, globalSize), new NDRange.Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -217,7 +217,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(new NDRange.Global2D(globalSize, globalSize), new NDRange.Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -225,7 +225,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(new NDRange.Global2D(globalSize, globalSize), new NDRange.Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -233,7 +233,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(new NDRange.Global2D(globalSize, globalSize), new NDRange.Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -310,7 +310,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -344,7 +344,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -379,7 +379,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -413,7 +413,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -435,8 +435,8 @@ public class TestMatMul {
         Random r = new Random(19);
 
         for (int j = 0; j < matrixA.length(); j++) {
-            matrixA.array(j).value(F16.floatToF16(r.nextFloat()));
-            matrixB.array(j).value(F16.floatToF16(r.nextFloat()));
+            matrixA.array(j).value(F16.floatToF16(r.nextFloat()).value());
+            matrixB.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
 
         accelerator.compute(cc ->
@@ -447,7 +447,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(
+                HATAsserts.assertEquals(
                         Float.float16ToFloat(resultSeq.array(i * size + j).value()),
                         Float.float16ToFloat(matrixC.array(i * size + j).value()),
                         0.01f);
@@ -484,7 +484,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -736,7 +736,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, final int size) {
-        NDRange ndRange = NDRange.of(new NDRange.Global2D(256, 256), new NDRange.Local2D(16, 16));
+        NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, size)
         );
@@ -744,7 +744,7 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, final int size) {
-        NDRange ndRange = NDRange.of(new NDRange.Global2D(256, 256), new NDRange.Local2D(16, 16));
+        NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
         cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, size)
         );
@@ -780,7 +780,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -814,7 +814,7 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }

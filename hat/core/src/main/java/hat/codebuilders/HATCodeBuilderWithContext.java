@@ -24,6 +24,8 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.F16;
+import hat.buffer.F16Array;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATLocalVarOp;
@@ -45,8 +47,6 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-
-import static hat.buffer.F16Array.F16;
 
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements BabylonOpBuilder<T> {
 
@@ -341,7 +341,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     private boolean isHalfType(Schema.IfaceType ifaceType) {
-        return ifaceType.iface.getName().equals(F16.class.getName());
+        return (ifaceType.iface.getName().equals(F16.class.getName()) || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
@@ -436,7 +436,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)) {
+        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
+                || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())) {
             if (invokeOp.operands().size() == 1
                     && OpTk.funcName(invokeOp) instanceof String funcName
                     && funcName.startsWith("atomic")
@@ -487,14 +488,22 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  of course we could return
                           cascade->tree + treeIdx;
                  */
-                    if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
+
+                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
+                   boolean needExtraParenthesis = OpTk.needExtraParenthesis(invokeOp);
+                   when(needExtraParenthesis, _ -> oparen());
+
+                   if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
                         ampersand();
                         /* This is way more complicated I think we need to determine the expression type.
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
                          */
-                    }
+                   }
 
-                    recurse(buildContext, instanceResult.op());
+                   recurse(buildContext, instanceResult.op());
+
+                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
+                   when(needExtraParenthesis, _ -> cparen());
 
                     // Check if the varOpLoad that could follow corresponds to a local/private type
                     boolean isLocalOrPrivateDS = false;

@@ -25,6 +25,8 @@
 
 package view.f32;
 
+import view.ViewFrame;
+
 public class ZPos implements Comparable<ZPos> {
     public enum ColourMode {NORMALIZED_COLOUR, NORMALIZED_INV_COLOUR, COLOUR, NORMALIZED_WHITE, NORMALIZED_INV_WHITE, WHITE}
     public static final ColourMode colourMode = ColourMode.COLOUR;
@@ -40,10 +42,10 @@ public class ZPos implements Comparable<ZPos> {
         return Float.compare(z, zPos.z);
     }
 
-    public ZPos(F32Triangle3D t, float howVisible) {
-        F32Vec3 v0 = t.v0();
-        F32Vec3 v1 = t.v1();
-        F32Vec3 v2 = t.v2();
+    public ZPos(F32x3Triangle t, float howVisible) {
+        F32x3 v0 = t.v0();
+        F32x3 v1 = t.v1();
+        F32x3 v2 = t.v2();
         x0 = v0.x();
         y0 = v0.y();
         z0 = v0.z();
@@ -59,7 +61,7 @@ public class ZPos implements Comparable<ZPos> {
     }
 
 
-    public F32Triangle2D create() {
+    public F32x2Triangle create() {
         int r = ((rgb & 0xff0000) >> 16);
         int g = ((rgb & 0x00ff00) >> 8);
         int b = ((rgb & 0x0000ff) >> 0);
@@ -79,6 +81,9 @@ public class ZPos implements Comparable<ZPos> {
         } else if (colourMode == ColourMode.WHITE) {
             r = g = b = 0xff;
         }
-        return F32Triangle2D.createTriangle(x0, y0, x1, y1, x2, y2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
+        F32x2 v0 = ViewFrame.f32.f32x2Factory().of(x0,y0);
+        F32x2 v1 = ViewFrame.f32.f32x2Factory().of(x1,y1);
+        F32x2 v2 = ViewFrame.f32.f32x2Factory().of(x2,y2);
+        return ViewFrame.f32.f32x2TriangleFactory().of(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
     }
 }

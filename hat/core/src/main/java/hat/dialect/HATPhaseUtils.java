@@ -166,4 +166,20 @@ public class HATPhaseUtils {
         }
     }
 
+    public static boolean findF16IsLocal(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findF16IsLocal(varLoadOp.operands().getFirst());
+    }
+
+    public static boolean findF16IsLocal(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findF16IsLocal(varLoadOp);
+        } else {
+            // Leaf of tree -
+            if (v instanceof CoreOp.Result r && r.op() instanceof HATF16VarOp hatf16VarOp) {
+                return true;
+            }
+            return false;
+        }
+    }
+
 }

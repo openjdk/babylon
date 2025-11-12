@@ -34,7 +34,7 @@ import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HatAsserts;
+import hat.test.engine.HATAsserts;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -44,7 +44,9 @@ import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
 public class TestArrayView {
 
-    // simple square kernel example using S32Array's ArrayView
+    /*
+     * simple square kernel example using S32Array's ArrayView
+     */
     @CodeReflection
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.gix < kc.gsx){
@@ -72,7 +74,40 @@ public class TestArrayView {
                 cc -> square(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            HatAsserts.assertEquals(i * i, arr.array(i));
+            HATAsserts.assertEquals(i * i, arr.array(i));
+        }
+    }
+
+    /*
+     * making sure arrayviews aren't reliant on varOps
+     */
+    @CodeReflection
+    public static void squareKernelNoVarOp(@RO  KernelContext kc, @RW S32Array s32Array) {
+        if (kc.gix<kc.gsx){
+            s32Array.arrayView()[kc.gix] *= s32Array.arrayView()[kc.gix];
+        }
+    }
+
+    @CodeReflection
+    public static void squareNoVarOp(@RO ComputeContext cc, @RW S32Array s32Array) {
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(s32Array.length()));
+        cc.dispatchKernel(ndRange,
+                kc -> squareKernelNoVarOp(kc, s32Array)
+        );
+    }
+
+    @HatTest
+    public static void testSquareNoVarOp() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var arr = S32Array.create(accelerator, 32);
+        for (int i = 0; i < arr.length(); i++) {
+            arr.array(i, i);
+        }
+        accelerator.compute(
+                cc -> squareNoVarOp(cc, arr)  //QuotableComputeContextConsumer
+        );                                     //   extends Quotable, Consumer<ComputeContext>
+        for (int i = 0; i < arr.length(); i++) {
+            HATAsserts.assertEquals(i * i, arr.array(i));
         }
     }
 
@@ -106,12 +141,14 @@ public class TestArrayView {
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.height(); i++) {
             for (int j = 0; j < arr.width(); j++) {
-                HatAsserts.assertEquals((i * 5 + j) * (i * 5 + j), arr.get(i, j));
+                HATAsserts.assertEquals((i * 5 + j) * (i * 5 + j), arr.get(i, j));
             }
         }
     }
 
-    // simplified version of Game of Life using ArrayView
+    /*
+     * simplified version of Game of Life using ArrayView
+     */
     public final static byte ALIVE = (byte) 0xff;
     public final static byte DEAD = 0x00;
 
@@ -180,7 +217,7 @@ public class TestArrayView {
 
     public static class Compute {
         @CodeReflection
-        public static void lifePerIdx(int idx, @RO Control control, @RW CellGrid cellGrid) {
+        public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
             int w = cellGrid.width();
             int h = cellGrid.height();
             int from = control.from();
@@ -220,20 +257,21 @@ public class TestArrayView {
                                 + (bytes[(y + 1) * w + (x + 1)] & 1);
                 cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
             }
-            bytes[idx] = cell;
+            byte[] res = cellGridRes.arrayView();
+            res[idx] = cell;
         }
 
         @CodeReflection
-        public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
+        public static void life(@RO KernelContext kc, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
             if (kc.gix < kc.gsx) {
-                Compute.lifePerIdx(kc.gix, control, cellGrid);
+                Compute.lifePerIdx(kc.gix, control, cellGrid, cellGridRes);
             }
         }
 
         @CodeReflection
-        static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RW CellGrid grid) {
+        static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RO CellGrid grid, @WO CellGrid gridRes) {
             int range = grid.width() * grid.height();
-            cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid));
+            cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid, gridRes));
         }
     }
 
@@ -242,9 +280,8 @@ public class TestArrayView {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
         // We oversize the grid by adding 1 to n,e,w and s
-        CellGrid cellGrid = CellGrid.create(accelerator,
-                17,
-                17);
+        CellGrid cellGrid = CellGrid.create(accelerator, 17, 17);
+        CellGrid cellGridRes = CellGrid.create(accelerator, 17, 17);
 
         byte[][] actualGrid = new byte[][]{
                 {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
@@ -276,7 +313,7 @@ public class TestArrayView {
 
         Control control = Control.create(accelerator, cellGrid);
 
-        accelerator.compute(cc -> Compute.compute(cc, control, cellGrid));
+        accelerator.compute(cc -> Compute.compute(cc, control, cellGrid, cellGridRes));
 
         byte[][] resultGrid = new byte[][]{
                 {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
@@ -300,12 +337,14 @@ public class TestArrayView {
 
         for (int i = 0; i < cellGrid.height(); i++) {
             for (int j = 0; j < cellGrid.width(); j++) {
-                HatAsserts.assertEquals(resultGrid[i][j], cellGrid.array(((long) i * cellGrid.width()) + j));
+                HATAsserts.assertEquals(resultGrid[i][j], cellGridRes.array(((long) i * cellGrid.width()) + j));
             }
         }
     }
 
-    // simplified version of mandel using ArrayView
+    /*
+     * simplified version of mandel using ArrayView
+     */
     @CodeReflection
     public static int mandelCheck(int i, int j, float width, float height, int[] pallette, float offsetx, float offsety, float scale) {
         float x = (i * scale - (scale / 2f * width)) / width + offsetx;
@@ -387,25 +426,15 @@ public class TestArrayView {
                 int palletteValue = s32Array2D.get(x*subsample,y*subsample); // so 0->8
                 int paletteCheck = mandelCheck(x*subsample, y*subsample, width, height, palletteArray, originX, originY, defaultScale);
                 // System.out.print(charPallette9[palletteValue]);
-                HatAsserts.assertEquals(paletteCheck, palletteValue);
+                HATAsserts.assertEquals(paletteCheck, palletteValue);
             }
             // System.out.println();
         }
     }
 
-    // simplified version of BlackScholes using ArrayView
-    @CodeReflection
-    public static float[] blackScholesCheck(float s, float x, float t, float r, float v) {
-        float expNegRt = (float) Math.exp(-r * t);
-        float d1 = (float) ((Math.log(s / x) + (r + v * v * .5f) * t) / (v * Math.sqrt(t)));
-        float d2 = (float) (d1 - v * Math.sqrt(t));
-        float cnd1 = CND(d1);
-        float cnd2 = CND(d2);
-        float call = s * cnd1 - expNegRt * x * cnd2;
-        float put = expNegRt * x * (1 - cnd2) - s * (1 - cnd1);
-        return new float[]{call, put};
-    }
-
+    /*
+     * simplified version of BlackScholes using ArrayView
+     */
     @CodeReflection
     public static void blackScholesKernel(@RO KernelContext kc,
                                           @WO F32Array call,
@@ -476,18 +505,31 @@ public class TestArrayView {
         return array;
     }
 
+    public static void blackScholesKernelSeq(F32Array call, F32Array put, F32Array sArray, F32Array xArray, F32Array tArray, float r, float v) {
+        for (int i = 0; i <call.length() ; i++) {
+            float S = sArray.array(i);
+            float X = xArray.array(i);
+            float T = tArray.array(i);
+            float expNegRt = (float) Math.exp(-r * T);
+            float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
+            float d2 = (float) (d1 - v * Math.sqrt(T));
+            float cnd1 = CND(d1);
+            float cnd2 = CND(d2);
+            float value = S * cnd1 - expNegRt * X * cnd2;
+            call.array(i, value);
+            put.array(i, expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
+        }
+    }
+
     @HatTest
     public static void testBlackScholes() {
-        int size = 50;
+        int size = 1024;
         Random rand = new Random();
-        var accelerator = new Accelerator(java.lang.invoke.MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var call = F32Array.create(accelerator, size);
-        for (int i = 0; i < call.length(); i++) {
-            call.array(i, i);
-        }
-
         var put = F32Array.create(accelerator, size);
-        for (int i = 0; i < put.length(); i++) {
+        for (int i = 0; i < size; i++) {
+            call.array(i, i);
             put.array(i, i);
         }
 
@@ -498,15 +540,25 @@ public class TestArrayView {
         float v = 0.30f;
 
         accelerator.compute(cc -> blackScholes(cc, call, put, S, X, T, r, v));
-        float[] res;
+
+        var seqCall = F32Array.create(accelerator, size);
+        var seqPut = F32Array.create(accelerator, size);
+        for (int i = 0; i < seqCall.length(); i++) {
+            seqCall.array(i, i);
+            seqPut.array(i, i);
+        }
+
+        blackScholesKernelSeq(seqCall, seqPut, S, X, T, r, v);
+
         for (int i = 0; i < call.length(); i++) {
-            res = blackScholesCheck(S.array(i), X.array(i), T.array(i), r, v);
-            HatAsserts.assertEquals(res[0], call.array(i), 0.0001);
-            HatAsserts.assertEquals(res[1], put.array(i), 0.0001);
+            HATAsserts.assertEquals(seqCall.array(i), call.array(i), 0.01f);
+            HATAsserts.assertEquals(seqPut.array(i), put.array(i), 0.01f);
         }
     }
 
-    // basic test of local and private buffer ArrayViews
+    /*
+     * basic test of local and private buffer ArrayViews
+     */
     private interface SharedMemory extends Buffer {
         void array(long index, int value);
         int array(long index);
@@ -588,7 +640,7 @@ public class TestArrayView {
                 cc -> privateAndLocal(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            HatAsserts.assertEquals(2 * i + 17, arr.array(i));
+            HATAsserts.assertEquals(2 * i + 17, arr.array(i));
         }
     }
 }

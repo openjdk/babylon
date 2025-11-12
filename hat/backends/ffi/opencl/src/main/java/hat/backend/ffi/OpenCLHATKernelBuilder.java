@@ -28,6 +28,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorOfOp;
@@ -37,8 +38,6 @@ import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-
-import java.util.List;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -87,10 +86,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value index = hatVectorStoreView.operands().get(2);
 
         identifier("vstore" + hatVectorStoreView.vectorN())
-                .oparen()
-                .varName(hatVectorStoreView)
-                .comma()
-                .space()
+                .oparen();
+        // if the value to be stored is an operation, recurse on the operation
+        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
+            recurse(buildContext, r.op());
+        } else {
+            varName(hatVectorStoreView);
+        }
+        comma().space()
                 .intConstZero()
                 .comma()
                 .space()
@@ -156,17 +159,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
-        identifier(hatVSelectLoadOp.varName())
-                .dot()
-                .identifier(hatVSelectLoadOp.mapLane());
+        if (hatVSelectLoadOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorLoadOp vLoadOp) {
+            recurse(buildContext, vLoadOp);
+        } else {
+            identifier(hatVSelectLoadOp.varName());
+        }
+        dot().identifier(hatVSelectLoadOp.mapLane());
         return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
-        identifier(hatVSelectStoreOp.varName())
-                .dot()
-                .identifier(hatVSelectStoreOp.mapLane())
+        if (hatVSelectStoreOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorLoadOp vLoadOp) {
+            recurse(buildContext, vLoadOp);
+        } else {
+            identifier(hatVSelectStoreOp.varName());
+        }
+        dot().identifier(hatVSelectStoreOp.mapLane())
                 .space().equals().space();
         if (hatVSelectStoreOp.resultValue() != null) {
             // We have detected a direct resolved result (resolved name)
@@ -183,7 +192,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-       oparen().halfType().cparen();
+        oparen().halfType().cparen();
         Value initValue = hatF16ConvOp.operands().getFirst();
         if (initValue instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -208,6 +217,19 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
         oparen().identifier(hatVectorOfOp.buildType()).cparen().oparen();
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+        oparen().halfType().cparen();
+        Value initValue = hatF16ToFloatConvOp.operands().getFirst();
+        if (initValue instanceof Op.Result r) {
+            recurse(builderContext, r.op());
+        }
+        if (!hatF16ToFloatConvOp.isLocal()) {
+            rarrow().identifier("value");
+        }
         return self();
     }
 }

@@ -72,16 +72,18 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
     default Set<Class<?>> inspectAllInterfaces(Class<?> klass) {
         Set<Class<?>> interfaceSet = new HashSet<>();
         while (klass != null) {
-            Arrays.stream(klass.getInterfaces()).forEach(interfaceClass -> inspectNewLevel(interfaceClass, interfaceSet));
+            Arrays.stream(klass.getInterfaces())
+                    .forEach(interfaceClass -> inspectNewLevel(interfaceClass, interfaceSet));
             klass = klass.getSuperclass();
         }
         return interfaceSet;
     }
 
-    default void inspectNewLevel(Class<?> interaceClass, Set<Class<?>> interfaceSet) {
-        if (interfaceSet.add(interaceClass)) {
+    default void inspectNewLevel(Class<?> interfaceClass, Set<Class<?>> interfaceSet) {
+        if (interfaceClass != null && interfaceSet.add(interfaceClass)) {
             // only if we add a new interface class, we inspect all interfaces that extends the current inspected class
-            Arrays.stream(interaceClass.getInterfaces()).forEach(superInterface -> inspectNewLevel(superInterface, interfaceSet));
+            Arrays.stream(interfaceClass.getInterfaces())
+                    .forEach(superInterface -> inspectNewLevel(superInterface, interfaceSet));
         }
     }
 }
