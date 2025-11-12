@@ -840,7 +840,6 @@ public class Main {
             matrixBHalf = null;
             matrixAHalf = null;
             matrixCHalf = null;
-            //matrixC1 = null;
             matrixC = null;
             matrixB = null;
             matrixA = null;
@@ -861,7 +860,6 @@ public class Main {
                 matrixA = null;
                 matrixAHalf = F16Array.create(accelerator, size * size);
                 matrixBHalf = F16Array.create(accelerator, size * size);
-                //matrixC1 = F32Array.create(accelerator, size * size);
                 matrixCHalf = F16Array.create(accelerator, size * size);
                 for (int j = 0; j < matrixAHalf.length(); j++) {
                     matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat(1)).value());
@@ -871,8 +869,6 @@ public class Main {
                 matrixBHalf = null;
                 matrixAHalf = null;
                 matrixCHalf = null;
-                //matrixC1 = null;
-                // matrixCHalf = null;
                 matrixA = F32Array.create(accelerator, size * size);
                 matrixB = F32Array.create(accelerator, size * size);
                 matrixC = F32Array.create(accelerator, size * size);
@@ -932,8 +928,7 @@ public class Main {
                         if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
                             gotValue = matrixCPad.array(i * size + j);
                         } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
-                            //gotValue = matrixC1.array(i * size + j);
-                            gotValue = Float.float16ToFloat(matrixCHalf.array(i * size + j).value());
+                            gotValue = F16.f16ToFloat(matrixCHalf.array(i * size + j));
                         } else {
                             gotValue = matrixC.array(i * size + j);
                         }
