@@ -28,8 +28,6 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
 import hat.backend.Backend;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
@@ -210,6 +208,98 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
+    interface DevicePrivateArray extends DeviceType {
+        F16 array(int index);
+        //void array(int index, F16 value);
+
+        DeviceSchema<DevicePrivateArray> schema = DeviceSchema.of(DevicePrivateArray.class,
+                builder -> builder.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static DevicePrivateArray create(Accelerator accelerator) {
+            return null;
+        }
+
+        static DevicePrivateArray createPrivate() {
+            return null;
+        }
+    }
+
+    @CodeReflection
+    public static void f16Ops_15(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+        DevicePrivateArray privateArray = DevicePrivateArray.createPrivate();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int lix = kernelContext.lix;
+            F16 ha = a.array(kernelContext.gix);
+
+            // store into the private object
+            privateArray.array(lix).value(ha.value());
+
+            F16 hb = privateArray.array(lix);
+            b.array(kernelContext.gix).value(hb.value());
+        }
+    }
+
+    interface DevicePrivateArray2 extends DeviceType {
+        F16 array(int index);
+        void array(int index, F16 value);
+
+        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(DevicePrivateArray2.class,
+                builder -> builder.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static DevicePrivateArray2 create(Accelerator accelerator) {
+            return null;
+        }
+
+        static DevicePrivateArray2 createPrivate() {
+            return null;
+        }
+    }
+
+    @CodeReflection
+    public static void f16Ops_16(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int lix = kernelContext.lix;
+            F16 ha = a.array(kernelContext.gix);
+
+            // This is expected to fail on the GPU due to the assigment of different types.
+            // ha is a typed F16Impl, which is a subtype of F16.
+            // While in Java, this is correct, because F16Impl is an implementation of F16,
+            // the GPU code is not aware of this inheritance, then we end up assigning values
+            // from different types.
+            privateArray.array(lix, ha);
+
+            F16 hb = privateArray.array(lix);
+            b.array(kernelContext.gix).value(hb.value());
+        }
+    }
+
+    @CodeReflection
+    public static void f16Ops_17(@RO KernelContext kernelContext, @RW F16Array a) {
+        F16 ha = a.array(0);
+        F16 hre = F16.add(ha, ha);
+        hre = F16.add(hre, hre);
+        a.array(0).value(hre.value());
+    }
+
+    @CodeReflection
+    public static void f16Ops_18(@RO KernelContext kernelContext, @RW F16Array a) {
+
+        F16 ha = a.array(0);
+        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
+        privateArray.array(0).value(ha.value());
+
+        // Obtain the value from private memory
+        F16 acc = privateArray.array(0);
+
+        // compute
+        acc = F16.add(acc, acc);
+
+        // store the result
+        a.array(0).value(acc.value());
+    }
 
     @CodeReflection
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
@@ -287,6 +377,30 @@ builder -> builder.withArray("array", 1024)
     public static void compute14(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_14(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void compute15(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()), NDRange.Local1D.of(16));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_15(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void compute16(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()), NDRange.Local1D.of(16));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_16(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void compute17(@RO ComputeContext computeContext, @RW F16Array a) {
+        NDRange ndRange = NDRange.of(1);
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_17(kernelContext, a));
+    }
+
+    @CodeReflection
+    public static void compute18(@RO ComputeContext computeContext, @RW F16Array a) {
+        NDRange ndRange = NDRange.of(1);
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_18(kernelContext, a));
     }
 
     @HatTest
@@ -596,44 +710,6 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-    interface DevicePrivateArray extends DeviceType {
-        F16 array(int index);
-        //void array(int index, F16 value);
-
-        DeviceSchema<DevicePrivateArray> schema = DeviceSchema.of(DevicePrivateArray.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
-
-        static DevicePrivateArray create(Accelerator accelerator) {
-            return null;
-        }
-
-        static DevicePrivateArray createPrivate() {
-            return null;
-        }
-    }
-
-    @CodeReflection
-    public static void f16Ops_15(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
-        DevicePrivateArray privateArray = DevicePrivateArray.createPrivate();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int lix = kernelContext.lix;
-            F16 ha = a.array(kernelContext.gix);
-
-            // store into the private object
-            privateArray.array(lix).value(ha.value());
-
-            F16 hb = privateArray.array(lix);
-            b.array(kernelContext.gix).value(hb.value());
-        }
-    }
-
-    @CodeReflection
-    public static void compute15(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()), NDRange.Local1D.of(16));
-        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_15(kernelContext, a, b));
-    }
-
     @HatTest
     public void testF16_15() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -652,47 +728,6 @@ builder -> builder.withArray("array", 1024)
             F16 val = arrayB.array(i);
             HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
         }
-    }
-
-    interface DevicePrivateArray2 extends DeviceType {
-        F16 array(int index);
-        void array(int index, F16 value);
-
-        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(DevicePrivateArray2.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
-
-        static DevicePrivateArray2 create(Accelerator accelerator) {
-            return null;
-        }
-
-        static DevicePrivateArray2 createPrivate() {
-            return null;
-        }
-    }
-
-    public static void f16Ops_16(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
-        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int lix = kernelContext.lix;
-            F16 ha = a.array(kernelContext.gix);
-
-            // This is expected to fail on the GPU due to the assigment of different types.
-            // ha is a typed F16Impl, which is a subtype of F16.
-            // While in Java, this is correct, because F16Impl is an implementation of F16,
-            // the GPU code is not aware of this inheritance, then we end up assigning values
-            // from different types.
-            privateArray.array(lix, ha);
-
-            F16 hb = privateArray.array(lix);
-            b.array(kernelContext.gix).value(hb.value());
-        }
-    }
-
-    @CodeReflection
-    public static void compute16(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()), NDRange.Local1D.of(16));
-        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_16(kernelContext, a, b));
     }
 
     @HatTest
@@ -719,20 +754,6 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-    @CodeReflection
-    public static void f16Ops_17(@RO KernelContext kernelContext, @RW F16Array a) {
-        F16 ha = a.array(0);
-        F16 hre = F16.add(ha, ha);
-        hre = F16.add(hre, hre);
-        a.array(0).value(hre.value());
-    }
-
-    @CodeReflection
-    public static void compute17(@RO ComputeContext computeContext, @RW F16Array a) {
-        NDRange ndRange = NDRange.of(1);
-        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_17(kernelContext, a));
-    }
-
     @HatTest
     public void testF16_17() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -746,29 +767,6 @@ builder -> builder.withArray("array", 1024)
 
         F16 val = arrayA.array(0);
         HATAsserts.assertEquals(40.0f, F16.f16ToFloat(val), 0.01f);
-    }
-
-    @CodeReflection
-    public static void f16Ops_18(@RO KernelContext kernelContext, @RW F16Array a) {
-
-        F16 ha = a.array(0);
-        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
-        privateArray.array(0).value(ha.value());
-
-        // Obtain the value from private memory
-        F16 acc = privateArray.array(0);
-
-        // compute
-        acc = F16.add(acc, acc);
-
-        // store the result
-        a.array(0).value(acc.value());
-    }
-
-    @CodeReflection
-    public static void compute18(@RO ComputeContext computeContext, @RW F16Array a) {
-        NDRange ndRange = NDRange.of(1);
-        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_18(kernelContext, a));
     }
 
     @HatTest
