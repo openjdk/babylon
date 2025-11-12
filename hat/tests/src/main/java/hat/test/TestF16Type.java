@@ -719,4 +719,71 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
+    @CodeReflection
+    public static void f16Ops_17(@RO KernelContext kernelContext, @RW F16Array a) {
+        F16 ha = a.array(0);
+        F16 hre = F16.add(ha, ha);
+        hre = F16.add(hre, hre);
+        a.array(0).value(hre.value());
+    }
+
+    @CodeReflection
+    public static void compute17(@RO ComputeContext computeContext, @RW F16Array a) {
+        NDRange ndRange = NDRange.of(1);
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_17(kernelContext, a));
+    }
+
+    @HatTest
+    public void testF16_17() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1;
+        F16Array arrayA = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+
+        accelerator.compute(computeContext -> TestF16Type.compute17(computeContext, arrayA));
+
+        F16 val = arrayA.array(0);
+        HATAsserts.assertEquals(40.0f, F16.f16ToFloat(val), 0.01f);
+    }
+
+    @CodeReflection
+    public static void f16Ops_18(@RO KernelContext kernelContext, @RW F16Array a) {
+
+        F16 ha = a.array(0);
+        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
+        privateArray.array(0).value(ha.value());
+
+        // Obtain the value from private memory
+        F16 acc = privateArray.array(0);
+
+        // compute
+        acc = F16.add(acc, acc);
+
+        // store the result
+        a.array(0).value(acc.value());
+    }
+
+    @CodeReflection
+    public static void compute18(@RO ComputeContext computeContext, @RW F16Array a) {
+        NDRange ndRange = NDRange.of(1);
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_18(kernelContext, a));
+    }
+
+    @HatTest
+    public void testF16_18() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1;
+        F16Array arrayA = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+
+        accelerator.compute(computeContext -> TestF16Type.compute18(computeContext, arrayA));
+
+        F16 val = arrayA.array(0);
+        HATAsserts.assertEquals(20.0f, F16.f16ToFloat(val), 0.01f);
+    }
+
 }

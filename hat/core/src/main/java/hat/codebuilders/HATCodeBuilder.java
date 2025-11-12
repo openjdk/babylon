@@ -384,4 +384,13 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }
+
+    public T buildStructSingleMember(String structName, String member, String type) {
+        typedefKeyword().space().structKeyword().space().suffix_s(structName)
+                .obrace().nl()
+                .in()
+                    .typeName(type).space().typeName(member).semicolon().nl()
+                .out().cbrace().space().suffix_t(structName).semicolon().nl();
+        return self();
+    }
 }

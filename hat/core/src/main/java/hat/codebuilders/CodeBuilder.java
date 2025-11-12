@@ -508,7 +508,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public final T halfType() {
-        return typeName("half");
+        return typeName("F16_t");
     }
 
     @Override

@@ -240,7 +240,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
-        typeName("half")
+        halfType()
                 .space()
                 .identifier(hatF16VarOp.varName())
                 .space().equals().space();
@@ -253,16 +253,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
-        oparen();
+
         Value op1 = hatF16BinaryOp.operands().get(0);
         Value op2 = hatF16BinaryOp.operands().get(1);
         List<Boolean> references = hatF16BinaryOp.references();
 
+        oparen().halfType().cparen().obrace().oparen();
         if (op1 instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
         if (references.getFirst()) {
             rarrow().identifier("value");
+        } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
         }
         space().identifier(hatF16BinaryOp.operationType().symbol()).space();
 
@@ -272,15 +275,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         if (references.get(1)) {
             rarrow().identifier("value");
+        } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
         }
 
-        cparen();
+        cparen().cbrace();
         return self();
     }
 
     @Override
     public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
         identifier(hatF16VarLoadOp.varName());
+        dot().identifier("value");
         return self();
     }
 

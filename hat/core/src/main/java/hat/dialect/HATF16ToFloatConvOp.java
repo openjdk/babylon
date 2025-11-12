@@ -37,17 +37,20 @@ public class HATF16ToFloatConvOp extends HATF16Op {
 
     private final TypeElement typeElement;
     private final boolean isLocal;
+    private final boolean wasFloat;
 
-    public HATF16ToFloatConvOp(TypeElement typeElement, boolean isLocal, List<Value> operands) {
+    public HATF16ToFloatConvOp(TypeElement typeElement, boolean isLocal, boolean wasFloat, List<Value> operands) {
         super("", operands);
         this.typeElement = typeElement;
         this.isLocal = isLocal;
+        this.wasFloat = wasFloat;
     }
 
     public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CopyContext copyContext) {
         super(op, copyContext);
         this.typeElement = op.typeElement;
         this.isLocal = op.isLocal;
+        this.wasFloat = op.wasFloat;
     }
 
     @Override
@@ -67,6 +70,10 @@ public class HATF16ToFloatConvOp extends HATF16Op {
 
     public boolean isLocal() {
         return isLocal;
+    }
+
+    public boolean wasFloat() {
+        return wasFloat;
     }
 
 }

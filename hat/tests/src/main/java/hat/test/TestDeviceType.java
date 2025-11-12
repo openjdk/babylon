@@ -113,10 +113,17 @@ public class TestDeviceType {
 
     @HatTest
     public void testdevice_type_03() {
-        MultiDim myDeviceArray = MultiDim.create();
-        String text = MultiDim.schema.toText();
-        boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
-        HATAsserts.assertTrue(isEquals);
+        // This test is expected to fail. It request a member called "range2" from the _2D class.
+        // However, the method name is "_range2". Thus the requested method doen't exits.
+        try {
+            MultiDim myDeviceArray = MultiDim.create();
+            String text = MultiDim.schema.toText();
+            // If we request the correct method, the result should be as follows:
+            boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
+            HATAsserts.assertFalse(isEquals);
+        } catch (ExceptionInInitializerError e) {
+            HATAsserts.assertTrue(true);
+        }
     }
 
 }

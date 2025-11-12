@@ -31,6 +31,7 @@ import hat.KernelContext;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
+import hat.buffer.F16;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
@@ -216,6 +217,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // using the code reflection API
             // 1. Add for struct for iface objects
             Set<String> typedefs = new HashSet<>();
+
+            // Add HAT reserved types
+            typedefs.add(F16.class.getName());
+
             for (TypeElement typeElement : localIFaceList) {
                 // 1.1 Load the class dynamically
                 try {

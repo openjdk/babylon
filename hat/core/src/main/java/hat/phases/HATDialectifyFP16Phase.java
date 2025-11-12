@@ -139,7 +139,14 @@ public class HATDialectifyFP16Phase implements HATDialect {
         List<Value> operands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
         boolean isLocal = findF16IsLocal(operands.getFirst());
-        HATF16ToFloatConvOp convOp1 = new HATF16ToFloatConvOp(JavaType.FLOAT, isLocal, outputOperands);
+        boolean wasFloat = false;
+        Value first = operands.getFirst();
+        if (first instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            if  (varLoadOp.resultType().equals(JavaType.FLOAT)) {
+                wasFloat = true;
+            }
+        }
+        HATF16ToFloatConvOp convOp1 = new HATF16ToFloatConvOp(JavaType.FLOAT, isLocal, wasFloat, outputOperands);
         Op.Result op1 = blockBuilder.op(convOp1);
         convOp1.setLocation(invokeOp.location());
         blockBuilder.context().mapValue(invokeOp.result(), op1);
