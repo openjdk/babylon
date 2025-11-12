@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
+
     Accelerator accelerator();
 
     default boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {

@@ -39,12 +39,10 @@ public class HATMemoryLoadOp extends HATMemoryDefOp {
 
     private final TypeElement typeElement;
     private final TypeElement invokeResultType;
-    private final String varName;
     private final String memberName;
 
-    public HATMemoryLoadOp(String varName, TypeElement typeElement, TypeElement invokeResultType, String memberName, List<Value> operands) {
-        super(varName, operands);
-        this.varName = varName;
+    public HATMemoryLoadOp(TypeElement typeElement, TypeElement invokeResultType, String memberName, List<Value> operands) {
+        super("", operands);
         this.typeElement = typeElement;
         this.invokeResultType = invokeResultType;
         this.memberName = memberName;
@@ -52,7 +50,6 @@ public class HATMemoryLoadOp extends HATMemoryDefOp {
 
     public HATMemoryLoadOp(HATMemoryLoadOp op, CopyContext copyContext) {
         super(op, copyContext);
-        this.varName = op.varName;
         this.typeElement = op.resultType();
         this.invokeResultType = op.invokeResultType;
         this.memberName = op.memberName;

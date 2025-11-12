@@ -34,17 +34,16 @@ import hat.dialect.HATPrivateVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -55,6 +54,16 @@ import static hat.dialect.HATPhaseUtils.isDeviceTypeInvokeDescriptor;
 public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
     protected final Accelerator accelerator;
+
+    private static final Set<String> reservedMethods = new HashSet<>();
+
+    static {
+        reservedMethods.add("createLocal");
+        reservedMethods.add("createPrivate");
+        reservedMethods.add("create");
+        reservedMethods.add("float2View");
+        reservedMethods.add("float4View");
+    }
 
     @Override
     public Accelerator accelerator(){
@@ -186,23 +195,32 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
             }
         }
 
+        private boolean isDeviceTypeReservedMethod(JavaOp.InvokeOp invokeOp){
+            return reservedMethods.contains(invokeOp.invokeDescriptor().name());
+        }
+
+        private boolean meetConditionsForMemoryLoadOp(JavaOp.InvokeOp invokeOp) {
+            return isDeviceTypeInvokeDescriptor(invokeOp)
+                    && (invokeOp.resultType() != JavaType.VOID)
+                    && (!(invokeOp.resultType() instanceof PrimitiveType))
+                    && (!isDeviceTypeReservedMethod(invokeOp));
+        }
+
         @Override
         public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-            var here = OpTk.CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase");
-            before(here,funcOp);
-
-            IO.println("BEFORE: " + funcOp.toText());
-            Map<CoreOp.VarOp, JavaOp.InvokeOp> mapMe = new HashMap<>();
-
+            var here = OpTk.CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase - memoryLoadOp");
+            before(here, funcOp);
+            Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Stream<CodeElement<?, ?>> memoryLoadOps = funcOp.elements()
                     .mapMulti((codeElement, consumer) -> {
                         if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                            if (isDeviceTypeInvokeDescriptor(invokeOp) && (invokeOp.resultType() != JavaType.VOID)) {
+                            if (meetConditionsForMemoryLoadOp(invokeOp)) {
                                 Op.Result result = invokeOp.result();
                                 Set<Op.Result> uses = result.uses();
                                 for (Op.Result use : uses) {
                                     if (use.op() instanceof CoreOp.VarOp varOp) {
-                                        mapMe.put(varOp, invokeOp);
+                                        IO.println("Adding " + invokeOp.invokeDescriptor().name() + " to " + varOp.toText());
+                                        varTable.put(varOp, invokeOp);
                                         consumer.accept(invokeOp);
                                         consumer.accept(varOp);
                                     }
@@ -216,39 +234,38 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
                 if (!nodesInvolved.contains(op)) {
                     blockBuilder.op(op);
                 } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                    List<Value> operands = blockBuilder.context().getValues(invokeOp.operands());
-                    HATMemoryLoadOp loadOp = new HATMemoryLoadOp("",  invokeOp.resultType(), invokeOp.invokeDescriptor().refType(), invokeOp.invokeDescriptor().name(), operands);
-                    Op.Result resultLoad = blockBuilder.op(loadOp);
-                    loadOp.setLocation(invokeOp.location());
-                    blockBuilder.context().mapValue(invokeOp.result(), resultLoad);
+                    insertHatMemoryLoadOp(blockBuilder, invokeOp);
                 } else if (op instanceof CoreOp.VarOp varOp) {
-                    // Pass the value
-                    JavaOp.InvokeOp invokeOp = mapMe.get(varOp);
-                    // FIXME: Here we should have a new Op: private with Initialization we know we
-                    // can generate the equals expression.
-                    HATPrivateVarInitOp privateVarOp = new HATPrivateVarInitOp(varOp.varName(),
-                            (ClassType) varOp.varValueType(),
-                            varOp.resultType(),
-                            invokeOp.invokeDescriptor().refType(),
-                            blockBuilder.context().getValues(varOp.operands()));
-                    Op.Result op1 = blockBuilder.op(privateVarOp);
-                    privateVarOp.setLocation(varOp.location());
-                    blockBuilder.context().mapValue(varOp.result(), op1);
-                    //context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+                    JavaOp.InvokeOp invokeOp = varTable.get(varOp);
+                    factory(blockBuilder, varOp, invokeOp);
                 }
                 return blockBuilder;
             });
-
             after(here, funcOp);
-
-            IO.println("AFTER: " + funcOp.toText());
-            after(here,funcOp );
             return funcOp;
         }
 
+        private void insertHatMemoryLoadOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp) {
+            HATMemoryLoadOp loadOp = new HATMemoryLoadOp(invokeOp.resultType(),
+                    invokeOp.invokeDescriptor().refType(),
+                    invokeOp.invokeDescriptor().name(),
+                    blockBuilder.context().getValues(invokeOp.operands()));
+            Op.Result resultLoad = blockBuilder.op(loadOp);
+            loadOp.setLocation(invokeOp.location());
+            blockBuilder.context().mapValue(invokeOp.result(), resultLoad);
+        }
+
         @Override
-        protected HATMemoryOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            throw new RuntimeException("Not implemented");
+        protected HATMemoryOp factory(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+            HATPrivateVarInitOp privateVarOp = new HATPrivateVarInitOp(varOp.varName(),
+                    (ClassType) varOp.varValueType(),
+                    varOp.resultType(),
+                    invokeOp.invokeDescriptor().refType(),
+                    blockBuilder.context().getValues(varOp.operands()));
+            Op.Result op1 = blockBuilder.op(privateVarOp);
+            privateVarOp.setLocation(varOp.location());
+            blockBuilder.context().mapValue(varOp.result(), op1);
+            return privateVarOp;
         }
     }
 }

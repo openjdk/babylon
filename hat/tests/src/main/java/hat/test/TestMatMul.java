@@ -104,10 +104,6 @@ public class TestMatMul {
             return null;
         }
 
-        static MyLocalArrayFixedSize createLocal(Accelerator accelerator) {
-            return null;
-        }
-
         static MyLocalArrayFixedSize createLocal() {
             return null;
         }

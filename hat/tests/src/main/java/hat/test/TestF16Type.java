@@ -28,6 +28,8 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import hat.annotations.Kernel;
+import hat.annotations.Preformatted;
 import hat.backend.Backend;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
@@ -594,7 +596,6 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-
     interface DevicePrivateArray extends DeviceType {
         F16 array(int index);
         //void array(int index, F16 value);
@@ -614,15 +615,15 @@ builder -> builder.withArray("array", 1024)
 
     @CodeReflection
     public static void f16Ops_15(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
-        DevicePrivateArray sm = DevicePrivateArray.createPrivate();
+        DevicePrivateArray privateArray = DevicePrivateArray.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
             F16 ha = a.array(kernelContext.gix);
 
             // store into the private object
-            sm.array(lix).value(ha.value());
+            privateArray.array(lix).value(ha.value());
 
-            F16 hb = sm.array(lix);
+            F16 hb = privateArray.array(lix);
             b.array(kernelContext.gix).value(hb.value());
         }
     }
@@ -653,5 +654,69 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
+    interface DevicePrivateArray2 extends DeviceType {
+        F16 array(int index);
+        void array(int index, F16 value);
+
+        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(DevicePrivateArray2.class,
+                builder -> builder.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static DevicePrivateArray2 create(Accelerator accelerator) {
+            return null;
+        }
+
+        static DevicePrivateArray2 createPrivate() {
+            return null;
+        }
+    }
+
+    public static void f16Ops_16(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int lix = kernelContext.lix;
+            F16 ha = a.array(kernelContext.gix);
+
+            // This is expected to fail on the GPU due to the assigment of different types.
+            // ha is a typed F16Impl, which is a subtype of F16.
+            // While in Java, this is correct, because F16Impl is an implementation of F16,
+            // the GPU code is not aware of this inheritance, then we end up assigning values
+            // from different types.
+            privateArray.array(lix, ha);
+
+            F16 hb = privateArray.array(lix);
+            b.array(kernelContext.gix).value(hb.value());
+        }
+    }
+
+    @CodeReflection
+    public static void compute16(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()), NDRange.Local1D.of(16));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_16(kernelContext, a, b));
+    }
+
+    @HatTest
+    public void testF16_16() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 256;
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F16Array arrayB = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        try {
+            accelerator.compute(computeContext -> TestF16Type.compute16(computeContext, arrayA, arrayB));
+        } catch (RuntimeException e) {
+            throw new HATExpectedFailureException("Incompatible types in expression `privateArray.array(lix, ha);`");
+        }
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            F16 val = arrayB.array(i);
+            HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
+        }
+    }
 
 }

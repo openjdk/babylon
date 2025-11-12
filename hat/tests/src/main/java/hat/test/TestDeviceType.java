@@ -54,7 +54,7 @@ public class TestDeviceType {
     public void testdevice_type_01() {
         MyDeviceArray myDeviceArray = MyDeviceArray.create();
         String text = MyDeviceArray.schema.toText();
-        boolean isEquals = text.equals("<hat.buffer.F16:s:short:value;><hat.test.TestDeviceType$MyDeviceArray:[:hat.buffer.F16:array:2048;s:float:x;>");
+        boolean isEquals = text.equals("<hat.buffer.F16:s:half:value;><hat.test.TestDeviceType$MyDeviceArray:[:hat.buffer.F16:array:2048;s:float:x;>");
         HATAsserts.assertTrue(isEquals);
     }
 
