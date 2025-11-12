@@ -112,8 +112,8 @@ public class TestReferences {
     }
 
     @ParameterizedTest
-    @MethodSource("externalizedMethodRefs")
-    public void testExternalizedMethodRef(String crs, String refType) {
+    @MethodSource("externalizedConstructorRefs")
+    public void testExternalizedConstructorRef(String crs, String refType) {
         ExternalizedTypeElement ecr = ExternalizedTypeElement.ofString(crs);
         MethodRef cr = (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ecr));
 
