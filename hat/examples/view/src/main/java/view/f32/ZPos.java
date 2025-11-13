@@ -25,39 +25,41 @@
 
 package view.f32;
 
-import view.ViewFrame;
-
 public class ZPos implements Comparable<ZPos> {
     public enum ColourMode {NORMALIZED_COLOUR, NORMALIZED_INV_COLOUR, COLOUR, NORMALIZED_WHITE, NORMALIZED_INV_WHITE, WHITE}
     public static final ColourMode colourMode = ColourMode.COLOUR;
-
-    float x0, y0, x1, y1, x2, y2;
-    float z0, z1, z2;
-    float z;
-    float howVisible;
-    int rgb;
+    F32 f32;
+    final F32x3 v0;
+    final F32x3 v1;
+    final F32x3 v2;
+    final float x0, y0, x1, y1, x2, y2;
+    final float z0, z1, z2;
+    final float z;
+    final float howVisible;
+    final int rgb;
 
     @Override
     public int compareTo(ZPos zPos) {
         return Float.compare(z, zPos.z);
     }
 
-    public ZPos(F32x3Triangle t, float howVisible) {
-        F32x3 v0 = t.v0();
-        F32x3 v1 = t.v1();
-        F32x3 v2 = t.v2();
-        x0 = v0.x();
-        y0 = v0.y();
-        z0 = v0.z();
-        x1 = v1.x();
-        y1 =  v1.y();
-        z1 = v1.z();
-        x2 =  v2.x();
-        y2 =  v2.y();
-        z2 = v2.z();
+    public ZPos(F32 f32, F32x3Triangle t, float howVisible) {
+        this.f32 = f32;
+        this.v0 = t.v0();
+        this.v1 = t.v1();
+        this.v2 = t.v2();
+        this.x0 = v0.x();
+        this.y0 = v0.y();
+        this.z0 = v0.z();
+        this.x1 = v1.x();
+        this.y1 =  v1.y();
+        this.z1 = v1.z();
+        this.x2 =  v2.x();
+        this.y2 =  v2.y();
+        this.z2 = v2.z();
         this.rgb = t.rgb();
         this.howVisible = howVisible;
-        z = Math.min(z0, Math.min(z1, z2));
+        this.z = Math.min(z0, Math.min(z1, z2));
     }
 
 
@@ -81,9 +83,9 @@ public class ZPos implements Comparable<ZPos> {
         } else if (colourMode == ColourMode.WHITE) {
             r = g = b = 0xff;
         }
-        F32x2 v0 = ViewFrame.f32.f32x2Factory().of(x0,y0);
-        F32x2 v1 = ViewFrame.f32.f32x2Factory().of(x1,y1);
-        F32x2 v2 = ViewFrame.f32.f32x2Factory().of(x2,y2);
-        return ViewFrame.f32.f32x2TriangleFactory().of(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
+        F32x2 v0 = f32.f32x2(x0,y0);
+        F32x2 v1 = f32.f32x2(x1,y1);
+        F32x2 v2 = f32.f32x2(x2,y2);
+        return f32.f32x2Triangle(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
     }
 }

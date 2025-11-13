@@ -33,14 +33,14 @@ package view;
 
 import hat.util.Regex;
 import hat.util.StreamMutable;
+import view.f32.F32;
 import view.f32.F32Mesh3D;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.regex.Matcher;
 
-class EliteMeshReader {
+class EliteMeshParser {
 
     interface State {
 
@@ -51,10 +51,10 @@ class EliteMeshReader {
         String decRegexStr = "([0-9]+)";
         String decCommaRegexStr = decRegexStr + commaRegexStr;
 
-        Regex face6Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "6", commaRegexStr, decCommaRegexStr.repeat(5), decRegexStr, " *$");
-        Regex face5Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "5", commaRegexStr, decCommaRegexStr.repeat(4), decRegexStr, " *$");
-        Regex face4Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "4", commaRegexStr, decCommaRegexStr.repeat(3), decRegexStr, " *$");
-        Regex face3Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "3", commaRegexStr, decCommaRegexStr.repeat(2), decRegexStr, " *$");
+        Regex hexagonRegex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "6", commaRegexStr, decCommaRegexStr.repeat(5), decRegexStr, " *$");
+        Regex pentagonRegex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "5", commaRegexStr, decCommaRegexStr.repeat(4), decRegexStr, " *$");
+        Regex quadRegex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "4", commaRegexStr, decCommaRegexStr.repeat(3), decRegexStr, " *$");
+        Regex triangleRegex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "3", commaRegexStr, decCommaRegexStr.repeat(2), decRegexStr, " *$");
 
         Regex vertexRegex = Regex.of("^ *" + hexCommaRegexStr + hexCommaRegexStr + hexRegexStr + " *$");
         Regex emptyRegex = Regex.of("^ *$");
@@ -112,7 +112,6 @@ class EliteMeshReader {
             State state = none;
 
             private Machine state(State state) {
-                //  System.out.println("from " + this.state.name() + " to " + state.name());
                 this.state = state;
                 return this;
             }
@@ -167,149 +166,50 @@ class EliteMeshReader {
         S32xN(Regex r, Matcher m) {
             this(r, m, true);
         }
-        int count(){
-            return matcher.groupCount();
-        }
     }
-/*
-    record hex(F32.Vec3 v0,F32.Vec3 v1,F32.Vec3 v2,F32.Vec3 v3,F32.Vec3 v4,F32.Vec3 v5){
-        static hex of(List<F32.Vec3> vecEntries, S32xN s32xN){
-            int i6 = s32xN.asInt(6);
-            int i7 = s32xN.asInt(7);
-            int i8 = s32xN.asInt(8);
-            int i9 = s32xN.asInt(9);
-            int i10 = s32xN.asInt(10);
-            int i11 = s32xN.asInt(11);
-            return new hex(
-                    vecEntries.get(i6),
-                    vecEntries.get(i7),
-                    vecEntries.get(i8),
-                    vecEntries.get(i9),
-                    vecEntries.get(i10),
-                    vecEntries.get(i11)
-            );
 
-        }
-    }
-    record pent(F32.Vec3 v0,F32.Vec3 v1,F32.Vec3 v2,F32.Vec3 v3,F32.Vec3 v4){
-        static pent of(List<F32.Vec3> vecEntries, S32xN s32xN){
-            int i6 = s32xN.asInt(6);
-            int i7 = s32xN.asInt(7);
-            int i8 = s32xN.asInt(8);
-            int i9 = s32xN.asInt(9);
-            int i10 = s32xN.asInt(10);
-            return new pent(
-                    vecEntries.get(i6),
-                    vecEntries.get(i7),
-                    vecEntries.get(i8),
-                    vecEntries.get(i9),
-                    vecEntries.get(i10)
-            );
-
-        }
-    }
-    record quad(F32.Vec3 v0,F32.Vec3 v1,F32.Vec3 v2,F32.Vec3 v3){
-        static quad of(List<F32.Vec3> vecEntries, S32xN s32xN){
-            int i6 = s32xN.asInt(6);
-            int i7 = s32xN.asInt(7);
-            int i8 = s32xN.asInt(8);
-            int i9 = s32xN.asInt(9);
-            return new quad(
-                    vecEntries.get(i6),
-                    vecEntries.get(i7),
-                    vecEntries.get(i8),
-                    vecEntries.get(i9)
-            );
-
-        }
-    }
-    record tri(F32.Vec3 v0,F32.Vec3 v1,F32.Vec3 v2){
-        static tri of(List<F32.Vec3> vecEntries, S32xN s32xN){
-            int i6 = s32xN.asInt(6);
-            int i7 = s32xN.asInt(7);
-            int i8 = s32xN.asInt(8);
-            return new tri(
-                    vecEntries.get(i6),
-                    vecEntries.get(i7),
-                    vecEntries.get(i8)
-            );
-
-        }
-    }
-*/
-    void load(String name) {
-        final var oldMesh = StreamMutable.of((F32Mesh3D) null);
-      //  final var newMesh = StreamMutable.of((F32.Mesh) null);
+    void load(F32 f32, String name) {
+        final var mesh = StreamMutable.of((F32Mesh3D) null);
         final var sm = new State.Machine().awaiting_name();
         new BufferedReader(
-                new InputStreamReader(EliteMeshReader.class.getResourceAsStream("/meshes/Elite.txt"), StandardCharsets.UTF_8))
+                new InputStreamReader(EliteMeshParser.class.getResourceAsStream("/meshes/Elite.txt"), StandardCharsets.UTF_8))
                 .lines()
                 .map(String::trim)
                 .forEach(line -> {
                     switch(sm.state){
                         case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name))->{
                             sm.awaiting_lazer();
-                                oldMesh.set(F32Mesh3D.of(name));
+                            mesh.set(F32Mesh3D.of(f32,name));
                         }
                         case State.awaiting_lazer s when s.r().matches(line) -> sm.awaiting_counts();
                         case State.awaiting_counts s when s.r().matches(line) -> sm.awaiting_vertices();
                         case State.awaiting_vertices s when s.r().matches(line) -> sm.awaiting_faces();
                         case State.awaiting_faces _ when State.vertexRegex.is(line, F32x3::new) instanceof F32x3 f32x3 ->{
-
-                                oldMesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
+                            mesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
+                        }
+                        case State.awaiting_faces _ when State.facesRegex.matchesOrThrow(line) -> {
+                            sm.awaiting_hue_lig_sat();
+                        }
+                        case State.awaiting_hue_lig_sat _ when State.hexagonRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                            mesh.get().hex(s32xN.asInts(6,6), 0xff7f00);
+                        }
+                        case State.awaiting_hue_lig_sat _ when State.pentagonRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                            mesh.get().pent(s32xN.asInts(6,5), 0x7fff00);
+                        }
+                        case State.awaiting_hue_lig_sat _ when State.quadRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                                mesh.get().quad(s32xN.asInts(6,4), 0x00ff7f);
 
                         }
-                        case State.awaiting_faces _ when State.facesRegex.matchesOrThrow(line) ->
-                                sm.awaiting_hue_lig_sat();
-                        case State.awaiting_hue_lig_sat _ when State.face6Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-
-                                oldMesh.get().hex(
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(10)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(11)),
-                                        0xff7f00);
-
-                        }
-                        case State.awaiting_hue_lig_sat _ when State.face5Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-
-                                   oldMesh.get().pent(
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(6)),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(7)),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(8)),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(9)),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(10)),
-                                           0x7fff00);
-
-                        }
-                        case State.awaiting_hue_lig_sat _ when State.face4Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-
-                                oldMesh.get().quad(
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)),
-                                        0x00ff7f);
-
-                        }
-                        case State.awaiting_hue_lig_sat _ when State.face3Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-
-                                oldMesh.get().tri(
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)),
-                                        0x007fff);
-
+                        case State.awaiting_hue_lig_sat _ when State.triangleRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                                mesh.get().tri(s32xN.asInts(6,3), 0x007fff);
                         }
                         case State.awaiting_hue_lig_sat s when s.r().matches(line) -> {
-                                oldMesh.get().fin();
+                            mesh.get().fin();
                             sm.done();
                         }
-                        case State.awaiting_hue_lig_sat _ when !State.remRegex.matches(line) ->
+                        case State.awaiting_hue_lig_sat _ when !State.remRegex.matches(line) ->{
                                 System.out.println("UNHANDLED " + line);
-
+                        }
                         case State.done _-> {}
                         case State _ when Regex.any(line, State.remRegex, State.emptyRegex, State.colonRegex).matched()->{}
                         case State _ ->{}

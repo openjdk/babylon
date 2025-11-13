@@ -48,6 +48,20 @@ public record Regex(Pattern pattern) {
         default  int asInt(int idx) {
             return Integer.parseInt(string(idx));
         }
+        default  int[] asInts(int from, int count) {
+            int[] ints = new int[count];
+            for (int i = 0; i<count; i++) {
+                ints[i]= Integer.parseInt(string(from + i));
+            }
+            return ints;
+        }
+        default  float[] asFloats(int from, int count) {
+            float[] floats = new float[count];
+            for (int i = 0; i<count; i++) {
+                floats[i]=Float.parseFloat(string(from + i));
+            }
+            return floats;
+        }
     }
 
 
