@@ -764,16 +764,16 @@ public class Main {
         }
     }
 
-    private static void runSequential(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {
+    private static void runSequential(F16Array matrixA, F16Array matrixB, F16Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                float sum = 0;
+                F16 sum = F16.of(0.0f);
                 for (int k = 0; k < size; k++) {
-                    float a = F16.f16ToFloat(matrixA.array((long) i * size + k));
-                    float b = F16.f16ToFloat(matrixB.array((long) k * size + j));
-                    sum += a * b;
+                    F16 a = matrixA.array((long) i * size + k);
+                    F16 b = matrixB.array((long) k * size + j);
+                    sum = F16.add(sum, F16.mul(a, b));
                 }
-                matrixC.array((long) i * size + j, sum);
+                matrixC.array((long) i * size + j).value(sum.value());
             }
         }
     }
@@ -862,8 +862,8 @@ public class Main {
                 matrixBHalf = F16Array.create(accelerator, size * size);
                 matrixCHalf = F16Array.create(accelerator, size * size);
                 for (int j = 0; j < matrixAHalf.length(); j++) {
-                    matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat(1)).value());
-                    matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat(1)).value());
+                    matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
+                    matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
                 }
             } else {
                 matrixBHalf = null;
@@ -880,13 +880,19 @@ public class Main {
         }
 
 
-        var resultSeq = F32Array.create(accelerator, size * size);
+        F32Array resultSeq = null;
+        F16Array resultSeqHalf = null;
+        if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+            resultSeqHalf = F16Array.create(accelerator, size * size);
+        } else {
+            resultSeq = F32Array.create(accelerator, size * size);
+        }
 
         // Run Seq for reference
         if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
             runSequential(matrixAPad, matrixBPad, resultSeq, size);
         } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
-            runSequential(matrixAHalf, matrixAHalf, resultSeq, size);
+            runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
         } else {
             runSequential(matrixA, matrixB, resultSeq, size);
         }
@@ -923,7 +929,12 @@ public class Main {
                 boolean isCorrect = true;
                 for (int i = 0; i < size; i++) {
                     for (int j = 0; j < size; j++) {
-                        float expectedValue = resultSeq.array(i * size + j);
+                        float expectedValue;
+                        if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+                            expectedValue = F16.f16ToFloat(resultSeqHalf.array(i * size + j));
+                        } else {
+                            expectedValue = resultSeq.array(i * size + j);
+                        }
                         float gotValue;
                         if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
                             gotValue = matrixCPad.array(i * size + j);

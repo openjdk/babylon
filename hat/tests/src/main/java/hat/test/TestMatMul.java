@@ -972,7 +972,6 @@ public class TestMatMul {
 
         // Initialize matrices (A and B have the same size)
         Random r = new Random(19);
-
         for (int j = 0; j < matrixA.length(); j++) {
             matrixA.array(j).value(F16.floatToF16(r.nextFloat()).value());
             matrixB.array(j).value(F16.floatToF16(r.nextFloat()).value());
@@ -984,8 +983,8 @@ public class TestMatMul {
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
 
-        for (int j = 0; j < size; j++) {
-            for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
                 HATAsserts.assertEquals(F16.f16ToFloat(resultSeq.array(i * size + j)),
                                         F16.f16ToFloat(matrixC.array(i * size + j)),
                                         0.01f);
