@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,24 +30,16 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
-
-import static java.util.stream.Collectors.joining;
-
-public final class MethodRefImpl implements MethodRef {
+public record MethodRefImpl(TypeElement refType, String name, FunctionType type) implements MethodRef {
 
     static final MethodHandle MULTI_NEW_ARRAY_MH;
 
@@ -60,31 +52,6 @@ public final class MethodRefImpl implements MethodRef {
         }
     }
 
-    final TypeElement refType;
-    final String name;
-    final FunctionType type;
-
-    public MethodRefImpl(TypeElement refType, String name, FunctionType type) {
-        this.refType = refType;
-        this.name = name;
-        this.type = type;
-    }
-
-    @Override
-    public TypeElement refType() {
-        return refType;
-    }
-
-    @Override
-    public String name() {
-        return name;
-    }
-
-    @Override
-    public FunctionType type() {
-        return type;
-    }
-
     @Override
     public boolean isConstructor() {
         return name.equals(INIT_NAME);
@@ -95,28 +62,7 @@ public final class MethodRefImpl implements MethodRef {
         if (isConstructor()) {
             throw new UnsupportedOperationException("Not a method reference");
         }
-        ReflectiveOperationException c = null;
-        MethodHandle mh = null;
-        try {
-            mh = resolveToHandle(l, InvokeKind.STATIC);
-        } catch (ReflectiveOperationException ex) {
-            c = ex;
-        }
-
-        if (mh == null) {
-            try {
-                mh = resolveToHandle(l, InvokeKind.INSTANCE);
-                c = null;
-            } catch (ReflectiveOperationException ex) {
-                c = ex;
-            }
-        }
-
-        if (c != null) {
-            throw c;
-        }
-
-        assert mh != null;
+        MethodHandle mh = ResolutionHelper.resolveMethod(l, this);
         return l.revealDirect(mh)
                 .reflectAs(Method.class, l);
     }
@@ -133,13 +79,7 @@ public final class MethodRefImpl implements MethodRef {
     @Override
     public MethodHandle resolveToHandle(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException {
         if (!isConstructor()) {
-            Class<?> refC = resolve(l, refType);
-            MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
-            return switch (kind) {
-                case SUPER -> l.findSpecial(refC, name, mt, l.lookupClass());
-                case STATIC -> l.findStatic(refC, name, mt);
-                case INSTANCE -> l.findVirtual(refC, name, mt);
-            };
+            return ResolutionHelper.resolveMethod(l, this, kind);
         } else {
             if (kind != JavaOp.InvokeOp.InvokeKind.SUPER) {
                 throw new IllegalArgumentException("Bad invoke kind for constructor: " + kind);
@@ -149,7 +89,7 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     private MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, type.returnType());
+        Class<?> refC = ResolutionHelper.resolveClass(l, type.returnType());
         if (type.returnType() instanceof ArrayType at) {
             if (at.dimensions() == 1) {
                 return MethodHandles.arrayConstructor(refC);
@@ -171,15 +111,6 @@ public final class MethodRefImpl implements MethodRef {
         }
     }
 
-    static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
-        if (t instanceof JavaType jt) {
-            return (Class<?>)jt.erasure().resolve(l);
-        } else {
-            // @@@
-            throw new ReflectiveOperationException();
-        }
-    }
-
     @Override
     public ExternalizedTypeElement externalize() {
         if (!isConstructor()) {
@@ -195,25 +126,5 @@ public final class MethodRefImpl implements MethodRef {
     @Override
     public String toString() {
         return JavaTypeUtils.toExternalRefString(externalize());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        MethodRefImpl that = (MethodRefImpl) o;
-
-        if (!refType.equals(that.refType)) return false;
-        if (!name.equals(that.name)) return false;
-        return type.equals(that.type);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = refType.hashCode();
-        result = 31 * result + name.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
     }
 }
