@@ -22,29 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.device;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
-
-public interface F16Array extends Buffer {
-    int length();
-
-    F16Impl array(long index);
-
-    interface F16Impl extends Struct, F16 {
-        String NAME = "F16Impl";
-
-        short value();
-        void value(short value);
-    }
-
-    Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
-            f16array.arrayLen("length")
-                    .array("array",
-                            half -> half.fields("value")));
-
-    static F16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
-    }
+public interface DeviceType {
 }

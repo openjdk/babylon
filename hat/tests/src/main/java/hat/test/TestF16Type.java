@@ -29,12 +29,12 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 import hat.test.engine.HATExpectedFailureException;
@@ -142,31 +142,32 @@ public class TestF16Type {
         }
     }
 
-    interface MyLocalArray extends Buffer {
-        void array(long index, F16 value);
-        F16 array(long index);
+    public interface DeviceLocalArray extends DeviceType {
+        F16 array(int index);
+        //void array(int index, F16 value);
 
-        Schema<MyLocalArray> schema = Schema.of(MyLocalArray.class,
-                        arr -> arr.array("array", 1024));
+        DeviceSchema<DeviceLocalArray> schema = DeviceSchema.of(DeviceLocalArray.class,
+builder -> builder.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
 
-        static MyLocalArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+        static DeviceLocalArray create(Accelerator accelerator) {
+            return null;
         }
 
-        static MyLocalArray createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        static DeviceLocalArray createLocal() {
+            return null;
         }
     }
 
     @CodeReflection
     public static void f16Ops_11(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
-        MyLocalArray sm = MyLocalArray.createLocal();
+        DeviceLocalArray sm = DeviceLocalArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
             F16 ha = a.array(kernelContext.gix);
 
             // store into local memory
-            sm.array(lix, ha);
+            sm.array(lix).value(ha.value());
             kernelContext.barrier();
 
             F16 hb = sm.array(lix);
@@ -207,6 +208,98 @@ public class TestF16Type {
         }
     }
 
+    interface DevicePrivateArray extends DeviceType {
+        F16 array(int index);
+        //void array(int index, F16 value);
+
+        DeviceSchema<DevicePrivateArray> schema = DeviceSchema.of(DevicePrivateArray.class,
+                builder -> builder.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static DevicePrivateArray create(Accelerator accelerator) {
+            return null;
+        }
+
+        static DevicePrivateArray createPrivate() {
+            return null;
+        }
+    }
+
+    @CodeReflection
+    public static void f16Ops_15(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+        DevicePrivateArray privateArray = DevicePrivateArray.createPrivate();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int lix = kernelContext.lix;
+            F16 ha = a.array(kernelContext.gix);
+
+            // store into the private object
+            privateArray.array(lix).value(ha.value());
+
+            F16 hb = privateArray.array(lix);
+            b.array(kernelContext.gix).value(hb.value());
+        }
+    }
+
+    interface DevicePrivateArray2 extends DeviceType {
+        F16 array(int index);
+        void array(int index, F16 value);
+
+        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(DevicePrivateArray2.class,
+                builder -> builder.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static DevicePrivateArray2 create(Accelerator accelerator) {
+            return null;
+        }
+
+        static DevicePrivateArray2 createPrivate() {
+            return null;
+        }
+    }
+
+    @CodeReflection
+    public static void f16Ops_16(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int lix = kernelContext.lix;
+            F16 ha = a.array(kernelContext.gix);
+
+            // This is expected to fail on the GPU due to the assigment of different types.
+            // ha is a typed F16Impl, which is a subtype of F16.
+            // While in Java, this is correct, because F16Impl is an implementation of F16,
+            // the GPU code is not aware of this inheritance, then we end up assigning values
+            // from different types.
+            privateArray.array(lix, ha);
+
+            F16 hb = privateArray.array(lix);
+            b.array(kernelContext.gix).value(hb.value());
+        }
+    }
+
+    @CodeReflection
+    public static void f16Ops_17(@RO KernelContext kernelContext, @RW F16Array a) {
+        F16 ha = a.array(0);
+        F16 hre = F16.add(ha, ha);
+        hre = F16.add(hre, hre);
+        a.array(0).value(hre.value());
+    }
+
+    @CodeReflection
+    public static void f16Ops_18(@RO KernelContext kernelContext, @RW F16Array a) {
+
+        F16 ha = a.array(0);
+        DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
+        privateArray.array(0).value(ha.value());
+
+        // Obtain the value from private memory
+        F16 acc = privateArray.array(0);
+
+        // compute
+        acc = F16.add(acc, acc);
+
+        // store the result
+        a.array(0).value(acc.value());
+    }
 
     @CodeReflection
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
@@ -284,6 +377,30 @@ public class TestF16Type {
     public static void compute14(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_14(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void compute15(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()), NDRange.Local1D.of(16));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_15(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void compute16(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+        NDRange ndRange = NDRange.of(NDRange.Global1D.of(a.length()), NDRange.Local1D.of(16));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_16(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void compute17(@RO ComputeContext computeContext, @RW F16Array a) {
+        NDRange ndRange = NDRange.of(1);
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_17(kernelContext, a));
+    }
+
+    @CodeReflection
+    public static void compute18(@RO ComputeContext computeContext, @RW F16Array a) {
+        NDRange ndRange = NDRange.of(1);
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_18(kernelContext, a));
     }
 
     @HatTest
@@ -520,14 +637,7 @@ public class TestF16Type {
             arrayA.array(i).value(F16.floatToF16(r.nextFloat()).value());
         }
 
-        try {
-            accelerator.compute(computeContext -> TestF16Type.compute11(computeContext, arrayA, arrayB));
-        } catch (Throwable e) {
-            // We expect this to fail since it is unsupported at the moment,
-            IO.println("-------------------");
-            IO.println(e.getMessage());
-            throw new HATExpectedFailureException("Expected to fail due to unsupported use of F16 in local and private memory");
-        }
+        accelerator.compute(computeContext -> TestF16Type.compute11(computeContext, arrayA, arrayB));
 
         for (int i = 0; i < arrayB.length(); i++) {
             F16 val = arrayB.array(i);
@@ -598,6 +708,80 @@ public class TestF16Type {
             F16 result = arrayB.array(i);
             HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) + 32.1f, F16.f16ToFloat(result), 0.1f);
         }
+    }
+
+    @HatTest
+    public void testF16_15() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 256;
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F16Array arrayB = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        accelerator.compute(computeContext -> TestF16Type.compute15(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            F16 val = arrayB.array(i);
+            HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
+        }
+    }
+
+    //@HatTest
+    public void testF16_16() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 256;
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F16Array arrayB = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        try {
+            accelerator.compute(computeContext -> TestF16Type.compute16(computeContext, arrayA, arrayB));
+        } catch (RuntimeException e) {
+            throw new HATExpectedFailureException("Incompatible types in expression `privateArray.array(lix, ha);`");
+        }
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            F16 val = arrayB.array(i);
+            HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
+        }
+    }
+
+    @HatTest
+    public void testF16_17() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1;
+        F16Array arrayA = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+
+        accelerator.compute(computeContext -> TestF16Type.compute17(computeContext, arrayA));
+
+        F16 val = arrayA.array(0);
+        HATAsserts.assertEquals(40.0f, F16.f16ToFloat(val), 0.01f);
+    }
+
+    @HatTest
+    public void testF16_18() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1;
+        F16Array arrayA = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+
+        accelerator.compute(computeContext -> TestF16Type.compute18(computeContext, arrayA));
+
+        F16 val = arrayA.array(0);
+        HATAsserts.assertEquals(20.0f, F16.f16ToFloat(val), 0.01f);
     }
 
 }

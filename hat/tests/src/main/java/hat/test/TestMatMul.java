@@ -29,18 +29,17 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
-import hat.ifacemapper.Schema;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 import jdk.incubator.code.CodeReflection;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static hat.ifacemapper.MappableIface.RO;
@@ -93,25 +92,20 @@ public class TestMatMul {
         }
     }
 
-    private interface MyLocalArrayFixedSize extends Buffer {
+    private interface MyLocalArrayFixedSize extends DeviceType {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MyLocalArrayFixedSize> schema = Schema.of(MyLocalArrayFixedSize.class,
+        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray
-                        // It is a bound schema, so we fix the size here
-                        .array("array", 256));
+                        .withArray("array", 256));
 
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
-        }
-
-        static MyLocalArrayFixedSize createLocal(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
 
         static MyLocalArrayFixedSize createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
@@ -489,45 +483,44 @@ public class TestMatMul {
         }
     }
 
-    private interface SharedMemory extends Buffer {
+    private interface SharedMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
-                arr -> arr.array("array", 1024));
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.withArray("array", 1024));
         static SharedMemory create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static SharedMemory createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
-
-         default void storeFloat4View(Float4 float4, int index) {
+        default void storeFloat4View(Float4 float4, int index) {
         }
     }
 
-    private interface PrivateArray extends Buffer {
+    private interface PrivateArray extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
-                arr -> arr.array("array", 16));
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+                arr -> arr.withArray("array", 16));
         static PrivateArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static PrivateArray createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
-    private interface FlatPrivate extends Buffer {
+    private interface FlatPrivate extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<FlatPrivate> schema = Schema.of(FlatPrivate.class,
-                arr -> arr.array("array", 4));
+        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(FlatPrivate.class,
+                arr -> arr.withArray("array", 4));
         static FlatPrivate create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return null;
         }
         static FlatPrivate createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;
         }
     }
 
@@ -750,7 +743,6 @@ public class TestMatMul {
         );
     }
 
-
     @HatTest
     public void testMatMul2DRegisterTiling() {
         var lookup = java.lang.invoke.MethodHandles.lookup();
@@ -815,6 +807,187 @@ public class TestMatMul {
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
                 HATAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+            }
+        }
+    }
+
+    private interface SharedMemoryHalf extends DeviceType {
+        F16 array(int index);
+
+        DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(SharedMemoryHalf.class,
+                arr -> arr.withArray("array", 1024)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static SharedMemoryHalf create(Accelerator accelerator) {
+            return null;
+        }
+
+        static SharedMemoryHalf createLocal() {
+            return null;
+        }
+    }
+
+    private interface PrivateArrayHalf extends DeviceType {
+        F16 array(int index);
+
+        DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(PrivateArrayHalf.class,
+                arr -> arr.withArray("array", 16)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static PrivateArrayHalf create(Accelerator accelerator) {
+            return null;
+        }
+
+        static PrivateArrayHalf createPrivate() {
+            return null;
+        }
+    }
+
+    private interface FlatPrivateHalf extends DeviceType {
+        F16 array(int index);
+
+        DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(FlatPrivateHalf.class,
+                arr -> arr.withArray("array", 4)
+                        .withDeps(F16.class, half -> half.withField("value")));
+
+        static FlatPrivateHalf create(Accelerator accelerator) {
+            return null;
+        }
+
+        static FlatPrivateHalf createPrivate() {
+            return null;
+        }
+    }
+
+    // Taking from the HAT Examples module
+    @CodeReflection
+    public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
+        final int BM = 64;
+        final int BN = 64;
+        final int BK = 16;
+        final int TM = 4;
+        final int TN = 4;
+
+        int bx = kc.bix;
+        int by = kc.biy;
+
+        int totalResultsBlockTile = BM * BN;
+        final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
+
+        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
+        final int threadCol = kc.lix;
+        final int threadRow = kc.liy;
+
+        SharedMemoryHalf tileA = SharedMemoryHalf.createLocal();
+        SharedMemoryHalf tileB = SharedMemoryHalf.createLocal();
+
+        int aFrom = by * BM * size;
+        int bFrom = bx * BN;
+        int v = bx * BN;
+        int cFrom = (by * BM * size) + (v);
+
+        final int innerRowA = linearLocalId / BK;
+        final int innerColA = linearLocalId % BK;
+
+        final int strideA = numThreadsBlockTile / BK;
+        final int innerRowB = linearLocalId / BN;
+        final int innerColB = linearLocalId % BN;
+
+        int strideB = numThreadsBlockTile / BN;
+
+        PrivateArrayHalf threadResults = PrivateArrayHalf.createPrivate();
+        FlatPrivateHalf regM = FlatPrivateHalf.createPrivate();
+        FlatPrivateHalf regN = FlatPrivateHalf.createPrivate();
+
+        for (int i = 0; i < (TN * TN); i++) {
+            F16 init = F16.of(0.0f);
+            threadResults.array(i).value(init.value());
+        }
+
+        for (int bkIdx = 0; bkIdx < size; bkIdx += BK) {
+            for (int loadOffset = 0; loadOffset < BM; loadOffset += strideA) {
+                F16 ha = matrixA.array(((innerRowA + loadOffset) * size + innerColA) + aFrom);
+                tileA.array((innerRowA + loadOffset) * BK + innerColA).value(ha.value());
+            }
+            for (int loadOffset = 0; loadOffset < BK; loadOffset += strideB) {
+                F16 hb = matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom);
+                tileB.array((innerRowB + loadOffset) * BN + innerColB).value(hb.value());
+            }
+            kc.barrier();
+
+            aFrom += (BK);
+            int f = BK * size;
+            bFrom += f;
+
+            for (int dotIdx = 0; dotIdx < BK; dotIdx++) {
+                for (int i = 0; i < TM; i++) {
+                    F16 ha = tileA.array((threadRow * TM + i) * BK + dotIdx);
+                    regM.array(i).value(ha.value());
+                }
+                for (int i = 0; i < TN; i++) {
+                    F16 hb = tileB.array(dotIdx * BN + threadCol * TN + i);
+                    regN.array(i).value(hb.value());
+                }
+                for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
+                    for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
+                        F16 privA = regM.array(resIdxM);
+                        F16 privB = regN.array(resIdxN);
+                        F16 mul = F16.mul(privA, privB);
+                        F16 acc = threadResults.array(resIdxM * TN + resIdxN);
+                        F16 acc2 = F16.add(acc, mul);   // FIXME: this is a partial fix until we support expressions such as: acc = acc <OP> val
+                        threadResults.array((resIdxM * TN + resIdxN)).value(acc2.value());
+                    }
+                }
+            }
+            kc.barrier();
+        }
+        for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
+            for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
+                F16 result = threadResults.array(resIdxM * TN + resIdxN);
+                matrixC.array((((threadRow * TM + resIdxM) * size + threadCol * TN + resIdxN) + (cFrom))).value(result.value());
+            }
+        }
+    }
+
+    @CodeReflection
+    public static void matrixMultiply2DRegisterTilingHalf(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
+        NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
+        cc.dispatchKernel(ndRange,
+                kc -> matrixMultiplyKernel2DRegisterTilingHalf(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
+    @HatTest
+    public void matrixMultiply2DRegisterTilingHalf() {
+        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var accelerator = new Accelerator(lookup, Backend.FIRST);
+
+        final int size = 1024;
+        var matrixA = F16Array.create(accelerator, size * size);
+        var matrixB = F16Array.create(accelerator, size * size);
+
+        // Matrix for the results
+        var matrixC = F16Array.create(accelerator, size * size);
+        var resultSeq = F16Array.create(accelerator, size * size);
+
+        // Initialize matrices (A and B have the same size)
+        Random r = new Random(19);
+        for (int j = 0; j < matrixA.length(); j++) {
+            matrixA.array(j).value(F16.floatToF16(r.nextFloat()).value());
+            matrixB.array(j).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        accelerator.compute(cc ->
+                TestMatMul.matrixMultiply2DRegisterTilingHalf(cc, matrixA, matrixB, matrixC, size));
+
+        // Run Seq for reference
+        runSequential(matrixA, matrixB, resultSeq, size);
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                HATAsserts.assertEquals(F16.f16ToFloat(resultSeq.array(i * size + j)),
+                                        F16.f16ToFloat(matrixC.array(i * size + j)),
+                                        0.01f);
             }
         }
     }

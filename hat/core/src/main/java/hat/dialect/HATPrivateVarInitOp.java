@@ -29,33 +29,37 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.List;
 import java.util.Map;
 
-public class HATF16ToFloatConvOp extends HATF16Op {
+public class HATPrivateVarInitOp extends HATMemoryOp {
 
     private final TypeElement typeElement;
-    private final boolean isLocal;
-    private final boolean wasFloat;
+    private final ClassType klassType;
+    private final TypeElement invokeResultType;
+    private final String varName;
 
-    public HATF16ToFloatConvOp(TypeElement typeElement, boolean isLocal, boolean wasFloat, List<Value> operands) {
-        super("", operands);
+    public HATPrivateVarInitOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+        super(varName, operands);
+        this.varName = varName;
         this.typeElement = typeElement;
-        this.isLocal = isLocal;
-        this.wasFloat = wasFloat;
+        this.klassType = javaType;
+        this.invokeResultType = invokeResultType;
     }
 
-    public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CopyContext copyContext) {
+    public HATPrivateVarInitOp(HATPrivateVarInitOp op, CopyContext copyContext) {
         super(op, copyContext);
-        this.typeElement = op.typeElement;
-        this.isLocal = op.isLocal;
-        this.wasFloat = op.wasFloat;
+        this.varName = op.varName;
+        this.typeElement = op.resultType();
+        this.klassType = op.klassType;
+        this.invokeResultType = op.invokeResultType;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATF16ToFloatConvOp(this, copyContext);
+        return new HATPrivateVarInitOp(this, copyContext);
     }
 
     @Override
@@ -65,15 +69,16 @@ public class HATF16ToFloatConvOp extends HATF16Op {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.f16ToFloat", typeElement);
+        return Map.of("hat.dialect.hatPrivateVarInitOp." + varName, typeElement);
     }
 
-    public boolean isLocal() {
-        return isLocal;
+    @Override
+    public ClassType classType() {
+        return klassType;
     }
 
-    public boolean wasFloat() {
-        return wasFloat;
+    @Override
+    public TypeElement invokeType() {
+        return invokeResultType;
     }
-
 }

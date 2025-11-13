@@ -22,29 +22,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.dialect;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.ClassType;
 
-public interface F16Array extends Buffer {
-    int length();
+import java.util.List;
 
-    F16Impl array(long index);
+public abstract class HATMemoryDefOp extends HATOp {
+    private final String varName;
 
-    interface F16Impl extends Struct, F16 {
-        String NAME = "F16Impl";
-
-        short value();
-        void value(short value);
+    public HATMemoryDefOp(String varName, List<Value> operands) {
+        super(operands);
+        this.varName = varName;
     }
 
-    Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
-            f16array.arrayLen("length")
-                    .array("array",
-                            half -> half.fields("value")));
+    protected HATMemoryDefOp(HATMemoryDefOp that, CopyContext cc) {
+        super(that, cc);
+        this.varName = that.varName;
+    }
 
-    static F16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    public String varName() {
+        return varName;
     }
 }
