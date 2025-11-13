@@ -66,13 +66,9 @@ public class ResolutionHelper {
         }
     }
 
-    public static MethodType resolveMethodType(MethodHandles.Lookup l, FunctionType t) throws ReflectiveOperationException {
-        if (t instanceof FunctionType ft) {
-            return MethodRef.toNominalDescriptor(ft)
-                    .resolveConstantDesc(l);
-        } else {
-            throw new UnsupportedOperationException();
-        }
+    public static MethodType resolveMethodType(MethodHandles.Lookup l, FunctionType ft) throws ReflectiveOperationException {
+        return MethodRef.toNominalDescriptor(ft)
+                .resolveConstantDesc(l);
     }
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef, InvokeKind kind) throws ReflectiveOperationException {
