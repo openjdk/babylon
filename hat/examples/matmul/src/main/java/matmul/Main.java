@@ -29,8 +29,6 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
