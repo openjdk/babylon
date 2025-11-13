@@ -26,7 +26,6 @@ package view.f32;
 
 
 import hat.util.StreamMutable;
-import view.ViewFrame;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,25 +37,19 @@ public class F32Mesh3D {
         this.f32 = f32;
         this.name = name;
     }
-    public static F32Mesh3D of(F32 f32,String name){
+    public static F32Mesh3D of(F32 f32, String name){
         return new F32Mesh3D(f32,name);
     }
     public record Face (F32x3Triangle triangle, F32x3 centerVec3Idx, F32x3 normalIdx, F32x3 v0VecIdx){
-        static Face of (F32 f32,F32x3Triangle tri){
+        static Face of (F32 f32, F32x3Triangle tri){
            return  new Face(tri, f32.centre(tri), f32.normal(tri),tri.v0());
         }
     }
 
     public List<Face> faces = new ArrayList<>();
+    public List<F32x3> vecEntries = new ArrayList<>();
 
-    public List<F32x3> vecEntries = new ArrayList<>();// F32Vec3.F32Vec3Pool.Idx[MAX];
 
-
-    public Face tri(F32x3 v0, F32x3 v1, F32x3 v2, int rgb) {
-        Face face =Face.of(f32,f32.f32x3TriangleFactory().of(v0, v1, v2, rgb));
-        faces.add(face);
-        return face;
-    }
 
     public void fin(){
         var  triSumIdx =StreamMutable.of(faces.getFirst().centerVec3Idx);
@@ -73,8 +66,26 @@ public class F32Mesh3D {
         });
         cube(meshCenterVec3.x(),meshCenterVec3.y(), meshCenterVec3.z(), .1f );
     }
+    public F32Mesh3D tri(int[] indices,int rgb){
+        return tri(indices[0], indices[1], indices[2],rgb);
+    }
+    private F32Mesh3D tri(int idx0, int idx1, int idx2,int rgb){
+        return tri(vecEntries.get(idx0), vecEntries.get(idx1), vecEntries.get(idx2),rgb);
+    }
+    private F32Mesh3D tri(F32x3 v0, F32x3 v1, F32x3 v2, int rgb) {
+        Face face =Face.of(f32, f32.f32x3Triangle(v0, v1, v2, rgb));
+        faces.add(face);
+        return this;
+    }
+    public F32Mesh3D quad(int[] indices,int rgb){
+        return quad(indices[0], indices[1], indices[2],indices[3],rgb);
+    }
+    private F32Mesh3D quad(int idx0, int idx1, int idx2, int idx3,int rgb){
+        return quad(vecEntries.get(idx0), vecEntries.get(idx1),
+                vecEntries.get(idx2), vecEntries.get(idx3),rgb);
+    }
 
-    public F32Mesh3D quad(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, int rgb) {
+    private F32Mesh3D quad(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, int rgb) {
   /*
        v0-----v1
         |\    |
@@ -89,8 +100,14 @@ public class F32Mesh3D {
         tri(v0, v2, v3, rgb);
         return this;
     }
-
-    public F32Mesh3D pent(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, F32x3 v4, int rgb) {
+    public F32Mesh3D pent(int[] indices,int rgb){
+        return pent(indices[0], indices[1], indices[2],indices[3],indices[4],rgb);
+    }
+    private F32Mesh3D pent(int idx0, int idx1, int idx2, int idx3, int idx4,int rgb){
+        return pent(vecEntries.get(idx0), vecEntries.get(idx1),
+                vecEntries.get(idx2), vecEntries.get(idx3),vecEntries.get(idx4),rgb);
+    }
+    private F32Mesh3D pent(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, F32x3 v4, int rgb) {
   /*
        v0-----v1
        |\    | \
@@ -106,7 +123,14 @@ public class F32Mesh3D {
         tri(v0, v3, v4, rgb);
         return this;
     }
-    public F32Mesh3D hex(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, F32x3 v4, F32x3 v5, int rgb) {
+    public F32Mesh3D hex(int[] indices,int rgb){
+        return hex(indices[0], indices[1], indices[2],indices[3],indices[4],indices[5],rgb);
+    }
+    private F32Mesh3D hex(int idx0, int idx1, int idx2, int idx3, int idx4, int idx5,int rgb){
+        return hex(vecEntries.get(idx0), vecEntries.get(idx1),
+                vecEntries.get(idx2), vecEntries.get(idx3),vecEntries.get(idx4),vecEntries.get(idx5),rgb);
+    }
+    private F32Mesh3D hex(F32x3 v0, F32x3 v1, F32x3 v2, F32x3 v3, F32x3 v4, F32x3 v5, int rgb) {
   /*
        v0-----v1
       / |\    | \
@@ -221,7 +245,7 @@ http://paulbourke.net/dataformats/obj/
     }
 
     public F32x3 vec3(float x, float y, float z) {
-        var newVec = f32.f32x3Factory().of(x,y, z);
+        var newVec = f32.f32x3(x,y, z);
         vecEntries.add(newVec);
         return newVec;
     }

@@ -34,19 +34,19 @@ public class F32x2TrianglePool extends Pool<F32x2Triangle,F32x2TrianglePool> imp
     static int V2 = 2;
     public record PoolEntry(F32x2TrianglePool pool, int idx) implements Pool.PoolEntry<F32x2Triangle,F32x2TrianglePool>, F32x2Triangle {
         int v0Idx() {
-            return pool.vecStride * idx + V0;
+            return pool.f32x2Stride * idx + V0;
         }
         public F32x2 v0() {
             return pool.f32X2Entries[v0Idx()];
         }
         private int v1Idx() {
-            return pool.vecStride * idx + V1;
+            return pool.f32x2Stride * idx + V1;
         }
         public F32x2 v1() {
             return pool.f32X2Entries[v1Idx()];
         }
         private int v2Idx() {
-            return pool.vecStride * idx + V2;
+            return pool.f32x2Stride * idx + V2;
         }
         public F32x2 v2() {
             return pool.f32X2Entries[v2Idx()];
@@ -60,13 +60,13 @@ public class F32x2TrianglePool extends Pool<F32x2Triangle,F32x2TrianglePool> imp
     }
 
     public final F32x2 f32X2Entries[];
-    private final int vecStride = 3;
+    private final int f32x2Stride = 3;
     public final int rgbEntries[];
     private final int rgbStride = 1;
 
     public F32x2TrianglePool(int max) {
         super(max);
-        this.f32X2Entries = new F32x2[max * vecStride];
+        this.f32X2Entries = new F32x2[max * f32x2Stride];
         this.rgbEntries = new int[max * rgbStride];
     }
 

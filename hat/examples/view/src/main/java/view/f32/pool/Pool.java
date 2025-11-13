@@ -25,7 +25,7 @@
 package view.f32.pool;
 
 public abstract class Pool<T, P extends Pool<T,P>> {
-    interface PoolEntry<T, P extends Pool<T,P>>{
+    interface PoolEntry<T, P >{
         P pool();
         int idx();
     }

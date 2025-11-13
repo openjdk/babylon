@@ -37,6 +37,7 @@ package view;
 
 import view.f32.F32;
 import view.f32.F32Mesh3D;
+import view.f32.pool.F32PoolBased;
 import view.f32.pool.F32x2Pool;
 import view.f32.pool.F32x2TrianglePool;
 import view.f32.pool.F32x3Pool;
@@ -50,9 +51,9 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-        //args.add("COBRA");
-        var eliteReader = new EliteMeshReader();
-        F32 f32 = new ViewFrame.poolF32(
+        args.add("THARGOID");
+        var eliteReader = new EliteMeshParser();
+        F32 f32 = new F32PoolBased(
                 new F32x4x4Pool(100),
                 new F32x3Pool(90000),
                 new F32x2Pool(12000),

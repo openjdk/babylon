@@ -83,9 +83,9 @@ public class ZPos implements Comparable<ZPos> {
         } else if (colourMode == ColourMode.WHITE) {
             r = g = b = 0xff;
         }
-        F32x2 v0 = f32.f32x2Factory().of(x0,y0);
-        F32x2 v1 = f32.f32x2Factory().of(x1,y1);
-        F32x2 v2 = f32.f32x2Factory().of(x2,y2);
-        return f32.f32x2TriangleFactory().of(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
+        F32x2 v0 = f32.f32x2(x0,y0);
+        F32x2 v1 = f32.f32x2(x1,y1);
+        F32x2 v2 = f32.f32x2(x2,y2);
+        return f32.f32x2Triangle(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
     }
 }

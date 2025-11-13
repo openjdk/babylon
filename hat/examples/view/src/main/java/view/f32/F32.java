@@ -32,9 +32,32 @@ public interface F32 {
     F32x2.Factory f32x2Factory();
     F32x3Triangle.Factory f32x3TriangleFactory();
     F32x2Triangle.Factory f32x2TriangleFactory();
-    //  https://stackoverflow.com/questions/28075743/how-do-i-compose-a-rotation-matrix-with-human-readable-angles-from-scratch/28084380#28084380
-     default F32x4x4 mul(F32x4x4 lhs, F32x4x4 rhs) {
-        return f32x4x4Factory().of(
+
+    default F32x4x4 f32x4x4(
+            float x0y0, float x1y0,float x2y0, float x3y0,
+            float x0y1, float x1y1,float x2y1, float x3y1,
+            float x0y2, float x1y2,float x2y2, float x3y2,
+            float x0y3, float x1y3,float x2y3, float x3y3
+    ){
+        return f32x4x4Factory().of(x0y0, x1y0,x2y0, x3y0,
+        x0y1, x1y1,x2y1, x3y1,
+        x0y2, x1y2,x2y2, x3y2,
+        x0y3, x1y3,x2y3, x3y3);
+    }
+    default F32x2 f32x2(float x, float y){
+        return f32x2Factory().of(x,y);
+    }
+    default F32x3 f32x3(float x, float y,float z){
+        return f32x3Factory().of(x,y,z);
+    }
+    default F32x3Triangle f32x3Triangle(F32x3 v0, F32x3 v1,F32x3 v2,int rgb){
+        return f32x3TriangleFactory().of(v0,v1,v2,rgb);
+    }
+    default F32x2Triangle f32x2Triangle(F32x2 v0, F32x2 v1,F32x2 v2,int rgb){
+        return f32x2TriangleFactory().of(v0,v1,v2,rgb);
+    }
+    default F32x4x4 mul(F32x4x4 lhs, F32x4x4 rhs) {
+        return f32x4x4(
                 lhs.x0y0() * rhs.x0y0() + lhs.x1y0() * rhs.x0y1() + lhs.x2y0() * rhs.x0y2() + lhs.x3y0() * rhs.x0y3(),
                 lhs.x0y0() * rhs.x1y0() + lhs.x1y0() * rhs.x1y1() + lhs.x2y0() * rhs.x1y2() + lhs.x3y0() * rhs.x1y3(),
                 lhs.x0y0() * rhs.x2y0() + lhs.x1y0() * rhs.x2y1() + lhs.x2y0() * rhs.x2y2() + lhs.x3y0() * rhs.x2y3(),
@@ -58,10 +81,12 @@ public interface F32 {
         );
     }
 
+    //  https://stackoverflow.com/questions/28075743/how-do-i-compose-a-rotation-matrix-with-human-readable-angles-from-scratch/28084380#28084380
+
+
     //https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-    // record Transformation(F32Matrix4x4Pool id) implements Impl {
-     default F32x4x4 transformation(float x, float y, float z) {
-        return f32x4x4Factory().of(
+    default F32x4x4 transformation(float x, float y, float z) {
+        return f32x4x4(
                 1f, 0f, 0f, 0f,
                 0f, 1f, 0f, 0f,
                 0f, 0f, 1f, 0f,
@@ -73,24 +98,22 @@ public interface F32 {
         return transformation(v, v, v);
     }
 
-     default F32x4x4 scale(float x, float y, float z) {
-        return f32x4x4Factory().of(
+    default F32x4x4 scale(float x, float y, float z) {
+        return f32x4x4(
                 x, 0f, 0f, 0f,
                 0f, y, 0f, 0f,
                 0f, 0f, z, 0f,
                 0f, 0f, 0f, 1f
-
         );
     }
 
      default F32x4x4 scale(float v) {
         return scale(v, v, v);
     }
-
-     default F32x4x4 rotX(float thetaRadians) {
+    default F32x4x4 rotX(float thetaRadians) {
         float sinTheta = (float) Math.sin(thetaRadians);
         float cosTheta = (float) Math.cos(thetaRadians);
-        return f32x4x4Factory().of(
+        return f32x4x4(
                 1f, 0f, 0f, 0f,
                 0f, cosTheta, -sinTheta, 0f,
                 0f, sinTheta, cosTheta, 0f,
@@ -99,10 +122,10 @@ public interface F32 {
         );
     }
 
-     default F32x4x4 rotZ(float thetaRadians) {
+    default F32x4x4 rotZ(float thetaRadians) {
         float sinTheta = (float) Math.sin(thetaRadians);
         float cosTheta = (float) Math.cos(thetaRadians);
-        return f32x4x4Factory().of(
+        return f32x4x4(
                 cosTheta, sinTheta, 0f, 0f,
                 -sinTheta, cosTheta, 0f, 0f,
                 0f, 0f, 1f, 0f,
@@ -110,10 +133,10 @@ public interface F32 {
         );
     }
 
-     default F32x4x4 rotY(float thetaRadians) {
+    default F32x4x4 rotY(float thetaRadians) {
         float sinTheta = (float) Math.sin(thetaRadians);
         float cosTheta = (float) Math.cos(thetaRadians);
-        return f32x4x4Factory().of(
+        return f32x4x4(
                 cosTheta, 0f, sinTheta, 0f,
                 0f, 1f, 0f, 0f,
                 -sinTheta, 0f, cosTheta, 0f,
@@ -143,16 +166,14 @@ public interface F32 {
                       [x,y,z]
 
                */
-
-     default F32x4x4 projection(float width, float height, float near, float far, float fieldOfViewDeg) {
+    default F32x4x4 projection(float width, float height, float near, float far, float fieldOfViewDeg) {
         float aspectRatio = height / width;
         float fieldOfViewRadians = (float) (1.0f / Math.tan((fieldOfViewDeg * 0.5f) / 180.0 * Math.PI));
-        return f32x4x4Factory().of(
+        return f32x4x4(
                 aspectRatio * fieldOfViewRadians, 0f, 0f, 0f,
                 0f, fieldOfViewRadians, 0f, 0f,
                 0f, 0f, far / (far - near), (-far * near) / (far - near),
-                    0f, 0f, (-far * near) / (far - near), 0f);
-
+                0f, 0f, (-far * near) / (far - near), 0f);
     }
 
    static float side(float x, float y, F32x2 v0, F32x2 v1) {
@@ -243,19 +264,19 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
     }
 
    default F32x3Triangle mul(F32x3Triangle i, F32x4x4 m4) {
-        return f32x3TriangleFactory().of(mul(i.v0(), m4), mul(i.v1(), m4), mul(i.v2(), m4), i.rgb());
+        return f32x3Triangle(mul(i.v0(), m4), mul(i.v1(), m4), mul(i.v2(), m4), i.rgb());
     }
 
     default F32x3Triangle add(F32x3Triangle i, F32x3 v3) {
-        return f32x3TriangleFactory().of(add(i.v0(), v3), add(i.v1(), v3), add(i.v2(), v3), i.rgb());
+        return f32x3Triangle(add(i.v0(), v3), add(i.v1(), v3), add(i.v2(), v3), i.rgb());
     }
 
     default F32x3Triangle mul(F32x3Triangle i, float s) {
-        return f32x3TriangleFactory().of(mul(i.v0(), s), mul(i.v1(), s), mul(i.v2(), s), i.rgb());
+        return f32x3Triangle(mul(i.v0(), s), mul(i.v1(), s), mul(i.v2(), s), i.rgb());
     }
 
    default F32x3Triangle add(F32x3Triangle i, float s) {
-        return f32x3TriangleFactory().of(add(i.v0(), s), add(i.v1(), s), add(i.v2(), s), i.rgb());
+        return f32x3Triangle(add(i.v0(), s), add(i.v1(), s), add(i.v2(), s), i.rgb());
     }
 
     default F32x3 centre(F32x3Triangle i) {// the average of all the vertices
@@ -280,7 +301,7 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
      */
 
     default F32x3 mul(F32x3 f32x3, F32x4x4 m) {
-        F32x3 o = f32x3Factory().of(
+        F32x3 o = f32x3(
                 f32x3.x() * m.x0y0() + f32x3.y() * m.x0y1() + f32x3.z() * m.x0y2() + 1f * m.x0y3(),
                 f32x3.x() * m.x1y0() + f32x3.y() * m.x1y1() + f32x3.z() * m.x1y2() + 1f * m.x1y3(),
                 f32x3.x() * m.x2y0() + f32x3.y() * m.x2y1() + f32x3.z() * m.x2y2() + 1f * m.x2y3()
@@ -293,35 +314,35 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
     }
 
     default F32x3 mul(F32x3 i, float s) {
-        return f32x3Factory().of(i.x() * s, i.y() * s, i.z() * s);
+        return f32x3(i.x() * s, i.y() * s, i.z() * s);
     }
 
     default F32x3 add(F32x3 i, float s) {
 
-        return f32x3Factory().of(i.x() + s, i.y() + s, i.z() + s);
+        return f32x3(i.x() + s, i.y() + s, i.z() + s);
     }
 
     default F32x3 div(F32x3 i, float s) {
         if (s==0){
             return i;
         }
-        return f32x3Factory().of(i.x() / s, i.y() / s, i.z() / s);
+        return f32x3(i.x() / s, i.y() / s, i.z() / s);
     }
 
     default F32x3 add(F32x3 lhs, F32x3 rhs) {
-        return f32x3Factory().of(lhs.x() + rhs.x(), lhs.y() + rhs.y(), lhs.z() + rhs.z());
+        return f32x3(lhs.x() + rhs.x(), lhs.y() + rhs.y(), lhs.z() + rhs.z());
     }
 
     default F32x3 sub(F32x3 lhs, F32x3 rhs) {
-        return f32x3Factory().of(lhs.x() - rhs.x(), lhs.y() - rhs.y(), lhs.z() - rhs.z());
+        return f32x3(lhs.x() - rhs.x(), lhs.y() - rhs.y(), lhs.z() - rhs.z());
     }
 
     default F32x3 mul(F32x3 lhs, F32x3 rhs) {
-        return f32x3Factory().of(lhs.x() * rhs.x(), lhs.y() * rhs.y(), lhs.z() * rhs.z());
+        return f32x3(lhs.x() * rhs.x(), lhs.y() * rhs.y(), lhs.z() * rhs.z());
     }
 
     default F32x3 div(F32x3 lhs, F32x3 rhs) {
-        return f32x3Factory().of(lhs.x() / rhs.x(), lhs.y() / rhs.y(), lhs.z() / rhs.z());
+        return f32x3(lhs.x() / rhs.x(), lhs.y() / rhs.y(), lhs.z() / rhs.z());
     }
 
     default float sumOfSq(F32x3 i) {
@@ -337,7 +358,7 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
     }
 
     default F32x3 crossProd(F32x3 lhs, F32x3 rhs) {
-        return f32x3Factory().of(
+        return f32x3(
                 lhs.y() * rhs.z() - lhs.z() * rhs.x(),
                 lhs.z() * rhs.x() - lhs.x() * rhs.z(),
                 lhs.x() * rhs.y() - lhs.y() * rhs.x());

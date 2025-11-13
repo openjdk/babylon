@@ -25,7 +25,6 @@
 package view.f32.pool;
 
 import view.f32.F32x2;
-import view.f32.factories.Factory2;
 
 public class F32x2Pool extends F32Pool<F32x2,F32x2Pool> implements F32x2.Factory {
     public static int X = 0;
@@ -33,7 +32,7 @@ public class F32x2Pool extends F32Pool<F32x2,F32x2Pool> implements F32x2.Factory
 
     public record PoolEntry(F32x2Pool pool, int idx) implements Pool.PoolEntry<F32x2,F32x2Pool>, F32x2 {
         private int xIdx() {
-            return pool.stride * idx + X;
+            return pool.floatStride * idx + X;
         }
 
         @Override
@@ -42,7 +41,7 @@ public class F32x2Pool extends F32Pool<F32x2,F32x2Pool> implements F32x2.Factory
         }
 
         private int yIdx() {
-            return pool.stride * idx + Y;
+            return pool.floatStride * idx + Y;
         }
 
         @Override
@@ -58,7 +57,7 @@ public class F32x2Pool extends F32Pool<F32x2,F32x2Pool> implements F32x2.Factory
 
     @Override
     public F32x2 entry(int idx) {
-        return (F32x2) new PoolEntry(this, idx);
+        return new PoolEntry(this, idx);
     }
 
     @Override

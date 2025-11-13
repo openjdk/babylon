@@ -23,37 +23,38 @@
  * questions.
  */
 package view.f32;
+import view.f32.pool.F32PoolBased;
 import view.f32.pool.Pool;
 
 public record ModelHighWaterMark(
-        F32 f32,
+        F32PoolBased f32,
         int markedTriangles3D,
         int markedTriangles2D,
         int markedVec2,
         int markedVec3,
         int markedMat4) {
 
-    public static ModelHighWaterMark of(F32 f32){
+    public static ModelHighWaterMark of(F32PoolBased f32){
         return new ModelHighWaterMark(
                 f32,
-                ((Pool<?,?>)f32.f32x3TriangleFactory()).count(),
-                ((Pool<?,?>)f32.f32x2TriangleFactory()).count(),
-                ((Pool<?,?>)f32.f32x2Factory()).count(),
-                ((Pool<?,?>)f32.f32x3Factory()).count(),
-                ((Pool<?,?>)f32.f32x4x4Factory()).count()
+                ((Pool<?,?>) f32.f32x3TriangleFactory()).count(),
+                ((Pool<?,?>) f32.f32x2TriangleFactory()).count(),
+                ((Pool<?,?>) f32.f32x2Factory()).count(),
+                ((Pool<?,?>) f32.f32x3Factory()).count(),
+                ((Pool<?,?>) f32.f32x4x4Factory()).count()
         );
 
     }
 
     public void resetAll() {
         reset3D();
-        ((Pool<?,?>)f32.f32x2TriangleFactory()).reset(markedTriangles2D);
-        ((Pool<?,?>)f32.f32x2Factory()).reset(markedVec2);
+        ((Pool<?,?>) f32.f32x2TriangleFactory()).reset(markedTriangles2D);
+        ((Pool<?,?>) f32.f32x2Factory()).reset(markedVec2);
     }
 
     public void reset3D() {
-        ((Pool<?,?>)f32.f32x3TriangleFactory()).reset(markedTriangles3D);
-        ((Pool<?,?>)f32.f32x3Factory()).reset(markedVec3);
-        ((Pool<?,?>)f32.f32x4x4Factory()).reset(markedMat4);
+        ((Pool<?,?>) f32.f32x3TriangleFactory()).reset(markedTriangles3D);
+        ((Pool<?,?>) f32.f32x3Factory()).reset(markedVec3);
+        ((Pool<?,?>) f32.f32x4x4Factory()).reset(markedMat4);
     }
 }

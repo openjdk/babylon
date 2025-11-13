@@ -32,7 +32,6 @@
 package view;
 
 import view.f32.F32;
-import view.f32.F32x2Triangle;
 import view.f32.pool.F32x2TrianglePool;
 import view.f32.pool.Pool;
 
@@ -41,9 +40,9 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.stream.IntStream;
 
-public record RasterizingRenderer(F32 f32,int width, int height, DisplayMode displayMode, BufferedImage image,
+public record RasterizingRenderer(F32 f32, int width, int height, DisplayMode displayMode, BufferedImage image,
                                   int[] offscreenRgb) implements Renderer {
-    static private Renderer of(F32 f32,int width, int height, DisplayMode displayMode) {
+    static private Renderer of(F32 f32, int width, int height, DisplayMode displayMode) {
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         return new RasterizingRenderer(f32,width, height, displayMode, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length]);
     }
@@ -60,8 +59,8 @@ public record RasterizingRenderer(F32 f32,int width, int height, DisplayMode dis
         int x = gid % width;
         int y = gid / height;
         int col = 0x404040;
-        for (int t = 0; t < ((Pool<?,?>)f32.f32x2TriangleFactory()).count(); t++) {
-            col = F32.rgb(displayMode.filled,x, y, ((F32x2TrianglePool)f32.f32x2TriangleFactory()).entry(t),col);
+        for (int t = 0; t < ((Pool<?,?>) f32.f32x2TriangleFactory()).count(); t++) {
+            col = F32.rgb(displayMode.filled,x, y, ((F32x2TrianglePool) f32.f32x2TriangleFactory()).entry(t),col);
         }
         offscreenRgb[gid] = col;
     }

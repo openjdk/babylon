@@ -25,15 +25,13 @@
 
 package view;
 
-import view.f32.F32x2;
-import view.f32.F32x2Triangle;
-import view.f32.F32x4x4;
 import view.f32.F32;
+import view.f32.F32x4x4;
 import view.f32.F32x3Triangle;
 import view.f32.F32x3;
 import view.f32.ModelHighWaterMark;
 import view.f32.ZPos;
-import view.f32.pool.F32x3TrianglePool;
+import view.f32.pool.F32PoolBased;
 import view.f32.pool.Pool;
 
 import javax.swing.JComponent;
@@ -44,8 +42,6 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,19 +69,11 @@ public class ViewFrame extends JFrame {
     F32x3 moveAwayVec3;
 
     ModelHighWaterMark mark;
-    record poolF32(F32x4x4.Factory f32x4x4Factory,
-                   F32x3.Factory f32x3Factory,
-                   F32x2.Factory f32x2Factory,
-                   F32x3Triangle.Factory f32x3TriangleFactory,
-                   F32x2Triangle.Factory f32x2TriangleFactory
-
-    ) implements F32 {
-    }
-    public  F32 f32;
+    public F32 f32;
 
 
 
-    private ViewFrame(F32 f32,String name, Renderer renderer, Runnable sceneBuilder) {
+    private ViewFrame(F32 f32, String name, Renderer renderer, Runnable sceneBuilder) {
         super(name);
         this.f32 = f32;
         startMillis = System.currentTimeMillis();
@@ -110,12 +98,7 @@ public class ViewFrame extends JFrame {
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent _windowEvent) {
-                System.exit(0);
-            }
-        });
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         sceneBuilder.run();
         float farZ = 1000f;
         float nearZ = 0.1f;
@@ -127,15 +110,15 @@ public class ViewFrame extends JFrame {
         float halfHeight = renderer.height() / 2f;
         float quarterHeight = renderer.height() / 4f;
 
-        cameraVec3 = f32.f32x3Factory().of(originX, originY, originZ);
+        cameraVec3 = f32.f32x3(originX, originY, originZ);
         var projF32Mat4x4_1 = f32.projection(renderer.width(), renderer.height(), nearZ, farZ, fieldOfViewDegrees);
         var projF32Mat4x4_2 = f32.mul(projF32Mat4x4_1, f32.scale(quarterHeight));
         projF32Mat4x4 = f32.mul(projF32Mat4x4_2, f32.transformation(halfHeight));
-        moveAwayVec3 = f32.f32x3Factory().of(originX, originY, moveAwayZ);
-        mark = ModelHighWaterMark.of(f32);// mark all buffers.  transforms create new points so this allows us to garbage colect
+        moveAwayVec3 = f32.f32x3(originX, originY, moveAwayZ);
+        mark = ModelHighWaterMark.of((F32PoolBased) f32);// mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
-    public static ViewFrame of(F32 f32,String name, Renderer renderer, Runnable sceneBuilder) {
+    public static ViewFrame of(F32 f32, String name, Renderer renderer, Runnable sceneBuilder) {
         return new ViewFrame(f32, name, renderer, sceneBuilder);
     }
 
@@ -148,21 +131,21 @@ public class ViewFrame extends JFrame {
         }
 
 
-        boolean showHidden = renderer.displayMode() == Renderer.DisplayMode.WIRE_SHOW_HIDDEN;
+       // boolean showHidden = ;
         mark.resetAll();
         var xyzRot4x4 = f32.rot(theta * 2, theta / 2, theta);
-        ModelHighWaterMark resetMark = ModelHighWaterMark.of(f32);
+        ModelHighWaterMark resetMark = ModelHighWaterMark.of((F32PoolBased) f32);
         List<ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
 
-        for (int tidx = 0; tidx < ((Pool<?,?>)f32.f32x3TriangleFactory()).count(); tidx++) {
-            var t = (F32x3Triangle) ((Pool<?,?>)f32.f32x3TriangleFactory()).entry(tidx);
+        for (int i = 0; i < ((Pool<?,?>) f32.f32x3TriangleFactory()).count(); i++) {
+            var f32x3Triangle = (F32x3Triangle) ((Pool<?,?>) f32.f32x3TriangleFactory()).entry(i);
 
             // here we rotate and then move into the Z plane.
-            t = f32.add(f32.mul(t, xyzRot4x4), moveAwayVec3);
+            f32x3Triangle = f32.add(f32.mul(f32x3Triangle, xyzRot4x4), moveAwayVec3);
             float howVisible = 1f;
-            boolean isVisible = showHidden;
-            if (!showHidden) {
+            boolean isVisible = renderer.displayMode().equals(Renderer.DisplayMode.WIRE_SHOW_HIDDEN);
+            if (!isVisible) {
                 // here we determine whether the camera can see the plane that the translated triangle is on.
                 // so we need the normal to the triangle in the coordinate system
 
@@ -173,12 +156,12 @@ public class ViewFrame extends JFrame {
                 // intuition suggests the one with the minimal Z is best no?
 
                 // We subtract the camera from our point on the triangle so we can compare
-                F32x3 cameraDeltaVec3 = f32.sub(f32.centre(t), cameraVec3);// clearly our default camera is 0,0,0
+                F32x3 cameraDeltaVec3 = f32.sub(f32.centre(f32x3Triangle), cameraVec3);// clearly our default camera is 0,0,0
 
 
                 //  howVisible = cameraDeltaVec3.mul( t.normalSumOfSquares()).sumOf();
 
-                howVisible = f32.dotProd(cameraDeltaVec3, f32.normal(t));
+                howVisible = f32.dotProd(cameraDeltaVec3, f32.normal(f32x3Triangle));
                 // howVisible is a 'scalar'
                 // it's magnitude indicating how much it is 'facing away from' the camera.
                 // it's sign indicates if the camera can indeed see the location.
@@ -190,9 +173,9 @@ public class ViewFrame extends JFrame {
                 // now project the 3d triangle to 2d plane.
                 // Scale up to quarter screen height then add half height of screen
 
-                t = f32.mul(t, projF32Mat4x4);//  projection matrix also scales to screen and translate half a screen
+                f32x3Triangle = f32.mul(f32x3Triangle, projF32Mat4x4);//  projection matrix also scales to screen and translate half a screen
 
-                zpos.add(new ZPos(f32,t, howVisible));
+                zpos.add(new ZPos(f32,f32x3Triangle, howVisible));
             }
             resetMark.reset3D(); // do not move this up.
         }

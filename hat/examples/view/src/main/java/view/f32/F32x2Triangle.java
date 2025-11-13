@@ -31,9 +31,7 @@ public interface F32x2Triangle {
     F32x2 v1();
     F32x2 v2();
     int rgb();
-
     @FunctionalInterface
     interface Factory extends Factory4<F32x2,F32x2,F32x2,Integer,F32x2Triangle> {
     }
-
 }
