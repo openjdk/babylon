@@ -688,9 +688,9 @@ public final class Interpreter {
         }
     }
 
-    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, ConstructorRef d) {
+    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) {
         try {
-            return d.resolveToHandle(l);
+            return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

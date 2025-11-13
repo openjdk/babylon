@@ -25,24 +25,40 @@
 
 package jdk.incubator.code.dialect.java.impl;
 
+import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.joining;
 
 public final class MethodRefImpl implements MethodRef {
+
+    static final MethodHandle MULTI_NEW_ARRAY_MH;
+
+    static {
+        try {
+            MULTI_NEW_ARRAY_MH = MethodHandles.lookup().findStatic(Array.class, "newInstance",
+                    MethodType.methodType(Object.class, Class.class, int[].class));
+        } catch (ReflectiveOperationException ex) {
+            throw new ExceptionInInitializerError(ex);
+        }
+    }
 
     final TypeElement refType;
     final String name;
@@ -69,66 +85,90 @@ public final class MethodRefImpl implements MethodRef {
         return type;
     }
 
-    public Method resolveToDirectMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        return resolveToDirectHandle(l, hr -> hr.mhi().reflectAs(Method.class, l));
-    }
-
-    public MethodHandle resolveToDirectHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        return resolveToDirectHandle(l, HandleResult::mh);
-    }
-
-    <T> T resolveToDirectHandle(MethodHandles.Lookup l, Function<HandleResult, T> f) throws ReflectiveOperationException {
-        ReflectiveOperationException roe = null;
-        for (JavaOp.InvokeOp.InvokeKind ik :
-                List.of(JavaOp.InvokeOp.InvokeKind.STATIC, JavaOp.InvokeOp.InvokeKind.INSTANCE)) {
-            try {
-                HandleResult hr = resolveToHandleResult(l, ik);
-                if (hr.isDirect()) {
-                    return f.apply(hr);
-                }
-            } catch (NoSuchMethodException | IllegalAccessException e) {
-                roe = e;
-            }
-        }
-        if (roe == null) {
-            roe = new ReflectiveOperationException("Indirect reference to method");
-        }
-        throw roe;
+    @Override
+    public boolean isConstructor() {
+        return name.equals(INIT_NAME);
     }
 
     @Override
-    public Method resolveToMethod(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException {
-        MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToHandle(l, kind));
-        return methodHandleInfo.reflectAs(Method.class, l);
+    public Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        if (isConstructor()) {
+            throw new UnsupportedOperationException("Not a method reference");
+        }
+        ReflectiveOperationException c = null;
+        MethodHandle mh = null;
+        try {
+            mh = resolveToHandle(l, InvokeKind.STATIC);
+        } catch (ReflectiveOperationException ex) {
+            c = ex;
+        }
+
+        if (mh == null) {
+            try {
+                mh = resolveToHandle(l, InvokeKind.INSTANCE);
+                c = null;
+            } catch (ReflectiveOperationException ex) {
+                c = ex;
+            }
+        }
+
+        if (c != null) {
+            throw c;
+        }
+
+        assert mh != null;
+        return l.revealDirect(mh)
+                .reflectAs(Method.class, l);
+    }
+
+    @Override
+    public Constructor<?> resolveToConstructor(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        if (!isConstructor()) {
+            throw new UnsupportedOperationException("Not a constructor reference");
+        }
+        return l.revealDirect(resolveToHandle(l, InvokeKind.SUPER))
+                .reflectAs(Constructor.class, l);
     }
 
     @Override
     public MethodHandle resolveToHandle(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, refType);
-        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
-        return switch (kind) {
-            case SUPER -> l.findSpecial(refC, name, mt, l.lookupClass());
-            case STATIC -> l.findStatic(refC, name, mt);
-            case INSTANCE -> l.findVirtual(refC, name, mt);
-        };
-    }
-
-    record HandleResult (Class<?> refC, MethodHandle mh, MethodHandleInfo mhi) {
-        boolean isDirect() {
-            return refC == mhi.getDeclaringClass();
+        if (!isConstructor()) {
+            Class<?> refC = resolve(l, refType);
+            MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
+            return switch (kind) {
+                case SUPER -> l.findSpecial(refC, name, mt, l.lookupClass());
+                case STATIC -> l.findStatic(refC, name, mt);
+                case INSTANCE -> l.findVirtual(refC, name, mt);
+            };
+        } else {
+            if (kind != JavaOp.InvokeOp.InvokeKind.SUPER) {
+                throw new IllegalArgumentException("Bad invoke kind for constructor: " + kind);
+            }
+            return resolveToConstructorHandle(l);
         }
     }
 
-    HandleResult resolveToHandleResult(MethodHandles.Lookup l, JavaOp.InvokeOp.InvokeKind kind) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, refType);
-        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
-        MethodHandle mh = switch (kind) {
-            case SUPER -> l.findSpecial(refC, name, mt, l.lookupClass());
-            case STATIC -> l.findStatic(refC, name, mt);
-            case INSTANCE -> l.findVirtual(refC, name, mt);
-        };
-        MethodHandleInfo mhi = l.revealDirect(resolveToHandle(l, kind));
-        return new HandleResult(refC, mh, mhi);
+    private MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        Class<?> refC = resolve(l, type.returnType());
+        if (type.returnType() instanceof ArrayType at) {
+            if (at.dimensions() == 1) {
+                return MethodHandles.arrayConstructor(refC);
+            } else {
+                int dims = type.parameterTypes().size();
+                Class<?> elementType = refC;
+                for (int i = 0 ; i < type.parameterTypes().size(); i++) {
+                    elementType = elementType.componentType();
+                }
+                // only the use-site knows how many dimensions are specified
+                return MULTI_NEW_ARRAY_MH.asType(MULTI_NEW_ARRAY_MH.type().changeReturnType(refC))
+                        .bindTo(elementType)
+                        .asCollector(int[].class, dims);
+            }
+        } else {
+            // MH lookup wants a void-returning lookup type
+            MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l).changeReturnType(void.class);
+            return l.findConstructor(refC, mt);
+        }
     }
 
     static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
@@ -142,9 +182,14 @@ public final class MethodRefImpl implements MethodRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return JavaTypeUtils.methodRef(name, refType.externalize(),
-                type.returnType().externalize(),
-                type.parameterTypes().stream().map(TypeElement::externalize).toList());
+        if (!isConstructor()) {
+            return JavaTypeUtils.methodRef(name, refType.externalize(),
+                    type.returnType().externalize(),
+                    type.parameterTypes().stream().map(TypeElement::externalize).toList());
+        } else {
+            return JavaTypeUtils.constructorRef(type.returnType().externalize(),
+                    type.parameterTypes().stream().map(TypeElement::externalize).toList());
+        }
     }
 
     @Override

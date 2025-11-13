@@ -1389,7 +1389,7 @@ public class ReflectMethods extends TreeTranslator {
             FunctionType constructorType = CoreType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
-            ConstructorRef constructorRef = ConstructorRef.constructor(constructorType);
+            MethodRef constructorRef = MethodRef.constructor(constructorType);
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
@@ -1421,7 +1421,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 JavaType arrayType = typeToTypeElement(tree.type);
-                ConstructorRef constructorRef = ConstructorRef.constructor(arrayType,
+                MethodRef constructorRef = MethodRef.constructor(arrayType,
                         indexes.stream().map(Value::type).toList());
                 result = append(JavaOp.new_(constructorRef, indexes));
             }
@@ -1618,7 +1618,7 @@ public class ReflectMethods extends TreeTranslator {
                 // body
                 pushBody(tree, caseBodyType);
                 append(JavaOp.throw_(
-                        append(JavaOp.new_(ConstructorRef.constructor(MatchException.class)))
+                        append(JavaOp.new_(MethodRef.constructor(MatchException.class)))
                 ));
                 bodies.add(stack.body);
                 popBody();
@@ -2980,7 +2980,7 @@ public class ReflectMethods extends TreeTranslator {
         return resolve.resolveInternalMethod(attrEnv().enclClass, attrEnv(), site, name, argtypes, com.sun.tools.javac.util.List.nil());
     }
 
-    MethodSymbol constructorDescriptorToSymbol(ConstructorRef constructorRef) {
+    MethodSymbol constructorDescriptorToSymbol(MethodRef constructorRef) {
         Type site = typeElementToType(constructorRef.refType());
         com.sun.tools.javac.util.List<Type> argtypes = constructorRef.type().parameterTypes().stream()
                 .map(this::typeElementToType).collect(com.sun.tools.javac.util.List.collector());

@@ -99,7 +99,7 @@ public class TestReferences {
     @ParameterizedTest
     @MethodSource("constructorRefs")
     public void testConstructorRef(String cds, String refType) {
-        ConstructorRef cr = refFromFlatString(cds);
+        MethodRef cr = refFromFlatString(cds);
         Assertions.assertEquals(cds, cr.toString());
         Assertions.assertEquals(refType, cr.refType().toString());
     }
@@ -115,7 +115,7 @@ public class TestReferences {
     @MethodSource("externalizedConstructorRefs")
     public void testExternalizedConstructorRef(String crs, String refType) {
         ExternalizedTypeElement ecr = ExternalizedTypeElement.ofString(crs);
-        ConstructorRef cr = (ConstructorRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ecr));
+        MethodRef cr = (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ecr));
 
         Assertions.assertEquals(crs, JavaTypeUtils.flatten(cr.externalize()).toString());
         Assertions.assertEquals(refType, cr.refType().toString());

@@ -785,14 +785,14 @@ public sealed abstract class JavaOp extends Op {
         public static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
         final boolean isVarArgs;
-        final ConstructorRef constructorDescriptor;
+        final MethodRef constructorDescriptor;
         final TypeElement resultType;
 
         NewOp(ExternalizedOp def) {
             // Required attribute
-            ConstructorRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
+            MethodRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
                     true, v -> switch (v) {
-                        case ConstructorRef cd -> cd;
+                        case MethodRef cd -> cd;
                         case null, default ->
                                 throw new UnsupportedOperationException("Unsupported constructor descriptor value:" + v);
                     });
@@ -820,17 +820,20 @@ public sealed abstract class JavaOp extends Op {
             return new NewOp(this, cc);
         }
 
-        NewOp(boolean isVarargs, TypeElement resultType, ConstructorRef constructorDescriptor, List<Value> args) {
+        NewOp(boolean isVarargs, TypeElement resultType, MethodRef constructorDescriptor, List<Value> args) {
             super(args);
 
             validateArgCount(isVarargs, constructorDescriptor, args);
+            if (!constructorDescriptor.isConstructor()) {
+                throw new IllegalArgumentException("Not a constructor descriptor: " + constructorDescriptor);
+            }
 
             this.isVarArgs = isVarargs;
             this.constructorDescriptor = constructorDescriptor;
             this.resultType = resultType;
         }
 
-        static void validateArgCount(boolean isVarArgs, ConstructorRef constructorDescriptor, List<Value> operands) {
+        static void validateArgCount(boolean isVarArgs, MethodRef constructorDescriptor, List<Value> operands) {
             int paramCount = constructorDescriptor.type().parameterTypes().size();
             int argCount = operands.size();
             if ((!isVarArgs && argCount != paramCount)
@@ -857,7 +860,7 @@ public sealed abstract class JavaOp extends Op {
             return opType().returnType();
         } // @@@ duplication, same as resultType()
 
-        public ConstructorRef constructorDescriptor() {
+        public MethodRef constructorDescriptor() {
             return constructorDescriptor;
         }
 
@@ -2799,7 +2802,7 @@ public sealed abstract class JavaOp extends Op {
             if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
                 Block.Builder throwBlock = b.block();
                 throwBlock.op(throw_(
-                        throwBlock.op(new_(ConstructorRef.constructor(NullPointerException.class)))
+                        throwBlock.op(new_(MethodRef.constructor(NullPointerException.class)))
                 ));
 
                 Block.Builder continueBlock = b.block();
@@ -5267,7 +5270,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(ConstructorRef constructorDescriptor, Value... args) {
+    public static NewOp new_(MethodRef constructorDescriptor, Value... args) {
         return new_(constructorDescriptor, List.of(args));
     }
 
@@ -5278,7 +5281,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(ConstructorRef constructorDescriptor, List<Value> args) {
+    public static NewOp new_(MethodRef constructorDescriptor, List<Value> args) {
         return new NewOp(false, constructorDescriptor.refType(), constructorDescriptor, args);
     }
 
@@ -5290,7 +5293,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(TypeElement returnType, ConstructorRef constructorDescriptor,
+    public static NewOp new_(TypeElement returnType, MethodRef constructorDescriptor,
                              Value... args) {
         return new_(returnType, constructorDescriptor, List.of(args));
     }
@@ -5303,7 +5306,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(TypeElement returnType, ConstructorRef constructorDescriptor,
+    public static NewOp new_(TypeElement returnType, MethodRef constructorDescriptor,
                              List<Value> args) {
         return new NewOp(false, returnType, constructorDescriptor, args);
     }
@@ -5316,7 +5319,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(boolean isVarargs, TypeElement returnType, ConstructorRef constructorDescriptor,
+    public static NewOp new_(boolean isVarargs, TypeElement returnType, MethodRef constructorDescriptor,
                              List<Value> args) {
         return new NewOp(isVarargs, returnType, constructorDescriptor, args);
     }
@@ -5329,7 +5332,7 @@ public sealed abstract class JavaOp extends Op {
      * @return the array creation operation
      */
     public static NewOp newArray(TypeElement arrayType, Value length) {
-        ConstructorRef constructorDescriptor = ConstructorRef.constructor(arrayType, INT);
+        MethodRef constructorDescriptor = MethodRef.constructor(arrayType, INT);
         return new_(constructorDescriptor, length);
     }
 

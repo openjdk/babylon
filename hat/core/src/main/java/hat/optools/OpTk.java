@@ -113,7 +113,7 @@ public class OpTk {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
                 try {
-                    var method = invokeOp.invokeDescriptor().resolveToMethod(lookup, invokeOp.invokeKind());
+                    var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
                     // TODO filter calls has side effects we may need another call. We might just check the map.
 
@@ -134,7 +134,7 @@ public class OpTk {
                 CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
                     if (op instanceof JavaOp.InvokeOp iop) {
                         try {
-                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(lookup, iop.invokeKind());
+                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(lookup);
                             if (invokeOpCalledMethod instanceof Method m) {
                                 CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
                                 if (f != null) {
@@ -268,7 +268,7 @@ public class OpTk {
 
     public static Method methodOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         try {
-            return op.invokeDescriptor().resolveToMethod(lookup, op.invokeKind());
+            return op.invokeDescriptor().resolveToMethod(lookup);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }

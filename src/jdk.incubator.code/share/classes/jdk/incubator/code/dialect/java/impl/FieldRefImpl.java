@@ -26,6 +26,8 @@
 package jdk.incubator.code.dialect.java.impl;
 
 import jdk.incubator.code.dialect.java.FieldRef;
+
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
@@ -62,16 +64,35 @@ public final class FieldRefImpl implements FieldRef {
     }
 
     @Override
-    public Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public Field resolveToField(MethodHandles.Lookup l) throws ReflectiveOperationException {
         Class<?> refC = resolve(l, refType);
         Class<?> typeC = resolve(l, type);
 
-        Field f = refC.getDeclaredField(name);
-        if (!f.getType().equals(typeC)) {
-            throw new NoSuchFieldException();
+        MethodHandle getterHandle = null;
+        ReflectiveOperationException c = null;
+
+        try {
+            getterHandle = l.findStaticGetter(refC, name, typeC);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            c = e;
         }
 
-        return f;
+        if (getterHandle == null) {
+            try {
+                getterHandle = l.findGetter(refC, name, typeC);
+                c = null;
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                c = e;
+            }
+        }
+
+        if (c != null) {
+            throw c;
+        }
+
+        assert getterHandle != null;
+        return l.revealDirect(getterHandle)
+                .reflectAs(Field.class, l);
     }
 
     @Override
@@ -88,10 +109,10 @@ public final class FieldRefImpl implements FieldRef {
             c = e;
         }
 
-        if (c != null) {
-            c = null;
+        if (vh == null) {
             try {
                 vh = l.findVarHandle(refC, name, typeC);
+                c = null;
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 c = e;
             }
