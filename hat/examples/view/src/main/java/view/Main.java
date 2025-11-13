@@ -35,7 +35,14 @@ Elite mesh info from
 
 package view;
 
+import view.f32.F32;
 import view.f32.F32Mesh3D;
+import view.f32.pool.F32PoolBased;
+import view.f32.pool.F32x2Pool;
+import view.f32.pool.F32x2TrianglePool;
+import view.f32.pool.F32x3Pool;
+import view.f32.pool.F32x3TrianglePool;
+import view.f32.pool.F32x4x4Pool;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,24 +51,31 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-       args.add("COBRA");
-        var eliteReader = new EliteMeshReader();
-
-        var wire = RasterizingRenderer.wireOf(1024, 1024);
-        var fill = RasterizingRenderer.fillOf(1024, 1024);
+        args.add("THARGOID");
+        var eliteReader = new EliteMeshParser();
+        F32 f32 = new F32PoolBased(
+                new F32x4x4Pool(100),
+                new F32x3Pool(90000),
+                new F32x2Pool(12000),
+                new F32x3TrianglePool(12800),
+                new F32x2TrianglePool(12800)
+        );
+        var wire = RasterizingRenderer.wireOf(f32, 1024, 1024);
+        var fill = RasterizingRenderer.fillOf(f32, 1024, 1024);
         Runnable cubeoctahedron =  () -> {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {
                     for (int z = -2; z < 6; z += 2) {
-                            F32Mesh3D.of("cubeoctahedron").cubeoctahedron(0, y, z, 2).fin();
+                            F32Mesh3D.of(f32,"cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
                     }
                 }
             }
         };
-        Runnable elite = ()->eliteReader.load(args.getFirst());
+        Runnable elite = ()->eliteReader.load(f32,args.getFirst());
+
         ViewFrame viewFrame = (args.size() > 0
-                ? ViewFrame.of("view",fill, elite)
-                : ViewFrame.of("true", fill,cubeoctahedron));
+                ? ViewFrame.of(f32,"view",fill, elite)
+                : ViewFrame.of(f32,"true", fill,cubeoctahedron));
         while (true) {
             viewFrame.update();
         }
