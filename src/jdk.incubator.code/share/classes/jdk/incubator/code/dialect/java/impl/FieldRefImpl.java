@@ -77,10 +77,10 @@ public final class FieldRefImpl implements FieldRef {
             c = e;
         }
 
-        if (c != null) {
-            c = null;
+        if (getterHandle == null) {
             try {
                 getterHandle = l.findGetter(refC, name, typeC);
+                c = null;
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 c = e;
             }
@@ -109,10 +109,10 @@ public final class FieldRefImpl implements FieldRef {
             c = e;
         }
 
-        if (c != null) {
-            c = null;
+        if (vh == null) {
             try {
                 vh = l.findVarHandle(refC, name, typeC);
+                c = null;
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 c = e;
             }

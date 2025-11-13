@@ -106,6 +106,7 @@ public final class MethodRefImpl implements MethodRef {
         if (mh == null) {
             try {
                 mh = resolveToHandle(l, InvokeKind.INSTANCE);
+                c = null;
             } catch (ReflectiveOperationException ex) {
                 c = ex;
             }
