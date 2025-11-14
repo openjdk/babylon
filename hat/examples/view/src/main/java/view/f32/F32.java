@@ -53,8 +53,8 @@ public interface F32 {
     default F32x3Triangle f32x3Triangle(F32x3 v0, F32x3 v1,F32x3 v2,int rgb){
         return f32x3TriangleFactory().of(v0,v1,v2,rgb);
     }
-    default F32x2Triangle f32x2Triangle(F32x2 v0, F32x2 v1,F32x2 v2,int rgb){
-        return f32x2TriangleFactory().of(v0,v1,v2,rgb);
+    default F32x2Triangle f32x2Triangle(F32x2 v0, F32x2 v1,F32x2 v2,int rgb,float zplane){
+        return f32x2TriangleFactory().of(v0,v1,v2,rgb, zplane);
     }
     default F32x4x4 mul(F32x4x4 lhs, F32x4x4 rhs) {
         return f32x4x4(

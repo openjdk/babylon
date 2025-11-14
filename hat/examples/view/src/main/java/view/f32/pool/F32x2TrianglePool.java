@@ -52,22 +52,31 @@ public class F32x2TrianglePool extends Pool<F32x2Triangle,F32x2TrianglePool> imp
             return pool.f32X2Entries[v2Idx()];
         }
         private int rgbIdx() {
-            return idx;
+            return idx * pool.rgbStride;
         }
         public int rgb() {
             return pool.rgbEntries[rgbIdx()];
+        }
+        private int zplaneIdx() {
+            return idx * pool.zplaneStride;
+        }
+        public float zplane() {
+            return pool.zplaneEntries[rgbIdx()];
         }
     }
 
     public final F32x2 f32X2Entries[];
     private final int f32x2Stride = 3;
     public final int rgbEntries[];
+    public final float zplaneEntries[];
     private final int rgbStride = 1;
+    private final int zplaneStride = 1;
 
     public F32x2TrianglePool(int max) {
         super(max);
         this.f32X2Entries = new F32x2[max * f32x2Stride];
         this.rgbEntries = new int[max * rgbStride];
+        this.zplaneEntries = new float[max * zplaneStride];
     }
 
     @Override
@@ -77,13 +86,14 @@ public class F32x2TrianglePool extends Pool<F32x2Triangle,F32x2TrianglePool> imp
 
 
     @Override
-    public F32x2Triangle of(F32x2 v0, F32x2 v1, F32x2 v2, Integer rgb) {
+    public F32x2Triangle of(F32x2 v0, F32x2 v1, F32x2 v2, Integer rgb, Float zplane) {
         var i = (PoolEntry) entry(count++);
         var side = F32.side(v0.x(), v0.y(), v1, v2) > 0; // We need the triangle to be clock wound
         f32X2Entries[i.v0Idx()] = v0;
         f32X2Entries[i.v1Idx()] = side ? v1 : v2;
         f32X2Entries[i.v2Idx()] = side ? v2 : v1;
         rgbEntries[i.rgbIdx()] = rgb;
+        zplaneEntries[i.zplaneIdx()]=zplane;
         return i;
     }
 }

@@ -41,10 +41,13 @@ import java.awt.image.DataBufferInt;
 import java.util.stream.IntStream;
 
 public record RasterizingRenderer(F32 f32, int width, int height, DisplayMode displayMode, BufferedImage image,
-                                  int[] offscreenRgb) implements Renderer {
+                                  int[] offscreenRgb, float[] zplane) implements Renderer {
     static private Renderer of(F32 f32, int width, int height, DisplayMode displayMode) {
+        var len = width*height;
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        return new RasterizingRenderer(f32,width, height, displayMode, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length]);
+
+        return new RasterizingRenderer(f32,width, height, displayMode, image,
+                ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), new float[len]);
     }
 
     static public Renderer wireOf(F32 f32, int width, int height) {

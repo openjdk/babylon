@@ -24,14 +24,16 @@
  */
 package view.f32;
 
-import view.f32.factories.Factory4;
+import view.f32.factories.Factory5;
 
 public interface F32x2Triangle {
     F32x2 v0();
     F32x2 v1();
     F32x2 v2();
+    float zplane();
     int rgb();
+
     @FunctionalInterface
-    interface Factory extends Factory4<F32x2,F32x2,F32x2,Integer,F32x2Triangle> {
+    interface Factory extends Factory5<F32x2,F32x2,F32x2,Integer,Float,F32x2Triangle> {
     }
 }

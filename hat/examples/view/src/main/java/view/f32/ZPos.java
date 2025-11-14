@@ -86,6 +86,6 @@ public class ZPos implements Comparable<ZPos> {
         F32x2 v0 = f32.f32x2(x0,y0);
         F32x2 v1 = f32.f32x2(x1,y1);
         F32x2 v2 = f32.f32x2(x2,y2);
-        return f32.f32x2Triangle(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
+        return f32.f32x2Triangle(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff), Math.max(Math.max(z0,z1),z2));
     }
 }
