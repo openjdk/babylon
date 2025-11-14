@@ -75,34 +75,6 @@ public class ViewFrame extends JFrame {
 
     public static final ColourMode colourMode = ColourMode.COLOUR;
 
-    public record ZPos(F32x2Triangle f32x2Triangle) implements Comparable<ZPos> {
-
-        @Override
-        public int compareTo(ZPos zPos) {
-            int nearer = f32x2Triangle.compareTo(zPos.f32x2Triangle);
-            if (nearer > 0) {
-                System.out.println("nearer");
-            } else {
-                System.out.println("further");
-            }
-            return nearer;
-        }
-
-        public static ZPos of(F32 f32, F32x3Triangle f32x3Triangle, float normal) {
-            var v0 = f32x3Triangle.v0();
-            var v1 = f32x3Triangle.v1();
-            var v2 = f32x3Triangle.v2();
-            return new ZPos(f32.f32x2Triangle(
-                    f32.f32x2(v0.x(), v0.y()),
-                    f32.f32x2(v1.x(), v1.y()),
-                    f32.f32x2(v2.x(), v2.y()),
-                    Math.min(Math.min(v0.z(), v1.z()), v2.z()),
-                    normal,
-                    colourMode.rgb(f32x3Triangle.rgb(), normal)));
-        }
-    }
-
-
     final Renderer renderer;
     private volatile Point point = null;
     private final Object doorBell;
@@ -186,19 +158,18 @@ public class ViewFrame extends JFrame {
 
         // boolean showHidden = ;
         mark.resetAll();
-        var xyzRot4x4 = f32.rot(theta * 2, theta / 2, theta);
+        var xyzRot4x4 = f32.rot(theta * 2, theta / 2, theta*=.2f);
         ModelHighWaterMark resetMark = ModelHighWaterMark.of((F32PoolBased) f32);
         List<F32x2Triangle> zordered = new ArrayList<>();
-        // List<ZPos> zpos = new ArrayList<>();
-        // Loop through the triangles
 
         for (int i = 0; i < ((Pool<?, ?>) f32.f32x3TriangleFactory()).count(); i++) {
             var f32x3Triangle = (F32x3Triangle) ((Pool<?, ?>) f32.f32x3TriangleFactory()).entry(i);
 
             // here we rotate and then move into the Z plane.
             f32x3Triangle = f32.add(f32.mul(f32x3Triangle, xyzRot4x4), moveAwayVec3);
-
-            if (!renderer.displayMode().showHidden) {
+            var normal = 1f;
+            boolean include=true;
+            if (renderer.displayMode().alwaysShow) {
                 // here we determine whether the camera can see the plane that the translated triangle is on.
                 // so we need the normal to the triangle in the coordinate system
 
@@ -219,23 +190,10 @@ public class ViewFrame extends JFrame {
                 // Projected triangle is still in unit 1 space!!
                 // now project the 3d triangle to 2d plane.
                 // Scale up to quarter screen height then add half height of screen
-                if (f32.dotProd(cameraDeltaVec3, f32.normal(f32x3Triangle)) instanceof Float normal && normal < 0f) {
-                    //  projection matrix also scales to screen and translate half a screen
-                    // zpos.add(ZPos.of(f32, f32.mul(f32x3Triangle, projF32Mat4x4), normal));
-                    f32x3Triangle = f32.mul(f32x3Triangle, projF32Mat4x4);
-                    var v0 = f32x3Triangle.v0();
-                    var v1 = f32x3Triangle.v1();
-                    var v2 = f32x3Triangle.v2();
-                    zordered.add(f32.f32x2Triangle(
-                            f32.f32x2(v0.x(), v0.y()),
-                            f32.f32x2(v1.x(), v1.y()),
-                            f32.f32x2(v2.x(), v2.y()),
-                            Math.min(Math.min(v0.z(), v1.z()), v2.z()),
-                            normal,
-                            colourMode.rgb(f32x3Triangle.rgb(), normal)));
-
-                }
-            } else {
+                normal =f32.dotProd(cameraDeltaVec3, f32.normal(f32x3Triangle));
+                include = normal<0f;
+            }
+            if (include){
                 f32x3Triangle = f32.mul(f32x3Triangle, projF32Mat4x4);
                 //  projection matrix also scales to screen and translate half a screen
                 // zpos.add(ZPos.of(f32,f32.mul(f32x3Triangle, projF32Mat4x4), 1f));
@@ -247,8 +205,8 @@ public class ViewFrame extends JFrame {
                         f32.f32x2(v1.x(), v1.y()),
                         f32.f32x2(v2.x(), v2.y()),
                         Math.min(Math.min(v0.z(), v1.z()), v2.z()),
-                        1f,
-                        colourMode.rgb(f32x3Triangle.rgb(), 1f)));
+                        normal,
+                        colourMode.rgb(f32x3Triangle.rgb(), normal)));
             }
             resetMark.reset3D();
             // do not move this up.

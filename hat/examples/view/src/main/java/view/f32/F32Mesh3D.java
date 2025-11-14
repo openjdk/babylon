@@ -59,13 +59,13 @@ public class F32Mesh3D {
             triSumIdx.set(f32.add(triSumIdx.get(), face.centerVec3Idx));
         });
         var meshCenterVec3 = f32.div(triSumIdx.get(), faces.size());
-        faces.forEach(face -> {
-            var v0CenterDiff = f32.sub(meshCenterVec3, face.v0VecIdx);
-            float normDotProd = f32.dotProd(v0CenterDiff, face.normalIdx);
-            if (normDotProd > 0f) { // the normal from the center from the triangle was pointing out, so re wind it
-                F32.rewind(face.triangle);
-            }
-        });
+      //  faces.forEach(face -> {
+        //    var v0CenterDiff = f32.sub(meshCenterVec3, face.v0VecIdx);
+          //  float normDotProd = f32.dotProd(v0CenterDiff, face.normalIdx);
+          //  if (normDotProd > 0f) { // the normal from the center from the triangle was pointing out, so re wind it
+            //    F32.rewind(face.triangle);
+           // }
+       // });
         cube(meshCenterVec3.x(), meshCenterVec3.y(), meshCenterVec3.z(), .1f);
     }
 
