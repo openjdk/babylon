@@ -22,10 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32.factories;
+package view.arity;
 
 @FunctionalInterface
 public
-interface Factory2<T1, T2, R> {
-    R of(T1 var1, T2 var2);
+interface Arity3<A0, A1, A2, R> {
+    R of(A0 a0, A1 a1, A2 a2);
 }

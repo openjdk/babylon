@@ -23,7 +23,8 @@
  * questions.
  */
 package view.f32;
-import view.f32.factories.Factory16;
+
+import view.arity.Arity16;
 
 public interface F32x4x4 {
     float x0y0();
@@ -73,10 +74,10 @@ public interface F32x4x4 {
     }
 
     @FunctionalInterface
-    interface Factory extends Factory16<
-            Float,Float,Float,Float,
-            Float,Float,Float,Float,
-            Float,Float,Float,Float,
-            Float,Float,Float,Float,F32x4x4>{
+    interface Factory extends Arity16<
+            Float, Float, Float, Float,
+            Float, Float, Float, Float,
+            Float, Float, Float, Float,
+            Float, Float, Float, Float, F32x4x4> {
     }
 }

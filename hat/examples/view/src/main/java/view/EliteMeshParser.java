@@ -35,6 +35,7 @@ import hat.util.Regex;
 import hat.util.StreamMutable;
 import view.f32.F32;
 import view.f32.F32Mesh3D;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -162,7 +163,7 @@ class EliteMeshParser {
         }
     }
 
-    record S32xN (Regex regex, Matcher matcher, boolean matched) implements Regex.OK {
+    record S32xN(Regex regex, Matcher matcher, boolean matched) implements Regex.OK {
         S32xN(Regex r, Matcher m) {
             this(r, m, true);
         }
@@ -176,43 +177,46 @@ class EliteMeshParser {
                 .lines()
                 .map(String::trim)
                 .forEach(line -> {
-                    switch(sm.state){
-                        case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name))->{
+                    switch (sm.state) {
+                        case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name)) -> {
                             sm.awaiting_lazer();
-                            mesh.set(F32Mesh3D.of(f32,name));
+                            mesh.set(F32Mesh3D.of(f32, name));
                         }
                         case State.awaiting_lazer s when s.r().matches(line) -> sm.awaiting_counts();
                         case State.awaiting_counts s when s.r().matches(line) -> sm.awaiting_vertices();
                         case State.awaiting_vertices s when s.r().matches(line) -> sm.awaiting_faces();
-                        case State.awaiting_faces _ when State.vertexRegex.is(line, F32x3::new) instanceof F32x3 f32x3 ->{
+                        case State.awaiting_faces _ when State.vertexRegex.is(line, F32x3::new) instanceof F32x3 f32x3 -> {
                             mesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
                         }
                         case State.awaiting_faces _ when State.facesRegex.matchesOrThrow(line) -> {
                             sm.awaiting_hue_lig_sat();
                         }
-                        case State.awaiting_hue_lig_sat _ when State.hexagonRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-                            mesh.get().hex(s32xN.asInts(6,6), 0xff7f00);
+                        case State.awaiting_hue_lig_sat _ when State.hexagonRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
+                            mesh.get().hex(s32xN.asInts(6, 6), 0xff7f00);
                         }
-                        case State.awaiting_hue_lig_sat _ when State.pentagonRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-                            mesh.get().pent(s32xN.asInts(6,5), 0x7fff00);
+                        case State.awaiting_hue_lig_sat _ when State.pentagonRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
+                            mesh.get().pent(s32xN.asInts(6, 5), 0x7fff00);
                         }
-                        case State.awaiting_hue_lig_sat _ when State.quadRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-                                mesh.get().quad(s32xN.asInts(6,4), 0x00ff7f);
+                        case State.awaiting_hue_lig_sat _ when State.quadRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
+                            mesh.get().quad(s32xN.asInts(6, 4), 0x00ff7f);
 
                         }
-                        case State.awaiting_hue_lig_sat _ when State.triangleRegex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-                                mesh.get().tri(s32xN.asInts(6,3), 0x007fff);
+                        case State.awaiting_hue_lig_sat _ when State.triangleRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
+                            mesh.get().tri(s32xN.asInts(6, 3), 0x007fff);
                         }
                         case State.awaiting_hue_lig_sat s when s.r().matches(line) -> {
                             mesh.get().fin();
                             sm.done();
                         }
-                        case State.awaiting_hue_lig_sat _ when !State.remRegex.matches(line) ->{
-                                System.out.println("UNHANDLED " + line);
+                        case State.awaiting_hue_lig_sat _ when !State.remRegex.matches(line) -> {
+                            System.out.println("UNHANDLED " + line);
                         }
-                        case State.done _-> {}
-                        case State _ when Regex.any(line, State.remRegex, State.emptyRegex, State.colonRegex).matched()->{}
-                        case State _ ->{}
+                        case State.done _ -> {
+                        }
+                        case State _ when Regex.any(line, State.remRegex, State.emptyRegex, State.colonRegex).matched() -> {
+                        }
+                        case State _ -> {
+                        }
                     }
                 });
     }
