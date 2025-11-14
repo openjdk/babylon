@@ -30,6 +30,20 @@ import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
+/**
+ * Test to check the Intermediate Representation (IR) of {@link DeviceType} interfaces
+ * in HAT.
+ * <p>A {@link DeviceType} interface is a special type in HAT that enables developers
+ * to define custom data structures in Java and allocate them in private and/or
+ * local memory of the target accelerator (e.g., local memory on GPUs in OpenCL,
+ * or shared memory in CUDA).</p>
+ *
+ * <p>The schema is a {@link DeviceSchema} that defines the
+    structure and layout of the user interface for the HAT code generation.
+ *  The IR uses a custom string-based representation for specifying the memory layout
+ *  field types and array dimensions.
+ *  </p>
+ */
 public class TestDeviceType {
 
     public interface MyDeviceArray extends DeviceType {
@@ -49,7 +63,11 @@ public class TestDeviceType {
         }
     }
 
-    // This test checks the representation of the prev. array
+    /**
+     * The following test checks the IR of the {@link MyDeviceArray} data structure.
+     * This data structure is meant to be used as an array that contains {@link F16} values.
+     * Note that {@link F16} type is provided by hat, and it can be used within {@link DeviceType}.
+     */
     @HatTest
     public void testdevice_type_01() {
         MyDeviceArray myDeviceArray = MyDeviceArray.create();
@@ -58,8 +76,12 @@ public class TestDeviceType {
         HATAsserts.assertTrue(isEquals);
     }
 
-
-    // A way to construct 2D arrays
+    /**
+     * The following device type represents a 2D structure demonstrating nested
+     * interfaces. The main interface inherits from {@link DeviceType} and it
+     * represents an array of {@link SubRange} objects, where each sub-range
+     * also contains an array of integers.
+     */
     public interface MyNDRAnge extends DeviceType {
         SubRange array(int index);
         void array(int index, SubRange value);
@@ -69,6 +91,9 @@ public class TestDeviceType {
             void range(int index, int val);
         }
 
+        /**
+         * This structure creates an 2D matrix of 2048 x 64 elements.
+         */
         DeviceSchema<MyNDRAnge> schema = DeviceSchema.of(MyNDRAnge.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(SubRange.class, subrange -> subrange.withArray("range", 64)));
@@ -86,7 +111,17 @@ public class TestDeviceType {
         HATAsserts.assertTrue(isEquals);
     }
 
-    // A way to construct 3D arrays
+    /**
+     * A multidimensional array structure demonstrating nested {@link DeviceType} interfaces.
+     * The dimensions are 2048 × 64 × 32 with the following hierarchy:
+     * <p>
+     * <ul>
+     * <li>{@code MultiDim} - contains an array of 2048 {@code _2D} objects</li>
+     * <li>{@code _2D} - each contains an array of 64 {@code _3D} objects</li>
+     * <li>{@code _3D} - each contains an array of 32 integer values</li>
+     * </ul>
+     * </p>
+     */
     public interface MultiDim extends DeviceType {
         _2D array(int index);
         void array(int index, _2D value);
@@ -125,5 +160,4 @@ public class TestDeviceType {
             HATAsserts.assertTrue(true);
         }
     }
-
 }
