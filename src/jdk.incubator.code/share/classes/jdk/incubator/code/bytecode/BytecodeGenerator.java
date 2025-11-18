@@ -140,10 +140,10 @@ public final class BytecodeGenerator {
     }
 
     /**
-     * Transforms the invokable operation to bytecode encapsulated in a method of a class file.
+     * Transforms the module operation to bytecode encapsulated in methods of a class file.
      *
      * @param lookup the lookup
-     * @param clName the name to use for the method of the class file
+     * @param clName the name of the generated class file
      * @param mop the module operation to transform to bytecode
      * @return the class file bytes
      */
