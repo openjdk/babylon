@@ -498,7 +498,6 @@ import sun.invoke.util.Wrapper;
 
     static class CodeReflectionSupport {
         static final Class<?> QUOTED_CLASS;
-        static final Class<?> QUOTABLE_CLASS;
         static final MethodHandle QUOTED_EXTRACT_OP_MH;
         static final Class<?> FUNC_OP_CLASS;
 
@@ -507,7 +506,6 @@ import sun.invoke.util.Wrapper;
                 ModuleLayer layer = codeLayer();
                 ClassLoader cl = layer.findLoader("jdk.incubator.code");
                 QUOTED_CLASS = cl.loadClass("jdk.incubator.code.Quoted");
-                QUOTABLE_CLASS = cl.loadClass("jdk.incubator.code.Quotable");
                 FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.dialect.core.CoreOp$FuncOp");
                 QUOTED_EXTRACT_OP_MH = Lookup.IMPL_LOOKUP.findStatic(QUOTED_CLASS, "extractOp",
                         MethodType.methodType(QUOTED_CLASS, FUNC_OP_CLASS, Object[].class));

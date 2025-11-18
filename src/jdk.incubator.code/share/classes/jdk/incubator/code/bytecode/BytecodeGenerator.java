@@ -48,7 +48,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;

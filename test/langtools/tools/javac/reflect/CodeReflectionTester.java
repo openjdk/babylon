@@ -111,14 +111,12 @@ public class CodeReflectionTester {
             Quoted quoted = (Quoted) field.get(null);
             String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
             checkModel(field, found, ir);
-        } else if (Quotable.class.isAssignableFrom(field.getType())) {
-            Quotable quotable = (Quotable) field.get(null);
+        } else {
+            // quotable
+            Object quotable = field.get(null);
             Quoted quoted = Op.ofQuotable(quotable).get();
             String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
             checkModel(field, found, ir);
-        } else {
-            error("Field annotated with @IR should be of a quotable type (Quoted/Quotable)");
-            return;
         }
     }
 

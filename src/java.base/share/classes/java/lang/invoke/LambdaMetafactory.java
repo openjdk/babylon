@@ -537,8 +537,6 @@ public final class LambdaMetafactory {
         }
         if ((flags & FLAG_QUOTABLE) != 0) {
             quotableOpGetter = extractArg(args, argIndex++, MethodHandle.class);
-            altInterfaces = Arrays.copyOf(altInterfaces, altInterfaces.length + 1);
-            altInterfaces[altInterfaces.length-1] = InnerClassLambdaMetafactory.CodeReflectionSupport.QUOTABLE_CLASS;
         }
         if (argIndex < args.length) {
             throw new IllegalArgumentException("too many arguments");

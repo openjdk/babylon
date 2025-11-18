@@ -35,6 +35,7 @@ import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
+import com.sun.tools.javac.code.Type.IntersectionClassType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
@@ -70,6 +71,7 @@ import com.sun.tools.javac.tree.JCTree.JCModuleDecl;
 import com.sun.tools.javac.tree.JCTree.JCNewArray;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCReturn;
+import com.sun.tools.javac.tree.JCTree.JCTypeCast;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.tree.JCTree.JCAssert;
 import com.sun.tools.javac.tree.JCTree.Tag;
@@ -144,6 +146,7 @@ public class ReflectMethods extends TreeTranslator {
     private ListBuffer<JCTree> classOps;
     private Symbol.ClassSymbol currentClassSym;
     private int lambdaCount;
+    private boolean pendingReflectableCast;
 
     @SuppressWarnings("this-escape")
     protected ReflectMethods(Context context) {
@@ -214,8 +217,20 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     @Override
+    public void visitTypeCast(JCTypeCast tree) {
+        pushReflectableCast(tree);
+        super.visitTypeCast(tree);
+    }
+
+    private void pushReflectableCast(JCTypeCast tree) {
+        Type castType = tree.type;
+        pendingReflectableCast = isQuotable(castType, false, true);
+    }
+
+    @Override
     public void visitLambda(JCLambda tree) {
-        if (isReflectable(tree)) {
+        boolean prevPendingReflectableCast = pendingReflectableCast;
+        if (isQuotable(tree)) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
                 // Quotable lambdas in inner classes are not supported
                 log.error(tree, QuotedLambdaInnerClass(currentClassSym.enclClass()));
@@ -224,6 +239,7 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             // quoted lambda - scan it
+            pendingReflectableCast = prevPendingReflectableCast;
             BodyScanner bodyScanner = new BodyScanner(tree);
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
@@ -242,11 +258,12 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitReference(JCMemberReference tree) {
+        boolean prevPendingReflectableCast = pendingReflectableCast;
         MemberReferenceToLambda memberReferenceToLambda = new MemberReferenceToLambda(tree, currentClassSym);
         JCVariableDecl recvDecl = memberReferenceToLambda.receiverVar();
         JCLambda lambdaTree = memberReferenceToLambda.lambda();
 
-        if (isReflectable(tree)) {
+        if (isQuotable(tree)) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
                 // Quotable lambdas in inner classes are not supported
                 log.error(tree, QuotedMrefInnerClass(currentClassSym.enclClass()));
@@ -255,6 +272,7 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             // quoted lambda - scan it
+            pendingReflectableCast = prevPendingReflectableCast;
             BodyScanner bodyScanner = new BodyScanner(lambdaTree);
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
@@ -272,27 +290,6 @@ public class ReflectMethods extends TreeTranslator {
         } else {
             super.visitReference(tree);
         }
-    }
-
-    // @@@: Only used for quoted lambda, not quotable ones. Remove?
-    ListBuffer<JCExpression> quotedCapturedArgs(DiagnosticPosition pos, BodyScanner bodyScanner) {
-        ListBuffer<JCExpression> capturedArgs = new ListBuffer<>();
-        for (Symbol capturedSym : bodyScanner.stack.localToOp.keySet()) {
-            if (capturedSym.kind == Kind.VAR) {
-                // captured var
-                VarSymbol var = (VarSymbol)capturedSym;
-                if (var.getConstValue() == null) {
-                    capturedArgs.add(make.at(pos).Ident(capturedSym));
-                }
-            } else {
-                throw new AssertionError("Unexpected captured symbol: " + capturedSym);
-            }
-        }
-        if (capturedArgs.size() < bodyScanner.top.body.entryBlock().parameters().size()) {
-            // needs to capture 'this'
-            capturedArgs.prepend(make.at(pos).This(currentClassSym.type));
-        }
-        return capturedArgs;
     }
 
     /*
@@ -1206,6 +1203,7 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitTypeCast(JCTree.JCTypeCast tree) {
+            pushReflectableCast(tree);
             Value v = toValue(tree.expr);
 
             Type expressionType = tree.expr.type;
@@ -1482,7 +1480,7 @@ public class ReflectMethods extends TreeTranslator {
             // Get the functional interface type
             JavaType fiType = typeToTypeElement(tree.target);
             // build functional lambda
-            Op lambdaOp = JavaOp.lambda(fiType, stack.body, isReflectable(tree));
+            Op lambdaOp = JavaOp.lambda(fiType, stack.body, isQuotable(tree));
 
             // Pop lambda body
             popBody();
@@ -2501,8 +2499,21 @@ public class ReflectMethods extends TreeTranslator {
         }
     }
 
-    boolean isReflectable(JCFunctionalExpression functionalExpression) {
-        return types.asSuper(functionalExpression.target, crSyms.quotableType.tsym) != null;
+    boolean isQuotable(JCFunctionalExpression expr) {
+        return isQuotable(expr.target, true, false);
+    }
+
+    boolean isQuotable(Type target, boolean ignoreTypeAnnos, boolean ignoreDeclAnnos) {
+        if (pendingReflectableCast) {
+            pendingReflectableCast = false;
+            return true;
+        } else if (target.isCompound()) {
+            return ((IntersectionClassType)target).getComponents().stream()
+                    .anyMatch(t -> isQuotable(t, ignoreTypeAnnos, ignoreDeclAnnos));
+        } else {
+            return (!ignoreTypeAnnos && target.getAnnotationMirrors().stream().anyMatch(tc -> tc.type.tsym == crSyms.codeReflectionType.tsym)) ||
+                    (!ignoreDeclAnnos && target.tsym.attribute(crSyms.codeReflectionType.tsym) != null);
+        }
     }
 
     /*
