@@ -153,6 +153,7 @@ public class ReflectMethods extends TreeTranslator {
     private final CodeModelStorageOption codeModelStorageOption;
 
     private TreeMaker make;
+    private ListBuffer<JCTree> classOps;
     private SequencedMap<String, Op> ops;
     private Symbol.ClassSymbol currentClassSym, synthClassSym;
     private int lambdaCount;
@@ -195,6 +196,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToMethodRef(tree.sym));
+                classOps.add(opMethodDecl(methodName));
                 ops.put(methodName.toString(), funcOp);
             }
         }
@@ -208,6 +210,7 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitClassDef(JCClassDecl tree) {
+        ListBuffer<JCTree> prevClassOps = classOps;
         SequencedMap<String, Op> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
         Symbol.ClassSymbol prevSynthClassSym = synthClassSym;
@@ -216,15 +219,18 @@ public class ReflectMethods extends TreeTranslator {
         try {
             lambdaCount = 0;
             currentClassSym = tree.sym;
+            classOps = new ListBuffer<>();
             synthClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
             ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
+            tree.defs = tree.defs.prependList(classOps.toList());
             if (!ops.isEmpty()) {
                 synthClassDecl();
                 currentClassSym.members().enter(synthClassSym);
             }
         } finally {
             lambdaCount = prevLambdaCount;
+            classOps = prevClassOps;
             ops = prevOps;
             currentClassSym = prevClassSym;
             synthClassSym = prevSynthClassSym;
@@ -252,6 +258,7 @@ public class ReflectMethods extends TreeTranslator {
             }
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
+            classOps.add(opMethodDecl(lambdaName));
             MethodSymbol opMethodSymbol = opMethodSymbol(lambdaName);
             ops.put(lambdaName.toString(), funcOp);
 
@@ -284,6 +291,7 @@ public class ReflectMethods extends TreeTranslator {
             }
             // create a method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
+            classOps.add(opMethodDecl(lambdaName));
             ops.put(lambdaName.toString(), funcOp);
             tree.codeModel = opMethodSymbol(lambdaName);
             super.visitReference(tree);
@@ -362,6 +370,19 @@ public class ReflectMethods extends TreeTranslator {
             }
             return CodeModelStorageOption.valueOf(s);
         }
+    }
+
+    private JCMethodDecl opMethodDecl(Name methodName) {
+        // Create the method that constructs the code model stored in the class file
+        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
+                com.sun.tools.javac.util.List.nil(), syms.methodClass);
+        var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+        currentClassSym.members().enter(ms);
+
+        // Create the method body calling the synthetic inner class method of the same name
+        var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, synthClassSym))));
+        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
+        return md;
     }
 
     private CoreOp.ModuleOp opBuilder() {
