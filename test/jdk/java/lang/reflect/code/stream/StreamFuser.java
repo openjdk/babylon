@@ -42,19 +42,24 @@ public final class StreamFuser {
 
     // Quotable functional interfaces
 
-    public interface QuotablePredicate<T> extends Quotable, Predicate<T> {
+    @CodeReflection
+    public interface QuotablePredicate<T> extends Predicate<T> {
     }
 
-    public interface QuotableFunction<T, R> extends Quotable, Function<T, R> {
+    @CodeReflection
+    public interface QuotableFunction<T, R> extends Function<T, R> {
     }
 
-    public interface QuotableSupplier<T> extends Quotable, Supplier<T> {
+    @CodeReflection
+    public interface QuotableSupplier<T> extends Supplier<T> {
     }
 
-    public interface QuotableConsumer<T> extends Quotable, Consumer<T> {
+    @CodeReflection
+    public interface QuotableConsumer<T> extends Consumer<T> {
     }
 
-    public interface QuotableBiConsumer<T, U> extends Quotable, BiConsumer<T, U> {
+    @CodeReflection
+    public interface QuotableBiConsumer<T, U> extends BiConsumer<T, U> {
     }
 
 
@@ -72,7 +77,7 @@ public final class StreamFuser {
         static class StreamOp {
             final JavaOp.LambdaOp lambdaOp;
 
-            StreamOp(Quotable quotedLambda) {
+            StreamOp(Object quotedLambda) {
                 if (!(Op.ofQuotable(quotedLambda).get().op() instanceof JavaOp.LambdaOp lambdaOp)) {
                     throw new IllegalArgumentException("Quotable operation is not lambda operation");
                 }
@@ -88,19 +93,19 @@ public final class StreamFuser {
         }
 
         static class MapStreamOp extends StreamOp {
-            public MapStreamOp(Quotable quotedLambda) {
+            public MapStreamOp(Object quotedLambda) {
                 super(quotedLambda);
             }
         }
 
         static class FlatMapStreamOp extends StreamOp {
-            public FlatMapStreamOp(Quotable quotedLambda) {
+            public FlatMapStreamOp(Object quotedLambda) {
                 super(quotedLambda);
             }
         }
 
         static class FilterStreamOp extends StreamOp {
-            public FilterStreamOp(Quotable quotedLambda) {
+            public FilterStreamOp(Object quotedLambda) {
                 super(quotedLambda);
             }
         }

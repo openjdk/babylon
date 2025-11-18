@@ -23,8 +23,8 @@
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
@@ -48,9 +48,8 @@ import static jdk.incubator.code.dialect.java.JavaType.type;
 public class TestBuild {
 
     public JavaOp.LambdaOp f() {
-        IntBinaryOperator ibo = (IntBinaryOperator & Quotable) (a, b) -> a + b;
-        Quotable iboq = (Quotable) ibo;
-        return SSA.transform((JavaOp.LambdaOp) Op.ofQuotable(iboq).get().op());
+        IntBinaryOperator ibo = (@CodeReflection IntBinaryOperator) (a, b) -> a + b;
+        return SSA.transform((JavaOp.LambdaOp) Op.ofQuotable(ibo).get().op());
     }
 
     @Test

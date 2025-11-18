@@ -32,7 +32,7 @@ public class TestSealOp {
 
     @Test
     void test1() {
-        Quotable q = (IntUnaryOperator & Quotable) i -> i / 2;
+        IntUnaryOperator q = (@CodeReflection IntUnaryOperator) i -> i / 2;
         Quoted quoted = Op.ofQuotable(q).get();
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
@@ -57,7 +57,7 @@ public class TestSealOp {
 
     @Test
     void test4() {
-        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) -> {
+        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) -> {
             return a + b;
         };
         Quoted quoted = Op.ofQuotable(q).get();

@@ -21,11 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.Quotable;
-import jdk.incubator.code.Quoted;
+import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -47,19 +43,19 @@ public class TestExpressionElimination {
 
     @Test
     public void testAddZero() {
-        JavaOp.LambdaOp lf = generate((Quotable & DoubleUnaryOperator) (double a) -> a + 0.0);
+        JavaOp.LambdaOp lf = generate((@CodeReflection DoubleUnaryOperator) (double a) -> a + 0.0);
 
         Assertions.assertEquals(1.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d));
     }
 
     @Test
     public void testF() {
-        JavaOp.LambdaOp lf = generate((Quotable & DoubleBinaryOperator) (double a, double b) -> -a + b);
+        JavaOp.LambdaOp lf = generate((@CodeReflection DoubleBinaryOperator) (double a, double b) -> -a + b);
 
         Assertions.assertEquals(0.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d, 1.0d));
     }
 
-    static JavaOp.LambdaOp generate(Quotable q) {
+    static JavaOp.LambdaOp generate(Object q) {
         return generateF((JavaOp.LambdaOp)Op.ofQuotable(q).get().op());
     }
 

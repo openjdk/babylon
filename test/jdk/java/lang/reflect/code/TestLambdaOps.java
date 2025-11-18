@@ -150,7 +150,7 @@ public class TestLambdaOps {
 
     @Test
     public void testQuotableModel() {
-        Quotable quotable = (Runnable & Quotable) () -> {};
+        Runnable quotable = (@CodeReflection Runnable) () -> {};
         Op qop = Op.ofQuotable(quotable).get().op();
         Op top = qop.ancestorOp().ancestorOp();
         Assertions.assertTrue(top instanceof CoreOp.FuncOp);
@@ -160,7 +160,8 @@ public class TestLambdaOps {
     }
 
     @FunctionalInterface
-    public interface QuotableIntSupplier extends IntSupplier, Quotable {
+    @CodeReflection
+    public interface QuotableIntSupplier extends IntSupplier {
     }
 
     @CodeReflection
@@ -212,11 +213,14 @@ public class TestLambdaOps {
         }
     }
 
-    interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable {}
+    @CodeReflection
+    interface QuotableIntUnaryOperator extends IntUnaryOperator {}
 
-    interface QuotableFunction<T, R> extends Function<T, R>, Quotable {}
+    @CodeReflection
+    interface QuotableFunction<T, R> extends Function<T, R> {}
 
-    interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R>, Quotable {}
+    @CodeReflection
+    interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {}
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestLambdaOps.class.getDeclaredMethods())
