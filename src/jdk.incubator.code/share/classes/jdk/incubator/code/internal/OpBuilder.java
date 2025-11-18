@@ -200,7 +200,7 @@ public class OpBuilder {
      * @param dialectFactoryF a function that builds code items to produce a dialect factory value.
      * @return the module with building code models and support functions.
      */
-    public static ModuleOp createBuilderFunction(SequencedMap<String, Op> ops, Function<Block.Builder, Value> dialectFactoryF) {
+    public static ModuleOp createBuilderFunctions(SequencedMap<String, ? extends Op> ops, Function<Block.Builder, Value> dialectFactoryF) {
         List<FuncOp> funcs = new ArrayList<>();
         for (var e : ops.sequencedEntrySet()) {
             funcs.add(new OpBuilder(dialectFactoryF).build(e.getKey(), e.getValue()));

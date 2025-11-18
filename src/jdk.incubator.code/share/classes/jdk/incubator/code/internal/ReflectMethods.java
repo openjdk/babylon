@@ -368,7 +368,7 @@ public class ReflectMethods extends TreeTranslator {
         // Create the method body
         // Code model is stored as code that builds the code model
         // using the builder API and public APIs
-        return OpBuilder.createBuilderFunction(
+        return OpBuilder.createBuilderFunctions(
                 ops,
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
