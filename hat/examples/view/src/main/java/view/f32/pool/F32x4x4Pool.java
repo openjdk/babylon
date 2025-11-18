@@ -26,7 +26,7 @@ package view.f32.pool;
 
 import view.f32.F32x4x4;
 
-public class F32x4x4Pool extends F32Pool<F32x4x4Pool> implements F32x4x4.Factory {
+public class F32x4x4Pool extends F32Pool<F32x4x4,F32x4x4Pool> implements F32x4x4.Factory {
     static int X0Y0 = 0;
     static int X1Y0 = 1;
     static int X2Y0 = 2;
@@ -47,69 +47,69 @@ public class F32x4x4Pool extends F32Pool<F32x4x4Pool> implements F32x4x4.Factory
 
 
 
-    public record PoolEntry(F32x4x4Pool pool, int idx) implements Pool.PoolEntry<F32x4x4Pool>, F32x4x4 {
+    public record PoolEntry(F32x4x4Pool pool, int idx) implements Pool.PoolEntry<F32x4x4, F32x4x4Pool>, F32x4x4 {
         private int x0y0Idx() {
-            return idx * pool.stride + X0Y0;
+            return idx * pool.floatStride + X0Y0;
         }
 
         private int x1y0Idx() {
-            return idx * pool.stride + X1Y0;
+            return idx * pool.floatStride + X1Y0;
         }
 
         private int x2y0Idx() {
-            return idx * pool.stride + X2Y0;
+            return idx * pool.floatStride + X2Y0;
         }
 
         private int x3y0Idx() {
-            return idx * pool.stride + X3Y0;
+            return idx * pool.floatStride + X3Y0;
         }
 
         private int x0y1Idx() {
-            return idx * pool.stride + X0Y1;
+            return idx * pool.floatStride + X0Y1;
         }
 
         private int x1y1Idx() {
-            return idx * pool.stride + X1Y1;
+            return idx * pool.floatStride + X1Y1;
         }
 
         private int x2y1Idx() {
-            return idx * pool.stride + X2Y1;
+            return idx * pool.floatStride + X2Y1;
         }
 
         private int x3y1Idx() {
-            return idx * pool.stride + X3Y1;
+            return idx * pool.floatStride + X3Y1;
         }
 
         int x0y2Idx() {
-            return idx * pool.stride + X0Y2;
+            return idx * pool.floatStride + X0Y2;
         }
 
         int x1y2Idx() {
-            return idx * pool.stride + X1Y2;
+            return idx * pool.floatStride + X1Y2;
         }
 
         int x2y2Idx() {
-            return idx * pool.stride + X2Y2;
+            return idx * pool.floatStride + X2Y2;
         }
 
         int x3y2Idx() {
-            return idx * pool.stride + X3Y2;
+            return idx * pool.floatStride + X3Y2;
         }
 
         int x0y3Idx() {
-            return idx * pool.stride + X0Y3;
+            return idx * pool.floatStride + X0Y3;
         }
 
         int x1y3Idx() {
-            return idx * pool.stride + X1Y3;
+            return idx * pool.floatStride + X1Y3;
         }
 
         int x2y3Idx() {
-            return idx * pool.stride + X2Y3;
+            return idx * pool.floatStride + X2Y3;
         }
 
         int x3y3Idx() {
-            return idx * pool.stride + X3Y3;
+            return idx * pool.floatStride + X3Y3;
         }
 
         @Override
@@ -198,7 +198,7 @@ public class F32x4x4Pool extends F32Pool<F32x4x4Pool> implements F32x4x4.Factory
     }
 
     @Override
-    PoolEntry entry(int idx) {
+    public F32x4x4 entry(int idx) {
         return new PoolEntry(this, idx);
     }
 @Override
@@ -206,7 +206,7 @@ public class F32x4x4Pool extends F32Pool<F32x4x4Pool> implements F32x4x4.Factory
                       Float x0y1, Float x1y1, Float x2y1, Float x3y1,
                       Float x0y2, Float x1y2, Float x2y2, Float x3y2,
                       Float x0y3, Float x1y3, Float x2y3, Float x3y3) {
-        var i = entry(count++);
+        var i = (PoolEntry)entry(count++);
         floatEntries[i.x0y0Idx()] = x0y0;
         floatEntries[i.x1y0Idx()] = x1y0;
         floatEntries[i.x2y0Idx()] = x2y0;

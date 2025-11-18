@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,92 +26,27 @@
 package jdk.incubator.code.dialect.java.impl;
 
 import jdk.incubator.code.dialect.java.FieldRef;
+
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 
-public final class FieldRefImpl implements FieldRef {
-
-    final TypeElement refType;
-    final String name;
-    final TypeElement type;
-
-    public FieldRefImpl(TypeElement refType, String name, TypeElement type) {
-        this.refType = refType;
-        this.name = name;
-        this.type = type;
-    }
+public record FieldRefImpl(TypeElement refType, String name, TypeElement type) implements FieldRef {
 
     @Override
-    public TypeElement refType() {
-        return refType;
-    }
-
-    @Override
-    public String name() {
-        return name;
-    }
-
-    @Override
-    public TypeElement type() {
-        return type;
-    }
-
-    @Override
-    public Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, refType);
-        Class<?> typeC = resolve(l, type);
-
-        Field f = refC.getDeclaredField(name);
-        if (!f.getType().equals(typeC)) {
-            throw new NoSuchFieldException();
-        }
-
-        return f;
+    public Field resolveToField(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        MethodHandle fh = ResolutionHelper.resolveFieldGetter(l, this);
+        return l.revealDirect(fh)
+                .reflectAs(Field.class, l);
     }
 
     @Override
     public VarHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, refType);
-        Class<?> typeC = resolve(l, type);
-
-        VarHandle vh = null;
-        ReflectiveOperationException c = null;
-
-        try {
-            vh = l.findStaticVarHandle(refC, name, typeC);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            c = e;
-        }
-
-        if (c != null) {
-            c = null;
-            try {
-                vh = l.findVarHandle(refC, name, typeC);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                c = e;
-            }
-        }
-
-        if (c != null) {
-            throw c;
-        }
-
-        assert vh != null;
-        return vh;
-    }
-
-    static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
-        if (t instanceof JavaType jt) {
-            return (Class<?>)jt.erasure().resolve(l);
-        } else {
-            // @@@
-            throw new ReflectiveOperationException();
-        }
+        return ResolutionHelper.resolveFieldHandle(l, this);
     }
 
     @Override
@@ -122,25 +57,5 @@ public final class FieldRefImpl implements FieldRef {
     @Override
     public String toString() {
         return JavaTypeUtils.toExternalRefString(externalize());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        FieldRefImpl fieldDesc = (FieldRefImpl) o;
-
-        if (!refType.equals(fieldDesc.refType)) return false;
-        if (!name.equals(fieldDesc.name)) return false;
-        return type.equals(fieldDesc.type);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = refType.hashCode();
-        result = 31 * result + name.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
     }
 }

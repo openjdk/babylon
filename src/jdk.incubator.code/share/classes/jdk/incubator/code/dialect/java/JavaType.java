@@ -226,7 +226,7 @@ public sealed interface JavaType extends TypeElement
 
     private static TypeVariableType.Owner owner(GenericDeclaration genDecl) {
         return switch (genDecl) {
-            case Constructor<?> c -> ConstructorRef.constructor(c);
+            case Constructor<?> c -> MethodRef.constructor(c);
             case Method m -> MethodRef.method(m);
             case Class<?> t -> (ClassType)type(t);
             default -> throw new InternalError();

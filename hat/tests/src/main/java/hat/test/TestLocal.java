@@ -31,6 +31,8 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
@@ -41,23 +43,21 @@ import java.lang.invoke.MethodHandles;
 
 public class TestLocal {
 
-    private interface MySharedArray extends Buffer {
+    private interface MySharedArray extends DeviceType {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MySharedArray> schema = Schema.of(MySharedArray.class,
-                myPrivateArray -> myPrivateArray
-                        .array("array", 16));
+        DeviceSchema<MySharedArray> schema = DeviceSchema.of(MySharedArray.class,
+                builder -> builder.withArray("array", 16));
 
         static MySharedArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator, 1);
+            return null;
         }
 
         static MySharedArray createLocal() {
             return create(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
     }
-
 
     @CodeReflection
     private static void compute(@MappableIface.RO KernelContext kernelContext, @MappableIface.RW F32Array data) {

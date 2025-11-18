@@ -39,7 +39,7 @@ import hat.test.engine.HATAsserts;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.*;
+import static hat.ifacemapper.MappableIface.WO;
 
 public class TestBlackscholes {
 

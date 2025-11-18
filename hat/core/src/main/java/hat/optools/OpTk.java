@@ -28,6 +28,7 @@ import hat.ComputeContext;
 import hat.buffer.F16;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
+import hat.device.DeviceType;
 import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Block;
@@ -36,6 +37,7 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -51,12 +53,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -108,7 +113,7 @@ public class OpTk {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
                 try {
-                    var method = invokeOp.invokeDescriptor().resolveToMethod(lookup, invokeOp.invokeKind());
+                    var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
                     // TODO filter calls has side effects we may need another call. We might just check the map.
 
@@ -129,7 +134,7 @@ public class OpTk {
                 CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
                     if (op instanceof JavaOp.InvokeOp iop) {
                         try {
-                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(lookup, iop.invokeKind());
+                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(lookup);
                             if (invokeOpCalledMethod instanceof Method m) {
                                 CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
                                 if (f != null) {
@@ -263,7 +268,7 @@ public class OpTk {
 
     public static Method methodOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         try {
-            return op.invokeDescriptor().resolveToMethod(lookup, op.invokeKind());
+            return op.invokeDescriptor().resolveToMethod(lookup);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }

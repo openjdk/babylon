@@ -88,4 +88,10 @@ public class HATAsserts {
             throw new HATAssertionError("Expected: " + isCorrect);
         }
     }
+
+    public static void assertFalse(boolean isCorrect) {
+        if (isCorrect) {
+            throw new HATAssertionError("Expected: " + isCorrect);
+        }
+    }
 }

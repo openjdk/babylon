@@ -432,7 +432,7 @@ public final class BytecodeLift {
                             if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                 newStack.pop();
                                 yield op(JavaOp.new_(
-                                        ConstructorRef.constructor(
+                                        MethodRef.constructor(
                                                 mDesc.refType(),
                                                 mType.parameterTypes()),
                                         operands.reversed()));
@@ -596,7 +596,7 @@ public final class BytecodeLift {
                 }
                 case NewMultiArrayInstruction inst -> {
                     stack.push(op(JavaOp.new_(
-                            ConstructorRef.constructor(
+                            MethodRef.constructor(
                                     JavaType.type(inst.arrayType().asSymbol()),
                                     Collections.nCopies(inst.dimensions(), JavaType.INT)),
                             IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));

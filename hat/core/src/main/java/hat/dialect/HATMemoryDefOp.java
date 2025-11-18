@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
+package hat.dialect;
 
-import view.f32.factories.Factory4;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.ClassType;
 
-public interface F32x2Triangle {
-    F32x2 v0();
-    F32x2 v1();
-    F32x2 v2();
-    int rgb();
-    @FunctionalInterface
-    interface Factory extends Factory4<F32x2,F32x2,F32x2,Integer,F32x2Triangle> {
+import java.util.List;
+
+public abstract class HATMemoryDefOp extends HATOp {
+    private final String varName;
+
+    public HATMemoryDefOp(String varName, List<Value> operands) {
+        super(operands);
+        this.varName = varName;
+    }
+
+    protected HATMemoryDefOp(HATMemoryDefOp that, CopyContext cc) {
+        super(that, cc);
+        this.varName = that.varName;
+    }
+
+    public String varName() {
+        return varName;
     }
 }

@@ -236,7 +236,7 @@ public class OpBuilder {
                     List<Block.Parameter> args = b.parameters();
                     b.op(return_(b.op(invoke(OP_FACTORY_CONSTRUCT,
                             b.op(invoke(DIALECT_FACTORY_OP_FACTORY, dialectFactoryF.apply(b))),
-                            b.op(new_(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE),
+                            b.op(new_(MethodRef.constructor(EXTERNALIZED_OP_F_TYPE),
                                     args.get(0),
                                     args.get(1),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(2))),
@@ -265,7 +265,7 @@ public class OpBuilder {
                     b.op(return_(b.op(funcCall(OP_BUILDER_F_NAME_2, OP_BUILDER_F_OVERRIDE_2,
                             args.get(0),
                             args.get(1),
-                            b.op(new_(ConstructorRef.constructor(Location.class, int.class, int.class), args.get(2), args.get(3))),
+                            b.op(new_(MethodRef.constructor(Location.class, int.class, int.class), args.get(2), args.get(3))),
                             args.get(4),
                             args.get(5),
                             args.get(6),
@@ -388,7 +388,7 @@ public class OpBuilder {
         if (l == null) {
             return builder.op(constant(J_C_LOCATION, null));
         } else {
-            return builder.op(new_(ConstructorRef.constructor(Location.class, String.class, int.class, int.class),
+            return builder.op(new_(MethodRef.constructor(Location.class, String.class, int.class, int.class),
                     builder.op(constant(J_L_STRING, l.sourceRef())),
                     builder.op(constant(INT, l.line())),
                     builder.op(constant(INT, l.column()))));

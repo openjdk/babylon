@@ -29,21 +29,13 @@ import view.f32.pool.F32x3TrianglePool;
 
 public interface F32x3Triangle {
     F32x3 v0();
-
     F32x3 v1();
-
     F32x3 v2();
-
     int rgb();
-
     default String asString() {
         return v0().asString() + " -> " + v1().asString() + " -> " + v2().asString() + " =" + String.format("0x%8x", rgb());
     }
-
-
     @FunctionalInterface
     interface Factory extends Factory4<F32x3,F32x3,F32x3,Integer,F32x3Triangle> {
     }
-
-
 }

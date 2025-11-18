@@ -26,14 +26,13 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.dialect.java.ClassType;
 
 public interface F16Array extends Buffer {
     int length();
 
     F16Impl array(long index);
 
-    interface F16Impl extends Buffer, F16 {
+    interface F16Impl extends Struct, F16 {
         String NAME = "F16Impl";
 
         short value();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
+package hat.device;
 
-import view.f32.factories.Factory4;
-
-public interface F32x2Triangle {
-    F32x2 v0();
-    F32x2 v1();
-    F32x2 v2();
-    int rgb();
-    @FunctionalInterface
-    interface Factory extends Factory4<F32x2,F32x2,F32x2,Integer,F32x2Triangle> {
-    }
+public interface DeviceType {
 }
