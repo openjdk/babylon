@@ -50,7 +50,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.stream.Stream;
 
 /**
  * An operation modelling a unit of functionality.
@@ -557,9 +556,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         Method opMethod;
         try {
             // @@@ Use method handle with full power mode
-            var cls = Stream.of(method.getDeclaringClass().getDeclaredClasses()).filter(c -> c.getName().endsWith("$$CM")).findFirst();
-            if (cls.isEmpty()) return Optional.empty();
-            opMethod = cls.get().getDeclaredMethod(opMethodName);
+            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
         } catch (NoSuchMethodException e) {
             return Optional.empty();
         }
