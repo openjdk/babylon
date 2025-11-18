@@ -155,7 +155,8 @@ public class ReflectMethods extends TreeTranslator {
     private TreeMaker make;
     private ListBuffer<JCTree> classOps;
     private SequencedMap<String, Op> ops;
-    private Symbol.ClassSymbol currentClassSym, synthClassSym;
+    private Symbol.ClassSymbol currentClassSym;
+    private Symbol.ClassSymbol codeModelsClassSym;
     private int lambdaCount;
 
     @SuppressWarnings("this-escape")
@@ -213,27 +214,27 @@ public class ReflectMethods extends TreeTranslator {
         ListBuffer<JCTree> prevClassOps = classOps;
         SequencedMap<String, Op> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
-        Symbol.ClassSymbol prevSynthClassSym = synthClassSym;
+        Symbol.ClassSymbol prevSynthClassSym = codeModelsClassSym;
         int prevLambdaCount = lambdaCount;
         JavaFileObject prev = log.useSource(tree.sym.sourcefile);
         try {
             lambdaCount = 0;
             currentClassSym = tree.sym;
             classOps = new ListBuffer<>();
-            synthClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
+            codeModelsClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
             ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
             tree.defs = tree.defs.prependList(classOps.toList());
             if (!ops.isEmpty()) {
                 synthClassDecl();
-                currentClassSym.members().enter(synthClassSym);
+                currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
             lambdaCount = prevLambdaCount;
             classOps = prevClassOps;
             ops = prevOps;
             currentClassSym = prevClassSym;
-            synthClassSym = prevSynthClassSym;
+            codeModelsClassSym = prevSynthClassSym;
             result = tree;
             log.useSource(prev);
         }
@@ -381,7 +382,7 @@ public class ReflectMethods extends TreeTranslator {
         currentClassSym.members().enter(ms);
 
         // Create the method body calling the synthetic inner class method of the same name
-        var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, synthClassSym))));
+        var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, codeModelsClassSym))));
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
     }
@@ -405,7 +406,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 outLocn = StandardLocation.CLASS_OUTPUT;
             }
-            String className = synthClassSym.flatName().toString();
+            String className = codeModelsClassSym.flatName().toString();
             ClassDesc classDesc = ClassDesc.of(className);
             JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, currentClassSym.sourcefile);
             ClassDesc parentClass = ClassDesc.of(currentClassSym.className());
