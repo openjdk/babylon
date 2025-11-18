@@ -213,6 +213,11 @@ public class OpBuilder {
 
     static List<FuncOp> createSupportFunctions(Function<Block.Builder, Value> dialectFactoryF) {
         return List.of(
+                // static List $list(Object o) {
+                //     if (o == null) return List.of();
+                //     if (o instanceof List) return (List)o;
+                //     return List.of(o);
+                // }
                 func(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
@@ -222,6 +227,11 @@ public class OpBuilder {
                     b3.op(return_(b3.op(cast(J_U_LIST, arg))));
                     b4.op(return_(b4.op(invoke(LIST_OF_OBJECT, arg))));
                 }),
+                // static Map $map(Object o) {
+                //     if (o == null) return Map.of();
+                //     if (o instanceof Map) return (Map)o;
+                //     return Map.of("", o);
+                // }
                 func(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
@@ -231,6 +241,22 @@ public class OpBuilder {
                     b3.op(return_(b3.op(cast(J_U_MAP, arg))));
                     b4.op(return_(b4.op(invoke(MAP_OF_OBJECT_OBJECT, b4.op(constant(J_L_STRING, "")), arg))));
                 }),
+                // static Op $op1(String name,
+                //                Location location,
+                //                Object operands,
+                //                Object successors,
+                //                TypeElement resultType,
+                //                Object attributes,
+                //                Object bodyDefinitions) {
+                //     return <dialect factory>.opFactory().constructOp(
+                //             new ExternalizedOp(name,
+                //                                location,
+                //                                $list(operands),
+                //                                $list(successors),
+                //                                resultType,
+                //                                $map(attributes),
+                //                                $list(bodyDefinitions)));
+                // }
                 func(OP_BUILDER_F_NAME_1, OP_BUILDER_F_OVERRIDE_1).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
@@ -245,6 +271,22 @@ public class OpBuilder {
                                     b.op(funcCall(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE, args.get(5))),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(6)))))))));
                 }),
+                // static Op.Result $op2(Block.Builder b,
+                //                       String name,
+                //                       Location location,
+                //                       Object operands,
+                //                       Object successors,
+                //                       TypeElement resultType,
+                //                       Object attributes,
+                //                       Object bodyDefinitions) {
+                //     return b.op($op1(name,
+                //                      location,
+                //                      operands,
+                //                      successors,
+                //                      resultType,
+                //                      attributes,
+                //                      bodyDefinitions));
+                // }
                 func(OP_BUILDER_F_NAME_2, OP_BUILDER_F_OVERRIDE_2).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
@@ -259,6 +301,24 @@ public class OpBuilder {
                                     args.get(6),
                                     args.get(7)))))));
                 }),
+                // static Op.Result $op3(Block.Builder b,
+                //                       String name,
+                //                       int line,
+                //                       int column,
+                //                       Object operands,
+                //                       Object successors,
+                //                       TypeElement resultType,
+                //                       Object attributes,
+                //                       Object bodyDefinitions) {
+                //     return $op2(b,
+                //                 name,
+                //                 new Location(line, column),
+                //                 operands,
+                //                 successors,
+                //                 resultType,
+                //                 attributes,
+                //                 bodyDefinitions);
+                // }
                 func(OP_BUILDER_F_NAME_3, OP_BUILDER_F_OVERRIDE_3).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
