@@ -258,12 +258,12 @@ public class ReflectMethods extends TreeTranslator {
             }
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
-            classOps.add(opMethodDecl(lambdaName));
-            MethodSymbol opMethodSymbol = opMethodSymbol(lambdaName);
+            JCMethodDecl opMethod = opMethodDecl(lambdaName);
+            classOps.add(opMethod);
             ops.put(lambdaName.toString(), funcOp);
 
             // leave the lambda in place, but also leave a trail for LambdaToMethod
-            tree.codeModel = opMethodSymbol;
+            tree.codeModel = opMethod.sym;
         }
         super.visitLambda(tree);
     }
@@ -291,9 +291,10 @@ public class ReflectMethods extends TreeTranslator {
             }
             // create a method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
-            classOps.add(opMethodDecl(lambdaName));
             ops.put(lambdaName.toString(), funcOp);
-            tree.codeModel = opMethodSymbol(lambdaName);
+            JCMethodDecl opMethod = opMethodDecl(lambdaName);
+            classOps.add(opMethod);
+            tree.codeModel = opMethod.sym;
             super.visitReference(tree);
             if (recvDecl != null) {
                 result = copyReferenceWithReceiverVar(tree, recvDecl);
@@ -394,13 +395,6 @@ public class ReflectMethods extends TreeTranslator {
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
 
-    }
-
-    private MethodSymbol opMethodSymbol(Name methodName) {
-        // Create the method that constructs the code model stored in the class file
-        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
-                com.sun.tools.javac.util.List.nil(), syms.methodClass);
-        return new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, synthClassSym);
     }
 
     private void synthClassDecl() {
