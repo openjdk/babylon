@@ -211,10 +211,10 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitClassDef(JCClassDecl tree) {
-        ListBuffer<JCTree> prevClassOps = opMethodDecls;
+        ListBuffer<JCTree> prevOpMethodDecls = opMethodDecls;
         SequencedMap<String, Op> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
-        Symbol.ClassSymbol prevSynthClassSym = codeModelsClassSym;
+        Symbol.ClassSymbol prevCodeModelsClassSym = codeModelsClassSym;
         int prevLambdaCount = lambdaCount;
         JavaFileObject prev = log.useSource(tree.sym.sourcefile);
         try {
@@ -231,10 +231,10 @@ public class ReflectMethods extends TreeTranslator {
             }
         } finally {
             lambdaCount = prevLambdaCount;
-            opMethodDecls = prevClassOps;
+            opMethodDecls = prevOpMethodDecls;
             ops = prevOps;
             currentClassSym = prevClassSym;
-            codeModelsClassSym = prevSynthClassSym;
+            codeModelsClassSym = prevCodeModelsClassSym;
             result = tree;
             log.useSource(prev);
         }
@@ -375,7 +375,6 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     private JCMethodDecl opMethodDecl(Name methodName) {
-        // Create the method that constructs the code model stored in the class file
         var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
                 com.sun.tools.javac.util.List.nil(), syms.methodClass);
         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
@@ -388,9 +387,6 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     private CoreOp.ModuleOp opBuilder() {
-        // Create the method body
-        // Code model is stored as code that builds the code model
-        // using the builder API and public APIs
         return OpBuilder.createBuilderFunctions(
                 ops,
                 b -> b.op(JavaOp.fieldLoad(
