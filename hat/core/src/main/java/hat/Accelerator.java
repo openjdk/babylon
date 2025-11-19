@@ -49,6 +49,7 @@ import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
 
+
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of
  * executing <b>NDRange</b> style execution.
@@ -79,28 +80,8 @@ public class Accelerator implements BufferAllocator, BufferTracker {
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public NDRange range(int max) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, max);
-        return ndRange;
-    }
-
-    public NDRange range(int maxX, int maxY) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, maxX, maxY);
-        return ndRange;
-    }
-
-    public NDRange range(int maxX, int maxY, int maxZ) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, maxX, maxY, maxZ);
-        return ndRange;
-    }
-
-    public NDRange range(ComputeRange computeRange) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, computeRange);
-        return ndRange;
+    public KernelContext range(NDRange ndRange) {
+        return new KernelContext(ndRange);
     }
 
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {
@@ -184,6 +165,10 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      *  </pre>
      */
     public interface QuotableComputeContextConsumer extends Quotable, Consumer<ComputeContext> {
+    }
+    // convenience
+    public Config config(){
+        return backend.config();
     }
 
     /**

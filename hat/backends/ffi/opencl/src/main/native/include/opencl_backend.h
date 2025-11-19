@@ -163,7 +163,7 @@ public:
 
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
-    void info() override;
+    void showDeviceInfo() override;
 
     static const char *errorMsg(cl_int status);
 };

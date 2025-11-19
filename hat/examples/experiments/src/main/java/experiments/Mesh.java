@@ -26,10 +26,9 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
-import hat.backend.ffi.FFIConfig;
-import hat.backend.ffi.OpenCLBackend;
-import static hat.backend.ffi.FFIConfig.*;
+
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
@@ -40,6 +39,7 @@ import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.CodeReflection;
 import java.util.Random;
 
+import static hat.backend.Backend.FIRST;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class Mesh {
@@ -118,9 +118,9 @@ public class Mesh {
     public static class Compute {
         @CodeReflection
         public static void initPoints(KernelContext kc, MeshData mesh) {
-            if (kc.x < kc.maxX) {
-                MeshData.Point3D point = mesh.point(kc.x);
-                point.x(kc.x);
+            if (kc.gix < kc.gsx) {
+                MeshData.Point3D point = mesh.point(kc.gix);
+                point.x(kc.gix);
                 point.y(0);
                 point.z(0);
             }
@@ -128,7 +128,7 @@ public class Mesh {
 
         @CodeReflection
         public static void buildMesh(ComputeContext cc, MeshData meshData) {
-            cc.dispatchKernel(meshData.points(),
+            cc.dispatchKernel(NDRange.of(meshData.points()),
                     kc -> initPoints(kc, meshData)
             );
 
@@ -137,12 +137,7 @@ public class Mesh {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup()
-                ,new OpenCLBackend(of(FFIConfig.PROFILE,  FFIConfig.TRACE)));
-                //,new DebugBackend(
-                //DebugBackend.HowToRunCompute.REFLECT,
-                //DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
-      //  MeshData.schema.toText(t -> System.out.print(t));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
 
         var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
         var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);

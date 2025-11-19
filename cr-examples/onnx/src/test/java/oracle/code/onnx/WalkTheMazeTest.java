@@ -116,7 +116,7 @@ public class WalkTheMazeTest {
 
     @CodeReflection
     public Tensor<Boolean> isWallAt(Tensor<Long> pos) {
-        return Equal(CastLike(Slice(maze, pos, Add(pos, oneOne), empty(), empty()), wall, empty()), wall);
+        return Equal(CastLike(Slice(maze, pos, Add(pos, oneOne), empty(), empty()), wall, empty(), empty()), wall);
     }
 
     @CodeReflection
@@ -146,14 +146,14 @@ public class WalkTheMazeTest {
 
     @CodeReflection
     public Tensor<Byte> appendToPath(Tensor<Byte> path, Tensor<Long> direction) {
-        return Concat(List.of(path, Cast(direction, empty(), 2)), 0);
+        return Concat(List.of(path, Cast(direction, empty(), 2, empty())), 0);
     }
 
     public record LoopData(Tensor<Long> pos, Tensor<Long> direction, Tensor<Byte> path) {}
 
     @CodeReflection
     public Tensor<Byte> walkAroundTheMaze() {
-        var initData = new LoopData(homePos, directionEast, Cast(directionEast, empty(), 2));
+        var initData = new LoopData(homePos, directionEast, Cast(directionEast, empty(), 2, empty()));
         var outData = Loop(limit, _true, initData, (_, _, loopData) -> {
             // walk along the right wall
             var pos = step(loopData.pos(), loopData.direction());

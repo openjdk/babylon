@@ -98,8 +98,8 @@ public:
         std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;
         return false;
     }
-    void info() override{
-        std::cout << "spirv info()" << std::endl;
+    void showDeviceInfo() override{
+        std::cout << "spirv showDeviceInfo()" << std::endl;
     }
      void computeStart() override{
        std::cout << "spirv compute start()" << std::endl;

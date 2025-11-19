@@ -880,6 +880,7 @@ public final class BytecodeGenerator {
                         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
                         try {
                             Class<?> intfClass = (Class<?>)intfType.erasure().resolve(lookup);
+                            Method intfMethod = funcIntfMethod(intfClass, mtd);
                             processOperands(op.capturedValues());
                             ClassDesc[] captureTypes = op.capturedValues().stream()
                                     .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
@@ -887,10 +888,10 @@ public final class BytecodeGenerator {
                             if (op.isQuotable()) {
                                 cob.invokedynamic(DynamicCallSiteDesc.of(
                                         DMHD_LAMBDA_ALT_METAFACTORY,
-                                        funcIntfMethodName(intfClass),
+                                        intfMethod.getName(),
                                         MethodTypeDesc.of(intfType.toNominalDescriptor(),
                                                           captureTypes),
-                                        mtd,
+                                        toMTD(intfMethod),
                                         MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
                                                                   className,
                                                                   "lambda$" + lambdaIndex,
@@ -905,9 +906,9 @@ public final class BytecodeGenerator {
                             } else {
                                 cob.invokedynamic(DynamicCallSiteDesc.of(
                                         DMHD_LAMBDA_METAFACTORY,
-                                        funcIntfMethodName(intfClass),
+                                        intfMethod.getName(),
                                         MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
-                                        mtd,
+                                        toMTD(intfMethod),
                                         MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
                                                                   className,
                                                                   "lambda$" + lambdaIndex,
@@ -1089,8 +1090,8 @@ public final class BytecodeGenerator {
         }
     }
 
-    private String funcIntfMethodName(Class<?> intfc) {
-        String uniqueName = null;
+    private Method funcIntfMethod(Class<?> intfc, MethodTypeDesc mtd) {
+        Method intfM = null;
         for (Method m : intfc.getMethods()) {
             // ensure it's SAM interface
             String methodName = m.getName();
@@ -1105,18 +1106,29 @@ public final class BytecodeGenerator {
                         || m.getParameterCount() != 1
                         || m.getParameterTypes()[0] != Object.class
                         || !methodName.equals("equals"))) {
-                if (uniqueName == null) {
-                    uniqueName = methodName;
-                } else if (!uniqueName.equals(methodName)) {
+                if (intfM == null && isAdaptable(m, mtd)) {
+                    intfM = m;
+                } else if (!intfM.getName().equals(methodName)) {
                     // too many abstract methods
                     throw new IllegalArgumentException("Not a single-method interface: " + intfc.getName());
                 }
             }
         }
-        if (uniqueName == null) {
-            throw new IllegalArgumentException("No method in: " + intfc.getName());
+        if (intfM == null) {
+            throw new IllegalArgumentException("No method in: " + intfc.getName() + " matching: " + mtd);
         }
-        return uniqueName;
+        return intfM;
+    }
+
+    private static boolean isAdaptable(Method m, MethodTypeDesc mdesc) {
+        // @@@ filter overrides
+        return true;
+    }
+
+    private static MethodTypeDesc toMTD(Method m) {
+        return MethodTypeDesc.of(
+                m.getReturnType().describeConstable().get(),
+                Stream.of(m.getParameterTypes()).map(t -> t.describeConstable().get()).toList());
     }
 
     private void conditionalBranch(Opcode reverseOpcode, Block.Reference trueBlock, Block.Reference falseBlock) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.code.Types.FunctionDescriptorLookupError;
 import com.sun.tools.javac.comp.Attr.ResultInfo;
 import com.sun.tools.javac.comp.Attr.TargetInfo;
@@ -105,8 +104,6 @@ public class ArgumentAttr extends JCTree.Visitor {
     private final Symtab syms;
     private final Log log;
 
-    private final Types types;
-
     /** Attribution environment to be used. */
     private Env<AttrContext> env;
 
@@ -131,7 +128,6 @@ public class ArgumentAttr extends JCTree.Visitor {
         attr = Attr.instance(context);
         syms = Symtab.instance(context);
         log = Log.instance(context);
-        types = Types.instance(context);
     }
 
     /**
@@ -563,22 +559,17 @@ public class ArgumentAttr extends JCTree.Visitor {
 
         @Override
         Type overloadCheck(ResultInfo resultInfo, DeferredAttrContext deferredAttrContext) {
-            if (types.isQuoted(resultInfo.pt)) {
-                // quoted lambda - always correct
-                return resultInfo.pt;
-            } else {
-                try {
-                    //compute target-type; this logic could be shared with Attr
-                    TargetInfo targetInfo = attr.getTargetInfo(speculativeTree, resultInfo, argtypes());
-                    Type lambdaType = targetInfo.descriptor;
-                    Type currentTarget = targetInfo.target;
-                    //check compatibility
-                    checkLambdaCompatible(lambdaType, resultInfo);
-                    return currentTarget;
-                } catch (FunctionDescriptorLookupError ex) {
-                    resultInfo.checkContext.report(null, ex.getDiagnostic());
-                    return null; //cannot get here
-                }
+            try {
+                //compute target-type; this logic could be shared with Attr
+                TargetInfo targetInfo = attr.getTargetInfo(speculativeTree, resultInfo, argtypes());
+                Type lambdaType = targetInfo.descriptor;
+                Type currentTarget = targetInfo.target;
+                //check compatibility
+                checkLambdaCompatible(lambdaType, resultInfo);
+                return currentTarget;
+            } catch (FunctionDescriptorLookupError ex) {
+                resultInfo.checkContext.report(null, ex.getDiagnostic());
+                return null; //cannot get here
             }
         }
 

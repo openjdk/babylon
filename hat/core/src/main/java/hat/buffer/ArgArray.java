@@ -26,21 +26,17 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.BufferTagger;
-import hat.ComputeContext;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.List;
 
 import static hat.buffer.ArgArray.Arg.Value.Buf.UNKNOWN_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface ArgArray extends Buffer {
     interface Arg extends Buffer.Struct{
@@ -293,8 +289,6 @@ public interface ArgArray extends Buffer {
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
         Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
         List<BufferTagger.AccessType> bufferAccessList = kernelCallGraph.bufferAccessList;
-        boolean bufferTagging = Boolean.getBoolean("bufferTagging");
-
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
@@ -331,7 +325,11 @@ public interface ArgArray extends Buffer {
                     buf.bytes(segment.byteSize());
                     buf.access(accessByte);
 
-                    if (bufferTagging) assert bufferAccessList.get(i).value == accessByte;
+                    assert bufferAccessList.get(i).value == accessByte: "buffer tagging mismatch: "
+                            + kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
+                            + " in " + kernelCallGraph.entrypoint.getMethod().getName()
+                            + " annotated as " + BufferTagger.convertAccessType(accessByte)
+                            + " but tagged as " + bufferAccessList.get(i).name();
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }

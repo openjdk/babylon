@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -197,36 +197,6 @@ public class UnreachableTest {
             };
             """)
     static final Quotable QUOTABLE_TEST = (IntUnaryOperator & Quotable) (int i) -> {
-        if (true) {
-            return i;
-        } else {
-            return i;
-        }
-    };
-
-    @IR("""
-            func @"f" ()java.type:"void" -> {
-                %0 : func<java.type:"int", java.type:"int"> = closure (%1 : java.type:"int")java.type:"int" -> {
-                    %2 : Var<java.type:"int"> = var %1 @"i";
-                    java.if
-                        ()java.type:"boolean" -> {
-                            %3 : java.type:"boolean" = constant @true;
-                            yield %3;
-                        }
-                        ()java.type:"void" -> {
-                            %4 : java.type:"int" = var.load %2;
-                            return %4;
-                        }
-                        ()java.type:"void" -> {
-                            %5 : java.type:"int" = var.load %2;
-                            return %5;
-                        };
-                    unreachable;
-                };
-                return;
-            };
-            """)
-    static final Quoted QUOTED_TEST = (int i) -> {
         if (true) {
             return i;
         } else {

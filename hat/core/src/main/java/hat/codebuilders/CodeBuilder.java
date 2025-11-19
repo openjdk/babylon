@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.F16;
 import hat.util.StreamMutable;
 
 import java.util.function.Consumer;
@@ -306,6 +307,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return obrace().indent(ct).cbrace();
     }
 
+    public T ocsbrace() {
+        return osbrace().csbrace();
+    }
+    public T ocbrace() {
+        return obrace().cbrace();
+    }
     public T sbrace(Consumer<T> ct) {
         return osbrace().accept(ct).csbrace();
     }
@@ -464,7 +471,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T intConstZero() {
         return constant("0");
     }
-
+    public final T intConstOne() {
+        return constant("1");
+    }
+    public final T intConstTwo() {
+        return constant("2");
+    }
 
     public final T voidType() {
         return typeName("void");
@@ -496,6 +508,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return typeName("short");
     }
 
+    public final T halfType() {
+        return typeName(F16.HAT_MAPPING_TYPE + "_t");
+    }
 
     @Override
     public final T comment(String text) {
@@ -520,6 +535,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T symbol(String text) {
         return emitText(text);
     }
+
     @Override
     public final T typeName(String text) {
         return emitText(text);

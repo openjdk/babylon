@@ -27,8 +27,6 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-import java.lang.invoke.MethodHandles;
-
 public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
     int width();
     int height();

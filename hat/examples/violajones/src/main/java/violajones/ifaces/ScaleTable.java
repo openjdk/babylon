@@ -104,12 +104,14 @@ public interface ScaleTable extends Buffer {
             }
             this.scales = nonFinalScales;
         }
-        Constraints( int cascadeWidth, int cascadeHeight, int imageWidth, int imageHeight){
-           this(1f,2f,0.06f,cascadeWidth,cascadeHeight,imageWidth,imageHeight);
-        }
-        public Constraints(Cascade cascade, int imageWidth, int imageHeight){
-            this(1f,2f,0.06f,cascade.width(),cascade.height(),imageWidth,imageHeight);
-        }
+
+         public Constraints(Cascade cascade, int imageWidth, int imageHeight){
+             this(
+                     Float.parseFloat(System.getProperty("constraint.scale.start", "1")),
+                     Float.parseFloat(System.getProperty("constraint.scale.multiplier", "2")),
+                     Float.parseFloat(System.getProperty("constraint.inc", "0.06")),
+                     cascade.width(),cascade.height(),imageWidth,imageHeight);
+         }
     }
 
       default ScaleTable applyConstraints ( Constraints constraints) {

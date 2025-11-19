@@ -28,11 +28,8 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Buffer {
@@ -40,6 +37,9 @@ public interface S32Array extends Buffer {
     int length();
     int array(long idx);
     void array(long idx, int i);
+
+    int HEADER_BYTES = 4;
+
     Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
 
@@ -53,11 +53,11 @@ public interface S32Array extends Buffer {
         return create( accelerator, arr.length).copyfrom(arr);
     }
     default S32Array copyfrom(int[] ints) {
-        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
+        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, HEADER_BYTES, length());
         return this;
     }
     default S32Array copyTo(int[] ints) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, ints, 0, length());
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, HEADER_BYTES, ints, 0, length());
         return this;
     }
     default S32Array fill(Function<Integer, Integer> filler) {

@@ -38,18 +38,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.dialect.java.JavaType.type;
-
 public class TestStream {
 
     @Test
     public void testMapFilterForEach() {
-        CoreOp.FuncOp f = StreamFuser.fromList(type(Integer.class))
-                .map((Integer i) -> i.toString())
-                .filter((String s) -> s.length() < 10)
-                .map((String s) -> s.concat("_XXX"))
-                .filter((String s) -> s.length() < 10)
-                .forEach((String s) -> System.out.println(s));
+        CoreOp.FuncOp f = StreamFuser.fromList(Integer.class)
+                .map(Object::toString)
+                .filter(s -> s.length() < 10)
+                .map(s -> s.concat("_XXX"))
+                .filter(s -> s.length() < 10)
+                // Cannot use method reference since it captures the result of the expression "System.out"
+                .forEach(s -> System.out.println(s));
 
         System.out.println(f.toText());
 
@@ -63,13 +62,13 @@ public class TestStream {
 
     @Test
     public void testMapFlatMapFilterCollect() {
-        CoreOp.FuncOp f = StreamFuser.fromList(type(Integer.class))
-                .map((Integer i) -> i.toString())
-                .flatMap((String s) -> List.of(s, s))
-                .filter((String s) -> s.length() < 10)
-                .map((String s) -> s.concat("_XXX"))
-                .filter((String s) -> s.length() < 10)
-                .collect(() -> new ArrayList<String>(), (List<String> l, String e) -> l.add(e));
+        CoreOp.FuncOp f = StreamFuser.fromList(Integer.class)
+                .map(Object::toString)
+                .flatMap(s -> List.of(s, s))
+                .filter(s -> s.length() < 10)
+                .map(s -> s.concat("_XXX"))
+                .filter(s -> s.length() < 10)
+                .collect(ArrayList::new, ArrayList::add);
 
         System.out.println(f.toText());
 

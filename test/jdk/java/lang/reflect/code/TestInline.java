@@ -24,6 +24,7 @@
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -31,6 +32,8 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntBinaryOperator;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
@@ -46,8 +49,8 @@ public class TestInline {
 
     @Test
     public void testInline() {
-        Quoted q = (int a, int b) -> a + b;
-        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
+        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) -> a + b;
+        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         // functional type = (int)int
         CoreOp.FuncOp f = func("f", functionType(INT, INT))
@@ -68,8 +71,8 @@ public class TestInline {
 
     @Test
     public void testInlineVar() {
-        Quoted q = (int a, int b) -> a + b;
-        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
+        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) -> a + b;
+        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         // functional type = (int)int
         CoreOp.FuncOp f = func("f", functionType(INT, INT))
@@ -97,15 +100,15 @@ public class TestInline {
 
     @Test
     public void testInlineLowerMultipleReturn() {
-        Quoted q = (int a, int b) ->  {
+        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
             return a - b;
         };
-        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
+        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
         System.out.println(cop.toText());
-        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        JavaOp.LambdaOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
 
         // functional type = (int)int
@@ -126,15 +129,15 @@ public class TestInline {
 
     @Test
     public void testInlineLowerMultipleReturnVar() {
-        Quoted q = (int a, int b) ->  {
+        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
             return a - b;
         };
-        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
+        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
         System.out.println(cop.toText());
-        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        JavaOp.LambdaOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
 
         // functional type = (int)int
@@ -161,13 +164,13 @@ public class TestInline {
 
     @Test
     public void testInlineMultipleReturnLower() {
-        Quoted q = (int a, int b) ->  {
+        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
             return a - b;
         };
-        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
+        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
         System.out.println(cop.toText());
 
         CoreOp.FuncOp f = func("f", functionType(INT, INT))
@@ -190,11 +193,11 @@ public class TestInline {
 
     @Test
     public void testInlineVoid() {
-        Quoted q = (int[] a) -> {
+        Quotable q = (Consumer<int[]> & Quotable) (int[] a) -> {
             a[0] = 42;
             return;
         };
-        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
+        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         // functional type = (int)int
         CoreOp.FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))

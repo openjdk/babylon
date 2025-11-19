@@ -42,3 +42,7 @@
 * [More ](https://www.phoronix.com/review/radeon-cuda-zluda)
 * [More](https://scale-lang.com/posts/2024-07-12-release-announcement)
 * [Scale](https://docs.scale-lang.com/)
+
+### Blogs and Articles
+* [Inside NVIDIA GPUs: Anatomy of high performance matmul kernels](https://www.aleksagordic.com/blog/matmul)
+* [How to Optimize a CUDA Matmul Kernel for cuBLAS-like Performance: a Worklog](https://siboehm.com/articles/22/CUDA-MMM)

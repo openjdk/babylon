@@ -29,9 +29,15 @@ public class StreamMutable<R> {
     public R get() {
         return value;
     }
-    public StreamMutable<R> set(R value) {
-        this.value = value;
+    public StreamMutable<R> setIf(boolean iff,R value) {
+        this.value = iff?value:this.value;
         return this;
+    }
+    public StreamMutable<R> set(R value) {
+      return setIf(true, value);
+    }
+    public boolean eq(R r){
+        return r.equals(value);
     }
     private StreamMutable(){}
     static public <R> StreamMutable<R> of(R value){

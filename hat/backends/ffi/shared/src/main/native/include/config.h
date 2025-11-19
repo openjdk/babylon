@@ -1,55 +1,61 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
-
-// Auto generated from  hat.backend.ffi.Config
-// Auto generated from  hat.backend.ffi.Config
-// Auto generated from  hat.backend.ffi.Config
+* Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+* DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+*
+* This code is free software; you can redistribute it and/or modify it
+* under the terms of the GNU General Public License version 2 only, as
+* published by the Free Software Foundation.  Oracle designates this
+* particular file as subject to the "Classpath" exception as provided
+* by Oracle in the LICENSE file that accompanied this code.
+*
+* This code is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+* version 2 for more details (a copy is included in the LICENSE file that
+* accompanied this code).
+*
+* You should have received a copy of the GNU General Public License version
+* 2 along with this work; if not, write to the Free Software Foundation,
+* Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+*
+* Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+* or visit www.oracle.com if you need additional information or have any
+* questions.
+*/
+/*
+You probably should not edit this this file!!!
+It was auto generated 2025-11-04 15:18:52.357 by hat.FFIConfigCreator
+*/
 #pragma once
 
 #include <iostream>
 
 
 struct BasicConfig{
-    static constexpr int START_BIT_IDX                    = 0x10;
-    static constexpr int MINIMIZE_COPIES_BIT              = 1<<0x10;
-    static constexpr int TRACE_BIT                        = 1<<0x11;
-    static constexpr int PROFILE_BIT                      = 1<<0x12;
-    static constexpr int SHOW_CODE_BIT                    = 1<<0x13;
-    static constexpr int SHOW_KERNEL_MODEL_BIT            = 1<<0x14;
-    static constexpr int SHOW_COMPUTE_MODEL_BIT           = 1<<0x15;
-    static constexpr int INFO_BIT                         = 1<<0x16;
-    static constexpr int TRACE_COPIES_BIT                 = 1<<0x17;
-    static constexpr int TRACE_SKIPPED_COPIES_BIT         = 1<<0x18;
-    static constexpr int TRACE_ENQUEUES_BIT               = 1<<0x19;
-    static constexpr int TRACE_CALLS_BIT                  = 1<<0x1a;
-    static constexpr int SHOW_WHY_BIT                     = 1<<0x1b;
-    static constexpr int SHOW_STATE_BIT                   = 1<<0x1c;
-    static constexpr int PTX_BIT                          = 1<<0x1d;
-    static constexpr int INTERPRET_BIT                    = 1<<0x1e;
-    static constexpr int END_BIT_IDX                      = 0x1f;
+    static constexpr int MINIMIZE_COPIES_BIT              = 1<<0x8;
+    static constexpr int TRACE_BIT                        = 1<<0x9;
+    static constexpr int PROFILE_BIT                      = 1<<0xa;
+    static constexpr int SHOW_CODE_BIT                    = 1<<0xb;
+    static constexpr int SHOW_KERNEL_MODEL_BIT            = 1<<0xc;
+    static constexpr int SHOW_COMPUTE_MODEL_BIT           = 1<<0xd;
+    static constexpr int SHOW_DEVICE_INFO_BIT             = 1<<0xe;
+    static constexpr int INFO_BIT                         = 1<<0xf;
+    static constexpr int WARN_BIT                         = 1<<0x10;
+    static constexpr int UNIT_BIT                         = 1<<0x11;
+    static constexpr int TRACE_COPIES_BIT                 = 1<<0x12;
+    static constexpr int TRACE_SKIPPED_COPIES_BIT         = 1<<0x13;
+    static constexpr int TRACE_ENQUEUES_BIT               = 1<<0x14;
+    static constexpr int TRACE_CALLS_BIT                  = 1<<0x15;
+    static constexpr int SHOW_WHY_BIT                     = 1<<0x16;
+    static constexpr int SHOW_STATE_BIT                   = 1<<0x17;
+    static constexpr int PTX_BIT                          = 1<<0x18;
+    static constexpr int INTERPRET_BIT                    = 1<<0x19;
+    static constexpr int HEADLESS_BIT                     = 1<<0x1a;
+    static constexpr int SHOW_LOWERED_KERNEL_MODEL_BIT    = 1<<0x1b;
+    static constexpr int SHOW_COMPILATION_PHASES_BIT      = 1<<0x1c;
+    static constexpr int PROFILE_CUDA_KERNEL_BIT          = 1<<0x1d;
     const static char *bitNames[]; // See below for initialization
+    const static char *bitDescriptions[]; // See below for initialization
     int configBits;
     bool minimizeCopies;
     bool trace;
@@ -57,7 +63,10 @@ struct BasicConfig{
     bool showCode;
     bool showKernelModel;
     bool showComputeModel;
+    bool showDeviceInfo;
     bool info;
+    bool warn;
+    bool unit;
     bool traceCopies;
     bool traceSkippedCopies;
     bool traceEnqueues;
@@ -66,6 +75,10 @@ struct BasicConfig{
     bool showState;
     bool ptx;
     bool interpret;
+    bool headless;
+    bool showLoweredKernelModel;
+    bool showCompilationPhases;
+    bool profileCudaKernel;
     int platform;
     int device;
     bool alwaysCopy;
@@ -77,7 +90,10 @@ struct BasicConfig{
         showCode((configBits & SHOW_CODE_BIT)==SHOW_CODE_BIT),
         showKernelModel((configBits & SHOW_KERNEL_MODEL_BIT)==SHOW_KERNEL_MODEL_BIT),
         showComputeModel((configBits & SHOW_COMPUTE_MODEL_BIT)==SHOW_COMPUTE_MODEL_BIT),
+        showDeviceInfo((configBits & SHOW_DEVICE_INFO_BIT)==SHOW_DEVICE_INFO_BIT),
         info((configBits & INFO_BIT)==INFO_BIT),
+        warn((configBits & WARN_BIT)==WARN_BIT),
+        unit((configBits & UNIT_BIT)==UNIT_BIT),
         traceCopies((configBits & TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
         traceSkippedCopies((configBits & TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
         traceEnqueues((configBits & TRACE_ENQUEUES_BIT)==TRACE_ENQUEUES_BIT),
@@ -86,17 +102,24 @@ struct BasicConfig{
         showState((configBits & SHOW_STATE_BIT)==SHOW_STATE_BIT),
         ptx((configBits & PTX_BIT)==PTX_BIT),
         interpret((configBits & INTERPRET_BIT)==INTERPRET_BIT),
+        headless((configBits & HEADLESS_BIT)==HEADLESS_BIT),
+        showLoweredKernelModel((configBits & SHOW_LOWERED_KERNEL_MODEL_BIT)==SHOW_LOWERED_KERNEL_MODEL_BIT),
+        showCompilationPhases((configBits & SHOW_COMPILATION_PHASES_BIT)==SHOW_COMPILATION_PHASES_BIT),
+        profileCudaKernel((configBits & PROFILE_CUDA_KERNEL_BIT)==PROFILE_CUDA_KERNEL_BIT),
         platform(configBits & 0xf),
         alwaysCopy(!minimizeCopies),
         device((configBits & 0xf0) >> 4){
-            if(info){
+            if(showDeviceInfo){
                 std::cout << "native minimizeCopies " << minimizeCopies << std::endl;
                 std::cout << "native trace " << trace << std::endl;
                 std::cout << "native profile " << profile << std::endl;
                 std::cout << "native showCode " << showCode << std::endl;
                 std::cout << "native showKernelModel " << showKernelModel << std::endl;
                 std::cout << "native showComputeModel " << showComputeModel << std::endl;
+                std::cout << "native showDeviceInfo " << showDeviceInfo << std::endl;
                 std::cout << "native info " << info << std::endl;
+                std::cout << "native warn " << warn << std::endl;
+                std::cout << "native unit " << unit << std::endl;
                 std::cout << "native traceCopies " << traceCopies << std::endl;
                 std::cout << "native traceSkippedCopies " << traceSkippedCopies << std::endl;
                 std::cout << "native traceEnqueues " << traceEnqueues << std::endl;
@@ -105,10 +128,14 @@ struct BasicConfig{
                 std::cout << "native showState " << showState << std::endl;
                 std::cout << "native ptx " << ptx << std::endl;
                 std::cout << "native interpret " << interpret << std::endl;
-
+                std::cout << "native headless " << headless << std::endl;
+                std::cout << "native showLoweredKernelModel " << showLoweredKernelModel << std::endl;
+                std::cout << "native showCompilationPhases " << showCompilationPhases << std::endl;
+                std::cout << "native profileCudaKernel " << profileCudaKernel << std::endl;
+                std::cout << "native platform " << platform << std::endl;
+                std::cout << "native device " << device << std::endl;
             }
         }
-
     virtual ~BasicConfig()= default;
 };
 
@@ -120,7 +147,10 @@ const char *BasicConfig::bitNames[]={
     "SHOW_CODE_BIT",
     "SHOW_KERNEL_MODEL_BIT",
     "SHOW_COMPUTE_MODEL_BIT",
+    "SHOW_DEVICE_INFO_BIT",
     "INFO_BIT",
+    "WARN_BIT",
+    "UNIT_BIT",
     "TRACE_COPIES_BIT",
     "TRACE_SKIPPED_COPIES_BIT",
     "TRACE_ENQUEUES_BIT",
@@ -129,5 +159,33 @@ const char *BasicConfig::bitNames[]={
     "SHOW_STATE_BIT",
     "PTX_BIT",
     "INTERPRET_BIT",
+    "HEADLESS_BIT",
+    "SHOW_LOWERED_KERNEL_MODEL_BIT",
+    "SHOW_COMPILATION_PHASES_BIT",
+    "PROFILE_CUDA_KERNEL_BIT",
+};
+const char *BasicConfig::bitDescriptions[]={
+    "FFI ONLY Try to minimize copies",
+    "FFI ONLY trace code",
+    "FFI ONLY Turn on profiling",
+    "Show generated code (PTX/OpenCL/CUDA)",
+    "Show (via OpWriter) Kernel Model",
+    "Show (via OpWriter) Compute Model",
+    "FFI show platform and device info",
+    "INFO level logging",
+    "WARN(ing) level logging ",
+    "UNIT test level logging  ",
+    "FFI ONLY trace copies",
+    "FFI ONLY Trace skipped copies (see MINIMIZE_COPIES) ",
+    "FFI ONLY trace enqueued tasks",
+    "FFI ONLY trace calls (enter/leave)",
+    "FFI ONLY show why we decided to copy buffer (H to D)",
+    "Show iface buffer state changes",
+    "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code",
+    "Interpret the code model rather than converting to bytecode",
+    "Don't show UI",
+    "Show (via OpWriter) Lowered Kernel Model",
+    "Show HAT compilation phases",
+    "Add -lineinfo to CUDA kernel compilation for profiling and debugging",
 };
 #endif

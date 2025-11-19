@@ -26,6 +26,7 @@
 package hat.backend.java;
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
@@ -35,7 +36,7 @@ import java.lang.foreign.Arena;
 import java.lang.reflect.InvocationTargetException;
 
 
-public abstract class JavaBackend implements Backend {
+public abstract class JavaBackend extends Backend {
 
     public final Arena arena = Arena.global();
 
@@ -55,6 +56,14 @@ public abstract class JavaBackend implements Backend {
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    JavaBackend(Config config){
+        super(config);
+    }
+
+    JavaBackend(){
+        this(Config.fromEnvOrProperty());
     }
 
 }

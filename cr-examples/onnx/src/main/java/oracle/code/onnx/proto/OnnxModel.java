@@ -179,7 +179,91 @@ public sealed interface OnnxModel {
         @f(6) String docString,
 
         /// Named metadata values; keys should be distinct.
-        @f(9) List<StringStringEntryProto> metadataProps) implements OnnxModel {
+        @f(9) List<StringStringEntryProto> metadataProps,
+
+        /// Configuration of multi-device annotations.
+        @f(10) List<NodeDeviceConfigurationProto> deviceConfigurations) implements OnnxModel {
+    }
+
+    /// IntIntListEntryProto follows the pattern for cross-proto-version maps.
+    /// See https://developers.google.com/protocol-buffers/docs/proto3#maps
+    public record IntIntListEntryProto (
+
+        @f(1) Long key,
+
+        @f(2) List<long[]> value) implements OnnxModel {
+    }
+
+    /// Multi-device configuration proto for NodeProto.
+    public record NodeDeviceConfigurationProto (
+
+        /// This field MUST be present for this version of the IR.
+        /// ID of the configuration. MUST match the name of a DeviceConfigurationProto.
+        @f(1) String configurationId,
+
+        /// Sharding spec for the node.
+        @f(2) List<ShardingSpecProto> shardingSpec,
+
+        /// Pipeline stage of this node.
+        @f(3) Integer pipelineStage) implements OnnxModel {
+    }
+
+    /// ShardingSpecProto: This describes the sharding spec for a specific
+    /// input or output tensor of a node.
+    public record ShardingSpecProto (
+
+        /// This field MUST be present for this version of the IR.
+        /// Identifies the input or output of the node that is being sharded.
+        /// Required to match a name specified in the node's input or output list of ValueInfoProtos.
+        /// It is called `logical tensor` in subsequent descriptions.
+        @f(1) String tensorName,
+
+        /// The following is the list of devices across which the logical
+        /// tensor is sharded or replicated.
+        @f(2) List<long[]> device,
+
+        /// Each element v in above field devices may represent either a
+        /// device or a set of devices (when we want the same shard/tensor
+        /// to be replicated across a subset of devices), as indicated by
+        /// the following optional map. If the map contains an entry for v,
+        /// then v represents a device group, and the map indicates the set
+        /// of devices in that group.
+        @f(3) List<IntIntListEntryProto> indexToDeviceGroupMap,
+
+        /// The following is the sharded-shape of the tensor, consisting of
+        /// the sharding-spec for each axis of the tensor.
+        @f(4) List<ShardedDimProto> shardedDim) implements OnnxModel {
+    }
+
+    /// ShardedDimProto: This describes the sharding spec for a single
+    /// axis of a sharded tensor.
+    public record ShardedDimProto (
+
+        /// This field MUST be present for this version of the IR.
+        /// The axis this sharding corresponds to. Must be in the range of
+        /// [-r, r - 1], where r is the rank of the tensor. Negative axis values means
+        /// counting from the back.
+        @f(1) Long axis,
+
+        /// Describes how the tensor on the provided axis is sharded.
+        /// The common-case is described by a single instance of SimpleShardedDimProto.
+        /// Multiple instances can be used to handle cases where a sharded
+        /// tensor is reshaped, fusing multiple axes into one.
+        @f(2) List<SimpleShardedDimProto> simpleSharding) implements OnnxModel {
+    }
+
+    /// SimpleShardedDimProto: Indicates that N blocks are divided into M shards.
+    /// N is allowed to be symbolic where M is required to be a constant.
+    public record SimpleShardedDimProto (
+
+        /// Dimension value to be sharded.
+        @f(1) Long dimValue,
+
+        @f(2) String dimParam,
+
+        /// This field MUST be present for this version of the IR.
+        /// Number of shards to split dim into.
+        @f(3) Long numShards) implements OnnxModel {
     }
 
     /// Training information
@@ -368,7 +452,7 @@ public sealed interface OnnxModel {
         ///
         /// The (domain, name, overload) tuple must be unique across the function protos in this list.
         /// In case of any conflicts the behavior (whether the model local functions are given higher priority,
-        /// or standard operator sets are given higher priotity or this is treated as error) is defined by
+        /// or standard operator sets are given higher priority or this is treated as error) is defined by
         /// the runtimes.
         ///
         /// The operator sets imported by FunctionProto should be compatible with the ones
@@ -380,7 +464,26 @@ public sealed interface OnnxModel {
         ///
         /// One FunctionProto can reference other FunctionProto in the model, however, recursive reference
         /// is not allowed.
-        @f(25) List<FunctionProto> functions) implements OnnxModel {
+        @f(25) List<FunctionProto> functions,
+
+        /// Describes different target configurations for a multi-device use case.
+        /// A model MAY describe multiple multi-device configurations for execution.
+        @f(26) List<DeviceConfigurationProto> configuration) implements OnnxModel {
+    }
+
+    /// DeviceConfigurationProto describes a multi-device configuration for a model.
+    public record DeviceConfigurationProto (
+
+        /// This field MUST be present for this version of the IR.
+        /// Name of the configuration.
+        @f(1) String name,
+
+        /// This field MUST be present for this version of the IR.
+        /// Number of devices inside this configuration.
+        @f(2) Integer numDevices,
+
+        /// Optional names of the devices. MUST be length of num_devices if provided.
+        @f(3) List<String> device) implements OnnxModel {
     }
 
     /// StringStringEntryProto follows the pattern for cross-proto-version maps.
@@ -484,7 +587,7 @@ public sealed interface OnnxModel {
         /// - For 4-bit data types, each `int32_data` stores two elements.
         ///
         /// When this field is present, the data_type field MUST be
-        /// INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT4E2M1
+        /// INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0, FLOAT4E2M1
         @f(5) List<int[]> int32Data,
 
         /// For strings.

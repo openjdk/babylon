@@ -277,7 +277,7 @@ public class JavaTypeUtils {
                 JavaType owner = select(tree, 0, JavaTypeUtils::toJavaType);
                 ExternalizedTypeElement nameAndArgs = select(tree, 1, Function.identity());
                 List<JavaType> paramTypes = selectFrom(nameAndArgs, 0, JavaTypeUtils::toJavaType);
-                yield ConstructorRef.constructor(owner, paramTypes);
+                yield MethodRef.constructor(owner, paramTypes);
             }
             case JAVA_REF_RECORD_NAME -> {
                 JavaType owner = select(tree, 0, JavaTypeUtils::toJavaType);

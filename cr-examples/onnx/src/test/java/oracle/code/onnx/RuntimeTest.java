@@ -83,6 +83,54 @@ public class RuntimeTest {
     }
 
     @Test
+    public void testExecutionProvider() throws Exception {
+        var ort = OnnxRuntime.getInstance();
+        try (Arena arena = Arena.ofConfined()) {
+            var sessionOptions = ort.createSessionOptions(arena);
+            ort.appendExecutionProvider_V2(arena, sessionOptions,  new OnnxProvider("WebGpuExecutionProvider", null));
+            var absOp = ort.createSession(arena, buildModel(
+                    List.of(),
+                    List.of(tensorInfo("x", FLOAT.id)),
+                    List.of(node("Abs", List.of("x"), List.of("y"), Map.of())),
+                    List.of("y")));
+
+            var addOp = ort.createSession(arena, buildModel(
+                    List.of(),
+                    List.of(tensorInfo("a", FLOAT.id), tensorInfo("b", FLOAT.id)),
+                    List.of(node("Add", List.of("a", "b"), List.of("y"), Map.of())),
+                    List.of("y")));
+
+            assertEquals(1, absOp.getNumberOfInputs());
+            assertEquals(1, absOp.getNumberOfOutputs());
+
+            assertEquals(2, addOp.getNumberOfInputs());
+            assertEquals(1, addOp.getNumberOfOutputs());
+
+            var inputTensor = Tensor.ofFlat(arena, -1f, 2, -3, 4, -5, 6);
+
+            var absExpectedTensor = Tensor.ofFlat(arena, 1f, 2, 3, 4, 5, 6);
+
+            var absResult = absOp.run(arena, List.of(inputTensor));
+
+            assertEquals(1, absResult.size());
+
+            var absOutputTensor = absResult.getFirst();
+
+            SimpleTest.assertEquals(absExpectedTensor, absOutputTensor);
+
+            var addResult = addOp.run(arena, List.of(inputTensor, absOutputTensor));
+
+            assertEquals(1, addResult.size());
+
+            var addOutputTensor = addResult.getFirst();
+
+            var addExpectedTensor = Tensor.ofFlat(arena, 0f, 4, 0, 8, 0, 12);
+
+            SimpleTest.assertEquals(addExpectedTensor, addOutputTensor);
+        }
+    }
+
+    @Test
     public void testIf() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (Arena arena = Arena.ofConfined()) {

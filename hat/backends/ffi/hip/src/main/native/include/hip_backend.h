@@ -168,7 +168,7 @@ private:
     hipDevice_t device;
     hipCtx_t context;
 public:
-    void info();
+    void showDeviceInfo();
 
      HipBackend(int mode);
     HipBackend();

@@ -107,7 +107,7 @@ public class CNNTest {
             // Inputs
             Tensor<Byte> ubyteImage) {
 
-        Tensor<Float> inputImage = Cast(ubyteImage, empty(), Tensor.ElementType.FLOAT.id);
+        Tensor<Float> inputImage = Cast(ubyteImage, empty(), Tensor.ElementType.FLOAT.id, empty());
 
         // Scaling the features to 0-1
         var scalingFactor = Constant((float) PIXEL_DEPTH);
@@ -186,7 +186,9 @@ public class CNNTest {
             var inputImage = b.op(OnnxOps.Cast(OnnxType.TENSOR_FLOAT32,
                     ubyteImage,
                     empty(),
-                    OnnxType.TENSOR_FLOAT32.eType().id()));
+                    OnnxType.TENSOR_FLOAT32.eType().id(),
+                    empty()
+            ));
 
             // Scaling the features
             var scalingFactor = b.op(OnnxOps.Constant(OnnxType.TENSOR_FLOAT32,

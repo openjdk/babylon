@@ -30,6 +30,7 @@
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.ExternalizedOp;
 import org.junit.jupiter.api.Assertions;
@@ -52,7 +53,7 @@ public class TestCopy {
     public void testCopy() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        Op copy = f.copy();
+        Op copy = f.transform(CopyContext.create(), OpTransformer.COPYING_TRANSFORMER);
 
         Assertions.assertEquals(copy.toText(), f.toText());
     }

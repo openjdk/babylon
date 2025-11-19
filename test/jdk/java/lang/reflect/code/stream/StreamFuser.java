@@ -23,7 +23,6 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.EnhancedForOp;
@@ -31,10 +30,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.*;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaOp.continue_;
@@ -44,49 +40,68 @@ import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public final class StreamFuser {
 
+    // Quotable functional interfaces
+
+    public interface QuotablePredicate<T> extends Quotable, Predicate<T> {
+    }
+
+    public interface QuotableFunction<T, R> extends Quotable, Function<T, R> {
+    }
+
+    public interface QuotableSupplier<T> extends Quotable, Supplier<T> {
+    }
+
+    public interface QuotableConsumer<T> extends Quotable, Consumer<T> {
+    }
+
+    public interface QuotableBiConsumer<T, U> extends Quotable, BiConsumer<T, U> {
+    }
+
+
     StreamFuser() {}
 
-    public static StreamExprBuilder fromList(JavaType elementType) {
+    public static <T> StreamExprBuilder<T> fromList(Class<T> elementClass) {
+        JavaType elementType = type(elementClass);
         // java.util.List<E>
         JavaType listType = parameterized(type(List.class), elementType);
-        return new StreamExprBuilder(listType, elementType,
+        return new StreamExprBuilder<>(listType, elementType,
                 (b, v) -> StreamExprBuilder.enhancedForLoop(b, elementType, v)::body);
     }
 
-    public static class StreamExprBuilder {
+    public static class StreamExprBuilder<T> {
         static class StreamOp {
-            final Quoted quotedClosure;
+            final JavaOp.LambdaOp lambdaOp;
 
-            StreamOp(Quoted quotedClosure) {
-                if (!(quotedClosure.op() instanceof CoreOp.ClosureOp)) {
-                    throw new IllegalArgumentException("Quoted operation is not closure operation");
+            StreamOp(Quotable quotedLambda) {
+                if (!(Op.ofQuotable(quotedLambda).get().op() instanceof JavaOp.LambdaOp lambdaOp)) {
+                    throw new IllegalArgumentException("Quotable operation is not lambda operation");
                 }
-                this.quotedClosure = quotedClosure;
+                if (!(Op.ofQuotable(quotedLambda).get().capturedValues().isEmpty())) {
+                    throw new IllegalArgumentException("Quotable operation captures values");
+                }
+                this.lambdaOp = lambdaOp;
             }
 
-            CoreOp.ClosureOp op() {
-                return (CoreOp.ClosureOp) quotedClosure.op();
+            JavaOp.LambdaOp op() {
+                return lambdaOp;
             }
         }
 
         static class MapStreamOp extends StreamOp {
-            public MapStreamOp(Quoted quotedClosure) {
-                super(quotedClosure);
-                // @@@ Check closure signature
+            public MapStreamOp(Quotable quotedLambda) {
+                super(quotedLambda);
             }
         }
 
         static class FlatMapStreamOp extends StreamOp {
-            public FlatMapStreamOp(Quoted quotedClosure) {
-                super(quotedClosure);
-                // @@@ Check closure signature
+            public FlatMapStreamOp(Quotable quotedLambda) {
+                super(quotedLambda);
             }
         }
 
         static class FilterStreamOp extends StreamOp {
-            public FilterStreamOp(Quoted quotedClosure) {
-                super(quotedClosure);
-                // @@@ Check closure signature
+            public FilterStreamOp(Quotable quotedLambda) {
+                super(quotedLambda);
             }
         }
 
@@ -114,17 +129,19 @@ public final class StreamFuser {
                     });
         }
 
-        public StreamExprBuilder map(Quoted f) {
+        @SuppressWarnings("unchecked")
+        public <R> StreamExprBuilder<R> map(QuotableFunction<T, R> f) {
             streamOps.add(new MapStreamOp(f));
-            return this;
+            return (StreamExprBuilder<R>) this;
         }
 
-        public StreamExprBuilder flatMap(Quoted f) {
+        @SuppressWarnings("unchecked")
+        public <R> StreamExprBuilder<R> flatMap(QuotableFunction<T, Iterable<R>> f) {
             streamOps.add(new FlatMapStreamOp(f));
-            return this;
+            return (StreamExprBuilder<R>) this;
         }
 
-        public StreamExprBuilder filter(Quoted f) {
+        public StreamExprBuilder<T> filter(QuotablePredicate<T> f) {
             streamOps.add(new FilterStreamOp(f));
             return this;
         }
@@ -181,9 +198,12 @@ public final class StreamFuser {
             }
         }
 
-        public FuncOp forEach(Quoted quotedConsumer) {
-            if (!(quotedConsumer.op() instanceof CoreOp.ClosureOp consumer)) {
-                throw new IllegalArgumentException("Quoted consumer is not closure operation");
+        public FuncOp forEach(QuotableConsumer<T> quotableConsumer) {
+            if (!(Op.ofQuotable(quotableConsumer).get().op() instanceof JavaOp.LambdaOp consumer)) {
+                throw new IllegalArgumentException("Quotable consumer is not lambda operation");
+            }
+            if (!(Op.ofQuotable(quotableConsumer).get().capturedValues().isEmpty())) {
+                throw new IllegalArgumentException("Quotable consumer captures values");
             }
 
             return func("fused.forEach", CoreType.functionType(JavaType.VOID, sourceType))
@@ -205,13 +225,18 @@ public final class StreamFuser {
                     });
         }
 
-        // Supplier<C> supplier, BiConsumer<C, T> accumulator
-        public FuncOp collect(Quoted quotedSupplier, Quoted quotedAccumulator) {
-            if (!(quotedSupplier.op() instanceof CoreOp.ClosureOp supplier)) {
-                throw new IllegalArgumentException("Quoted supplier is not closure operation");
+        public <C> FuncOp collect(QuotableSupplier<C> quotableSupplier, QuotableBiConsumer<C, T> quotableAccumulator) {
+            if (!(Op.ofQuotable(quotableSupplier).get().op() instanceof JavaOp.LambdaOp supplier)) {
+                throw new IllegalArgumentException("Quotable supplier is not lambda operation");
             }
-            if (!(quotedAccumulator.op() instanceof CoreOp.ClosureOp accumulator)) {
-                throw new IllegalArgumentException("Quoted accumulator is not closure operation");
+            if (!(Op.ofQuotable(quotableSupplier).get().capturedValues().isEmpty())) {
+                throw new IllegalArgumentException("Quotable supplier captures values");
+            }
+            if (!(Op.ofQuotable(quotableAccumulator).get().op() instanceof JavaOp.LambdaOp accumulator)) {
+                throw new IllegalArgumentException("Quotable accumulator is not lambda operation");
+            }
+            if (!(Op.ofQuotable(quotableAccumulator).get().capturedValues().isEmpty())) {
+                throw new IllegalArgumentException("Quotable accumulator captures values");
             }
 
             JavaType collectType = (JavaType) supplier.invokableType().returnType();
@@ -237,3 +262,4 @@ public final class StreamFuser {
 
     }
 }
+

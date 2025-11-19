@@ -28,7 +28,6 @@ package oracle.code.onnx.ir;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.ExternalizedOp;
-import jdk.incubator.code.extern.OpFactory;
 
 import java.util.*;
 import oracle.code.onnx.Tensor;
@@ -2009,6 +2008,226 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Atanh(resultType, input);
     }
 
+    @OpFactoryHelper.OpDeclaration(Attention.NAME)
+    public static final class Attention extends OnnxOp {
+        public static final String NAME = "Attention";
+
+        public enum Attribute implements OnnxAttribute {
+            qk_matmul_output_mode(Long.class, true, 0),
+            softcap(Float.class, true, 0.0f),
+            softmax_precision(Long.class, true, null),
+            scale(Float.class, true, null),
+            is_causal(Long.class, true, 0),
+            q_num_heads(Long.class, true, null),
+            kv_num_heads(Long.class, true, null),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64())))),
+            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64())))),
+            U(new OnnxType.TypeVariable("U", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.bool())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            Q(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            K(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            V(TypeConstraint.T2.typeVariable(), Quantifier.REQUIRED),
+            attn_mask(TypeConstraint.U.typeVariable(), Quantifier.OPTIONAL),
+            past_key(TypeConstraint.T1.typeVariable(), Quantifier.OPTIONAL),
+            past_value(TypeConstraint.T2.typeVariable(), Quantifier.OPTIONAL),
+            nonpad_kv_seqlen(OnnxType.tensor(OnnxType.int64()), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            Y(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            present_key(TypeConstraint.T1.typeVariable(), Quantifier.OPTIONAL),
+            present_value(TypeConstraint.T2.typeVariable(), Quantifier.OPTIONAL),
+            qk_matmul_output(TypeConstraint.T1.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public Attention(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        Attention(Attention that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public Attention transform(CopyContext cc, OpTransformer ot) {
+            return new Attention(this, cc);
+        }
+
+        Attention(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value Q, Value K, Value V, java.util.Optional<Value> attn_mask, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> nonpad_kv_seqlen, java.util.Optional<Long> qk_matmul_output_mode, java.util.Optional<Float> softcap, java.util.Optional<Long> softmax_precision, java.util.Optional<Float> scale, java.util.Optional<Long> is_causal, java.util.Optional<Long> q_num_heads, java.util.Optional<Long> kv_num_heads) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(Q, K, V, attn_mask, past_key, past_value, nonpad_kv_seqlen), List.of(qk_matmul_output_mode, softcap, softmax_precision, scale, is_causal, q_num_heads, kv_num_heads));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(Q(), K(), V(), attn_mask(), past_key(), past_value(), nonpad_kv_seqlen()));
+        }
+
+        public Value Q() {
+            return operands().get(0);
+        }
+
+        public Value K() {
+            return operands().get(1);
+        }
+
+        public Value V() {
+            return operands().get(2);
+        }
+
+        public java.util.Optional<Value> attn_mask() {
+            int i = optionalInputArguments.indexOf(InputParameter.attn_mask);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> past_key() {
+            int i = optionalInputArguments.indexOf(InputParameter.past_key);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> past_value() {
+            int i = optionalInputArguments.indexOf(InputParameter.past_value);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> nonpad_kv_seqlen() {
+            int i = optionalInputArguments.indexOf(InputParameter.nonpad_kv_seqlen);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Long> qk_matmul_output_mode() {
+            Long qk_matmul_output_mode = Attribute.qk_matmul_output_mode.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(qk_matmul_output_mode);
+        }
+
+        public java.util.Optional<Float> softcap() {
+            Float softcap = Attribute.softcap.access(Float.class, onnxAttributes);
+            return java.util.Optional.ofNullable(softcap);
+        }
+
+        public java.util.Optional<Long> softmax_precision() {
+            Long softmax_precision = Attribute.softmax_precision.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(softmax_precision);
+        }
+
+        public java.util.Optional<Float> scale() {
+            Float scale = Attribute.scale.access(Float.class, onnxAttributes);
+            return java.util.Optional.ofNullable(scale);
+        }
+
+        public java.util.Optional<Long> is_causal() {
+            Long is_causal = Attribute.is_causal.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(is_causal);
+        }
+
+        public java.util.Optional<Long> q_num_heads() {
+            Long q_num_heads = Attribute.q_num_heads.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(q_num_heads);
+        }
+
+        public java.util.Optional<Long> kv_num_heads() {
+            Long kv_num_heads = Attribute.kv_num_heads.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(kv_num_heads);
+        }
+
+    }
+
+    public static Attention Attention(TypeElement resultType, Set<Attention.OutputParameter> optionalOutputs, Value Q, Value K, Value V, java.util.Optional<Value> attn_mask, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> nonpad_kv_seqlen, java.util.Optional<Long> qk_matmul_output_mode, java.util.Optional<Float> softcap, java.util.Optional<Long> softmax_precision, java.util.Optional<Float> scale, java.util.Optional<Long> is_causal, java.util.Optional<Long> q_num_heads, java.util.Optional<Long> kv_num_heads) {
+        return new Attention(resultType, optionalOutputs, Q, K, V, attn_mask, past_key, past_value, nonpad_kv_seqlen, qk_matmul_output_mode, softcap, softmax_precision, scale, is_causal, q_num_heads, kv_num_heads);
+    }
+
     @OpFactoryHelper.OpDeclaration(AveragePool.NAME)
     public static final class AveragePool extends OnnxOp {
         public static final String NAME = "AveragePool";
@@ -3448,6 +3667,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         public enum Attribute implements OnnxAttribute {
             saturate(Long.class, true, 1),
             to(Long.class, false, null),
+            round_mode(String.class, true, "up"),
             ;
 
                 final Class<?> t;
@@ -3475,8 +3695,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
-            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
+            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -3559,8 +3779,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Cast(this, cc);
         }
 
-        Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to) {
-            super(SCHEMA, resultType, Set.of(), List.of(input), List.of(saturate, to));
+        Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to, java.util.Optional<String> round_mode) {
+            super(SCHEMA, resultType, Set.of(), List.of(input), List.of(saturate, to, round_mode));
         }
 
         @Override
@@ -3587,10 +3807,15 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return to;
         }
 
+        public java.util.Optional<String> round_mode() {
+            String round_mode = Attribute.round_mode.access(String.class, onnxAttributes);
+            return java.util.Optional.ofNullable(round_mode);
+        }
+
     }
 
-    public static Cast Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to) {
-        return new Cast(resultType, input, saturate, to);
+    public static Cast Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to, java.util.Optional<String> round_mode) {
+        return new Cast(resultType, input, saturate, to, round_mode);
     }
 
     @OpFactoryHelper.OpDeclaration(CastLike.NAME)
@@ -3599,6 +3824,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             saturate(Long.class, true, 1),
+            round_mode(String.class, true, "up"),
             ;
 
                 final Class<?> t;
@@ -3626,8 +3852,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
-            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
+            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -3711,8 +3937,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new CastLike(this, cc);
         }
 
-        CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate) {
-            super(SCHEMA, resultType, Set.of(), List.of(input, target_type), List.of(saturate));
+        CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate, java.util.Optional<String> round_mode) {
+            super(SCHEMA, resultType, Set.of(), List.of(input, target_type), List.of(saturate, round_mode));
         }
 
         @Override
@@ -3738,10 +3964,15 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return java.util.Optional.ofNullable(saturate);
         }
 
+        public java.util.Optional<String> round_mode() {
+            String round_mode = Attribute.round_mode.access(String.class, onnxAttributes);
+            return java.util.Optional.ofNullable(round_mode);
+        }
+
     }
 
-    public static CastLike CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate) {
-        return new CastLike(resultType, input, target_type, saturate);
+    public static CastLike CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate, java.util.Optional<String> round_mode) {
+        return new CastLike(resultType, input, target_type, saturate, round_mode);
     }
 
     @OpFactoryHelper.OpDeclaration(CastMap.NAME)
@@ -5257,7 +5488,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -5413,7 +5644,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
         public enum TypeConstraint implements OnnxTypeConstraint {
             T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.int64())))),
-            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -7005,6 +7236,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         public static final String NAME = "DequantizeLinear";
 
         public enum Attribute implements OnnxAttribute {
+            output_dtype(Long.class, true, 0),
             axis(Long.class, true, 1),
             block_size(Long.class, true, 0),
             ;
@@ -7035,7 +7267,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
         public enum TypeConstraint implements OnnxTypeConstraint {
             T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
-            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.bfloat16())))),
+            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float8e8m0())))),
+            T3(new OnnxType.TypeVariable("T3", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.bfloat16())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -7077,7 +7310,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum OutputParameter implements OnnxParameter {
-            y(TypeConstraint.T2.typeVariable(), Quantifier.REQUIRED),
+            y(TypeConstraint.T3.typeVariable(), Quantifier.REQUIRED),
             ;
 
             final OnnxType type;
@@ -7120,8 +7353,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new DequantizeLinear(this, cc);
         }
 
-        DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
-            super(SCHEMA, resultType, Set.of(), List.of(x, x_scale, x_zero_point), List.of(axis, block_size));
+        DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+            super(SCHEMA, resultType, Set.of(), List.of(x, x_scale, x_zero_point), List.of(output_dtype, axis, block_size));
         }
 
         @Override
@@ -7147,6 +7380,11 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
+        public java.util.Optional<Long> output_dtype() {
+            Long output_dtype = Attribute.output_dtype.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(output_dtype);
+        }
+
         public java.util.Optional<Long> axis() {
             Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
@@ -7159,8 +7397,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static DequantizeLinear DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
-        return new DequantizeLinear(resultType, x, x_scale, x_zero_point, axis, block_size);
+    public static DequantizeLinear DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+        return new DequantizeLinear(resultType, x, x_scale, x_zero_point, output_dtype, axis, block_size);
     }
 
     @OpFactoryHelper.OpDeclaration(Det.NAME)
@@ -8912,7 +9150,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -11948,7 +12186,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         public enum Attribute implements OnnxAttribute.None { }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            V(new OnnxType.TypeVariable("V", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.seq(OnnxType.tensor(OnnxType.uint8())), OnnxType.seq(OnnxType.tensor(OnnxType.uint16())), OnnxType.seq(OnnxType.tensor(OnnxType.uint32())), OnnxType.seq(OnnxType.tensor(OnnxType.uint64())), OnnxType.seq(OnnxType.tensor(OnnxType.int8())), OnnxType.seq(OnnxType.tensor(OnnxType.int16())), OnnxType.seq(OnnxType.tensor(OnnxType.int32())), OnnxType.seq(OnnxType.tensor(OnnxType.int64())), OnnxType.seq(OnnxType.tensor(OnnxType.float16())), OnnxType.seq(OnnxType.tensor(OnnxType.float32())), OnnxType.seq(OnnxType.tensor(OnnxType.float64())), OnnxType.seq(OnnxType.tensor(OnnxType.string())), OnnxType.seq(OnnxType.tensor(OnnxType.bool())), OnnxType.seq(OnnxType.tensor(OnnxType.complex64())), OnnxType.seq(OnnxType.tensor(OnnxType.complex128())), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint8()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint16()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint32()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int8()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int16()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int32()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.float16()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.float32()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.float64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.string()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.bool()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.complex64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.complex128()))), OnnxType.optional(OnnxType.tensor(OnnxType.uint8())), OnnxType.optional(OnnxType.tensor(OnnxType.uint16())), OnnxType.optional(OnnxType.tensor(OnnxType.uint32())), OnnxType.optional(OnnxType.tensor(OnnxType.uint64())), OnnxType.optional(OnnxType.tensor(OnnxType.int8())), OnnxType.optional(OnnxType.tensor(OnnxType.int16())), OnnxType.optional(OnnxType.tensor(OnnxType.int32())), OnnxType.optional(OnnxType.tensor(OnnxType.int64())), OnnxType.optional(OnnxType.tensor(OnnxType.float16())), OnnxType.optional(OnnxType.tensor(OnnxType.float32())), OnnxType.optional(OnnxType.tensor(OnnxType.float64())), OnnxType.optional(OnnxType.tensor(OnnxType.string())), OnnxType.optional(OnnxType.tensor(OnnxType.bool())), OnnxType.optional(OnnxType.tensor(OnnxType.complex64())), OnnxType.optional(OnnxType.tensor(OnnxType.complex128()))))),
+            V(new OnnxType.TypeVariable("V", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0()), OnnxType.seq(OnnxType.tensor(OnnxType.uint8())), OnnxType.seq(OnnxType.tensor(OnnxType.uint16())), OnnxType.seq(OnnxType.tensor(OnnxType.uint32())), OnnxType.seq(OnnxType.tensor(OnnxType.uint64())), OnnxType.seq(OnnxType.tensor(OnnxType.int8())), OnnxType.seq(OnnxType.tensor(OnnxType.int16())), OnnxType.seq(OnnxType.tensor(OnnxType.int32())), OnnxType.seq(OnnxType.tensor(OnnxType.int64())), OnnxType.seq(OnnxType.tensor(OnnxType.float16())), OnnxType.seq(OnnxType.tensor(OnnxType.float32())), OnnxType.seq(OnnxType.tensor(OnnxType.float64())), OnnxType.seq(OnnxType.tensor(OnnxType.string())), OnnxType.seq(OnnxType.tensor(OnnxType.bool())), OnnxType.seq(OnnxType.tensor(OnnxType.complex64())), OnnxType.seq(OnnxType.tensor(OnnxType.complex128())), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint8()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint16()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint32()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.uint64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int8()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int16()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int32()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.int64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.float16()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.float32()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.float64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.string()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.bool()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.complex64()))), OnnxType.optional(OnnxType.seq(OnnxType.tensor(OnnxType.complex128()))), OnnxType.optional(OnnxType.tensor(OnnxType.uint8())), OnnxType.optional(OnnxType.tensor(OnnxType.uint16())), OnnxType.optional(OnnxType.tensor(OnnxType.uint32())), OnnxType.optional(OnnxType.tensor(OnnxType.uint64())), OnnxType.optional(OnnxType.tensor(OnnxType.int8())), OnnxType.optional(OnnxType.tensor(OnnxType.int16())), OnnxType.optional(OnnxType.tensor(OnnxType.int32())), OnnxType.optional(OnnxType.tensor(OnnxType.int64())), OnnxType.optional(OnnxType.tensor(OnnxType.float16())), OnnxType.optional(OnnxType.tensor(OnnxType.float32())), OnnxType.optional(OnnxType.tensor(OnnxType.float64())), OnnxType.optional(OnnxType.tensor(OnnxType.string())), OnnxType.optional(OnnxType.tensor(OnnxType.bool())), OnnxType.optional(OnnxType.tensor(OnnxType.complex64())), OnnxType.optional(OnnxType.tensor(OnnxType.complex128()))))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -18775,7 +19013,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             Tind(new OnnxType.TypeVariable("Tind", List.of(OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64())))),
             ;
 
@@ -19403,6 +19641,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         public enum Attribute implements OnnxAttribute {
             output_dtype(Long.class, true, 0),
             saturate(Long.class, true, 1),
+            precision(Long.class, true, 0),
             axis(Long.class, true, 1),
             block_size(Long.class, true, 0),
             ;
@@ -19433,7 +19672,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
         public enum TypeConstraint implements OnnxTypeConstraint {
             T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.int32())))),
-            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.float8e8m0())))),
+            T3(new OnnxType.TypeVariable("T3", List.of(OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -19451,8 +19691,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
         public enum InputParameter implements OnnxParameter {
             x(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
-            y_scale(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
-            y_zero_point(TypeConstraint.T2.typeVariable(), Quantifier.OPTIONAL),
+            y_scale(TypeConstraint.T2.typeVariable(), Quantifier.REQUIRED),
+            y_zero_point(TypeConstraint.T3.typeVariable(), Quantifier.OPTIONAL),
             ;
 
             final OnnxType type;
@@ -19475,7 +19715,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum OutputParameter implements OnnxParameter {
-            y(TypeConstraint.T2.typeVariable(), Quantifier.REQUIRED),
+            y(TypeConstraint.T3.typeVariable(), Quantifier.REQUIRED),
             ;
 
             final OnnxType type;
@@ -19518,8 +19758,8 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new QuantizeLinear(this, cc);
         }
 
-        QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
-            super(SCHEMA, resultType, Set.of(), List.of(x, y_scale, y_zero_point), List.of(output_dtype, saturate, axis, block_size));
+        QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> precision, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+            super(SCHEMA, resultType, Set.of(), List.of(x, y_scale, y_zero_point), List.of(output_dtype, saturate, precision, axis, block_size));
         }
 
         @Override
@@ -19555,6 +19795,11 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return java.util.Optional.ofNullable(saturate);
         }
 
+        public java.util.Optional<Long> precision() {
+            Long precision = Attribute.precision.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(precision);
+        }
+
         public java.util.Optional<Long> axis() {
             Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
@@ -19567,8 +19812,171 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static QuantizeLinear QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
-        return new QuantizeLinear(resultType, x, y_scale, y_zero_point, output_dtype, saturate, axis, block_size);
+    public static QuantizeLinear QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> precision, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+        return new QuantizeLinear(resultType, x, y_scale, y_zero_point, output_dtype, saturate, precision, axis, block_size);
+    }
+
+    @OpFactoryHelper.OpDeclaration(RMSNormalization.NAME)
+    public static final class RMSNormalization extends OnnxOp {
+        public static final String NAME = "RMSNormalization";
+
+        public enum Attribute implements OnnxAttribute {
+            epsilon(Float.class, true, 1.0E-5f),
+            stash_type(Long.class, true, 1),
+            axis(Long.class, true, -1),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.bfloat16())))),
+            V(new OnnxType.TypeVariable("V", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.bfloat16())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            X(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            scale(TypeConstraint.V.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            Y(TypeConstraint.V.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public RMSNormalization(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        RMSNormalization(RMSNormalization that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public RMSNormalization transform(CopyContext cc, OpTransformer ot) {
+            return new RMSNormalization(this, cc);
+        }
+
+        RMSNormalization(TypeElement resultType, Value X, Value scale, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
+            super(SCHEMA, resultType, Set.of(), List.of(X, scale), List.of(epsilon, stash_type, axis));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(X(), scale()));
+        }
+
+        public Value X() {
+            return operands().get(0);
+        }
+
+        public Value scale() {
+            return operands().get(1);
+        }
+
+        public java.util.Optional<Float> epsilon() {
+            Float epsilon = Attribute.epsilon.access(Float.class, onnxAttributes);
+            return java.util.Optional.ofNullable(epsilon);
+        }
+
+        public java.util.Optional<Long> stash_type() {
+            Long stash_type = Attribute.stash_type.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(stash_type);
+        }
+
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(axis);
+        }
+
+    }
+
+    public static RMSNormalization RMSNormalization(TypeElement resultType, Value X, Value scale, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
+        return new RMSNormalization(resultType, X, scale, epsilon, stash_type, axis);
     }
 
     @OpFactoryHelper.OpDeclaration(RNN.NAME)
@@ -22499,7 +22907,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -23168,6 +23576,180 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     public static RoiAlign RoiAlign(TypeElement resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Long> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Long> sampling_ratio, java.util.Optional<Long> output_height) {
         return new RoiAlign(resultType, X, rois, batch_indices, mode, output_width, spatial_scale, coordinate_transformation_mode, sampling_ratio, output_height);
+    }
+
+    @OpFactoryHelper.OpDeclaration(RotaryEmbedding.NAME)
+    public static final class RotaryEmbedding extends OnnxOp {
+        public static final String NAME = "RotaryEmbedding";
+
+        public enum Attribute implements OnnxAttribute {
+            num_heads(Long.class, true, null),
+            rotary_embedding_dim(Long.class, true, 0),
+            interleaved(Long.class, true, 0),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.bfloat16())))),
+            M(new OnnxType.TypeVariable("M", List.of(OnnxType.tensor(OnnxType.int64())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            X(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            cos_cache(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            sin_cache(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            position_ids(TypeConstraint.M.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            Y(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public RotaryEmbedding(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        RotaryEmbedding(RotaryEmbedding that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public RotaryEmbedding transform(CopyContext cc, OpTransformer ot) {
+            return new RotaryEmbedding(this, cc);
+        }
+
+        RotaryEmbedding(TypeElement resultType, Value X, Value cos_cache, Value sin_cache, java.util.Optional<Value> position_ids, java.util.Optional<Long> num_heads, java.util.Optional<Long> rotary_embedding_dim, java.util.Optional<Long> interleaved) {
+            super(SCHEMA, resultType, Set.of(), List.of(X, cos_cache, sin_cache, position_ids), List.of(num_heads, rotary_embedding_dim, interleaved));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(X(), cos_cache(), sin_cache(), position_ids()));
+        }
+
+        public Value X() {
+            return operands().get(0);
+        }
+
+        public Value cos_cache() {
+            return operands().get(1);
+        }
+
+        public Value sin_cache() {
+            return operands().get(2);
+        }
+
+        public java.util.Optional<Value> position_ids() {
+            int i = optionalInputArguments.indexOf(InputParameter.position_ids);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Long> num_heads() {
+            Long num_heads = Attribute.num_heads.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(num_heads);
+        }
+
+        public java.util.Optional<Long> rotary_embedding_dim() {
+            Long rotary_embedding_dim = Attribute.rotary_embedding_dim.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(rotary_embedding_dim);
+        }
+
+        public java.util.Optional<Long> interleaved() {
+            Long interleaved = Attribute.interleaved.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(interleaved);
+        }
+
+    }
+
+    public static RotaryEmbedding RotaryEmbedding(TypeElement resultType, Value X, Value cos_cache, Value sin_cache, java.util.Optional<Value> position_ids, java.util.Optional<Long> num_heads, java.util.Optional<Long> rotary_embedding_dim, java.util.Optional<Long> interleaved) {
+        return new RotaryEmbedding(resultType, X, cos_cache, sin_cache, position_ids, num_heads, rotary_embedding_dim, interleaved);
     }
 
     @OpFactoryHelper.OpDeclaration(Round.NAME)
@@ -25369,7 +25951,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.int64())))),
             ;
 
@@ -26101,7 +26683,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         public enum Attribute implements OnnxAttribute.None { }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.int64())))),
             ;
 
@@ -27219,9 +27801,9 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128())))),
             I(new OnnxType.TypeVariable("I", List.of(OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64())))),
-            S(new OnnxType.TypeVariable("S", List.of(OnnxType.seq(OnnxType.tensor(OnnxType.uint8())), OnnxType.seq(OnnxType.tensor(OnnxType.uint16())), OnnxType.seq(OnnxType.tensor(OnnxType.uint32())), OnnxType.seq(OnnxType.tensor(OnnxType.uint64())), OnnxType.seq(OnnxType.tensor(OnnxType.int8())), OnnxType.seq(OnnxType.tensor(OnnxType.int16())), OnnxType.seq(OnnxType.tensor(OnnxType.int32())), OnnxType.seq(OnnxType.tensor(OnnxType.int64())), OnnxType.seq(OnnxType.tensor(OnnxType.float16())), OnnxType.seq(OnnxType.tensor(OnnxType.float32())), OnnxType.seq(OnnxType.tensor(OnnxType.float64())), OnnxType.seq(OnnxType.tensor(OnnxType.string())), OnnxType.seq(OnnxType.tensor(OnnxType.bool())), OnnxType.seq(OnnxType.tensor(OnnxType.complex64())), OnnxType.seq(OnnxType.tensor(OnnxType.complex128()))))),
+            S(new OnnxType.TypeVariable("S", List.of(OnnxType.seq(OnnxType.tensor(OnnxType.uint8())), OnnxType.seq(OnnxType.tensor(OnnxType.uint16())), OnnxType.seq(OnnxType.tensor(OnnxType.uint32())), OnnxType.seq(OnnxType.tensor(OnnxType.uint64())), OnnxType.seq(OnnxType.tensor(OnnxType.int8())), OnnxType.seq(OnnxType.tensor(OnnxType.int16())), OnnxType.seq(OnnxType.tensor(OnnxType.int32())), OnnxType.seq(OnnxType.tensor(OnnxType.int64())), OnnxType.seq(OnnxType.tensor(OnnxType.bfloat16())), OnnxType.seq(OnnxType.tensor(OnnxType.float16())), OnnxType.seq(OnnxType.tensor(OnnxType.float32())), OnnxType.seq(OnnxType.tensor(OnnxType.float64())), OnnxType.seq(OnnxType.tensor(OnnxType.string())), OnnxType.seq(OnnxType.tensor(OnnxType.bool())), OnnxType.seq(OnnxType.tensor(OnnxType.complex64())), OnnxType.seq(OnnxType.tensor(OnnxType.complex128()))))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -27465,7 +28047,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         public enum Attribute implements OnnxAttribute.None { }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -28232,6 +28814,151 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sum(resultType, data_0);
     }
 
+    @OpFactoryHelper.OpDeclaration(Swish.NAME)
+    public static final class Swish extends OnnxOp {
+        public static final String NAME = "Swish";
+
+        public enum Attribute implements OnnxAttribute {
+            alpha(Float.class, true, 1.0f),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float64())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            X(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            Y(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public Swish(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        Swish(Swish that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public Swish transform(CopyContext cc, OpTransformer ot) {
+            return new Swish(this, cc);
+        }
+
+        Swish(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+            super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(X()));
+        }
+
+        public Value X() {
+            return operands().get(0);
+        }
+
+        public java.util.Optional<Float> alpha() {
+            Float alpha = Attribute.alpha.access(Float.class, onnxAttributes);
+            return java.util.Optional.ofNullable(alpha);
+        }
+
+    }
+
+    public static Swish Swish(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+        return new Swish(resultType, X, alpha);
+    }
+
     @OpFactoryHelper.OpDeclaration(Tan.NAME)
     public static final class Tan extends OnnxOp {
         public static final String NAME = "Tan";
@@ -28458,6 +29185,168 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     public static Tanh Tanh(TypeElement resultType, Value input) {
         return new Tanh(resultType, input);
+    }
+
+    @OpFactoryHelper.OpDeclaration(TensorScatter.NAME)
+    public static final class TensorScatter extends OnnxOp {
+        public static final String NAME = "TensorScatter";
+
+        public enum Attribute implements OnnxAttribute {
+            mode(String.class, true, "linear"),
+            axis(Long.class, true, -2),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            past_cache(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            update(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            write_indices(OnnxType.tensor(OnnxType.int64()), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            present_cache(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public TensorScatter(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        TensorScatter(TensorScatter that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public TensorScatter transform(CopyContext cc, OpTransformer ot) {
+            return new TensorScatter(this, cc);
+        }
+
+        TensorScatter(TypeElement resultType, Value past_cache, Value update, java.util.Optional<Value> write_indices, java.util.Optional<String> mode, java.util.Optional<Long> axis) {
+            super(SCHEMA, resultType, Set.of(), List.of(past_cache, update, write_indices), List.of(mode, axis));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(past_cache(), update(), write_indices()));
+        }
+
+        public Value past_cache() {
+            return operands().get(0);
+        }
+
+        public Value update() {
+            return operands().get(1);
+        }
+
+        public java.util.Optional<Value> write_indices() {
+            int i = optionalInputArguments.indexOf(InputParameter.write_indices);
+            return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<String> mode() {
+            String mode = Attribute.mode.access(String.class, onnxAttributes);
+            return java.util.Optional.ofNullable(mode);
+        }
+
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
+            return java.util.Optional.ofNullable(axis);
+        }
+
+    }
+
+    public static TensorScatter TensorScatter(TypeElement resultType, Value past_cache, Value update, java.util.Optional<Value> write_indices, java.util.Optional<String> mode, java.util.Optional<Long> axis) {
+        return new TensorScatter(resultType, past_cache, update, write_indices, mode, axis);
     }
 
     @OpFactoryHelper.OpDeclaration(TfIdfVectorizer.NAME)
@@ -28954,7 +29843,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.bfloat16())))),
             I(new OnnxType.TypeVariable("I", List.of(OnnxType.tensor(OnnxType.int64())))),
             ;
 
@@ -29116,7 +30005,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -30307,7 +31196,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         public enum Attribute implements OnnxAttribute.None { }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
-            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1())))),
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.string()), OnnxType.tensor(OnnxType.bool()), OnnxType.tensor(OnnxType.complex64()), OnnxType.tensor(OnnxType.complex128()), OnnxType.tensor(OnnxType.float8e4m3fn()), OnnxType.tensor(OnnxType.float8e4m3fnuz()), OnnxType.tensor(OnnxType.float8e5m2()), OnnxType.tensor(OnnxType.float8e5m2fnuz()), OnnxType.tensor(OnnxType.uint4()), OnnxType.tensor(OnnxType.int4()), OnnxType.tensor(OnnxType.float4e2m1()), OnnxType.tensor(OnnxType.float8e8m0())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;

@@ -834,7 +834,7 @@ public class DeferredAttr extends JCTree.Visitor {
             public void visitLambda(JCLambda tree) {
                 Check.CheckContext checkContext = resultInfo.checkContext;
                 Type pt = resultInfo.pt;
-                if (!types.isQuoted(pt) && !inferenceContext.inferencevars.contains(pt)) {
+                if (!inferenceContext.inferencevars.contains(pt)) {
                     //must be a functional descriptor
                     Type descriptorType = null;
                     try {
@@ -1226,7 +1226,7 @@ public class DeferredAttr extends JCTree.Visitor {
             if (inferenceContext.inferenceVars().contains(pt)) {
                 stuckVars.add(pt);
             }
-            if (types.isQuoted(pt) || !types.isFunctionalInterface(pt)) {
+            if (!types.isFunctionalInterface(pt)) {
                 return;
             }
             Type descType = types.findDescriptorType(pt);

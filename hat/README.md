@@ -1,5 +1,28 @@
 # HAT Project
 
+## TLDR
+
+If you have babylon jdk and jextract in your path you should be able to build using
+
+```bash
+java @hat/bld
+```
+
+To run an example (say `mandel`) on a platform with opencl, you can run with
+
+```bash
+java @hat/run ffi-opencl mandel
+```
+
+To run the test-suite (again assuming opencl)
+
+```bash
+java @hat/test-suite ffi-opencl
+```
+
+
+## For the more patient ;)
+
 This is a fairly large project with Java and native (C/C++) artifacts.
 
 To use HAT you will need to clone and build the  `babylon` (JDK24+Babylon) project or of course your fork of the babylon project (say `babylon-myfork`)

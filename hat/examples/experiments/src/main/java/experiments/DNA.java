@@ -26,6 +26,8 @@
 package experiments;
 
 import java.lang.reflect.Method;
+
+import hat.optools.OpTk;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
@@ -75,7 +77,8 @@ public class DNA {
     static public void main(String[] args) throws Exception {
         Method method = DNA.class.getDeclaredMethod("addMul", int.class, int.class);
         var funcOp = Op.ofMethod(method).get();
-        var transformed = funcOp.transform((builder, op) -> {
+        var here = OpTk.CallSite.of(DNA.class, "main");
+        var transformed = OpTk.transform(here, funcOp,(builder, op) -> {
             CopyContext cc = builder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                // List<Value> operands = new ArrayList<>();

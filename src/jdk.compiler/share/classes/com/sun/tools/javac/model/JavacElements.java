@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,7 +46,6 @@ import static javax.lang.model.util.ElementFilter.methodsIn;
 
 import com.sun.source.util.JavacTask;
 import com.sun.tools.javac.api.JavacTaskImpl;
-import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Attribute.Compound;
 import com.sun.tools.javac.code.Directive.ExportsDirective;
@@ -58,7 +57,6 @@ import com.sun.tools.javac.code.Directive.RequiresFlag;
 import com.sun.tools.javac.code.Scope.WriteableScope;
 import com.sun.tools.javac.code.Source.Feature;
 import com.sun.tools.javac.code.Symbol.*;
-import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
@@ -68,7 +66,6 @@ import com.sun.tools.javac.tree.DocCommentTable;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.*;
 import com.sun.tools.javac.tree.TreeInfo;
-import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.*;
 import com.sun.tools.javac.util.DefinedBy.Api;
@@ -76,10 +73,10 @@ import com.sun.tools.javac.util.Name;
 import static com.sun.tools.javac.code.Kinds.Kind.*;
 import static com.sun.tools.javac.code.Scope.LookupKind.NON_RECURSIVE;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
-
+import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.Modules;
+import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
-
 import static com.sun.tools.javac.tree.JCTree.Tag.*;
 
 /**
@@ -98,11 +95,10 @@ public class JavacElements implements Elements {
     private final Names names;
     private final Types types;
     private final Enter enter;
-    private final JavacTrees javacTrees;
     private final Attr attr;
+    private final Resolve resolve;
     private final JavacTaskImpl javacTaskImpl;
     private final Log log;
-    private final TreeMaker make;
     private final boolean allowModules;
 
     public static JavacElements instance(Context context) {
@@ -122,17 +118,17 @@ public class JavacElements implements Elements {
         types = Types.instance(context);
         enter = Enter.instance(context);
         attr = Attr.instance(context);
-        javacTrees = JavacTrees.instance(context);
+        resolve = Resolve.instance(context);
         JavacTask t = context.get(JavacTask.class);
         javacTaskImpl = t instanceof JavacTaskImpl taskImpl ? taskImpl : null;
         log = Log.instance(context);
-        make = TreeMaker.instance(context);
         Source source = Source.instance(context);
         allowModules = Feature.MODULES.allowedInSource(source);
     }
 
     @Override @DefinedBy(Api.LANGUAGE_MODEL)
     public Set<? extends ModuleElement> getAllModuleElements() {
+        ensureEntered("getAllModuleElements");
         if (allowModules)
             return Collections.unmodifiableSet(modules.allModules());
         else
@@ -804,6 +800,7 @@ public class JavacElements implements Elements {
                 yield msym.module_info.classfile;
             }
             case TYP -> ((ClassSymbol) sym).classfile;
+            case ERR -> null;
             default -> sym.enclClass().classfile;
         };
     }

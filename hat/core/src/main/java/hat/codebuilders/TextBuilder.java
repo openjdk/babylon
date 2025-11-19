@@ -68,6 +68,10 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
             stringBuilder.append(text);
         }
 
+        public void preformatted(String text){
+            stringBuilder.append(text);
+        }
+
         public void incIndent() {
             indent++;
         }
@@ -127,6 +131,11 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
 
      T emitText(String text) {
         state.indentIfNeededAndAppend(text);
+        return self();
+    }
+
+    public T preformatted(String text){
+        state.preformatted(text);
         return self();
     }
 

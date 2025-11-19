@@ -26,6 +26,6 @@
 
 int main() {
     OpenCLBackend backend(0);
-    backend.info();
+    backend.showDeviceInfo();
 }
 

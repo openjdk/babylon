@@ -239,13 +239,13 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
     delete []events;
 }
 
-void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) {
+void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
     size_t numDimensions = kernelContext->dimensions;
 
     size_t global_work_size[] {
-        static_cast<size_t>(kernelContext->maxX),  // to be replaced with gsx
-        static_cast<size_t>(kernelContext->maxY),  // to be replaced with gsy
-        static_cast<size_t>(kernelContext->maxZ)   // to be replaced with gsz
+        static_cast<size_t>(kernelContext->gsx),
+        static_cast<size_t>(kernelContext->gsy),
+        static_cast<size_t>(kernelContext->gsz)
     };
 
     size_t local_work_size[] = {
@@ -281,7 +281,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
 
     OPENCL_CHECK(status, "clEnqueueNDRangeKernel");
     if (backend->config->trace | backend->config->traceEnqueues) {
-        std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->maxX <<
+        std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->gsx <<
                 std::endl;
     }
 }

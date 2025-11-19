@@ -25,11 +25,12 @@
 
 package hat.backend.jextracted;
 
-import hat.NDRange;
+import hat.Config;
+import hat.KernelContext;
+import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
-import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.ifacemapper.BoundSchema;
@@ -43,40 +44,40 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class C99JExtractedBackend extends JExtractedBackend {
-    public C99JExtractedBackend(String libName) {
-        super(libName);
+    public C99JExtractedBackend(Config config,String libName) {
+        super(config,libName);
     }
-
     public static class CompiledKernel {
         public final C99JExtractedBackend c99NativeBackend;
         public final KernelCallGraph kernelCallGraph;
         public final String text;
         public final long kernelHandle;
         public final ArgArray argArray;
-        public final KernelContext kernelContext;
+        public final KernelBufferContext kernelContext;
 
         public CompiledKernel(C99JExtractedBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
             this.c99NativeBackend = c99NativeBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            this.kernelContext = KernelContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
             ndRangeAndArgs[0] = this.kernelContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph,  ndRangeAndArgs);
         }
 
-        public void dispatch(NDRange ndRange, Object[] args) {
-            kernelContext.maxX(ndRange.kid.maxX);
+        public void dispatch(KernelContext kernelContext, Object[] args) {
+            this.kernelContext.gsx(kernelContext.gsx);
             args[0] = this.kernelContext;
-            ArgArray.update(argArray,kernelCallGraph,  args);
-         //   c99NativeBackend.ndRange(kernelHandle, this.argArray);
+            ArgArray.update(argArray, kernelCallGraph, args);
+            //kernelBridge.ndRange(this.argArray);
         }
     }
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
-        builder.defines().pragmas().types();
+        var here = OpTk.CallSite.of(C99JExtractedBackend.class, "createCode");
+        builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
@@ -101,7 +102,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         System.out.println("Original");
         System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
         System.out.println("Lowered");
-        System.out.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
+        System.out.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
 
         return builder.toString();
     }

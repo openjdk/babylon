@@ -90,7 +90,7 @@ public sealed abstract class CoreOp extends Op {
         final String funcName;
         final Body body;
 
-        static FuncOp create(ExternalizedOp def) {
+        FuncOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -100,11 +100,15 @@ public sealed abstract class CoreOp extends Op {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
-            return new FuncOp(funcName, def.bodyDefinitions().get(0));
+
+            this(funcName, def.bodyDefinitions().get(0));
         }
 
-        FuncOp(FuncOp that, CopyContext cc, OpTransformer oa) {
-            this(that, that.funcName, cc, oa);
+        FuncOp(FuncOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            this.funcName = that.funcName;
+            this.body = that.body.transform(cc, ot).build(this);
         }
 
         FuncOp(FuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
@@ -184,14 +188,14 @@ public sealed abstract class CoreOp extends Op {
         final String funcName;
         final TypeElement resultType;
 
-        static FuncCallOp create(ExternalizedOp def) {
+        FuncCallOp(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
 
-            return new FuncCallOp(funcName, def.resultType(), def.operands());
+            this(funcName, def.resultType(), def.operands());
         }
 
         FuncCallOp(FuncCallOp that, CopyContext cc) {
@@ -241,12 +245,12 @@ public sealed abstract class CoreOp extends Op {
         final SequencedMap<String, FuncOp> table;
         final Body body;
 
-        static ModuleOp create(ExternalizedOp def) {
+        ModuleOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            return new ModuleOp(def.bodyDefinitions().get(0));
+            this(def.bodyDefinitions().get(0));
         }
 
         ModuleOp(ModuleOp that, CopyContext cc, OpTransformer ot) {
@@ -382,116 +386,6 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public TypeElement resultType() {
             return QUOTED_TYPE;
-        }
-    }
-
-    /**
-     * The closure operation, that can model a structured Java lambda expression
-     * that has no target type (a functional interface).
-     */
-    @OpDeclaration(ClosureOp.NAME)
-    public static final class ClosureOp extends CoreOp
-            implements Op.Invokable, Op.Lowerable, JavaOp.JavaExpression {
-
-        public static class Builder {
-            final Body.Builder ancestorBody;
-            final FunctionType funcType;
-
-            Builder(Body.Builder ancestorBody, FunctionType funcType) {
-                this.ancestorBody = ancestorBody;
-                this.funcType = funcType;
-            }
-
-            public ClosureOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
-                c.accept(body.entryBlock());
-                return new ClosureOp(body);
-            }
-        }
-
-        static final String NAME = "closure";
-
-        final Body body;
-
-        ClosureOp(ExternalizedOp def) {
-            this(def.bodyDefinitions().get(0));
-        }
-
-        ClosureOp(ClosureOp that, CopyContext cc, OpTransformer ot) {
-            super(that, cc);
-
-            this.body = that.body.transform(cc, ot).build(this);
-        }
-
-        @Override
-        public ClosureOp transform(CopyContext cc, OpTransformer ot) {
-            return new ClosureOp(this, cc, ot);
-        }
-
-        ClosureOp(Body.Builder bodyC) {
-            super(List.of());
-
-            this.body = bodyC.build(this);
-        }
-
-        @Override
-        public List<Body> bodies() {
-            return List.of(body);
-        }
-
-        @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
-        }
-
-        @Override
-        public Body body() {
-            return body;
-        }
-
-        @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
-            // Isolate body with respect to ancestor transformations
-            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
-            return b;
-        }
-
-        @Override
-        public TypeElement resultType() {
-            return body.bodyType();
-        }
-    }
-
-    /**
-     * The closure call operation, that models a call to a closure, by reference
-     */
-//  @@@ stack effects equivalent to the invocation of an SAM of on an instance of an anonymous functional interface
-//  that is the target of the closures lambda expression.
-    @OpDeclaration(ClosureCallOp.NAME)
-    public static final class ClosureCallOp extends CoreOp {
-        static final String NAME = "closure.call";
-
-        ClosureCallOp(ExternalizedOp def) {
-            this(def.operands());
-        }
-
-        ClosureCallOp(ClosureCallOp that, CopyContext cc) {
-            super(that, cc);
-        }
-
-        @Override
-        public ClosureCallOp transform(CopyContext cc, OpTransformer ot) {
-            return new ClosureCallOp(this, cc);
-        }
-
-        ClosureCallOp(List<Value> args) {
-            super(args);
-        }
-
-        @Override
-        public TypeElement resultType() {
-            FunctionType ft = (FunctionType) operands().getFirst().type();
-            return ft.returnType();
         }
     }
 
@@ -759,14 +653,15 @@ public sealed abstract class CoreOp extends Op {
         final Object value;
         final TypeElement type;
 
-        static ConstantOp create(ExternalizedOp def) {
+        ConstantOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
 
             Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
                     v -> processConstantValue(def.resultType(), v));
-            return new ConstantOp(def.resultType(), value);
+
+            this(def.resultType(), value);
         }
 
         static Object processConstantValue(TypeElement t, Object value) {
@@ -871,7 +766,7 @@ public sealed abstract class CoreOp extends Op {
         final String varName;
         final VarType resultType;
 
-        static VarOp create(ExternalizedOp def) {
+        VarOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalStateException("Operation must have zero or one operand");
             }
@@ -882,14 +777,11 @@ public sealed abstract class CoreOp extends Op {
                         case null -> "";
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
-            // @@@ Cannot use canonical constructor because type is wrapped
-            return new VarOp(def, name);
-        }
 
-        VarOp(ExternalizedOp def, String varName) {
+            // @@@ Cannot use canonical constructor because type is wrapped
             super(def.operands());
 
-            this.varName = varName;
+            this.varName = name;
             this.resultType = (VarType) def.resultType();
         }
 
@@ -1115,7 +1007,7 @@ public sealed abstract class CoreOp extends Op {
 
         final int index;
 
-        static TupleLoadOp create(ExternalizedOp def) {
+        TupleLoadOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -1125,7 +1017,8 @@ public sealed abstract class CoreOp extends Op {
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
-            return new TupleLoadOp(def.operands().get(0), index);
+
+            this(def.operands().get(0), index);
         }
 
         TupleLoadOp(TupleLoadOp that, CopyContext cc) {
@@ -1172,7 +1065,7 @@ public sealed abstract class CoreOp extends Op {
 
         final int index;
 
-        static TupleWithOp create(ExternalizedOp def) {
+        TupleWithOp(ExternalizedOp def) {
             if (def.operands().size() != 2) {
                 throw new IllegalStateException("Operation must have two operands");
             }
@@ -1182,7 +1075,8 @@ public sealed abstract class CoreOp extends Op {
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
-            return new TupleWithOp(def.operands().get(0), index, def.operands().get(1));
+
+            this(def.operands().get(0), index, def.operands().get(1));
         }
 
         TupleWithOp(TupleWithOp that, CopyContext cc) {
@@ -1228,19 +1122,17 @@ public sealed abstract class CoreOp extends Op {
         Op op = switch (def.name()) {
             case "branch" -> new BranchOp(def);
             case "cbranch" -> new ConditionalBranchOp(def);
-            case "closure" -> new ClosureOp(def);
-            case "closure.call" -> new ClosureCallOp(def);
-            case "constant" -> ConstantOp.create(def);
-            case "func" -> FuncOp.create(def);
-            case "func.call" -> FuncCallOp.create(def);
-            case "module" -> ModuleOp.create(def);
+            case "constant" -> new ConstantOp(def);
+            case "func" -> new FuncOp(def);
+            case "func.call" -> new FuncCallOp(def);
+            case "module" -> new ModuleOp(def);
             case "quoted" -> new QuotedOp(def);
             case "return" -> new ReturnOp(def);
             case "tuple" -> new TupleOp(def);
-            case "tuple.load" -> TupleLoadOp.create(def);
-            case "tuple.with" -> TupleWithOp.create(def);
+            case "tuple.load" -> new TupleLoadOp(def);
+            case "tuple.with" -> new TupleWithOp(def);
             case "unreachable" -> new UnreachableOp(def);
-            case "var" -> VarOp.create(def);
+            case "var" -> new VarOp(def);
             case "var.load" -> new VarAccessOp.VarLoadOp(def);
             case "var.store" -> new VarAccessOp.VarStoreOp(def);
             case "yield" -> new YieldOp(def);
@@ -1369,50 +1261,6 @@ public sealed abstract class CoreOp extends Op {
      */
     public static QuotedOp quoted(Body.Builder body) {
         return new QuotedOp(body);
-    }
-
-    /**
-     * Creates a closure operation.
-     *
-     * @param ancestorBody the ancestor of the body of the closure operation
-     * @param funcType     the closure operation's function type
-     * @return the closure operation
-     */
-    public static ClosureOp.Builder closure(Body.Builder ancestorBody,
-                                            FunctionType funcType) {
-        return new ClosureOp.Builder(ancestorBody, funcType);
-    }
-
-    /**
-     * Creates a closure operation.
-     *
-     * @param body the body of the closure operation
-     * @return the closure operation
-     */
-    public static ClosureOp closure(Body.Builder body) {
-        return new ClosureOp(body);
-    }
-
-    /**
-     * Creates a closure call operation.
-     *
-     * @param args the closure arguments. The first argument is the closure operation to be called
-     * @return the closure call operation
-     */
-    // @@@: Is this the right signature?
-    public static ClosureCallOp closureCall(Value... args) {
-        return closureCall(List.of(args));
-    }
-
-    /**
-     * Creates a closure call operation.
-     *
-     * @param args the closure arguments. The first argument is the closure operation to be called
-     * @return the closure call operation
-     */
-    // @@@: Is this the right signature?
-    public static ClosureCallOp closureCall(List<Value> args) {
-        return new ClosureCallOp(args);
     }
 
     /**

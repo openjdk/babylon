@@ -249,7 +249,7 @@ int HipBackend::getMaxComputeUnits() {
     return value;
 }
 
-void HipBackend::info() {
+void HipBackend::showDeviceInfo() {
     char name[100];
     hipDeviceGetName(name, sizeof(name), device);
     std::cout << "> Using device 0: " << name << std::endl;

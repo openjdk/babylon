@@ -27,6 +27,8 @@ package experiments;
 
 
 import java.lang.reflect.Method;
+
+import hat.optools.OpTk;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
@@ -133,7 +135,8 @@ public class Transform {
 
             CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
-            CoreOp.FuncOp transformed = javaFunc.transform((builder, op) -> {
+            var here = OpTk.CallSite.of(Transform.class, "main");
+            CoreOp.FuncOp transformed = OpTk.transform(here, javaFunc,(builder, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     //  CopyContext cc = builder.context();
                     //  Block.Builder bb = builder;

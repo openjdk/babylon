@@ -25,16 +25,10 @@
 
 package hat.backend.java;
 
-import hat.Accelerator;
 import hat.KernelContext;
-import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import hat.optools.OpTk;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
@@ -42,16 +36,15 @@ public class JavaMultiThreadedBackend extends JavaBackend {
 
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         if (kernelCallGraph.usesArrayView) {
             throw new RuntimeException("Java support for ArrayView not implemented");
         }
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        instance(ndRange.accelerator).forEachInRange(ndRange, (range) -> {
+        instance().forEachInRange(kernelContext, (kc) -> {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
-                KernelContext c = range.kid;
-                a[0] = c;
+                a[0] = kc;
                 kernelEntrypoint.method.invoke(null, a);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
@@ -64,9 +57,9 @@ public class JavaMultiThreadedBackend extends JavaBackend {
 
     WorkStealer workStealer = null;
 
-    synchronized WorkStealer instance(Accelerator accelerator) {
+    synchronized WorkStealer instance() {
         if (workStealer == null) {
-            workStealer = WorkStealer.usingAllProcessors(accelerator);
+            workStealer = WorkStealer.usingAllProcessors();
         }
         return workStealer;
     }

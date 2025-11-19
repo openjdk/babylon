@@ -26,7 +26,9 @@
 package jdk.incubator.code.dialect.java;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
+import jdk.incubator.code.dialect.java.impl.MethodRefImpl;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 
 import java.lang.constant.ClassDesc;
@@ -54,12 +56,12 @@ public final class TypeVariableType implements JavaType {
     @Override
     public Type resolve(Lookup lookup) throws ReflectiveOperationException {
         TypeVariable<?>[] typeVariables = switch (owner) {
-            case ConstructorRef constructorRef -> {
+            case MethodRef constructorRef when constructorRef.isConstructor() -> {
                 Constructor<?> constructor = constructorRef.resolveToConstructor(lookup);
                 yield constructor.getTypeParameters();
             }
             case MethodRef methodRef -> {
-                Method method = methodRef.resolveToDirectMethod(lookup);
+                Method method = methodRef.resolveToMethod(lookup);
                 yield method.getTypeParameters();
             }
             case JavaType type -> {
@@ -137,5 +139,5 @@ public final class TypeVariableType implements JavaType {
     /**
      * The owner of a type-variable - either a class or a method.
      */
-    public sealed interface Owner extends TypeElement permits ClassType, MethodRef, ConstructorRef { }
+    public sealed interface Owner extends TypeElement permits ClassType, MethodRef { }
 }

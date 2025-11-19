@@ -25,7 +25,8 @@
 package hat.backend;
 
 import hat.ComputeContext;
-import hat.NDRange;
+import hat.Config;
+import hat.KernelContext;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
@@ -35,7 +36,11 @@ import hat.ifacemapper.SegmentMapper;
 import java.lang.foreign.Arena;
 import java.lang.reflect.InvocationTargetException;
 
-public abstract class BackendAdaptor implements Backend {
+public abstract class BackendAdaptor extends Backend {
+    BackendAdaptor(Config config) {
+        super(config);
+    }
+
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
 
@@ -51,11 +56,11 @@ public abstract class BackendAdaptor implements Backend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
+        for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
-                args[0] = ndRange.kid;
+                args[0] = kernelContext;
                 kernelEntrypoint.method.invoke(null, args);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);

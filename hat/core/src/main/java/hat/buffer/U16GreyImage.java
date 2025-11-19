@@ -27,8 +27,6 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-import java.lang.invoke.MethodHandles;
-
 public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
     int width();
     int height();

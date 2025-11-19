@@ -27,6 +27,7 @@ package blackscholes;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -47,18 +48,18 @@ public class Main {
                                           @RO F32Array tArray,
                                           float r,
                                           float v) {
-        if (kc.x<kc.maxX){
-            float S = sArray.array(kc.x);
-            float X = xArray.array(kc.x);
-            float T = tArray.array(kc.x);
+        if (kc.gix < kc.gsx){
+            float S = sArray.array(kc.gix);
+            float X = xArray.array(kc.gix);
+            float T = tArray.array(kc.gix);
             float expNegRt = (float) Math.exp(-r * T);
             float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
             float d2 = (float) (d1 - v * Math.sqrt(T));
             float cnd1 = CND(d1);
             float cnd2 = CND(d2);
-            float value = (float) (S * cnd1 - expNegRt * X * cnd2);
-            call.array(kc.x, value);
-            put.array(kc.x, expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
+            float value = S * cnd1 - expNegRt * X * cnd2;
+            call.array(kc.gix, value);
+            put.array(kc.gix, expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
         }
     }
 
@@ -91,7 +92,7 @@ public class Main {
 
     @CodeReflection
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(call.length(),
+        cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }
@@ -105,7 +106,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        int size =50;
+        int size = 1024;
         rand = new Random();
         var accelerator = new Accelerator(java.lang.invoke.MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var call = F32Array.create(accelerator, size);
@@ -125,7 +126,7 @@ public class Main {
         float v = 0.30f;
 
         accelerator.compute(cc -> blackScholes(cc, call, put, S, X, T, r, v));
-        for (int i = 0; i < call.length(); i++) {
+        for (int i = 0; i < 10; i++) {
             System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + call.array(i) + "\t\t put option price = " + put.array(i));
         }
     }

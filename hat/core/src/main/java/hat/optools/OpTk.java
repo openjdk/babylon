@@ -25,28 +25,46 @@
 package hat.optools;
 
 import hat.ComputeContext;
-import hat.buffer.Buffer;
-import hat.buffer.KernelContext;
+import hat.buffer.F16;
+import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
-import hat.callgraph.ComputeEntrypoint;
-import hat.callgraph.KernelEntrypoint;
-import hat.dialect.HatMemoryOp;
-import hat.dialect.HatThreadOP;
+import hat.device.DeviceType;
+import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.*;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import java.lang.invoke.CallSite;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.sql.Array;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -82,47 +100,7 @@ public class OpTk {
         return list.stream();
     }
 
-    public static Value firstOperand(Op op) {
-        return op.operands().getFirst();
-    }
-
-    public static Value getValue(Block.Builder bb, Value value) {
-        return bb.context().getValueOrDefault(value, value);
-    }
-
-    public static boolean isBufferArray(MethodHandles.Lookup l, Op op) {
-        // first check if the return is an array type
-        if (op instanceof CoreOp.VarOp vop) {
-            if (!(vop.varValueType() instanceof ArrayType)) return false;
-        } else if (!(op instanceof JavaOp.ArrayAccessOp)){
-            if (!(op.resultType() instanceof ArrayType)) return false;
-        }
-
-        // then check if returned array is from a buffer access
-        while (!(op instanceof JavaOp.InvokeOp iop)) {
-            if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
-                op = r.op();
-            } else {
-                return false;
-            }
-        }
-
-        if (iop.invokeDescriptor().refType() instanceof JavaType javaType) {
-            return isAssignable(l, javaType, MappableIface.class);
-        }
-
-        return false;
-    }
-
-    public static boolean isArrayView(MethodHandles.Lookup l, CoreOp.FuncOp entry) {
-        return entry.elements().anyMatch((element) -> (
-                element instanceof JavaOp.InvokeOp iop &&
-                        iop.resultType() instanceof ArrayType &&
-                        iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        isAssignable(l, javaType, MappableIface.class)));
-    }
-
-    public static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,
+    public static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,
                                                                CoreOp.FuncOp entry, CallGraph<?> callGraph) {
         LinkedHashSet<MethodRef> funcsVisited = new LinkedHashSet<>();
         List<CoreOp.FuncOp> funcs = new ArrayList<>();
@@ -130,13 +108,15 @@ public class OpTk {
         }
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
-
-        entry.traverse(null, (map, op) -> {
+        var here = CallSite.of(OpTk.class, "createTransitiveInvokeModule");
+        traverse(here, entry, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
                 try {
-                    var method = invokeOp.invokeDescriptor().resolveToMethod(l, invokeOp.invokeKind());
+                    var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
+                    // TODO filter calls has side effects we may need another call. We might just check the map.
+
                     if (f != null && !callGraph.filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
                         work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
                     }
@@ -147,77 +127,40 @@ public class OpTk {
             return map;
         });
 
-        // modEntry.elements().filter(elem -> elem instanceof JavaOp.InvokeOp)
-        //         .forEach(elem -> {
-        //             JavaOp.InvokeOp iop = (JavaOp.InvokeOp) elem;
-        //             Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, iop);
-        //             try {
-        //                 var method = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
-        //                 CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-        //                 if (f != null && !callGraph.filterCalls(f, iop, method, iop.invokeDescriptor(), javaRefTypeClass)) {
-        //                     work.push(new RefAndFunc(iop.invokeDescriptor(), f));
-        //                 }
-        //             } catch (ReflectiveOperationException _) {
-        //                 throw new IllegalStateException("Could not resolve invokeWrapper to method");
-        //             }
-        //         });
-
         while (!work.isEmpty()) {
             RefAndFunc rf = work.pop();
-            if (!funcsVisited.add(rf.r)) {
-                continue;
-            }
-
-            CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
-                if (op instanceof JavaOp.InvokeOp iop) {
-                    try {
-                        Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
-                        if (invokeOpCalledMethod instanceof Method m) {
-                            CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
-                            if (f!=null) {
-                                RefAndFunc call = new RefAndFunc(iop.invokeDescriptor(), f);
-                                work.push(call);
-                                Op.Result result = blockBuilder.op(CoreOp.funcCall(
-                                        call.r.name(),
-                                        call.f.invokableType(),
-                                        blockBuilder.context().getValues(iop.operands())));
-                                blockBuilder.context().mapValue(op.result(), result);
-                                return blockBuilder;
+            if (funcsVisited.add(rf.r)) {
+                // TODO:is this really transforming? it seems to be creating a new funcop.. Oh I guess for the new ModuleOp?
+                CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
+                    if (op instanceof JavaOp.InvokeOp iop) {
+                        try {
+                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(lookup);
+                            if (invokeOpCalledMethod instanceof Method m) {
+                                CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
+                                if (f != null) {
+                                    RefAndFunc call = new RefAndFunc(iop.invokeDescriptor(), f);
+                                    work.push(call);
+                                    Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                                            call.r.name(),
+                                            call.f.invokableType(),
+                                            blockBuilder.context().getValues(iop.operands())));
+                                    blockBuilder.context().mapValue(op.result(), result);
+                                    return blockBuilder;
+                                }
                             }
+                        } catch (ReflectiveOperationException _) {
+                            throw new IllegalStateException("Could not resolve invokeWrapper to method");
                         }
-                    } catch (ReflectiveOperationException _) {
-                        throw new IllegalStateException("Could not resolve invokeWrapper to method");
                     }
-                }
-                blockBuilder.op(op);
-                return blockBuilder;
-            });
+                    blockBuilder.op(op);
+                    return blockBuilder;
+                });
 
-            funcs.addFirst(tf);
+                funcs.addFirst(tf);
+            }
         }
 
         return CoreOp.module(funcs);
-    }
-
-    public static Class<?> primitiveTypeToClass(TypeElement type) {
-        assert type != null;
-        class PrimitiveHolder {
-            static final Map<PrimitiveType, Class<?>> primitiveToClass = Map.of(
-                    JavaType.BYTE, byte.class,
-                    JavaType.SHORT, short.class,
-                    JavaType.INT, int.class,
-                    JavaType.LONG, long.class,
-                    JavaType.FLOAT, float.class,
-                    JavaType.DOUBLE, double.class,
-                    JavaType.CHAR, char.class,
-                    JavaType.BOOLEAN, boolean.class
-            );
-        }
-        if (type instanceof PrimitiveType primitiveType) {
-            return PrimitiveHolder.primitiveToClass.get(primitiveType);
-        } else {
-            throw new RuntimeException("given type is not a PrimitiveType");
-        }
     }
 
     public static Type classTypeToTypeOrThrow(MethodHandles.Lookup lookup, ClassType classType) {
@@ -279,9 +222,6 @@ public class OpTk {
         return args;
     }
 
-    public static CoreOp.FuncOp lower( CoreOp.FuncOp funcOp) {
-        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
-    }
 
     // public static Stream<Op> statements(CoreOp.FuncOp op) {
     //   return statements(op.bodies().getFirst().entryBlock());
@@ -291,7 +231,9 @@ public class OpTk {
         return block.ops().stream().filter(op->
                 (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
                         || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
-                        || (op instanceof HatMemoryOp)
+                        || (op instanceof HATMemoryOp)
+                        || (op instanceof HATVectorVarOp)
+                        || (op instanceof HATF16VarOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
@@ -302,13 +244,14 @@ public class OpTk {
     }
 
     public static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return isAssignable(lookup, javaRefType(invokeOp), MappableIface.class);
+        return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class) ||
+                invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName()));
     }
 
     public static boolean isKernelContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         return (op.operands().size() > 1 && op.operands().getFirst() instanceof Value value
                 && value.type() instanceof JavaType javaType
-                && (isAssignable(lookup, javaType, hat.KernelContext.class) || isAssignable(lookup, javaType, KernelContext.class))
+                && (isAssignable(lookup, javaType, hat.KernelContext.class) || isAssignable(lookup, javaType, KernelBufferContext.class))
         );
     }
 
@@ -325,12 +268,12 @@ public class OpTk {
 
     public static Method methodOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         try {
-            return op.invokeDescriptor().resolveToMethod(lookup, op.invokeKind());
+            return op.invokeDescriptor().resolveToMethod(lookup);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
-
+/*
     public static Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         if (javaReturnType(op) instanceof ClassType classType) {
             return Optional.of((Class<?>) classTypeToTypeOrThrow(lookup, classType));
@@ -347,7 +290,7 @@ public class OpTk {
             return false;
         }
     }
-
+*/
 
     public static Class<?> javaRefClassOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         if (javaRefType(op) instanceof ClassType classType) {
@@ -382,19 +325,31 @@ public class OpTk {
             case CoreOp.VarOp o -> 13;
             case CoreOp.VarAccessOp.VarStoreOp o -> 13;
             case JavaOp.FieldAccessOp o -> 0;
-            case HatThreadOP o -> 0;
+            case HATThreadOp o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
+            case HATVectorSelectLoadOp o -> 0;      // same as VarLoadOp
+            case HATVectorLoadOp o -> 0;
+            case HATF16VarLoadOp o -> 0;
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;
             case JavaOp.WhileOp o -> 0;
             case JavaOp.ConvOp o -> 1;
+            case HATF16ToFloatConvOp o -> 1;
             case JavaOp.NegOp  o-> 1;
             case JavaOp.ModOp o -> 2;
             case JavaOp.MulOp o -> 2;
+            case HATVectorMulOp o -> 2;
+            case HATF16MulOp o -> 2;
             case JavaOp.DivOp o -> 2;
+            case HATVectorDivOp o -> 2;
+            case HATF16DivOp o -> 2;
             case JavaOp.NotOp o -> 2;
             case JavaOp.AddOp o -> 3;
+            case HATVectorAddOp o -> 3;
+            case HATVectorSubOp o -> 3;
+            case HATF16AddOp o -> 3;
+            case HATF16SubOp o -> 3;
             case JavaOp.SubOp o -> 3;
             case JavaOp.AshrOp o -> 4;
             case JavaOp.LshlOp o -> 4;
@@ -523,6 +478,108 @@ public class OpTk {
         return ifOp.bodies().size() > idx?ifOp.bodies().get(idx).entryBlock():null;
     }
 
+    public static boolean fieldNameIs(JavaOp.FieldAccessOp.FieldAccessOp fieldAccessOp, String name) {
+        return fieldName(fieldAccessOp).equals(name);
+    }
+    public static boolean fieldNameMatches(JavaOp.FieldAccessOp.FieldAccessOp fieldAccessOp, Pattern pattern) {
+        return pattern.matcher(fieldName(fieldAccessOp)).matches();
+    }
+
+    public  record CallSite(Class<?> clazz,String methodName, boolean tracing){
+        public static CallSite of(Class<?> clazz, String methodName) {
+            return new CallSite(clazz,methodName, Boolean.getBoolean("TRACE_CALLSITES"));
+        }
+
+        @Override public  String toString(){
+            return clazz.toString()+":"+methodName;
+        }
+    }
+    public static <T> T traverse(CallSite callSite, CoreOp.FuncOp funcOp, BiFunction<T, CodeElement<?,?>,T> bifunc) {
+        if (callSite.tracing){
+            System.out.println(callSite + " traverse is being deprecated!!");
+        }
+       return  funcOp.traverse(null, bifunc);
+    }
+    public static CoreOp.FuncOp lower(CallSite callSite, CoreOp.FuncOp funcOp) {
+        if (callSite.tracing){
+            System.out.println(callSite);
+        }
+        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
+    }
+    public static Stream<CodeElement<?,?>> elements(CallSite callSite, CoreOp.FuncOp funcOp) {
+        if (callSite.tracing){
+            System.out.println(callSite);
+        }
+        return funcOp.elements();
+    }
+
+    public static CoreOp.FuncOp SSATransformLower(CallSite callSite, CoreOp.FuncOp funcOp){
+        if (callSite.tracing){
+            System.out.println(callSite);
+        }
+        return  SSA.transform(lower(callSite,funcOp));
+    }
+    public static CoreOp.FuncOp SSATransform(CallSite callSite, CoreOp.FuncOp funcOp){
+        if (callSite.tracing){
+            System.out.println(callSite);
+        }
+        return  SSA.transform(funcOp);
+    }
+
+    public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, OpTransformer opTransformer) {
+        if (callSite.tracing){
+            System.out.println(callSite);
+        }
+        return funcOp.transform((blockBuilder, op) -> {
+            if (predicate.test(op)){
+                var builder = opTransformer.acceptOp(blockBuilder,op);
+                if (builder != blockBuilder){
+                    throw new RuntimeException("Where does this builder come from "+builder);
+                }
+            }else {
+                blockBuilder.op(op);
+            }
+            return blockBuilder;
+        });
+    }
+
+    public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, OpTransformer opTransformer) {
+        if (callSite.tracing){
+            System.out.println(callSite);
+        }
+        return funcOp.transform(opTransformer);
+    }
+
+    public record  OpMap(CoreOp.FuncOp fromFuncOp, CoreOp.FuncOp toFuncOp,  Map<Op,Op> fromToOpMap){}
+
+    public  static <InOp extends Op, OutOp extends Op> OutOp replaceOp(Block.Builder blockBuilder, InOp inOp,java.util.function.Function<List<Value>, OutOp> factory) {
+        List<Value> inputOperands = inOp.operands();
+        CopyContext context = blockBuilder.context();
+        List<Value> outputOperands = context.getValues(inputOperands);
+        OutOp outOp = factory.apply(outputOperands);
+        Op.Result outputResult = blockBuilder.op(outOp);
+        Op.Result inputResult = inOp.result();
+        outOp.setLocation(inOp.location());
+        context.mapValue(inputResult, outputResult);
+        return outOp;
+    }
+    public static < OutOp extends Op> OpMap simpleOpMappingTransform(OpTk.CallSite here, CoreOp.FuncOp fromFuncOp, Predicate<Op> opPredicate,
+                                                         java.util.function.Function<List<Value>, OutOp> opFactory){
+        Map<Op,Op> fromToOpMap = new LinkedHashMap<>();
+        CoreOp.FuncOp toFuncOp =  OpTk.transform(here, fromFuncOp, (blockBuilder, inOp) -> {
+            if (opPredicate.test(inOp)) {
+                fromToOpMap.put(inOp, replaceOp(blockBuilder, inOp, opFactory));
+            }else {
+                var r = blockBuilder.op(inOp);
+                fromToOpMap.put(inOp,r.op());
+            }
+            return blockBuilder;
+        });
+        return new OpMap(fromFuncOp, toFuncOp, fromToOpMap);
+    }
+
+
+
     public record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
     }
 
@@ -534,5 +591,28 @@ public class OpTk {
 
     public static boolean returnIsVoid(JavaOp.InvokeOp invokeOp){
         return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();
+    }
+
+    // IMPORTANT:
+    // When we have patterns like:
+    //
+    // myiFaceArray.array().value(storeAValue);
+    //
+    // We need to generate extra parenthesis to make the struct pointer accessor "->" correct.
+    // This is a common pattern when we have a IFace type that contains a subtype based on
+    // struct or union.
+    //
+    // An example of this is for the type F16Array.
+    public static boolean needExtraParenthesis(JavaOp.InvokeOp invokeOp) {
+
+        // The following expression checks that the current invokeOp has at least 2 operands:
+        // Why 2?
+        // - The first one is another invokeOp to load the inner struct from an IFace data structure.
+        //   The first operand is also assignable.
+        // - The second one is the store value, but this depends on the semantics and definition
+        //   of the user code.
+        return invokeOp.operands().size() >= 2 && invokeOp.operands().get(0) instanceof Op.Result r1
+                && r1.op() instanceof JavaOp.InvokeOp invokeOp2
+                && OpTk.javaReturnType(invokeOp2) instanceof ClassType;
     }
 }

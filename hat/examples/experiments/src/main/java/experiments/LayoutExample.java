@@ -34,6 +34,8 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+
+import hat.optools.OpTk;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
@@ -111,7 +113,8 @@ public class LayoutExample {
 
         Method m = om.orElseThrow();
         CoreOp.FuncOp f= Op.ofMethod(m).orElseThrow();
-        f = SSA.transform(f);
+        var here = OpTk.CallSite.of(LayoutExample.class, "main");
+        f = OpTk.SSATransform(here, f);
         System.out.println(f.toText());
         FunctionType functionType = transformStructClassToPtr(lookup, f);
         System.out.println(f.toText());

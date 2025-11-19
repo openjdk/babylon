@@ -29,6 +29,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.ifacemapper.BufferState;
+import hat.NDRange;
 import jdk.incubator.code.CodeReflection;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
@@ -71,9 +72,9 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
-        Universe.Body me = universe.body(kc.x);
+        Universe.Body me = universe.body(kc.gix);
 
-        for (int i = 0; i < kc.maxX; i++) {
+        for (int i = 0; i < kc.gsx; i++) {
             Universe.Body otherBody = universe.body(i);
             float dx = otherBody.x() - me.x();
             float dy = otherBody.y() - me.y();
@@ -101,9 +102,8 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float cdelT = delT;
         float cespSqr = espSqr;
 
-        cc.dispatchKernel(universe.length(), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
+        cc.dispatchKernel(NDRange.of(universe.length()), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
     }
-
 
     final CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel;
     final CLWrapComputeContext clWrapComputeContext;
@@ -238,6 +238,27 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
                         }
                         """;
+                /* Aspirational Java code
+                     void nbody(KernelContext kc, F32Arr xyzPosFloats ,F32Arr xyzVelFloats, float mass, float delT, float espSqr ){
+                                float4 acc = float4.of(0.0,0.0,0.0,0.0);
+                                float4[] xyzPos = xyzPosFloats.float4ArrayView();
+                                float4[] xyzVel = xyzVelFloats.float4ArrayView();
+                                float4 myPos = xyzPos[kc.gix];
+                                float4 myVel = xyzVel[kc.gix];
+                                for (int i = 0; i < kc.gsx; i++) {
+                                       float4 delta =  xyzPos[i].sub(myPos); // xyzPos[i] - myPos
+                                       float invDist =  (float) 1.0/sqrt((float)((delta.x * delta.x) + (delta.y * delta.y) + (delta.z * delta.z) + espSqr));
+                                       float s = mass * invDist * invDist * invDist;
+                                       acc  = acc.plus(delta.mul(s)); //  acc= acc + (s * delta);
+                                }
+                                acc = acc.mul(delT); //acc = acc*delT;
+                                myPos = myPos.plus(myVel.mul(delT)).plus(acc.mul(delT/2); //  myPos = myPos + (myVel * delT) + (acc * delT)/2;
+                                myVel = myVel.plus(acc)//   myVel = myVel + acc;
+                                xyzPos[kc.gix] = myPos;
+                                xyzVel[kc.gix] = myVel;
+
+                            }
+                 */
                 default -> throw new IllegalStateException();
             };
             var program = context.buildProgram(code);

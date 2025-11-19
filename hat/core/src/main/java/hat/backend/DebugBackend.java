@@ -25,7 +25,8 @@
 package hat.backend;
 
 import hat.ComputeContext;
-import hat.NDRange;
+import hat.Config;
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 
@@ -33,8 +34,6 @@ import java.lang.reflect.InvocationTargetException;
 
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -50,13 +49,16 @@ public class DebugBackend extends BackendAdaptor {
     }
 
     public DebugBackend(HowToRunCompute howToRunCompute, HowToRunKernel howToRunKernel){
+        super(Config.fromEnvOrProperty());
         this.howToRunCompute = howToRunCompute;
         this.howToRunKernel = howToRunKernel;
     }
 
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
+        var here = OpTk.CallSite.of(DebugBackend.class,"dispatchCompute");
         switch (howToRunCompute){
+
             case REFLECT: {
                 try {
                     computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
@@ -67,14 +69,14 @@ public class DebugBackend extends BackendAdaptor {
             }
             case BABYLON_INTERPRETER:{
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
+                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(here, computeContext.computeCallGraph.entrypoint.funcOp());
                 }
                 Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
+                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(here, computeContext.computeCallGraph.entrypoint.funcOp());
                 }
                 try {
                     if (computeContext.computeCallGraph.entrypoint.mh == null) {
@@ -91,14 +93,15 @@ public class DebugBackend extends BackendAdaptor {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
 
+        var here = OpTk.CallSite.of(DebugBackend.class, "dispatchKernel");
         switch (howToRunKernel){
             case REFLECT: {
                 KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-                for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
+                for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
                     try {
-                        args[0] = ndRange.kid;
+                        args[0] = kernelContext;
                         kernelEntrypoint.method.invoke(null, args);
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
@@ -109,12 +112,12 @@ public class DebugBackend extends BackendAdaptor {
                 break;
             }
             case BABYLON_INTERPRETER:{
-                var lowered = OpTk.lower(kernelCallGraph.entrypoint.funcOp());
+                var lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
                 Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup, lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
-                var lowered = OpTk.lower(kernelCallGraph.entrypoint.funcOp());
+                var lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
                 var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, lowered);
                 try {
                     mh.invokeWithArguments(args);
@@ -131,13 +134,14 @@ public class DebugBackend extends BackendAdaptor {
                 System.out.println("Initial code model");
                 System.out.println(highLevelForm.toText());
                 System.out.println("------------------");
-
-                CoreOp.FuncOp loweredForm = highLevelForm.transform(OpTransformer.LOWERING_TRANSFORMER);
+                System.out.println("TRANSFORM dispatchKernel"+ DebugBackend.class);
+                CoreOp.FuncOp loweredForm = OpTk.lower(here, highLevelForm);
                 System.out.println("Lowered form which maintains original invokes and args");
                 System.out.println(loweredForm.toText());
                 System.out.println("-------------- ----");
+                System.out.println("TRANSFORM dispatchKernel"+DebugBackend.class);
 
-                CoreOp.FuncOp ssaInvokeForm = SSA.transform(loweredForm);
+                CoreOp.FuncOp ssaInvokeForm = OpTk.SSATransform(here, loweredForm);
                 System.out.println("SSA form which maintains original invokes and args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
@@ -149,11 +153,11 @@ public class DebugBackend extends BackendAdaptor {
                 System.out.println("Initial code model");
                 System.out.println(highLevelForm.toText());
                 System.out.println("------------------");
-                CoreOp.FuncOp loweredForm = highLevelForm.transform(OpTransformer.LOWERING_TRANSFORMER);
+                CoreOp.FuncOp loweredForm = OpTk.lower(here, highLevelForm);
                 System.out.println("Lowered form which maintains original invokes and args");
                 System.out.println(loweredForm.toText());
                 System.out.println("-------------- ----");
-                CoreOp.FuncOp ssaInvokeForm = SSA.transform(loweredForm);
+                CoreOp.FuncOp ssaInvokeForm = OpTk.SSATransformLower(here, loweredForm);
                 System.out.println("SSA form which maintains original invokes and args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");

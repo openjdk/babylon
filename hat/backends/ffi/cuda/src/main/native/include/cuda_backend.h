@@ -92,11 +92,14 @@ public:
 
 class CudaSource final :public Text  {
 public:
-    CudaSource(size_t len, char *text, bool isCopy);
+    CudaSource(size_t len, char *text, bool isCopy, bool lineinfo);
+    bool lineInfo() const;
     explicit CudaSource(size_t len);
     explicit CudaSource(char* text);
     CudaSource();
     ~CudaSource() override = default;
+private:
+    bool _lineInfo = false;
 };
 
 class CudaBackend final : public Backend {
@@ -168,7 +171,7 @@ private:
     CUdevice device;
     CUcontext context;
 public:
-    void info() override;
+    void showDeviceInfo() override;
     CudaModule * compile(const CudaSource *cudaSource);
     CudaModule * compile(const CudaSource &cudaSource);
     CudaModule * compile(const PtxSource *ptxSource);
@@ -186,5 +189,3 @@ public:
     static CudaBackend * of(long backendHandle);
     static CudaBackend * of(Backend *backend);
 };
-
-

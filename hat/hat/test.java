@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 
 class Config {
     boolean headless = false;
-    boolean noModuleOp = false;
     boolean verbose = false;
     boolean startOnFirstThread = false;
     boolean justShowCommandline = false;
@@ -49,7 +48,7 @@ class Config {
 
         var testJARFile = buildDir.jarFile("hat-tests-1.0.jar");
         if (testJARFile.exists()) {
-            testMainClassName = "oracle.code.hat.engine.HatTestEngine";
+            testMainClassName = "hat.test.engine.HATTestEngine";
             exampleJar = testJARFile;
             if (exampleJar.exists()) {
                 classpath.add(exampleJar);
@@ -78,7 +77,6 @@ class Config {
             } else {
                 switch (args[arg]) {
                     case "headless" -> headless = true;
-                    case "noModuleOp" -> noModuleOp = true;
                     case "verbose" -> verbose = true;
                     case "justShowCommandLine" -> justShowCommandline = true;
                     case "startOnFirstThread" -> startOnFirstThread = true;
@@ -94,11 +92,15 @@ class Config {
 class Stats {
     int passed = 0;
     int failed = 0;
+    int unsupported = 0;
     public void incrementPassed(int val) {
-        passed += val;
+        this.passed += val;
     }
     public void incrementFailed(int fail) {
-        failed += fail;
+        this.failed += fail;
+    }
+    public void incrementUnsupported(int unsupporeted) {
+        this.unsupported += unsupporeted;
     }
 
     public int getPassed() {
@@ -107,10 +109,14 @@ class Stats {
     public int getFailed() {
         return failed;
     }
+    public int getUnsupported() {
+        return unsupported;
+    }
 
     @Override
     public String toString() {
-        return String.format("Global passed: %d, failed: %d, pass-rate: %.2f%%", passed, failed, ((float)(passed * 100 / (passed + failed))));
+        return String.format("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%",
+                passed, failed, unsupported, ((float)(passed * 100 / (passed + failed + unsupported))));
     }
 }
 
@@ -148,9 +154,6 @@ void main(String[] argv) {
             default -> {
             }
         }
-        if (config.noModuleOp) {
-            System.out.println("NOT using ModuleOp for CallGraphs");
-        }
     }
 
     // Remove the previous report file:
@@ -164,17 +167,20 @@ void main(String[] argv) {
     if (config.runSuite) {
 
         String[] suite = new String[] {
-                "oracle.code.hat.TestArrays",
-                "oracle.code.hat.TestMatMul",
-                "oracle.code.hat.TestMandel",
-                "oracle.code.hat.TestLocal",
-                "oracle.code.hat.TestReductions",
-                "oracle.code.hat.TestPrivate",
-                "oracle.code.hat.TestParenthesis",
-                "oracle.code.hat.TestConstants",
-                "oracle.code.hat.TestBlackscholes",
-                "oracle.code.hat.TestNbody",
-                "oracle.code.hat.TestArrayView"
+                "hat.test.TestMatMul",
+                "hat.test.TestArrays",
+                "hat.test.TestMandel",
+                "hat.test.TestLocal",
+                "hat.test.TestReductions",
+                "hat.test.TestPrivate",
+                "hat.test.TestParenthesis",
+                "hat.test.TestConstants",
+                "hat.test.TestBlackscholes",
+                "hat.test.TestNbody",
+                "hat.test.TestArrayView",
+                "hat.test.TestVectorTypes",
+                "hat.test.TestF16Type",
+                "hat.test.TestFloat2"
         };
 
         // Test the whole suite
@@ -185,7 +191,6 @@ void main(String[] argv) {
                     .enable_native_access("ALL-UNNAMED")
                     .library_path(buildDir)
                     .when(config.headless, Script.JavaBuilder::headless)
-                    .when(config.noModuleOp, Script.JavaBuilder::noModuleOp)
                     .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
                     .class_path(config.classpath)
                     .vmargs(config.vmargs)
@@ -195,7 +200,7 @@ void main(String[] argv) {
         }
 
         // Final report
-        String regex = "passed: (\\d+), failed: (\\d+)";
+        String regex = "passed: (\\d+), failed: (\\d+), unsupported: (\\d+)";
         Pattern pattern = Pattern.compile(regex);
         Stats stats = new Stats();
 
@@ -211,8 +216,10 @@ void main(String[] argv) {
                 if (matcher.find()) {
                     int passed = Integer.parseInt(matcher.group(1));
                     int fail = Integer.parseInt(matcher.group(2));
+                    int unsupported = Integer.parseInt(matcher.group(3));
                     stats.incrementPassed(passed);
                     stats.incrementFailed(fail);
+                    stats.incrementUnsupported(unsupported);
                 }
             }
         } catch (IOException e) {
@@ -228,7 +235,6 @@ void main(String[] argv) {
                 .enable_native_access("ALL-UNNAMED")
                 .library_path(buildDir)
                 .when(config.headless, Script.JavaBuilder::headless)
-                .when(config.noModuleOp, Script.JavaBuilder::noModuleOp)
                 .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
                 .class_path(config.classpath)
                 .vmargs(config.vmargs)

@@ -31,26 +31,12 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 
 import java.util.List;
-import java.util.Objects;
 
-public final class RecordTypeRefImpl implements RecordTypeRef {
-
-    final TypeElement recordType;
-    final List<ComponentRef> components;
+public record RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> components) implements RecordTypeRef {
 
     public RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> components) {
         this.recordType = recordType;
         this.components = List.copyOf(components);
-    }
-
-    @Override
-    public TypeElement recordType() {
-        return recordType;
-    }
-
-    @Override
-    public List<ComponentRef> components() {
-        return components;
     }
 
     @Override
@@ -73,16 +59,5 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
     @Override
     public String toString() {
         return JavaTypeUtils.toExternalRefString(externalize());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof RecordTypeRefImpl that)) return false;
-        return Objects.equals(recordType, that.recordType) && Objects.equals(components, that.components);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(recordType, components);
     }
 }

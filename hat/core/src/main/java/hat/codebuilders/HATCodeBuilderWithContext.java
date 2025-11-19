@@ -24,10 +24,18 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HatBarrierOp;
-import hat.dialect.HatLocalVarOp;
-import hat.dialect.HatMemoryOp;
-import hat.dialect.HatPrivateVarOp;
+import hat.buffer.F16;
+import hat.buffer.F16Array;
+import hat.device.DeviceType;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATLocalVarOp;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPhaseUtils;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorVarOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -59,7 +67,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
-            case HatMemoryOp $ -> varName($);
+            case HATMemoryOp $ -> varName($);
+            case HATVectorVarOp $ -> varName($);
+            case HATVectorLoadOp $ -> varName($);
+            case HATVectorBinaryOp $ -> varName($);
+            case HATF16VarOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -68,13 +80,17 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
-        CoreOp.VarOp varOp = (CoreOp.VarOp) buildContext.scope.resolve(varStoreOp.operands().getFirst());
-        varName(varOp).equals();
+        Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
+        if (op instanceof CoreOp.VarOp varOp) {
+            varName(varOp).equals();
+        } else if (op instanceof HATF16VarOp hatf16VarOp) {
+            varName(hatf16VarOp).equals();
+        }
         parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
         return self();
     }
 
-    public record LocalArrayDeclaration(ClassType classType, HatMemoryOp varOp) {}
+    public record LocalArrayDeclaration(ClassType classType, HATMemoryOp varOp) {}
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (buildContext.isVarOpFinal(varOp)) {
@@ -95,14 +111,14 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HatLocalVarOp hatLocalVarOp) {
+    public T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp hatLocalVarOp) {
         LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
         localDeclaration(localArrayDeclaration);
         return self();
     }
 
     @Override
-    public T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HatPrivateVarOp hatLocalVarOp) {
+    public T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp) {
         LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
         privateDeclaration(localArrayDeclaration);
         return self();
@@ -206,8 +222,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         });
         return self();
     }
-
-
 
     @Override
     public T funcCallOp(ScopedCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp) {
@@ -328,16 +342,24 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
+    private boolean isHalfType(Schema.IfaceType ifaceType) {
+        return (ifaceType.iface.getName().equals(F16.class.getName())
+                || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
+    }
 
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
                     var fieldIdx = StreamMutable.of(0);
-                    separated(ifaceType.fields,(_)->nl(), field->{
-                        boolean isLast =fieldIdx.get() == fieldCount - 1;
+                    separated(ifaceType.fields, (_) -> nl(), field -> {
+                        boolean isLast = fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
-                            typeName(primitiveField.type.getSimpleName());
+                            if (isHalfType(ifaceType)) {
+                                typeName("half");
+                            } else {
+                                typeName(primitiveField.type.getSimpleName());
+                            }
                             space().typeName(primitiveField.name);
                             if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
                                 if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
@@ -355,7 +377,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                             if (!done[0]) {
                                                 throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        }else {
+                                        } else {
                                             throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
@@ -384,8 +406,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                             if (!done[0]) {
                                                 throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        }else {
-                                        throw new IllegalStateException("bound schema is null  !");
+                                        } else {
+                                            throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
                                 } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
@@ -400,7 +422,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             throw new IllegalStateException("hmm");
                         }
                         semicolon();
-                        fieldIdx.set(fieldIdx.get()+1);
+                        fieldIdx.set(fieldIdx.get() + 1);
                     });
                 }).suffix_t(ifaceType.iface.getSimpleName()).semicolon().nl().nl();
         return self();
@@ -411,13 +433,15 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T barrier(ScopedCodeBuilderContext buildContext, HatBarrierOp barrierOp) {
+    public T barrier(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp) {
         return syncBlockThreads();
     }
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)) {
+        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
+                || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())
+                || HATPhaseUtils.isDeviceTypeInvokeDescriptor(invokeOp)) {
             if (invokeOp.operands().size() == 1
                     && OpTk.funcName(invokeOp) instanceof String funcName
                     && funcName.startsWith("atomic")
@@ -430,6 +454,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     throw new IllegalStateException("bad atomic");
                 }
             } else {
+
                if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
                 /*
                 We have three types of returned values from an ifaceBuffer
@@ -467,23 +492,29 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  of course we could return
                           cascade->tree + treeIdx;
                  */
-                    if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
-                        ampersand();
+
+                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
+                   boolean needExtraParenthesis = OpTk.needExtraParenthesis(invokeOp);
+                   when(needExtraParenthesis, _ -> oparen());
+
+                   if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
+                       ampersand();
                         /* This is way more complicated I think we need to determine the expression type.
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
                          */
-                    }
+                   }
 
+                   recurse(buildContext, instanceResult.op());
 
-
-                    recurse(buildContext, instanceResult.op());
+                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
+                   when(needExtraParenthesis, _ -> cparen());
 
                     // Check if the varOpLoad that could follow corresponds to a local/private type
                     boolean isLocalOrPrivateDS = false;
                     if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
                         //if (localDataStructures.contains(resolve)) {
-                        if (resolve instanceof HatMemoryOp) {
+                        if (resolve instanceof HATMemoryOp) {
                             isLocalOrPrivateDS = true;
                         }
                     }
@@ -606,7 +637,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         }
         return suffix_t(name);
     }
+
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
-        return   type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+        return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
+
 }

@@ -25,21 +25,35 @@
 package hat.codebuilders;
 
 import hat.buffer.Buffer;
-import hat.dialect.HatBlockThreadIdOp;
-import hat.dialect.HatGlobalThreadIdOp;
-import hat.dialect.HatGlobalSizeOp;
-import hat.dialect.HatLocalSizeOp;
-import hat.dialect.HatLocalThreadIdOp;
+import hat.buffer.F16;
+import hat.dialect.HATBlockThreadIdOp;
+import hat.dialect.HATF16BinaryOp;
+import hat.dialect.HATF16VarLoadOp;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATGlobalSizeOp;
+import hat.dialect.HATGlobalThreadIdOp;
+import hat.dialect.HATLocalSizeOp;
+import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATMemoryLoadOp;
+import hat.dialect.HATPrivateVarInitOp;
+import hat.dialect.HATVectorMakeOfOp;
+import hat.dialect.HATVectorOfOp;
+import hat.dialect.HATVectorVarLoadOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import java.util.List;
 import java.util.function.Consumer;
+
+import static hat.buffer.F16Array.F16Impl;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
     public T types() {
@@ -73,9 +87,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
-            globalPtrPrefix().space().suffix_t(classType).asterisk();
-        }else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")){
-            globalPtrPrefix().space().suffix_t("KernelContext").asterisk();
+            globalPtrPrefix().suffix_t(classType).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
+            // Check for special types (e.g., FP16)
+            globalPtrPrefix().suffix_t(F16Impl.NAME).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")) {
+            globalPtrPrefix().suffix_t("KernelContext").asterisk();
         } else {
             typeName(javaType.toString());
         }
@@ -128,60 +145,246 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
-        return localPtrPrefix().space() // we should be able to compose-call to privateDeclaration?
+        return localPtrPrefix() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
     }
 
     @Override
-    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp globalThreadIdOp) {
+    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
         globalId(globalThreadIdOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalSizeOp globalSizeOp) {
+    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp globalSizeOp) {
         globalSize(globalSizeOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HatLocalThreadIdOp localThreadIdOp) {
+    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp localThreadIdOp) {
         localId(localThreadIdOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HatLocalSizeOp hatLocalSizeOp) {
+    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
         localSize(hatLocalSizeOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp) {
+    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
         blockId(hatBlockThreadIdOp.getDimension());
         return self();
     }
 
-    public abstract T globalPtrPrefix();
 
-    public abstract T localPtrPrefix();
+
+    public T globalId(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_GIX");
+            case 1 -> identifier("HAT_GIY");
+            case 2 -> identifier("HAT_GIZ");
+            default -> throw new RuntimeException("globalId id = " + id);
+        }
+        return self();
+    }
+
+    public T localId(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_LIX");
+            case 1 -> identifier("HAT_LIY");
+            case 2 -> identifier("HAT_LIZ");
+            default -> throw new RuntimeException("localId id = " + id);
+        }
+        return self();
+    }
+
+    public T globalSize(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_GSX");
+            case 1 -> identifier("HAT_GSY");
+            case 2 -> identifier("HAT_GSZ");
+            default -> throw new RuntimeException("globalSize id = " + id);
+        }
+        return self();
+    }
+
+    public T localSize(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_LSX");
+            case 1 -> identifier("HAT_LSY");
+            case 2 -> identifier("HAT_LSZ");
+            default -> throw new RuntimeException("localSize id = " + id);
+        }
+        return self();
+    }
+
+
+    public T blockId(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_BIX");
+            case 1 -> identifier("HAT_BIY");
+            case 2 -> identifier("HAT_BIZ");
+            default -> throw new RuntimeException("blockId id = " + id);
+        }
+        return self();
+    }
+
+    @Override
+    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
+        varName(hatVectorVarLoadOp);
+        return self();
+    }
+
+    @Override
+    public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
+        halfType()
+                .space()
+                .identifier(hatF16VarOp.varName())
+                .space().equals().space();
+        Value operand = hatF16VarOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+
+        Value op1 = hatF16BinaryOp.operands().get(0);
+        Value op2 = hatF16BinaryOp.operands().get(1);
+        List<Boolean> references = hatF16BinaryOp.references();
+
+        oparen().halfType().cparen().obrace().oparen();
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        if (references.getFirst()) {
+            rarrow().identifier("value");
+        } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        if (references.get(1)) {
+            rarrow().identifier("value");
+        } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+
+        cparen().cbrace();
+        return self();
+    }
+
+    @Override
+    public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
+        identifier(hatF16VarLoadOp.varName());
+        dot().identifier("value");
+        return self();
+    }
+
+    @Override
+    public T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp) {
+        identifier(hatVectorMakeOfOp.varName());
+        return self();
+    }
+
+    public abstract T genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp);
+
+    @Override
+    public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
+        genVectorIdentifier(buildContext, hatVectorOp);
+
+        List<Value> inputOperands = hatVectorOp.operands();
+        int i;
+        for (i = 0; i < (inputOperands.size() - 1); i++) {
+            var operand = inputOperands.get(i);
+            if ((operand instanceof Op.Result r)) {
+                recurse(buildContext, r.op());
+            }
+            comma().space();
+        }
+        // Last parameter
+        var operand = inputOperands.get(i);
+        if ((operand instanceof Op.Result r)) {
+            recurse(buildContext, r.op());
+        }
+        cparen();
+        return self();
+    }
+
+    @Override
+    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateVarInitOp hatPrivateVarInitOp) {
+        suffix_t(hatPrivateVarInitOp.classType()).space().identifier(hatPrivateVarInitOp.varName());
+        space().equals().space();
+        Value operand = hatPrivateVarInitOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(builderContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp) {
+        List<Value> operands = hatMemoryLoadOp.operands();
+        Value base = operands.get(0);
+        if (base instanceof Op.Result r) {
+           recurse(builderContext, r.op());
+        }
+        dot().identifier(hatMemoryLoadOp.memberName());
+
+        if (operands.size() > 1) {
+            // If the hatMemoryLoadOp has more than 1 operand,
+            // then we know that the second operand represents
+            // an index to access an array, since members, otherwise,
+            // will be accessed via structVarName.member1.member2.member3...,  etc.
+
+            // The following code generates [ indexValue ]
+            osbrace();
+            Value index = operands.get(1);
+            if (index instanceof Op.Result r) {
+                recurse(builderContext, r.op());
+            }
+            csbrace();
+        }
+        return self();
+    }
+
+    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return kernelPrefix().voidType().space().funcName(funcOp);
+    }
+
+    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
+    }
+
+    public T kernelPrefix() {
+        return keyword("HAT_KERNEL").space();
+    }
+
+    public T functionPrefix() {
+        return keyword("HAT_FUNC").space();
+    }
+
+    public T globalPtrPrefix() {
+        return keyword("HAT_GLOBAL_MEM").space();
+    }
+
+    public T localPtrPrefix() {
+        return keyword("HAT_LOCAL_MEM").space();
+    }
+
+    public T syncBlockThreads() {
+        return identifier("HAT_BARRIER");
+    }
 
     public abstract T defines();
-
-    public abstract T pragmas();
-
-    public abstract T kernelDeclaration(CoreOp.FuncOp funcOp);
-
-    public abstract T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp);
-
-    public abstract T globalId(int id);
-
-    public abstract T localId(int id);
-
-    public abstract T globalSize(int id);
-
-    public abstract T localSize(int id);
-
-    public abstract T blockId(int id);
 
 }

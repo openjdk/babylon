@@ -27,6 +27,6 @@ package hat.backend.ffi;
 public class OpenCLDeviceInfo {
     public static void main(String[] args) {
         OpenCLBackend backend = new OpenCLBackend();
-        backend.backendBridge.info();
+        backend.backendBridge.showDeviceInfo();
     }
 }

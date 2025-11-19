@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntBinaryOperator;
 import java.util.function.IntUnaryOperator;
 
 /*
@@ -56,10 +57,11 @@ public class TestSealOp {
 
     @Test
     void test4() {
-        Quoted q = (int a, int b) -> {
+        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) -> {
             return a + b;
         };
-        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) q.op().ancestorBody().ancestorOp();
+        Quoted quoted = Op.ofQuotable(q).get();
+        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
         Assertions.assertTrue(funcOp.isSealed());
         assertOpIsCopiedWhenAddedToBlock(funcOp);

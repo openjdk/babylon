@@ -25,6 +25,7 @@
 package violajones;
 
 
+import jdk.incubator.code.Op;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -473,9 +474,22 @@ public class XMLHaarCascadeModel implements Cascade {
 
     XMLHaarCascadeModel(Element cascadeElement) {
         this.cascadeElement = cascadeElement;
-        Scanner sizeScanner = new Scanner(selectChild(cascadeElement, "size").get().getTextContent());
-        this.width = sizeScanner.nextInt();
-        this.height = sizeScanner.nextInt();
+        Optional<Element> size = selectChild(cascadeElement, "size");
+        if (size.isPresent()) {
+            Scanner sizeScanner = new Scanner(size.get().getTextContent());
+            this.width = sizeScanner.nextInt();
+            this.height = sizeScanner.nextInt();
+        }else{
+            if (selectChild(cascadeElement,"width") instanceof Optional<Element> optWidth && optWidth.isPresent()
+               && selectChild(cascadeElement,"height") instanceof Optional<Element> optHeight && optHeight.isPresent()
+            ){
+                this.width = Integer.parseInt(optWidth.get().getTextContent());
+                this.height = Integer.parseInt(optHeight.get().getTextContent());
+                //System.out.println("height width = "+this.width +  " "+this.height);
+            }else{
+                throw new IllegalStateException("No width/height or size element in cascade ");
+            }
+        }
         selectChild(cascadeElement, "stages").ifPresent(stagesXML ->
                 forEachElement(stagesXML, e -> e.getNodeName().equals("_"),
                         (stageXMLElement) ->

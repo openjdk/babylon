@@ -169,6 +169,90 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
         /// Named metadata values; keys should be distinct.
         public NodeProto metadataProps(StringStringEntryProto metadataProps) {return _f(9, metadataProps);}
+
+        /// Configuration of multi-device annotations.
+        public NodeProto deviceConfigurations(NodeDeviceConfigurationProto deviceConfigurations) {return _f(10, deviceConfigurations);}
+    }
+
+    /// IntIntListEntryProto follows the pattern for cross-proto-version maps.
+    /// See https://developers.google.com/protocol-buffers/docs/proto3#maps
+    public static final class IntIntListEntryProto extends OnnxBuilder<IntIntListEntryProto> {
+
+        public IntIntListEntryProto key(long key) {return _f(1, key);}
+
+        public IntIntListEntryProto value(long... value) {return _f(2, value);}
+    }
+
+    /// Multi-device configuration proto for NodeProto.
+    public static final class NodeDeviceConfigurationProto extends OnnxBuilder<NodeDeviceConfigurationProto> {
+
+        /// This field MUST be present for this version of the IR.
+        /// ID of the configuration. MUST match the name of a DeviceConfigurationProto.
+        public NodeDeviceConfigurationProto configurationId(String configurationId) {return _f(1, configurationId);}
+
+        /// Sharding spec for the node.
+        public NodeDeviceConfigurationProto shardingSpec(ShardingSpecProto shardingSpec) {return _f(2, shardingSpec);}
+
+        /// Pipeline stage of this node.
+        public NodeDeviceConfigurationProto pipelineStage(int pipelineStage) {return _f(3, pipelineStage);}
+    }
+
+    /// ShardingSpecProto: This describes the sharding spec for a specific
+    /// input or output tensor of a node.
+    public static final class ShardingSpecProto extends OnnxBuilder<ShardingSpecProto> {
+
+        /// This field MUST be present for this version of the IR.
+        /// Identifies the input or output of the node that is being sharded.
+        /// Required to match a name specified in the node's input or output list of ValueInfoProtos.
+        /// It is called `logical tensor` in subsequent descriptions.
+        public ShardingSpecProto tensorName(String tensorName) {return _f(1, tensorName);}
+
+        /// The following is the list of devices across which the logical
+        /// tensor is sharded or replicated.
+        public ShardingSpecProto device(long... device) {return _f(2, device);}
+
+        /// Each element v in above field devices may represent either a
+        /// device or a set of devices (when we want the same shard/tensor
+        /// to be replicated across a subset of devices), as indicated by
+        /// the following optional map. If the map contains an entry for v,
+        /// then v represents a device group, and the map indicates the set
+        /// of devices in that group.
+        public ShardingSpecProto indexToDeviceGroupMap(IntIntListEntryProto indexToDeviceGroupMap) {return _f(3, indexToDeviceGroupMap);}
+
+        /// The following is the sharded-shape of the tensor, consisting of
+        /// the sharding-spec for each axis of the tensor.
+        public ShardingSpecProto shardedDim(ShardedDimProto shardedDim) {return _f(4, shardedDim);}
+    }
+
+    /// ShardedDimProto: This describes the sharding spec for a single
+    /// axis of a sharded tensor.
+    public static final class ShardedDimProto extends OnnxBuilder<ShardedDimProto> {
+
+        /// This field MUST be present for this version of the IR.
+        /// The axis this sharding corresponds to. Must be in the range of
+        /// [-r, r - 1], where r is the rank of the tensor. Negative axis values means
+        /// counting from the back.
+        public ShardedDimProto axis(long axis) {return _f(1, axis);}
+
+        /// Describes how the tensor on the provided axis is sharded.
+        /// The common-case is described by a single instance of SimpleShardedDimProto.
+        /// Multiple instances can be used to handle cases where a sharded
+        /// tensor is reshaped, fusing multiple axes into one.
+        public ShardedDimProto simpleSharding(SimpleShardedDimProto simpleSharding) {return _f(2, simpleSharding);}
+    }
+
+    /// SimpleShardedDimProto: Indicates that N blocks are divided into M shards.
+    /// N is allowed to be symbolic where M is required to be a constant.
+    public static final class SimpleShardedDimProto extends OnnxBuilder<SimpleShardedDimProto> {
+
+        /// Dimension value to be sharded.
+        public SimpleShardedDimProto dimValue(long dimValue) {return _f(1, dimValue);}
+
+        public SimpleShardedDimProto dimParam(String dimParam) {return _f(2, dimParam);}
+
+        /// This field MUST be present for this version of the IR.
+        /// Number of shards to split dim into.
+        public SimpleShardedDimProto numShards(long numShards) {return _f(3, numShards);}
     }
 
     /// Training information
@@ -357,7 +441,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         ///
         /// The (domain, name, overload) tuple must be unique across the function protos in this list.
         /// In case of any conflicts the behavior (whether the model local functions are given higher priority,
-        /// or standard operator sets are given higher priotity or this is treated as error) is defined by
+        /// or standard operator sets are given higher priority or this is treated as error) is defined by
         /// the runtimes.
         ///
         /// The operator sets imported by FunctionProto should be compatible with the ones
@@ -370,6 +454,25 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// One FunctionProto can reference other FunctionProto in the model, however, recursive reference
         /// is not allowed.
         public ModelProto functions(FunctionProto functions) {return _f(25, functions);}
+
+        /// Describes different target configurations for a multi-device use case.
+        /// A model MAY describe multiple multi-device configurations for execution.
+        public ModelProto configuration(DeviceConfigurationProto configuration) {return _f(26, configuration);}
+    }
+
+    /// DeviceConfigurationProto describes a multi-device configuration for a model.
+    public static final class DeviceConfigurationProto extends OnnxBuilder<DeviceConfigurationProto> {
+
+        /// This field MUST be present for this version of the IR.
+        /// Name of the configuration.
+        public DeviceConfigurationProto name(String name) {return _f(1, name);}
+
+        /// This field MUST be present for this version of the IR.
+        /// Number of devices inside this configuration.
+        public DeviceConfigurationProto numDevices(int numDevices) {return _f(2, numDevices);}
+
+        /// Optional names of the devices. MUST be length of num_devices if provided.
+        public DeviceConfigurationProto device(String device) {return _f(3, device);}
     }
 
     /// StringStringEntryProto follows the pattern for cross-proto-version maps.
@@ -483,7 +586,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// - For 4-bit data types, each `int32_data` stores two elements.
         ///
         /// When this field is present, the data_type field MUST be
-        /// INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT4E2M1
+        /// INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0, FLOAT4E2M1
         public TensorProto int32Data(int... int32Data) {return _f(5, int32Data);}
 
         /// For strings.
@@ -557,7 +660,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
     /// A serialized sparse-tensor value
     public static final class SparseTensorProto extends OnnxBuilder<SparseTensorProto> {
 
-        /// The sequence of non-default values are encoded as a tensor of shape \[NNZ].
+        /// The sequence of non-default values are encoded as a tensor of shape [NNZ].
         /// The default-value is zero for numeric tensors, and empty-string for string tensors.
         /// values must have a non-empty name present which serves as a name for SparseTensorProto
         /// when used in sparse_initializer list.
@@ -566,7 +669,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// The indices of the non-default values, which may be stored in one of two formats.
         /// (a) Indices can be a tensor of shape [NNZ, rank] with the [i,j]-th value
         /// corresponding to the j-th index of the i-th value (in the values tensor).
-        /// (b) Indices can be a tensor of shape \[NNZ], in which case the i-th value
+        /// (b) Indices can be a tensor of shape [NNZ], in which case the i-th value
         /// must be the linearized-index of the i-th value (in the values tensor).
         /// The linearized-index can be converted into an index tuple (k_1,...,k_rank)
         /// using the shape provided below.
@@ -630,7 +733,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
-            /// This field MUST refer to an integral type (\[U]INT{8|16|32|64}) or STRING
+            /// This field MUST refer to an integral type ([U]INT{8|16|32|64}) or STRING
             public Map keyType(int keyType) {return _f(1, keyType);}
 
             /// This field MUST be present for this version of the IR.

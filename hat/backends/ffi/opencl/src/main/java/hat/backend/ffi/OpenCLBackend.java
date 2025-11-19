@@ -26,20 +26,21 @@ package hat.backend.ffi;
 
 
 import hat.ComputeContext;
-import hat.NDRange;
+import hat.Config;
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
 public class OpenCLBackend extends C99FFIBackend {
 
     public OpenCLBackend(String configSpec) {
-        this(FFIConfig.of(configSpec));
+        this(Config.fromSpec(configSpec));
     }
 
     public OpenCLBackend() {
-        this(FFIConfig.of());
+        this(Config.fromEnvOrProperty());
     }
 
-    public OpenCLBackend(FFIConfig config) {
+    public OpenCLBackend(Config config) {
         super("opencl_backend", config);
     }
 
@@ -50,10 +51,10 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createC99(kernelCallGraph,  args);
-            if (FFIConfig.SHOW_CODE.isSet(config.bits())) {
+            if (config().showCode()) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);
@@ -64,7 +65,7 @@ public class OpenCLBackend extends C99FFIBackend {
                 throw new IllegalStateException("opencl failed to compile ");
             }
         });
-        compiledKernel.dispatch(ndRange, args);
+        compiledKernel.dispatch(kernelContext, args);
     }
 
     String createC99(KernelCallGraph kernelCallGraph,  Object[] args){

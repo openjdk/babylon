@@ -1,1 +1,1 @@
---enable-preview --source 26 hat/run.java
+-cp hat/job.jar --enable-preview --source 26 hat.java run 

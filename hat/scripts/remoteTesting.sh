@@ -165,6 +165,7 @@ fi
 
 #Assuming the remote path ends with babylon
 cd $REMOTE_PATH
+git fetch --all
 git checkout $BRANCH
 git pull
 
@@ -213,6 +214,7 @@ ssh $user@$server bash << EOF
 $backend_definition
 cd "$REMOTE_PATH"
 cd hat/
+git fetch --all
 git checkout $BRANCH
 git pull
 
@@ -224,8 +226,8 @@ java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
 # run the test suite per backend
 for backend in "\${BACKENDS[@]}"
 do
-echo -e "${GREEN}[running] java @hat/test suite "\$backend" ${NC}"
-java @hat/test suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
+echo -e "${GREEN}[running] java -cp hat/job.jar hat.java test "\$backend" ${NC}"
+java -cp hat/job.jar hat.java test-suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
 done
 
 # Print logs

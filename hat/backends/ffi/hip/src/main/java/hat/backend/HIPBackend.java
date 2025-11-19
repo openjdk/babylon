@@ -2,7 +2,7 @@ package hat.backend;
 
 
 import hat.ComputeContext;
-import hat.NDRange;
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
 public class HIPBackend extends C99NativeBackend {
@@ -19,7 +19,7 @@ public class HIPBackend extends C99NativeBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph, new HIPHatKernelBuilder(), args);
             long programHandle = compileProgram(code);
@@ -30,6 +30,6 @@ public class HIPBackend extends C99NativeBackend {
                 throw new IllegalStateException("HIP failed to compile ");
             }
         });
-        compiledKernel.dispatch(ndRange,args);
+        compiledKernel.dispatch(KernelContext, args);
     }
 }
