@@ -153,7 +153,7 @@ public class ReflectMethods extends TreeTranslator {
     private final CodeModelStorageOption codeModelStorageOption;
 
     private TreeMaker make;
-    private ListBuffer<JCTree> classOps;
+    private ListBuffer<JCTree> opMethodDecls;
     private SequencedMap<String, Op> ops;
     private Symbol.ClassSymbol currentClassSym;
     private Symbol.ClassSymbol codeModelsClassSym;
@@ -197,7 +197,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToMethodRef(tree.sym));
-                classOps.add(opMethodDecl(methodName));
+                opMethodDecls.add(opMethodDecl(methodName));
                 ops.put(methodName.toString(), funcOp);
             }
         }
@@ -211,7 +211,7 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitClassDef(JCClassDecl tree) {
-        ListBuffer<JCTree> prevClassOps = classOps;
+        ListBuffer<JCTree> prevClassOps = opMethodDecls;
         SequencedMap<String, Op> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
         Symbol.ClassSymbol prevSynthClassSym = codeModelsClassSym;
@@ -220,18 +220,18 @@ public class ReflectMethods extends TreeTranslator {
         try {
             lambdaCount = 0;
             currentClassSym = tree.sym;
-            classOps = new ListBuffer<>();
+            opMethodDecls = new ListBuffer<>();
             codeModelsClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
             ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
-            tree.defs = tree.defs.prependList(classOps.toList());
+            tree.defs = tree.defs.prependList(opMethodDecls.toList());
             if (!ops.isEmpty()) {
                 synthClassDecl();
                 currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
             lambdaCount = prevLambdaCount;
-            classOps = prevClassOps;
+            opMethodDecls = prevClassOps;
             ops = prevOps;
             currentClassSym = prevClassSym;
             codeModelsClassSym = prevSynthClassSym;
@@ -260,7 +260,7 @@ public class ReflectMethods extends TreeTranslator {
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
             JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            classOps.add(opMethod);
+            opMethodDecls.add(opMethod);
             ops.put(lambdaName.toString(), funcOp);
 
             // leave the lambda in place, but also leave a trail for LambdaToMethod
@@ -294,7 +294,7 @@ public class ReflectMethods extends TreeTranslator {
             Name lambdaName = lambdaName();
             ops.put(lambdaName.toString(), funcOp);
             JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            classOps.add(opMethod);
+            opMethodDecls.add(opMethod);
             tree.codeModel = opMethod.sym;
             super.visitReference(tree);
             if (recvDecl != null) {
@@ -409,13 +409,13 @@ public class ReflectMethods extends TreeTranslator {
             String className = codeModelsClassSym.flatName().toString();
             ClassDesc classDesc = ClassDesc.of(className);
             JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, currentClassSym.sourcefile);
-            ClassDesc parentClass = ClassDesc.of(currentClassSym.className());
+            ClassDesc hostClass = ClassDesc.of(currentClassSym.className());
             CoreOp.ModuleOp module = opBuilder();
             byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
             // inject InnerClassesAttribute and NestHostAttribute
             data = ClassFile.of().transformClass(ClassFile.of().parse(data), ClassTransform.endHandler(clb ->
-                    clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(parentClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
-                       .with(NestHostAttribute.of(parentClass))));
+                    clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
+                       .with(NestHostAttribute.of(hostClass))));
             try (OutputStream out = outFile.openOutputStream()) {
                 out.write(data);
             }
