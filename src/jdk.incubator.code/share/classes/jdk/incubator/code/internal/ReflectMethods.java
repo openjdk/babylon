@@ -79,6 +79,7 @@ import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Assert;
 import com.sun.tools.javac.util.Context;
+import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Name;
@@ -324,8 +325,8 @@ public class ReflectMethods extends TreeScannerPrev {
         try {
             this.make = make;
             currentClassSym = classSym;
-            BodyScanner bodyScanner = new BodyScanner(methodDecl, attributedBody);
-            return bodyScanner.scanMethod();
+            BodyScanner bodyScanner = new BodyScanner(methodDecl);
+            return bodyScanner.scanMethod(attributedBody);
         } finally {
             currentClassSym = null;
             this.make = null;
@@ -369,7 +370,7 @@ public class ReflectMethods extends TreeScannerPrev {
     }
 
     class BodyScanner extends TreeScannerPrev {
-        private final JCTree body;
+        private final JCTree tree;
         private final Name name;
         private final BodyStack top;
         private BodyStack stack;
@@ -378,16 +379,10 @@ public class ReflectMethods extends TreeScannerPrev {
         private Type pt = Type.noType;
         private final boolean isQuoted;
         private Type bodyTarget;
-        private JCTree currentNode;
         private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
         BodyScanner(JCMethodDecl tree) {
-            this(tree, tree.body);
-        }
-
-        BodyScanner(JCMethodDecl tree, JCBlock body) {
-            this.currentNode = tree;
-            this.body = body;
+            this.tree = tree;
             this.name = tree.name;
             this.isQuoted = false;
 
@@ -420,8 +415,7 @@ public class ReflectMethods extends TreeScannerPrev {
         }
 
         BodyScanner(JCLambda tree) {
-            this.currentNode = tree;
-            this.body = tree;
+            this.tree = tree;
             this.name = names.fromString("quotedLambda");
             this.isQuoted = true;
 
@@ -529,17 +523,6 @@ public class ReflectMethods extends TreeScannerPrev {
             }
         }
 
-        @Override
-        public void scan(JCTree tree) {
-            JCTree prev = currentNode;
-            currentNode = tree;
-            try {
-                super.scan(tree);
-            } finally {
-                currentNode = prev;
-            }
-        }
-
         void pushBody(JCTree tree, FunctionType bodyType) {
             stack = new BodyStack(stack, tree, bodyType);
             lastOp = null; // reset
@@ -576,8 +559,13 @@ public class ReflectMethods extends TreeScannerPrev {
             throw new NoSuchElementException(labelName);
         }
 
+        private DiagnosticPosition pos() {
+            JCTree current = currentNode();
+            return current != null ? current : tree;
+        }
+
         private Op.Result append(Op op) {
-            return append(op, generateLocation(currentNode, false), stack);
+            return append(op, generateLocation(pos(), false), stack);
         }
 
         private Op.Result append(Op op, Location l) {
@@ -590,14 +578,14 @@ public class ReflectMethods extends TreeScannerPrev {
             return stack.block.op(op);
         }
 
-        Location generateLocation(JCTree node, boolean includeSourceReference) {
+        Location generateLocation(DiagnosticPosition pos, boolean includeSourceReference) {
             if (!lineDebugInfo) {
                 return Location.NO_LOCATION;
             }
 
-            int pos = node.getStartPosition();
-            int line = log.currentSource().getLineNumber(pos);
-            int col = log.currentSource().getColumnNumber(pos, false);
+            int startPos = pos.getStartPosition();
+            int line = log.currentSource().getLineNumber(startPos);
+            int col = log.currentSource().getColumnNumber(startPos, false);
             String path;
             if (includeSourceReference) {
                 path = log.currentSource().getFile().toUri().toString();
@@ -1391,7 +1379,7 @@ public class ReflectMethods extends TreeScannerPrev {
             // also, a lambda contained in a quotable lambda, will not have its model wrapped in QuotedOp,
             // thus the condition (... body == tree)
             // @@@ better name for isQuoted ?
-            boolean toQuote = (isQuoted && body == tree);
+            boolean toQuote = (isQuoted && this.tree == tree);
             if (toQuote) {
                 pushBody(tree.body, CoreType.FUNCTION_TYPE_VOID);
             }
@@ -2398,16 +2386,20 @@ public class ReflectMethods extends TreeScannerPrev {
             return new UnsupportedASTException(tree);
         }
 
-        CoreOp.FuncOp scanMethod() {
-            scan(body, currentNode);
+        CoreOp.FuncOp scanMethod(JCBlock body) {
+            scan(body, ReflectMethods.this.currentNode());
             appendReturnOrUnreachable(body);
             CoreOp.FuncOp func = CoreOp.func(name.toString(), stack.body);
-            func.setLocation(generateLocation(currentNode, true));
+            func.setLocation(generateLocation(tree, true));
             return func;
         }
 
+        CoreOp.FuncOp scanMethod() {
+            return scanMethod(((JCMethodDecl)tree).body);
+        }
+
         CoreOp.FuncOp scanLambda() {
-            scan(body, ReflectMethods.this.prevNode());
+            scan(tree, ReflectMethods.this.prevNode());
             // Return the quoted result
             append(CoreOp.return_(result));
             return CoreOp.func(name.toString(), stack.body);

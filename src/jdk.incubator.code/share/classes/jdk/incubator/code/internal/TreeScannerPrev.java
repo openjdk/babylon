@@ -27,6 +27,10 @@ public class TreeScannerPrev extends TreeScanner {
         scan(tree);
     }
 
+    JCTree currentNode() {
+        return prevNode;
+    }
+
     JCTree prevNode() {
         return prevNode;
     }
