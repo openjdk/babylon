@@ -45,7 +45,7 @@ public class LocalClassTest {
                   class.dec ()java.type:"void" -> {
                       %1 : Var<java.type:"LocalClassTest"> = var;
                       func @"<init>" (%3 : java.type:"LocalClassTest")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %1 %3;
                           return;
                       };
@@ -72,7 +72,7 @@ public class LocalClassTest {
                   class.dec ()java.type:"void" -> {
                       %1 : Var<java.type:"LocalClassTest"> = var;
                       func @"<init>" (%2 : java.type:"LocalClassTest")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %1 %2;
                           return;
                       };
@@ -100,7 +100,7 @@ public class LocalClassTest {
                       %3 : Var<java.type:"LocalClassTest"> = var;
                       %4 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%5 : java.type:"LocalClassTest", %6 : java.type:"java.lang.String")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %3 %5;
                           var.store %4 %6;
                           return;
@@ -132,7 +132,7 @@ public class LocalClassTest {
                       %3 : Var<java.type:"LocalClassTest"> = var;
                       %4 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%5 : java.type:"LocalClassTest", %6 : java.type:"java.lang.String")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %3 %5;
                           var.store %4 %6;
                           return;
@@ -165,7 +165,7 @@ public class LocalClassTest {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"java.lang.String")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %5 %7;
                           var.store %6 %8;
                           return;
@@ -207,7 +207,7 @@ public class LocalClassTest {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"java.lang.String")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %5 %7;
                           var.store %6 %8;
                           return;
@@ -247,7 +247,7 @@ public class LocalClassTest {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"int"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"int")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %5 %7;
                           var.store %6 %8;
                           return;
@@ -263,7 +263,7 @@ public class LocalClassTest {
                       %12 : Var<java.type:"int"> = var;
                       %13 : Var<java.type:"int"> = var;
                       func @"<init>" (%14 : java.type:"LocalClassTest", %15 : java.type:"int", %16 : java.type:"int")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %11 %14;
                           var.store %12 %15;
                           var.store %13 %16;
@@ -307,7 +307,7 @@ public class LocalClassTest {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"int"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"int")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %5 %7;
                           var.store %6 %8;
                           return;
@@ -323,7 +323,7 @@ public class LocalClassTest {
                       %12 : Var<java.type:"int"> = var;
                       %13 : Var<java.type:"int"> = var;
                       func @"<init>" (%14 : java.type:"LocalClassTest", %15 : java.type:"int", %16 : java.type:"int")java.type:"void" -> {
-                          c.invoke @java.ref:"java.lang.Object::()";
+                          invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
                           var.store %11 %14;
                           var.store %12 %15;
                           var.store %13 %16;

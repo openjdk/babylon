@@ -566,72 +566,6 @@ public sealed abstract class JavaOp extends Op {
         }
     }
 
-    @OpDeclaration(CInvokeOp.NAME)
-    public static final class CInvokeOp extends JavaOp {
-
-        static final String NAME = "c.invoke";
-        public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
-        public static final String ATTRIBUTE_INVOKE_VARARGS = NAME + ".varargs";
-
-        private final boolean isVarArgs;
-        private final ConstructorRef cr;
-
-        CInvokeOp(ExternalizedOp def) {
-            // Required attribute
-            ConstructorRef cr = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
-                    true, v -> switch (v) {
-                        case ConstructorRef c -> c;
-                        case null, default ->
-                                throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
-                    });
-
-            // If not present defaults to false
-            boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_INVOKE_VARARGS,
-                    false, v -> switch (v) {
-                        case Boolean b -> b;
-                        case null, default -> false;
-                    });
-
-            this(isVarArgs, cr, def.operands());
-        }
-
-        CInvokeOp(CInvokeOp that, CopyContext cc) {
-            super(that, cc);
-
-            this.isVarArgs = that.isVarArgs;
-            this.cr = that.cr;
-        }
-
-        @Override
-        public CInvokeOp transform(CopyContext cc, OpTransformer ot) {
-            return new CInvokeOp(this, cc);
-        }
-
-        CInvokeOp(boolean isVarArgs, ConstructorRef cr, List<Value> args) {
-            super(args);
-
-            // @@@ validate args
-
-            this.isVarArgs = isVarArgs;
-            this.cr = cr;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            HashMap<String, Object> m = new HashMap<>();
-            m.put("", cr);
-            if (isVarArgs) {
-                m.put(ATTRIBUTE_INVOKE_VARARGS, isVarArgs);
-            }
-            return Collections.unmodifiableMap(m);
-        }
-
-        @Override
-        public TypeElement resultType() {
-            return VOID;
-        }
-    }
-
     /**
      * The invoke operation, that can model Java language method invocation expressions.
      */
@@ -733,7 +667,7 @@ public sealed abstract class JavaOp extends Op {
 
         static void validateArgCount(InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeDescriptor, List<Value> operands) {
             int paramCount = invokeDescriptor.type().parameterTypes().size();
-            int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
+            int argCount = operands.size() - (invokeKind == InvokeKind.STATIC || invokeDescriptor.isConstructor() ? 0 : 1);
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
                 throw new IllegalArgumentException(invokeKind + " " + isVarArgs + " " + invokeDescriptor);
@@ -5126,7 +5060,6 @@ public sealed abstract class JavaOp extends Op {
             case "throw" -> new ThrowOp(def);
             case "xor" -> new XorOp(def);
             case "class.dec" -> new ClassDecOp(def);
-            case "c.invoke" -> new CInvokeOp(def);
             // @@@ better error reporting
             // instead of:
             //Caused by: java.lang.NullPointerException: Cannot invoke "jdk.incubator.code.Op.result()" because "op" is null
@@ -5369,18 +5302,6 @@ public sealed abstract class JavaOp extends Op {
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
                                   TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
         return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, args);
-    }
-
-    /**
-     * Create a constructor invocation operation.
-     *
-     * @param isVarArgs true if an invocation to a variable argument constructor
-     * @param cr        the constructor descriptor
-     * @param args      the constructor arguments
-     * @return the constructor invoke operation
-     */
-    public static CInvokeOp cInvoke(boolean isVarArgs, ConstructorRef cr, List<Value> args) {
-        return new CInvokeOp(isVarArgs, cr, args);
     }
 
     /**

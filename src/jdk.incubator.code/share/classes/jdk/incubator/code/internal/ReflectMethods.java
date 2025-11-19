@@ -1153,6 +1153,10 @@ public class ReflectMethods extends TreeTranslator {
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToMethodRef(sym, symbolSiteType(sym));
+                    if (sym.isConstructor()) {
+                        // the above mr will have return type void
+                        mr = MethodRef.constructor(mr.refType(), mr.type().parameterTypes());
+                    }
                     Value res = append(JavaOp.invoke(ik, tree.varargsElement != null,
                             typeToTypeElement(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
