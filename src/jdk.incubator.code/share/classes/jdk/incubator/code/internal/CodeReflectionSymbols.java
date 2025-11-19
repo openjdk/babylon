@@ -45,7 +45,6 @@ import static com.sun.tools.javac.code.Flags.VARARGS;
  */
 public class CodeReflectionSymbols {
     public final Type quotedType;
-    public final Type quotableType;
     public final Type codeReflectionType;
     public final Type opType;
     public final Type funcOpType;
@@ -57,7 +56,6 @@ public class CodeReflectionSymbols {
         ModuleSymbol jdk_incubator_code = syms.enterModule(names.jdk_incubator_code);
         codeReflectionType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.CodeReflection");
         quotedType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quoted");
-        quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quotable");
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
         funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreOp$FuncOp");
         quotedExtractOp = new MethodSymbol(PUBLIC | STATIC | VARARGS,
@@ -66,6 +64,5 @@ public class CodeReflectionSymbols {
                         List.nil(), syms.methodClass),
                 quotedType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
-        syms.synthesizeEmptyInterfaceIfMissing(quotableType);
     }
 }

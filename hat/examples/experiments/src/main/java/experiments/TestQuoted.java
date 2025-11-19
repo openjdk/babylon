@@ -25,8 +25,8 @@
 package experiments;
 
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -46,13 +46,16 @@ import java.util.function.Predicate;
 public class TestQuoted {
     public static class TestLambdaMethodRef {
 
-        interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable {
+        @CodeReflection
+        interface QuotableIntUnaryOperator extends IntUnaryOperator {
         }
 
-        interface QuotableFunction<T, R> extends Function<T, R>, Quotable {
+        @CodeReflection
+        interface QuotableFunction<T, R> extends Function<T, R> {
         }
 
-        interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R>, Quotable {
+        @CodeReflection
+        interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {
         }
 
         // @Test
@@ -132,7 +135,7 @@ public class TestQuoted {
             isMethodRef(f6);
         }
 
-        static void isMethodRef(Quotable q) {
+        static void isMethodRef(Object q) {
             Quoted quoted = Op.ofQuotable(q).orElseThrow();;
             JavaOp.LambdaOp op = (JavaOp.LambdaOp) quoted.op();
             System.out.println(isMethodRef(op));

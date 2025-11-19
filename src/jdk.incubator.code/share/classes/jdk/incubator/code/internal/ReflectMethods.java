@@ -1372,9 +1372,7 @@ public class ReflectMethods extends TreeScannerPrev {
             // We can either be explicitly quoted or a structural quoted expression
             // within some larger reflected code
 
-            // a lambda targeted to Quoted is always going to have its model wrapped in QuotedOp, regardless of whether
-            // we are producing the model of the method that contain it or we are producing the model of the lambda itself
-            // on the other hand, a lambda targeted to a subtype of Quotable is going to have its model wrapped in QuotedOp
+            // a quotable lambda is going to have its model wrapped in QuotedOp
             // only when we are producing the model of the lambda, thus the condition (isQuoted ...)
             // also, a lambda contained in a quotable lambda, will not have its model wrapped in QuotedOp,
             // thus the condition (... body == tree)

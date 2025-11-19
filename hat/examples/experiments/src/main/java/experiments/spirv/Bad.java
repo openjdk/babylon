@@ -24,14 +24,15 @@
  */
 package experiments.spirv;
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import java.util.function.Consumer;
 
 public class Bad {
     public static class AcceleratorProxy {
-        public interface QuotableComputeConsumer extends Quotable, Consumer<ComputeClosureProxy> {
+        @CodeReflection
+        public interface QuotableComputeConsumer extends Consumer<ComputeClosureProxy> {
         }
 
         public static class ComputeClosureProxy {
