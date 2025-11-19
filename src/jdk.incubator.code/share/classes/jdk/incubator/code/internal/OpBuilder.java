@@ -196,7 +196,6 @@ public class OpBuilder {
      * that construct type elements and operations present in the given code model.
      *
      * @param ops the named code models.
-     * @param functionNameF a function that defines method names of the code models
      * @param dialectFactoryF a function that builds code items to produce a dialect factory value.
      * @return the module with building code models and support functions.
      */
