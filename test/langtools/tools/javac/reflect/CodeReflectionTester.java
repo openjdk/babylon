@@ -106,18 +106,11 @@ public class CodeReflectionTester {
     static void check(Field field) throws ReflectiveOperationException {
         IR ir = field.getAnnotation(IR.class);
         if (ir == null) return;
-        if (field.getType().equals(Quoted.class)) {
-            // transitional
-            Quoted quoted = (Quoted) field.get(null);
-            String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
-            checkModel(field, found, ir);
-        } else {
-            // quotable
-            Object quotable = field.get(null);
-            Quoted quoted = Op.ofQuotable(quotable).get();
-            String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
-            checkModel(field, found, ir);
-        }
+        // quotable
+        Object quotable = field.get(null);
+        Quoted quoted = Op.ofQuotable(quotable).get();
+        String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
+        checkModel(field, found, ir);
     }
 
     // serializes dropping location information, parses, and then serializes, dropping location information
