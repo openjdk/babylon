@@ -73,7 +73,7 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
             Set<Class<?>> interfaces = Set.of();
             try {
                 Class<?> aClass = Class.forName(typeElement.toString());
-                interfaces = inspectAllInterfaces(aClass);
+                interfaces = HATPhaseUtils.inspectAllInterfaces(aClass);
             } catch (ClassNotFoundException _) {
             }
             return interfaces.contains(_V.class) && isMethod(invokeOp, vectorOperation.methodName);

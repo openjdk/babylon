@@ -70,9 +70,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_BIX", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstZero())))
                 .hashDefine("HAT_BIY", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstOne())))
                 .hashDefine("HAT_BIZ", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
-                .hashDefine("HAT_BARRIER", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen());
-        //         )
-        // );
+                .hashDefine("HAT_BARRIER", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen())
+                .buildStructSingleMember("F16", "value", "half");
     }
 
     @Override
@@ -192,11 +191,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-        oparen().halfType().cparen();
+        oparen().halfType().cparen().obrace();
         Value initValue = hatF16ConvOp.operands().getFirst();
         if (initValue instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
+        cbrace();
         return self();
     }
 
@@ -222,13 +222,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        oparen().halfType().cparen();
-        Value initValue = hatF16ToFloatConvOp.operands().getFirst();
-        if (initValue instanceof Op.Result r) {
+        oparen().floatType().cparen();
+        Value value = hatF16ToFloatConvOp.operands().getFirst();
+        if (value instanceof Op.Result r) {
             recurse(builderContext, r.op());
         }
         if (!hatF16ToFloatConvOp.isLocal()) {
             rarrow().identifier("value");
+        } else if (!hatF16ToFloatConvOp.wasFloat()) {
+            dot().identifier("value");
         }
         return self();
     }

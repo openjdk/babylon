@@ -29,33 +29,35 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.List;
 import java.util.Map;
 
-public class HATF16ToFloatConvOp extends HATF16Op {
+public class HATMemoryLoadOp extends HATMemoryDefOp {
 
     private final TypeElement typeElement;
-    private final boolean isLocal;
-    private final boolean wasFloat;
+    private final TypeElement invokeResultType;
+    private final String memberName;
 
-    public HATF16ToFloatConvOp(TypeElement typeElement, boolean isLocal, boolean wasFloat, List<Value> operands) {
+    public HATMemoryLoadOp(TypeElement typeElement, TypeElement invokeResultType, String memberName, List<Value> operands) {
         super("", operands);
         this.typeElement = typeElement;
-        this.isLocal = isLocal;
-        this.wasFloat = wasFloat;
+        this.invokeResultType = invokeResultType;
+        this.memberName = memberName;
     }
 
-    public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CopyContext copyContext) {
+    public HATMemoryLoadOp(HATMemoryLoadOp op, CopyContext copyContext) {
         super(op, copyContext);
-        this.typeElement = op.typeElement;
-        this.isLocal = op.isLocal;
-        this.wasFloat = op.wasFloat;
+        this.typeElement = op.resultType();
+        this.invokeResultType = op.invokeResultType;
+        this.memberName = op.memberName;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATF16ToFloatConvOp(this, copyContext);
+        return new HATMemoryLoadOp(this, copyContext);
     }
 
     @Override
@@ -65,15 +67,10 @@ public class HATF16ToFloatConvOp extends HATF16Op {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.f16ToFloat", typeElement);
+        return Map.of("hat.dialect.hatMemoryLoadOp." + memberName, typeElement);
     }
 
-    public boolean isLocal() {
-        return isLocal;
+    public String memberName() {
+        return memberName;
     }
-
-    public boolean wasFloat() {
-        return wasFloat;
-    }
-
 }

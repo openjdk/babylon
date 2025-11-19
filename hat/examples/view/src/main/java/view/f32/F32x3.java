@@ -23,27 +23,16 @@
  * questions.
  */
 package view.f32;
-
-import view.f32.factories.Factory2;
 import view.f32.factories.Factory3;
-import view.f32.pool.F32x3Pool;
 
 public interface F32x3 {
     float x();
-
     float y();
-
     float z();
-
-
     default String asString() {
         return x() + "," + y() + "," + z();
     }
-
-
-     @FunctionalInterface
+    @FunctionalInterface
     interface Factory extends Factory3<Float,Float,Float,F32x3> {
     }
-
-
 }

@@ -26,6 +26,7 @@ package hat.phases;
 
 import hat.Accelerator;
 import hat.NDRange;
+import hat.dialect.HATPhaseUtils;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
@@ -76,7 +77,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
         Set<Class<?>> interfaces;
         try {
             Class<?> aClass = Class.forName(typeElement);
-            interfaces = inspectAllInterfaces(aClass);
+            interfaces = HATPhaseUtils.inspectAllInterfaces(aClass);
         } catch (ClassNotFoundException _) {
             return false;
         }

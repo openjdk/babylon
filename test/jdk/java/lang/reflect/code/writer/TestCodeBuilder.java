@@ -26,8 +26,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.internal.OpBuilder;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -36,6 +36,8 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -123,10 +125,11 @@ public class TestCodeBuilder {
     }
 
     static void test(CoreOp.FuncOp fExpected) {
-        CoreOp.FuncOp fb = OpBuilder.createBuilderFunction(fExpected,
-                b -> b.parameter(JavaType.type(DialectFactory.class)));
+        CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(new LinkedHashMap<>(Map.of(fExpected.funcName(), fExpected)),
+                b -> b.op(JavaOp.fieldLoad(
+                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                fb, JavaOp.JAVA_DIALECT_FACTORY);
+                module.functionTable().get(fExpected.funcName()));
         Assertions.assertEquals(fExpected.toText(), fActual.toText());
     }
 

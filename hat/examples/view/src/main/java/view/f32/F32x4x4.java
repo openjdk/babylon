@@ -23,10 +23,7 @@
  * questions.
  */
 package view.f32;
-
-
 import view.f32.factories.Factory16;
-import view.f32.pool.F32x4x4Pool;
 
 public interface F32x4x4 {
     float x0y0();
@@ -75,16 +72,11 @@ public interface F32x4x4 {
                 x0y3(), x1y3(), x2y3(), x3y3());
     }
 
-
-
     @FunctionalInterface
     interface Factory extends Factory16<
             Float,Float,Float,Float,
             Float,Float,Float,Float,
             Float,Float,Float,Float,
             Float,Float,Float,Float,F32x4x4>{
-
     }
-
-
 }
