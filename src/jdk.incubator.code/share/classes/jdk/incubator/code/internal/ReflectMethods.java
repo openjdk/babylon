@@ -110,6 +110,17 @@ import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
 import static com.sun.tools.javac.resources.CompilerProperties.Errors.*;
 import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassTransform;
+import java.lang.classfile.attribute.InnerClassInfo;
+import java.lang.classfile.attribute.InnerClassesAttribute;
+import java.lang.classfile.attribute.NestHostAttribute;
+import java.lang.invoke.MethodHandles;
+import javax.tools.JavaFileManager;
+import javax.tools.StandardLocation;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
@@ -135,14 +146,17 @@ public class ReflectMethods extends TreeScannerPrev {
     private final Lower lower;
     private final TypeEnvs typeEnvs;
     private final Flow flow;
+    private final JavaFileManager fileManager;
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
     private final CodeModelStorageOption codeModelStorageOption;
 
     private TreeMaker make;
-    private ListBuffer<JCTree> classOps;
+    private ListBuffer<JCTree> opMethodDecls;
+    private SequencedMap<String, Op> ops;
     private Symbol.ClassSymbol currentClassSym;
+    private Symbol.ClassSymbol codeModelsClassSym;
     private int lambdaCount;
 
     @SuppressWarnings("this-escape")
@@ -163,6 +177,7 @@ public class ReflectMethods extends TreeScannerPrev {
         lower = Lower.instance(context);
         typeEnvs = TypeEnvs.instance(context);
         flow = Flow.instance(context);
+        fileManager = context.get(JavaFileManager.class);
         crSyms = new CodeReflectionSymbols(context);
     }
 
@@ -181,7 +196,9 @@ public class ReflectMethods extends TreeScannerPrev {
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
-                classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
+                Name methodName = methodName(symbolToMethodRef(tree.sym));
+                opMethodDecls.add(opMethodDecl(methodName));
+                ops.put(methodName.toString(), funcOp);
             }
         }
         super.visitMethodDef(tree);
@@ -194,20 +211,30 @@ public class ReflectMethods extends TreeScannerPrev {
 
     @Override
     public void visitClassDef(JCClassDecl tree) {
-        ListBuffer<JCTree> prevClassOps = classOps;
+        ListBuffer<JCTree> prevOpMethodDecls = opMethodDecls;
+        SequencedMap<String, Op> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
+        Symbol.ClassSymbol prevCodeModelsClassSym = codeModelsClassSym;
         int prevLambdaCount = lambdaCount;
         JavaFileObject prev = log.useSource(tree.sym.sourcefile);
         try {
             lambdaCount = 0;
             currentClassSym = tree.sym;
-            classOps = new ListBuffer<>();
+            opMethodDecls = new ListBuffer<>();
+            codeModelsClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
+            ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
-            tree.defs = tree.defs.prependList(classOps.toList());
+            tree.defs = tree.defs.prependList(opMethodDecls.toList());
+            if (!ops.isEmpty()) {
+                synthClassDecl();
+                currentClassSym.members().enter(codeModelsClassSym);
+            }
         } finally {
             lambdaCount = prevLambdaCount;
-            classOps = prevClassOps;
+            opMethodDecls = prevOpMethodDecls;
+            ops = prevOps;
             currentClassSym = prevClassSym;
+            codeModelsClassSym = prevCodeModelsClassSym;
             log.useSource(prev);
         }
     }
@@ -229,8 +256,10 @@ public class ReflectMethods extends TreeScannerPrev {
                 log.note(QuotedIrDump(funcOp.toText()));
             }
             // create a static method that returns the FuncOp representing the lambda
-            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
-            classOps.add(opMethod);
+            Name lambdaName = lambdaName();
+            JCMethodDecl opMethod = opMethodDecl(lambdaName);
+            opMethodDecls.add(opMethod);
+            ops.put(lambdaName.toString(), funcOp);
 
             // leave the lambda in place, but also leave a trail for LambdaToMethod
             tree.codeModel = opMethod.sym;
@@ -258,8 +287,10 @@ public class ReflectMethods extends TreeScannerPrev {
                 log.note(QuotedIrDump(funcOp.toText()));
             }
             // create a method that returns the FuncOp representing the lambda
-            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
-            classOps.add(opMethod);
+            Name lambdaName = lambdaName();
+            ops.put(lambdaName.toString(), funcOp);
+            JCMethodDecl opMethod = opMethodDecl(lambdaName);
+            opMethodDecls.add(opMethod);
             tree.codeModel = opMethod.sym;
         }
         super.visitReference(tree);
@@ -292,24 +323,51 @@ public class ReflectMethods extends TreeScannerPrev {
         }
     }
 
-    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
-        // Create the method that constructs the code model stored in the class file
+    private JCMethodDecl opMethodDecl(Name methodName) {
         var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
                 com.sun.tools.javac.util.List.nil(), syms.methodClass);
         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
         currentClassSym.members().enter(ms);
 
-        // Create the method body
-        // Code model is stored as code that builds the code model
-        // using the builder API and public APIs
-        var opBuilder = OpBuilder.createBuilderFunction(op,
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        var codeModelTranslator = new CodeModelTranslator();
-        var body = codeModelTranslator.translateFuncOp(opBuilder, ms);
-
+        // Create the method body calling the synthetic inner class method of the same name
+        var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, codeModelsClassSym))));
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
+    }
+
+    private CoreOp.ModuleOp opBuilder() {
+        return OpBuilder.createBuilderFunctions(
+                ops,
+                b -> b.op(JavaOp.fieldLoad(
+                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+
+    }
+
+    private void synthClassDecl() {
+        try {
+            JavaFileManager.Location outLocn;
+            if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
+                outLocn = fileManager.getLocationForModule(StandardLocation.CLASS_OUTPUT, currentClassSym.packge().modle.name.toString());
+            } else {
+                outLocn = StandardLocation.CLASS_OUTPUT;
+            }
+            String className = codeModelsClassSym.flatName().toString();
+            ClassDesc classDesc = ClassDesc.of(className);
+            JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, currentClassSym.sourcefile);
+            ClassDesc hostClass = ClassDesc.of(currentClassSym.className());
+            CoreOp.ModuleOp module = opBuilder();
+            byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
+            // inject InnerClassesAttribute and NestHostAttribute
+            data = ClassFile.of().transformClass(ClassFile.of().parse(data), ClassTransform.endHandler(clb ->
+                    clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
+                       .with(NestHostAttribute.of(hostClass))));
+            try (OutputStream out = outFile.openOutputStream()) {
+                out.write(data);
+            }
+            syms.enterClass(currentClassSym.packge().modle, className);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
@@ -2629,156 +2687,6 @@ public class ReflectMethods extends TreeScannerPrev {
         }
     }
 
-    /**
-     * Translate a code model (a function op) into the corresponding AST.
-     * The input function op is assumed to be generated by {@code OpBuilder}.
-     */
-    class CodeModelTranslator {
-        private static final MethodRef M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
-                Op.Result.class, Op.class);
-        private static final MethodRef M_BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter",
-                Block.Parameter.class, TypeElement.class);
-        private static final MethodRef M_OP_SEAL = MethodRef.method(Op.class, "seal", void.class);
-
-        private final Map<Value, JCTree> valueToTree = new HashMap<>();
-        private int localVarCount = 0; // used to name variables we introduce in the AST
-
-        private JCExpression toExpr(JCTree t) {
-            return switch (t) {
-                case JCExpression e -> e;
-                case JCTree.JCVariableDecl vd -> make.Ident(vd);
-                case null, default -> throw new IllegalArgumentException();
-            };
-        }
-
-        private JCTree translateInvokeOp(JavaOp.InvokeOp invokeOp) {
-            Value receiver = (invokeOp.invokeKind() == JavaOp.InvokeOp.InvokeKind.INSTANCE) ?
-                    invokeOp.operands().get(0) : null;
-            com.sun.tools.javac.util.List<Value> arguments = invokeOp.operands().stream()
-                    .skip(receiver == null ? 0 : 1)
-                    .collect(com.sun.tools.javac.util.List.collector());
-            var methodSym = methodDescriptorToSymbol(invokeOp.invokeDescriptor());
-            var meth = (receiver == null) ?
-                    make.Ident(methodSym) :
-                    make.Select(toExpr(translateOp(receiver)), methodSym);
-            var args = new ListBuffer<JCTree.JCExpression>();
-            for (Value operand : arguments) {
-                args.add(toExpr(translateOp(operand)));
-            }
-            var methodInvocation = make.App(meth, args.toList());
-            if (invokeOp.isVarArgs()) {
-                setVarargs(methodInvocation, invokeOp.invokeDescriptor().type());
-            }
-            return methodInvocation;
-        }
-
-        private void setVarargs(JCExpression tree, FunctionType type) {
-            var lastParam = type.parameterTypes().getLast();
-            if (lastParam instanceof jdk.incubator.code.dialect.java.ArrayType varargType) {
-                TreeInfo.setVarargsElement(tree, typeElementToType(varargType.componentType()));
-            } else {
-                Assert.error("Expected trailing array type: " + type);
-            }
-        }
-
-        private static final Set<MethodRef> mRefs = Set.of(M_BLOCK_BUILDER_OP, M_BLOCK_BUILDER_PARAM, M_OP_SEAL);
-        public JCTree.JCStatement translateFuncOp(CoreOp.FuncOp funcOp, MethodSymbol ms) {
-            Assert.check(funcOp.parameters().isEmpty());
-            Assert.check(funcOp.body().blocks().size() == 1);
-
-            java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
-                boolean isRoot = switch (ce) {
-                    case JavaOp.InvokeOp invokeOp when mRefs.contains(invokeOp.invokeDescriptor()) -> true;
-                    case CoreOp.ReturnOp _, JavaOp.ArrayAccessOp.ArrayStoreOp _ -> true;
-                    case Op op when op.result() != null && op.result().uses().size() > 1 -> true;
-                    default -> false;
-                };
-                if (isRoot) {
-                    l.add(((Op) ce).result());
-                }
-                return l;
-            });
-
-            var stats = new ListBuffer<JCTree.JCStatement>();
-            for (Value root : rootValues) {
-                JCTree tree = translateOp(root);
-                if (tree instanceof JCExpression e) {
-                    if (!root.uses().isEmpty()) {
-                        var vs = new Symbol.VarSymbol(LocalVarFlags | SYNTHETIC, names.fromString("_$" + localVarCount++), tree.type, ms);
-                        tree = make.VarDef(vs, e);
-                        valueToTree.put(root, tree);
-                    } else {
-                        tree = make.Exec(e);
-                    }
-                }
-                stats.add((JCTree.JCStatement) tree);
-            }
-            var mb = make.Block(0, stats.toList());
-
-            return mb;
-        }
-
-        private JCTree translateOp(Value v) {
-            if (valueToTree.containsKey(v)) {
-                return valueToTree.get(v);
-            }
-            Op op = ((Op.Result) v).op();
-            JCTree tree = switch (op) {
-                case CoreOp.ConstantOp constantOp when constantOp.value() == null ->
-                        make.Literal(TypeTag.BOT, null).setType(syms.botType);
-                case CoreOp.ConstantOp constantOp -> make.Literal(constantOp.value());
-                case JavaOp.InvokeOp invokeOp -> translateInvokeOp(invokeOp);
-                case JavaOp.NewOp newOp when newOp.resultType() instanceof jdk.incubator.code.dialect.java.ArrayType at -> {
-                    var elemType = make.Ident(typeElementToType(at.componentType()).tsym);
-                    var dims = new ListBuffer<JCTree.JCExpression>();
-                    for (int d = 0; d < at.dimensions(); d++) {
-                        dims.add(toExpr(translateOp(newOp.operands().get(d))));
-                    }
-                    var na = make.NewArray(elemType, dims.toList(), null);
-                    na.type = typeElementToType(at);
-                    yield na;
-                }
-                case JavaOp.NewOp newOp -> {
-                    var ownerType = typeElementToType(newOp.constructorDescriptor().refType());
-                    var clazz = make.Ident(ownerType.tsym);
-                    var args = new ListBuffer<JCTree.JCExpression>();
-                    for (Value operand : newOp.operands()) {
-                        args.add(toExpr(translateOp(operand)));
-                    }
-                    var nc = make.NewClass(null, null, clazz, args.toList(), null);
-                    if (newOp.isVarargs()) {
-                        setVarargs(nc, newOp.constructorDescriptor().type());
-                    }
-                    nc.type = ownerType;
-                    nc.constructor = constructorDescriptorToSymbol(newOp.constructorDescriptor());
-                    nc.constructorType = nc.constructor.type;
-                    yield nc;
-                }
-                case CoreOp.ReturnOp returnOp -> make.Return(toExpr(translateOp(returnOp.returnValue())));
-                case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
-                    var sym = fieldDescriptorToSymbol(fieldLoadOp.fieldDescriptor());
-                    Assert.check(sym.isStatic());
-                    yield make.Select(make.Ident(sym.owner), sym);
-                }
-                case JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
-                    var array = arrayStoreOp.operands().get(0);
-                    var index = arrayStoreOp.operands().get(1);
-                    var val = arrayStoreOp.operands().get(2);
-                    var as = make.Assign(
-                            make.Indexed(
-                                    toExpr(translateOp(array)), toExpr(translateOp(index))), toExpr(translateOp(val))
-                    );
-                    as.type = typeElementToType(((jdk.incubator.code.dialect.java.ArrayType) array.type()).componentType());
-                    yield as;
-                }
-                default ->
-                        throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
-            };
-            valueToTree.put(v, tree);
-            return tree;
-        }
-    }
-
     // type and ref conversion utils
 
     JavaType symbolToErasedDesc(Symbol s) {
@@ -2915,26 +2823,5 @@ public class ReflectMethods extends TreeScannerPrev {
 
     Env<AttrContext> attrEnv() {
         return typeEnvs.get(currentClassSym);
-    }
-
-    VarSymbol fieldDescriptorToSymbol(FieldRef fieldRef) {
-        Name name = names.fromString(fieldRef.name());
-        Type site = typeElementToType(fieldRef.refType());
-        return resolve.resolveInternalField(attrEnv().enclClass, attrEnv(), site, name);
-    }
-
-    MethodSymbol methodDescriptorToSymbol(MethodRef methodRef) {
-        Name name = names.fromString(methodRef.name());
-        Type site = typeElementToType(methodRef.refType());
-        com.sun.tools.javac.util.List<Type> argtypes = methodRef.type().parameterTypes().stream()
-                .map(this::typeElementToType).collect(com.sun.tools.javac.util.List.collector());
-        return resolve.resolveInternalMethod(attrEnv().enclClass, attrEnv(), site, name, argtypes, com.sun.tools.javac.util.List.nil());
-    }
-
-    MethodSymbol constructorDescriptorToSymbol(MethodRef constructorRef) {
-        Type site = typeElementToType(constructorRef.refType());
-        com.sun.tools.javac.util.List<Type> argtypes = constructorRef.type().parameterTypes().stream()
-                .map(this::typeElementToType).collect(com.sun.tools.javac.util.List.collector());
-        return resolve.resolveInternalConstructor(attrEnv().enclClass, attrEnv(), site, argtypes, com.sun.tools.javac.util.List.nil());
     }
 }

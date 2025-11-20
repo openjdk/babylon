@@ -120,7 +120,6 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
                         "--source=26",
                         "--enable-preview",
                         "--add-modules=jdk.incubator.code",
-                        "--add-exports=jdk.incubator.code/jdk.incubator.code.dialect.java.impl=ALL-UNNAMED",
                         "-g",
                         "-d", classesDirName()
                 ));
@@ -281,7 +280,7 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
                 "--enable-native-access=ALL-UNNAMED"
         );
         opts.add(
-                "--add-exports=jdk.incubator.code/jdk.incubator.code.dialect.java.impl=ALL-UNNAMED", // for OpRenderer
+                "--add-modules=jdk.incubator.code",
                 "--class-path", classPathWithThisLast(depsInOrder),
                 "-Djava.library.path=" + id().project().buildPath()
         );

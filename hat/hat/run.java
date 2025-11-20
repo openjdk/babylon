@@ -175,6 +175,7 @@ void main(String[] argv) {
               .enable_preview()
               .verbose(true)
               .enable_native_access("ALL-UNNAMED")
+              .add_modules("jdk.incubator.code")
               .library_path(buildDir)
               .when(config.headless, Script.JavaBuilder::headless)
               .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
