@@ -60,6 +60,7 @@ import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
+import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression.CodeReflectionInfo;
 import com.sun.tools.javac.tree.JCTree.JCIdent;
 import com.sun.tools.javac.tree.JCTree.JCLambda;
 import com.sun.tools.javac.tree.JCTree.JCLiteral;
@@ -262,7 +263,7 @@ public class ReflectMethods extends TreeScannerPrev {
             ops.put(lambdaName.toString(), funcOp);
 
             // leave the lambda in place, but also leave a trail for LambdaToMethod
-            tree.codeModel = opMethod.sym;
+            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
         }
         super.visitLambda(tree);
     }
@@ -291,7 +292,7 @@ public class ReflectMethods extends TreeScannerPrev {
             ops.put(lambdaName.toString(), funcOp);
             JCMethodDecl opMethod = opMethodDecl(lambdaName);
             opMethodDecls.add(opMethod);
-            tree.codeModel = opMethod.sym;
+            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
         }
         super.visitReference(tree);
     }

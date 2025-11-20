@@ -813,11 +813,13 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         /** The owner of this functional expression. */
         public Symbol owner;
         /** code reflection specific metadata. */
-        public MethodSymbol codeModel;
+        public CodeReflectionInfo codeReflectionInfo;
 
         public Type getDescriptorType(Types types) {
             return target != null ? types.findDescriptorType(target) : types.createErrorType(null);
         }
+
+        public record CodeReflectionInfo(MethodSymbol codeModel, Type reflectableLambdaMetafactory) { }
     }
 
     /**

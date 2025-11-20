@@ -345,21 +345,28 @@ public final class LambdaMetafactory {
                                        MethodHandle implementation,
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
-        AbstractValidatingLambdaMetafactory mf;
-        MethodHandle quotableOpGetter = findQuotableOpGetter(caller, interfaceMethodName);
-        if (quotableOpGetter != null) {
-            interfaceMethodName = interfaceMethodName.substring(1, interfaceMethodName.indexOf('='));
-        }
-        mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
-                                             Objects.requireNonNull(factoryType),
-                                             Objects.requireNonNull(interfaceMethodName),
-                                             Objects.requireNonNull(interfaceMethodType),
-                                             Objects.requireNonNull(implementation),
-                                             Objects.requireNonNull(dynamicMethodType),
-                                             false,
-                                             EMPTY_CLASS_ARRAY,
-                                             EMPTY_MT_ARRAY,
-                                             quotableOpGetter);
+        return metafactoryInternal(caller, interfaceMethodName, factoryType, interfaceMethodType,
+                implementation, dynamicMethodType, null);
+    }
+
+    public static CallSite metafactoryInternal(MethodHandles.Lookup caller,
+                                               String interfaceMethodName,
+                                               MethodType factoryType,
+                                               MethodType interfaceMethodType,
+                                               MethodHandle implementation,
+                                               MethodType dynamicMethodType,
+                                               MethodHandle quotableOpGetter)
+            throws LambdaConversionException {
+        AbstractValidatingLambdaMetafactory mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
+                Objects.requireNonNull(factoryType),
+                Objects.requireNonNull(interfaceMethodName),
+                Objects.requireNonNull(interfaceMethodType),
+                Objects.requireNonNull(implementation),
+                Objects.requireNonNull(dynamicMethodType),
+                false,
+                EMPTY_CLASS_ARRAY,
+                EMPTY_MT_ARRAY,
+                quotableOpGetter);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
@@ -496,6 +503,15 @@ public final class LambdaMetafactory {
                                           MethodType factoryType,
                                           Object... args)
             throws LambdaConversionException {
+        return altMetafactoryInternal(caller, interfaceMethodName, factoryType, null, args);
+    }
+
+    static CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
+                                          String interfaceMethodName,
+                                          MethodType factoryType,
+                                          MethodHandle quotableOpGetter,
+                                          Object... args)
+            throws LambdaConversionException {
         Objects.requireNonNull(caller);
         Objects.requireNonNull(interfaceMethodName);
         Objects.requireNonNull(factoryType);
@@ -516,10 +532,6 @@ public final class LambdaMetafactory {
                 altInterfaces = extractArgs(args, argIndex, Class.class, altInterfaceCount);
                 argIndex += altInterfaceCount;
             }
-        }
-        MethodHandle quotableOpGetter = findQuotableOpGetter(caller, interfaceMethodName);
-        if (quotableOpGetter != null) {
-            interfaceMethodName = interfaceMethodName.substring(1, interfaceMethodName.indexOf('='));
         }
 
         if ((flags & FLAG_BRIDGES) != 0) {
@@ -549,32 +561,17 @@ public final class LambdaMetafactory {
 
         AbstractValidatingLambdaMetafactory mf
                 = new InnerClassLambdaMetafactory(caller,
-                                                  factoryType,
-                                                  interfaceMethodName,
-                                                  interfaceMethodType,
-                                                  implementation,
-                                                  dynamicMethodType,
-                                                  isSerializable,
-                                                  altInterfaces,
-                                                  altMethods,
-                                                  quotableOpGetter);
+                factoryType,
+                interfaceMethodName,
+                interfaceMethodType,
+                implementation,
+                dynamicMethodType,
+                isSerializable,
+                altInterfaces,
+                altMethods,
+                quotableOpGetter);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
-    }
-
-    private static MethodHandle findQuotableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) {
-        if (interfaceMethodName.charAt(0) == '`') {
-            try {
-                String[] implNameParts = interfaceMethodName.split("=");
-                if (implNameParts.length == 2) {
-                    return lookup.findStatic(lookup.lookupClass(), implNameParts[1],
-                            MethodType.methodType(CodeReflectionSupport.OP_CLASS));
-                }
-            } catch (ReflectiveOperationException ex) {
-                // ignore
-            }
-        }
-        return null;
     }
 
     private static <T> T extractArg(Object[] args, int index, Class<T> type) {

@@ -892,13 +892,14 @@ public class LambdaToMethod extends TreeTranslator {
         }
 
         Name lambdaName = samSym.name;
-        if (tree.codeModel != null) {
-            lambdaName = names.fromString("`")
-                    .append(lambdaName)
+        if (tree.codeReflectionInfo != null) {
+            lambdaName = lambdaName
                     .append(names.fromString("="))
-                    .append(tree.codeModel.name);
+                    .append(tree.codeReflectionInfo.codeModel().name);
         }
-        return makeIndyCall(tree, syms.lambdaMetafactory, metafactoryName, staticArgs, indyType, indy_args, lambdaName);
+        Type lambdaMetafactory = tree.codeReflectionInfo != null ?
+                tree.codeReflectionInfo.reflectableLambdaMetafactory() : syms.lambdaMetafactory;
+        return makeIndyCall(tree, lambdaMetafactory, metafactoryName, staticArgs, indyType, indy_args, lambdaName);
     }
 
     /**
