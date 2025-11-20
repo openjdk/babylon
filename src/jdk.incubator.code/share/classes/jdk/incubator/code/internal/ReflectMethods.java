@@ -2551,7 +2551,7 @@ public class ReflectMethods extends TreeTranslator {
                 Body.Builder body = stack.body;
                 popBody();
 
-                result = append(JavaOp.classDecOp(body));
+                result = append(JavaOp.classDecOp((ClassType) symbolToErasedDesc(tree.sym), body));
             }
         }
 

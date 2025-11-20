@@ -4955,24 +4955,36 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Nested {
 
         static final String NAME = "class.dec";
+        static final String ATTRIBUTE_CLASS_TYPE = NAME + ".type";
 
+        private final ClassType classType;
         private final Body fieldsAndMethods;
 
         ClassDecOp(ExternalizedOp def) {
+            // Required attribute
+            ClassType classType = def.extractAttributeValue(ATTRIBUTE_CLASS_TYPE,
+                    true, v -> switch (v) {
+                        case ClassType ct -> ct;
+                        case null, default ->
+                                throw new UnsupportedOperationException("Unsupported class type value:" + v);
+                    });
+
             Body.Builder fieldsAndMethods = def.bodyDefinitions().get(0);
 
-            this(fieldsAndMethods);
+            this(classType, fieldsAndMethods);
         }
 
-        ClassDecOp(Body.Builder fieldsAndMethods) {
+        ClassDecOp(ClassType classType, Body.Builder fieldsAndMethods) {
             super(List.of());
 
+            this.classType = classType;
             this.fieldsAndMethods = fieldsAndMethods.build(this);
         }
 
         ClassDecOp(ClassDecOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
+            this.classType = that.classType;
             this.fieldsAndMethods = that.fieldsAndMethods.transform(cc, ot).build(this);
         }
 
@@ -4991,10 +5003,15 @@ public sealed abstract class JavaOp extends Op {
         public List<Body> bodies() {
             return List.of(fieldsAndMethods);
         }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("", classType);
+        }
     }
 
-    public static ClassDecOp classDecOp(Body.Builder fieldsAndMethods) {
-        return new ClassDecOp(fieldsAndMethods);
+    public static ClassDecOp classDecOp(ClassType classType, Body.Builder fieldsAndMethods) {
+        return new ClassDecOp(classType, fieldsAndMethods);
     }
 
     static Op createOp(ExternalizedOp def) {

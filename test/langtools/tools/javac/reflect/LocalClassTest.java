@@ -27,7 +27,7 @@
  * @test
  * @summary Smoke test for code reflection with local class creation expressions.
  * @modules jdk.incubator.code
- * @build LocalClassTest
+ * @compile LocalClassTest.java
  * @build CodeReflectionTester
  * @run main CodeReflectionTester LocalClassTest
  */
@@ -42,7 +42,7 @@ public class LocalClassTest {
     @CodeReflection
     @IR("""
             func @"testLocalNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$1Foo" ()java.type:"void" -> {
                       %1 : Var<java.type:"LocalClassTest"> = var;
                       func @"<init>" (%3 : java.type:"LocalClassTest")java.type:"void" -> {
                           invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
@@ -59,6 +59,9 @@ public class LocalClassTest {
                   return;
             };
             """)
+    // curr there is no link between newOp and classDecOp
+    // classDescOp should have an attribute that matches the refType of the MethodRef used with NewOp
+    // how the interpreter works ?? does it work in the first place
     void testLocalNoCapture() {
         class Foo {
             void m() { }
@@ -69,7 +72,7 @@ public class LocalClassTest {
     @CodeReflection
     @IR("""
             func @"testAnonNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$1" ()java.type:"void" -> {
                       %1 : Var<java.type:"LocalClassTest"> = var;
                       func @"<init>" (%2 : java.type:"LocalClassTest")java.type:"void" -> {
                           invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
@@ -96,7 +99,7 @@ public class LocalClassTest {
     @IR("""
             func @"testLocalCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$2Foo" ()java.type:"void" -> {
                       %3 : Var<java.type:"LocalClassTest"> = var;
                       %4 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%5 : java.type:"LocalClassTest", %6 : java.type:"java.lang.String")java.type:"void" -> {
@@ -128,7 +131,7 @@ public class LocalClassTest {
     @IR("""
             func @"testAnonCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$2" ()java.type:"void" -> {
                       %3 : Var<java.type:"LocalClassTest"> = var;
                       %4 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%5 : java.type:"LocalClassTest", %6 : java.type:"java.lang.String")java.type:"void" -> {
@@ -161,7 +164,7 @@ public class LocalClassTest {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                   %3 : java.type:"java.lang.String" = constant @"Hello!";
                   %4 : Var<java.type:"java.lang.String"> = var %3 @"localConst";
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$3Foo" ()java.type:"void" -> {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -203,7 +206,7 @@ public class LocalClassTest {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                   %3 : java.type:"java.lang.String" = constant @"Hello!";
                   %4 : Var<java.type:"java.lang.String"> = var %3 @"localConst";
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$3" ()java.type:"void" -> {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"java.lang.String"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -243,7 +246,7 @@ public class LocalClassTest {
             func @"testLocalDependency" (%0 : java.type:"LocalClassTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                   %3 : Var<java.type:"int"> = var %1 @"s";
                   %4 : Var<java.type:"int"> = var %2 @"i";
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$4Foo" ()java.type:"void" -> {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"int"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"int")java.type:"void" -> {
@@ -258,7 +261,7 @@ public class LocalClassTest {
                       };
                       yield;
                   };
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$1Bar" ()java.type:"void" -> {
                       %11 : Var<java.type:"LocalClassTest"> = var;
                       %12 : Var<java.type:"int"> = var;
                       %13 : Var<java.type:"int"> = var;
@@ -303,7 +306,7 @@ public class LocalClassTest {
             func @"testAnonDependency" (%0 : java.type:"LocalClassTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                   %3 : Var<java.type:"int"> = var %1 @"s";
                   %4 : Var<java.type:"int"> = var %2 @"i";
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$5Foo" ()java.type:"void" -> {
                       %5 : Var<java.type:"LocalClassTest"> = var;
                       %6 : Var<java.type:"int"> = var;
                       func @"<init>" (%7 : java.type:"LocalClassTest", %8 : java.type:"int")java.type:"void" -> {
@@ -318,7 +321,7 @@ public class LocalClassTest {
                       };
                       yield;
                   };
-                  class.dec ()java.type:"void" -> {
+                  class.dec @java.type:"LocalClassTest::$4" ()java.type:"void" -> {
                       %11 : Var<java.type:"LocalClassTest"> = var;
                       %12 : Var<java.type:"int"> = var;
                       %13 : Var<java.type:"int"> = var;
