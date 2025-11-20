@@ -26,12 +26,11 @@
 package java.lang.invoke;
 
 import java.io.Serializable;
-import java.lang.invoke.InnerClassLambdaMetafactory.CodeReflectionSupport;
 import java.util.Arrays;
 import java.lang.reflect.Array;
 import java.util.Objects;
 
-import jdk.internal.misc.VM;
+import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import jdk.internal.vm.annotation.AOTSafeClassInitializer;
 
 /**
@@ -349,13 +348,13 @@ public final class LambdaMetafactory {
                 implementation, dynamicMethodType, null);
     }
 
-    public static CallSite metafactoryInternal(MethodHandles.Lookup caller,
+    static CallSite metafactoryInternal(MethodHandles.Lookup caller,
                                                String interfaceMethodName,
                                                MethodType factoryType,
                                                MethodType interfaceMethodType,
                                                MethodHandle implementation,
                                                MethodType dynamicMethodType,
-                                               MethodHandle quotableOpGetter)
+                                               ReflectableLambdaInfo reflectableLambdaInfo)
             throws LambdaConversionException {
         AbstractValidatingLambdaMetafactory mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
                 Objects.requireNonNull(factoryType),
@@ -366,7 +365,7 @@ public final class LambdaMetafactory {
                 false,
                 EMPTY_CLASS_ARRAY,
                 EMPTY_MT_ARRAY,
-                quotableOpGetter);
+                reflectableLambdaInfo);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
@@ -509,7 +508,7 @@ public final class LambdaMetafactory {
     static CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
                                           String interfaceMethodName,
                                           MethodType factoryType,
-                                          MethodHandle quotableOpGetter,
+                                          ReflectableLambdaInfo reflectableLambdaInfo,
                                           Object... args)
             throws LambdaConversionException {
         Objects.requireNonNull(caller);
@@ -569,7 +568,7 @@ public final class LambdaMetafactory {
                 isSerializable,
                 altInterfaces,
                 altMethods,
-                quotableOpGetter);
+                reflectableLambdaInfo);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }

@@ -1648,15 +1648,15 @@ abstract class MethodHandleImpl {
             @Override
             public CallSite metafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
                                                 MethodType interfaceMethodType, MethodHandle implementation,
-                                                MethodType dynamicMethodType, MethodHandle quotableOpGetter) throws LambdaConversionException {
+                                                MethodType dynamicMethodType, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
                 return LambdaMetafactory.metafactoryInternal(caller, interfaceMethodName, factoryType,
-                        interfaceMethodType, implementation, dynamicMethodType, quotableOpGetter);
+                        interfaceMethodType, implementation, dynamicMethodType, reflectableLambdaInfo);
             }
 
             @Override
             public CallSite altMetafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
-                                                   MethodHandle quotableOpGetter, Object... args) throws LambdaConversionException {
-                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, quotableOpGetter, args);
+                                                   ReflectableLambdaInfo reflectableLambdaInfo, Object... args) throws LambdaConversionException {
+                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, reflectableLambdaInfo, args);
             }
         });
     }

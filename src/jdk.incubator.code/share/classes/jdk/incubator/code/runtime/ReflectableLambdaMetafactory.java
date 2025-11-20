@@ -1,9 +1,14 @@
 package jdk.incubator.code.runtime;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.internal.access.JavaLangInvokeAccess;
+import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import jdk.internal.access.SharedSecrets;
 
+import java.lang.constant.ClassDesc;
+import java.lang.constant.MethodHandleDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.LambdaMetafactory;
@@ -84,7 +89,7 @@ public class ReflectableLambdaMetafactory {
             throws LambdaConversionException {
         DecodedName decodedName = findQuotableOpGetter(caller, interfaceMethodName);
         return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
-                implementation, dynamicMethodType, decodedName.opGetter);
+                implementation, dynamicMethodType, decodedName.reflectableLambdaInfo);
     }
 
     /**
@@ -220,12 +225,12 @@ public class ReflectableLambdaMetafactory {
                                           Object... args)
             throws LambdaConversionException {
         DecodedName decodedName = findQuotableOpGetter(caller, interfaceMethodName);
-        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, decodedName.opGetter, args);
+        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, decodedName.reflectableLambdaInfo, args);
     }
 
     static final JavaLangInvokeAccess JLI_ACCESS = SharedSecrets.getJavaLangInvokeAccess();
 
-    record DecodedName(String name, MethodHandle opGetter) { }
+    record DecodedName(String name, ReflectableLambdaInfo reflectableLambdaInfo) { }
 
     private static DecodedName findQuotableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) throws LambdaConversionException {
         String[] implNameParts = interfaceMethodName.split("=");
@@ -235,9 +240,29 @@ public class ReflectableLambdaMetafactory {
         try {
             return new DecodedName(
                     implNameParts[0],
-                    lookup.findStatic(lookup.lookupClass(), implNameParts[1], MethodType.methodType(Op.class)));
+                    newReflectableLambdaInfo(lookup.findStatic(lookup.lookupClass(), implNameParts[1], MethodType.methodType(Op.class))));
         } catch (ReflectiveOperationException ex) {
             throw new LambdaConversionException(ex);
         }
+    }
+
+    private static ReflectableLambdaInfo newReflectableLambdaInfo(MethodHandle handle) {
+        class Holder {
+            static final ClassDesc QUOTED_CLASS_DESC = Quoted.class.describeConstable().get();
+            static final ClassDesc FUNC_OP_CLASS_DESC = FuncOp.class.describeConstable().get();
+            static final MethodHandle QUOTED_EXTRACT_OP_HANDLE;
+
+            static {
+                try {
+                    QUOTED_EXTRACT_OP_HANDLE = MethodHandles.lookup()
+                            .findStatic(Quoted.class, "extractOp",
+                                    MethodType.methodType(Quoted.class, FuncOp.class, Object[].class));
+                } catch (Throwable ex) {
+                    throw new ExceptionInInitializerError(ex);
+                }
+            }
+        }
+        return new ReflectableLambdaInfo(Holder.QUOTED_CLASS_DESC, Holder.FUNC_OP_CLASS_DESC,
+                Holder.QUOTED_EXTRACT_OP_HANDLE, handle);
     }
 }
