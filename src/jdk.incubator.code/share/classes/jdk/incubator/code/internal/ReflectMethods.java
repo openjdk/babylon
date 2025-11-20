@@ -146,7 +146,6 @@ public class ReflectMethods extends TreeTranslator {
     private final Lower lower;
     private final TypeEnvs typeEnvs;
     private final Flow flow;
-    private final JavaFileManager fileManager;
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
@@ -154,7 +153,7 @@ public class ReflectMethods extends TreeTranslator {
 
     private TreeMaker make;
     private ListBuffer<JCTree> opMethodDecls;
-    private SequencedMap<String, Op> ops;
+    private OpMap ops;
     private Symbol.ClassSymbol currentClassSym;
     private Symbol.ClassSymbol codeModelsClassSym;
     private int lambdaCount;
@@ -177,7 +176,6 @@ public class ReflectMethods extends TreeTranslator {
         lower = Lower.instance(context);
         typeEnvs = TypeEnvs.instance(context);
         flow = Flow.instance(context);
-        fileManager = context.get(JavaFileManager.class);
         crSyms = new CodeReflectionSymbols(context);
     }
 
@@ -212,7 +210,7 @@ public class ReflectMethods extends TreeTranslator {
     @Override
     public void visitClassDef(JCClassDecl tree) {
         ListBuffer<JCTree> prevOpMethodDecls = opMethodDecls;
-        SequencedMap<String, Op> prevOps = ops;
+        OpMap prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
         Symbol.ClassSymbol prevCodeModelsClassSym = codeModelsClassSym;
         int prevLambdaCount = lambdaCount;
@@ -222,11 +220,11 @@ public class ReflectMethods extends TreeTranslator {
             currentClassSym = tree.sym;
             opMethodDecls = new ListBuffer<>();
             codeModelsClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
-            ops = new LinkedHashMap<>();
+            ops = new OpMap();
             super.visitClassDef(tree);
-            tree.defs = tree.defs.prependList(opMethodDecls.toList());
             if (!ops.isEmpty()) {
-                synthClassDecl();
+                tree.defs = tree.defs.prependList(opMethodDecls.toList());
+                tree.crContext = ops;
                 currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
@@ -384,41 +382,6 @@ public class ReflectMethods extends TreeTranslator {
         var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, codeModelsClassSym))));
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
-    }
-
-    private CoreOp.ModuleOp opBuilder() {
-        return OpBuilder.createBuilderFunctions(
-                ops,
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-
-    }
-
-    private void synthClassDecl() {
-        try {
-            JavaFileManager.Location outLocn;
-            if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
-                outLocn = fileManager.getLocationForModule(StandardLocation.CLASS_OUTPUT, currentClassSym.packge().modle.name.toString());
-            } else {
-                outLocn = StandardLocation.CLASS_OUTPUT;
-            }
-            String className = codeModelsClassSym.flatName().toString();
-            ClassDesc classDesc = ClassDesc.of(className);
-            JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, currentClassSym.sourcefile);
-            ClassDesc hostClass = ClassDesc.of(currentClassSym.className());
-            CoreOp.ModuleOp module = opBuilder();
-            byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
-            // inject InnerClassesAttribute and NestHostAttribute
-            data = ClassFile.of().transformClass(ClassFile.of().parse(data), ClassTransform.endHandler(clb ->
-                    clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
-                       .with(NestHostAttribute.of(hostClass))));
-            try (OutputStream out = outFile.openOutputStream()) {
-                out.write(data);
-            }
-            syms.enterClass(currentClassSym.packge().modle, className);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
@@ -2729,10 +2692,47 @@ public class ReflectMethods extends TreeTranslator {
         }
     }
 
+    private static class OpMap extends LinkedHashMap<String, Op> {
+
+        @java.io.Serial
+        private static final long serialVersionUID = 3801124242820219133L;
+    }
+
     public static class Provider implements CodeReflectionTransformer {
         @Override
         public JCTree translateTopLevelClass(Context context, JCTree tree, TreeMaker make) {
             return ReflectMethods.instance(context).translateTopLevelClass(tree, make);
+        }
+
+        @Override
+        public void genCode(Context context, JCClassDecl cdef) throws IOException {
+            if (cdef.crContext instanceof OpMap ops) {
+                JavaFileManager fileManager = context.get(JavaFileManager.class);
+                JavaFileManager.Location outLocn;
+                if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
+                    outLocn = fileManager.getLocationForModule(StandardLocation.CLASS_OUTPUT, cdef.sym.packge().modle.name.toString());
+                } else {
+                    outLocn = StandardLocation.CLASS_OUTPUT;
+                }
+                String className = cdef.sym.flatName().toString() + "$$CM";
+                ClassDesc classDesc = ClassDesc.of(className);
+                JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, cdef.sym.sourcefile);
+                ClassDesc hostClass = ClassDesc.of(cdef.sym.flatName().toString());
+
+                CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(
+                        ops,
+                        b -> b.op(JavaOp.fieldLoad(
+                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+                byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
+                // inject InnerClassesAttribute and NestHostAttribute
+                var clm = ClassFile.of().parse(data);
+                data = ClassFile.of().transformClass(clm, ClassTransform.endHandler(clb ->
+                        clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
+                           .with(NestHostAttribute.of(hostClass))));
+                try (OutputStream out = outFile.openOutputStream()) {
+                    out.write(data);
+                }
+            }
         }
     }
 

@@ -838,6 +838,8 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public List<JCExpression> permitting;
         /** all variables and methods defined in this class */
         public List<JCTree> defs;
+        /** code reflection context */
+        public Object crContext;
         /** the symbol */
         public ClassSymbol sym;
         protected JCClassDecl(JCModifiers mods,
