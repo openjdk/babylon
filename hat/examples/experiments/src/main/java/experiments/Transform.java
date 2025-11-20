@@ -29,9 +29,9 @@ package experiments;
 import java.lang.reflect.Method;
 
 import hat.optools.OpTk;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -88,7 +88,7 @@ public class Transform {
                 this.type = type;
             }
 
-            MyOp(MyOp that, CopyContext cc) {
+            MyOp(MyOp that, CodeContext cc) {
                 super(that, cc);
                 this.opName = that.opName;
                 this.type = that.type;
@@ -106,12 +106,12 @@ public class Transform {
                 super("Root");
             }
 
-            public RootOp(MyOp that, CopyContext cc) {
+            public RootOp(MyOp that, CodeContext cc) {
                 super(that, cc);
             }
 
             @Override
-            public Op transform(CopyContext cc, OpTransformer ot) {
+            public Op transform(CodeContext cc, CodeTransformer ot) {
                 return new RootOp(this, cc);
             }
         }
@@ -138,7 +138,7 @@ public class Transform {
             var here = OpTk.CallSite.of(Transform.class, "main");
             CoreOp.FuncOp transformed = OpTk.transform(here, javaFunc,(builder, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
-                    //  CopyContext cc = builder.context();
+                    //  CodeContext cc = builder.context();
                     //  Block.Builder bb = builder;
                     // var invokePre = CoreOp.invoke(PRE);
                     RootOp rootOp = new RootOp();

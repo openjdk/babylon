@@ -23,7 +23,7 @@
 
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -164,7 +164,7 @@ public class TestAssert {
             CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow();
 
             //Ensure we're fully lowered before testing.
-            final var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            final var fz = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
             Interpreter.invoke(MethodHandles.lookup(), fz ,args);
         } catch (NoSuchMethodException e) {
@@ -179,7 +179,7 @@ public class TestAssert {
             CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow();
 
             //Ensure we're fully lowered before testing.
-            final var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            final var fz = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
 
             AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), fz ,args));

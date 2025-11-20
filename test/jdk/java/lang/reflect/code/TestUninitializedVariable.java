@@ -29,7 +29,7 @@
 
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -70,7 +70,7 @@ public class TestUninitializedVariable {
     @ParameterizedTest
     @MethodSource("methods")
     public void testInterpret(String method) {
-        CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
+        CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(CodeTransformer.LOWERING_TRANSFORMER));
         System.out.println(f.toText());
 
         Assertions.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, 1));
@@ -79,7 +79,7 @@ public class TestUninitializedVariable {
     @ParameterizedTest
     @MethodSource("methods")
     public void testSSA(String method) {
-        CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
+        CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(CodeTransformer.LOWERING_TRANSFORMER));
         System.out.println(f.toText());
 
         Assertions.assertThrows(IllegalStateException.class, () -> SSA.transform(f));

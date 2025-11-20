@@ -51,7 +51,7 @@ public class TestRemoveFinalVars {
     }
 
     static FuncOp lower(FuncOp funcOp) {
-        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
+        return funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
     }
 
     static Block.Builder rmFinalVars(Block.Builder block, Op op) {
@@ -67,7 +67,7 @@ public class TestRemoveFinalVars {
                 // Map result of load from variable to the value that initialized the variable
                 // Subsequently encountered input operations using the result will be copied
                 // to output operations using the mapped value
-                CopyContext cc = block.context();
+                CodeContext cc = block.context();
                 cc.mapValue(varLoadOp.result(), cc.getValue(varLoadOp.varOp().operands().get(0)));
             } else {
                 block.op(varLoadOp);

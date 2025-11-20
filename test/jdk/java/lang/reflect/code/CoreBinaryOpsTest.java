@@ -29,8 +29,8 @@
  */
 
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -275,7 +275,7 @@ public class CoreBinaryOpsTest {
                     ? type
                     : functionType.returnType();
             return CoreOp.func(original.funcName(), CoreType.functionType(retType, type, type))
-                    .body(builder -> builder.body(original.body(), builder.parameters(), OpTransformer.COPYING_TRANSFORMER)
+                    .body(builder -> builder.body(original.body(), builder.parameters(), CodeTransformer.COPYING_TRANSFORMER)
                     );
         }
 
@@ -339,7 +339,7 @@ public class CoreBinaryOpsTest {
     }
 
     private static Object bytecode(Object left, Object right, CoreOp.FuncOp op) throws Throwable {
-        CoreOp.FuncOp func = SSA.transform(op.transform(OpTransformer.LOWERING_TRANSFORMER));
+        CoreOp.FuncOp func = SSA.transform(op.transform(CodeTransformer.LOWERING_TRANSFORMER));
         MethodHandle handle = BytecodeGenerator.generate(MethodHandles.lookup(), func);
         return handle.invoke(left, right);
     }

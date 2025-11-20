@@ -23,8 +23,8 @@
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -54,7 +54,7 @@ public class TestBlockIndexes {
     @Test
     public void testBlockIndexes() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         assertBlockIndexes(f);
 
         AtomicBoolean first = new AtomicBoolean(true);

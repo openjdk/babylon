@@ -108,7 +108,7 @@ public class TestInline {
         };
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
         System.out.println(cop.toText());
-        JavaOp.LambdaOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        JavaOp.LambdaOp lcop = cop.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
 
         // functional type = (int)int
@@ -137,7 +137,7 @@ public class TestInline {
         };
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
         System.out.println(cop.toText());
-        JavaOp.LambdaOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        JavaOp.LambdaOp lcop = cop.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
 
         // functional type = (int)int
@@ -184,7 +184,7 @@ public class TestInline {
                 });
         System.out.println(f.toText());
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);

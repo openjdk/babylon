@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -43,12 +43,12 @@ public final class HATBarrierOp extends HATOp {
         super(operands);
     }
 
-    public HATBarrierOp(HATBarrierOp hatBarrierOp, CopyContext copyContext) {
+    public HATBarrierOp(HATBarrierOp hatBarrierOp, CodeContext copyContext) {
         super(hatBarrierOp, copyContext);
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATBarrierOp(this, copyContext);
     }
 

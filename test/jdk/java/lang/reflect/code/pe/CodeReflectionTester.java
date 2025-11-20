@@ -91,7 +91,7 @@ public class CodeReflectionTester {
     }
 
     static CoreOp.FuncOp evaluate(MethodHandles.Lookup l, Predicate<Op> opConstants, CoreOp.FuncOp f, boolean ssa) {
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         if (ssa) {
             f = SSA.transform(f);

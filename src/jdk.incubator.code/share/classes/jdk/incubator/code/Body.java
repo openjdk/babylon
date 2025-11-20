@@ -457,11 +457,11 @@ public final class Body implements CodeElement<Body, Block> {
          * @param bodyType     the body's function type
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
-         * @see #of(Builder, FunctionType, CopyContext, OpTransformer)
+         * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
         public static Builder of(Builder ancestorBody, FunctionType bodyType) {
-            // @@@ Creation of CopyContext
-            return of(ancestorBody, bodyType, CopyContext.create(), OpTransformer.COPYING_TRANSFORMER);
+            // @@@ Creation of CodeContext
+            return of(ancestorBody, bodyType, CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
         }
 
         /**
@@ -472,10 +472,10 @@ public final class Body implements CodeElement<Body, Block> {
          * @param cc           the context
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
-         * @see #of(Builder, FunctionType, CopyContext, OpTransformer)
+         * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder ancestorBody, FunctionType bodyType, CopyContext cc) {
-            return of(ancestorBody, bodyType, cc, OpTransformer.COPYING_TRANSFORMER);
+        public static Builder of(Builder ancestorBody, FunctionType bodyType, CodeContext cc) {
+            return of(ancestorBody, bodyType, cc, CodeTransformer.COPYING_TRANSFORMER);
         }
 
         /**
@@ -500,10 +500,10 @@ public final class Body implements CodeElement<Body, Block> {
          * @param ot           the transformer
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
-         * @see #of(Builder, FunctionType, CopyContext, OpTransformer)
+         * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
         public static Builder of(Builder ancestorBody, FunctionType bodyType,
-                                 CopyContext cc, OpTransformer ot) {
+                                 CodeContext cc, CodeTransformer ot) {
             Body body = new Body(ancestorBody != null ? ancestorBody.target() : null, bodyType.returnType());
             return body.new Builder(ancestorBody, bodyType, cc, ot);
         }
@@ -521,7 +521,7 @@ public final class Body implements CodeElement<Body, Block> {
         boolean closed;
 
         Builder(Builder ancestorBody, FunctionType bodyType,
-                CopyContext cc, OpTransformer ot) {
+                CodeContext cc, CodeTransformer ot) {
             // Structural check
             // The ancestor body should not be built before this body is created
             if (ancestorBody != null) {
@@ -654,7 +654,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Build new block in body
-        Block.Builder block(List<TypeElement> params, CopyContext cc, OpTransformer ot) {
+        Block.Builder block(List<TypeElement> params, CodeContext cc, CodeTransformer ot) {
             check();
             Block block = Body.this.createBlock(params);
 
@@ -665,27 +665,27 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Copies the contents of this body.
      *
-     * @param cc the copy context
+     * @param cc the code context
      * @return the builder of a body containing the copied body
-     * @see #transform(CopyContext, OpTransformer)
+     * @see #transform(CodeContext, CodeTransformer)
      */
-    public Builder copy(CopyContext cc) {
-        return transform(cc, OpTransformer.COPYING_TRANSFORMER);
+    public Builder copy(CodeContext cc) {
+        return transform(cc, CodeTransformer.COPYING_TRANSFORMER);
     }
 
     /**
      * Transforms this body.
      * <p>
      * A new body builder is created with the same function type as this body.
-     * Then, this body is {@link Block.Builder#body(Body, java.util.List, CopyContext, OpTransformer) transformed}
-     * into the body builder's entry block builder with the given copy context, operation transformer, and arguments
+     * Then, this body is {@link Block.Builder#body(Body, java.util.List, CodeContext, CodeTransformer) transformed}
+     * into the body builder's entry block builder with the given code context, operation transformer, and arguments
      * that are the entry block builder's parameters.
      *
-     * @param cc the copy context
+     * @param cc the code context
      * @param ot the operation transformer
      * @return a body builder containing the transformed body
      */
-    public Builder transform(CopyContext cc, OpTransformer ot) {
+    public Builder transform(CodeContext cc, CodeTransformer ot) {
         Block.Builder ancestorBlockBuilder = ancestorBody != null
                 ? cc.getBlock(ancestorBody.entryBlock()) : null;
         Builder ancestorBodyBuilder = ancestorBlockBuilder != null
@@ -694,7 +694,7 @@ public final class Body implements CodeElement<Body, Block> {
                 bodyType(),
                 // Create child context for mapped code items contained in this body
                 // thereby not polluting the given context
-                CopyContext.create(cc), ot);
+                CodeContext.create(cc), ot);
 
         // Transform body starting from the entry block builder
         ot.acceptBody(bodyBuilder.entryBlock, this, bodyBuilder.entryBlock.parameters());

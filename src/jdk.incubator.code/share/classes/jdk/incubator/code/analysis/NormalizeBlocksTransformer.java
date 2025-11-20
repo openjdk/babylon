@@ -39,7 +39,7 @@ import java.util.*;
  * <p>
  * Removes unused block parameters.
  */
-public final class NormalizeBlocksTransformer implements OpTransformer {
+public final class NormalizeBlocksTransformer implements CodeTransformer {
     final Set<Block> mergedBlocks = new HashSet<>();
     final Map<Block, BitSet> adjustedBlocks = new HashMap<>();
 
@@ -55,7 +55,7 @@ public final class NormalizeBlocksTransformer implements OpTransformer {
      */
     @SuppressWarnings("unchecked")
     public static <O extends Op> O transform(O op) {
-        return (O) op.transform(CopyContext.create(), new NormalizeBlocksTransformer());
+        return (O) op.transform(CodeContext.create(), new NormalizeBlocksTransformer());
     }
 
     ;
@@ -64,7 +64,7 @@ public final class NormalizeBlocksTransformer implements OpTransformer {
     public void acceptBlock(Block.Builder block, Block b) {
         // Ignore merged block
         if (!mergedBlocks.contains(b)) {
-            OpTransformer.super.acceptBlock(block, b);
+            CodeTransformer.super.acceptBlock(block, b);
         }
     }
 

@@ -24,8 +24,9 @@
 import java.io.StringWriter;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -68,7 +69,7 @@ public class CodeReflectionTester {
     }
 
     static CoreOp.FuncOp lower(CoreOp.FuncOp f, boolean ssa) {
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         if (ssa) {

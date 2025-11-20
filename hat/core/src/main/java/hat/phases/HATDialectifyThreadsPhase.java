@@ -32,8 +32,8 @@ import hat.dialect.HATLocalSizeOp;
 import hat.dialect.HATLocalThreadIdOp;
 import hat.dialect.HATThreadOp;
 import hat.optools.OpTk;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -82,7 +82,7 @@ public abstract class HATDialectifyThreadsPhase implements HATDialect  {
 
 
         funcOp = OpTk.transform(here, funcOp, nodesInvolved::contains, (blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
+            CodeContext context = blockBuilder.context();
             if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
             } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {

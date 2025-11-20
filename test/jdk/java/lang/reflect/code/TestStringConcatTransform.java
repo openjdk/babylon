@@ -30,7 +30,7 @@
 
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.analysis.StringConcatTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -179,7 +179,7 @@ public class TestStringConcatTransform {
     }
 
     static CoreOp.FuncOp generateSSA(CoreOp.FuncOp f) {
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         lf = SSA.transform(lf);
         System.out.println(lf.toText());
         return lf;

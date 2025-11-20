@@ -643,7 +643,7 @@ public class TestBytecode {
 
         CoreOp.FuncOp lfunc;
         try {
-            lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+            lfunc = func.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         } catch (UnsupportedOperationException uoe) {
             throw new TestSkippedException("lowering caused:", uoe);
         }

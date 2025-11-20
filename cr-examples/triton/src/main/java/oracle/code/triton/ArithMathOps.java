@@ -47,7 +47,7 @@ public class ArithMathOps {
             this.resultType = def.resultType();
         }
 
-        ArithMathOp(ArithMathOp that, CopyContext cc) {
+        ArithMathOp(ArithMathOp that, CodeContext cc) {
             super(that, cc);
 
             this.opName = that.opName;
@@ -122,14 +122,14 @@ public class ArithMathOps {
             this.value = value;
         }
 
-        ConstantOp(ConstantOp that, CopyContext cc) {
+        ConstantOp(ConstantOp that, CodeContext cc) {
             super(that, cc);
 
             this.value = that.value;
         }
 
         @Override
-        public ConstantOp transform(CopyContext cc, OpTransformer ot) {
+        public ConstantOp transform(CodeContext cc, CodeTransformer ot) {
             return new ConstantOp(this, cc);
         }
 
@@ -157,12 +157,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        AddOp(AddOp that, CopyContext cc) {
+        AddOp(AddOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public AddOp transform(CopyContext cc, OpTransformer ot) {
+        public AddOp transform(CodeContext cc, CodeTransformer ot) {
             return new AddOp(this, cc);
         }
 
@@ -179,12 +179,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        SubOp(SubOp that, CopyContext cc) {
+        SubOp(SubOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SubOp transform(CopyContext cc, OpTransformer ot) {
+        public SubOp transform(CodeContext cc, CodeTransformer ot) {
             return new SubOp(this, cc);
         }
 
@@ -201,12 +201,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        MulOp(MulOp that, CopyContext cc) {
+        MulOp(MulOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MulOp transform(CopyContext cc, OpTransformer ot) {
+        public MulOp transform(CodeContext cc, CodeTransformer ot) {
             return new MulOp(this, cc);
         }
 
@@ -223,12 +223,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        DivOp(DivOp that, CopyContext cc) {
+        DivOp(DivOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DivOp transform(CopyContext cc, OpTransformer ot) {
+        public DivOp transform(CodeContext cc, CodeTransformer ot) {
             return new DivOp(this, cc);
         }
 
@@ -245,12 +245,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        RemOp(RemOp that, CopyContext cc) {
+        RemOp(RemOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RemOp transform(CopyContext cc, OpTransformer ot) {
+        public RemOp transform(CodeContext cc, CodeTransformer ot) {
             return new RemOp(this, cc);
         }
 
@@ -267,12 +267,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        AndOp(AndOp that, CopyContext cc) {
+        AndOp(AndOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public AndOp transform(CopyContext cc, OpTransformer ot) {
+        public AndOp transform(CodeContext cc, CodeTransformer ot) {
             return new AndOp(this, cc);
         }
 
@@ -289,12 +289,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        MaxOp(MaxOp that, CopyContext cc) {
+        MaxOp(MaxOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MaxOp transform(CopyContext cc, OpTransformer ot) {
+        public MaxOp transform(CodeContext cc, CodeTransformer ot) {
             return new MaxOp(this, cc);
         }
 
@@ -312,12 +312,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        MinOp(MinOp that, CopyContext cc) {
+        MinOp(MinOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MinOp transform(CopyContext cc, OpTransformer ot) {
+        public MinOp transform(CodeContext cc, CodeTransformer ot) {
             return new MinOp(this, cc);
         }
 
@@ -335,12 +335,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        TruncOp(TruncOp that, CopyContext cc) {
+        TruncOp(TruncOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TruncOp transform(CopyContext cc, OpTransformer ot) {
+        public TruncOp transform(CodeContext cc, CodeTransformer ot) {
             return new TruncOp(this, cc);
         }
 
@@ -358,12 +358,12 @@ public class ArithMathOps {
             super(def);
         }
 
-        ExpOp(ExpOp that, CopyContext cc) {
+        ExpOp(ExpOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ExpOp transform(CopyContext cc, OpTransformer ot) {
+        public ExpOp transform(CodeContext cc, CodeTransformer ot) {
             return new ExpOp(this, cc);
         }
 
@@ -411,14 +411,14 @@ public class ArithMathOps {
             this.ck = ck;
         }
 
-        CompareOp(CompareOp that, CopyContext cc) {
+        CompareOp(CompareOp that, CodeContext cc) {
             super(that, cc);
 
             this.ck = that.ck;
         }
 
         @Override
-        public CompareOp transform(CopyContext cc, OpTransformer ot) {
+        public CompareOp transform(CodeContext cc, CodeTransformer ot) {
             return new CompareOp(this, cc);
         }
 

@@ -31,7 +31,7 @@ import java.util.function.Function;
 import static java.util.stream.Collectors.toList;
 
 /**
- * A context utilized when transforming code models.
+ * A context utilized when building and transforming code models.
  * <p>
  * The context holds a mapping of input values to output values, input blocks to output block builders,
  * and input block references to output block references.
@@ -42,10 +42,10 @@ import static java.util.stream.Collectors.toList;
  * Unless otherwise specified the passing of a {@code null} argument to the methods of this interface results in a
  * {@code NullPointerException}.
  */
-public sealed interface CopyContext permits CopyContextImpl {
+public sealed interface CodeContext permits CodeContextImpl {
 
     // @@@ ?
-    // CopyContext parent();
+    // CodeContext parent();
 
 
     // Value mappings
@@ -230,8 +230,8 @@ public sealed interface CopyContext permits CopyContextImpl {
     /**
      * {@return a new isolated context initialized with no mappings and no parent }
      */
-    static CopyContext create() {
-        return new CopyContextImpl(null);
+    static CodeContext create() {
+        return new CodeContextImpl(null);
     }
 
     /**
@@ -239,7 +239,7 @@ public sealed interface CopyContext permits CopyContextImpl {
      * The returned context will query value and property mappings in the parent context
      * if a query of its value and property mappings yields no result.
      */
-    static CopyContext create(CopyContext parent) {
-        return new CopyContextImpl((CopyContextImpl) parent);
+    static CodeContext create(CodeContext parent) {
+        return new CodeContextImpl((CodeContextImpl) parent);
     }
 }

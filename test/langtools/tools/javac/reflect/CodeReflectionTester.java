@@ -138,7 +138,7 @@ public class CodeReflectionTester {
 
     static Op getModelOfQuotedOp(Quoted quoted) {
         return func("f", FUNCTION_TYPE_VOID).body(fblock -> {
-            CopyContext cc = fblock.context();
+            CodeContext cc = fblock.context();
             for (Value cv : quoted.capturedValues().keySet()) {
                 Block.Parameter p = fblock.parameter(cv.type());
                 cc.mapValue(cv, p);

@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
@@ -66,7 +66,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         this.f32 = f32;
     }
 
-    public HATF16BinaryOp(HATF16BinaryOp op, CopyContext copyContext) {
+    public HATF16BinaryOp(HATF16BinaryOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.elementType = op.elementType;
         this.operationType = op.operationType;

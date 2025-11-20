@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
@@ -58,7 +58,7 @@ public abstract class HATVectorBinaryOp extends HATVectorOp {
 
     }
 
-    public HATVectorBinaryOp(HATVectorBinaryOp op, CopyContext copyContext) {
+    public HATVectorBinaryOp(HATVectorBinaryOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.elementType = op.elementType;
         this.operationType = op.operationType;

@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
@@ -34,7 +34,7 @@ public abstract class HATOp extends Op {
     public HATOp(List<Value> operands) {
         super(operands);
     }
-    protected HATOp(Op that, CopyContext cc) {
+    protected HATOp(Op that, CodeContext cc) {
         super(that, cc);
     }
 }

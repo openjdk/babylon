@@ -64,14 +64,14 @@ public final class AnfDialect {
             this(def.bodyDefinitions().get(0));
         }
 
-        public AnfLetOp(AnfLetOp that, CopyContext cc, OpTransformer ot) {
+        public AnfLetOp(AnfLetOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.bindings = that.bindings.transform(cc, ot).build(this);
         }
 
         @Override
-        public Op transform(CopyContext cc, OpTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ot) {
             return new AnfLetOp(this, cc, ot);
         }
 
@@ -121,14 +121,14 @@ public final class AnfDialect {
             this(def.bodyDefinitions().get(0));
         }
 
-        public AnfLetRecOp(AnfLetRecOp that, CopyContext cc, OpTransformer ot) {
+        public AnfLetRecOp(AnfLetRecOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.bindings = that.bindings.transform(cc, ot).build(this);
         }
 
         @Override
-        public Op transform(CopyContext cc, OpTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ot) {
             return new AnfLetRecOp(this, cc, ot);
         }
 
@@ -208,7 +208,7 @@ public final class AnfDialect {
                     def.bodyDefinitions().get(1));
         }
 
-        public AnfIfOp(AnfIfOp that, CopyContext cc, OpTransformer ot) {
+        public AnfIfOp(AnfIfOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.then_ = that.then_.transform(cc, ot).build(this);
@@ -216,7 +216,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CopyContext cc, OpTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ot) {
             return new AnfIfOp(this, cc, ot);
         }
 
@@ -289,11 +289,11 @@ public final class AnfDialect {
             return new AnfFuncOp(funcName, def.bodyDefinitions().get(0));
         }
 
-        AnfFuncOp(AnfFuncOp that, CopyContext cc, OpTransformer oa) {
+        AnfFuncOp(AnfFuncOp that, CodeContext cc, CodeTransformer oa) {
             this(that, that.funcName, cc, oa);
         }
 
-        AnfFuncOp(AnfFuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
+        AnfFuncOp(AnfFuncOp that, String funcName, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.funcName = funcName;
@@ -301,7 +301,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public AnfFuncOp transform(CopyContext cc, OpTransformer ot) {
+        public AnfFuncOp transform(CodeContext cc, CodeTransformer ot) {
             return new AnfFuncOp(this, cc, ot);
         }
 
@@ -348,12 +348,12 @@ public final class AnfDialect {
             this(def.operands());
         }
 
-        public AnfApply(AnfApply that, CopyContext cc) {
+        public AnfApply(AnfApply that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Op transform(CopyContext cc, OpTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ot) {
             return new AnfApply(this, cc);
         }
 
@@ -397,7 +397,7 @@ public final class AnfDialect {
             return new AnfApplyStub(callsiteName, def.operands(), def.resultType());
         }
 
-        public AnfApplyStub(AnfApplyStub that, CopyContext cc) {
+        public AnfApplyStub(AnfApplyStub that, CodeContext cc) {
             super(that, cc);
             this.callSiteName = that.callSiteName;
             this.resultType = that.resultType;
@@ -409,7 +409,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CopyContext cc, OpTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ot) {
             return new AnfApplyStub(this, cc);
         }
 

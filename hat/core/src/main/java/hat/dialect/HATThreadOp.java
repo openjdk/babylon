@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Value;
 
 import java.util.List;
@@ -38,7 +38,7 @@ public abstract class HATThreadOp extends HATOp {
         this.dimension = dimension;
     }
 
-    protected HATThreadOp(HATThreadOp that, CopyContext cc) {
+    protected HATThreadOp(HATThreadOp that, CodeContext cc) {
         super(that, cc);
         this.dimension = that.dimension;
     }

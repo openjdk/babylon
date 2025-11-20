@@ -182,7 +182,7 @@ public class TestExpressionGraphs {
     void print(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         f = SSA.transform(f);

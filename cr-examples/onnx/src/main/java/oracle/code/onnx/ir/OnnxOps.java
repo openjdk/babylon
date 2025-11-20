@@ -118,12 +118,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Abs(Abs that, CopyContext cc) {
+        Abs(Abs that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Abs transform(CopyContext cc, OpTransformer ot) {
+        public Abs transform(CodeContext cc, CodeTransformer ot) {
             return new Abs(this, cc);
         }
 
@@ -232,12 +232,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Acos(Acos that, CopyContext cc) {
+        Acos(Acos that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Acos transform(CopyContext cc, OpTransformer ot) {
+        public Acos transform(CodeContext cc, CodeTransformer ot) {
             return new Acos(this, cc);
         }
 
@@ -346,12 +346,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Acosh(Acosh that, CopyContext cc) {
+        Acosh(Acosh that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Acosh transform(CopyContext cc, OpTransformer ot) {
+        public Acosh transform(CodeContext cc, CodeTransformer ot) {
             return new Acosh(this, cc);
         }
 
@@ -492,12 +492,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Adagrad(Adagrad that, CopyContext cc) {
+        Adagrad(Adagrad that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Adagrad transform(CopyContext cc, OpTransformer ot) {
+        public Adagrad transform(CodeContext cc, CodeTransformer ot) {
             return new Adagrad(this, cc);
         }
 
@@ -663,12 +663,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Adam(Adam that, CopyContext cc) {
+        Adam(Adam that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Adam transform(CopyContext cc, OpTransformer ot) {
+        public Adam transform(CodeContext cc, CodeTransformer ot) {
             return new Adam(this, cc);
         }
 
@@ -811,12 +811,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Add(Add that, CopyContext cc) {
+        Add(Add that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Add transform(CopyContext cc, OpTransformer ot) {
+        public Add transform(CodeContext cc, CodeTransformer ot) {
             return new Add(this, cc);
         }
 
@@ -957,12 +957,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        AffineGrid(AffineGrid that, CopyContext cc) {
+        AffineGrid(AffineGrid that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public AffineGrid transform(CopyContext cc, OpTransformer ot) {
+        public AffineGrid transform(CodeContext cc, CodeTransformer ot) {
             return new AffineGrid(this, cc);
         }
 
@@ -1082,12 +1082,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        And(And that, CopyContext cc) {
+        And(And that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public And transform(CopyContext cc, OpTransformer ot) {
+        public And transform(CodeContext cc, CodeTransformer ot) {
             return new And(this, cc);
         }
 
@@ -1228,12 +1228,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ArgMax(ArgMax that, CopyContext cc) {
+        ArgMax(ArgMax that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ArgMax transform(CopyContext cc, OpTransformer ot) {
+        public ArgMax transform(CodeContext cc, CodeTransformer ot) {
             return new ArgMax(this, cc);
         }
 
@@ -1385,12 +1385,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ArgMin(ArgMin that, CopyContext cc) {
+        ArgMin(ArgMin that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ArgMin transform(CopyContext cc, OpTransformer ot) {
+        public ArgMin transform(CodeContext cc, CodeTransformer ot) {
             return new ArgMin(this, cc);
         }
 
@@ -1515,12 +1515,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ArrayFeatureExtractor(ArrayFeatureExtractor that, CopyContext cc) {
+        ArrayFeatureExtractor(ArrayFeatureExtractor that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ArrayFeatureExtractor transform(CopyContext cc, OpTransformer ot) {
+        public ArrayFeatureExtractor transform(CodeContext cc, CodeTransformer ot) {
             return new ArrayFeatureExtractor(this, cc);
         }
 
@@ -1633,12 +1633,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Asin(Asin that, CopyContext cc) {
+        Asin(Asin that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Asin transform(CopyContext cc, OpTransformer ot) {
+        public Asin transform(CodeContext cc, CodeTransformer ot) {
             return new Asin(this, cc);
         }
 
@@ -1747,12 +1747,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Asinh(Asinh that, CopyContext cc) {
+        Asinh(Asinh that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Asinh transform(CopyContext cc, OpTransformer ot) {
+        public Asinh transform(CodeContext cc, CodeTransformer ot) {
             return new Asinh(this, cc);
         }
 
@@ -1861,12 +1861,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Atan(Atan that, CopyContext cc) {
+        Atan(Atan that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Atan transform(CopyContext cc, OpTransformer ot) {
+        public Atan transform(CodeContext cc, CodeTransformer ot) {
             return new Atan(this, cc);
         }
 
@@ -1975,12 +1975,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Atanh(Atanh that, CopyContext cc) {
+        Atanh(Atanh that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Atanh transform(CopyContext cc, OpTransformer ot) {
+        public Atanh transform(CodeContext cc, CodeTransformer ot) {
             return new Atanh(this, cc);
         }
 
@@ -2132,12 +2132,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Attention(Attention that, CopyContext cc) {
+        Attention(Attention that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Attention transform(CopyContext cc, OpTransformer ot) {
+        public Attention transform(CodeContext cc, CodeTransformer ot) {
             return new Attention(this, cc);
         }
 
@@ -2341,12 +2341,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        AveragePool(AveragePool that, CopyContext cc) {
+        AveragePool(AveragePool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public AveragePool transform(CopyContext cc, OpTransformer ot) {
+        public AveragePool transform(CodeContext cc, CodeTransformer ot) {
             return new AveragePool(this, cc);
         }
 
@@ -2526,12 +2526,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        BatchNormalization(BatchNormalization that, CopyContext cc) {
+        BatchNormalization(BatchNormalization that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BatchNormalization transform(CopyContext cc, OpTransformer ot) {
+        public BatchNormalization transform(CodeContext cc, CodeTransformer ot) {
             return new BatchNormalization(this, cc);
         }
 
@@ -2699,12 +2699,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Bernoulli(Bernoulli that, CopyContext cc) {
+        Bernoulli(Bernoulli that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Bernoulli transform(CopyContext cc, OpTransformer ot) {
+        public Bernoulli transform(CodeContext cc, CodeTransformer ot) {
             return new Bernoulli(this, cc);
         }
 
@@ -2849,12 +2849,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Binarizer(Binarizer that, CopyContext cc) {
+        Binarizer(Binarizer that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Binarizer transform(CopyContext cc, OpTransformer ot) {
+        public Binarizer transform(CodeContext cc, CodeTransformer ot) {
             return new Binarizer(this, cc);
         }
 
@@ -2995,12 +2995,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        BitShift(BitShift that, CopyContext cc) {
+        BitShift(BitShift that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BitShift transform(CopyContext cc, OpTransformer ot) {
+        public BitShift transform(CodeContext cc, CodeTransformer ot) {
             return new BitShift(this, cc);
         }
 
@@ -3119,12 +3119,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        BitwiseAnd(BitwiseAnd that, CopyContext cc) {
+        BitwiseAnd(BitwiseAnd that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BitwiseAnd transform(CopyContext cc, OpTransformer ot) {
+        public BitwiseAnd transform(CodeContext cc, CodeTransformer ot) {
             return new BitwiseAnd(this, cc);
         }
 
@@ -3237,12 +3237,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        BitwiseNot(BitwiseNot that, CopyContext cc) {
+        BitwiseNot(BitwiseNot that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BitwiseNot transform(CopyContext cc, OpTransformer ot) {
+        public BitwiseNot transform(CodeContext cc, CodeTransformer ot) {
             return new BitwiseNot(this, cc);
         }
 
@@ -3352,12 +3352,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        BitwiseOr(BitwiseOr that, CopyContext cc) {
+        BitwiseOr(BitwiseOr that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BitwiseOr transform(CopyContext cc, OpTransformer ot) {
+        public BitwiseOr transform(CodeContext cc, CodeTransformer ot) {
             return new BitwiseOr(this, cc);
         }
 
@@ -3471,12 +3471,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        BitwiseXor(BitwiseXor that, CopyContext cc) {
+        BitwiseXor(BitwiseXor that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BitwiseXor transform(CopyContext cc, OpTransformer ot) {
+        public BitwiseXor transform(CodeContext cc, CodeTransformer ot) {
             return new BitwiseXor(this, cc);
         }
 
@@ -3617,12 +3617,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        BlackmanWindow(BlackmanWindow that, CopyContext cc) {
+        BlackmanWindow(BlackmanWindow that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BlackmanWindow transform(CopyContext cc, OpTransformer ot) {
+        public BlackmanWindow transform(CodeContext cc, CodeTransformer ot) {
             return new BlackmanWindow(this, cc);
         }
 
@@ -3770,12 +3770,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Cast(Cast that, CopyContext cc) {
+        Cast(Cast that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Cast transform(CopyContext cc, OpTransformer ot) {
+        public Cast transform(CodeContext cc, CodeTransformer ot) {
             return new Cast(this, cc);
         }
 
@@ -3928,12 +3928,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        CastLike(CastLike that, CopyContext cc) {
+        CastLike(CastLike that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public CastLike transform(CopyContext cc, OpTransformer ot) {
+        public CastLike transform(CodeContext cc, CodeTransformer ot) {
             return new CastLike(this, cc);
         }
 
@@ -4085,12 +4085,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        CastMap(CastMap that, CopyContext cc) {
+        CastMap(CastMap that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public CastMap transform(CopyContext cc, OpTransformer ot) {
+        public CastMap transform(CodeContext cc, CodeTransformer ot) {
             return new CastMap(this, cc);
         }
 
@@ -4244,12 +4244,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        CategoryMapper(CategoryMapper that, CopyContext cc) {
+        CategoryMapper(CategoryMapper that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public CategoryMapper transform(CopyContext cc, OpTransformer ot) {
+        public CategoryMapper transform(CodeContext cc, CodeTransformer ot) {
             return new CategoryMapper(this, cc);
         }
 
@@ -4378,12 +4378,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Ceil(Ceil that, CopyContext cc) {
+        Ceil(Ceil that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Ceil transform(CopyContext cc, OpTransformer ot) {
+        public Ceil transform(CodeContext cc, CodeTransformer ot) {
             return new Ceil(this, cc);
         }
 
@@ -4518,12 +4518,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Celu(Celu that, CopyContext cc) {
+        Celu(Celu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Celu transform(CopyContext cc, OpTransformer ot) {
+        public Celu transform(CodeContext cc, CodeTransformer ot) {
             return new Celu(this, cc);
         }
 
@@ -4665,12 +4665,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        CenterCropPad(CenterCropPad that, CopyContext cc) {
+        CenterCropPad(CenterCropPad that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public CenterCropPad transform(CopyContext cc, OpTransformer ot) {
+        public CenterCropPad transform(CodeContext cc, CodeTransformer ot) {
             return new CenterCropPad(this, cc);
         }
 
@@ -4790,12 +4790,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Clip(Clip that, CopyContext cc) {
+        Clip(Clip that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Clip transform(CopyContext cc, OpTransformer ot) {
+        public Clip transform(CodeContext cc, CodeTransformer ot) {
             return new Clip(this, cc);
         }
 
@@ -4944,12 +4944,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Col2Im(Col2Im that, CopyContext cc) {
+        Col2Im(Col2Im that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Col2Im transform(CopyContext cc, OpTransformer ot) {
+        public Col2Im transform(CodeContext cc, CodeTransformer ot) {
             return new Col2Im(this, cc);
         }
 
@@ -5109,12 +5109,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Compress(Compress that, CopyContext cc) {
+        Compress(Compress that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Compress transform(CopyContext cc, OpTransformer ot) {
+        public Compress transform(CodeContext cc, CodeTransformer ot) {
             return new Compress(this, cc);
         }
 
@@ -5258,12 +5258,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Concat(Concat that, CopyContext cc) {
+        Concat(Concat that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Concat transform(CopyContext cc, OpTransformer ot) {
+        public Concat transform(CodeContext cc, CodeTransformer ot) {
             return new Concat(this, cc);
         }
 
@@ -5405,12 +5405,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ConcatFromSequence(ConcatFromSequence that, CopyContext cc) {
+        ConcatFromSequence(ConcatFromSequence that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ConcatFromSequence transform(CopyContext cc, OpTransformer ot) {
+        public ConcatFromSequence transform(CodeContext cc, CodeTransformer ot) {
             return new ConcatFromSequence(this, cc);
         }
 
@@ -5541,12 +5541,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Constant(Constant that, CopyContext cc) {
+        Constant(Constant that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Constant transform(CopyContext cc, OpTransformer ot) {
+        public Constant transform(CodeContext cc, CodeTransformer ot) {
             return new Constant(this, cc);
         }
 
@@ -5718,12 +5718,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ConstantOfShape(ConstantOfShape that, CopyContext cc) {
+        ConstantOfShape(ConstantOfShape that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ConstantOfShape transform(CopyContext cc, OpTransformer ot) {
+        public ConstantOfShape transform(CodeContext cc, CodeTransformer ot) {
             return new ConstantOfShape(this, cc);
         }
 
@@ -5870,12 +5870,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Conv(Conv that, CopyContext cc) {
+        Conv(Conv that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Conv transform(CopyContext cc, OpTransformer ot) {
+        public Conv transform(CodeContext cc, CodeTransformer ot) {
             return new Conv(this, cc);
         }
 
@@ -6059,12 +6059,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ConvInteger(ConvInteger that, CopyContext cc) {
+        ConvInteger(ConvInteger that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ConvInteger transform(CopyContext cc, OpTransformer ot) {
+        public ConvInteger transform(CodeContext cc, CodeTransformer ot) {
             return new ConvInteger(this, cc);
         }
 
@@ -6252,12 +6252,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ConvTranspose(ConvTranspose that, CopyContext cc) {
+        ConvTranspose(ConvTranspose that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ConvTranspose transform(CopyContext cc, OpTransformer ot) {
+        public ConvTranspose transform(CodeContext cc, CodeTransformer ot) {
             return new ConvTranspose(this, cc);
         }
 
@@ -6415,12 +6415,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Cos(Cos that, CopyContext cc) {
+        Cos(Cos that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Cos transform(CopyContext cc, OpTransformer ot) {
+        public Cos transform(CodeContext cc, CodeTransformer ot) {
             return new Cos(this, cc);
         }
 
@@ -6529,12 +6529,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Cosh(Cosh that, CopyContext cc) {
+        Cosh(Cosh that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Cosh transform(CopyContext cc, OpTransformer ot) {
+        public Cosh transform(CodeContext cc, CodeTransformer ot) {
             return new Cosh(this, cc);
         }
 
@@ -6672,12 +6672,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        CumSum(CumSum that, CopyContext cc) {
+        CumSum(CumSum that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public CumSum transform(CopyContext cc, OpTransformer ot) {
+        public CumSum transform(CodeContext cc, CodeTransformer ot) {
             return new CumSum(this, cc);
         }
 
@@ -6830,12 +6830,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        DFT(DFT that, CopyContext cc) {
+        DFT(DFT that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DFT transform(CopyContext cc, OpTransformer ot) {
+        public DFT transform(CodeContext cc, CodeTransformer ot) {
             return new DFT(this, cc);
         }
 
@@ -6999,12 +6999,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        DeformConv(DeformConv that, CopyContext cc) {
+        DeformConv(DeformConv that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DeformConv transform(CopyContext cc, OpTransformer ot) {
+        public DeformConv transform(CodeContext cc, CodeTransformer ot) {
             return new DeformConv(this, cc);
         }
 
@@ -7188,12 +7188,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        DepthToSpace(DepthToSpace that, CopyContext cc) {
+        DepthToSpace(DepthToSpace that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DepthToSpace transform(CopyContext cc, OpTransformer ot) {
+        public DepthToSpace transform(CodeContext cc, CodeTransformer ot) {
             return new DepthToSpace(this, cc);
         }
 
@@ -7344,12 +7344,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        DequantizeLinear(DequantizeLinear that, CopyContext cc) {
+        DequantizeLinear(DequantizeLinear that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DequantizeLinear transform(CopyContext cc, OpTransformer ot) {
+        public DequantizeLinear transform(CodeContext cc, CodeTransformer ot) {
             return new DequantizeLinear(this, cc);
         }
 
@@ -7482,12 +7482,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Det(Det that, CopyContext cc) {
+        Det(Det that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Det transform(CopyContext cc, OpTransformer ot) {
+        public Det transform(CodeContext cc, CodeTransformer ot) {
             return new Det(this, cc);
         }
 
@@ -7624,12 +7624,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        DictVectorizer(DictVectorizer that, CopyContext cc) {
+        DictVectorizer(DictVectorizer that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DictVectorizer transform(CopyContext cc, OpTransformer ot) {
+        public DictVectorizer transform(CodeContext cc, CodeTransformer ot) {
             return new DictVectorizer(this, cc);
         }
 
@@ -7749,12 +7749,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Div(Div that, CopyContext cc) {
+        Div(Div that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Div transform(CopyContext cc, OpTransformer ot) {
+        public Div transform(CodeContext cc, CodeTransformer ot) {
             return new Div(this, cc);
         }
 
@@ -7898,12 +7898,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Dropout(Dropout that, CopyContext cc) {
+        Dropout(Dropout that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Dropout transform(CopyContext cc, OpTransformer ot) {
+        public Dropout transform(CodeContext cc, CodeTransformer ot) {
             return new Dropout(this, cc);
         }
 
@@ -8030,12 +8030,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        DynamicQuantizeLinear(DynamicQuantizeLinear that, CopyContext cc) {
+        DynamicQuantizeLinear(DynamicQuantizeLinear that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DynamicQuantizeLinear transform(CopyContext cc, OpTransformer ot) {
+        public DynamicQuantizeLinear transform(CodeContext cc, CodeTransformer ot) {
             return new DynamicQuantizeLinear(this, cc);
         }
 
@@ -8170,12 +8170,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Einsum(Einsum that, CopyContext cc) {
+        Einsum(Einsum that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Einsum transform(CopyContext cc, OpTransformer ot) {
+        public Einsum transform(CodeContext cc, CodeTransformer ot) {
             return new Einsum(this, cc);
         }
 
@@ -8315,12 +8315,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Elu(Elu that, CopyContext cc) {
+        Elu(Elu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Elu transform(CopyContext cc, OpTransformer ot) {
+        public Elu transform(CodeContext cc, CodeTransformer ot) {
             return new Elu(this, cc);
         }
 
@@ -8436,12 +8436,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Equal(Equal that, CopyContext cc) {
+        Equal(Equal that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Equal transform(CopyContext cc, OpTransformer ot) {
+        public Equal transform(CodeContext cc, CodeTransformer ot) {
             return new Equal(this, cc);
         }
 
@@ -8554,12 +8554,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Erf(Erf that, CopyContext cc) {
+        Erf(Erf that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Erf transform(CopyContext cc, OpTransformer ot) {
+        public Erf transform(CodeContext cc, CodeTransformer ot) {
             return new Erf(this, cc);
         }
 
@@ -8668,12 +8668,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Exp(Exp that, CopyContext cc) {
+        Exp(Exp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Exp transform(CopyContext cc, OpTransformer ot) {
+        public Exp transform(CodeContext cc, CodeTransformer ot) {
             return new Exp(this, cc);
         }
 
@@ -8783,12 +8783,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Expand(Expand that, CopyContext cc) {
+        Expand(Expand that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Expand transform(CopyContext cc, OpTransformer ot) {
+        public Expand transform(CodeContext cc, CodeTransformer ot) {
             return new Expand(this, cc);
         }
 
@@ -8929,12 +8929,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        EyeLike(EyeLike that, CopyContext cc) {
+        EyeLike(EyeLike that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public EyeLike transform(CopyContext cc, OpTransformer ot) {
+        public EyeLike transform(CodeContext cc, CodeTransformer ot) {
             return new EyeLike(this, cc);
         }
 
@@ -9079,12 +9079,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        FeatureVectorizer(FeatureVectorizer that, CopyContext cc) {
+        FeatureVectorizer(FeatureVectorizer that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FeatureVectorizer transform(CopyContext cc, OpTransformer ot) {
+        public FeatureVectorizer transform(CodeContext cc, CodeTransformer ot) {
             return new FeatureVectorizer(this, cc);
         }
 
@@ -9224,12 +9224,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Flatten(Flatten that, CopyContext cc) {
+        Flatten(Flatten that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Flatten transform(CopyContext cc, OpTransformer ot) {
+        public Flatten transform(CodeContext cc, CodeTransformer ot) {
             return new Flatten(this, cc);
         }
 
@@ -9343,12 +9343,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Floor(Floor that, CopyContext cc) {
+        Floor(Floor that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Floor transform(CopyContext cc, OpTransformer ot) {
+        public Floor transform(CodeContext cc, CodeTransformer ot) {
             return new Floor(this, cc);
         }
 
@@ -9497,12 +9497,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GRU(GRU that, CopyContext cc) {
+        GRU(GRU that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GRU transform(CopyContext cc, OpTransformer ot) {
+        public GRU transform(CodeContext cc, CodeTransformer ot) {
             return new GRU(this, cc);
         }
 
@@ -9702,12 +9702,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Gather(Gather that, CopyContext cc) {
+        Gather(Gather that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Gather transform(CopyContext cc, OpTransformer ot) {
+        public Gather transform(CodeContext cc, CodeTransformer ot) {
             return new Gather(this, cc);
         }
 
@@ -9853,12 +9853,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GatherElements(GatherElements that, CopyContext cc) {
+        GatherElements(GatherElements that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GatherElements transform(CopyContext cc, OpTransformer ot) {
+        public GatherElements transform(CodeContext cc, CodeTransformer ot) {
             return new GatherElements(this, cc);
         }
 
@@ -10003,12 +10003,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GatherND(GatherND that, CopyContext cc) {
+        GatherND(GatherND that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GatherND transform(CopyContext cc, OpTransformer ot) {
+        public GatherND transform(CodeContext cc, CodeTransformer ot) {
             return new GatherND(this, cc);
         }
 
@@ -10152,12 +10152,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Gelu(Gelu that, CopyContext cc) {
+        Gelu(Gelu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Gelu transform(CopyContext cc, OpTransformer ot) {
+        public Gelu transform(CodeContext cc, CodeTransformer ot) {
             return new Gelu(this, cc);
         }
 
@@ -10302,12 +10302,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Gemm(Gemm that, CopyContext cc) {
+        Gemm(Gemm that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Gemm transform(CopyContext cc, OpTransformer ot) {
+        public Gemm transform(CodeContext cc, CodeTransformer ot) {
             return new Gemm(this, cc);
         }
 
@@ -10445,12 +10445,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GlobalAveragePool(GlobalAveragePool that, CopyContext cc) {
+        GlobalAveragePool(GlobalAveragePool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GlobalAveragePool transform(CopyContext cc, OpTransformer ot) {
+        public GlobalAveragePool transform(CodeContext cc, CodeTransformer ot) {
             return new GlobalAveragePool(this, cc);
         }
 
@@ -10585,12 +10585,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GlobalLpPool(GlobalLpPool that, CopyContext cc) {
+        GlobalLpPool(GlobalLpPool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GlobalLpPool transform(CopyContext cc, OpTransformer ot) {
+        public GlobalLpPool transform(CodeContext cc, CodeTransformer ot) {
             return new GlobalLpPool(this, cc);
         }
 
@@ -10704,12 +10704,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GlobalMaxPool(GlobalMaxPool that, CopyContext cc) {
+        GlobalMaxPool(GlobalMaxPool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GlobalMaxPool transform(CopyContext cc, OpTransformer ot) {
+        public GlobalMaxPool transform(CodeContext cc, CodeTransformer ot) {
             return new GlobalMaxPool(this, cc);
         }
 
@@ -10847,12 +10847,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Gradient(Gradient that, CopyContext cc) {
+        Gradient(Gradient that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Gradient transform(CopyContext cc, OpTransformer ot) {
+        public Gradient transform(CodeContext cc, CodeTransformer ot) {
             return new Gradient(this, cc);
         }
 
@@ -10978,12 +10978,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Greater(Greater that, CopyContext cc) {
+        Greater(Greater that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Greater transform(CopyContext cc, OpTransformer ot) {
+        public Greater transform(CodeContext cc, CodeTransformer ot) {
             return new Greater(this, cc);
         }
 
@@ -11098,12 +11098,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GreaterOrEqual(GreaterOrEqual that, CopyContext cc) {
+        GreaterOrEqual(GreaterOrEqual that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GreaterOrEqual transform(CopyContext cc, OpTransformer ot) {
+        public GreaterOrEqual transform(CodeContext cc, CodeTransformer ot) {
             return new GreaterOrEqual(this, cc);
         }
 
@@ -11246,12 +11246,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GridSample(GridSample that, CopyContext cc) {
+        GridSample(GridSample that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GridSample transform(CopyContext cc, OpTransformer ot) {
+        public GridSample transform(CodeContext cc, CodeTransformer ot) {
             return new GridSample(this, cc);
         }
 
@@ -11409,12 +11409,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        GroupNormalization(GroupNormalization that, CopyContext cc) {
+        GroupNormalization(GroupNormalization that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public GroupNormalization transform(CopyContext cc, OpTransformer ot) {
+        public GroupNormalization transform(CodeContext cc, CodeTransformer ot) {
             return new GroupNormalization(this, cc);
         }
 
@@ -11574,12 +11574,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        HammingWindow(HammingWindow that, CopyContext cc) {
+        HammingWindow(HammingWindow that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public HammingWindow transform(CopyContext cc, OpTransformer ot) {
+        public HammingWindow transform(CodeContext cc, CodeTransformer ot) {
             return new HammingWindow(this, cc);
         }
 
@@ -11726,12 +11726,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        HannWindow(HannWindow that, CopyContext cc) {
+        HannWindow(HannWindow that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public HannWindow transform(CopyContext cc, OpTransformer ot) {
+        public HannWindow transform(CodeContext cc, CodeTransformer ot) {
             return new HannWindow(this, cc);
         }
 
@@ -11877,12 +11877,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        HardSigmoid(HardSigmoid that, CopyContext cc) {
+        HardSigmoid(HardSigmoid that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public HardSigmoid transform(CopyContext cc, OpTransformer ot) {
+        public HardSigmoid transform(CodeContext cc, CodeTransformer ot) {
             return new HardSigmoid(this, cc);
         }
 
@@ -12001,12 +12001,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        HardSwish(HardSwish that, CopyContext cc) {
+        HardSwish(HardSwish that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public HardSwish transform(CopyContext cc, OpTransformer ot) {
+        public HardSwish transform(CodeContext cc, CodeTransformer ot) {
             return new HardSwish(this, cc);
         }
 
@@ -12141,12 +12141,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Hardmax(Hardmax that, CopyContext cc) {
+        Hardmax(Hardmax that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Hardmax transform(CopyContext cc, OpTransformer ot) {
+        public Hardmax transform(CodeContext cc, CodeTransformer ot) {
             return new Hardmax(this, cc);
         }
 
@@ -12260,12 +12260,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Identity(Identity that, CopyContext cc) {
+        Identity(Identity that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Identity transform(CopyContext cc, OpTransformer ot) {
+        public Identity transform(CodeContext cc, CodeTransformer ot) {
             return new Identity(this, cc);
         }
 
@@ -12401,12 +12401,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ImageDecoder(ImageDecoder that, CopyContext cc) {
+        ImageDecoder(ImageDecoder that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ImageDecoder transform(CopyContext cc, OpTransformer ot) {
+        public ImageDecoder transform(CodeContext cc, CodeTransformer ot) {
             return new ImageDecoder(this, cc);
         }
 
@@ -12549,12 +12549,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Imputer(Imputer that, CopyContext cc) {
+        Imputer(Imputer that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Imputer transform(CopyContext cc, OpTransformer ot) {
+        public Imputer transform(CodeContext cc, CodeTransformer ot) {
             return new Imputer(this, cc);
         }
 
@@ -12711,12 +12711,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        InstanceNormalization(InstanceNormalization that, CopyContext cc) {
+        InstanceNormalization(InstanceNormalization that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public InstanceNormalization transform(CopyContext cc, OpTransformer ot) {
+        public InstanceNormalization transform(CodeContext cc, CodeTransformer ot) {
             return new InstanceNormalization(this, cc);
         }
 
@@ -12866,12 +12866,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        IsInf(IsInf that, CopyContext cc) {
+        IsInf(IsInf that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public IsInf transform(CopyContext cc, OpTransformer ot) {
+        public IsInf transform(CodeContext cc, CodeTransformer ot) {
             return new IsInf(this, cc);
         }
 
@@ -12991,12 +12991,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        IsNaN(IsNaN that, CopyContext cc) {
+        IsNaN(IsNaN that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public IsNaN transform(CopyContext cc, OpTransformer ot) {
+        public IsNaN transform(CodeContext cc, CodeTransformer ot) {
             return new IsNaN(this, cc);
         }
 
@@ -13134,12 +13134,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LRN(LRN that, CopyContext cc) {
+        LRN(LRN that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LRN transform(CopyContext cc, OpTransformer ot) {
+        public LRN transform(CodeContext cc, CodeTransformer ot) {
             return new LRN(this, cc);
         }
 
@@ -13311,12 +13311,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LSTM(LSTM that, CopyContext cc) {
+        LSTM(LSTM that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LSTM transform(CopyContext cc, OpTransformer ot) {
+        public LSTM transform(CodeContext cc, CodeTransformer ot) {
             return new LSTM(this, cc);
         }
 
@@ -13536,12 +13536,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LabelEncoder(LabelEncoder that, CopyContext cc) {
+        LabelEncoder(LabelEncoder that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LabelEncoder transform(CopyContext cc, OpTransformer ot) {
+        public LabelEncoder transform(CodeContext cc, CodeTransformer ot) {
             return new LabelEncoder(this, cc);
         }
 
@@ -13743,12 +13743,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LayerNormalization(LayerNormalization that, CopyContext cc) {
+        LayerNormalization(LayerNormalization that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LayerNormalization transform(CopyContext cc, OpTransformer ot) {
+        public LayerNormalization transform(CodeContext cc, CodeTransformer ot) {
             return new LayerNormalization(this, cc);
         }
 
@@ -13907,12 +13907,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LeakyRelu(LeakyRelu that, CopyContext cc) {
+        LeakyRelu(LeakyRelu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LeakyRelu transform(CopyContext cc, OpTransformer ot) {
+        public LeakyRelu transform(CodeContext cc, CodeTransformer ot) {
             return new LeakyRelu(this, cc);
         }
 
@@ -14028,12 +14028,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Less(Less that, CopyContext cc) {
+        Less(Less that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Less transform(CopyContext cc, OpTransformer ot) {
+        public Less transform(CodeContext cc, CodeTransformer ot) {
             return new Less(this, cc);
         }
 
@@ -14148,12 +14148,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LessOrEqual(LessOrEqual that, CopyContext cc) {
+        LessOrEqual(LessOrEqual that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LessOrEqual transform(CopyContext cc, OpTransformer ot) {
+        public LessOrEqual transform(CodeContext cc, CodeTransformer ot) {
             return new LessOrEqual(this, cc);
         }
 
@@ -14299,12 +14299,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LinearClassifier(LinearClassifier that, CopyContext cc) {
+        LinearClassifier(LinearClassifier that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LinearClassifier transform(CopyContext cc, OpTransformer ot) {
+        public LinearClassifier transform(CodeContext cc, CodeTransformer ot) {
             return new LinearClassifier(this, cc);
         }
 
@@ -14472,12 +14472,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LinearRegressor(LinearRegressor that, CopyContext cc) {
+        LinearRegressor(LinearRegressor that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LinearRegressor transform(CopyContext cc, OpTransformer ot) {
+        public LinearRegressor transform(CodeContext cc, CodeTransformer ot) {
             return new LinearRegressor(this, cc);
         }
 
@@ -14606,12 +14606,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Log(Log that, CopyContext cc) {
+        Log(Log that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Log transform(CopyContext cc, OpTransformer ot) {
+        public Log transform(CodeContext cc, CodeTransformer ot) {
             return new Log(this, cc);
         }
 
@@ -14746,12 +14746,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LogSoftmax(LogSoftmax that, CopyContext cc) {
+        LogSoftmax(LogSoftmax that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LogSoftmax transform(CopyContext cc, OpTransformer ot) {
+        public LogSoftmax transform(CodeContext cc, CodeTransformer ot) {
             return new LogSoftmax(this, cc);
         }
 
@@ -14892,12 +14892,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LpNormalization(LpNormalization that, CopyContext cc) {
+        LpNormalization(LpNormalization that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LpNormalization transform(CopyContext cc, OpTransformer ot) {
+        public LpNormalization transform(CodeContext cc, CodeTransformer ot) {
             return new LpNormalization(this, cc);
         }
 
@@ -15048,12 +15048,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        LpPool(LpPool that, CopyContext cc) {
+        LpPool(LpPool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LpPool transform(CopyContext cc, OpTransformer ot) {
+        public LpPool transform(CodeContext cc, CodeTransformer ot) {
             return new LpPool(this, cc);
         }
 
@@ -15198,12 +15198,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        MatMul(MatMul that, CopyContext cc) {
+        MatMul(MatMul that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MatMul transform(CopyContext cc, OpTransformer ot) {
+        public MatMul transform(CodeContext cc, CodeTransformer ot) {
             return new MatMul(this, cc);
         }
 
@@ -15321,12 +15321,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        MatMulInteger(MatMulInteger that, CopyContext cc) {
+        MatMulInteger(MatMulInteger that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MatMulInteger transform(CopyContext cc, OpTransformer ot) {
+        public MatMulInteger transform(CodeContext cc, CodeTransformer ot) {
             return new MatMulInteger(this, cc);
         }
 
@@ -15449,12 +15449,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Max(Max that, CopyContext cc) {
+        Max(Max that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Max transform(CopyContext cc, OpTransformer ot) {
+        public Max transform(CodeContext cc, CodeTransformer ot) {
             return new Max(this, cc);
         }
 
@@ -15597,12 +15597,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        MaxPool(MaxPool that, CopyContext cc) {
+        MaxPool(MaxPool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MaxPool transform(CopyContext cc, OpTransformer ot) {
+        public MaxPool transform(CodeContext cc, CodeTransformer ot) {
             return new MaxPool(this, cc);
         }
 
@@ -15774,12 +15774,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        MaxRoiPool(MaxRoiPool that, CopyContext cc) {
+        MaxRoiPool(MaxRoiPool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MaxRoiPool transform(CopyContext cc, OpTransformer ot) {
+        public MaxRoiPool transform(CodeContext cc, CodeTransformer ot) {
             return new MaxRoiPool(this, cc);
         }
 
@@ -15933,12 +15933,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        MaxUnpool(MaxUnpool that, CopyContext cc) {
+        MaxUnpool(MaxUnpool that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MaxUnpool transform(CopyContext cc, OpTransformer ot) {
+        public MaxUnpool transform(CodeContext cc, CodeTransformer ot) {
             return new MaxUnpool(this, cc);
         }
 
@@ -16071,12 +16071,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Mean(Mean that, CopyContext cc) {
+        Mean(Mean that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Mean transform(CopyContext cc, OpTransformer ot) {
+        public Mean transform(CodeContext cc, CodeTransformer ot) {
             return new Mean(this, cc);
         }
 
@@ -16211,12 +16211,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        MeanVarianceNormalization(MeanVarianceNormalization that, CopyContext cc) {
+        MeanVarianceNormalization(MeanVarianceNormalization that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MeanVarianceNormalization transform(CopyContext cc, OpTransformer ot) {
+        public MeanVarianceNormalization transform(CodeContext cc, CodeTransformer ot) {
             return new MeanVarianceNormalization(this, cc);
         }
 
@@ -16362,12 +16362,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        MelWeightMatrix(MelWeightMatrix that, CopyContext cc) {
+        MelWeightMatrix(MelWeightMatrix that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public MelWeightMatrix transform(CopyContext cc, OpTransformer ot) {
+        public MelWeightMatrix transform(CodeContext cc, CodeTransformer ot) {
             return new MelWeightMatrix(this, cc);
         }
 
@@ -16497,12 +16497,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Min(Min that, CopyContext cc) {
+        Min(Min that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Min transform(CopyContext cc, OpTransformer ot) {
+        public Min transform(CodeContext cc, CodeTransformer ot) {
             return new Min(this, cc);
         }
 
@@ -16611,12 +16611,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Mish(Mish that, CopyContext cc) {
+        Mish(Mish that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Mish transform(CopyContext cc, OpTransformer ot) {
+        public Mish transform(CodeContext cc, CodeTransformer ot) {
             return new Mish(this, cc);
         }
 
@@ -16752,12 +16752,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Mod(Mod that, CopyContext cc) {
+        Mod(Mod that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Mod transform(CopyContext cc, OpTransformer ot) {
+        public Mod transform(CodeContext cc, CodeTransformer ot) {
             return new Mod(this, cc);
         }
 
@@ -16908,12 +16908,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Momentum(Momentum that, CopyContext cc) {
+        Momentum(Momentum that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Momentum transform(CopyContext cc, OpTransformer ot) {
+        public Momentum transform(CodeContext cc, CodeTransformer ot) {
             return new Momentum(this, cc);
         }
 
@@ -17051,12 +17051,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Mul(Mul that, CopyContext cc) {
+        Mul(Mul that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Mul transform(CopyContext cc, OpTransformer ot) {
+        public Mul transform(CodeContext cc, CodeTransformer ot) {
             return new Mul(this, cc);
         }
 
@@ -17198,12 +17198,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Multinomial(Multinomial that, CopyContext cc) {
+        Multinomial(Multinomial that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Multinomial transform(CopyContext cc, OpTransformer ot) {
+        public Multinomial transform(CodeContext cc, CodeTransformer ot) {
             return new Multinomial(this, cc);
         }
 
@@ -17327,12 +17327,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Neg(Neg that, CopyContext cc) {
+        Neg(Neg that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Neg transform(CopyContext cc, OpTransformer ot) {
+        public Neg transform(CodeContext cc, CodeTransformer ot) {
             return new Neg(this, cc);
         }
 
@@ -17471,12 +17471,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        NegativeLogLikelihoodLoss(NegativeLogLikelihoodLoss that, CopyContext cc) {
+        NegativeLogLikelihoodLoss(NegativeLogLikelihoodLoss that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public NegativeLogLikelihoodLoss transform(CopyContext cc, OpTransformer ot) {
+        public NegativeLogLikelihoodLoss transform(CodeContext cc, CodeTransformer ot) {
             return new NegativeLogLikelihoodLoss(this, cc);
         }
 
@@ -17619,12 +17619,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        NonMaxSuppression(NonMaxSuppression that, CopyContext cc) {
+        NonMaxSuppression(NonMaxSuppression that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public NonMaxSuppression transform(CopyContext cc, OpTransformer ot) {
+        public NonMaxSuppression transform(CodeContext cc, CodeTransformer ot) {
             return new NonMaxSuppression(this, cc);
         }
 
@@ -17757,12 +17757,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        NonZero(NonZero that, CopyContext cc) {
+        NonZero(NonZero that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public NonZero transform(CopyContext cc, OpTransformer ot) {
+        public NonZero transform(CodeContext cc, CodeTransformer ot) {
             return new NonZero(this, cc);
         }
 
@@ -17897,12 +17897,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Normalizer(Normalizer that, CopyContext cc) {
+        Normalizer(Normalizer that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Normalizer transform(CopyContext cc, OpTransformer ot) {
+        public Normalizer transform(CodeContext cc, CodeTransformer ot) {
             return new Normalizer(this, cc);
         }
 
@@ -18016,12 +18016,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Not(Not that, CopyContext cc) {
+        Not(Not that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Not transform(CopyContext cc, OpTransformer ot) {
+        public Not transform(CodeContext cc, CodeTransformer ot) {
             return new Not(this, cc);
         }
 
@@ -18160,12 +18160,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        OneHot(OneHot that, CopyContext cc) {
+        OneHot(OneHot that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public OneHot transform(CopyContext cc, OpTransformer ot) {
+        public OneHot transform(CodeContext cc, CodeTransformer ot) {
             return new OneHot(this, cc);
         }
 
@@ -18315,12 +18315,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        OneHotEncoder(OneHotEncoder that, CopyContext cc) {
+        OneHotEncoder(OneHotEncoder that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public OneHotEncoder transform(CopyContext cc, OpTransformer ot) {
+        public OneHotEncoder transform(CodeContext cc, CodeTransformer ot) {
             return new OneHotEncoder(this, cc);
         }
 
@@ -18471,12 +18471,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Optional(Optional that, CopyContext cc) {
+        Optional(Optional that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Optional transform(CopyContext cc, OpTransformer ot) {
+        public Optional transform(CodeContext cc, CodeTransformer ot) {
             return new Optional(this, cc);
         }
 
@@ -18592,12 +18592,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        OptionalGetElement(OptionalGetElement that, CopyContext cc) {
+        OptionalGetElement(OptionalGetElement that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public OptionalGetElement transform(CopyContext cc, OpTransformer ot) {
+        public OptionalGetElement transform(CodeContext cc, CodeTransformer ot) {
             return new OptionalGetElement(this, cc);
         }
 
@@ -18707,12 +18707,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        OptionalHasElement(OptionalHasElement that, CopyContext cc) {
+        OptionalHasElement(OptionalHasElement that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public OptionalHasElement transform(CopyContext cc, OpTransformer ot) {
+        public OptionalHasElement transform(CodeContext cc, CodeTransformer ot) {
             return new OptionalHasElement(this, cc);
         }
 
@@ -18824,12 +18824,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Or(Or that, CopyContext cc) {
+        Or(Or that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Or transform(CopyContext cc, OpTransformer ot) {
+        public Or transform(CodeContext cc, CodeTransformer ot) {
             return new Or(this, cc);
         }
 
@@ -18943,12 +18943,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        PRelu(PRelu that, CopyContext cc) {
+        PRelu(PRelu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public PRelu transform(CopyContext cc, OpTransformer ot) {
+        public PRelu transform(CodeContext cc, CodeTransformer ot) {
             return new PRelu(this, cc);
         }
 
@@ -19091,12 +19091,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Pad(Pad that, CopyContext cc) {
+        Pad(Pad that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Pad transform(CopyContext cc, OpTransformer ot) {
+        public Pad transform(CodeContext cc, CodeTransformer ot) {
             return new Pad(this, cc);
         }
 
@@ -19226,12 +19226,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Pow(Pow that, CopyContext cc) {
+        Pow(Pow that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Pow transform(CopyContext cc, OpTransformer ot) {
+        public Pow transform(CodeContext cc, CodeTransformer ot) {
             return new Pow(this, cc);
         }
 
@@ -19386,12 +19386,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        QLinearConv(QLinearConv that, CopyContext cc) {
+        QLinearConv(QLinearConv that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public QLinearConv transform(CopyContext cc, OpTransformer ot) {
+        public QLinearConv transform(CodeContext cc, CodeTransformer ot) {
             return new QLinearConv(this, cc);
         }
 
@@ -19573,12 +19573,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        QLinearMatMul(QLinearMatMul that, CopyContext cc) {
+        QLinearMatMul(QLinearMatMul that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public QLinearMatMul transform(CopyContext cc, OpTransformer ot) {
+        public QLinearMatMul transform(CodeContext cc, CodeTransformer ot) {
             return new QLinearMatMul(this, cc);
         }
 
@@ -19749,12 +19749,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        QuantizeLinear(QuantizeLinear that, CopyContext cc) {
+        QuantizeLinear(QuantizeLinear that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public QuantizeLinear transform(CopyContext cc, OpTransformer ot) {
+        public QuantizeLinear transform(CodeContext cc, CodeTransformer ot) {
             return new QuantizeLinear(this, cc);
         }
 
@@ -19927,12 +19927,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RMSNormalization(RMSNormalization that, CopyContext cc) {
+        RMSNormalization(RMSNormalization that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RMSNormalization transform(CopyContext cc, OpTransformer ot) {
+        public RMSNormalization transform(CodeContext cc, CodeTransformer ot) {
             return new RMSNormalization(this, cc);
         }
 
@@ -20099,12 +20099,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RNN(RNN that, CopyContext cc) {
+        RNN(RNN that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RNN transform(CopyContext cc, OpTransformer ot) {
+        public RNN transform(CodeContext cc, CodeTransformer ot) {
             return new RNN(this, cc);
         }
 
@@ -20280,12 +20280,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RandomNormal(RandomNormal that, CopyContext cc) {
+        RandomNormal(RandomNormal that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RandomNormal transform(CopyContext cc, OpTransformer ot) {
+        public RandomNormal transform(CodeContext cc, CodeTransformer ot) {
             return new RandomNormal(this, cc);
         }
 
@@ -20445,12 +20445,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RandomNormalLike(RandomNormalLike that, CopyContext cc) {
+        RandomNormalLike(RandomNormalLike that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RandomNormalLike transform(CopyContext cc, OpTransformer ot) {
+        public RandomNormalLike transform(CodeContext cc, CodeTransformer ot) {
             return new RandomNormalLike(this, cc);
         }
 
@@ -20588,12 +20588,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RandomUniform(RandomUniform that, CopyContext cc) {
+        RandomUniform(RandomUniform that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RandomUniform transform(CopyContext cc, OpTransformer ot) {
+        public RandomUniform transform(CodeContext cc, CodeTransformer ot) {
             return new RandomUniform(this, cc);
         }
 
@@ -20753,12 +20753,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RandomUniformLike(RandomUniformLike that, CopyContext cc) {
+        RandomUniformLike(RandomUniformLike that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RandomUniformLike transform(CopyContext cc, OpTransformer ot) {
+        public RandomUniformLike transform(CodeContext cc, CodeTransformer ot) {
             return new RandomUniformLike(this, cc);
         }
 
@@ -20889,12 +20889,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Range(Range that, CopyContext cc) {
+        Range(Range that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Range transform(CopyContext cc, OpTransformer ot) {
+        public Range transform(CodeContext cc, CodeTransformer ot) {
             return new Range(this, cc);
         }
 
@@ -21011,12 +21011,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Reciprocal(Reciprocal that, CopyContext cc) {
+        Reciprocal(Reciprocal that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Reciprocal transform(CopyContext cc, OpTransformer ot) {
+        public Reciprocal transform(CodeContext cc, CodeTransformer ot) {
             return new Reciprocal(this, cc);
         }
 
@@ -21153,12 +21153,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceL1(ReduceL1 that, CopyContext cc) {
+        ReduceL1(ReduceL1 that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceL1 transform(CopyContext cc, OpTransformer ot) {
+        public ReduceL1 transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceL1(this, cc);
         }
 
@@ -21310,12 +21310,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceL2(ReduceL2 that, CopyContext cc) {
+        ReduceL2(ReduceL2 that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceL2 transform(CopyContext cc, OpTransformer ot) {
+        public ReduceL2 transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceL2(this, cc);
         }
 
@@ -21467,12 +21467,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceLogSum(ReduceLogSum that, CopyContext cc) {
+        ReduceLogSum(ReduceLogSum that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceLogSum transform(CopyContext cc, OpTransformer ot) {
+        public ReduceLogSum transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceLogSum(this, cc);
         }
 
@@ -21624,12 +21624,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceLogSumExp(ReduceLogSumExp that, CopyContext cc) {
+        ReduceLogSumExp(ReduceLogSumExp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceLogSumExp transform(CopyContext cc, OpTransformer ot) {
+        public ReduceLogSumExp transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceLogSumExp(this, cc);
         }
 
@@ -21781,12 +21781,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceMax(ReduceMax that, CopyContext cc) {
+        ReduceMax(ReduceMax that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceMax transform(CopyContext cc, OpTransformer ot) {
+        public ReduceMax transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceMax(this, cc);
         }
 
@@ -21938,12 +21938,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceMean(ReduceMean that, CopyContext cc) {
+        ReduceMean(ReduceMean that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceMean transform(CopyContext cc, OpTransformer ot) {
+        public ReduceMean transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceMean(this, cc);
         }
 
@@ -22095,12 +22095,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceMin(ReduceMin that, CopyContext cc) {
+        ReduceMin(ReduceMin that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceMin transform(CopyContext cc, OpTransformer ot) {
+        public ReduceMin transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceMin(this, cc);
         }
 
@@ -22252,12 +22252,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceProd(ReduceProd that, CopyContext cc) {
+        ReduceProd(ReduceProd that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceProd transform(CopyContext cc, OpTransformer ot) {
+        public ReduceProd transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceProd(this, cc);
         }
 
@@ -22409,12 +22409,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceSum(ReduceSum that, CopyContext cc) {
+        ReduceSum(ReduceSum that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceSum transform(CopyContext cc, OpTransformer ot) {
+        public ReduceSum transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceSum(this, cc);
         }
 
@@ -22566,12 +22566,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReduceSumSquare(ReduceSumSquare that, CopyContext cc) {
+        ReduceSumSquare(ReduceSumSquare that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceSumSquare transform(CopyContext cc, OpTransformer ot) {
+        public ReduceSumSquare transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceSumSquare(this, cc);
         }
 
@@ -22722,12 +22722,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RegexFullMatch(RegexFullMatch that, CopyContext cc) {
+        RegexFullMatch(RegexFullMatch that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RegexFullMatch transform(CopyContext cc, OpTransformer ot) {
+        public RegexFullMatch transform(CodeContext cc, CodeTransformer ot) {
             return new RegexFullMatch(this, cc);
         }
 
@@ -22841,12 +22841,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Relu(Relu that, CopyContext cc) {
+        Relu(Relu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Relu transform(CopyContext cc, OpTransformer ot) {
+        public Relu transform(CodeContext cc, CodeTransformer ot) {
             return new Relu(this, cc);
         }
 
@@ -22982,12 +22982,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Reshape(Reshape that, CopyContext cc) {
+        Reshape(Reshape that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Reshape transform(CopyContext cc, OpTransformer ot) {
+        public Reshape transform(CodeContext cc, CodeTransformer ot) {
             return new Reshape(this, cc);
         }
 
@@ -23143,12 +23143,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Resize(Resize that, CopyContext cc) {
+        Resize(Resize that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Resize transform(CopyContext cc, OpTransformer ot) {
+        public Resize transform(CodeContext cc, CodeTransformer ot) {
             return new Resize(this, cc);
         }
 
@@ -23345,12 +23345,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ReverseSequence(ReverseSequence that, CopyContext cc) {
+        ReverseSequence(ReverseSequence that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReverseSequence transform(CopyContext cc, OpTransformer ot) {
+        public ReverseSequence transform(CodeContext cc, CodeTransformer ot) {
             return new ReverseSequence(this, cc);
         }
 
@@ -23507,12 +23507,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RoiAlign(RoiAlign that, CopyContext cc) {
+        RoiAlign(RoiAlign that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RoiAlign transform(CopyContext cc, OpTransformer ot) {
+        public RoiAlign transform(CodeContext cc, CodeTransformer ot) {
             return new RoiAlign(this, cc);
         }
 
@@ -23691,12 +23691,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        RotaryEmbedding(RotaryEmbedding that, CopyContext cc) {
+        RotaryEmbedding(RotaryEmbedding that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RotaryEmbedding transform(CopyContext cc, OpTransformer ot) {
+        public RotaryEmbedding transform(CodeContext cc, CodeTransformer ot) {
             return new RotaryEmbedding(this, cc);
         }
 
@@ -23833,12 +23833,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Round(Round that, CopyContext cc) {
+        Round(Round that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Round transform(CopyContext cc, OpTransformer ot) {
+        public Round transform(CodeContext cc, CodeTransformer ot) {
             return new Round(this, cc);
         }
 
@@ -23977,12 +23977,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        STFT(STFT that, CopyContext cc) {
+        STFT(STFT that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public STFT transform(CopyContext cc, OpTransformer ot) {
+        public STFT transform(CodeContext cc, CodeTransformer ot) {
             return new STFT(this, cc);
         }
 
@@ -24148,12 +24148,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SVMClassifier(SVMClassifier that, CopyContext cc) {
+        SVMClassifier(SVMClassifier that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SVMClassifier transform(CopyContext cc, OpTransformer ot) {
+        public SVMClassifier transform(CodeContext cc, CodeTransformer ot) {
             return new SVMClassifier(this, cc);
         }
 
@@ -24350,12 +24350,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SVMRegressor(SVMRegressor that, CopyContext cc) {
+        SVMRegressor(SVMRegressor that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SVMRegressor transform(CopyContext cc, OpTransformer ot) {
+        public SVMRegressor transform(CodeContext cc, CodeTransformer ot) {
             return new SVMRegressor(this, cc);
         }
 
@@ -24531,12 +24531,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Scaler(Scaler that, CopyContext cc) {
+        Scaler(Scaler that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Scaler transform(CopyContext cc, OpTransformer ot) {
+        public Scaler transform(CodeContext cc, CodeTransformer ot) {
             return new Scaler(this, cc);
         }
 
@@ -24684,12 +24684,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Scatter(Scatter that, CopyContext cc) {
+        Scatter(Scatter that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Scatter transform(CopyContext cc, OpTransformer ot) {
+        public Scatter transform(CodeContext cc, CodeTransformer ot) {
             return new Scatter(this, cc);
         }
 
@@ -24841,12 +24841,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ScatterElements(ScatterElements that, CopyContext cc) {
+        ScatterElements(ScatterElements that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ScatterElements transform(CopyContext cc, OpTransformer ot) {
+        public ScatterElements transform(CodeContext cc, CodeTransformer ot) {
             return new ScatterElements(this, cc);
         }
 
@@ -25001,12 +25001,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ScatterND(ScatterND that, CopyContext cc) {
+        ScatterND(ScatterND that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ScatterND transform(CopyContext cc, OpTransformer ot) {
+        public ScatterND transform(CodeContext cc, CodeTransformer ot) {
             return new ScatterND(this, cc);
         }
 
@@ -25155,12 +25155,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Selu(Selu that, CopyContext cc) {
+        Selu(Selu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Selu transform(CopyContext cc, OpTransformer ot) {
+        public Selu transform(CodeContext cc, CodeTransformer ot) {
             return new Selu(this, cc);
         }
 
@@ -25282,12 +25282,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SequenceAt(SequenceAt that, CopyContext cc) {
+        SequenceAt(SequenceAt that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SequenceAt transform(CopyContext cc, OpTransformer ot) {
+        public SequenceAt transform(CodeContext cc, CodeTransformer ot) {
             return new SequenceAt(this, cc);
         }
 
@@ -25401,12 +25401,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SequenceConstruct(SequenceConstruct that, CopyContext cc) {
+        SequenceConstruct(SequenceConstruct that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SequenceConstruct transform(CopyContext cc, OpTransformer ot) {
+        public SequenceConstruct transform(CodeContext cc, CodeTransformer ot) {
             return new SequenceConstruct(this, cc);
         }
 
@@ -25520,12 +25520,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SequenceEmpty(SequenceEmpty that, CopyContext cc) {
+        SequenceEmpty(SequenceEmpty that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SequenceEmpty transform(CopyContext cc, OpTransformer ot) {
+        public SequenceEmpty transform(CodeContext cc, CodeTransformer ot) {
             return new SequenceEmpty(this, cc);
         }
 
@@ -25637,12 +25637,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SequenceErase(SequenceErase that, CopyContext cc) {
+        SequenceErase(SequenceErase that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SequenceErase transform(CopyContext cc, OpTransformer ot) {
+        public SequenceErase transform(CodeContext cc, CodeTransformer ot) {
             return new SequenceErase(this, cc);
         }
 
@@ -25760,12 +25760,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SequenceInsert(SequenceInsert that, CopyContext cc) {
+        SequenceInsert(SequenceInsert that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SequenceInsert transform(CopyContext cc, OpTransformer ot) {
+        public SequenceInsert transform(CodeContext cc, CodeTransformer ot) {
             return new SequenceInsert(this, cc);
         }
 
@@ -25884,12 +25884,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SequenceLength(SequenceLength that, CopyContext cc) {
+        SequenceLength(SequenceLength that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SequenceLength transform(CopyContext cc, OpTransformer ot) {
+        public SequenceLength transform(CodeContext cc, CodeTransformer ot) {
             return new SequenceLength(this, cc);
         }
 
@@ -26026,12 +26026,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Shape(Shape that, CopyContext cc) {
+        Shape(Shape that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Shape transform(CopyContext cc, OpTransformer ot) {
+        public Shape transform(CodeContext cc, CodeTransformer ot) {
             return new Shape(this, cc);
         }
 
@@ -26177,12 +26177,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Shrink(Shrink that, CopyContext cc) {
+        Shrink(Shrink that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Shrink transform(CopyContext cc, OpTransformer ot) {
+        public Shrink transform(CodeContext cc, CodeTransformer ot) {
             return new Shrink(this, cc);
         }
 
@@ -26301,12 +26301,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Sigmoid(Sigmoid that, CopyContext cc) {
+        Sigmoid(Sigmoid that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Sigmoid transform(CopyContext cc, OpTransformer ot) {
+        public Sigmoid transform(CodeContext cc, CodeTransformer ot) {
             return new Sigmoid(this, cc);
         }
 
@@ -26415,12 +26415,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Sign(Sign that, CopyContext cc) {
+        Sign(Sign that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Sign transform(CopyContext cc, OpTransformer ot) {
+        public Sign transform(CodeContext cc, CodeTransformer ot) {
             return new Sign(this, cc);
         }
 
@@ -26529,12 +26529,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Sin(Sin that, CopyContext cc) {
+        Sin(Sin that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Sin transform(CopyContext cc, OpTransformer ot) {
+        public Sin transform(CodeContext cc, CodeTransformer ot) {
             return new Sin(this, cc);
         }
 
@@ -26643,12 +26643,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Sinh(Sinh that, CopyContext cc) {
+        Sinh(Sinh that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Sinh transform(CopyContext cc, OpTransformer ot) {
+        public Sinh transform(CodeContext cc, CodeTransformer ot) {
             return new Sinh(this, cc);
         }
 
@@ -26758,12 +26758,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Size(Size that, CopyContext cc) {
+        Size(Size that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Size transform(CopyContext cc, OpTransformer ot) {
+        public Size transform(CodeContext cc, CodeTransformer ot) {
             return new Size(this, cc);
         }
 
@@ -26877,12 +26877,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Slice(Slice that, CopyContext cc) {
+        Slice(Slice that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Slice transform(CopyContext cc, OpTransformer ot) {
+        public Slice transform(CodeContext cc, CodeTransformer ot) {
             return new Slice(this, cc);
         }
 
@@ -27035,12 +27035,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Softmax(Softmax that, CopyContext cc) {
+        Softmax(Softmax that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Softmax transform(CopyContext cc, OpTransformer ot) {
+        public Softmax transform(CodeContext cc, CodeTransformer ot) {
             return new Softmax(this, cc);
         }
 
@@ -27185,12 +27185,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SoftmaxCrossEntropyLoss(SoftmaxCrossEntropyLoss that, CopyContext cc) {
+        SoftmaxCrossEntropyLoss(SoftmaxCrossEntropyLoss that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SoftmaxCrossEntropyLoss transform(CopyContext cc, OpTransformer ot) {
+        public SoftmaxCrossEntropyLoss transform(CodeContext cc, CodeTransformer ot) {
             return new SoftmaxCrossEntropyLoss(this, cc);
         }
 
@@ -27318,12 +27318,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Softplus(Softplus that, CopyContext cc) {
+        Softplus(Softplus that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Softplus transform(CopyContext cc, OpTransformer ot) {
+        public Softplus transform(CodeContext cc, CodeTransformer ot) {
             return new Softplus(this, cc);
         }
 
@@ -27432,12 +27432,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Softsign(Softsign that, CopyContext cc) {
+        Softsign(Softsign that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Softsign transform(CopyContext cc, OpTransformer ot) {
+        public Softsign transform(CodeContext cc, CodeTransformer ot) {
             return new Softsign(this, cc);
         }
 
@@ -27572,12 +27572,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SpaceToDepth(SpaceToDepth that, CopyContext cc) {
+        SpaceToDepth(SpaceToDepth that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SpaceToDepth transform(CopyContext cc, OpTransformer ot) {
+        public SpaceToDepth transform(CodeContext cc, CodeTransformer ot) {
             return new SpaceToDepth(this, cc);
         }
 
@@ -27719,12 +27719,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Split(Split that, CopyContext cc) {
+        Split(Split that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Split transform(CopyContext cc, OpTransformer ot) {
+        public Split transform(CodeContext cc, CodeTransformer ot) {
             return new Split(this, cc);
         }
 
@@ -27878,12 +27878,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        SplitToSequence(SplitToSequence that, CopyContext cc) {
+        SplitToSequence(SplitToSequence that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SplitToSequence transform(CopyContext cc, OpTransformer ot) {
+        public SplitToSequence transform(CodeContext cc, CodeTransformer ot) {
             return new SplitToSequence(this, cc);
         }
 
@@ -28007,12 +28007,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Sqrt(Sqrt that, CopyContext cc) {
+        Sqrt(Sqrt that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Sqrt transform(CopyContext cc, OpTransformer ot) {
+        public Sqrt transform(CodeContext cc, CodeTransformer ot) {
             return new Sqrt(this, cc);
         }
 
@@ -28122,12 +28122,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Squeeze(Squeeze that, CopyContext cc) {
+        Squeeze(Squeeze that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Squeeze transform(CopyContext cc, OpTransformer ot) {
+        public Squeeze transform(CodeContext cc, CodeTransformer ot) {
             return new Squeeze(this, cc);
         }
 
@@ -28242,12 +28242,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        StringConcat(StringConcat that, CopyContext cc) {
+        StringConcat(StringConcat that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public StringConcat transform(CopyContext cc, OpTransformer ot) {
+        public StringConcat transform(CodeContext cc, CodeTransformer ot) {
             return new StringConcat(this, cc);
         }
 
@@ -28374,12 +28374,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        StringNormalizer(StringNormalizer that, CopyContext cc) {
+        StringNormalizer(StringNormalizer that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public StringNormalizer transform(CopyContext cc, OpTransformer ot) {
+        public StringNormalizer transform(CodeContext cc, CodeTransformer ot) {
             return new StringNormalizer(this, cc);
         }
 
@@ -28538,12 +28538,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        StringSplit(StringSplit that, CopyContext cc) {
+        StringSplit(StringSplit that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public StringSplit transform(CopyContext cc, OpTransformer ot) {
+        public StringSplit transform(CodeContext cc, CodeTransformer ot) {
             return new StringSplit(this, cc);
         }
 
@@ -28663,12 +28663,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Sub(Sub that, CopyContext cc) {
+        Sub(Sub that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Sub transform(CopyContext cc, OpTransformer ot) {
+        public Sub transform(CodeContext cc, CodeTransformer ot) {
             return new Sub(this, cc);
         }
 
@@ -28781,12 +28781,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Sum(Sum that, CopyContext cc) {
+        Sum(Sum that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Sum transform(CopyContext cc, OpTransformer ot) {
+        public Sum transform(CodeContext cc, CodeTransformer ot) {
             return new Sum(this, cc);
         }
 
@@ -28921,12 +28921,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Swish(Swish that, CopyContext cc) {
+        Swish(Swish that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Swish transform(CopyContext cc, OpTransformer ot) {
+        public Swish transform(CodeContext cc, CodeTransformer ot) {
             return new Swish(this, cc);
         }
 
@@ -29040,12 +29040,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Tan(Tan that, CopyContext cc) {
+        Tan(Tan that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Tan transform(CopyContext cc, OpTransformer ot) {
+        public Tan transform(CodeContext cc, CodeTransformer ot) {
             return new Tan(this, cc);
         }
 
@@ -29154,12 +29154,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Tanh(Tanh that, CopyContext cc) {
+        Tanh(Tanh that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Tanh transform(CopyContext cc, OpTransformer ot) {
+        public Tanh transform(CodeContext cc, CodeTransformer ot) {
             return new Tanh(this, cc);
         }
 
@@ -29297,12 +29297,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        TensorScatter(TensorScatter that, CopyContext cc) {
+        TensorScatter(TensorScatter that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TensorScatter transform(CopyContext cc, OpTransformer ot) {
+        public TensorScatter transform(CodeContext cc, CodeTransformer ot) {
             return new TensorScatter(this, cc);
         }
 
@@ -29465,12 +29465,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        TfIdfVectorizer(TfIdfVectorizer that, CopyContext cc) {
+        TfIdfVectorizer(TfIdfVectorizer that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TfIdfVectorizer transform(CopyContext cc, OpTransformer ot) {
+        public TfIdfVectorizer transform(CodeContext cc, CodeTransformer ot) {
             return new TfIdfVectorizer(this, cc);
         }
 
@@ -29650,12 +29650,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ThresholdedRelu(ThresholdedRelu that, CopyContext cc) {
+        ThresholdedRelu(ThresholdedRelu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ThresholdedRelu transform(CopyContext cc, OpTransformer ot) {
+        public ThresholdedRelu transform(CodeContext cc, CodeTransformer ot) {
             return new ThresholdedRelu(this, cc);
         }
 
@@ -29771,12 +29771,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Tile(Tile that, CopyContext cc) {
+        Tile(Tile that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Tile transform(CopyContext cc, OpTransformer ot) {
+        public Tile transform(CodeContext cc, CodeTransformer ot) {
             return new Tile(this, cc);
         }
 
@@ -29920,12 +29920,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        TopK(TopK that, CopyContext cc) {
+        TopK(TopK that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TopK transform(CopyContext cc, OpTransformer ot) {
+        public TopK transform(CodeContext cc, CodeTransformer ot) {
             return new TopK(this, cc);
         }
 
@@ -30079,12 +30079,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Transpose(Transpose that, CopyContext cc) {
+        Transpose(Transpose that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Transpose transform(CopyContext cc, OpTransformer ot) {
+        public Transpose transform(CodeContext cc, CodeTransformer ot) {
             return new Transpose(this, cc);
         }
 
@@ -30239,12 +30239,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        TreeEnsemble(TreeEnsemble that, CopyContext cc) {
+        TreeEnsemble(TreeEnsemble that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TreeEnsemble transform(CopyContext cc, OpTransformer ot) {
+        public TreeEnsemble transform(CodeContext cc, CodeTransformer ot) {
             return new TreeEnsemble(this, cc);
         }
 
@@ -30481,12 +30481,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        TreeEnsembleClassifier(TreeEnsembleClassifier that, CopyContext cc) {
+        TreeEnsembleClassifier(TreeEnsembleClassifier that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TreeEnsembleClassifier transform(CopyContext cc, OpTransformer ot) {
+        public TreeEnsembleClassifier transform(CodeContext cc, CodeTransformer ot) {
             return new TreeEnsembleClassifier(this, cc);
         }
 
@@ -30746,12 +30746,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        TreeEnsembleRegressor(TreeEnsembleRegressor that, CopyContext cc) {
+        TreeEnsembleRegressor(TreeEnsembleRegressor that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TreeEnsembleRegressor transform(CopyContext cc, OpTransformer ot) {
+        public TreeEnsembleRegressor transform(CodeContext cc, CodeTransformer ot) {
             return new TreeEnsembleRegressor(this, cc);
         }
 
@@ -30992,12 +30992,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Trilu(Trilu that, CopyContext cc) {
+        Trilu(Trilu that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Trilu transform(CopyContext cc, OpTransformer ot) {
+        public Trilu transform(CodeContext cc, CodeTransformer ot) {
             return new Trilu(this, cc);
         }
 
@@ -31146,12 +31146,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Unique(Unique that, CopyContext cc) {
+        Unique(Unique that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Unique transform(CopyContext cc, OpTransformer ot) {
+        public Unique transform(CodeContext cc, CodeTransformer ot) {
             return new Unique(this, cc);
         }
 
@@ -31271,12 +31271,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Unsqueeze(Unsqueeze that, CopyContext cc) {
+        Unsqueeze(Unsqueeze that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Unsqueeze transform(CopyContext cc, OpTransformer ot) {
+        public Unsqueeze transform(CodeContext cc, CodeTransformer ot) {
             return new Unsqueeze(this, cc);
         }
 
@@ -31416,12 +31416,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Upsample(Upsample that, CopyContext cc) {
+        Upsample(Upsample that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Upsample transform(CopyContext cc, OpTransformer ot) {
+        public Upsample transform(CodeContext cc, CodeTransformer ot) {
             return new Upsample(this, cc);
         }
 
@@ -31542,12 +31542,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Where(Where that, CopyContext cc) {
+        Where(Where that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Where transform(CopyContext cc, OpTransformer ot) {
+        public Where transform(CodeContext cc, CodeTransformer ot) {
             return new Where(this, cc);
         }
 
@@ -31666,12 +31666,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        Xor(Xor that, CopyContext cc) {
+        Xor(Xor that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public Xor transform(CopyContext cc, OpTransformer ot) {
+        public Xor transform(CodeContext cc, CodeTransformer ot) {
             return new Xor(this, cc);
         }
 
@@ -31811,12 +31811,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
             super(SCHEMA, def);
         }
 
-        ZipMap(ZipMap that, CopyContext cc) {
+        ZipMap(ZipMap that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ZipMap transform(CopyContext cc, OpTransformer ot) {
+        public ZipMap transform(CodeContext cc, CodeTransformer ot) {
             return new ZipMap(this, cc);
         }
 

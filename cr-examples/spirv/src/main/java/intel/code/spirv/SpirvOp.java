@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -55,7 +55,7 @@ public abstract class SpirvOp extends Op {
         this.type = type;
     }
 
-    SpirvOp(SpirvOp that, CopyContext cc) {
+    SpirvOp(SpirvOp that, CodeContext cc) {
         super(that, cc);
         this.opName = that.opName;
         this.type = that.type;

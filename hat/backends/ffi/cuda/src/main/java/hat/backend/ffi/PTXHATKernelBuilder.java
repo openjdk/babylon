@@ -177,7 +177,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             this.boundSchema = boundSchema;
         }
 
-        PTXPtrOp(PTXPtrOp that, CopyContext cc) {
+        PTXPtrOp(PTXPtrOp that, CodeContext cc) {
             super(that, cc);
             this.resultType = that.resultType;
             this.fieldName = that.fieldName;
@@ -185,7 +185,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         }
 
         @Override
-        public PTXPtrOp transform(CopyContext cc, OpTransformer ot) {
+        public PTXPtrOp transform(CodeContext cc, CodeTransformer ot) {
             return new PTXPtrOp(this, cc);
         }
 
