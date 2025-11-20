@@ -472,15 +472,9 @@ public final class BytecodeLift {
                         JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
-                        // if FLAG_QUOTABLE is set, the lambda is quotable
-                        if (bsm.methodName().equals("altMetafactory")) {
-                            assert inst.bootstrapArgs().size() > 3;
-                            assert inst.bootstrapArgs().get(3) instanceof Integer;
-
-                            if (inst.bootstrapArgs().get(3) instanceof Integer flags
-                                    && (flags & LambdaMetafactory.FLAG_QUOTABLE) != 0) {
-                                lambda = lambda.quotable();
-                            }
+                        // if ReflectableLambdaMetafactory is used, the lambda is quotable
+                        if (bsm.owner().displayName().equals("jdk.incubator.code.runtime.ReflectableLambdaMetafactory")) {
+                            lambda = lambda.quotable();
                         }
 
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
