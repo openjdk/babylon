@@ -12,11 +12,11 @@ class TestNoCodeReflectionInInnerClasses {
         public void test1() { }
 
         void test2() {
-            Quotable q = (Runnable & Quotable) () -> { };
+            Runnable q = (@CodeReflection Runnable) () -> { };
         }
 
         void test3() {
-            Quotable q = (Runnable & Quotable) this::test2;
+            Runnable q = (@CodeReflection Runnable) this::test2;
         }
     }
 }

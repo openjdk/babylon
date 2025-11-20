@@ -438,7 +438,8 @@ public final class OnnxRuntime {
     }
 
     @FunctionalInterface
-    public interface OnnxFunction<T> extends Supplier<T>, Quotable {
+    @CodeReflection
+    public interface OnnxFunction<T> extends Supplier<T> {
     }
 
     record SessionWithReturnType(Session session, TypeElement returnType) {

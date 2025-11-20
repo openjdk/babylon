@@ -271,7 +271,7 @@ public final class LambdaMetafactory {
     public static final int FLAG_BRIDGES = 1 << 2;
 
     /** Flag for {@link #altMetafactory} indicating the lambda object
-     * must be a {@code Quotable} object, inspectable using code reflection. */
+     * must be inspectable using code reflection. */
     public static final int FLAG_QUOTABLE = 1 << 3;
 
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
@@ -445,9 +445,6 @@ public final class LambdaMetafactory {
      * {@code caller} class must have an appropriate {@code $deserializeLambda$}
      * method, as described in {@link SerializedLambda}.
      *
-     * <p>When FLAG_QUOTABLE is set in {@code flags}, the function objects
-     * will implement {@code Quotable}.
-     *
      * <p>When the target of the {@code CallSite} returned from this method is
      * invoked, the resulting function objects are instances of a class with
      * the following properties:
@@ -537,8 +534,6 @@ public final class LambdaMetafactory {
         }
         if ((flags & FLAG_QUOTABLE) != 0) {
             quotableOpGetter = extractArg(args, argIndex++, MethodHandle.class);
-            altInterfaces = Arrays.copyOf(altInterfaces, altInterfaces.length + 1);
-            altInterfaces[altInterfaces.length-1] = InnerClassLambdaMetafactory.CodeReflectionSupport.QUOTABLE_CLASS;
         }
         if (argIndex < args.length) {
             throw new IllegalArgumentException("too many arguments");

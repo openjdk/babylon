@@ -30,7 +30,6 @@
  * @run main CodeReflectionTester QuotableSubtypeTest
  */
 
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.CodeReflection;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;
@@ -39,7 +38,8 @@ import java.util.function.IntUnaryOperator;
 
 public class QuotableSubtypeTest {
 
-    interface QuotableRunnable extends Runnable, Quotable { }
+    @CodeReflection
+    interface QuotableRunnable extends Runnable { }
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -51,7 +51,8 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableRunnable QUOTED_NO_PARAM_VOID = () -> { };
 
-    interface QuotableIntSupplier extends IntSupplier, Quotable { }
+    @CodeReflection
+    interface QuotableIntSupplier extends IntSupplier { }
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -64,7 +65,8 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableIntSupplier QUOTED_NO_PARAM_CONST = () -> 1;
 
-    interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable { }
+    @CodeReflection
+    interface QuotableIntUnaryOperator extends IntUnaryOperator { }
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -78,7 +80,8 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableIntUnaryOperator QUOTED_ID = x -> x;
 
-    interface QuotableIntBinaryOperator extends IntBinaryOperator, Quotable { }
+    @CodeReflection
+    interface QuotableIntBinaryOperator extends IntBinaryOperator { }
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -216,7 +219,8 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableIntUnaryOperator QUOTED_INT_PARAM_INT_RET_REF = QuotableSubtypeTest::g;
 
-    interface QuotableIntFunction<A> extends Quotable, IntFunction<A> { }
+    @CodeReflection
+    interface QuotableIntFunction<A> extends IntFunction<A> { }
 
     @IR("""
             func @"f" ()java.type:"void" -> {

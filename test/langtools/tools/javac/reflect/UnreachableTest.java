@@ -21,7 +21,6 @@
  * questions.
  */
 
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.CodeReflection;
 import java.util.function.IntUnaryOperator;
@@ -196,7 +195,7 @@ public class UnreachableTest {
                 return;
             };
             """)
-    static final Quotable QUOTABLE_TEST = (IntUnaryOperator & Quotable) (int i) -> {
+    static final IntUnaryOperator QUOTABLE_TEST = (@CodeReflection IntUnaryOperator) (int i) -> {
         if (true) {
             return i;
         } else {

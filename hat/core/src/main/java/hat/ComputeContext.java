@@ -32,8 +32,8 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -173,6 +173,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         return accelerator.allocate(segmentMapper, boundSchema);
     }
 
-    public interface QuotableKernelContextConsumer extends Quotable, Consumer<KernelContext> { }
+    @CodeReflection
+    public interface QuotableKernelContextConsumer extends Consumer<KernelContext> { }
 
 }

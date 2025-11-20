@@ -49,7 +49,7 @@ public class TestInline {
 
     @Test
     public void testInline() {
-        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) -> a + b;
+        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) -> a + b;
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         // functional type = (int)int
@@ -71,7 +71,7 @@ public class TestInline {
 
     @Test
     public void testInlineVar() {
-        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) -> a + b;
+        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) -> a + b;
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         // functional type = (int)int
@@ -100,7 +100,7 @@ public class TestInline {
 
     @Test
     public void testInlineLowerMultipleReturn() {
-        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) ->  {
+        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -129,7 +129,7 @@ public class TestInline {
 
     @Test
     public void testInlineLowerMultipleReturnVar() {
-        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) ->  {
+        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -164,7 +164,7 @@ public class TestInline {
 
     @Test
     public void testInlineMultipleReturnLower() {
-        Quotable q = (IntBinaryOperator & Quotable)(int a, int b) ->  {
+        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -193,7 +193,7 @@ public class TestInline {
 
     @Test
     public void testInlineVoid() {
-        Quotable q = (Consumer<int[]> & Quotable) (int[] a) -> {
+        Consumer<int[]> q = (@CodeReflection Consumer<int[]>) (int[] a) -> {
             a[0] = 42;
             return;
         };

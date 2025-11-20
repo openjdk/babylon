@@ -503,7 +503,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *          returns an empty optional.
      * @since 99
      */
-    public static Optional<Quoted> ofQuotable(Quotable q) {
+    public static Optional<Quoted> ofQuotable(Object q) {
         Object oq = q;
         if (Proxy.isProxyClass(oq.getClass())) {
             // @@@ The interpreter implements interpretation of

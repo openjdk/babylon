@@ -26,9 +26,9 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
-import jdk.incubator.code.Quotable;
 import oracle.code.onnx.ir.OnnxOps;
 
 class ExplicitOnnxOperators {
@@ -80,7 +80,8 @@ class ExplicitOnnxOperators {
     // @@@ Constants for value - TENSOR and sparse_value - SPARSE_TENSOR
 
 
-    public interface IfBody<T> extends Quotable {
+    @CodeReflection
+    public interface IfBody<T> {
         T invoke();
     }
 
@@ -89,7 +90,9 @@ class ExplicitOnnxOperators {
     }
 
     public record LoopResult<T>(Tensor<Boolean> cond, T output) {}
-    public interface LoopBody<T> extends Quotable {
+
+    @CodeReflection
+    public interface LoopBody<T> {
         LoopResult<T> invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
     }
 

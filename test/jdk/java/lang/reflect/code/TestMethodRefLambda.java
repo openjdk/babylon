@@ -27,8 +27,8 @@
  * @run junit TestMethodRefLambda
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
@@ -46,13 +46,16 @@ import java.util.function.IntUnaryOperator;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestMethodRefLambda {
 
-    interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable {}
+    @CodeReflection
+    interface QuotableIntUnaryOperator extends IntUnaryOperator {}
 
-    interface QuotableFunction<T, R> extends Function<T, R>, Quotable {}
+    @CodeReflection
+    interface QuotableFunction<T, R> extends Function<T, R> {}
 
-    interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R>, Quotable {}
+    @CodeReflection
+    interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {}
 
-    List<Quotable> methodRefLambdas() {
+    List<Object> methodRefLambdas() {
         return List.of(
                 (QuotableIntUnaryOperator) TestMethodRefLambda::m1,
                 (QuotableIntUnaryOperator) TestMethodRefLambda::m2,
@@ -65,7 +68,7 @@ public class TestMethodRefLambda {
 
     @ParameterizedTest
     @MethodSource("methodRefLambdas")
-    public void testIsMethodReference(Quotable q) {
+    public void testIsMethodReference(Object q) {
         Quoted quoted = Op.ofQuotable(q).get();
         JavaOp.LambdaOp lop = (JavaOp.LambdaOp) quoted.op();
         Assertions.assertTrue(lop.methodReference().isPresent());
