@@ -186,8 +186,6 @@ public class OpBuilder {
 
     final Block.Builder builder;
 
-    final Value typeElementFactory;
-
     /**
      * Transform the given code model to one that builds it.
      * <p>
@@ -204,7 +202,7 @@ public class OpBuilder {
         List<FuncOp> funcs = new ArrayList<>();
         SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes = new LinkedHashMap<>();
         for (var e : ops.sequencedEntrySet()) {
-            OpBuilder opBuilder = new OpBuilder(dialectFactoryF, registeredExternalizedTypes);
+            OpBuilder opBuilder = new OpBuilder(registeredExternalizedTypes);
             funcs.add(opBuilder.build(e.getKey(), e.getValue()));
             registeredExternalizedTypes = opBuilder.registeredExternalizedTypes;
         }
@@ -341,9 +339,7 @@ public class OpBuilder {
                 //  }
                 func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class))).body(b -> {
                     var i = b.parameter(INT);
-
-                    var dialectFactory = b.op(fieldLoad(FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class)));
-                    var typeElementFactory = b.op(invoke(MethodRef.method(DialectFactory.class, "typeElementFactory", TypeElementFactory.class), dialectFactory));
+                    var typeElementFactory = b.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactoryF.apply(b)));
                     var exterType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class)), i));
                     var typeElement = b.op(invoke(MethodRef.method(TypeElementFactory.class, "constructType", TypeElement.class, ExternalizedTypeElement.class), typeElementFactory, exterType));
                     b.op(return_(typeElement));
@@ -404,7 +400,7 @@ public class OpBuilder {
         return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
-    OpBuilder(Function<Block.Builder, Value> dialectFactoryF, SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {
+    OpBuilder(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {
         this.valueMap = new HashMap<>();
         this.blockMap = new HashMap<>();
         this.typeElementMap = new HashMap<>();
@@ -412,8 +408,6 @@ public class OpBuilder {
 
         Body.Builder body = Body.Builder.of(null, BUILDER_F_TYPE);
         this.builder = body.entryBlock();
-        var dialectFactory = dialectFactoryF.apply(builder);
-        this.typeElementFactory = builder.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactory));
     }
 
     FuncOp build(String name, Op op) {
