@@ -24,6 +24,7 @@
  */
 package java.lang.invoke;
 
+import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import sun.invoke.util.Wrapper;
 
 import java.lang.reflect.Modifier;
@@ -69,7 +70,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     final boolean isSerializable;             // Should the returned instance be serializable
     final Class<?>[] altInterfaces;           // Additional interfaces to be implemented
     final MethodType[] altMethods;            // Signatures of additional methods to bridge
-    final MethodHandle quotableOpGetter;       // A getter method handle that is used to retrieve the
+    final ReflectableLambdaInfo reflectableLambdaInfo;       // A holder for information pertinent to a reflectable lambda
                                               // the quotable lambda's associated intermediate representation (can be null).
     final MethodHandleInfo quotableOpGetterInfo;  // Info about the quotable getter method handle (can be null).
 
@@ -107,9 +108,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
      *                      should implement.
      * @param altMethods Method types for additional signatures to be
      *                   implemented by invoking the implementation method
-     * @param reflectiveField a {@linkplain MethodHandles.Lookup#findGetter(Class, String, Class) getter}
-     *                   method handle that is used to retrieve the string representation of the
-     *                   quotable lambda's associated intermediate representation.
+     * @param reflectableLambdaInfo a holder for information pertinent to a reflectable lambda
      * @throws LambdaConversionException If any of the meta-factory protocol
      *         invariants are violated
      */
@@ -122,7 +121,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                                         boolean isSerializable,
                                         Class<?>[] altInterfaces,
                                         MethodType[] altMethods,
-                                        MethodHandle reflectiveField)
+                                        ReflectableLambdaInfo reflectableLambdaInfo)
             throws LambdaConversionException {
         if (!caller.hasFullPrivilegeAccess()) {
             throw new LambdaConversionException(String.format(
@@ -183,7 +182,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
         this.isSerializable = isSerializable;
         this.altInterfaces = altInterfaces;
         this.altMethods = altMethods;
-        this.quotableOpGetter = reflectiveField;
+        this.reflectableLambdaInfo = reflectableLambdaInfo;
 
         if (interfaceMethodName.isEmpty() ||
                 interfaceMethodName.indexOf('.') >= 0 ||
@@ -211,9 +210,9 @@ import static sun.invoke.util.Wrapper.isWrapperType;
             }
         }
 
-        if (reflectiveField != null) {
+        if (reflectableLambdaInfo != null) {
             try {
-                quotableOpGetterInfo = caller.revealDirect(reflectiveField); // may throw SecurityException
+                quotableOpGetterInfo = caller.revealDirect(reflectableLambdaInfo.opHandle()); // may throw SecurityException
             } catch (IllegalArgumentException e) {
                 throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
             }

@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.lang.reflect.Array;
 import java.util.Objects;
 
+import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import jdk.internal.vm.annotation.AOTSafeClassInitializer;
 
 /**
@@ -270,10 +271,6 @@ public final class LambdaMetafactory {
      */
     public static final int FLAG_BRIDGES = 1 << 2;
 
-    /** Flag for {@link #altMetafactory} indicating the lambda object
-     * must be inspectable using code reflection. */
-    public static final int FLAG_QUOTABLE = 1 << 3;
-
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
     private static final MethodType[] EMPTY_MT_ARRAY = new MethodType[0];
 
@@ -347,17 +344,28 @@ public final class LambdaMetafactory {
                                        MethodHandle implementation,
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
-        AbstractValidatingLambdaMetafactory mf;
-        mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
-                                             Objects.requireNonNull(factoryType),
-                                             Objects.requireNonNull(interfaceMethodName),
-                                             Objects.requireNonNull(interfaceMethodType),
-                                             Objects.requireNonNull(implementation),
-                                             Objects.requireNonNull(dynamicMethodType),
-                                             false,
-                                             EMPTY_CLASS_ARRAY,
-                                             EMPTY_MT_ARRAY,
-                                 null);
+        return metafactoryInternal(caller, interfaceMethodName, factoryType, interfaceMethodType,
+                implementation, dynamicMethodType, null);
+    }
+
+    static CallSite metafactoryInternal(MethodHandles.Lookup caller,
+                                               String interfaceMethodName,
+                                               MethodType factoryType,
+                                               MethodType interfaceMethodType,
+                                               MethodHandle implementation,
+                                               MethodType dynamicMethodType,
+                                               ReflectableLambdaInfo reflectableLambdaInfo)
+            throws LambdaConversionException {
+        AbstractValidatingLambdaMetafactory mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
+                Objects.requireNonNull(factoryType),
+                Objects.requireNonNull(interfaceMethodName),
+                Objects.requireNonNull(interfaceMethodType),
+                Objects.requireNonNull(implementation),
+                Objects.requireNonNull(dynamicMethodType),
+                false,
+                EMPTY_CLASS_ARRAY,
+                EMPTY_MT_ARRAY,
+                reflectableLambdaInfo);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
@@ -403,7 +411,6 @@ public final class LambdaMetafactory {
      *                          Class... altInterfaces,       // IF flags has MARKERS set
      *                          int altMethodCount,           // IF flags has BRIDGES set
      *                          MethodType... altMethods      // IF flags has BRIDGES set
-     *                          MethodHandle quotableField    // IF flags has QUOTABLE set
      *                          )
      * }</pre>
      *
@@ -427,10 +434,6 @@ public final class LambdaMetafactory {
      *     <li>{@code altMethods} is a variable-length list of additional
      *     methods signatures to implement, whose length equals {@code altMethodCount},
      *     and is present if and only if the {@code FLAG_BRIDGES} flag is set.</li>
-     *     <li>{@code quotableField} is a
-     *     {@linkplain MethodHandles.Lookup#findGetter(Class, String, Class) getter} method handle
-     *     that is used to retrieve the string representation of the quotable lambda's associated
-     *     intermediate representation.</li>
      * </ul>
      *
      * <p>Each class named by {@code altInterfaces} is subject to the same
@@ -499,6 +502,15 @@ public final class LambdaMetafactory {
                                           MethodType factoryType,
                                           Object... args)
             throws LambdaConversionException {
+        return altMetafactoryInternal(caller, interfaceMethodName, factoryType, null, args);
+    }
+
+    static CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
+                                          String interfaceMethodName,
+                                          MethodType factoryType,
+                                          ReflectableLambdaInfo reflectableLambdaInfo,
+                                          Object... args)
+            throws LambdaConversionException {
         Objects.requireNonNull(caller);
         Objects.requireNonNull(interfaceMethodName);
         Objects.requireNonNull(factoryType);
@@ -510,8 +522,6 @@ public final class LambdaMetafactory {
         int flags = extractArg(args, argIndex++, Integer.class);
         Class<?>[] altInterfaces = EMPTY_CLASS_ARRAY;
         MethodType[] altMethods = EMPTY_MT_ARRAY;
-        // Getter that returns the op of a Quotable instance
-        MethodHandle quotableOpGetter = null;
         if ((flags & FLAG_MARKERS) != 0) {
             int altInterfaceCount = extractArg(args, argIndex++, Integer.class);
             if (altInterfaceCount < 0) {
@@ -522,6 +532,7 @@ public final class LambdaMetafactory {
                 argIndex += altInterfaceCount;
             }
         }
+
         if ((flags & FLAG_BRIDGES) != 0) {
             int altMethodCount = extractArg(args, argIndex++, Integer.class);
             if (altMethodCount < 0) {
@@ -531,9 +542,6 @@ public final class LambdaMetafactory {
                 altMethods = extractArgs(args, argIndex, MethodType.class, altMethodCount);
                 argIndex += altMethodCount;
             }
-        }
-        if ((flags & FLAG_QUOTABLE) != 0) {
-            quotableOpGetter = extractArg(args, argIndex++, MethodHandle.class);
         }
         if (argIndex < args.length) {
             throw new IllegalArgumentException("too many arguments");
@@ -552,15 +560,15 @@ public final class LambdaMetafactory {
 
         AbstractValidatingLambdaMetafactory mf
                 = new InnerClassLambdaMetafactory(caller,
-                                                  factoryType,
-                                                  interfaceMethodName,
-                                                  interfaceMethodType,
-                                                  implementation,
-                                                  dynamicMethodType,
-                                                  isSerializable,
-                                                  altInterfaces,
-                                                  altMethods,
-                                                  quotableOpGetter);
+                factoryType,
+                interfaceMethodName,
+                interfaceMethodType,
+                implementation,
+                dynamicMethodType,
+                isSerializable,
+                altInterfaces,
+                altMethods,
+                reflectableLambdaInfo);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }

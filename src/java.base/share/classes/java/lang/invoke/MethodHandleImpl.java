@@ -1645,6 +1645,19 @@ abstract class MethodHandleImpl {
                 return IMPL_LOOKUP.serializableConstructor(decl, ctorToCall);
             }
 
+            @Override
+            public CallSite metafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
+                                                MethodType interfaceMethodType, MethodHandle implementation,
+                                                MethodType dynamicMethodType, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
+                return LambdaMetafactory.metafactoryInternal(caller, interfaceMethodName, factoryType,
+                        interfaceMethodType, implementation, dynamicMethodType, reflectableLambdaInfo);
+            }
+
+            @Override
+            public CallSite altMetafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
+                                                   ReflectableLambdaInfo reflectableLambdaInfo, Object... args) throws LambdaConversionException {
+                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, reflectableLambdaInfo, args);
+            }
         });
     }
 
