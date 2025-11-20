@@ -835,9 +835,8 @@ public class LambdaToMethod extends TreeTranslator {
 
         List<Symbol> bridges = bridges(tree);
         boolean isSerializable = isSerializable(tree);
-        boolean isQuotable = isQuotable(tree);
         boolean needsAltMetafactory = tree.target.isIntersection() ||
-                isSerializable || isQuotable || bridges.length() > 1;
+                isSerializable || bridges.length() > 1;
 
         dumpStats(tree, needsAltMetafactory, nonDedupedRefSym);
 
@@ -858,7 +857,6 @@ public class LambdaToMethod extends TreeTranslator {
                 }
             }
             int flags = isSerializable ? FLAG_SERIALIZABLE : 0;
-            flags |= isQuotable ? FLAG_QUOTABLE : 0;
             boolean hasMarkers = markers.nonEmpty();
             boolean hasBridges = bridges.nonEmpty();
             if (hasMarkers) {
@@ -881,10 +879,6 @@ public class LambdaToMethod extends TreeTranslator {
                     }
                 }
             }
-            if (isQuotable) {
-                MethodSymbol opMethodSym = tree.codeModel;
-                staticArgs = staticArgs.append(opMethodSym.asHandle());
-            }
             if (isSerializable) {
                 int prevPos = make.pos;
                 try {
@@ -897,7 +891,15 @@ public class LambdaToMethod extends TreeTranslator {
             }
         }
 
-        return makeIndyCall(tree, syms.lambdaMetafactory, metafactoryName, staticArgs, indyType, indy_args, samSym.name);
+        Name lambdaName = samSym.name;
+        if (tree.codeReflectionInfo != null) {
+            lambdaName = lambdaName
+                    .append(names.fromString("="))
+                    .append(tree.codeReflectionInfo.codeModel().name);
+        }
+        Type lambdaMetafactory = tree.codeReflectionInfo != null ?
+                tree.codeReflectionInfo.reflectableLambdaMetafactory() : syms.lambdaMetafactory;
+        return makeIndyCall(tree, lambdaMetafactory, metafactoryName, staticArgs, indyType, indy_args, lambdaName);
     }
 
     /**
@@ -949,10 +951,6 @@ public class LambdaToMethod extends TreeTranslator {
             return true;
         }
         return types.asSuper(tree.target, syms.serializableType.tsym) != null;
-    }
-
-    boolean isQuotable(JCFunctionalExpression tree) {
-        return tree.codeModel != null;
     }
 
     void dumpStats(JCFunctionalExpression tree, boolean needsAltMetafactory, Symbol sym) {

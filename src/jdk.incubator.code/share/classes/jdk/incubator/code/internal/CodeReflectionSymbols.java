@@ -48,6 +48,7 @@ public class CodeReflectionSymbols {
     public final Type codeReflectionType;
     public final Type opType;
     public final Type funcOpType;
+    public final Type reflectableLambdaMetafactory;
     public final MethodSymbol quotedExtractOp;
 
     CodeReflectionSymbols(Context context) {
@@ -58,6 +59,7 @@ public class CodeReflectionSymbols {
         quotedType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quoted");
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
         funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreOp$FuncOp");
+        reflectableLambdaMetafactory = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.runtime.ReflectableLambdaMetafactory");
         quotedExtractOp = new MethodSymbol(PUBLIC | STATIC | VARARGS,
                 names.fromString("extractOp"),
                 new MethodType(List.of(funcOpType, new ArrayType(syms.objectType, syms.arrayClass)), quotedType,
