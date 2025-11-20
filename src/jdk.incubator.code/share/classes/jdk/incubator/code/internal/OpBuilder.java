@@ -149,7 +149,7 @@ public class OpBuilder {
             J_C_LOCATION, // location: Location or null
             J_L_OBJECT, // operand(s): Value, List<Value> or null
             J_L_OBJECT, // successor(s): Block.Reference, List<Block.Reference> or null
-            J_L_OBJECT, // result type: TypeElement or null for void
+            INT, // result type index
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
@@ -160,7 +160,7 @@ public class OpBuilder {
             J_C_LOCATION, // location: Location or null
             J_L_OBJECT, // operand(s): Value, List<Value> or null
             J_L_OBJECT, // successor(s): Block.Reference, List<Block.Reference> or null
-            J_L_OBJECT, // result type: TypeElement or null for void
+            INT, // result type index
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
@@ -172,9 +172,11 @@ public class OpBuilder {
             INT, // location.columnt
             J_L_OBJECT, // operand(s): Value, List<Value> or null
             J_L_OBJECT, // successor(s): Block.Reference, List<Block.Reference> or null
-            J_L_OBJECT, // result type: TypeElement or null for void
+            INT, // result type index
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
+
+    static final FunctionType TYPE_BUILDER_F_TYPE = functionType(JavaType.type(TypeElement.class), INT);
 
     final Map<Value, Value> valueMap;
 
@@ -247,7 +249,7 @@ public class OpBuilder {
                 //                Location location,
                 //                Object operands,
                 //                Object successors,
-                //                TypeElement resultType,
+                //                int resultTypeIndex,
                 //                Object attributes,
                 //                Object bodyDefinitions) {
                 //     return <dialect factory>.opFactory().constructOp(
@@ -255,7 +257,7 @@ public class OpBuilder {
                 //                                location,
                 //                                $list(operands),
                 //                                $list(successors),
-                //                                resultType,
+                //                                $type(resultTypeIndex),
                 //                                $map(attributes),
                 //                                $list(bodyDefinitions)));
                 // }
@@ -269,7 +271,7 @@ public class OpBuilder {
                                     args.get(1),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(2))),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(3))),
-                                    args.get(4),
+                                    b.op(funcCall(TYPE_BUILDER_F_NAME, TYPE_BUILDER_F_TYPE, args.get(4))),
                                     b.op(funcCall(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE, args.get(5))),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(6)))))))));
                 }),
@@ -278,7 +280,7 @@ public class OpBuilder {
                 //                       Location location,
                 //                       Object operands,
                 //                       Object successors,
-                //                       TypeElement resultType,
+                //                       int resultTypeIndex,
                 //                       Object attributes,
                 //                       Object bodyDefinitions) {
                 //     return b.op($op1(name,
@@ -309,7 +311,7 @@ public class OpBuilder {
                 //                       int column,
                 //                       Object operands,
                 //                       Object successors,
-                //                       TypeElement resultType,
+                //                       int resultTypeIndex,
                 //                       Object attributes,
                 //                       Object bodyDefinitions) {
                 //     return $op2(b,
@@ -334,8 +336,8 @@ public class OpBuilder {
                             args.get(7),
                             args.get(8)))));
                 }),
-                //  static private TypeElement type(int typeIndex) {
-                //      return JavaOp.JAVA_DIALECT_FACTORY.typeElementFactory().constructType(exType(typeIndex));
+                //  static private TypeElement $type(int typeIndex) {
+                //      return JavaOp.JAVA_DIALECT_FACTORY.typeElementFactory().constructType($exType(typeIndex));
                 //  }
                 func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class))).body(b -> {
                     var i = b.parameter(INT);
@@ -349,7 +351,7 @@ public class OpBuilder {
 
     private static FuncOp createExternTypeHelperFunc(Map<ExternalizedTypeElement, List<Integer>> registeredExterTypes) {
         /*
-        static private ExternalizedTypeElement exType(int typeIndex) {
+        static private ExternalizedTypeElement $exType(int typeIndex) {
             return switch(typeIndex) {
                 case 0 -> ExternalizedTypeElement.of("void");
                 case 1 -> ExternalizedTypeElement.of("java.type.primitive", exType(0));
@@ -491,7 +493,7 @@ public class OpBuilder {
         }
         args.add(buildFlexibleList(type(Value.class), operands));
         args.add(buildFlexibleList(type(Block.Reference.class), successors));
-        args.add(buildType(resultType));
+        args.add(builder.op(constant(INT, registerType(resultType.externalize()))));
         args.add(buildAttributeMap(inputOp, attributes));
         args.add(buildFlexibleList(type(Body.Builder.class), bodies));
         return builder.op(bb ? simpleLoc ? funcCall(OP_BUILDER_F_NAME_3, OP_BUILDER_F_OVERRIDE_3, args)
