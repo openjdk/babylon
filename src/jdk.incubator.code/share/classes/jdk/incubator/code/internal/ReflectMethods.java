@@ -438,12 +438,21 @@ public class ReflectMethods extends TreeScannerPrev {
         private Type pt = Type.noType;
         private final boolean isQuoted;
         private Type bodyTarget;
-        private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
+        private Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
         BodyScanner(JCMethodDecl tree) {
+            this(tree, null);
+        }
+
+        BodyScanner(JCMethodDecl md, BodyStack stack) {
+            this(md, new LinkedHashMap<>(), stack);
+        }
+
+        BodyScanner(JCMethodDecl tree, Map<Symbol, List<Symbol>> localCaptures, BodyStack parent) {
             this.tree = tree;
             this.name = tree.name;
             this.isQuoted = false;
+            this.localCaptures = localCaptures;
 
             List<TypeElement> parameters = new ArrayList<>();
             int blockArgOffset = 0;
@@ -460,7 +469,7 @@ public class ReflectMethods extends TreeScannerPrev {
             FunctionType bodyType = CoreType.functionType(
                     typeToTypeElement(tree.sym.type.getReturnType()), parameters);
 
-            this.stack = this.top = new BodyStack(null, tree.body, bodyType);
+            this.stack = this.top = new BodyStack(parent, tree.body, bodyType);
 
             // @@@ this as local variable? (it can never be stored to)
             for (int i = 0 ; i < tree.params.size() ; i++) {
@@ -1009,7 +1018,15 @@ public class ReflectMethods extends TreeScannerPrev {
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
                         } else {
-                            result = append(JavaOp.fieldLoad(resultType, fr, thisValue()));
+                            // field owner sym is mapped to a value that represents the receiver
+                            // by default, the receiver is the @CodeReflection method class instance
+                            Value receiver;
+                            try {
+                                receiver = loadVar(tree.sym.owner);
+                            } catch (NoSuchElementException e) {
+                                receiver = thisValue();
+                            }
+                            result = append(JavaOp.fieldLoad(resultType, fr, receiver)); // instead look for a symbol of the same type as field ref, in stacks
                         }
                     }
                 }
@@ -1061,7 +1078,13 @@ public class ReflectMethods extends TreeScannerPrev {
                 switch (sym.getKind()) {
                     case FIELD, ENUM_CONSTANT -> {
                         if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
-                            result = thisValue();
+                            try {
+                                // e.g. Foo.this
+                                // we will load the value mapped to Foo symbol
+                                result = loadVar(tree.selected.type.tsym);
+                            } catch (NoSuchElementException e) {
+                                result = thisValue();
+                            }
                         } else {
                             FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
@@ -1109,7 +1132,9 @@ public class ReflectMethods extends TreeScannerPrev {
                     Symbol sym = access.sym;
                     List<Value> args = new ArrayList<>();
                     JavaOp.InvokeOp.InvokeKind ik;
-                    if (!sym.isStatic()) {
+                    if (sym.isConstructor()) {
+                        ik = JavaOp.InvokeOp.InvokeKind.SUPER;
+                    } else if (!sym.isStatic()) {
                         ik = JavaOp.InvokeOp.InvokeKind.INSTANCE;
                         args.add(thisValue());
                     } else {
@@ -1119,6 +1144,10 @@ public class ReflectMethods extends TreeScannerPrev {
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToMethodRef(sym, symbolSiteType(sym));
+                    if (sym.isConstructor()) {
+                        // the above mr will have return type void
+                        mr = MethodRef.constructor(mr.refType(), mr.type().parameterTypes());
+                    }
                     Value res = append(JavaOp.invoke(ik, tree.varargsElement != null,
                             typeToTypeElement(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
@@ -1356,7 +1385,8 @@ public class ReflectMethods extends TreeScannerPrev {
             Type type = tree.type;
             Type outer = type.getEnclosingType();
             List<Value> args = new ArrayList<>();
-            if (!outer.hasTag(TypeTag.NONE)) {
+            // do this for inner class but not for local class
+            if (!tree.type.tsym.isDirectlyOrIndirectlyLocal() && !outer.hasTag(TypeTag.NONE)) {
                 // Obtain outer value for inner class, and add as first argument
                 JCTree.JCExpression encl = tree.encl;
                 Value outerInstance;
@@ -1369,6 +1399,19 @@ public class ReflectMethods extends TreeScannerPrev {
                 argtypes.add(outerInstance.type());
             }
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
+                // for local class, add outer instance as arg if applicable
+                Symbol ownerMethod = tree.type.tsym.owner; // the method where the local class is defined
+                if (!ownerMethod.isStatic()) {
+                    Symbol outerClass = ownerMethod.owner;
+                    Value outerInstance;
+                    try {
+                        outerInstance = loadVar(outerClass);
+                    } catch (NoSuchElementException e) {
+                        outerInstance = thisValue();
+                    }
+                    args.add(outerInstance);
+                    argtypes.add(outerInstance.type());
+                }
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
                     args.add(loadVar(c));
                     argtypes.add(symbolToErasedDesc(c));
@@ -2436,6 +2479,68 @@ public class ReflectMethods extends TreeScannerPrev {
                 }
                 FreeVarScanner fvs = new FreeVarScanner();
                 localCaptures.put(tree.sym, List.copyOf(fvs.analyzeCaptures()));
+
+                ListBuffer<Symbol> capturesSymbols = new ListBuffer<>();
+                Symbol ownerMethod = tree.sym.owner;
+                if (!ownerMethod.isStatic()) {
+                    capturesSymbols.add(ownerMethod.owner);
+                }
+                capturesSymbols.addAll(localCaptures.get(tree.sym));
+
+                pushBody(tree, FunctionType.FUNCTION_TYPE_VOID);
+
+                // fields declarations
+                List<JCTree> fieldsDec = tree.defs.stream().filter(d -> d instanceof JCVariableDecl).toList();
+                // fields for the local class captures
+                List<Op.Result> fieldsForCaptures = new ArrayList<>();
+                for (Symbol capturesSymbol : capturesSymbols) {
+                    Op.Result r = append(CoreOp.var(typeToTypeElement(capturesSymbol.type)));
+                    fieldsForCaptures.add(r);
+                    stack.localToOp.put(capturesSymbol, r);
+                }
+                // fields of the local class
+                for (JCTree fd : fieldsDec) {
+                    scan(fd);
+                }
+
+                // methods declarations
+                List<JCTree> methodsDec = tree.defs.stream().filter(d -> d instanceof JCMethodDecl).toList();
+                for (JCTree md : methodsDec) {
+                    // We pass the stack to have the mapping of captures to fields available
+                    CoreOp.FuncOp funcOp = new BodyScanner((JCMethodDecl) md, localCaptures, stack).scanMethod();
+                    if (!((JCMethodDecl) md).sym.isConstructor()) {
+                        append(funcOp);
+                        continue;
+                    }
+                    // for a constructor, we modify the created funcOp by adding params that represent captures,
+                    // plus operations that assign these params to the right fields
+                    List<TypeElement> newParamsTypes = new ArrayList<>();
+                    // add params that represent captures
+                    newParamsTypes.addAll(capturesSymbols.stream().map(s -> typeToTypeElement(s.type)).toList());
+                    // add original params expect the first one that represent the local class instance
+                    newParamsTypes.addAll(funcOp.invokableType().parameterTypes().stream().skip(1).toList());
+                    // @@@ simple way of doing this kind of transformation ?
+                    Body.Builder nfbody = Body.Builder.of(stack.body, CoreType.functionType(funcOp.resultType(), newParamsTypes));
+                    Block.Builder nfblock = nfbody.entryBlock();
+                    nfblock.body(funcOp.body(), nfblock.parameters().subList(capturesSymbols.length(), nfblock.parameters().size()),
+                            (block, op) -> {
+                                if (op instanceof Op.Terminating) {
+                                    List<Block.Parameter> paramsForCaptures = nfblock.parameters().subList(0, capturesSymbols.length());
+                                    for (int i = 0; i < paramsForCaptures.size(); i++) {
+                                        block.op(CoreOp.varStore(fieldsForCaptures.get(i), paramsForCaptures.get(i)));
+                                    }
+                                }
+                                block.op(op);
+                                return block;
+                            });
+                    funcOp = CoreOp.func(funcOp.funcName(), nfbody);
+                    append(funcOp);
+                }
+                append(CoreOp.core_yield());
+                Body.Builder body = stack.body;
+                popBody();
+
+                result = append(JavaOp.classDecOp((ClassType) symbolToErasedDesc(tree.sym), body));
             }
         }
 
