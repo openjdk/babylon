@@ -29,8 +29,8 @@
  */
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -170,7 +170,7 @@ public class CoreBinaryOpsTest {
     }
 
     @ParameterizedTest
-    @CodeReflectionExecutionSource
+    @ReflectExecutionSource
     void test(CoreOp.FuncOp funcOp, Object left, Object right) {
         Result interpret = runCatching(() -> interpret(left, right, funcOp));
         Result bytecode = runCatching(() -> bytecode(left, right, funcOp));
@@ -207,11 +207,11 @@ public class CoreBinaryOpsTest {
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
-    @ArgumentsSource(CodeReflectionSourceProvider.class)
-    @interface CodeReflectionExecutionSource {
+    @ArgumentsSource(ReflectSourceProvider.class)
+    @interface ReflectExecutionSource {
     }
 
-    static class CodeReflectionSourceProvider implements ArgumentsProvider {
+    static class ReflectSourceProvider implements ArgumentsProvider {
         private static final Map<JavaType, List<?>> INTERESTING_INPUTS = Map.of(
                 // explicit type parameters to ensure boxing results in the expected type
                 JavaType.INT, List.<Integer>of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
@@ -227,7 +227,7 @@ public class CoreBinaryOpsTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) {
             Method testMethod = extensionContext.getRequiredTestMethod();
-            return codeReflectionMethods(extensionContext.getRequiredTestClass())
+            return ReflectMethods(extensionContext.getRequiredTestClass())
                     .flatMap(method -> {
                         CoreOp.FuncOp funcOp = Op.ofMethod(method).orElseThrow(
                                 () -> new IllegalStateException("Expected code model to be present for method " + method)
@@ -275,7 +275,7 @@ public class CoreBinaryOpsTest {
                     ? type
                     : functionType.returnType();
             return CoreOp.func(original.funcName(), CoreType.functionType(retType, type, type))
-                    .body(builder -> builder.body(original.body(), builder.parameters(), OpTransformer.COPYING_TRANSFORMER)
+                    .body(builder -> builder.body(original.body(), builder.parameters(), CodeTransformer.COPYING_TRANSFORMER)
                     );
         }
 
@@ -326,7 +326,7 @@ public class CoreBinaryOpsTest {
             return MethodType.methodType(target).wrap().returnType();
         }
 
-        private static Stream<Method> codeReflectionMethods(Class<?> testClass) {
+        private static Stream<Method> ReflectMethods(Class<?> testClass) {
             return Arrays.stream(testClass.getDeclaredMethods())
                     .filter(method -> method.accessFlags().contains(AccessFlag.STATIC))
                     .filter(method -> method.isAnnotationPresent(Reflect.class));
@@ -339,7 +339,7 @@ public class CoreBinaryOpsTest {
     }
 
     private static Object bytecode(Object left, Object right, CoreOp.FuncOp op) throws Throwable {
-        CoreOp.FuncOp func = SSA.transform(op.transform(OpTransformer.LOWERING_TRANSFORMER));
+        CoreOp.FuncOp func = SSA.transform(op.transform(CodeTransformer.LOWERING_TRANSFORMER));
         MethodHandle handle = BytecodeGenerator.generate(MethodHandles.lookup(), func);
         return handle.invoke(left, right);
     }

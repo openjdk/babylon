@@ -24,12 +24,8 @@
  */
 package jdk.incubator.code.analysis;
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,7 +50,7 @@ import java.util.Set;
  *     <li>Adapt to work with multiple bodies.</li>
  * </ul>
  */
-final class SSABraun implements OpTransformer {
+final class SSABraun implements CodeTransformer {
     private final Map<CoreOp.VarOp, Map<Block, Val>> currentDef = new HashMap<>();
     private final Set<Block> sealedBlocks = new HashSet<>();
     private final Map<Block, Map<CoreOp.VarOp, Phi>> incompletePhis = new HashMap<>();
@@ -77,7 +73,7 @@ final class SSABraun implements OpTransformer {
         SSABraun construction = new SSABraun();
         construction.prepare(nestedOp);
         @SuppressWarnings("unchecked")
-        O ssaOp = (O) nestedOp.transform(CopyContext.create(), construction);
+        O ssaOp = (O) nestedOp.transform(CodeContext.create(), construction);
         return ssaOp;
     }
 
@@ -211,7 +207,7 @@ final class SSABraun implements OpTransformer {
 
     // only used during transformation
 
-    private Value resolveValue(CopyContext context, Val val) {
+    private Value resolveValue(CodeContext context, Val val) {
         return switch (val) {
             case Uninitialized _ -> throw new IllegalStateException("Uninitialized variable");
             case Holder holder -> context.getValueOrDefault(holder.value(), holder.value());
@@ -229,7 +225,7 @@ final class SSABraun implements OpTransformer {
     @Override
     public Block.Builder acceptOp(Block.Builder block, Op op) {
         Block originalBlock = op.ancestorBlock();
-        CopyContext context = block.context();
+        CodeContext context = block.context();
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp load -> {
                 Val val = this.loads.get(load);
@@ -267,7 +263,7 @@ final class SSABraun implements OpTransformer {
                 // Phis in entry blocks denote captured values. Do not add as param but make sure
                 // the original value is used
                 assert phi.operands().size() == 1 : "entry block phi with multiple operands";
-                CopyContext context = block.context();
+                CodeContext context = block.context();
                 context.mapValue(resolveValue(context, phi), resolveValue(context, phi.operands().getFirst()));
             } else {
                 block.parameter(phi.variable.varValueType());
@@ -275,7 +271,7 @@ final class SSABraun implements OpTransformer {
         }
 
         // actually visit ops in this block
-        OpTransformer.super.acceptBlock(block, b);
+        CodeTransformer.super.acceptBlock(block, b);
     }
 
     sealed interface Val {

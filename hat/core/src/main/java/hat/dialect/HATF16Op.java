@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Value;
 
 import java.util.List;
@@ -38,7 +38,7 @@ public abstract class HATF16Op extends HATOp {
         this.varName = varName;
     }
 
-    protected HATF16Op(HATF16Op that, CopyContext cc) {
+    protected HATF16Op(HATF16Op that, CodeContext cc) {
         super(that, cc);
         this.varName = that.varName;
     }

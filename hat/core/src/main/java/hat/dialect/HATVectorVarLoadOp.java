@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
@@ -39,12 +39,12 @@ public class HATVectorVarLoadOp extends HATVectorOp {
         super(varName, typeElement, vectorElementType, width, operands);
     }
 
-    public HATVectorVarLoadOp(HATVectorVarLoadOp op, CopyContext copyContext) {
+    public HATVectorVarLoadOp(HATVectorVarLoadOp op, CodeContext copyContext) {
         super(op, copyContext);
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATVectorVarLoadOp(this, copyContext);
     }
 

@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -49,7 +49,7 @@ public class HATLocalVarOp extends HATMemoryOp {
         this.invokeResultType = invokeResultType;
     }
 
-    public HATLocalVarOp(HATLocalVarOp op, CopyContext copyContext) {
+    public HATLocalVarOp(HATLocalVarOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.typeElement = op.resultType();
         this.klassType = op.klassType;
@@ -57,7 +57,7 @@ public class HATLocalVarOp extends HATMemoryOp {
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATLocalVarOp(this, copyContext);
     }
 

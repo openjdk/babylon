@@ -27,18 +27,72 @@ package jdk.incubator.code;
 
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
- * An operation transformer.
+ * A code transformer.
  */
 @FunctionalInterface
-// @@@ Change to OpTransform or CodeTransform
-public interface OpTransformer {
+public interface CodeTransformer {
+
+    /**
+     * A simplified transformer for only transforming operations.
+     */
+    @FunctionalInterface
+    interface OpTransformer {
+        /**
+         * Transforms an operation to zero or more operations.
+         *
+         * @param op       the operation to transform
+         * @param operands the operands of the operation mapped to
+         *                 values in the transformed code model. If
+         *                 there is no mapping of an operand then it is
+         *                 mapped to {@code null}.
+         * @param builder  the function to apply zero or more operations
+         *                 into the transformed code model
+         */
+        void acceptOp(Function<Op, Op.Result> builder, Op op, List<Value> operands);
+    }
+
+    /**
+     * Creates a code transformer that transforms operations using the
+     * given operation transformer.
+     *
+     * @param opTransformer the operation transformer.
+     * @return the code transformer that transforms operations.
+     */
+    static CodeTransformer opTransformer(OpTransformer opTransformer) {
+        final class CodeTransformerOfOps implements CodeTransformer, Function<Op, Op.Result> {
+            Block.Builder builder;
+            Op op;
+
+            @Override
+            public Block.Builder acceptOp(Block.Builder builder, Op op) {
+                this.builder = builder;
+                this.op = op;
+                // Use null if there is no mapping in the output
+                // This can happen if an operation is removed by not applying
+                // it to the builder
+                List<Value> operands = op.operands().stream()
+                        .map(v -> builder.context().getValueOrDefault(v, null)).toList();
+                opTransformer.acceptOp(this, op, operands);
+                return builder;
+            }
+
+            @Override
+            public Op.Result apply(Op op) {
+                Op.Result result = builder.op(op);
+                builder.context().mapValue(this.op.result(), result);
+                return result;
+            }
+        }
+        return new CodeTransformerOfOps();
+    }
 
     /**
      * A copying transformer that applies the operation to the block builder, and returning the block builder.
      */
-    OpTransformer COPYING_TRANSFORMER = (block, op) -> {
+    CodeTransformer COPYING_TRANSFORMER = (block, op) -> {
         block.op(op);
         return block;
     };
@@ -46,7 +100,7 @@ public interface OpTransformer {
     /**
      * A transformer that drops location information from operations.
      */
-    OpTransformer DROP_LOCATION_TRANSFORMER = (block, op) -> {
+    CodeTransformer DROP_LOCATION_TRANSFORMER = (block, op) -> {
         Op.Result r = block.op(op);
         r.op().setLocation(Location.NO_LOCATION);
         return block;
@@ -56,7 +110,7 @@ public interface OpTransformer {
      * A transformer that lowers operations that are {@link Op.Lowerable lowerable},
      * and copies other operations.
      */
-    OpTransformer LOWERING_TRANSFORMER = (block, op) -> {
+    CodeTransformer LOWERING_TRANSFORMER = (block, op) -> {
         if (op instanceof Op.Lowerable lop) {
             return lop.lower(block, null);
         } else {
@@ -91,7 +145,7 @@ public interface OpTransformer {
      * @param values the values to map to the body's entry block parameters
      */
     default void acceptBody(Block.Builder builder, Body body, List<? extends Value> values) {
-        CopyContext cc = builder.context();
+        CodeContext cc = builder.context();
 
         // Map blocks up front, for forward referencing successors
         for (Block block : body.blocks()) {
@@ -145,7 +199,7 @@ public interface OpTransformer {
     /**
      * Returns a composed code transform that transforms an operation that first applies
      * a block builder and operation to the function {@code f}, and then applies
-     * the resulting block builder and the same operation to {@link OpTransformer#acceptOp acceptOp}
+     * the resulting block builder and the same operation to {@link CodeTransformer#acceptOp acceptOp}
      * of the code transformer {@code after}.
      * <p>
      * If the code transformer {@code after} is {@code null} then it is as if a code transformer
@@ -155,7 +209,7 @@ public interface OpTransformer {
      * @param f the operation transformer function to apply before
      * @return the composed code transformer
      */
-    static OpTransformer compose(OpTransformer after, BiFunction<Block.Builder, Op, Block.Builder> f) {
+    static CodeTransformer compose(CodeTransformer after, BiFunction<Block.Builder, Op, Block.Builder> f) {
         return after == null
                 ? f::apply
                 : (block, op) -> after.acceptOp(f.apply(block, op), op);
@@ -163,7 +217,7 @@ public interface OpTransformer {
 
     /**
      * Returns a composed code transformer that first applies a block builder and operation to
-     * {@link OpTransformer#acceptOp acceptOp} of the code transformer {@code before},
+     * {@link CodeTransformer#acceptOp acceptOp} of the code transformer {@code before},
      * and then applies resulting block builder and the same operation to the function {@code f}.
      * <p>
      * If the code transformer {@code before} is {@code null} then it is as if a code transformer
@@ -173,7 +227,7 @@ public interface OpTransformer {
      * @param f the operation transformer function to apply after
      * @return the composed code transformer
      */
-    static OpTransformer andThen(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+    static CodeTransformer andThen(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
         return before == null
                 ? f::apply
                 : (block, op) -> f.apply(before.acceptOp(block, op), op);

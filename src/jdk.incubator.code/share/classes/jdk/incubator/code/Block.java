@@ -465,10 +465,10 @@ public final class Block implements CodeElement<Block, Op> {
      */
     public final class Builder {
         final Body.Builder parentBody;
-        final CopyContext cc;
-        final OpTransformer ot;
+        final CodeContext cc;
+        final CodeTransformer ot;
 
-        Builder(Body.Builder parentBody, CopyContext cc, OpTransformer ot) {
+        Builder(Body.Builder parentBody, CodeContext cc, CodeTransformer ot) {
             this.parentBody = parentBody;
             this.cc = cc;
             this.ot = ot;
@@ -485,14 +485,14 @@ public final class Block implements CodeElement<Block, Op> {
         /**
          * {@return the block builder's operation transformer}
          */
-        public OpTransformer transformer() {
+        public CodeTransformer transformer() {
             return ot;
         }
 
         /**
          * {@return the block builder's context}
          */
-        public CopyContext context() {
+        public CodeContext context() {
             return cc;
         }
 
@@ -533,7 +533,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param ot the operation transformer
          * @return the rebound block builder
          */
-        public Block.Builder rebind(CopyContext cc, OpTransformer ot) {
+        public Block.Builder rebind(CodeContext cc, CodeTransformer ot) {
             return this.cc == cc && this.ot == ot
                     ? this
                     : this.target().new Builder(parentBody(), cc, ot);
@@ -611,7 +611,7 @@ public final class Block implements CodeElement<Block, Op> {
          * This method first rebinds this builder with a child context created from
          * this builder's context and the given operation transformer, and then
          * transforms the body using the operation transformer by
-         * {@link OpTransformer#acceptBody(Builder, Body, List) accepting}
+         * {@link CodeTransformer#acceptBody(Builder, Body, List) accepting}
          * the rebound builder, the body, and the values.
          *
          * @apiNote
@@ -621,13 +621,13 @@ public final class Block implements CodeElement<Block, Op> {
          * @param body the body to transform
          * @param values the output values to map to the input parameters of the body's entry block
          * @param ot the operation transformer
-         * @see OpTransformer#acceptBody(Builder, Body, List)
+         * @see CodeTransformer#acceptBody(Builder, Body, List)
          */
         public void body(Body body, List<? extends Value> values,
-                         OpTransformer ot) {
+                         CodeTransformer ot) {
             check();
 
-            ot.acceptBody(rebind(CopyContext.create(cc), ot), body, values);
+            ot.acceptBody(rebind(CodeContext.create(cc), ot), body, values);
         }
 
         /**
@@ -636,7 +636,7 @@ public final class Block implements CodeElement<Block, Op> {
          * This method first rebinds this builder with the given context
          * and the given operation transformer, and then
          * transforms the body using the operation transformer by
-         * {@link OpTransformer#acceptBody(Builder, Body, List) accepting}
+         * {@link CodeTransformer#acceptBody(Builder, Body, List) accepting}
          * the rebound builder, the body, and the values.
          *
          * @apiNote
@@ -645,12 +645,12 @@ public final class Block implements CodeElement<Block, Op> {
          *
          * @param body the body to transform
          * @param values the output values to map to the input parameters of the body's entry block
-         * @param cc the copy context
+         * @param cc the code context
          * @param ot the operation transformer
-         * @see OpTransformer#acceptBody(Builder, Body, List)
+         * @see CodeTransformer#acceptBody(Builder, Body, List)
          */
         public void body(Body body, List<? extends Value> values,
-                         CopyContext cc, OpTransformer ot) {
+                         CodeContext cc, CodeTransformer ot) {
             check();
 
             ot.acceptBody(rebind(cc, ot), body, values);
@@ -661,7 +661,7 @@ public final class Block implements CodeElement<Block, Op> {
          * <p>
          * If the operation is not bound to a block, then the operation is appended and bound to this block.
          * Otherwise, if the operation is bound, the operation is first
-         * {@link Op#transform(CopyContext, OpTransformer) transformed} with this builder's context and
+         * {@link Op#transform(CodeContext, CodeTransformer) transformed} with this builder's context and
          * operation transformer, the resulting unbound transformed operation is appended, and the
          * operation's result mapped to the transformed operation's result, using the builder's context.
          * <p>

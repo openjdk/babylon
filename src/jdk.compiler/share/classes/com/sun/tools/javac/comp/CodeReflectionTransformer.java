@@ -28,6 +28,7 @@ package com.sun.tools.javac.comp;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
+import java.io.IOException;
 
 /**
  * This is a proxy interface for the code reflection tree translator.
@@ -46,4 +47,11 @@ public interface CodeReflectionTransformer {
      * @return the translated class tree
      */
     JCTree translateTopLevelClass(Context context, JCTree tree, TreeMaker make);
+
+    /**
+     * Generate code and emit additional class files for a given class
+     * @param context the compiler context
+     * @param cdef   The class definition from which code is generated.
+     */
+    void genCode(Context context, JCTree.JCClassDecl cdef) throws IOException;
 }

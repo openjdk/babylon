@@ -28,9 +28,9 @@ package experiments;
 import java.lang.reflect.Method;
 
 import hat.optools.OpTk;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.Reflect;
@@ -60,7 +60,7 @@ public class DNA {
         }
 
         @Override
-        public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
             throw new IllegalStateException("in transform");
             //  return null;
         }
@@ -79,7 +79,7 @@ public class DNA {
         var funcOp = Op.ofMethod(method).get();
         var here = OpTk.CallSite.of(DNA.class, "main");
         var transformed = OpTk.transform(here, funcOp,(builder, op) -> {
-            CopyContext cc = builder.context();
+            CodeContext cc = builder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                // List<Value> operands = new ArrayList<>();
                 //builder.op(new DNAOp("dna", JavaType.INT, operands));

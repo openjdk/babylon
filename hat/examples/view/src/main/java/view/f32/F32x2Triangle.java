@@ -24,14 +24,27 @@
  */
 package view.f32;
 
-import view.f32.factories.Factory4;
+import view.arity.Arity6;
 
-public interface F32x2Triangle {
+public interface F32x2Triangle extends Comparable<F32x2Triangle> {
     F32x2 v0();
+
     F32x2 v1();
+
     F32x2 v2();
+
+    float zplane();
+
+    float normal();
+
     int rgb();
+
+    @Override
+    default int compareTo(F32x2Triangle f32x2Triangle) {
+        return Float.compare(zplane(), f32x2Triangle.zplane());
+    }
+
     @FunctionalInterface
-    interface Factory extends Factory4<F32x2,F32x2,F32x2,Integer,F32x2Triangle> {
+    interface Factory extends Arity6<F32x2, F32x2, F32x2, Float, Float, Integer, F32x2Triangle> {
     }
 }

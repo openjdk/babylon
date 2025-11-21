@@ -28,8 +28,8 @@
  */
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -95,7 +95,7 @@ public class TestVarArgsInvoke {
     @Test
     public void testArray() {
         CoreOp.FuncOp f = getFuncOp("fArray");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
             Assertions.assertFalse(iop.isVarArgs());
@@ -123,7 +123,7 @@ public class TestVarArgsInvoke {
     @Test
     public void testEmpty() {
         CoreOp.FuncOp f = getFuncOp("fEmpty");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
             Assertions.assertTrue(iop.isVarArgs());
@@ -151,7 +151,7 @@ public class TestVarArgsInvoke {
     @Test
     public void testOne() {
         CoreOp.FuncOp f = getFuncOp("fOne");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
             Assertions.assertTrue(iop.isVarArgs());
@@ -178,7 +178,7 @@ public class TestVarArgsInvoke {
     @Test
     public void testMany() {
         CoreOp.FuncOp f = getFuncOp("fMany");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
             Assertions.assertTrue(iop.isVarArgs());

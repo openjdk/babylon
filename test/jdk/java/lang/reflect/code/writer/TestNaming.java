@@ -29,8 +29,8 @@
 
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
@@ -67,7 +67,7 @@ public class TestNaming {
     public void testLow() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         f = SSA.transform(f);
 

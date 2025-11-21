@@ -32,10 +32,10 @@ import hat.device.DeviceType;
 import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -504,7 +504,7 @@ public class OpTk {
         if (callSite.tracing){
             System.out.println(callSite);
         }
-        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
+        return funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
     }
     public static Stream<CodeElement<?,?>> elements(CallSite callSite, CoreOp.FuncOp funcOp) {
         if (callSite.tracing){
@@ -526,13 +526,13 @@ public class OpTk {
         return  SSA.transform(funcOp);
     }
 
-    public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, OpTransformer opTransformer) {
+    public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, CodeTransformer CodeTransformer) {
         if (callSite.tracing){
             System.out.println(callSite);
         }
         return funcOp.transform((blockBuilder, op) -> {
             if (predicate.test(op)){
-                var builder = opTransformer.acceptOp(blockBuilder,op);
+                var builder = CodeTransformer.acceptOp(blockBuilder,op);
                 if (builder != blockBuilder){
                     throw new RuntimeException("Where does this builder come from "+builder);
                 }
@@ -543,18 +543,18 @@ public class OpTk {
         });
     }
 
-    public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, OpTransformer opTransformer) {
+    public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, CodeTransformer CodeTransformer) {
         if (callSite.tracing){
             System.out.println(callSite);
         }
-        return funcOp.transform(opTransformer);
+        return funcOp.transform(CodeTransformer);
     }
 
     public record  OpMap(CoreOp.FuncOp fromFuncOp, CoreOp.FuncOp toFuncOp,  Map<Op,Op> fromToOpMap){}
 
     public  static <InOp extends Op, OutOp extends Op> OutOp replaceOp(Block.Builder blockBuilder, InOp inOp,java.util.function.Function<List<Value>, OutOp> factory) {
         List<Value> inputOperands = inOp.operands();
-        CopyContext context = blockBuilder.context();
+        CodeContext context = blockBuilder.context();
         List<Value> outputOperands = context.getValues(inputOperands);
         OutOp outOp = factory.apply(outputOperands);
         Op.Result outputResult = blockBuilder.op(outOp);

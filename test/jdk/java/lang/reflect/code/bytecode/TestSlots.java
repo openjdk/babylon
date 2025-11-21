@@ -22,8 +22,8 @@
  */
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -142,7 +142,7 @@ public class TestSlots {
     static MethodHandle generate(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);

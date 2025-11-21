@@ -27,10 +27,10 @@
  * @run junit TestCopy
  */
 
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.ExternalizedOp;
 import org.junit.jupiter.api.Assertions;
@@ -53,7 +53,7 @@ public class TestCopy {
     public void testCopy() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        Op copy = f.transform(CopyContext.create(), OpTransformer.COPYING_TRANSFORMER);
+        Op copy = f.transform(CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
 
         Assertions.assertEquals(copy.toText(), f.toText());
     }
@@ -62,7 +62,7 @@ public class TestCopy {
     public void testCopyWithDefinition() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        ExternalizedOp odef = ExternalizedOp.externalizeOp(CopyContext.create(), f);
+        ExternalizedOp odef = ExternalizedOp.externalizeOp(CodeContext.create(), f);
         Op copy = CoreOp.CORE_OP_FACTORY.constructOp(odef);
 
         Assertions.assertEquals(copy.toText(), f.toText());

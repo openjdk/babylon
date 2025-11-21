@@ -180,4 +180,34 @@ public class TestArrays {
         }
     }
 
+    @HatTest
+    public static void testSmallGrid() {
+        final int size = 50;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32Array.create(accelerator, size);
+        var arrayB = F32Array.create(accelerator, size);
+        var arrayC = F32Array.create(accelerator, size);
+
+        // Initialize array
+        Random r = new Random(71);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i, r.nextFloat());
+            arrayB.array(i, r.nextFloat());
+        }
+
+        var alpha = 0.2f;
+        accelerator.compute(cc ->
+                TestArrays.computeSaxpy(cc, arrayA, arrayB, arrayC, alpha));
+
+        F32Array test = F32Array.create(accelerator, size);
+
+        for (int i = 0; i < test.length(); i++) {
+            test.array(i, alpha * arrayA.array(i) + arrayB.array(i));
+        }
+
+        for (int i = 0; i < test.length(); i++) {
+            HATAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
+        }
+    }
+
 }

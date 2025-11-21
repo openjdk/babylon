@@ -297,7 +297,7 @@ public class RawLayout {
         final long memberOffset;
         final PtrType resultType;
 
-        PtrToMember(PtrToMember that, CopyContext cc) {
+        PtrToMember(PtrToMember that, CodeContext cc) {
             super(that, cc);
             this.simpleMemberName = that.simpleMemberName;
             this.memberOffset = that.memberOffset;
@@ -305,7 +305,7 @@ public class RawLayout {
         }
 
         @Override
-        public PtrToMember transform(CopyContext cc, OpTransformer ot) {
+        public PtrToMember transform(CodeContext cc, CodeTransformer ot) {
             return new PtrToMember(this, cc);
         }
 
@@ -393,12 +393,12 @@ public class RawLayout {
     public static final class PtrAddOffset extends Op {
         public static final String NAME = "ptr.add.offset";
 
-        PtrAddOffset(PtrAddOffset that, CopyContext cc) {
+        PtrAddOffset(PtrAddOffset that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public PtrAddOffset transform(CopyContext cc, OpTransformer ot) {
+        public PtrAddOffset transform(CodeContext cc, CodeTransformer ot) {
             return new PtrAddOffset(this, cc);
         }
 
@@ -438,13 +438,13 @@ public class RawLayout {
 
         final JavaType resultType;
 
-        PtrLoadValue(PtrLoadValue that, CopyContext cc) {
+        PtrLoadValue(PtrLoadValue that, CodeContext cc) {
             super(that, cc);
             this.resultType = that.resultType;
         }
 
         @Override
-        public PtrLoadValue transform(CopyContext cc, OpTransformer ot) {
+        public PtrLoadValue transform(CodeContext cc, CodeTransformer ot) {
             return new PtrLoadValue(this, cc);
         }
 
@@ -479,12 +479,12 @@ public class RawLayout {
     public static final class PtrStoreValue extends Op {
         public static final String NAME = "ptr.store.value";
 
-        PtrStoreValue(PtrStoreValue that, CopyContext cc) {
+        PtrStoreValue(PtrStoreValue that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public PtrStoreValue transform(CopyContext cc, OpTransformer ot) {
+        public PtrStoreValue transform(CodeContext cc, CodeTransformer ot) {
             return new PtrStoreValue(this, cc);
         }
 

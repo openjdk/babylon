@@ -63,7 +63,7 @@ public class TestExpressionElimination {
         System.out.println(f.toText());
 
         @SuppressWarnings("unchecked")
-        T lf = (T) f.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        T lf = (T) f.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         lf = SSA.transform(lf);

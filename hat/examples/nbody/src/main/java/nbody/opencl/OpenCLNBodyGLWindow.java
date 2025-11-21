@@ -52,16 +52,16 @@ import static opengl.opengl_h.glVertex3f;
 import static opengl.opengl_h.glutBitmapCharacter;
 import static opengl.opengl_h.glutBitmapTimesRoman24$segment;
 import static opengl.opengl_h.glutSwapBuffers;
-import static opengl.opengl_h_1.glBindTexture;
-import static opengl.opengl_h_1.glClear;
-import static opengl.opengl_h_1.glClearColor;
-import static opengl.opengl_h_1.glColor3f;
-import static opengl.opengl_h_1.glDisable;
-import static opengl.opengl_h_1.glEnable;
-import static opengl.opengl_h_2.GL_COLOR_BUFFER_BIT;
-import static opengl.opengl_h_2.GL_DEPTH_BUFFER_BIT;
-import static opengl.opengl_h_2.GL_MODELVIEW;
-import static opengl.opengl_h_2.GL_TEXTURE_2D;
+import static opengl.opengl_h.glBindTexture;
+import static opengl.opengl_h.glClear;
+import static opengl.opengl_h.glClearColor;
+import static opengl.opengl_h.glColor3f;
+import static opengl.opengl_h.glDisable;
+import static opengl.opengl_h.glEnable;
+import static opengl.opengl_h.GL_COLOR_BUFFER_BIT;
+import static opengl.opengl_h.GL_DEPTH_BUFFER_BIT;
+import static opengl.opengl_h.GL_MODELVIEW;
+import static opengl.opengl_h.GL_TEXTURE_2D;
 
 
 public class OpenCLNBodyGLWindow extends NBodyGLWindow {

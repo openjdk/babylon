@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
@@ -45,7 +45,7 @@ public abstract class HATVectorOp extends HATOp {
         this.vectorElementType = vectorElementType;
     }
 
-    protected HATVectorOp(HATVectorOp that, CopyContext cc) {
+    protected HATVectorOp(HATVectorOp that, CodeContext cc) {
         super(that, cc);
         this.varName = that.varName;
         this.typeElement = that.typeElement;

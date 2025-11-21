@@ -24,7 +24,7 @@
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -94,7 +94,7 @@ public class TestForwardAutoDiff {
         CoreOp.FuncOp f = getFuncOp("fcf");
         System.out.println(f.toText());
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         f = SSA.transform(f);

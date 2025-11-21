@@ -25,7 +25,7 @@
 
 package oracle.code.onnx.ir;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -256,7 +256,7 @@ public abstract class OnnxOp extends Op {
                 });
     }
 
-    OnnxOp(OnnxOp that, CopyContext cc) {
+    OnnxOp(OnnxOp that, CodeContext cc) {
         super(that, cc);
 
         this.schema = that.schema;

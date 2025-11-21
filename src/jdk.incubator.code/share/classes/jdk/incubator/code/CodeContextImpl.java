@@ -30,18 +30,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-final class CopyContextImpl implements CopyContext {
+final class CodeContextImpl implements CodeContext {
 
     private static final Map<?, ?> EMPTY_MAP = Map.of();
 
-    final CopyContextImpl parent;
+    final CodeContextImpl parent;
 
     Map<Value, Value> valueMap;
     Map<Block, Block.Builder> blockMap;
     Map<Block.Reference, Block.Reference> successorMap;
     Map<Object, Object> propertiesMap;
 
-    CopyContextImpl(CopyContextImpl that) {
+    CodeContextImpl(CodeContextImpl that) {
         this.parent = that;
         this.blockMap = emptyMap();
         this.valueMap = emptyMap();
@@ -78,7 +78,7 @@ final class CopyContextImpl implements CopyContext {
     private Value getValueOrNull(Value input) {
         Objects.requireNonNull(input);
 
-        CopyContextImpl p = this;
+        CodeContextImpl p = this;
         do {
             Value output = p.valueMap.get(input);
             if (output != null) {
@@ -181,7 +181,7 @@ final class CopyContextImpl implements CopyContext {
 
     @Override
     public Object getProperty(Object key) {
-        CopyContextImpl p = this;
+        CodeContextImpl p = this;
         do {
             Object value = p.propertiesMap.get(key);
             if (value != null) {

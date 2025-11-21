@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -48,7 +48,7 @@ public class HATMemoryLoadOp extends HATMemoryDefOp {
         this.memberName = memberName;
     }
 
-    public HATMemoryLoadOp(HATMemoryLoadOp op, CopyContext copyContext) {
+    public HATMemoryLoadOp(HATMemoryLoadOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.typeElement = op.resultType();
         this.invokeResultType = op.invokeResultType;
@@ -56,7 +56,7 @@ public class HATMemoryLoadOp extends HATMemoryDefOp {
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATMemoryLoadOp(this, copyContext);
     }
 

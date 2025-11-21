@@ -106,7 +106,7 @@ final class PartialEvaluator {
         Body.Builder outBody = Body.Builder.of(null, inBody.bodyType());
         Block.Builder outEntryBlock = outBody.entryBlock();
 
-        CopyContext cc = outEntryBlock.context();
+        CodeContext cc = outEntryBlock.context();
         cc.mapBlock(inEntryBlock, outEntryBlock);
         cc.mapValues(inEntryBlock.parameters(), outEntryBlock.parameters());
 
