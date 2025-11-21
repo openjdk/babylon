@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static java.util.stream.Collectors.toList;
-
 /**
  * A code transformer.
  */
@@ -41,17 +39,19 @@ public interface CodeTransformer {
      * A simplified transformer for only transforming operations.
      */
     @FunctionalInterface
-    interface OpTransformerRename {
+    interface OpTransformer {
         /**
-         * Transforms an input operation to zero or more output operations.
+         * Transforms an operation to zero or more operations.
          *
-         * @param in          the input operation to transform
-         * @param outOperands the operands of the input operation mapped to output operands
-         *                    to be used by one or more output operations
-         * @param builder     The function to apply zero or more output operations
-         *                    that map to the input operation
+         * @param op       the operation to transform
+         * @param operands the operands of the operation mapped to
+         *                 values in the transformed code model. If
+         *                 there is no mapping of an operand then it is
+         *                 mapped to {@code null}.
+         * @param builder  the function to apply zero or more operations
+         *                 into the transformed code model
          */
-        void acceptOp(Function<Op, Op.Result> builder, Op in, List<Value> outOperands);
+        void acceptOp(Function<Op, Op.Result> builder, Op op, List<Value> operands);
     }
 
     /**
@@ -61,7 +61,7 @@ public interface CodeTransformer {
      * @param opTransformer the operation transformer.
      * @return the code transformer that transforms operations.
      */
-    static CodeTransformer opTransformer(OpTransformerRename opTransformer) {
+    static CodeTransformer opTransformer(OpTransformer opTransformer) {
         final class CodeTransformerOfOps implements CodeTransformer, Function<Op, Op.Result> {
             Block.Builder builder;
             Op op;
@@ -70,7 +70,9 @@ public interface CodeTransformer {
             public Block.Builder acceptOp(Block.Builder builder, Op op) {
                 this.builder = builder;
                 this.op = op;
-                // Reuse the input operand if there is no mapping in the output
+                // Use null if there is no mapping in the output
+                // This can happen if an operation is removed by not applying
+                // it to the builder
                 List<Value> operands = op.operands().stream()
                         .map(v -> builder.context().getValueOrDefault(v, null)).toList();
                 opTransformer.acceptOp(this, op, operands);
@@ -78,10 +80,10 @@ public interface CodeTransformer {
             }
 
             @Override
-            public Op.Result apply(Op outOp) {
-                Op.Result outResult = builder.op(outOp);
-                builder.context().mapValue(op.result(), outResult);
-                return outResult;
+            public Op.Result apply(Op op) {
+                Op.Result result = builder.op(op);
+                builder.context().mapValue(this.op.result(), result);
+                return result;
             }
         }
         return new CodeTransformerOfOps();
