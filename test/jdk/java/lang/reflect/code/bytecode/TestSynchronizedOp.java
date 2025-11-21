@@ -28,7 +28,7 @@
  * @run junit TestSynchronizedOp
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -51,7 +51,7 @@ import java.util.stream.Stream;
 
 public class TestSynchronizedOp {
 
-    @CodeReflection
+    @Reflect
     static int f(Object o, int i, int[] a) {
         synchronized (o) {
             if (i < 0) {

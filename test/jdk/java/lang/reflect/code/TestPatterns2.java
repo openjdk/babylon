@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -20,7 +20,7 @@ public class TestPatterns2 {
 
     record R<T extends Number> (T n) {}
 
-    @CodeReflection
+    @Reflect
     static boolean f(Object o) {
         return o instanceof R(Integer i);
     }

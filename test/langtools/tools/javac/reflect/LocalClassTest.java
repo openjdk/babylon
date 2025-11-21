@@ -32,14 +32,14 @@
  * @run main CodeReflectionTester LocalClassTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class LocalClassTest {
 
     final static String CONST_STRING = "Hello!";
     String nonConstString = "Hello!";
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
                 %1 : java.type:"LocalClassTest::$1Foo" = new %0 @java.ref:"LocalClassTest::$1Foo::(LocalClassTest)";
@@ -54,7 +54,7 @@ public class LocalClassTest {
         new Foo().m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
                 %1 : java.type:"LocalClassTest::$1" = new %0 @java.ref:"LocalClassTest::$1::(LocalClassTest)";
@@ -68,7 +68,7 @@ public class LocalClassTest {
         }.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -85,7 +85,7 @@ public class LocalClassTest {
         return new Foo().m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -101,7 +101,7 @@ public class LocalClassTest {
         }.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalCaptureParamAndField" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -121,7 +121,7 @@ public class LocalClassTest {
         return new Foo().m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonCaptureParamAndField" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -140,7 +140,7 @@ public class LocalClassTest {
         }.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalDependency" (%0 : java.type:"LocalClassTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"s";
@@ -162,7 +162,7 @@ public class LocalClassTest {
         new Bar();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonDependency" (%0 : java.type:"LocalClassTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"s";

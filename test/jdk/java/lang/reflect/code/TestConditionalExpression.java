@@ -27,7 +27,7 @@
  * @run junit TestConditionalExpression
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -41,7 +41,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public class TestConditionalExpression {
-    @CodeReflection
+    @Reflect
     public static int simpleExpression(boolean b, int x, int y) {
         return b ? x : y;
     }

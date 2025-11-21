@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -34,7 +34,7 @@ import jdk.incubator.code.CodeReflection;
 
 public class ConditionalAndOrTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"ConditionalAndOrTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -59,7 +59,7 @@ public class ConditionalAndOrTest {
         boolean b = i > 1 && i < 10;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"ConditionalAndOrTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -84,7 +84,7 @@ public class ConditionalAndOrTest {
         boolean b = i > 1 || i < 10;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"ConditionalAndOrTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";

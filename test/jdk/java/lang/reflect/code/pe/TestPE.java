@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -54,7 +54,7 @@ public class TestPE {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @EvaluatedModel("""
             func @"ifStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
@@ -81,7 +81,7 @@ public class TestPE {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @EvaluatedModel("""
             func @"forStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
@@ -132,7 +132,7 @@ public class TestPE {
         }
     }
 //
-    @CodeReflection
+    @Reflect
     @EvaluatedModel(value = """
             func @"forStatementNonConstant" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
@@ -210,7 +210,7 @@ public class TestPE {
     boolean b = true;
     int[] x = new int[10];
 
-    @CodeReflection
+    @Reflect
     @EvaluatedModel("""
             func @"f" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
                  %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
@@ -380,7 +380,7 @@ public class TestPE {
         c.accept(9);
     }
 
-    @CodeReflection
+    @Reflect
     @EvaluatedModel("""
             func @"constantsInBranches" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
@@ -440,7 +440,7 @@ public class TestPE {
         c.accept(x);
     }
 
-    @CodeReflection
+    @Reflect
     @EvaluatedModel("""
             func @"nestedForStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
@@ -508,7 +508,7 @@ public class TestPE {
     }
 
 
-    @CodeReflection
+    @Reflect
     @EvaluatedModel("""
             func @"whileWithBreak" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
@@ -607,7 +607,7 @@ public class TestPE {
         c.accept(-1);
     }
 
-    @CodeReflection
+    @Reflect
     @EvaluatedModel("""
             func @"whileWithBreakAndContinue" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";

@@ -36,16 +36,16 @@ compute entrypoints (and compute reachable methods).
 
 ```java
 public class SquareCompute{
-    @CodeReflection public static int square(int v) {
+    @Reflect public static int square(int v) {
         return  v * v;
     }
 
-    @CodeReflection public static void squareKernel(KernelContext kc, S32Array s32Array) {
+    @Reflect public static void squareKernel(KernelContext kc, S32Array s32Array) {
         int value = s32Array.array(kc.x);     // arr[cc.x]
         s32Array.array(kc.x, square(value));  // arr[cc.x]=value*value
     }
 
-    @CodeReflection public static void square(ComputeContext cc, S32Array s32Array) {
+    @Reflect public static void square(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(s32Array.length(),
                 kc -> squareKernel(kc, s32Array)
         );

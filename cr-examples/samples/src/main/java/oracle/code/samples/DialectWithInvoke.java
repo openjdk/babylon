@@ -24,7 +24,7 @@
  */
 package oracle.code.samples;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
@@ -36,7 +36,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -61,7 +60,7 @@ public class DialectWithInvoke {
         return Math.fma(a, b, c);
     }
 
-    @CodeReflection
+    @Reflect
     public static float myFunction(float a, float b, float c) {
         return intrinsicsFMA(a, b, c);
     }

@@ -33,7 +33,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -44,7 +44,7 @@ public class DNA {
         return 0;
     }
 
-    @CodeReflection
+    @Reflect
     public static void addMul(int add, int mul) {
         int len = myFunc(add);
     }

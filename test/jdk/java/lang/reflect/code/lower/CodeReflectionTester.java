@@ -32,13 +32,13 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class CodeReflectionTester {
 
     public static void main(String[] args) throws ReflectiveOperationException {
         if (args.length != 1) {
-            System.err.println("Usage: CodeReflectionTester <classname>");
+            System.err.println("Usage: ReflectTester <classname>");
             System.exit(1);
         }
         Class<?> clazz = Class.forName(args[0]);
@@ -48,7 +48,7 @@ public class CodeReflectionTester {
     }
 
     static void check(Method method) throws ReflectiveOperationException {
-        if (!method.isAnnotationPresent(CodeReflection.class)) {
+        if (!method.isAnnotationPresent(Reflect.class)) {
             return;
         }
 

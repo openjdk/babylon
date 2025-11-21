@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -48,7 +48,7 @@ import java.util.stream.Stream;
 
 public class TestTryFinally {
 
-    @CodeReflection
+    @Reflect
     public static void tryCatchFinally(IntConsumer c) {
         try {
             c.accept(0);
@@ -79,7 +79,7 @@ public class TestTryFinally {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static void tryReturn(IntConsumer c) {
         try {
             c.accept(0);
@@ -111,7 +111,7 @@ public class TestTryFinally {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static void catchThrow(IntConsumer c) {
         try {
             c.accept(0);
@@ -143,7 +143,7 @@ public class TestTryFinally {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static void finallyReturn(IntConsumer c) {
         try {
             c.accept(0);

@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -55,7 +56,7 @@ import static jdk.incubator.code.dialect.java.MethodRef.method;
 
 public class TestLocalTransformationsAdaption {
 
-    @CodeReflection
+    @Reflect
     static int f(int i) {
         IntBinaryOperator add = (a, b) -> {
             return add(a, b);

@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 
 public class TransformState {
 
-    @CodeReflection
+    @Reflect
     static int threeSum(int a, int b, int c) {
         return a + b * c;
     }

@@ -27,7 +27,7 @@
  * @run junit TestBinops
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -41,7 +41,7 @@ import java.util.stream.Stream;
 
 public class TestBinops {
 
-    @CodeReflection
+    @Reflect
     public static boolean not(boolean b) {
         return !b;
     }
@@ -56,7 +56,7 @@ public class TestBinops {
         Assertions.assertEquals(not(false), Interpreter.invoke(MethodHandles.lookup(), f, false));
     }
 
-    @CodeReflection
+    @Reflect
     public static int neg(int a) {
         return -a;
     }
@@ -70,7 +70,7 @@ public class TestBinops {
         Assertions.assertEquals(neg(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
     }
 
-    @CodeReflection
+    @Reflect
     public static int compl(int a) {
         return ~a;
     }
@@ -84,7 +84,7 @@ public class TestBinops {
         Assertions.assertEquals(compl(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
     }
 
-    @CodeReflection
+    @Reflect
     public static int mod(int a, int b) {
         return a % b;
     }
@@ -98,7 +98,7 @@ public class TestBinops {
         Assertions.assertEquals(mod(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
-    @CodeReflection
+    @Reflect
     public static int bitand(int a, int b) {
         return a & b;
     }
@@ -112,7 +112,7 @@ public class TestBinops {
         Assertions.assertEquals(bitand(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
-    @CodeReflection
+    @Reflect
     public static int bitor(int a, int b) {
         return a | b;
     }
@@ -126,7 +126,7 @@ public class TestBinops {
         Assertions.assertEquals(bitor(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
-    @CodeReflection
+    @Reflect
     public static int bitxor(int a, int b) {
         return a ^ b;
     }
@@ -140,7 +140,7 @@ public class TestBinops {
         Assertions.assertEquals(bitxor(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
-    @CodeReflection
+    @Reflect
     public static boolean booland(boolean a, boolean b) {
         return a & b;
     }
@@ -154,7 +154,7 @@ public class TestBinops {
         Assertions.assertEquals(booland(true, false), Interpreter.invoke(MethodHandles.lookup(), f, true, false));
     }
 
-    @CodeReflection
+    @Reflect
     public static boolean boolor(boolean a, boolean b) {
         return a | b;
     }
@@ -168,7 +168,7 @@ public class TestBinops {
         Assertions.assertEquals(boolor(false, true), Interpreter.invoke(MethodHandles.lookup(), f, false, true));
     }
 
-    @CodeReflection
+    @Reflect
     public static boolean boolxor(boolean a, boolean b) {
         return a ^ b;
     }
@@ -182,7 +182,7 @@ public class TestBinops {
         Assertions.assertEquals(boolxor(true, true), Interpreter.invoke(MethodHandles.lookup(), f, true, true));
     }
 
-    @CodeReflection
+    @Reflect
     public static double doublemod(double a, double b) {
         return a % b;
     }

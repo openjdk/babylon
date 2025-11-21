@@ -27,7 +27,7 @@
  * @run junit TestNestedCapturingLambda
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -45,11 +45,11 @@ import java.util.stream.Stream;
 public class TestNestedCapturingLambda {
 
     @FunctionalInterface
-    @CodeReflection
+    @Reflect
     interface QIntSupplier extends IntSupplier {
     }
 
-    @CodeReflection
+    @Reflect
     static public int f(int a) {
         if (a > 0) {
             QIntSupplier s = () -> a;

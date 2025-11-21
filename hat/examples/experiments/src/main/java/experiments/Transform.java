@@ -35,7 +35,7 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
@@ -45,12 +45,12 @@ import java.util.Map;
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 
 public class Transform {
-        @CodeReflection
+        @Reflect
         public static void removeMe(int size, int x, int y) {
 
         }
 
-        @CodeReflection
+        @Reflect
         public static void matrixMultiply(float[] a, float[] b, float[] c, int size) {
             for (int i = 0; i < size; i++) {
                 for (int j = 0; j < size; j++) {

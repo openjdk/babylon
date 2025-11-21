@@ -33,7 +33,7 @@ import hat.buffer.F32Array;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -42,13 +42,13 @@ import java.util.Random;
 
 public class TestArrays {
 
-    @CodeReflection
+    @Reflect
     public static int squareit(int v) {
         return  v * v;
 
     }
 
-    @CodeReflection
+    @Reflect
     public static void squareKernel(@RO KernelContext kc, @RW S32Array array) {
         if (kc.gix < kc.gsx){
             int value = array.array(kc.gix);
@@ -56,7 +56,7 @@ public class TestArrays {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void square(@RO ComputeContext cc, @RW S32Array array) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(array.length()));
         cc.dispatchKernel(ndRange,
@@ -64,7 +64,7 @@ public class TestArrays {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorAddition(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         if (kc.gix < kc.gsx) {
             int valueA = arrayA.array(kc.gix);
@@ -73,7 +73,7 @@ public class TestArrays {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorAdd(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(arrayA.length()));
         cc.dispatchKernel(ndRange,
@@ -81,7 +81,7 @@ public class TestArrays {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void saxpy(@RO KernelContext kc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
         if (kc.gix < kc.gsx) {
             float valueA = arrayA.array(kc.gix);
@@ -91,7 +91,7 @@ public class TestArrays {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeSaxpy(@RO ComputeContext cc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(arrayA.length()));
         cc.dispatchKernel(ndRange,

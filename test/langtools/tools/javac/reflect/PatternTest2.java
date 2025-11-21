@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -29,7 +29,7 @@ public class PatternTest2 {
                 return %5;
             };
             """)
-    @CodeReflection
+    @Reflect
     static boolean f(Object o) {
         return o instanceof R(Integer i);
     }

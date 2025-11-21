@@ -27,7 +27,7 @@
  * @run junit TestVarOp
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Value;
@@ -46,7 +46,7 @@ import java.util.stream.Stream;
 
 public class TestVarOp {
 
-    @CodeReflection
+    @Reflect
     static Object f(String s) {
         Object o = s;
         return o;

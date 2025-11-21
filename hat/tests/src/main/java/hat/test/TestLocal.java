@@ -35,7 +35,7 @@ import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -59,7 +59,7 @@ public class TestLocal {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static void compute(@MappableIface.RO KernelContext kernelContext, @MappableIface.RW F32Array data) {
         MySharedArray mySharedArray = MySharedArray.createLocal();
         int lix = kernelContext.lix;
@@ -70,7 +70,7 @@ public class TestLocal {
         data.array(lix + (long) blockId * blockSize, mySharedArray.array(lix));
     }
 
-    @CodeReflection
+    @Reflect
     private static void myCompute(@MappableIface.RO ComputeContext computeContext, @MappableIface.RW F32Array data) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
         computeContext.dispatchKernel(ndRange,

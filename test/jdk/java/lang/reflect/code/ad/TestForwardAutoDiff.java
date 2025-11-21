@@ -22,7 +22,7 @@
  */
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
@@ -76,7 +76,7 @@ public class TestForwardAutoDiff {
         Assertions.assertEquals(df_dy(PI_4, PI_4), (double) dff_dy_mh.invoke(PI_4, PI_4));
     }
 
-    @CodeReflection
+    @Reflect
     static double f(double x, double y) {
         return x * (-Math.sin(x * y) + y) * 4.0d;
     }
@@ -115,7 +115,7 @@ public class TestForwardAutoDiff {
         Assertions.assertEquals(dfcf_dx(2.0, 4), (double) df_dx_mh.invoke(2.0, 4));
     }
 
-    @CodeReflection
+    @Reflect
     static double fcf(/* independent */ double x, int y) {
         /* dependent */
         double o = 1.0;

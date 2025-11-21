@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -42,7 +42,7 @@ import java.util.stream.Stream;
 
 public class TestWhileOp {
 
-    @CodeReflection
+    @Reflect
     public static int whileLoop() {
         int i = 0;
         while (i < 10) {
@@ -64,7 +64,7 @@ public class TestWhileOp {
         Assertions.assertEquals(whileLoop(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
-    @CodeReflection
+    @Reflect
     public static int doWhileLoop() {
         int i = 0;
         do {

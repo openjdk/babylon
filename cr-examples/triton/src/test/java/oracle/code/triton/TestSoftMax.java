@@ -30,7 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 @ExtendWith(TritonTestExtension.class)
@@ -87,7 +87,7 @@ public class TestSoftMax {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void softmax_kernel(Ptr output_ptr,
                                Ptr input_ptr,
                                int input_row_stride,
@@ -186,7 +186,7 @@ public class TestSoftMax {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void softmax_kernel2(Ptr output_ptr,
                                 Ptr input_ptr,
                                 int input_row_stride,

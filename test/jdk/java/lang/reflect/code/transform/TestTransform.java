@@ -21,7 +21,7 @@ import java.util.function.IntBinaryOperator;
  */
 public class TestTransform {
 
-    @CodeReflection
+    @Reflect
     static int f() {
         IntBinaryOperator o = (a, b) -> a + b;
         int sum = 0;
@@ -35,7 +35,7 @@ public class TestTransform {
         return a + b;
     }
 
-    @CodeReflection
+    @Reflect
     static int fWithAddMethod() {
         IntBinaryOperator o = (a, b) -> add(a, b);
         int sum = 0;
@@ -80,7 +80,7 @@ public class TestTransform {
     }
 
 
-    @CodeReflection
+    @Reflect
     static int fAddToSubNeg() {
         IntBinaryOperator o = (a, b) -> a - -b;
         int sum = 0;

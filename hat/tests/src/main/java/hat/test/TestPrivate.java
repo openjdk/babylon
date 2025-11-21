@@ -35,7 +35,7 @@ import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -62,7 +62,7 @@ public class TestPrivate {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
         PrivateArray privateArray = PrivateArray.createPrivate();
         int lix = kernelContext.lix;
@@ -72,7 +72,7 @@ public class TestPrivate {
         data.array(lix + (long) blockId * blockSize, privateArray.array(0));
     }
 
-    @CodeReflection
+    @Reflect
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(32));
         computeContext.dispatchKernel(ndRange,

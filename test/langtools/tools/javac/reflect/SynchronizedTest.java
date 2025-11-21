@@ -30,10 +30,10 @@
  * @run main CodeReflectionTester SynchronizedTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class SynchronizedTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"SynchronizedTest", %1 : java.type:"int")java.type:"int" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -63,7 +63,7 @@ public class SynchronizedTest {
         return null;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"SynchronizedTest", %1 : java.type:"int")java.type:"int" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";

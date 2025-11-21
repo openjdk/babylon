@@ -26,7 +26,7 @@ package oracle.code.onnx;
 import java.io.*;
 import java.lang.foreign.Arena;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -81,7 +81,7 @@ public class CNNTest {
     private static final int NUM_CHANNELS = 1;
     private static final int IMAGE_SIZE = 28;
 
-    @CodeReflection
+    @Reflect
     public static Tensor<Float> cnn(
             // Weights and biases
             // [6, 1, 5, 5]
@@ -436,7 +436,7 @@ public class CNNTest {
         return Op.ofMethod(m).get();
     }
 
-//    @CodeReflection
+//    @Reflect
 //    public Tensor<Float> loadWeight(Initializer init) {
 //        var buf = ByteBuffer.allocate(init.values().length).order(ByteOrder.nativeOrder());
 //        buf.put(init.values());

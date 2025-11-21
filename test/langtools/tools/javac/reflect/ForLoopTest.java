@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 /*
@@ -34,7 +34,7 @@ import java.util.List;
  */
 
 public class ForLoopTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.util.List<java.lang.String>>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.util.List<java.lang.String>>"> = var %1 @"ll";
@@ -76,7 +76,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
@@ -115,7 +115,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2_1" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
@@ -138,7 +138,7 @@ public class ForLoopTest {
         for (String s : l);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2_2" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
@@ -166,7 +166,7 @@ public class ForLoopTest {
         return "";
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
@@ -203,7 +203,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3_1" (%0 : java.type:"ForLoopTest")java.type:"int" -> {
                 java.for
@@ -240,7 +240,7 @@ public class ForLoopTest {
         return -1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
@@ -276,7 +276,7 @@ public class ForLoopTest {
             System.out.println(i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
@@ -308,7 +308,7 @@ public class ForLoopTest {
         for (int i = 0; i < 10; i = i + 1);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -346,7 +346,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -388,7 +388,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
@@ -423,7 +423,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
@@ -454,7 +454,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
@@ -479,7 +479,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
@@ -537,7 +537,7 @@ public class ForLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test12" (%0 : java.type:"ForLoopTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"r";

@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.Supplier;
 
 /*
@@ -34,7 +34,7 @@ import java.util.function.Supplier;
  */
 
 public class BoxingConversionTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"long" = constant @1;
@@ -47,7 +47,7 @@ public class BoxingConversionTest {
         Long x = 1L;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Long")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Long"> = var %1 @"L";
@@ -61,7 +61,7 @@ public class BoxingConversionTest {
         long l = L;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"long" = constant @0;
@@ -74,7 +74,7 @@ public class BoxingConversionTest {
         Object o = 0L;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -89,7 +89,7 @@ public class BoxingConversionTest {
         long l = (long)o;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
@@ -106,7 +106,7 @@ public class BoxingConversionTest {
         i2++;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
@@ -127,7 +127,7 @@ public class BoxingConversionTest {
         Integer i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
@@ -144,7 +144,7 @@ public class BoxingConversionTest {
         new Box().i++;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
@@ -161,7 +161,7 @@ public class BoxingConversionTest {
         new Box().i += 3;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int[]", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -180,7 +180,7 @@ public class BoxingConversionTest {
         ia[0] += i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"boolean", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -207,7 +207,7 @@ public class BoxingConversionTest {
         int res = cond ? I : 2;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"boolean", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -234,7 +234,7 @@ public class BoxingConversionTest {
         int res = cond ? 2 : I;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test12" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"boolean")java.type:"void" -> {
                 %2 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -260,7 +260,7 @@ public class BoxingConversionTest {
         Integer x = cond ? 1 : 2;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test13" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
@@ -276,7 +276,7 @@ public class BoxingConversionTest {
         Supplier<Integer> s = () -> { return 1; };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test14" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
@@ -292,7 +292,7 @@ public class BoxingConversionTest {
         Supplier<Integer> s = () -> 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test15" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -328,7 +328,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test16" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -364,7 +364,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test17" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -400,7 +400,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test18" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -436,7 +436,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test19" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -472,7 +472,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test20" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -508,7 +508,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test21" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -527,7 +527,7 @@ public class BoxingConversionTest {
 
     void m(Integer I) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test22" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -543,7 +543,7 @@ public class BoxingConversionTest {
 
     void m(int i1, int i2, Integer... I) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test23" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -557,7 +557,7 @@ public class BoxingConversionTest {
         m(i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test24" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -573,7 +573,7 @@ public class BoxingConversionTest {
         m(i, i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test25" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -596,7 +596,7 @@ public class BoxingConversionTest {
         Box2(int i1, int i2, Integer... Is) { }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test26" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -610,7 +610,7 @@ public class BoxingConversionTest {
         new Box2(i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test27" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -624,7 +624,7 @@ public class BoxingConversionTest {
         new Box2(i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test28" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -640,7 +640,7 @@ public class BoxingConversionTest {
         new Box2(i, i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test29" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -658,7 +658,7 @@ public class BoxingConversionTest {
         new Box2(i, i, i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test30" (%0 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Integer"> = var %0 @"i";
@@ -673,7 +673,7 @@ public class BoxingConversionTest {
         int j = -i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test31" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
@@ -688,7 +688,7 @@ public class BoxingConversionTest {
         Integer j = -i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test32" (%0 : java.type:"boolean")java.type:"void" -> {
                 %1 : Var<java.type:"boolean"> = var %0 @"i";
@@ -703,7 +703,7 @@ public class BoxingConversionTest {
         Boolean j = !i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test33" (%0 : java.type:"java.lang.Boolean")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Boolean"> = var %0 @"i";

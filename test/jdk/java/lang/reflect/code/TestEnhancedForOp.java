@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -43,7 +43,7 @@ import java.util.stream.Stream;
 
 public class TestEnhancedForOp {
 
-    @CodeReflection
+    @Reflect
     public static int f() {
         int j = 0;
         for (int i : List.of(1, 2, 3, 4)) {
@@ -75,7 +75,7 @@ public class TestEnhancedForOp {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static int array(int[] a) {
         int j = 0;
         for (int i : a) {

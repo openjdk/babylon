@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -33,7 +33,7 @@ import jdk.incubator.code.CodeReflection;
  */
 
 public class IfTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -61,7 +61,7 @@ public class IfTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -93,7 +93,7 @@ public class IfTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -134,7 +134,7 @@ public class IfTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -210,7 +210,7 @@ public class IfTest {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     int test5(int i) {
         if (i < 1) {
             return 1;
@@ -221,7 +221,7 @@ public class IfTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -248,7 +248,7 @@ public class IfTest {
             i = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -279,7 +279,7 @@ public class IfTest {
             i = 2;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -346,7 +346,7 @@ public class IfTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test9(Boolean b) {
         int i;
         if (b) {

@@ -31,7 +31,7 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -74,7 +74,7 @@ public class TestNbody {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
@@ -103,7 +103,7 @@ public class TestNbody {
         body.vz(body.vz() + accz);
     }
 
-    @CodeReflection
+    @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(universe.length()));
         cc.dispatchKernel(ndRange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));

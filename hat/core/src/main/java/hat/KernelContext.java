@@ -30,7 +30,7 @@ package hat;
  * In reality the backend decides how to pass the information contained in the KernelContext.
  *
  * <pre>
- *     @ CodeReflection
+ *     @ Reflect
  *      static public void doSomeWork(final ComputeContext cc, S32Array arrayOfInt) {
  *         cc.dispatchKernel(KernelContext kc -> addDeltaKernel(kc,arrayOfInt.length(), 5, arrayOfInt);
  *      }

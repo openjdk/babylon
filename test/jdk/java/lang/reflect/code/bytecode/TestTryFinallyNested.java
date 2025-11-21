@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -47,7 +47,7 @@ import java.util.stream.Stream;
  */
 
 public class TestTryFinallyNested {
-    @CodeReflection
+    @Reflect
     public static void tryCatchFinally(IntConsumer c, int i) {
         try {
             try {
@@ -111,7 +111,7 @@ public class TestTryFinallyNested {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void tryForLoop(IntConsumer c) {
         for (int i = 0; i < 8; i++) {
             c.accept(0);
@@ -145,7 +145,7 @@ public class TestTryFinallyNested {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static void tryLabeledForLoop(IntConsumer c) {
         a: for (int i = 0; i < 8; i++) {
             c.accept(0);

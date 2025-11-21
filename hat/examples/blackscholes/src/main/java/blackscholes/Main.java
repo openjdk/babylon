@@ -34,12 +34,12 @@ import hat.buffer.F32Array;
 import java.util.Random;
 
 import static hat.ifacemapper.MappableIface.*;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class Main {
     static Random rand;
 
-    @CodeReflection
+    @Reflect
     public static void blackScholesKernel(@RO KernelContext kc,
                                           @WO F32Array call,
                                           @WO F32Array put,
@@ -63,7 +63,7 @@ public class Main {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static float CND(float input) {
         float x = input;
         if (input < 0f) { // input = Math.abs(input)?
@@ -90,7 +90,7 @@ public class Main {
        return part1 * part2;
     }
 
-    @CodeReflection
+    @Reflect
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)

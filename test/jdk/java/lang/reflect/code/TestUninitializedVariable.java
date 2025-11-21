@@ -27,7 +27,7 @@
  * @run junit TestUninitializedVariable
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
@@ -45,14 +45,14 @@ import java.util.stream.Stream;
 
 public class TestUninitializedVariable {
 
-    @CodeReflection
+    @Reflect
     static int simple(int i) {
         int x;
         x = i; // drop store
         return x;
     }
 
-    @CodeReflection
+    @Reflect
     static int controlFlow(int i) {
         int x;
         if (i > 0) {

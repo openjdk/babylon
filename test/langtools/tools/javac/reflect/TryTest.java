@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -34,7 +34,7 @@ import jdk.incubator.code.CodeReflection;
 
 public class TryTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"TryTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -70,7 +70,7 @@ public class TryTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"TryTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -98,7 +98,7 @@ public class TryTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"TryTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -161,7 +161,7 @@ public class TryTest {
         return null;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"TryTest")java.type:"void" -> {
                 java.try
@@ -210,7 +210,7 @@ public class TryTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"TryTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -247,7 +247,7 @@ public class TryTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"TryTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;

@@ -129,13 +129,13 @@ not copy the data to the device.
 The following example shows a kernel which reads and mutates a memorysegment
 ```java
     static class Compute {
-    @CodeReflection  public static
+    @Reflect  public static
     void doubleup(Accelerator.NDRange ndrange, MemorySegment memorySegment) {
         int temp = memorySegment.get(JAVA_INT, ndrange.id.x);
         memorySegment.set(JAVA_INT, temp*2);
     }
 
-    @CodeReflection public static
+    @Reflect public static
     void compute(Accelerator accelerator, MemorySegment memorySegment, int len) {
         Accelerator.Range range = accelerator.range(len);
         accelerator.run(Compute::doubleup, range, memorySegment);
@@ -157,7 +157,7 @@ So far the deductions are fairly trivial
 
 Consider
 ```java
- @CodeReflection public static
+ @Reflect public static
     void compute(Accelerator accelerator, MemorySegment memorySegment, int len, int count) {
         Accelerator.Range range = accelerator.range(len);
         for (int i=0; i<count; i++) {
@@ -172,7 +172,7 @@ and has no interest in the memorysegment between dispatches.
 So the new model need only copy in once (before the fist kernel) and out once (prior to return)
 
 ```java
- @CodeReflection public static
+ @Reflect public static
     void compute(Accelerator accelerator, MemorySegment memorySegment, int len, int count) {
         Accelerator.Range range = accelerator.range(len);
         accelerator.copyToDevice(memorySegment); // injected via Babylon
@@ -187,7 +187,7 @@ Things get slightly more interesting when we do indeed access the memory segment
 from the Java code inside the loop.
 
 ```java
- @CodeReflection public static
+ @Reflect public static
     void compute(Accelerator accelerator, MemorySegment memorySegment, int len, int count) {
         Accelerator.Range range = accelerator.range(len);
         for (int i=0; i<count; i++) {
@@ -200,7 +200,7 @@ from the Java code inside the loop.
 Now we expect babylon to inject a read inside the loop to make the data available java side
 
 ```java
- @CodeReflection public static
+ @Reflect public static
     void compute(Accelerator accelerator, MemorySegment memorySegment, int len, int count) {
         Accelerator.Range range = accelerator.range(len);
         accelerator.copyToDevice(memorySegment); // injected via Babylon
@@ -217,7 +217,7 @@ Now we expect babylon to inject a read inside the loop to make the data availabl
 Note that in this case we are only accessing 0th int from the segment so a possible
 optimization might be to allow the vendor to only copy back this one element....
 ```java
- @CodeReflection public static
+ @Reflect public static
     void compute(Accelerator accelerator, MemorySegment memorySegment, int len, int count) {
         Accelerator.Range range = accelerator.range(len);
         accelerator.copyToDevice(memorySegment); // injected via Babylon
@@ -245,7 +245,7 @@ We should allow aliasing of memory segments... but in the short term we may well
 
 
 ```java
- @CodeReflection  public static
+ @Reflect  public static
     void doubleup(Accelerator.NDRange ndrange, MemorySegment memorySegment) {
         MemorySegment alias = memorySegment;
         alias.set(JAVA_INT, ndrange.id.x, alias.get(JAVA_INT, ndrange.id.x)*2);
@@ -304,7 +304,7 @@ which writes to the output.
 In the case of the Game Of Life we may well use the output as the next input...
 
 ```java
-@CodeReflection void conway(Accelerator.NDRange ndrange,
+@Reflect void conway(Accelerator.NDRange ndrange,
                             MemorySegment in, MemorySegment out, int width, int height) {
     int cx = ndrange.id.x % ndrange.id.maxx;
     int cy = ndrange.id.x / ndrange.id.maxx;
@@ -332,7 +332,7 @@ In this case the assumption is that the compute layer will swap the buffers for 
 ```java
 import java.lang.foreign.MemorySegment;
 
-@CodeReflection
+@Reflect
 void compute(Accelerator accelerator, MemorySegment gameState,
              int width, int height, int maxGenerations) {
     MemorySegment s1 = gameState;
@@ -354,7 +354,7 @@ HAT needs to be able to track the aliases to determine the minimal number of cop
 ```java
 import java.lang.foreign.MemorySegment;
 
-@CodeReflection
+@Reflect
 void compute(Accelerator accelerator, MemorySegment gameState, int width, int height, int maxGenerations,
              DisplaySAM displaySAM) {
     MemorySegment s1 = gameState;
@@ -381,7 +381,7 @@ void compute(Accelerator accelerator, MemorySegment gameState, int width, int he
 ```java
 import java.lang.foreign.MemorySegment;
 
-@CodeReflection
+@Reflect
 void compute(Accelerator accelerator, MemorySegment gameState, int width, int height,
              int maxGenerations,
              DisplaySAM displaySAM) {
@@ -463,17 +463,17 @@ So in our `OpenCLBackend` for example
 I hacked the Mandle example. So the compute accessed and mutated it's arrays.
 
 ```java
-  @CodeReflection
+  @Reflect
     static float doubleit(float f) {
         return f * 2;
     }
 
-    @CodeReflection
+    @Reflect
     static float scaleUp(float f) {
         return doubleit(f);
     }
 
-    @CodeReflection
+    @Reflect
     static public void compute(final ComputeContext CLWrapComputeContext, S32Array2D s32Array2D, float x, float y, float scale) {
         scale = scaleUp(scale);
         var range = CLWrapComputeContext.accelerator.range(s32Array2D.size());

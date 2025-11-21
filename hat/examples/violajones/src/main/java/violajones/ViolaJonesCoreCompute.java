@@ -34,21 +34,21 @@ import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class ViolaJonesCoreCompute {
 
-    @CodeReflection
+    @Reflect
     public static int b2i(int v) {
         return v < 0 ? 256 + v : v;
     }
 
-    @CodeReflection
+    @Reflect
     public static int grey(int r, int g, int b) {
         return (29 * b2i(r) + 60 * b2i(g) + 11 * b2i(b)) / 100;
     }
 
-    @CodeReflection
+    @Reflect
     public static void rgbToGrey(int id, @RO S08x3RGBImage rgbImage, @WO F32Array2D greyImage) {
         byte r = rgbImage.data(id * 3 + 0);
         byte g = rgbImage.data(id * 3 + 1);
@@ -57,7 +57,7 @@ public class ViolaJonesCoreCompute {
     }
 
     /*
-     * A pure java implementation so no @CodeReflection
+     * A pure java implementation so no @Reflect
      */
     static long javaRgbToGreyScale(S08x3RGBImage rgb, F32Array2D grey) {
         long start = System.currentTimeMillis();
@@ -70,14 +70,14 @@ public class ViolaJonesCoreCompute {
         return System.currentTimeMillis() - start;
     }
 
-    @CodeReflection
+    @Reflect
     public static void rgbToGreyKernel(@RO KernelContext kc, @RO S08x3RGBImage rgbImage, @WO F32Array2D greyImage) {
         if (kc.gix < kc.gsx){
            rgbToGrey(kc.gix, rgbImage, greyImage);
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void integralCol(int id, int width, @RO F32Array2D greyImage, @RW F32Array2D integral, @RW F32Array2D integralSq) {
         float greyValue = greyImage.array(id);
         float greyValueSq = greyValue * greyValue;
@@ -85,7 +85,7 @@ public class ViolaJonesCoreCompute {
         integral.array(id, greyValue + integral.array(id - width));
     }
 
-    @CodeReflection
+    @Reflect
     public static void integralColKernel(@RO KernelContext kc, @RO F32Array2D greyImage, @RW F32Array2D integral, @RW F32Array2D integralSq) {
         if (kc.gix <kc.gsx){  // kc.gsx = imageWidth
            int x = kc.gix;
@@ -109,13 +109,13 @@ public class ViolaJonesCoreCompute {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void integralRow(int id, @RW F32Array2D integral, @RW F32Array2D integralSq) {
         integral.array(id, integral.array(id) + integral.array(id - 1));
         integralSq.array(id, integralSq.array(id) + integralSq.array(id - 1));
     }
 
-    @CodeReflection
+    @Reflect
     public static void integralRowKernel(@RO KernelContext kc, @RW F32Array2D integral, @RW F32Array2D integralSq) {
         if (kc.gix <kc.gsx){  // kc.gsx == imageHeight
            int y = kc.gix;
@@ -138,7 +138,7 @@ public class ViolaJonesCoreCompute {
     }
 
     /*
-     * A pure java implementation so no @CodeReflection
+     * A pure java implementation so no @Reflect
      */
     public static long javaCreateIntegralImage(F32Array2D greyFloats, F32Array2D integral, F32Array2D integralSq) {
         long start = System.currentTimeMillis();
@@ -160,12 +160,12 @@ public class ViolaJonesCoreCompute {
         return System.currentTimeMillis() - start;
     }
 
-    @CodeReflection
+    @Reflect
     static long xyToLong(int imageWidth, int x, int y) {
         return (long) y * imageWidth + x;
     }
 
-    @CodeReflection
+    @Reflect
     static float gradient(@RO F32Array2D integralOrIntegralSqImage, int x, int y, int w, int h) {
         int imageWidth = integralOrIntegralSqImage.width();
         float A = integralOrIntegralSqImage.array(xyToLong(imageWidth, x, y));
@@ -176,7 +176,7 @@ public class ViolaJonesCoreCompute {
     }
 
 
-    @CodeReflection
+    @Reflect
     static boolean isAFaceStage(
             long gid,
             float scale,
@@ -230,7 +230,7 @@ public class ViolaJonesCoreCompute {
         return sumOfThisStage > stage.threshold(); // true if this looks like a face
     }
 
-    @CodeReflection
+    @Reflect
     public static void findFeaturesKernel(@RO KernelContext kc,
                                           @RO Cascade cascade,
                                           @RO F32Array2D integral,
@@ -306,7 +306,7 @@ public class ViolaJonesCoreCompute {
         return F32Array2D.create(cc.accelerator, width, height);
     }
 
-    @CodeReflection
+    @Reflect
     static public void compute(@RO final ComputeContext cc, @RO Cascade cascade, @RO S08x3RGBImage s08X3RGBImage, @RW ResultTable resultTable, @RO ScaleTable scaleTable) {
 
         int width = s08X3RGBImage.width();

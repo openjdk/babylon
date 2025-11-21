@@ -22,7 +22,7 @@
  */
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -42,7 +42,7 @@ import java.util.stream.Stream;
 
 public class TestBlockIndexes {
 
-    @CodeReflection
+    @Reflect
     static int f(int[] a) {
         int sum = 0;
         for (int i = 0; i < a.length; i++) {

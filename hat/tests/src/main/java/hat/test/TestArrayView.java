@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.*;
 import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -47,7 +47,7 @@ public class TestArrayView {
     /*
      * simple square kernel example using S32Array's ArrayView
      */
-    @CodeReflection
+    @Reflect
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
@@ -55,7 +55,7 @@ public class TestArrayView {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
         cc.dispatchKernel(NDRange.of(s32Array.length()),
                 kc -> squareKernel(kc, s32Array)
@@ -81,14 +81,14 @@ public class TestArrayView {
     /*
      * making sure arrayviews aren't reliant on varOps
      */
-    @CodeReflection
+    @Reflect
     public static void squareKernelNoVarOp(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.gix<kc.gsx){
             s32Array.arrayView()[kc.gix] *= s32Array.arrayView()[kc.gix];
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void squareNoVarOp(@RO ComputeContext cc, @RW S32Array s32Array) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(s32Array.length()));
         cc.dispatchKernel(ndRange,
@@ -111,7 +111,7 @@ public class TestArrayView {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void square2DKernel(@RO  KernelContext kc, @RW S32Array2D s32Array2D) {
         if (kc.gix < kc.gsx){
             int[][] arr = s32Array2D.arrayView();
@@ -119,7 +119,7 @@ public class TestArrayView {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void square2D(@RO ComputeContext cc, @RW S32Array2D s32Array2D) {
         cc.dispatchKernel(NDRange.of(s32Array2D.width() * s32Array2D.height()),
                 kc -> square2DKernel(kc, s32Array2D)
@@ -216,7 +216,7 @@ public class TestArrayView {
     }
 
     public static class Compute {
-        @CodeReflection
+        @Reflect
         public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
             int w = cellGrid.width();
             int h = cellGrid.height();
@@ -261,14 +261,14 @@ public class TestArrayView {
             res[idx] = cell;
         }
 
-        @CodeReflection
+        @Reflect
         public static void life(@RO KernelContext kc, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
             if (kc.gix < kc.gsx) {
                 Compute.lifePerIdx(kc.gix, control, cellGrid, cellGridRes);
             }
         }
 
-        @CodeReflection
+        @Reflect
         static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RO CellGrid grid, @WO CellGrid gridRes) {
             int range = grid.width() * grid.height();
             cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid, gridRes));
@@ -345,7 +345,7 @@ public class TestArrayView {
     /*
      * simplified version of mandel using ArrayView
      */
-    @CodeReflection
+    @Reflect
     public static int mandelCheck(int i, int j, float width, float height, int[] pallette, float offsetx, float offsety, float scale) {
         float x = (i * scale - (scale / 2f * width)) / width + offsetx;
         float y = (j * scale - (scale / 2f * height)) / height + offsety;
@@ -362,7 +362,7 @@ public class TestArrayView {
         return colorIdx < pallette.length ? pallette[colorIdx] : 0;
     }
 
-    @CodeReflection
+    @Reflect
     public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
         if (kc.gix < kc.gsx) {
             int[] pal = pallette.arrayView();
@@ -387,7 +387,7 @@ public class TestArrayView {
     }
 
 
-    @CodeReflection
+    @Reflect
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
         computeContext.dispatchKernel(
@@ -435,7 +435,7 @@ public class TestArrayView {
     /*
      * simplified version of BlackScholes using ArrayView
      */
-    @CodeReflection
+    @Reflect
     public static void blackScholesKernel(@RO KernelContext kc,
                                           @WO F32Array call,
                                           @WO F32Array put,
@@ -462,7 +462,7 @@ public class TestArrayView {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static float CND(float input) {
         float x = input;
         if (input < 0f) { // input = Math.abs(input)?
@@ -490,7 +490,7 @@ public class TestArrayView {
 
     }
 
-    @CodeReflection
+    @Reflect
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
@@ -601,7 +601,7 @@ public class TestArrayView {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void squareKernelWithPrivateAndLocal(@RO  KernelContext kc, @RW S32Array s32Array) {
         SharedMemory shared = SharedMemory.createLocal();
         if (kc.gix < kc.gsx){
@@ -621,7 +621,7 @@ public class TestArrayView {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void privateAndLocal(@RO ComputeContext cc, @RW S32Array s32Array) {
         cc.dispatchKernel(NDRange.of(s32Array.length()),
                 kc -> squareKernelWithPrivateAndLocal(kc, s32Array)

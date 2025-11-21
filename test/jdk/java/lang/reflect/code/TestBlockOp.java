@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -42,7 +42,7 @@ import java.util.stream.Stream;
 
 public class TestBlockOp {
 
-    @CodeReflection
+    @Reflect
     public static int f() {
         int i = 0;
 

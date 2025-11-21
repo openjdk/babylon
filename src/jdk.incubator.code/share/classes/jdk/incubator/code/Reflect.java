@@ -32,5 +32,5 @@ import java.lang.annotation.*;
  */
 @Target({ElementType.METHOD, ElementType.TYPE_USE, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CodeReflection {
+public @interface Reflect {
 }

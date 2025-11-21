@@ -23,7 +23,7 @@
 
 package oracle.code.onnx.fer;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.genai.TensorDataStream;
@@ -112,7 +112,7 @@ public class FERModel {
         parameter1694 = modelData.nextTensor(Tensor.ElementType.FLOAT, 8);
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> cntkGraph(Tensor<Float> input3) {
         // Reshape parameter
         Tensor<Float> parameter1367_reshape1 = Reshape(parameter1367, parameter1367_reshape1_shape, empty());
@@ -191,7 +191,7 @@ public class FERModel {
         return Softmax(plus692, of(1L));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> condenseCNTKGraph(Tensor<Float> input3) {
 
         // Reshape parameter
@@ -243,7 +243,7 @@ public class FERModel {
     }
 
     // Helper method: Convolution block (Conv -> Add -> Relu)
-    @CodeReflection
+    @Reflect
     private Tensor<Float> convAddRelu(Tensor<Float> input,
             Tensor<Float> weight, Tensor<Float> bias) {
         // Applies convolution, bias addition, and ReLU activation
@@ -255,7 +255,7 @@ public class FERModel {
     }
 
     // Helper method: MaxPool followed by Dropout (MaxPool -> Dropout)
-    @CodeReflection
+    @Reflect
     private Tensor<Float> maxPoolDropout(Tensor<Float> input) {
         // Applies max pooling, then dropout to the input
         var pooling = MaxPool(input, of(new long[]{0L, 0L, 0L, 0L}), empty(),

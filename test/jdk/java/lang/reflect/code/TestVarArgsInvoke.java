@@ -27,7 +27,7 @@
  * @run junit TestVarArgsInvoke
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -82,7 +82,7 @@ public class TestVarArgsInvoke {
         M1, SM1, M2, SM2;
     }
 
-    @CodeReflection
+    @Reflect
     String fArray(String[] array, MethodKind m) {
         return switch (m) {
             case M1 -> m1(array);
@@ -110,7 +110,7 @@ public class TestVarArgsInvoke {
         }
     }
 
-    @CodeReflection
+    @Reflect
     String fEmpty(MethodKind m) {
         return switch (m) {
             case M1 -> m1();
@@ -138,7 +138,7 @@ public class TestVarArgsInvoke {
         }
     }
 
-    @CodeReflection
+    @Reflect
     String fOne(String one, MethodKind m) {
         return switch (m) {
             case M1 -> m1(one);
@@ -165,7 +165,7 @@ public class TestVarArgsInvoke {
         }
     }
 
-    @CodeReflection
+    @Reflect
     String fMany(String one, String two, MethodKind m) {
         return switch (m) {
             case M1 -> m1(one, two);

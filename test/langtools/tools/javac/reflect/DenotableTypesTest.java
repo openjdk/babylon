@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 /*
@@ -35,7 +35,7 @@ import java.util.List;
 
 public class DenotableTypesTest {
     static <X extends Number & Runnable> X m1(X x) { return null; }
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Number" = constant @null;
@@ -47,7 +47,7 @@ public class DenotableTypesTest {
         m1(null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" ()java.type:"void" -> {
                 %0 : java.type:"int" = constant @1;
@@ -64,7 +64,7 @@ public class DenotableTypesTest {
 
     static <X extends Throwable> X m2(X x) throws X { return null; }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.RuntimeException" = constant @null;
@@ -83,7 +83,7 @@ public class DenotableTypesTest {
 
     static <Z> Z pick(Z z1, Z z2) { return null; }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Object" = constant @null;
@@ -98,7 +98,7 @@ public class DenotableTypesTest {
         pick((C)null, (D)null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" ()java.type:"void" -> {
                 %0 : java.type:"java.util.List<? extends java.lang.Number>" = constant @null;
@@ -114,7 +114,7 @@ public class DenotableTypesTest {
         l.get(0);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" ()java.type:"void" -> {
                 %0 : java.type:"java.util.List<? super java.lang.Number>" = constant @null;
@@ -132,7 +132,7 @@ public class DenotableTypesTest {
 
     static void consume(Runnable r) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" ()java.type:"void" -> {
                 %0 : java.type:"&DenotableTypesTest::test7():void::<X>" = constant @null;
@@ -152,7 +152,7 @@ public class DenotableTypesTest {
         void add(Adder<X> adder);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>"> = var %0 @"list";
@@ -174,7 +174,7 @@ public class DenotableTypesTest {
         X x;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>"> = var %0 @"list";
@@ -204,7 +204,7 @@ public class DenotableTypesTest {
 
     static void g() throws XA, XB { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" ()java.type:"void" -> {
                 java.try

@@ -29,7 +29,7 @@
  * @run main TestAnfBasicFuns
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
@@ -43,7 +43,7 @@ import java.util.List;
 
 public class TestAnfBasicFuns {
 
-    @CodeReflection
+    @Reflect
     public static int test2(int arg1, int arg2) {
         if (arg1 > arg2) {
             return arg1 + 21;

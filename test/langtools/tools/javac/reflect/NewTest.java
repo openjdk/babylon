@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -36,7 +36,7 @@ import java.util.List;
 
 public class NewTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test0" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"1";
@@ -55,7 +55,7 @@ public class NewTest {
         A(int i, int j) {}
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"NewTest$A" = new @java.ref:"NewTest$A::()";
@@ -67,7 +67,7 @@ public class NewTest {
         A a = new A();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @1;
@@ -94,7 +94,7 @@ public class NewTest {
 
     B b() { return f; }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"NewTest::B" = new %0 @java.ref:"NewTest::B::(NewTest)";
@@ -106,7 +106,7 @@ public class NewTest {
         B b = new B();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @1;
@@ -120,7 +120,7 @@ public class NewTest {
         B b = new B(1, 2);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"NewTest::B" = new %0 @java.ref:"NewTest::B::(NewTest)";
@@ -132,7 +132,7 @@ public class NewTest {
         B b = this.new B();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"NewTest::B" = field.load %0 @java.ref:"NewTest::f:NewTest::B";
@@ -145,7 +145,7 @@ public class NewTest {
         B.C c = f.new C();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"NewTest::B" = invoke %0 @java.ref:"NewTest::b():NewTest::B";
@@ -162,7 +162,7 @@ public class NewTest {
         AG(List<T> l) {}
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"NewTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
@@ -184,7 +184,7 @@ public class NewTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"NewTest", %1 : java.type:"java.util.List<java.lang.String>", %2 : java.type:"java.util.List<java.lang.Number>")java.type:"void" -> {
                   %3 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l1";
@@ -202,7 +202,7 @@ public class NewTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @10;
@@ -215,7 +215,7 @@ public class NewTest {
         int[] i = new int[10];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"NewTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";

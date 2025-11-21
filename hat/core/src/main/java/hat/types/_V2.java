@@ -24,11 +24,11 @@
  */
 package hat.types;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public interface _V2 extends _V {
 
-    @CodeReflection
+    @Reflect
     @Override
     default int width() {
         return 2;

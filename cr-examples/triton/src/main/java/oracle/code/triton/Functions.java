@@ -27,7 +27,7 @@ package oracle.code.triton;
 
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.Optional;
@@ -37,17 +37,17 @@ class Functions {
     private Functions() {
     }
 
-    @CodeReflection
+    @Reflect
     static int sum(int a, int b) {
         return a + b;
     }
 
-    @CodeReflection
+    @Reflect
     static int max(int a, int b) {
         return Math.max(a, b);
     }
 
-    @CodeReflection
+    @Reflect
     static int cdiv(int x, int div) {
         return (x + div - 1) / div;
     }
@@ -55,7 +55,7 @@ class Functions {
     static CoreOp.FuncOp getJavaCodeModel(String name) {
         Optional<Method> om = Stream.of(Functions.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
-                .filter(m -> m.getAnnotation(CodeReflection.class) != null)
+                .filter(m -> m.getAnnotation(Reflect.class) != null)
                 .findFirst();
 
         Method m = om.get();

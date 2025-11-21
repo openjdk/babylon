@@ -29,7 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 @ExtendWith(TritonTestExtension.class)
@@ -61,7 +61,7 @@ public class TestAddKernel {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void add_kernel(Ptr x_ptr,  // *Pointer* to first input vector.
                            Ptr y_ptr,  // *Pointer* to second input vector.
                            Ptr output_ptr,  // *Pointer* to output vector.
@@ -130,7 +130,7 @@ public class TestAddKernel {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void add_kernel2(Ptr x_ptr,  // *Pointer* to first input vector.
                             Ptr y_ptr,  // *Pointer* to second input vector.
                             Ptr output_ptr,  // *Pointer* to output vector.

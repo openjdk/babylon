@@ -57,7 +57,7 @@ import java.awt.Point;
 import static hat.ifacemapper.MappableIface.*;
 
 import hat.util.ui.SevenSegmentDisplay;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.stream.IntStream;
 
 public class Compute {
@@ -174,22 +174,22 @@ public class Compute {
       //  healTB.setText(Long.toString(System.currentTimeMillis() - start));
     }
 
-    @CodeReflection
+    @Reflect
     static int red(int rgb) {
         return (rgb >> 16) & 0xff;
     }
 
-    @CodeReflection
+    @Reflect
     static int green(int rgb) {
         return (rgb >> 8) & 0xff;
     }
 
-    @CodeReflection
+    @Reflect
     static int blue(int rgb) {
         return rgb & 0xff;
     }
 
-    @CodeReflection
+    @Reflect
     public static void bestFitCore(int id,
                                    @RO S32Array2D s32Array2D,
                                    @RO Box searchArea,
@@ -229,7 +229,7 @@ public class Compute {
         sumArray.array(id,sum);
     }
 
-    @CodeReflection
+    @Reflect
     public static void bestFitKernel(@RO KernelContext kc,
                                      @RO S32Array2D s32Array2D,
                                      @RO Box searchArea,
@@ -239,7 +239,7 @@ public class Compute {
         bestFitCore(kc.gix, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 
-    @CodeReflection
+    @Reflect
     public static void  bestFitCompute(@RO ComputeContext cc,
                                        @WO Point bestMatchOffset,
                                        @RO S32Array2D s32Array2D,

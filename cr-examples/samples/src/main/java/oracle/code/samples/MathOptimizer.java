@@ -24,14 +24,13 @@
  */
 package oracle.code.samples;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -74,7 +73,7 @@ import java.util.stream.Stream;
  */
 public class MathOptimizer {
 
-    @CodeReflection
+    @Reflect
     private static double myFunction(int value) {
         return Math.pow(2, value);
     }

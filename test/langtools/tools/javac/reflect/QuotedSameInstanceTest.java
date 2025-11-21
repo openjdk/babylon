@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
 
@@ -19,7 +19,7 @@ import java.util.stream.IntStream;
 
 public class QuotedSameInstanceTest {
 
-    private static final Runnable q1 = (@CodeReflection Runnable) () -> {
+    private static final Runnable q1 = (@Reflect Runnable) () -> {
     };
 
     @Test
@@ -27,7 +27,7 @@ public class QuotedSameInstanceTest {
         Assertions.assertSame(Op.ofQuotable(q1).get(), Op.ofQuotable(q1).get());
     }
 
-    @CodeReflection
+    @Reflect
     interface QuotableIntUnaryOperator extends IntUnaryOperator { }
     private static final QuotableIntUnaryOperator q2 = x -> x;
 
@@ -39,9 +39,9 @@ public class QuotedSameInstanceTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public interface QuotableIntSupplier extends IntSupplier {}
-    @CodeReflection
+    @Reflect
     static QuotableIntSupplier q() {
         QuotableIntSupplier r = () -> 8;
         return r;

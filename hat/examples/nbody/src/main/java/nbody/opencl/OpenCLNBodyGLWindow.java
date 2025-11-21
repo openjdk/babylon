@@ -30,7 +30,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.ifacemapper.BufferState;
 import hat.NDRange;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
 import nbody.Universe;
@@ -67,7 +67,7 @@ import static opengl.opengl_h.GL_TEXTURE_2D;
 public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
 
-    @CodeReflection
+    @Reflect
     static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
@@ -96,7 +96,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         me.vz(me.vz() + accz);
     }
 
-    @CodeReflection
+    @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, float mass, float delT, float espSqr) {
         float cmass = mass;
         float cdelT = delT;

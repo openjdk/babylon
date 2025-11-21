@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -42,7 +42,7 @@ import java.util.stream.Stream;
 
 public class TestForOp {
 
-    @CodeReflection
+    @Reflect
     public static int f() {
         int j = 0;
         for (int i = 0; i < 10; i++) {
@@ -64,7 +64,7 @@ public class TestForOp {
         Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
-    @CodeReflection
+    @Reflect
     public static int f2() {
         int k = 0;
         for (int i = 0, j = 0; i < 10; i++, j++) {
@@ -87,7 +87,7 @@ public class TestForOp {
         Assertions.assertEquals(f2(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
-    @CodeReflection
+    @Reflect
     public static int f3() {
         int k = 0;
         int i = 0;

@@ -30,11 +30,11 @@
  * @run main CodeReflectionTester PrimitiveCastTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class PrimitiveCastTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testFromDouble" (%0 : java.type:"PrimitiveCastTest", %1 : java.type:"double")java.type:"void" -> {
                 %2 : Var<java.type:"double"> = var %1 @"v";
@@ -72,7 +72,7 @@ public class PrimitiveCastTest {
         byte b = (byte) v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testFromFloat" (%0 : java.type:"PrimitiveCastTest", %1 : java.type:"float")java.type:"void" -> {
                 %2 : Var<java.type:"float"> = var %1 @"v";
@@ -110,7 +110,7 @@ public class PrimitiveCastTest {
         byte b = (byte) v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testFromLong" (%0 : java.type:"PrimitiveCastTest", %1 : java.type:"long")java.type:"void" -> {
                 %2 : Var<java.type:"long"> = var %1 @"v";
@@ -148,7 +148,7 @@ public class PrimitiveCastTest {
         byte b = (byte) v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testFromInt" (%0 : java.type:"PrimitiveCastTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"v";
@@ -186,7 +186,7 @@ public class PrimitiveCastTest {
         byte b = (byte) v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testFromShort" (%0 : java.type:"PrimitiveCastTest", %1 : java.type:"short")java.type:"void" -> {
                 %2 : Var<java.type:"short"> = var %1 @"v";
@@ -224,7 +224,7 @@ public class PrimitiveCastTest {
         byte b = (byte) v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testFromChar" (%0 : java.type:"PrimitiveCastTest", %1 : java.type:"char")java.type:"void" -> {
                 %2 : Var<java.type:"char"> = var %1 @"v";
@@ -262,7 +262,7 @@ public class PrimitiveCastTest {
         byte b = (byte) v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testFromByte" (%0 : java.type:"PrimitiveCastTest", %1 : java.type:"byte")java.type:"void" -> {
                 %2 : Var<java.type:"byte"> = var %1 @"v";
