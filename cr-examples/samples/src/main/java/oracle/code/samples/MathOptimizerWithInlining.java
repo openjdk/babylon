@@ -24,7 +24,7 @@
  */
 package oracle.code.samples;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
@@ -35,7 +35,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandles;
@@ -66,7 +65,7 @@ import java.util.stream.Stream;
  *     In a nutshell, we apply a second transform to perform the inlining. Note that the inlining could be done
  *     also in within the first transform.
  *     To be able to inline, we need to also annotate the new invoke nodes that were replaced during the first
- *     transform with the <code>@CodeReflection</code> annotation. In this way, we can build the code models for
+ *     transform with the <code>@Reflect</code> annotation. In this way, we can build the code models for
  *     each of the methods and apply the inlining directly using the <code>Inliner.inline</code> from the code
  *     reflection API.
  * </p>
@@ -85,17 +84,17 @@ import java.util.stream.Stream;
 public class MathOptimizerWithInlining {
 
     // New functions are also annotated with code reflection
-    @CodeReflection
+    @Reflect
     private static double myFunction(int value) {
         return Math.pow(2, value);
     }
 
-    @CodeReflection
+    @Reflect
     private static int functionShift(int val) {
         return 1 << val;
     }
 
-    @CodeReflection
+    @Reflect
     private static double functionMult(double x) {
         return x * x;
     }

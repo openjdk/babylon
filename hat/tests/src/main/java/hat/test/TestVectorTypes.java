@@ -35,7 +35,7 @@ import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -44,7 +44,7 @@ import java.util.Random;
 
 public class TestVectorTypes {
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps01(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -55,7 +55,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -66,7 +66,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps03(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -89,7 +89,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -102,7 +102,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps05(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -113,7 +113,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps06(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -125,7 +125,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps07(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -136,7 +136,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps08(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -147,7 +147,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps09(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         // Checking composition
         if (kernelContext.gix < kernelContext.gsx) {
@@ -177,7 +177,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps10(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
@@ -209,7 +209,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps11(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         PrivateMemory pm = PrivateMemory.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
@@ -222,7 +222,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps12(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
@@ -239,7 +239,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps14(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -250,7 +250,7 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorOps15(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
         // in this sample, we don't perform the vload, but rather the vstore directly
         // from a new float4.
@@ -261,42 +261,42 @@ public class TestVectorTypes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4), NDRange.Local1D.of(128));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps01(kernelContext, a, b, c));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps02(kernelContext, a, b));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps03(kernelContext, a, b));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps04(kernelContext, a, b));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps05(kernelContext, a, b, c));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
@@ -304,56 +304,56 @@ public class TestVectorTypes {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps07(kernelContext, a, b, c));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));
         cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
     }
 
-    @CodeReflection
+    @Reflect
     public static void computeGraph15(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size/4));

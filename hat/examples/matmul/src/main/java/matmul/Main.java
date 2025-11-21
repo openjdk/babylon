@@ -36,7 +36,7 @@ import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -77,7 +77,7 @@ public class Main {
      * @param matrixC
      * @param size
      */
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
@@ -99,7 +99,7 @@ public class Main {
      * @param matrixC
      * @param size
      */
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
@@ -135,7 +135,7 @@ public class Main {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         final int tileSize = 16;
@@ -248,7 +248,7 @@ public class Main {
      * @param matrixC
      * @param size
      */
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
@@ -370,7 +370,7 @@ public class Main {
      * @param matrixC
      * @param size
      */
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
@@ -518,7 +518,7 @@ public class Main {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
@@ -624,7 +624,7 @@ public class Main {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
@@ -642,7 +642,7 @@ public class Main {
      * @param matrixC
      * @param size
      */
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
@@ -658,7 +658,7 @@ public class Main {
     /**
      * 1D Matrix Multiply with function calls passing the kernel context ID. This is just for testing purposes.
      */
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
@@ -668,7 +668,7 @@ public class Main {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(globalSize), NDRange.Local1D.of(16));
         cc.dispatchKernel(ndRange,
@@ -678,7 +678,7 @@ public class Main {
 
     final static int BLOCK_SIZE = 16;
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(size), NDRange.Local1D.of(16));
         cc.dispatchKernel(ndRange,
@@ -686,7 +686,7 @@ public class Main {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
         NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(ndRange,
@@ -694,7 +694,7 @@ public class Main {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
         NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(ndRange,
@@ -702,7 +702,7 @@ public class Main {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
         NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(ndRange,
@@ -710,7 +710,7 @@ public class Main {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
         NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
         cc.dispatchKernel(ndRange,
@@ -718,7 +718,7 @@ public class Main {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW F32ArrayPadded matrixC, int globalSize) {
         NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
         cc.dispatchKernel(ndRange,
@@ -726,7 +726,7 @@ public class Main {
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DRegisterTilingHalf(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
         NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
         cc.dispatchKernel(ndRange,

@@ -29,7 +29,7 @@
  * @run main TestAnfTransform
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
@@ -41,7 +41,7 @@ import java.util.List;
 
 public class TestAnfTransform {
 
-    @CodeReflection
+    @Reflect
     public static int fibonacci(int v) {
         if (v == 0) {
             return 0;

@@ -22,7 +22,7 @@
  */
 
 import java.io.PrintStream;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.Spliterator;
 import java.util.Spliterator.OfInt;
 
@@ -42,7 +42,7 @@ public class FieldAccessTest {
     static int s_f;
     int f;
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @1;
@@ -57,7 +57,7 @@ public class FieldAccessTest {
         f = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1_1" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -76,7 +76,7 @@ public class FieldAccessTest {
         s_f += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @1;
@@ -89,7 +89,7 @@ public class FieldAccessTest {
         s_f = f = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2_1" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @1;
@@ -101,7 +101,7 @@ public class FieldAccessTest {
         this.f = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2_2" (%0 : java.type:"FieldAccessTest")java.type:"int" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -112,7 +112,7 @@ public class FieldAccessTest {
         return this.f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2_3" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @1;
@@ -124,7 +124,7 @@ public class FieldAccessTest {
         FieldAccessTest.this.f = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2_4" (%0 : java.type:"FieldAccessTest")java.type:"int" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -135,7 +135,7 @@ public class FieldAccessTest {
         return FieldAccessTest.this.f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"FieldAccessTest")java.type:"int" -> {
                 %1 : java.type:"int" = field.load @java.ref:"FieldAccessTest::s_f:int";
@@ -160,7 +160,7 @@ public class FieldAccessTest {
         int f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"FieldAccessTest", %1 : java.type:"FieldAccessTest$A")java.type:"void" -> {
                 %2 : Var<java.type:"FieldAccessTest$A"> = var %1 @"a";
@@ -181,7 +181,7 @@ public class FieldAccessTest {
         static int s_f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"FieldAccessTest")java.type:"int" -> {
                 %1 : java.type:"int" = field.load @java.ref:"FieldAccessTest$X::s_f:int";
@@ -192,7 +192,7 @@ public class FieldAccessTest {
         return X.s_f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @1;
@@ -205,7 +205,7 @@ public class FieldAccessTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -224,7 +224,7 @@ public class FieldAccessTest {
         s_f += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -243,7 +243,7 @@ public class FieldAccessTest {
         this.s_f += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load @java.ref:"FieldAccessTest$X::s_f:int";
@@ -257,7 +257,7 @@ public class FieldAccessTest {
         X.s_f += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -272,7 +272,7 @@ public class FieldAccessTest {
         s_f = f += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"FieldAccessTest", %1 : java.type:"FieldAccessTest$A")java.type:"void" -> {
                 %2 : Var<java.type:"FieldAccessTest$A"> = var %1 @"a";
@@ -290,7 +290,7 @@ public class FieldAccessTest {
         a.b.c.f += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test12" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -311,7 +311,7 @@ public class FieldAccessTest {
         int y = f--;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test13" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -332,7 +332,7 @@ public class FieldAccessTest {
         int y = this.f--;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test14" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load @java.ref:"FieldAccessTest::s_f:int";
@@ -353,7 +353,7 @@ public class FieldAccessTest {
         int y = s_f--;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test15" (%0 : java.type:"FieldAccessTest", %1 : java.type:"FieldAccessTest$X")java.type:"void" -> {
                 %2 : Var<java.type:"FieldAccessTest$X"> = var %1 @"h";
@@ -380,7 +380,7 @@ public class FieldAccessTest {
 
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test16" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -401,7 +401,7 @@ public class FieldAccessTest {
         int y = --f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test17" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest::f:int";
@@ -422,7 +422,7 @@ public class FieldAccessTest {
         int y = --this.f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test18" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load @java.ref:"FieldAccessTest::s_f:int";
@@ -443,7 +443,7 @@ public class FieldAccessTest {
         int y = --s_f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test19" (%0 : java.type:"FieldAccessTest", %1 : java.type:"FieldAccessTest$X")java.type:"void" -> {
                 %2 : Var<java.type:"FieldAccessTest$X"> = var %1 @"h";
@@ -471,7 +471,7 @@ public class FieldAccessTest {
         int yf;
         static int s_yf;
 
-        @CodeReflection
+        @Reflect
         @IR("""
                 func @"test" (%0 : java.type:"FieldAccessTest$Y")java.type:"void" -> {
                     %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest$Y::f:int";
@@ -486,7 +486,7 @@ public class FieldAccessTest {
             x = s_f;
         }
 
-        @CodeReflection
+        @Reflect
         @IR("""
                 func @"test2" (%0 : java.type:"FieldAccessTest$Y")java.type:"void" -> {
                     %1 : java.type:"int" = constant @1;
@@ -501,7 +501,7 @@ public class FieldAccessTest {
             s_f = 1;
         }
 
-        @CodeReflection
+        @Reflect
         @IR("""
                 func @"test3" (%0 : java.type:"FieldAccessTest$Y")java.type:"void" -> {
                     %1 : java.type:"int" = field.load %0 @java.ref:"FieldAccessTest$Y::f:int";
@@ -521,7 +521,7 @@ public class FieldAccessTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test20" (%0 : java.type:"FieldAccessTest", %1 : java.type:"FieldAccessTest$Y")java.type:"void" -> {
                 %2 : Var<java.type:"FieldAccessTest$Y"> = var %1 @"y";
@@ -553,7 +553,7 @@ public class FieldAccessTest {
         x = Y.s_f;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test21" (%0 : java.type:"FieldAccessTest", %1 : java.type:"FieldAccessTest$Y")java.type:"void" -> {
                 %2 : Var<java.type:"FieldAccessTest$Y"> = var %1 @"y";
@@ -585,7 +585,7 @@ public class FieldAccessTest {
         Y.s_f = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test22" (%0 : java.type:"FieldAccessTest", %1 : java.type:"FieldAccessTest$Y")java.type:"void" -> {
                 %2 : Var<java.type:"FieldAccessTest$Y"> = var %1 @"y";
@@ -630,7 +630,7 @@ public class FieldAccessTest {
     }
 
     // @@@ Should propagate as constant value?
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test23" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load @java.ref:"java.util.Spliterator$OfInt::CONCURRENT:int";
@@ -648,7 +648,7 @@ public class FieldAccessTest {
         x = CONCURRENT;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test24" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
                 %1 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
@@ -668,7 +668,7 @@ public class FieldAccessTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test25" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.String" = constant @"abc";

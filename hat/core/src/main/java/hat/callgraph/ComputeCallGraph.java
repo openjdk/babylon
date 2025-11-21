@@ -134,7 +134,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
      * 2) calls to buffer based interface mappings
      *    a) getters (return non void)
      *    b) setters (return void)
-     *    c) default helpers with @CodeReflection?
+     *    c) default helpers with @Reflect?
      * 3) calls to the compute context
      *    a) kernel dispatches
      *    b) mapped math functions?

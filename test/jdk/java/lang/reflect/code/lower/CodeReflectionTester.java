@@ -26,12 +26,12 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.CodeReflection;
 
 public class CodeReflectionTester {
 
@@ -47,7 +47,7 @@ public class CodeReflectionTester {
     }
 
     static void check(Method method) throws ReflectiveOperationException {
-        if (!method.isAnnotationPresent(CodeReflection.class)) {
+        if (!method.isAnnotationPresent(Reflect.class)) {
             return;
         }
 

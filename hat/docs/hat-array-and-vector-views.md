@@ -22,19 +22,19 @@
 Here is the canonical HAT example
 
 ```java
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
-@CodeReflection
+@Reflect
 public class Square {
-  @CodeReflection
-  public static void kernel(KernelContext kc, S32Arr s32Arr) {
-    s32Arr.array(kc.x, s32Arr.array(kc.x) * s32Arr.array(kc.x));
-  }
+    @Reflect
+    public static void kernel(KernelContext kc, S32Arr s32Arr) {
+        s32Arr.array(kc.x, s32Arr.array(kc.x) * s32Arr.array(kc.x));
+    }
 
-  @CodeReflection
-  public static void compute(ComputeContext cc, S32Arr s32Arr) {
-    cc.dispatchKernel(s32Arr.length(), kc -> kernel(kc, s32Arr));
-  }
+    @Reflect
+    public static void compute(ComputeContext cc, S32Arr s32Arr) {
+        cc.dispatchKernel(s32Arr.length(), kc -> kernel(kc, s32Arr));
+    }
 }
 ```
 
@@ -42,7 +42,7 @@ This code in the kernel has always bothered me.  One downside of using MemorySeg
 in HAT is that we have made what in array form, would be simple code, look verbose.
 
 ```java
- @CodeReflection
+ @Reflect
   public static void kernel(KernelContext kc, S32Arr s32Arr) {
     s32Arr.array(kc.x, s32Arr.array(kc.x) * s32Arr.array(kc.x));
   }
@@ -52,7 +52,7 @@ But what if we added a method (`int[] arrayView()`) to `S32Arr` to extract a jav
 
 Becomes way more readable.
 ```java
- @CodeReflection
+ @Reflect
   public static void kernel(KernelContext kc, S32Arr s32Arr) {
     int[] arr = s32Arr.arrayView();
     arr[kc.x] *= arr[kc.x];
@@ -113,14 +113,14 @@ This code uses a helper function `val(grid, offset, w, dx, dy)` to extract the n
 Val is a bit verbose
 
 ```java
-  @CodeReflection
+  @Reflect
         public static int val(@RO CellGrid grid, int from, int w, int x, int y) {
             return grid.cell(((long) y * w) + x + from) & 1;
         }
 ```
 
 ```java
-  @CodeReflection
+  @Reflect
         public static int val(@RO CellGrid grid, int from, int w, int x, int y) {
             byte[] bytes = grid.byteView(); // bit view would be nice ;)
             return bytes[ y * w + x + from] & 1;
@@ -175,7 +175,7 @@ The arrayView trick actually leads us to other possibilities.
 Let's look at current NBody code.
 
 ```java
-  @CodeReflection
+  @Reflect
     static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;

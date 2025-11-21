@@ -32,18 +32,18 @@ import hat.backend.Backend;
 import hat.buffer.S32Array;
 
 import static hat.ifacemapper.MappableIface.*;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
 public class Main {
-    @CodeReflection
+    @Reflect
     public static int squareit(int v) {
         return  v * v;
 
     }
 
-    @CodeReflection
+    @Reflect
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.gix < kc.gsx){
            int value = s32Array.array(kc.gix);       // arr[cc.x]
@@ -51,7 +51,7 @@ public class Main {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
         cc.dispatchKernel(NDRange.of(NDRange.Global1D.of(s32Array.length())),
                 kc -> squareKernel(kc, s32Array)

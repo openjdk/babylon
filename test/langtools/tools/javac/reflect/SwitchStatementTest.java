@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.Collection;
 import java.util.RandomAccess;
 import java.util.Stack;
@@ -70,7 +70,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleExpression(String r) {
         String s = "";
         switch (r) {
@@ -140,7 +140,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleBlock(String r) {
         String s = "";
         switch (r) {
@@ -218,7 +218,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantStatement(String s) {
         String r = "";
         switch (s) {
@@ -296,7 +296,7 @@ public class SwitchStatementTest {
                 return %25;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantMultiLabels(char c) {
         String r = "";
         switch (Character.toLowerCase(c)) {
@@ -354,7 +354,7 @@ public class SwitchStatementTest {
                 return %21;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantThrow(Integer i) {
         String r = "";
         switch (i) {
@@ -399,7 +399,7 @@ public class SwitchStatementTest {
                 return %15;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantNullLabel(String s) {
         String r = "";
         switch (s) {
@@ -409,7 +409,7 @@ public class SwitchStatementTest {
         return r;
     }
 
-//    @CodeReflection
+//    @Reflect
 //    @@@ not supported
     private static String caseConstantNullAndDefault(String s) {
         String r = "";
@@ -462,7 +462,7 @@ public class SwitchStatementTest {
                 return %18;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantFallThrough(char c) {
         String r = "";
         switch (c) {
@@ -561,7 +561,7 @@ public class SwitchStatementTest {
                 return %37;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantEnum(Day d) {
         String r = "";
         switch (d) {
@@ -790,7 +790,7 @@ public class SwitchStatementTest {
                 return %113;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantOtherKindsOfExpr(int i) {
         String r = "";
         final int eleven = 11;
@@ -879,7 +879,7 @@ public class SwitchStatementTest {
                 return %35;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseConstantConv(short a) {
         final short s = 1;
         final byte b = 2;
@@ -945,7 +945,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseConstantConv2(Byte a) {
         final byte b = 2;
         String r = "";
@@ -992,7 +992,7 @@ public class SwitchStatementTest {
                 return %17;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String nonEnhancedSwStatNoDefault(int a) {
         String r = "";
         switch (a) {
@@ -1060,7 +1060,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String enhancedSwStatNoDefault1(E e) {
         String r = "";
         switch (e) {
@@ -1135,7 +1135,7 @@ public class SwitchStatementTest {
                 return %25;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String enhancedSwStatNoDefault2(I i) {
         String r = "";
         switch (i) {
@@ -1189,7 +1189,7 @@ public class SwitchStatementTest {
                 return %20;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String enhancedSwStatUnconditionalPattern(String s) {
         String r = "";
         switch (s) {
@@ -1263,7 +1263,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternRuleExpression(Object o) {
         String r = "";
         switch (o) {
@@ -1338,7 +1338,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternRuleBlock(Object o) {
         String r = "";
         switch (o) {
@@ -1419,7 +1419,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternStatement(Object o) {
         String r = "";
         switch (o) {
@@ -1498,7 +1498,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternThrow(Object o) {
         String r = "";
         switch (o) {
@@ -1510,7 +1510,7 @@ public class SwitchStatementTest {
     }
 
     // @@@ code model for such as code is not supported
-//    @CodeReflection
+//    @Reflect
     private static String casePatternMultiLabel(Object o) {
         String r = "";
         switch (o) {
@@ -1619,7 +1619,7 @@ public class SwitchStatementTest {
                 return %44;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String casePatternWithCaseConstant(Integer a) {
         String r = "";
         switch (a) {
@@ -1780,7 +1780,7 @@ public class SwitchStatementTest {
                 return %63;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseTypePattern(Object o) {
         String r = "";
         switch (o) {
@@ -1840,7 +1840,7 @@ public class SwitchStatementTest {
                 return %19;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseRecordPattern(Object o) {
         String r = "";
         switch (o) {
@@ -1941,7 +1941,7 @@ public class SwitchStatementTest {
                 return %42;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String casePatternGuard(Object obj) {
         String r = "";
         switch (obj) {
@@ -1998,7 +1998,7 @@ public class SwitchStatementTest {
                 return %21;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String defaultCaseNotTheLast(String s) {
         String r = "";
         switch (s) {
@@ -2027,7 +2027,7 @@ public class SwitchStatementTest {
                   return %7;
               };
             """)
-    @CodeReflection
+    @Reflect
     static int f(int i) {
         switch (i) {
             case 0 -> {

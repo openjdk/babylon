@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 
 public class SwitchExpressionTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"constantCaseLabelRule" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
@@ -90,7 +90,7 @@ public class SwitchExpressionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"constantCaseLabelsRule" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
@@ -139,7 +139,7 @@ public class SwitchExpressionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"constantCaseLabelStatement" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
@@ -192,7 +192,7 @@ public class SwitchExpressionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"constantCaseLabelsStatement" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
@@ -242,7 +242,7 @@ public class SwitchExpressionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"constantCaseLabelStatements" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
@@ -289,7 +289,7 @@ public class SwitchExpressionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"constantCaseLabelFallthrough" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
@@ -332,7 +332,7 @@ public class SwitchExpressionTest {
     record A(Number n) {
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"patternCaseLabel" (%0 : java.type:"java.lang.Object")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"r";
@@ -400,7 +400,7 @@ public class SwitchExpressionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"patternCaseLabelGuard" (%0 : java.type:"java.lang.Object")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"r";

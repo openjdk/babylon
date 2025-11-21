@@ -27,7 +27,7 @@
  * @run junit TestBreakContinue
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 public class TestBreakContinue {
 
-    @CodeReflection
+    @Reflect
     public static BitSet forLoopBreakContinue(IntUnaryOperator f) {
         BitSet b = new BitSet();
         for (int i = 0; i < 8; i++) {
@@ -78,7 +78,7 @@ public class TestBreakContinue {
         Assertions.assertEquals(forLoopBreakContinue(o), Interpreter.invoke(MethodHandles.lookup(), lf, o));
     }
 
-    @CodeReflection
+    @Reflect
     public static BitSet nestedForLoopBreakContinue(IntUnaryOperator f) {
         BitSet b = new BitSet();
         for (int j = 0; j < 8; j++) {
@@ -122,7 +122,7 @@ public class TestBreakContinue {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static BitSet forLoopLabeledBreakContinue(IntUnaryOperator f) {
         BitSet b = new BitSet();
         outer: for (int j = 0; j < 8; j++) {
@@ -169,7 +169,7 @@ public class TestBreakContinue {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static BitSet blockBreak(IntUnaryOperator f) {
         BitSet b = new BitSet();
         a: b: {

@@ -21,10 +21,10 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class ClassWithReflectedMethod {
-    @CodeReflection       // 27
+    @Reflect       // 27
     static String f() {   // 28
         String a = "29";  // 29
         String b = "30";  // 30

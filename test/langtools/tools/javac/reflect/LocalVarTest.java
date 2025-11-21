@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -34,7 +34,7 @@ import jdk.incubator.code.CodeReflection;
 
 public class LocalVarTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @1;
@@ -53,7 +53,7 @@ public class LocalVarTest {
         return x + y;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"LocalVarTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
                 %3 : Var<java.type:"int"> = var %1 @"x";
@@ -68,7 +68,7 @@ public class LocalVarTest {
         return x + y;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var @"x";
@@ -91,7 +91,7 @@ public class LocalVarTest {
         return x + y;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @1;
@@ -110,7 +110,7 @@ public class LocalVarTest {
         return y;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @1;
@@ -127,7 +127,7 @@ public class LocalVarTest {
         return y;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @1;
@@ -151,7 +151,7 @@ public class LocalVarTest {
         return z;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @1;
@@ -179,7 +179,7 @@ public class LocalVarTest {
         return (y += 3) + (x += 4);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"LocalVarTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -201,7 +201,7 @@ public class LocalVarTest {
         int y = i--;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"LocalVarTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";

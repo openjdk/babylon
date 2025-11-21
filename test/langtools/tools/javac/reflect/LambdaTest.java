@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -36,7 +36,7 @@ import java.util.function.Supplier;
 
 public class LambdaTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"LambdaTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
@@ -60,7 +60,7 @@ public class LambdaTest {
         c.accept("Hello World");
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"LambdaTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
@@ -81,7 +81,7 @@ public class LambdaTest {
         String s = c.get();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"LambdaTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
@@ -98,7 +98,7 @@ public class LambdaTest {
 
     String s_f;
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"LambdaTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
@@ -115,7 +115,7 @@ public class LambdaTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"LambdaTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -167,7 +167,7 @@ public class LambdaTest {
 
     int f;
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"LambdaTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {

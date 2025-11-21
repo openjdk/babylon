@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -58,7 +58,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test1(boolean b, int x, int y) {
         int z = b ? x : y;
     }
@@ -87,7 +87,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test2(boolean b, int x, double y) {
         double z = !b ? x : y;
     }
@@ -123,7 +123,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test3(boolean b, int x, double y) {
         Supplier<Double> z = b ? () -> (double) x : () -> y;
     }
@@ -165,7 +165,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test4(boolean b1, boolean b2, int x, double y, double z) {
         double r = b1 ? (b2 ? x : y) : z;
     }

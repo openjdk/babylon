@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -41,7 +41,7 @@ public class TestVarArg {
         Assertions.assertEquals(f(), mh.invoke());
     }
 
-    @CodeReflection
+    @Reflect
     static String f() {
         String r = "";
         String ls = System.lineSeparator();

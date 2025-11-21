@@ -34,7 +34,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -46,7 +46,7 @@ public class TestLocalCapture {
     int x = 13;
     final int CONST = 1;
 
-    @CodeReflection
+    @Reflect
     public int sum(int y, int z) {
         final int localConst = 2;
         class Foo {

@@ -32,7 +32,7 @@ import hat.buffer.S32Array;
 
 import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.*;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
@@ -40,14 +40,14 @@ public class MinBufferTest {
 
 
     public static class Compute {
-        @CodeReflection
+        @Reflect
         public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
             if (kc.gix < kc.gsx) {
                 s32Array.array(kc.gix, s32Array.array(kc.gix) + 1);
             }
         }
 
-        @CodeReflection
+        @Reflect
         public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
             for (int i = 0; i < n; i++) {
                 cc.dispatchKernel(NDRange.of(len), kc -> inc(kc, s32Array, len));

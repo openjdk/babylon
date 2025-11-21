@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -42,23 +43,23 @@ public final class StreamFuser {
 
     // Quotable functional interfaces
 
-    @CodeReflection
+    @Reflect
     public interface QuotablePredicate<T> extends Predicate<T> {
     }
 
-    @CodeReflection
+    @Reflect
     public interface QuotableFunction<T, R> extends Function<T, R> {
     }
 
-    @CodeReflection
+    @Reflect
     public interface QuotableSupplier<T> extends Supplier<T> {
     }
 
-    @CodeReflection
+    @Reflect
     public interface QuotableConsumer<T> extends Consumer<T> {
     }
 
-    @CodeReflection
+    @Reflect
     public interface QuotableBiConsumer<T, U> extends BiConsumer<T, U> {
     }
 

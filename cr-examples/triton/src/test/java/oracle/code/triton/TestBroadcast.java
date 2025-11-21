@@ -29,7 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 import static oracle.code.triton.Triton.*;
@@ -62,7 +62,7 @@ public class TestBroadcast {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test1(Ptr ptr, int a, @Constant int s) {
         var t = arange(0, s);
         consume(add(ptr, t));
@@ -101,7 +101,7 @@ public class TestBroadcast {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test2(int a, @Constant int M, @Constant int N) {
         var m = arange(0, M);
         var me = expand(m, 0);

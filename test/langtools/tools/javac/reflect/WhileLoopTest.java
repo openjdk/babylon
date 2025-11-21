@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -33,7 +33,7 @@ import jdk.incubator.code.CodeReflection;
  */
 
 public class WhileLoopTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"WhileLoopTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -66,7 +66,7 @@ public class WhileLoopTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"WhileLoopTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @0;
@@ -94,7 +94,7 @@ public class WhileLoopTest {
         return -1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"WhileLoopTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @0;
@@ -156,7 +156,7 @@ public class WhileLoopTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test4() {
         Boolean b = true;
         int i = 0;
@@ -187,7 +187,7 @@ public class WhileLoopTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test5(int i) {
         Boolean b;
         do {

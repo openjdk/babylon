@@ -35,7 +35,7 @@ import jdk.incubator.code.Op;
 
 import java.lang.reflect.Method;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 
@@ -51,7 +51,7 @@ public class CustomOpTest {
         return 0;
     }
 
-    @CodeReflection
+    @Reflect
     public static void addMul(int add, int mul) {
         int len = myFunc(add);
     }

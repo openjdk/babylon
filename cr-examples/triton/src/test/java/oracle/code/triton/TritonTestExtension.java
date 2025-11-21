@@ -45,7 +45,7 @@ import java.nio.file.StandardOpenOption;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.extern.OpParser;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -85,7 +85,7 @@ public class TritonTestExtension implements ParameterResolver {
         public void test(List<? extends TypeElement> argTypes) {
             Optional<Method> om = Stream.of(testClass.getDeclaredMethods())
                     .filter(m -> m.getName().equals(javaKernelName))
-                    .filter(m -> m.getAnnotation(CodeReflection.class) != null)
+                    .filter(m -> m.getAnnotation(Reflect.class) != null)
                     .findFirst();
             Method m = om.get();
             TritonCodeModel tcm = m.getAnnotation(TritonCodeModel.class);

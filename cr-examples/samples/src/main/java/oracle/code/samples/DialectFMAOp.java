@@ -25,7 +25,7 @@
 package oracle.code.samples;
 
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
@@ -37,13 +37,9 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -68,7 +64,7 @@ import java.util.stream.Stream;
  */
 public class DialectFMAOp {
 
-    @CodeReflection
+    @Reflect
     public static float compute(float a, float b, float c) {
         return a * b + c;
     }

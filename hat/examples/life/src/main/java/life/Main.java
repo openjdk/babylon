@@ -32,7 +32,7 @@ import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -140,7 +140,7 @@ public class Main {
                 """;
 
 
-        @CodeReflection
+        @Reflect
         public static int val(@RO CellGrid grid, int from, int w, int x, int y) {
             return grid.cell(((long) y * w) + x + from) & 1;
         }
@@ -171,7 +171,7 @@ public class Main {
                 }
                 """;
 
-        @CodeReflection
+        @Reflect
         public static void lifePerIdx(int idx, @RO Control control, @RW CellGrid cellGrid) {
             int w = cellGrid.width();
             int h = cellGrid.height();
@@ -196,7 +196,7 @@ public class Main {
         }
 
 
-        @CodeReflection
+        @Reflect
         public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
             if (kc.gix < kc.gsx) {
                 Compute.lifePerIdx(kc.gix, control, cellGrid);
@@ -206,7 +206,7 @@ public class Main {
 
 
 
-        @CodeReflection
+        @Reflect
         static public void compute(final @RO ComputeContext cc,
                                    Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();

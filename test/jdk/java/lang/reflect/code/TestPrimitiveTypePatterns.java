@@ -1,5 +1,5 @@
 import jdk.incubator.code.Body;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -168,7 +168,7 @@ public class TestPrimitiveTypePatterns {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static boolean identityPrimitive(short s) {
         return s instanceof short _;
     }
@@ -184,7 +184,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Short.MAX_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean wideningNarrowingPrimitive(byte s) {
         return s instanceof char _;
     }
@@ -201,7 +201,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean boxing(int s) {
         return s instanceof Integer _;
     }
@@ -218,7 +218,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean boxingWideningReference(int s) {
         return s instanceof Number _;
     }
@@ -235,7 +235,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean narrowingReferenceUnboxing(Number n) {
         return n instanceof int _;
     }
@@ -252,7 +252,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean unboxing(Integer n) {
         return n instanceof int _;
     }
@@ -269,7 +269,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean unboxingWideningPrimitive(Integer n) {
         return n instanceof long _;
     }
@@ -286,7 +286,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean wideningReference(String s) {
         return s instanceof Object _;
     }
@@ -303,7 +303,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, "str"));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean identityReference(Float f) {
         return f instanceof Float _;
     }
@@ -322,7 +322,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.NEGATIVE_INFINITY));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean narrowingReference(Number n) {
         return n instanceof Double _;
     }
@@ -341,7 +341,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Double.NEGATIVE_INFINITY));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean wideningPrimitive(int i) {
         return i instanceof long _;
     }

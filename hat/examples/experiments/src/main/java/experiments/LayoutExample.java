@@ -41,7 +41,7 @@ import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -90,7 +90,7 @@ public class LayoutExample {
         }
 
 
-    @CodeReflection
+    @Reflect
     static float m(Outer s1) {
         // StructOne* s1
         // s1 -> i

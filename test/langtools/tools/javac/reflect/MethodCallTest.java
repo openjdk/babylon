@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class MethodCallTest {
         return 0;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
                 invoke %0 @java.ref:"MethodCallTest::m():void";
@@ -54,7 +54,7 @@ public class MethodCallTest {
         m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
                 invoke %0 @java.ref:"MethodCallTest::m():void";
@@ -65,7 +65,7 @@ public class MethodCallTest {
         this.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2_1" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
                 invoke %0 @java.ref:"MethodCallTest::m():void";
@@ -76,7 +76,7 @@ public class MethodCallTest {
         MethodCallTest.this.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"MethodCallTest")java.type:"int" -> {
                 %1 : java.type:"int" = invoke %0 @java.ref:"MethodCallTest::m_int():int";
@@ -91,7 +91,7 @@ public class MethodCallTest {
     static void ms() {
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
                 invoke @java.ref:"MethodCallTest::ms():void";
@@ -102,7 +102,7 @@ public class MethodCallTest {
         ms();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4_1" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
                 invoke @java.ref:"MethodCallTest::ms():void";
@@ -113,7 +113,7 @@ public class MethodCallTest {
         MethodCallTest.ms();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4_2" (%0 : java.type:"MethodCallTest")java.type:"java.util.List<java.lang.String>" -> {
                 %1 : java.type:"java.util.List<java.lang.String>" = invoke @java.ref:"java.util.List::of():java.util.List";
@@ -128,7 +128,7 @@ public class MethodCallTest {
         return s;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"MethodCallTest", %1 : java.type:"java.util.List<java.lang.Number>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.Number>"> = var %1 @"l";
@@ -165,7 +165,7 @@ public class MethodCallTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"MethodCallTest", %1 : java.type:"MethodCallTest$A")java.type:"void" -> {
                 %2 : Var<java.type:"MethodCallTest$A"> = var %1 @"a";
@@ -180,7 +180,7 @@ public class MethodCallTest {
         a.m().m().m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"MethodCallTest", %1 : java.type:"MethodCallTest$A")java.type:"void" -> {
                 %2 : Var<java.type:"MethodCallTest$A"> = var %1 @"a";
@@ -194,7 +194,7 @@ public class MethodCallTest {
         a.b.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"MethodCallTest", %1 : java.type:"java.lang.String")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -219,7 +219,7 @@ public class MethodCallTest {
         void y() {}
         static void sy() {}
 
-        @CodeReflection
+        @Reflect
         @IR("""
                 func @"test" (%0 : java.type:"MethodCallTest$Y")java.type:"void" -> {
                     invoke %0 @java.ref:"MethodCallTest$Y::x():void";
@@ -243,7 +243,7 @@ public class MethodCallTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"MethodCallTest$Y")java.type:"void" -> {
                 %1 : Var<java.type:"MethodCallTest$Y"> = var %0 @"y";
@@ -271,7 +271,7 @@ public class MethodCallTest {
         Y.sy();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"java.util.ArrayList<java.lang.String>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.ArrayList<java.lang.String>"> = var %0 @"al";

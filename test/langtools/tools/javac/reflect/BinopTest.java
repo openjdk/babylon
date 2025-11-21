@@ -30,11 +30,11 @@
  * @run main CodeReflectionTester BinopTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class BinopTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test" (%0 : java.type:"BinopTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @5;
@@ -51,7 +51,7 @@ public class BinopTest {
         return 5 + 2 * 4 - 3;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"BinopTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @1;
@@ -68,7 +68,7 @@ public class BinopTest {
         return 1 + (2 + (3 + 4));
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"BinopTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @1;
@@ -85,7 +85,7 @@ public class BinopTest {
         return ((1 + 2) + 3) + 4;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"BinopTest", %1 : java.type:"int")java.type:"int" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -120,7 +120,7 @@ public class BinopTest {
         return (i += 1) + (i *= 1) + (i /= 1) + (i -= 1) + (i %= 1);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"BinopTest", %1 : java.type:"int")java.type:"boolean" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -135,7 +135,7 @@ public class BinopTest {
         return !(i == 0);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"BinopTest")java.type:"int" -> {
                 %1 : java.type:"int" = constant @5;
@@ -148,7 +148,7 @@ public class BinopTest {
         return 5 % 2;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"BinopTest", %1 : java.type:"double")java.type:"void" -> {
                 %2 : Var<java.type:"double"> = var %1 @"d";
@@ -227,7 +227,7 @@ public class BinopTest {
         d = -1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"BinopTest", %1 : java.type:"double")java.type:"void" -> {
                 %2 : Var<java.type:"double"> = var %1 @"d";
@@ -271,7 +271,7 @@ public class BinopTest {
         d %= 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"BinopTest", %1 : java.type:"byte", %2 : java.type:"byte", %3 : java.type:"short")java.type:"void" -> {
                 %4 : Var<java.type:"byte"> = var %1 @"a";

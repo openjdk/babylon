@@ -28,7 +28,7 @@ import java.io.UncheckedIOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
 
@@ -96,8 +96,8 @@ public class MNISTModel {
 
     // The machine learning model, a convolutional neural network,
     // which is a type of deep learning network.
-    // Annotated with code @CodeReflection so that the method's code is accessible
-    @CodeReflection
+    // Annotated with code @Reflect so that the method's code is accessible
+    @Reflect
     public Tensor<Float> cnn(Tensor<Float> inputImage) {
         // Scaling to 0-1
         var scaledInput = Div(inputImage, Constant(255f));

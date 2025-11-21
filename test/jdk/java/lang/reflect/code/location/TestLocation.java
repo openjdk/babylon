@@ -27,7 +27,7 @@
  * @run junit TestLocation
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
@@ -60,7 +60,7 @@ public class TestLocation {
         });
     }
 
-    @CodeReflection
+    @Reflect
     static int f(int m, int n) {
         int sum = 0;
         for (int i = 0; i < m; i++) {

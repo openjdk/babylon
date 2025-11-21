@@ -125,8 +125,8 @@ import jdk.incubator.code.bytecode.BytecodeGenerator;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
- * with the {@code CodeReflection} annotation. The model is expressed using the code
- * reflection API (see jdk.internal.java.lang.reflect.code).
+ * with the {@code Reflect} annotation. The model is expressed using the code
+ * reflection API (see {@code jdk.incubator.code}).
  */
 public class ReflectMethods extends TreeScannerPrev {
     protected static final Context.Key<ReflectMethods> reflectMethodsKey = new Context.Key<>();

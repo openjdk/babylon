@@ -28,7 +28,7 @@
  * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
@@ -67,103 +67,103 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class CoreBinaryOpsTest {
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int and(int left, int right) {
         return left & right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int add(int left, int right) {
         return left + right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int div(int left, int right) {
         return left / right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INT_LONG)
     static int leftShift(int left, int right) {
         return left << right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static int leftShiftIL(int left, long right) {
         return left << right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static long leftShiftLI(long left, int right) {
         return left << right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mod(int left, int right) {
         return left % right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mul(int left, int right) {
         return left * right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int or(int left, int right) {
         return left | right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INT_LONG)
     static int signedRightShift(int left, int right) {
         return left >> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static int signedRightShiftIL(int left, long right) {
         return left >> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static long signedRightShiftLI(long left, int right) {
         return left >> right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int sub(int left, int right) {
         return left - right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INT_LONG)
     static int unsignedRightShift(int left, int right) {
         return left >>> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static int unsignedRightShiftIL(int left, long right) {
         return left >>> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static long unsignedRightShiftLI(long left, int right) {
         return left >>> right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int xor(int left, int right) {
         return left ^ right;
@@ -329,7 +329,7 @@ public class CoreBinaryOpsTest {
         private static Stream<Method> codeReflectionMethods(Class<?> testClass) {
             return Arrays.stream(testClass.getDeclaredMethods())
                     .filter(method -> method.accessFlags().contains(AccessFlag.STATIC))
-                    .filter(method -> method.isAnnotationPresent(CodeReflection.class));
+                    .filter(method -> method.isAnnotationPresent(Reflect.class));
         }
 
     }

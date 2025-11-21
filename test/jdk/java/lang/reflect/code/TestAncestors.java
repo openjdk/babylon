@@ -28,6 +28,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ import static java.lang.System.out;
 public class TestAncestors {
 
     // Model with sufficient nested structure
-    @CodeReflection
+    @Reflect
     static void f() {
         out.println("X");
         {

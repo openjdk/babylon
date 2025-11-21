@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -42,7 +42,7 @@ import java.util.stream.Stream;
  */
 
 public class TestArrayCreation {
-    @CodeReflection
+    @Reflect
     public static String[] f() {
         return new String[10];
     }
@@ -56,7 +56,7 @@ public class TestArrayCreation {
         Assertions.assertArrayEquals(f(), (String[]) mh.invoke());
     }
 
-    @CodeReflection
+    @Reflect
     public static String[][] f2() {
         return new String[10][];
     }
@@ -70,7 +70,7 @@ public class TestArrayCreation {
         Assertions.assertArrayEquals(f2(), (String[][]) mh.invoke());
     }
 
-    @CodeReflection
+    @Reflect
     public static String[][] f3() {
         return new String[10][10];
     }
@@ -84,7 +84,7 @@ public class TestArrayCreation {
         Assertions.assertArrayEquals(f3(), (String[][]) mh.invoke());
     }
 
-    @CodeReflection
+    @Reflect
     public static String[][] f4() {
         return new String[][]{{"one", "two"}, {"three"}};
     }

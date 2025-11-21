@@ -28,7 +28,7 @@
  */
 
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 public class TestTraverse {
 
-    @CodeReflection
+    @Reflect
     private static int f(String s, int i, List<Object> acc) {
         char c = s.charAt(i);
         int d = (c - '0');

@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -31,18 +32,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.opentest4j.TestSkippedException;
 
-import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -59,7 +55,7 @@ import java.util.stream.Stream;
 
 public class TestBytecodeLift {
 
-    @CodeReflection
+    @Reflect
     static int intNumOps(int i, int j, int k) {
         k++;
         i = (i + j) / k - i % j;
@@ -67,7 +63,7 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static byte byteNumOps(byte i, byte j, byte k) {
         k++;
         i = (byte) ((i + j) / k - i % j);
@@ -75,7 +71,7 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static short shortNumOps(short i, short j, short k) {
         k++;
         i = (short) ((i + j) / k - i % j);
@@ -83,7 +79,7 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static char charNumOps(char i, char j, char k) {
         k++;
         i = (char) ((i + j) / k - i % j);
@@ -91,7 +87,7 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static long longNumOps(long i, long j, long k) {
         k++;
         i = (i + j) / k - i % j;
@@ -99,7 +95,7 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static float floatNumOps(float i, float j, float k) {
         k++;
         i = (i + j) / k - i % j;
@@ -107,7 +103,7 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static double doubleNumOps(double i, double j, double k) {
         k++;
         i = (i + j) / k - i % j;
@@ -115,62 +111,62 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static int intBitOps(int i, int j, int k) {
         return ~(i & j | k ^ j);
     }
 
-    @CodeReflection
+    @Reflect
     static byte byteBitOps(byte i, byte j, byte k) {
         return (byte) ~(i & j | k ^ j);
     }
 
-    @CodeReflection
+    @Reflect
     static short shortBitOps(short i, short j, short k) {
         return (short) ~(i & j | k ^ j);
     }
 
-    @CodeReflection
+    @Reflect
     static char charBitOps(char i, char j, char k) {
         return (char) ~(i & j | k ^ j);
     }
 
-    @CodeReflection
+    @Reflect
     static long longBitOps(long i, long j, long k) {
         return ~(i & j | k ^ j);
     }
 
-    @CodeReflection
+    @Reflect
     static boolean boolBitOps(boolean i, boolean j, boolean k) {
         return i & j | k ^ j;
     }
 
-    @CodeReflection
+    @Reflect
     static int intShiftOps(int i, int j, int k) {
         return ((-1 >> i) << (j << k)) >>> (k - j);
     }
 
-    @CodeReflection
+    @Reflect
     static byte byteShiftOps(byte i, byte j, byte k) {
         return (byte) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
-    @CodeReflection
+    @Reflect
     static short shortShiftOps(short i, short j, short k) {
         return (short) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
-    @CodeReflection
+    @Reflect
     static char charShiftOps(char i, char j, char k) {
         return (char) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
-    @CodeReflection
+    @Reflect
     static long longShiftOps(long i, long j, long k) {
         return ((-1 >> i) << (j << k)) >>> (k - j);
     }
 
-    @CodeReflection
+    @Reflect
     static Object[] boxingAndUnboxing(int i, byte b, short s, char c, Integer ii, Byte bb, Short ss, Character cc) {
         ii += i; ii += b; ii += s; ii += c;
         i += ii; i += bb; i += ss; i += cc;
@@ -180,39 +176,39 @@ public class TestBytecodeLift {
         return new Object[]{i, b, s, c};
     }
 
-    @CodeReflection
+    @Reflect
     static String constructor(String s, int i, int j) {
         return new String(s.getBytes(), i, j);
     }
 
-    @CodeReflection
+    @Reflect
     static Class<?> classArray(int i, int j) {
         Class<?>[] ifaces = new Class[1 + i + j];
         ifaces[0] = Function.class;
         return ifaces[0];
     }
 
-    @CodeReflection
+    @Reflect
     static String[] stringArray(int i, int j) {
         return new String[i];
     }
 
-    @CodeReflection
+    @Reflect
     static String[][] stringArray2(int i, int j) {
         return new String[i][];
     }
 
-    @CodeReflection
+    @Reflect
     static String[][] stringArrayMulti(int i, int j) {
         return new String[i][j];
     }
 
-    @CodeReflection
+    @Reflect
     static int[][] initializedIntArray(int i, int j) {
         return new int[][]{{i, j}, {i + j}};
     }
 
-    @CodeReflection
+    @Reflect
     static int ifElseCompare(int i, int j) {
         if (i < 3) {
             i += 1;
@@ -222,7 +218,7 @@ public class TestBytecodeLift {
         return i + j;
     }
 
-    @CodeReflection
+    @Reflect
     static int ifElseEquality(int i, int j) {
         if (j != 0) {
             if (i != 0) {
@@ -240,7 +236,7 @@ public class TestBytecodeLift {
         return i;
     }
 
-    @CodeReflection
+    @Reflect
     static int objectsCompare(Boolean b1, Boolean b2, Boolean b3) {
         Object a = b1;
         Object b = b2;
@@ -248,24 +244,24 @@ public class TestBytecodeLift {
         return a == b ? (a != c ? 1 : 2) : (b != c ? 3 : 4);
     }
 
-    @CodeReflection
+    @Reflect
     static int conditionalExpr(int i, int j) {
         return ((i - 1 >= 0) ? i - 1 : j - 1);
     }
 
-    @CodeReflection
+    @Reflect
     static int nestedConditionalExpr(int i, int j) {
         return (i < 2) ? (j < 3) ? i : j : i + j;
     }
 
     static final int[] MAP = {0, 1, 2, 3, 4};
 
-    @CodeReflection
+    @Reflect
     static int deepStackBranches(boolean a, boolean b) {
         return MAP[a ? MAP[b ? 1 : 2] : MAP[b ? 3 : 4]];
     }
 
-    @CodeReflection
+    @Reflect
     static int tryFinally(int i, int j) {
         try {
             i = i + j;
@@ -277,12 +273,12 @@ public class TestBytecodeLift {
 
     public record A(String s) {}
 
-    @CodeReflection
+    @Reflect
     static A newWithArgs(int i, int j) {
         return new A("hello world".substring(i, i + j));
     }
 
-    @CodeReflection
+    @Reflect
     static int loop(int n, int j) {
         int sum = 0;
         for (int i = 0; i < n; i++) {
@@ -292,7 +288,7 @@ public class TestBytecodeLift {
     }
 
 
-    @CodeReflection
+    @Reflect
     static int ifElseNested(int a, int b) {
         int c = a + b;
         int d = 10 - a + b;
@@ -314,7 +310,7 @@ public class TestBytecodeLift {
         return a + b + c + d;
     }
 
-    @CodeReflection
+    @Reflect
     static int nestedLoop(int m, int n) {
         int sum = 0;
         for (int i = 0; i < m; i++) {
@@ -325,41 +321,41 @@ public class TestBytecodeLift {
         return sum;
     }
 
-    @CodeReflection
+    @Reflect
     static int methodCall(int a, int b) {
         int i = Math.max(a, b);
         return Math.negateExact(i);
     }
 
-    @CodeReflection
+    @Reflect
     static int[] primitiveArray(int i, int j) {
         int[] ia = new int[i + 1];
         ia[0] = j;
         return ia;
     }
 
-    @CodeReflection
+    @Reflect
     static boolean not(boolean b) {
         return !b;
     }
 
-    @CodeReflection
+    @Reflect
     static boolean notCompare(int i, int j) {
         boolean b = i < j;
         return !b;
     }
 
-    @CodeReflection
+    @Reflect
     static int mod(int i, int j) {
         return i % (j + 1);
     }
 
-    @CodeReflection
+    @Reflect
     static int xor(int i, int j) {
         return i ^ j;
     }
 
-    @CodeReflection
+    @Reflect
     static int whileLoop(int i, int n) { int
         counter = 0;
         while (i < n && counter < 3) {
@@ -376,7 +372,7 @@ public class TestBytecodeLift {
         int apply(int a);
     }
 
-    @CodeReflection
+    @Reflect
     public interface QuotableFunc {
         int apply(int a);
     }
@@ -392,37 +388,37 @@ public class TestBytecodeLift {
         return f.apply(i + 1);
     }
 
-    @CodeReflection
+    @Reflect
     static int lambda(int i) {
         return consume(i, a -> -a);
     }
 
-    @CodeReflection
+    @Reflect
     static int quotableLambda(int i) {
         return consumeQuotable(i, a -> -a);
     }
 
-    @CodeReflection
+    @Reflect
     static int lambdaWithCapture(int i, String s) {
         return consume(i, a -> a + s.length());
     }
 
-    @CodeReflection
+    @Reflect
     static int quotableLambdaWithCapture(int i, String s) {
         return consumeQuotable(i, a -> a + s.length());
     }
 
-    @CodeReflection
+    @Reflect
     static int nestedLambdasWithCaptures(int i, int j, String s) {
         return consume(i, a -> consume(a, b -> a + b + j - s.length()) + s.length());
     }
 
-    @CodeReflection
+    @Reflect
     static int nestedQuotableLambdasWithCaptures(int i, int j, String s) {
         return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j - s.length()) + s.length());
     }
 
-    @CodeReflection
+    @Reflect
     static int methodHandle(int i) {
         return consume(i, Math::negateExact);
     }
@@ -431,7 +427,7 @@ public class TestBytecodeLift {
         return -i + 13;
     }
 
-    @CodeReflection
+    @Reflect
     int instanceMethodHandle(int i) {
         return consume(i, this::instanceMethod);
     }
@@ -446,27 +442,27 @@ public class TestBytecodeLift {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static void nullReturningMethodHandle(boolean b) {
         consume(b, Objects::requireNonNull);
     }
 
-    @CodeReflection
+    @Reflect
     static boolean compareLong(long i, long j) {
         return i > j;
     }
 
-    @CodeReflection
+    @Reflect
     static boolean compareFloat(float i, float j) {
         return i > j;
     }
 
-    @CodeReflection
+    @Reflect
     static boolean compareDouble(double i, double j) {
         return i > j;
     }
 
-    @CodeReflection
+    @Reflect
     static int lookupSwitch(int i) {
         return switch (1000 * i) {
             case 1000 -> 1;
@@ -476,7 +472,7 @@ public class TestBytecodeLift {
         };
     }
 
-    @CodeReflection
+    @Reflect
     static int tableSwitch(int i) {
         return switch (i) {
             case 1 -> 1;
@@ -488,24 +484,24 @@ public class TestBytecodeLift {
 
     int instanceField = -1;
 
-    @CodeReflection
+    @Reflect
     int instanceFieldAccess(int i) {
         int ret = instanceField;
         instanceField = i;
         return ret;
     }
 
-    @CodeReflection
+    @Reflect
     static String stringConcat(String a, String b) {
         return "a"+ a +"\u0001" + a + "b\u0002c" + b + "\u0001\u0002" + b + "dd";
     }
 
-    @CodeReflection
+    @Reflect
     static String multiTypeConcat(int i, Boolean b, char c, Short s, float f, Double d) {
         return "i:"+ i +" b:" + b + " c:" + c + " f:" + f + " d:" + d;
     }
 
-    @CodeReflection
+    @Reflect
     static int ifTrue(int i) {
         if (true) {
             return i;
@@ -513,7 +509,7 @@ public class TestBytecodeLift {
         return -i;
     }
 
-    @CodeReflection
+    @Reflect
     static int excHandlerFollowingSplitTable(boolean b) {
         try {
             if (b) return 1;
@@ -522,7 +518,7 @@ public class TestBytecodeLift {
         return 2;
     }
 
-    @CodeReflection
+    @Reflect
     static int varModifiedInTryBlock(boolean b) {
         int i = 0;
         try {
@@ -535,7 +531,7 @@ public class TestBytecodeLift {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static boolean finallyWithLoop(boolean b) {
         try {
             while (b) {
@@ -549,7 +545,7 @@ public class TestBytecodeLift {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static long doubleUseOfOperand(int x) {
         long piece = x;
         return piece * piece;
@@ -567,7 +563,7 @@ public class TestBytecodeLift {
 
     public static Stream<TestData> testMethods() {
         return Stream.of(TestBytecodeLift.class.getDeclaredMethods())
-                .filter(m -> m.isAnnotationPresent(CodeReflection.class))
+                .filter(m -> m.isAnnotationPresent(Reflect.class))
                 .map(TestData::new);
     }
 

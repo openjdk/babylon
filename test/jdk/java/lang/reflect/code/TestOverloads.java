@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -42,32 +42,32 @@ import java.util.List;
 
 public class TestOverloads {
 
-    @CodeReflection
+    @Reflect
     static int f() {
        return 0;
     }
 
-    @CodeReflection
+    @Reflect
     static int f(int i) {
        return 1;
     }
 
-    @CodeReflection
+    @Reflect
     static int f(Integer i) {
        return 2;
     }
 
-    @CodeReflection
+    @Reflect
     static int f(Object o) {
        return 3;
     }
 
-    @CodeReflection
+    @Reflect
     static int f(List<Integer> l) {
        return 4;
     }
 
-    @CodeReflection
+    @Reflect
     static int f(List<Integer> l, Object o) {
        return 5;
     }

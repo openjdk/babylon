@@ -100,7 +100,7 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
  * Example of a custom LLM Onnx model Java source:
  * {@snippet lang="java" :
  *   import oracle.code.onnx.Tensor;
- *   import jdk.incubator.code.CodeReflection;
+ *   import jdk.incubator.code.Reflect;
  *   import static oracle.code.onnx.OnnxOperators.*;
  *
  *   public final class MyCustomLLMModel {
@@ -120,7 +120,7 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
  *       public record MyModelResponse(Tensor<Float> logits, Tensor<Float> presentKey0, Tensor<Float> presentValue0, ...) {
  *       }
  *
- *       @CodeReflection
+ *       @Reflect
  *       public MyModelResponse myMainModelMethod(Tensor<Long> inputIds, Tensor<Long> attentionMask, Tensor<Float> pastKey0, Tensor<Float> pastValue0 ...) {
  *
  *           // computation of the model using oracle.code.onnx.OnnxOperators.* method calls

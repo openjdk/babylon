@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
@@ -50,7 +50,7 @@ import java.util.stream.Stream;
 
 public class TestCodeBuilder {
 
-    @CodeReflection
+    @Reflect
     static void constants() {
         boolean bool = false;
         byte b = 1;
@@ -74,7 +74,7 @@ public class TestCodeBuilder {
         void m() {}
     }
 
-    @CodeReflection
+    @Reflect
     static void reflect() {
         X x = new X(1);
         int i = x.f;
@@ -98,7 +98,7 @@ public class TestCodeBuilder {
         testWithTransforms(getFuncOp("reflect"));
     }
 
-    @CodeReflection
+    @Reflect
     static int bodies(int m, int n) {
         int sum = 0;
         for (int i = 0; i < m; i++) {

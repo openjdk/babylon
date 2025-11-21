@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -40,7 +40,7 @@ public class SuperTest extends SuperClass implements SuperInterface {
     public void get() {}
     static void sget() {}
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"superClassFieldAccess" (%0 : java.type:"SuperTest")java.type:"void" -> {
                 %1 : java.type:"int" = field.load %0 @java.ref:"SuperClass::f:int";
@@ -74,7 +74,7 @@ public class SuperTest extends SuperClass implements SuperInterface {
         SuperTest.super.sf = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"superClassMethodInvocation" (%0 : java.type:"SuperTest")java.type:"void" -> {
                 invoke %0 @java.ref:"SuperClass::get():void" @invoke.kind="SUPER";
@@ -92,7 +92,7 @@ public class SuperTest extends SuperClass implements SuperInterface {
         SuperTest.super.sget();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"superInterfaceMethodInvocation" (%0 : java.type:"SuperTest")java.type:"void" -> {
                 invoke %0 @java.ref:"SuperInterface::get():void" @invoke.kind="SUPER";

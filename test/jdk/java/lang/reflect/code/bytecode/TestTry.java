@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -48,7 +48,7 @@ import java.util.stream.Stream;
 
 public class TestTry {
 
-    @CodeReflection
+    @Reflect
     public static void catching(IntConsumer c) {
         try {
             c.accept(0);
@@ -100,7 +100,7 @@ public class TestTry {
         });
     }
 
-    @CodeReflection
+    @Reflect
     public static void catchThrowable(IntConsumer c) {
         try {
             c.accept(0);
@@ -150,7 +150,7 @@ public class TestTry {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static void catchNested(IntConsumer c) {
         try {
             c.accept(0);

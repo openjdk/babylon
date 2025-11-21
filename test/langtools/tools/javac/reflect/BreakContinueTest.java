@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 /*
@@ -35,7 +35,7 @@ import java.util.List;
 
 
 public class BreakContinueTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"BreakContinueTest")java.type:"void" -> {
                 java.for
@@ -148,7 +148,7 @@ public class BreakContinueTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"BreakContinueTest")java.type:"void" -> {
                 java.labeled ()java.type:"void" -> {
@@ -299,7 +299,7 @@ public class BreakContinueTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"BreakContinueTest")java.type:"void" -> {
                 java.labeled ()java.type:"void" -> {
@@ -356,7 +356,7 @@ public class BreakContinueTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"BreakContinueTest")java.type:"void" -> {
                 java.labeled ()java.type:"void" -> {

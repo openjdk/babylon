@@ -39,7 +39,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -106,7 +106,7 @@ public class RawLayout {
                 .withName("layouts.LayoutExample$StructTwo");
     }
 
-    @CodeReflection
+    @Reflect
     static float m(StructOne s1) {
         // StructOne* s1
         // s1 -> i

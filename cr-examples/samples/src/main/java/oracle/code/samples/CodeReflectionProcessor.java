@@ -1,7 +1,7 @@
 package oracle.code.samples;
 
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp;
@@ -27,7 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * This annotation processor can be used to inspect methods annotated with {@code CodeReflection},
+ * This annotation processor can be used to inspect methods annotated with {@code Reflect},
  * and check if they conform to specific programming model restrictions. This provides an example on how
  * clients might control the contents of a code model via compile-time checks, which can be useful e.g. if said
  * models are meant for an <em>foreign</em> execution environment that might not support all the features of
@@ -37,7 +37,7 @@ import java.util.Set;
  * system methods (such as {@link System#gc()}, or {@link Runtime#loadLibrary(String)}). It also issues errors
  * when encountering <em>unsupported</em> languages features, such as {@code try/catch} or {@code throw}.
  */
-@SupportedAnnotationTypes("jdk.incubator.code.CodeReflection")
+@SupportedAnnotationTypes("jdk.incubator.code.Reflect")
 @SupportedSourceVersion(SourceVersion.RELEASE_26)
 public class CodeReflectionProcessor extends AbstractProcessor {
 
@@ -48,7 +48,7 @@ public class CodeReflectionProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        for (Element e : roundEnv.getElementsAnnotatedWith(CodeReflection.class)) {
+        for (Element e : roundEnv.getElementsAnnotatedWith(Reflect.class)) {
             ReflectableMethodScanner scanner = new ReflectableMethodScanner();
             scanner.scan(e);
         }
@@ -66,7 +66,7 @@ public class CodeReflectionProcessor extends AbstractProcessor {
 
         @Override
         public Void visitExecutable(ExecutableElement e, Void unused) {
-            if (e.getAnnotationsByType(CodeReflection.class) != null) {
+            if (e.getAnnotationsByType(Reflect.class) != null) {
                 Optional<FuncOp> funcOp = Op.ofElement(processingEnv, e);
                 funcOp.ifPresent(f -> processMethodModel(e, f));
             }

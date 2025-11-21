@@ -36,7 +36,7 @@ import hat.buffer.Buffer;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.Random;
 
 import static hat.backend.Backend.FIRST;
@@ -116,7 +116,7 @@ public class Mesh {
     }
 
     public static class Compute {
-        @CodeReflection
+        @Reflect
         public static void initPoints(KernelContext kc, MeshData mesh) {
             if (kc.gix < kc.gsx) {
                 MeshData.Point3D point = mesh.point(kc.gix);
@@ -126,7 +126,7 @@ public class Mesh {
             }
         }
 
-        @CodeReflection
+        @Reflect
         public static void buildMesh(ComputeContext cc, MeshData meshData) {
             cc.dispatchKernel(NDRange.of(meshData.points()),
                     kc -> initPoints(kc, meshData)

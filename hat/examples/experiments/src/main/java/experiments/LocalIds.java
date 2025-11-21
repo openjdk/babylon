@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 import java.util.stream.IntStream;
@@ -47,7 +47,7 @@ public class LocalIds {
 
     private static boolean PRINT_RESULTS = false;
 
-    @CodeReflection
+    @Reflect
     private static void assign(@RO KernelContext context, @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
         int gx = context.gix;
         int lx = context.lix;
@@ -60,7 +60,7 @@ public class LocalIds {
 
     private static final int BLOCK_SIZE = 16;
 
-    @CodeReflection
+    @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
         // 2 groups of 16 threads each
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(BLOCK_SIZE));

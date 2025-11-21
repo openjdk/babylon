@@ -31,7 +31,7 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -41,7 +41,7 @@ import static hat.ifacemapper.MappableIface.RW;
 
 public class TestParenthesis {
 
-    @CodeReflection
+    @Reflect
     public static void compute(@RO KernelContext context, @RW S32Array data) {
         final int TN = 2;
         final int TF = 128;
@@ -50,7 +50,7 @@ public class TestParenthesis {
         data.array(context.gix, c);
     }
 
-    @CodeReflection
+    @Reflect
     public static void compute2(@RO KernelContext context, @RW S32Array data) {
         final int TN = 2;
         final int TF = 128;
@@ -59,7 +59,7 @@ public class TestParenthesis {
         data.array(context.gix, c);
     }
 
-    @CodeReflection
+    @Reflect
     public static void compute3(@RO KernelContext context, @RW S32Array data) {
         final int TN = 2;
         final int TF = 128;
@@ -68,19 +68,19 @@ public class TestParenthesis {
         data.array(context.gix, c);
     }
 
-    @CodeReflection
+    @Reflect
     public static void compute(@RO ComputeContext cc, @RW S32Array data) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute(kc, data));
     }
 
-    @CodeReflection
+    @Reflect
     public static void compute2(@RO ComputeContext cc, @RW S32Array data) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute2(kc, data));
     }
 
-    @CodeReflection
+    @Reflect
     public static void compute3(@RO ComputeContext cc, @RW S32Array data) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute3(kc, data));

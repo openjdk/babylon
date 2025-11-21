@@ -27,7 +27,7 @@
  * @run junit TestPatterns
  * @enablePreview */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -57,7 +57,7 @@ public class TestPatterns {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static String recordPatterns(Object r) {
         if (r instanceof Rectangle(
                 ColoredPoint(ConcretePoint p, Color c),
@@ -107,7 +107,7 @@ public class TestPatterns {
 
     record R(Number n) {}
 
-    @CodeReflection
+    @Reflect
     static boolean recordPatterns2(Object o) {
         return o instanceof R(_);
     }

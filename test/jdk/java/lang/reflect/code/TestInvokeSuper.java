@@ -27,7 +27,7 @@
  * @run junit TestInvokeSuper
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -56,7 +56,7 @@ public class TestInvokeSuper {
             this.invokeClass = invokeClass;
         }
 
-        @CodeReflection
+        @Reflect
         public String f() {
             return invokeClass ? super.f() : I.super.f();
         }

@@ -30,7 +30,7 @@
  * @run main CodeReflectionTester QuotableSubtypeTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
@@ -38,7 +38,7 @@ import java.util.function.IntUnaryOperator;
 
 public class QuotableSubtypeTest {
 
-    @CodeReflection
+    @Reflect
     interface QuotableRunnable extends Runnable { }
 
     @IR("""
@@ -51,7 +51,7 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableRunnable QUOTED_NO_PARAM_VOID = () -> { };
 
-    @CodeReflection
+    @Reflect
     interface QuotableIntSupplier extends IntSupplier { }
 
     @IR("""
@@ -65,7 +65,7 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableIntSupplier QUOTED_NO_PARAM_CONST = () -> 1;
 
-    @CodeReflection
+    @Reflect
     interface QuotableIntUnaryOperator extends IntUnaryOperator { }
 
     @IR("""
@@ -80,7 +80,7 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableIntUnaryOperator QUOTED_ID = x -> x;
 
-    @CodeReflection
+    @Reflect
     interface QuotableIntBinaryOperator extends IntBinaryOperator { }
 
     @IR("""
@@ -150,7 +150,7 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableIntUnaryOperator QUOTED_CAPTURE_FIELD = new Context().capture();
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"captureParam" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"x";
@@ -171,7 +171,7 @@ public class QuotableSubtypeTest {
 
     int x, y;
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"captureField" (%0 : java.type:"QuotableSubtypeTest")java.type:"void" -> {
                 %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
@@ -219,7 +219,7 @@ public class QuotableSubtypeTest {
             """)
     static final QuotableIntUnaryOperator QUOTED_INT_PARAM_INT_RET_REF = QuotableSubtypeTest::g;
 
-    @CodeReflection
+    @Reflect
     interface QuotableIntFunction<A> extends IntFunction<A> { }
 
     @IR("""
