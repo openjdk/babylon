@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -70,6 +70,12 @@ public interface JavaLangReflectAccess {
     /** Returns a new instance created by the given constructor with access check */
     public <T> T newInstance(Constructor<T> ctor, Object[] args, Class<?> caller)
         throws IllegalAccessException, InstantiationException, InvocationTargetException;
+
+    /**
+     * Check that the caller is allowed to unreflect for mutation a final instance field
+     * in a class that is not a record or hidden class.
+     */
+    void checkAllowedToUnreflectFinalSetter(Class<?> caller, Field f) throws IllegalAccessException;
 
     /** Cache code model on the reflective method instance (if none is set already). */
     Optional<?> setCodeModelIfNeeded(Method method, Function<Method, Optional<?>> modelFactory);
