@@ -25,7 +25,7 @@
 package experiments;
 
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
@@ -46,15 +46,15 @@ import java.util.function.Predicate;
 public class TestQuoted {
     public static class TestLambdaMethodRef {
 
-        @CodeReflection
+        @Reflect
         interface QuotableIntUnaryOperator extends IntUnaryOperator {
         }
 
-        @CodeReflection
+        @Reflect
         interface QuotableFunction<T, R> extends Function<T, R> {
         }
 
-        @CodeReflection
+        @Reflect
         interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {
         }
 

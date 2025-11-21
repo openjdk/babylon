@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 
 public class TransformState {
 
-    @CodeReflection
+    @Reflect
     static int threeSum(int a, int b, int c) {
         return a + b * c;
     }
@@ -47,9 +47,9 @@ public class TransformState {
     public static void testOpToOp() {
         CoreOp.FuncOp threeSumFuncOp = getFuncOp("threeSum");
         Map<Op, Op> oldOpToNewOpMap = new HashMap<>();
-        OpTransformer opTracker = (block, op) -> {
+        CodeTransformer opTracker = (block, op) -> {
             if (op instanceof JavaOp.AddOp) {
-                CopyContext cc = block.context();
+                CodeContext cc = block.context();
                 var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
                 Op.Result result = block.op(newSubOp);
                 cc.mapValue(op.result(), result);
@@ -78,9 +78,9 @@ public class TransformState {
         Map<Value, String> transformedMapState = new HashMap<>();
         Map<Op, Op> transformedOpMapState = new HashMap<>();
 
-        OpTransformer opTracker = (block, op) -> {
+        CodeTransformer opTracker = (block, op) -> {
             if (op instanceof JavaOp.AddOp) {
-                CopyContext cc = block.context();
+                CodeContext cc = block.context();
                 var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
                 Op.Result result = block.op(newSubOp);
                 cc.mapValue(op.result(), result);
@@ -91,10 +91,10 @@ public class TransformState {
             }
             return block;
         };
-        OpTransformer t = trackingValueDelegatingTransformer(
+        CodeTransformer t = trackingValueDelegatingTransformer(
                 (block, op) -> {
                     if (op instanceof JavaOp.AddOp) {
-                        CopyContext cc = block.context();
+                        CodeContext cc = block.context();
                         var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
                         Op.Result r = block.op(newSubOp);
                         cc.mapValue(op.result(), r);
@@ -124,7 +124,7 @@ public class TransformState {
         });
     }
 
-    static OpTransformer trackingValueDelegatingTransformer(
+    static CodeTransformer trackingValueDelegatingTransformer(
             BiFunction<Block.Builder, Op, Block.Builder> t,
             BiConsumer<Value, Value> mapAction) {
         return (block, op) -> {
@@ -150,10 +150,10 @@ public class TransformState {
 
         Map<Value, String> transformedMapState = new HashMap<>();
 
-        OpTransformer t = trackingValueAndThenTransformer(
+        CodeTransformer t = trackingValueAndThenTransformer(
                 (block, op) -> {
                     if (op instanceof JavaOp.AddOp) {
-                        CopyContext cc = block.context();
+                        CodeContext cc = block.context();
                         Op.Result r = block.op(JavaOp.sub(
                                 cc.getValue(op.operands().get(0)),
                                 cc.getValue(op.operands().get(1))));
@@ -176,10 +176,10 @@ public class TransformState {
         print(transformedMapState);
     }
 
-    static OpTransformer trackingValueAndThenTransformer(
-            OpTransformer t,
+    static CodeTransformer trackingValueAndThenTransformer(
+            CodeTransformer t,
             BiConsumer<Value, Value> mapAction) {
-        return OpTransformer.andThen(t, (block, op) -> {
+        return CodeTransformer.andThen(t, (block, op) -> {
             Value in = op.result();
             Value out = block.context().getValueOrDefault(in, null);
             mapAction.accept(in, out);

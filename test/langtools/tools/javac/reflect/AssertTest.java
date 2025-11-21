@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -33,7 +33,7 @@ import jdk.incubator.code.CodeReflection;
  */
 public class AssertTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"assertTest" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
@@ -55,7 +55,7 @@ public class AssertTest {
         assert (i == 1) : "i does not equal 1";
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"assertTest2" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";

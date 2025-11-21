@@ -25,7 +25,7 @@
 package hat.buffer;
 
 import hat.types._V2;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
@@ -37,7 +37,7 @@ public interface Float2 extends _V2 {
     float x();
     float y();
 
-    @CodeReflection
+    @Reflect
     @Override
     default PrimitiveType type() {
         return JavaType.FLOAT;

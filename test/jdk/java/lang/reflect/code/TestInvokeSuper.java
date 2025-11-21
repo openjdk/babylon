@@ -27,9 +27,9 @@
  * @run junit TestInvokeSuper
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -56,7 +56,7 @@ public class TestInvokeSuper {
             this.invokeClass = invokeClass;
         }
 
-        @CodeReflection
+        @Reflect
         public String f() {
             return invokeClass ? super.f() : I.super.f();
         }
@@ -65,7 +65,7 @@ public class TestInvokeSuper {
     @Test
     public void testInvokeSuper() {
         CoreOp.FuncOp f = getFuncOp(B.class, "f");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         for (boolean invokeClass : new boolean[] {true, false}) {

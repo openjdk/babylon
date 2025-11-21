@@ -438,7 +438,7 @@ public final class OnnxRuntime {
     }
 
     @FunctionalInterface
-    @CodeReflection
+    @Reflect
     public interface OnnxFunction<T> extends Supplier<T> {
     }
 

@@ -67,7 +67,7 @@ final class SSACytron {
         Map<Body, Boolean> visited = new HashMap<>();
         Map<Block, Map<CoreOp.VarOp, Block.Parameter>> joinBlockArguments = new HashMap<>();
         @SuppressWarnings("unchecked")
-        T ssaOp = (T) nestedOp.transform(CopyContext.create(), (block, op) -> {
+        T ssaOp = (T) nestedOp.transform(CodeContext.create(), (block, op) -> {
             // Compute join points and value mappings for body
             visited.computeIfAbsent(op.ancestorBody(), b -> {
                 findJoinPoints(b, joinPoints);
@@ -80,7 +80,7 @@ final class SSACytron {
                 if (op instanceof CoreOp.VarAccessOp.VarLoadOp vl) {
                     // Replace result of load
                     Object loadValue = loadValues.get(vl);
-                    CopyContext cc = block.context();
+                    CodeContext cc = block.context();
                     Value v = loadValue instanceof VarOpBlockArgument vba
                             ? joinBlockArguments.get(vba.b()).get(vba.vop())
                             : cc.getValue((Value) loadValue);
@@ -91,7 +91,7 @@ final class SSACytron {
                     List<Object> joinValues = joinSuccessorValues.get(s);
                     // Successor has join values
                     if (joinValues != null) {
-                        CopyContext cc = block.context();
+                        CodeContext cc = block.context();
 
                         // Lazily append target block arguments
                         joinBlockArguments.computeIfAbsent(s.targetBlock(), b -> {

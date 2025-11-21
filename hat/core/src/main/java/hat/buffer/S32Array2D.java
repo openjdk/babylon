@@ -26,7 +26,7 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.foreign.MemorySegment;
 
@@ -39,12 +39,12 @@ public interface S32Array2D extends Buffer {
     int array(long idx);
     void array(long idx, int i);
 
-    @CodeReflection
+    @Reflect
     default int get(int x, int y) {
         return array((long) y * width() + x);
     }
 
-    @CodeReflection
+    @Reflect
     default void set(int x, int y, int v) {
         array((long) y * width() + x, v);
     }

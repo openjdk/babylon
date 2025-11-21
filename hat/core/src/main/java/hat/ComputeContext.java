@@ -32,7 +32,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -85,12 +85,12 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
      * So given a ComputeClass such as..
      * <pre>
      *  public class MyComputeClass {
-     *    @ CodeReflection
+     *    @ Reflect
      *    public static void addDeltaKernel(KernelContext kc, S32Array arrayOfInt, int delta) {
      *        arrayOfInt.array(kc.x, arrayOfInt.array(kc.x)+delta);
      *    }
      *
-     *    @ CodeReflection
+     *    @ Reflect
      *    static public void doSomeWork(final ComputeContext cc, S32Array arrayOfInt) {
      *        cc.dispatchKernel(KernelContext kc -> addDeltaKernel(kc,arrayOfInt.length(), 5, arrayOfInt);
      *    }
@@ -119,7 +119,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         MethodRef methodRef = OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         if (kernelCallGraph == null){
-            throw new RuntimeException("Failed to create KernelCallGraph (did you miss @CodeReflection annotation?) ");
+            throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?) ");
         }
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
@@ -173,7 +173,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         return accelerator.allocate(segmentMapper, boundSchema);
     }
 
-    @CodeReflection
+    @Reflect
     public interface QuotableKernelContextConsumer extends Consumer<KernelContext> { }
 
 }

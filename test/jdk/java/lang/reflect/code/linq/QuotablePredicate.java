@@ -21,10 +21,11 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+
 import java.util.function.Predicate;
 
 @FunctionalInterface
-@CodeReflection
+@Reflect
 public interface QuotablePredicate<T> extends Predicate<T> {
 }

@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -43,7 +43,7 @@ public class MethodReferenceTest {
 
     void m(String s) {}
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
@@ -60,7 +60,7 @@ public class MethodReferenceTest {
         Consumer<String> c = MethodReferenceTest::m_s;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.BiConsumer<MethodReferenceTest, java.lang.String>" = lambda (%2 : java.type:"MethodReferenceTest", %3 : java.type:"java.lang.String")java.type:"void" -> {
@@ -79,7 +79,7 @@ public class MethodReferenceTest {
         BiConsumer<MethodReferenceTest, String> bc = MethodReferenceTest::m;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
@@ -102,7 +102,7 @@ public class MethodReferenceTest {
 
     <T> A<T> a(T t) { return null; }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"s";
@@ -123,7 +123,7 @@ public class MethodReferenceTest {
         Function<String, String> f = a("s")::m;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
@@ -147,7 +147,7 @@ public class MethodReferenceTest {
         X(int i) {}
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Function<java.lang.Integer, MethodReferenceTest$X>" = lambda (%2 : java.type:"java.lang.Integer")java.type:"MethodReferenceTest$X" -> {
@@ -165,7 +165,7 @@ public class MethodReferenceTest {
         Function<Integer, X> xNew = X::new;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<MethodReferenceTest::A<java.lang.String>>" = lambda ()java.type:"MethodReferenceTest::A<java.lang.String>" -> {
@@ -180,7 +180,7 @@ public class MethodReferenceTest {
         Supplier<A<String>> aNew = A::new;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.IntFunction<MethodReferenceTest::A<java.lang.String>[]>" = lambda (%2 : java.type:"int")java.type:"MethodReferenceTest::A<java.lang.String>[]" -> {

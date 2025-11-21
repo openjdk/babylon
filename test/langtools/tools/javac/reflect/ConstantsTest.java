@@ -30,11 +30,11 @@
  * @run main CodeReflectionTester ConstantsTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.Function;
 
 public class ConstantsTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"";
@@ -46,7 +46,7 @@ public class ConstantsTest {
         String s = "";
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"Hello World";
@@ -58,7 +58,7 @@ public class ConstantsTest {
         String s = "Hello World";
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
@@ -77,7 +77,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test4() {
         Class<?> s = Function.class;
     }
@@ -93,7 +93,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test5() {
         byte v = 42;
         v = -42;
@@ -110,7 +110,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test6() {
         short v = 42;
         v = -42;
@@ -125,7 +125,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test7() {
         int v = 42;
         v = -42;
@@ -140,7 +140,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test8() {
         long v = 42L;
         v = -42L;
@@ -156,7 +156,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test9() {
         float v = 42.0f;
         v = -42.0f;
@@ -172,7 +172,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test10() {
         double v = 42.0;
         v = -42.0;
@@ -185,7 +185,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test11() {
         char v = 'a';
     }
@@ -199,7 +199,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test12() {
         boolean b = true;
         b = false;
@@ -212,7 +212,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test13() {
         Class<?> s = float.class;
     }
@@ -224,7 +224,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test14() {
         Class<?> s = String[].class;
     }
@@ -236,7 +236,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test15() {
         Class<?> s = String[][].class;
     }
@@ -248,7 +248,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test16() {
         Class<?> s = String[][][].class;
     }
@@ -260,7 +260,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test17() {
         Class<?> s = boolean[].class;
     }
@@ -272,7 +272,7 @@ public class ConstantsTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test18() {
         Class<?> s = boolean[][][].class;
     }

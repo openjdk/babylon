@@ -65,7 +65,7 @@ public final class ExpressionElimination {
                 .target((ms, as) -> {
                     Value a = ms.matchedOperands().get(0);
                     as.put(ms.op().result(), (block, op) -> {
-                        CopyContext cc = block.context();
+                        CodeContext cc = block.context();
                         cc.mapValue(ms.op().result(), cc.getValue(a));
                     });
                     return as;
@@ -77,7 +77,7 @@ public final class ExpressionElimination {
                     Value y = ms.matchedOperands().get(1);
 
                     as.put(ms.op().result(), (block, op) -> {
-                        CopyContext cc = block.context();
+                        CodeContext cc = block.context();
                         Op.Result r = block.op(sub(cc.getValue(y), cc.getValue(x)));
                         cc.mapValue(ms.op().result(), r);
                     });
@@ -86,7 +86,7 @@ public final class ExpressionElimination {
                 .matchThenApply();
 
         // Eliminate
-        Op ef = f.transform(CopyContext.create(), (block, op) -> {
+        Op ef = f.transform(CodeContext.create(), (block, op) -> {
             BiConsumer<Block.Builder, Op> a = actions.get(op.result());
             if (a != null) {
                 a.accept(block, op);
@@ -110,7 +110,7 @@ public final class ExpressionElimination {
                 break;
             }
             // Remove unused ops
-            ef = ef.transform(CopyContext.create(), (block, op) -> {
+            ef = ef.transform(CodeContext.create(), (block, op) -> {
                 if (!unused.contains(op)) {
                     block.op(op);
                 }

@@ -27,7 +27,7 @@
  * @run junit TestMethodRefLambda
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -46,13 +46,13 @@ import java.util.function.IntUnaryOperator;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestMethodRefLambda {
 
-    @CodeReflection
+    @Reflect
     interface QuotableIntUnaryOperator extends IntUnaryOperator {}
 
-    @CodeReflection
+    @Reflect
     interface QuotableFunction<T, R> extends Function<T, R> {}
 
-    @CodeReflection
+    @Reflect
     interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {}
 
     List<Object> methodRefLambdas() {

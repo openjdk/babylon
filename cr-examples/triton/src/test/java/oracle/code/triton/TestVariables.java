@@ -29,7 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 import static oracle.code.triton.Triton.zeros;
@@ -38,7 +38,7 @@ import static oracle.code.triton.TritonTest.consume;
 @ExtendWith(TritonTestExtension.class)
 public class TestVariables {
 
-    @CodeReflection
+    @Reflect
     static void test1(@Constant int M) {
         var m = Triton.arange(0, M);
         var e = Triton.expand(m, 0);

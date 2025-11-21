@@ -30,10 +30,10 @@
  * @run main CodeReflectionTester UnaryopTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class UnaryopTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var %0 @"v";
@@ -46,7 +46,7 @@ public class UnaryopTest {
         return -v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var %0 @"v";
@@ -58,7 +58,7 @@ public class UnaryopTest {
         return +v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"int")java.type:"java.lang.Integer" -> {
                 %1 : Var<java.type:"int"> = var %0 @"v";
@@ -72,7 +72,7 @@ public class UnaryopTest {
         return +v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"java.lang.Integer")java.type:"java.lang.Integer" -> {
                 %1 : Var<java.type:"java.lang.Integer"> = var %0 @"v";
@@ -87,7 +87,7 @@ public class UnaryopTest {
         return +v;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var %0 @"v";
@@ -126,7 +126,7 @@ public class UnaryopTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test6(byte b) {
         b++;
         b--;
@@ -160,7 +160,7 @@ public class UnaryopTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test7(short s) {
         s++;
         s--;

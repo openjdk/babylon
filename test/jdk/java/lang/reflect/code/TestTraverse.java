@@ -28,9 +28,9 @@
  */
 
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 public class TestTraverse {
 
-    @CodeReflection
+    @Reflect
     private static int f(String s, int i, List<Object> acc) {
         char c = s.charAt(i);
         int d = (c - '0');
@@ -66,7 +66,7 @@ public class TestTraverse {
         CoreOp.FuncOp f = getFuncOp("f");
         testTraverse(f);
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         testTraverse(f);
 
         f = SSA.transform(f);

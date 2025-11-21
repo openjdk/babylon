@@ -89,7 +89,7 @@ public class TestCodeModelProcessors extends TestRunner {
                                 return true;
                             }
 
-                            @CodeReflection
+                            @Reflect
                             void test() {
                                 System.out.println("SUCCESS");
                             }
@@ -139,7 +139,7 @@ public class TestCodeModelProcessors extends TestRunner {
                         import jdk.incubator.code.*;
 
                         public class HelloWorld {
-                            @CodeReflection
+                            @Reflect
                             void testAnnos() { }
                         }
                         """);

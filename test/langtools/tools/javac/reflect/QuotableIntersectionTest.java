@@ -30,7 +30,7 @@
  * @run main CodeReflectionTester QuotableIntersectionTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
@@ -45,7 +45,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final Runnable QUOTED_NO_PARAM_VOID = (@CodeReflection Runnable) () -> {
+    static final Runnable QUOTED_NO_PARAM_VOID = (@Reflect Runnable) () -> {
     };
 
     @IR("""
@@ -57,7 +57,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final IntSupplier QUOTED_NO_PARAM_CONST = (@CodeReflection IntSupplier) () -> 1;
+    static final IntSupplier QUOTED_NO_PARAM_CONST = (@Reflect IntSupplier) () -> 1;
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -69,7 +69,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final IntUnaryOperator QUOTED_ID = (@CodeReflection IntUnaryOperator) x -> x;
+    static final IntUnaryOperator QUOTED_ID = (@Reflect IntUnaryOperator) x -> x;
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -84,7 +84,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final IntBinaryOperator QUOTED_PLUS = (@CodeReflection IntBinaryOperator) (x, y) -> x + y;
+    static final IntBinaryOperator QUOTED_PLUS = (@Reflect IntBinaryOperator) (x, y) -> x + y;
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -95,7 +95,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final Runnable QUOTED_THROW_NO_PARAM = (@CodeReflection Runnable) () -> {
+    static final Runnable QUOTED_THROW_NO_PARAM = (@Reflect Runnable) () -> {
         throw new AssertionError();
     };
 
@@ -113,7 +113,7 @@ public class QuotableIntersectionTest {
             """)
     static final IntUnaryOperator QUOTED_CAPTURE_PARAM = new Object() {
         IntUnaryOperator captureContext(int x) {
-            return (@CodeReflection IntUnaryOperator) y -> x + y;
+            return (@Reflect IntUnaryOperator) y -> x + y;
         }
     }.captureContext(42);
 
@@ -121,7 +121,7 @@ public class QuotableIntersectionTest {
         int x, y;
 
         IntUnaryOperator capture() {
-            return (@CodeReflection IntUnaryOperator) z -> x + y + z;
+            return (@Reflect IntUnaryOperator) z -> x + y + z;
         }
     }
 
@@ -141,7 +141,7 @@ public class QuotableIntersectionTest {
             """)
     static final IntUnaryOperator QUOTED_CAPTURE_FIELD = new Context().capture();
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"captureParam" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"x";
@@ -157,12 +157,12 @@ public class QuotableIntersectionTest {
             };
             """)
     static void captureParam(int x) {
-        IntUnaryOperator op = (@CodeReflection IntUnaryOperator) y -> x + y;
+        IntUnaryOperator op = (@Reflect IntUnaryOperator) y -> x + y;
     }
 
     int x, y;
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"captureField" (%0 : java.type:"QuotableIntersectionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
@@ -179,7 +179,7 @@ public class QuotableIntersectionTest {
             };
             """)
     void captureField() {
-        IntUnaryOperator op = (@CodeReflection IntUnaryOperator) z -> x + y + z;
+        IntUnaryOperator op = (@Reflect IntUnaryOperator) z -> x + y + z;
     }
 
     static void m() {
@@ -194,7 +194,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final Runnable QUOTED_NO_PARAM_VOID_REF = (@CodeReflection Runnable) QuotableIntersectionTest::m;
+    static final Runnable QUOTED_NO_PARAM_VOID_REF = (@Reflect Runnable) QuotableIntersectionTest::m;
 
     static int g(int i) {
         return i;
@@ -211,7 +211,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final IntUnaryOperator QUOTED_INT_PARAM_INT_RET_REF = (@CodeReflection IntUnaryOperator) QuotableIntersectionTest::g;
+    static final IntUnaryOperator QUOTED_INT_PARAM_INT_RET_REF = (@Reflect IntUnaryOperator) QuotableIntersectionTest::g;
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -224,7 +224,7 @@ public class QuotableIntersectionTest {
                 return;
             };
             """)
-    static final IntFunction<int[]> QUOTED_INT_PARAM_ARR_RET_REF = (@CodeReflection IntFunction<int[]>) int[]::new;
+    static final IntFunction<int[]> QUOTED_INT_PARAM_ARR_RET_REF = (@Reflect IntFunction<int[]>) int[]::new;
 
     static class ContextRef {
         int g(int i) {
@@ -232,7 +232,7 @@ public class QuotableIntersectionTest {
         }
 
         IntUnaryOperator capture() {
-            return (@CodeReflection IntUnaryOperator) this::g;
+            return (@Reflect IntUnaryOperator) this::g;
         }
     }
 

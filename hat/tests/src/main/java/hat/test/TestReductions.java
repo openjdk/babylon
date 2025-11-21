@@ -35,7 +35,7 @@ import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -67,7 +67,7 @@ public class TestReductions {
      * @param input
      * @param partialSums
      */
-    @CodeReflection
+    @Reflect
     private static void reduceGlobal(@MappableIface.RO KernelContext context, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
@@ -96,7 +96,7 @@ public class TestReductions {
      * @param input
      * @param partialSums
      */
-    @CodeReflection
+    @Reflect
     private static void reduceLocal(@MappableIface.RO KernelContext context, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
@@ -123,14 +123,14 @@ public class TestReductions {
 
     private static final int BLOCK_SIZE = 16;
 
-    @CodeReflection
+    @Reflect
     private static void reduceGlobal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         // 2 groups of 16 threads each
        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
         cc.dispatchKernel(ndRange, kc -> reduceGlobal(kc, input, partialSums));
     }
 
-    @CodeReflection
+    @Reflect
     private static void reduceLocal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         // 2 groups of 16 threads each
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));

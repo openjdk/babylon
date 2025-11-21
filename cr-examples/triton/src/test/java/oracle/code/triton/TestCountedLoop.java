@@ -29,7 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 import static oracle.code.triton.Triton.*;
@@ -62,7 +62,7 @@ public class TestCountedLoop {
                 unreachable;
             };
             """)
-    @CodeReflection
+    @Reflect
     static void test1(int n, @Constant int s) {
         var a = arange(0, s);
         var b = arange(0, s);

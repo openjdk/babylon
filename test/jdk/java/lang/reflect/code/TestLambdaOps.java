@@ -28,6 +28,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.LambdaOp;
@@ -150,7 +151,7 @@ public class TestLambdaOps {
 
     @Test
     public void testQuotableModel() {
-        Runnable quotable = (@CodeReflection Runnable) () -> {};
+        Runnable quotable = (@Reflect Runnable) () -> {};
         Op qop = Op.ofQuotable(quotable).get().op();
         Op top = qop.ancestorOp().ancestorOp();
         Assertions.assertTrue(top instanceof CoreOp.FuncOp);
@@ -160,11 +161,11 @@ public class TestLambdaOps {
     }
 
     @FunctionalInterface
-    @CodeReflection
+    @Reflect
     public interface QuotableIntSupplier extends IntSupplier {
     }
 
-    @CodeReflection
+    @Reflect
     static QuotableIntSupplier quote(int i) {
         QuotableIntSupplier s = () -> i;
         return s;
@@ -213,13 +214,13 @@ public class TestLambdaOps {
         }
     }
 
-    @CodeReflection
+    @Reflect
     interface QuotableIntUnaryOperator extends IntUnaryOperator {}
 
-    @CodeReflection
+    @Reflect
     interface QuotableFunction<T, R> extends Function<T, R> {}
 
-    @CodeReflection
+    @Reflect
     interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {}
 
     static CoreOp.FuncOp getFuncOp(String name) {

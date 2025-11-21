@@ -27,9 +27,9 @@
  * @run junit TestPatterns
  * @enablePreview */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -57,7 +57,7 @@ public class TestPatterns {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static String recordPatterns(Object r) {
         if (r instanceof Rectangle(
                 ColoredPoint(ConcretePoint p, Color c),
@@ -74,7 +74,7 @@ public class TestPatterns {
 
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         System.out.println(lf.toText());
 
@@ -107,7 +107,7 @@ public class TestPatterns {
 
     record R(Number n) {}
 
-    @CodeReflection
+    @Reflect
     static boolean recordPatterns2(Object o) {
         return o instanceof R(_);
     }
@@ -118,7 +118,7 @@ public class TestPatterns {
         CoreOp.FuncOp f = getFuncOp("recordPatterns2");
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Object[] objects = {new R(1), "str", null};

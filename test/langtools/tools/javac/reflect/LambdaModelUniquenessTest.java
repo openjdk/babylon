@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import org.junit.jupiter.api.Assertions;
@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 public class LambdaModelUniquenessTest {
 
     Runnable f() {
-        return (@CodeReflection Runnable) () -> {
+        return (@Reflect Runnable) () -> {
             System.out.println("Running...");
         };
     }
@@ -39,7 +39,7 @@ public class LambdaModelUniquenessTest {
     }
 
     static IntUnaryOperator g(int i) {
-        return (@CodeReflection IntUnaryOperator) j -> j + i;
+        return (@Reflect IntUnaryOperator) j -> j + i;
     }
 
     @Test

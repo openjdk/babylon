@@ -28,34 +28,43 @@ import view.f32.pool.F32x3TrianglePool;
 
 public interface F32 {
     F32x4x4.Factory f32x4x4Factory();
+
     F32x3.Factory f32x3Factory();
+
     F32x2.Factory f32x2Factory();
+
     F32x3Triangle.Factory f32x3TriangleFactory();
+
     F32x2Triangle.Factory f32x2TriangleFactory();
 
     default F32x4x4 f32x4x4(
-            float x0y0, float x1y0,float x2y0, float x3y0,
-            float x0y1, float x1y1,float x2y1, float x3y1,
-            float x0y2, float x1y2,float x2y2, float x3y2,
-            float x0y3, float x1y3,float x2y3, float x3y3
-    ){
-        return f32x4x4Factory().of(x0y0, x1y0,x2y0, x3y0,
-        x0y1, x1y1,x2y1, x3y1,
-        x0y2, x1y2,x2y2, x3y2,
-        x0y3, x1y3,x2y3, x3y3);
+            float x0y0, float x1y0, float x2y0, float x3y0,
+            float x0y1, float x1y1, float x2y1, float x3y1,
+            float x0y2, float x1y2, float x2y2, float x3y2,
+            float x0y3, float x1y3, float x2y3, float x3y3
+    ) {
+        return f32x4x4Factory().of(x0y0, x1y0, x2y0, x3y0,
+                x0y1, x1y1, x2y1, x3y1,
+                x0y2, x1y2, x2y2, x3y2,
+                x0y3, x1y3, x2y3, x3y3);
     }
-    default F32x2 f32x2(float x, float y){
-        return f32x2Factory().of(x,y);
+
+    default F32x2 f32x2(float x, float y) {
+        return f32x2Factory().of(x, y);
     }
-    default F32x3 f32x3(float x, float y,float z){
-        return f32x3Factory().of(x,y,z);
+
+    default F32x3 f32x3(float x, float y, float z) {
+        return f32x3Factory().of(x, y, z);
     }
-    default F32x3Triangle f32x3Triangle(F32x3 v0, F32x3 v1,F32x3 v2,int rgb){
-        return f32x3TriangleFactory().of(v0,v1,v2,rgb);
+
+    default F32x3Triangle f32x3Triangle(F32x3 v0, F32x3 v1, F32x3 v2, int rgb) {
+        return f32x3TriangleFactory().of(v0, v1, v2, rgb);
     }
-    default F32x2Triangle f32x2Triangle(F32x2 v0, F32x2 v1,F32x2 v2,int rgb){
-        return f32x2TriangleFactory().of(v0,v1,v2,rgb);
+
+    default F32x2Triangle f32x2Triangle(F32x2 v0, F32x2 v1, F32x2 v2, float zplane, float normal, int rgb) {
+        return f32x2TriangleFactory().of(v0, v1, v2, zplane, normal, rgb);
     }
+
     default F32x4x4 mul(F32x4x4 lhs, F32x4x4 rhs) {
         return f32x4x4(
                 lhs.x0y0() * rhs.x0y0() + lhs.x1y0() * rhs.x0y1() + lhs.x2y0() * rhs.x0y2() + lhs.x3y0() * rhs.x0y3(),
@@ -94,7 +103,7 @@ public interface F32 {
         );
     }
 
-     default F32x4x4 transformation(float v) {
+    default F32x4x4 transformation(float v) {
         return transformation(v, v, v);
     }
 
@@ -107,9 +116,10 @@ public interface F32 {
         );
     }
 
-     default F32x4x4 scale(float v) {
+    default F32x4x4 scale(float v) {
         return scale(v, v, v);
     }
+
     default F32x4x4 rotX(float thetaRadians) {
         float sinTheta = (float) Math.sin(thetaRadians);
         float cosTheta = (float) Math.cos(thetaRadians);
@@ -144,12 +154,11 @@ public interface F32 {
         );
     }
 
-     default F32x4x4 rot(float thetaX, float thetaY, float thetaZ) {
+    default F32x4x4 rot(float thetaX, float thetaY, float thetaZ) {
         return mul(mul(rotX(thetaX), rotY(thetaY)), rotZ(thetaZ));
     }
 
     // https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-
 
 
     /*
@@ -176,8 +185,8 @@ public interface F32 {
                 0f, 0f, (-far * near) / (far - near), 0f);
     }
 
-   static float side(float x, float y, F32x2 v0, F32x2 v1) {
-         return    (v1.y() - v0.y() * (x - v0.x()) + (-v1.x() + v0.x()) * (y - v0.y()));
+    static float side(float x, float y, F32x2 v0, F32x2 v1) {
+        return (v1.y() - v0.y() * (x - v0.x()) + (-v1.x() + v0.x()) * (y - v0.y()));
     }
 
      /*
@@ -203,25 +212,26 @@ c = 1 - a - b
 p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
 */
 
-   static boolean inside(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {
-        var denominator = ((y1 - y2)*(x0 - x2) + (x2 - x1)*(y0 - y2));
-        var a = ((y1 - y2)*(x - x2) + (x2 - x1)*(y - y2)) / denominator;
-        var b = ((y2 - y0)*(x - x2) + (x0 - x2)*(y - y2)) / denominator;
+    static boolean inside(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {
+        var denominator = ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+        var a = ((y1 - y2) * (x - x2) + (x2 - x1) * (y - y2)) / denominator;
+        var b = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) / denominator;
         var c = 1 - a - b;
         return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
     }
 
-   static boolean inside(float x, float y, F32x2 v0, F32x2 v1, F32x2 v2) {
-        return inside(x,y, v0.x(), v0.y(), v1.x(), v1.y(),v2.x(), v2.y());
+    static boolean inside(float x, float y, F32x2 v0, F32x2 v1, F32x2 v2) {
+        return inside(x, y, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y());
     }
 
     static boolean inside(float x, float y, F32x2Triangle tri) {
-       return inside(x,y, tri.v0(), tri.v1(),tri.v2());
+        return inside(x, y, tri.v0(), tri.v1(), tri.v2());
     }
 
     static boolean onLine(float x, float y, F32x2 v0, F32x2 v1, float deltaSquare) {
         float dxl = v1.x() - v0.x();
-        float dyl = v1.y() - v0.y();;
+        float dyl = v1.y() - v0.y();
+        ;
         float cross = (x - v0.x()) * dyl - (y - v0.y()) * dxl;
         if ((cross * cross) < deltaSquare) {
             if (dxl * dxl >= dyl * dyl)
@@ -232,19 +242,21 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
             return false;
         }
     }
+
     float deltaSquare = 2000f;
+
     static boolean onEdge(float x, float y, F32x2Triangle tri) {
         return onLine(x, y, tri.v0(), tri.v1(), deltaSquare)
-                || onLine(x, y,tri.v1(),tri.v2(), deltaSquare)
-                || onLine(x, y, tri.v2(),tri.v0(), deltaSquare);
+                || onLine(x, y, tri.v1(), tri.v2(), deltaSquare)
+                || onLine(x, y, tri.v2(), tri.v0(), deltaSquare);
     }
 
-    static   boolean useRgb(boolean filled, float x, float y, F32x2Triangle tri){
-        return filled? inside(x,y,tri): onEdge(x,y,tri);
+    static boolean useRgb(boolean filled, float x, float y, F32x2Triangle tri) {
+        return filled ? inside(x, y, tri) : onEdge(x, y, tri);
     }
 
-    static   int rgb(boolean filled, float x, float y, F32x2Triangle tri, int rgb){
-        return useRgb(filled,x,y,tri)? tri.rgb() : rgb;
+    static int rgb(boolean filled, float x, float y, F32x2Triangle tri, int rgb) {
+        return useRgb(filled, x, y, tri) ? tri.rgb() : rgb;
     }
 
     /*
@@ -263,7 +275,7 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
         return i;
     }
 
-   default F32x3Triangle mul(F32x3Triangle i, F32x4x4 m4) {
+    default F32x3Triangle mul(F32x3Triangle i, F32x4x4 m4) {
         return f32x3Triangle(mul(i.v0(), m4), mul(i.v1(), m4), mul(i.v2(), m4), i.rgb());
     }
 
@@ -275,7 +287,7 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
         return f32x3Triangle(mul(i.v0(), s), mul(i.v1(), s), mul(i.v2(), s), i.rgb());
     }
 
-   default F32x3Triangle add(F32x3Triangle i, float s) {
+    default F32x3Triangle add(F32x3Triangle i, float s) {
         return f32x3Triangle(add(i.v0(), s), add(i.v1(), s), add(i.v2(), s), i.rgb());
     }
 
@@ -307,9 +319,9 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
                 f32x3.x() * m.x2y0() + f32x3.y() * m.x2y1() + f32x3.z() * m.x2y2() + 1f * m.x2y3()
         );
         float w = f32x3.x() * m.x3y0() + f32x3.y() * m.x3y1() + f32x3.z() * m.x3y2() + 1f * m.x3y3();
-      //  if (w!=0.0) {
-            o = div(o, w);
-       // }
+        //  if (w!=0.0) {
+        o = div(o, w);
+        // }
         return o;
     }
 
@@ -323,7 +335,7 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
     }
 
     default F32x3 div(F32x3 i, float s) {
-        if (s==0){
+        if (s == 0) {
             return i;
         }
         return f32x3(i.x() / s, i.y() / s, i.z() / s);
@@ -364,6 +376,7 @@ p lies in T if and only if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
                 lhs.x() * rhs.y() - lhs.y() * rhs.x());
 
     }
+
     /*
            lhs= | 1|   rhs= | 2|
                 | 3|        | 7|

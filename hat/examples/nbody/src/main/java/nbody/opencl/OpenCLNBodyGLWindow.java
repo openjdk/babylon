@@ -30,7 +30,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.ifacemapper.BufferState;
 import hat.NDRange;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
 import nbody.Universe;
@@ -52,22 +52,22 @@ import static opengl.opengl_h.glVertex3f;
 import static opengl.opengl_h.glutBitmapCharacter;
 import static opengl.opengl_h.glutBitmapTimesRoman24$segment;
 import static opengl.opengl_h.glutSwapBuffers;
-import static opengl.opengl_h_1.glBindTexture;
-import static opengl.opengl_h_1.glClear;
-import static opengl.opengl_h_1.glClearColor;
-import static opengl.opengl_h_1.glColor3f;
-import static opengl.opengl_h_1.glDisable;
-import static opengl.opengl_h_1.glEnable;
-import static opengl.opengl_h_2.GL_COLOR_BUFFER_BIT;
-import static opengl.opengl_h_2.GL_DEPTH_BUFFER_BIT;
-import static opengl.opengl_h_2.GL_MODELVIEW;
-import static opengl.opengl_h_2.GL_TEXTURE_2D;
+import static opengl.opengl_h.glBindTexture;
+import static opengl.opengl_h.glClear;
+import static opengl.opengl_h.glClearColor;
+import static opengl.opengl_h.glColor3f;
+import static opengl.opengl_h.glDisable;
+import static opengl.opengl_h.glEnable;
+import static opengl.opengl_h.GL_COLOR_BUFFER_BIT;
+import static opengl.opengl_h.GL_DEPTH_BUFFER_BIT;
+import static opengl.opengl_h.GL_MODELVIEW;
+import static opengl.opengl_h.GL_TEXTURE_2D;
 
 
 public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
 
-    @CodeReflection
+    @Reflect
     static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
@@ -96,7 +96,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         me.vz(me.vz() + accz);
     }
 
-    @CodeReflection
+    @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, float mass, float delT, float espSqr) {
         float cmass = mass;
         float cdelT = delT;

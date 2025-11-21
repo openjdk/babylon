@@ -55,7 +55,7 @@ public class CodeReflectionSymbols {
         Symtab syms = Symtab.instance(context);
         Names names = Names.instance(context);
         ModuleSymbol jdk_incubator_code = syms.enterModule(names.jdk_incubator_code);
-        codeReflectionType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.CodeReflection");
+        codeReflectionType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Reflect");
         quotedType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quoted");
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
         funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreOp$FuncOp");

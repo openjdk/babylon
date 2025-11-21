@@ -30,7 +30,7 @@ import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
 import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 
@@ -39,7 +39,7 @@ import java.lang.reflect.Method;
 
 public class TestFuncOpViewer {
     static class Compute {
-        @CodeReflection
+        @Reflect
         public static void mandel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array2D s32Array2D, @MappableIface.RO S32Array pallette, float offsetx, float offsety, float scale) {
             if (kc.gix < kc.gsx) {
                 float width = s32Array2D.width();
@@ -62,7 +62,7 @@ public class TestFuncOpViewer {
         }
 
 
-        @CodeReflection
+        @Reflect
         static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
             computeContext.dispatchKernel(

@@ -30,12 +30,12 @@
  * @run main CodeReflectionTester NewArrayTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.Function;
 
 public class NewArrayTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"NewArrayTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @10;
@@ -48,7 +48,7 @@ public class NewArrayTest {
         int[] a = new int[10];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"NewArrayTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"l";
@@ -64,7 +64,7 @@ public class NewArrayTest {
         int[] a = new int[l + 10];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"NewArrayTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @10;
@@ -77,7 +77,7 @@ public class NewArrayTest {
         String[] a = new String[10];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"NewArrayTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @10;
@@ -90,7 +90,7 @@ public class NewArrayTest {
         String[][] a = new String[10][];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"NewArrayTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @10;
@@ -104,7 +104,7 @@ public class NewArrayTest {
         String[][] a = new String[10][10];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"NewArrayTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @3;
@@ -137,7 +137,7 @@ public class NewArrayTest {
         String[][] a = { { "one", "two" }, { "three" }, null };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"NewArrayTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @3;

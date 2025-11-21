@@ -30,7 +30,7 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -42,7 +42,7 @@ public class TestConstants {
 
     public static final int CONSTANT = 100;
 
-    @CodeReflection
+    @Reflect
     public static void vectorWithConstants(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         final int BM = 100;
         if (kc.gix < kc.gsx) {
@@ -52,7 +52,7 @@ public class TestConstants {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorWithConstants(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(arrayA.length()));
         cc.dispatchKernel(ndRange, kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
@@ -86,13 +86,13 @@ public class TestConstants {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static int compute(final int valueA, final int valueB) {
         final int BM = 100;
         return BM + valueA + valueB;
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorWithConstants2(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         if (kc.gix < kc.gsx) {
             final int valueA = arrayA.array(kc.gix);
@@ -102,7 +102,7 @@ public class TestConstants {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void vectorWithConstants2(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(arrayA.length()));
         cc.dispatchKernel(ndRange, kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));

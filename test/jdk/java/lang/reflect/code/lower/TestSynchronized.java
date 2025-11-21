@@ -30,11 +30,11 @@
  * @run main CodeReflectionTester TestSynchronized
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class TestSynchronized {
 
-    @CodeReflection
+    @Reflect
     @LoweredModel(value = """
             func @"test1" (%0 : java.type:"java.lang.Object", %1 : java.type:"int")java.type:"int" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %0 @"m";
@@ -77,7 +77,7 @@ public class TestSynchronized {
     }
 
 
-    @CodeReflection
+    @Reflect
     @LoweredModel(value = """
             func @"test2" (%0 : java.type:"java.lang.Object", %1 : java.type:"int")java.type:"int" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %0 @"m";

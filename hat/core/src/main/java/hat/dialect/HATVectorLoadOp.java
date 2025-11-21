@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
@@ -48,7 +48,7 @@ public class HATVectorLoadOp extends HATVectorOp {
         this.isSharedOrPrivate = isShared;
     }
 
-    public HATVectorLoadOp(HATVectorLoadOp op, CopyContext copyContext) {
+    public HATVectorLoadOp(HATVectorLoadOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.typeElement = op.typeElement;
         this.loadN = op.loadN;
@@ -57,7 +57,7 @@ public class HATVectorLoadOp extends HATVectorOp {
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATVectorLoadOp(this, copyContext);
     }
 

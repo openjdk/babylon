@@ -24,18 +24,22 @@
  */
 package view.f32;
 
-import view.f32.factories.Factory4;
-import view.f32.pool.F32x3TrianglePool;
+import view.arity.Arity4;
 
 public interface F32x3Triangle {
     F32x3 v0();
+
     F32x3 v1();
+
     F32x3 v2();
+
     int rgb();
+
     default String asString() {
         return v0().asString() + " -> " + v1().asString() + " -> " + v2().asString() + " =" + String.format("0x%8x", rgb());
     }
+
     @FunctionalInterface
-    interface Factory extends Factory4<F32x3,F32x3,F32x3,Integer,F32x3Triangle> {
+    interface Factory extends Arity4<F32x3, F32x3, F32x3, Integer, F32x3Triangle> {
     }
 }

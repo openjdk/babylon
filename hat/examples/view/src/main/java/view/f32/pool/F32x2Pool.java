@@ -26,11 +26,12 @@ package view.f32.pool;
 
 import view.f32.F32x2;
 
-public class F32x2Pool extends F32Pool<F32x2,F32x2Pool> implements F32x2.Factory {
-    public static int X = 0;
-    public static int Y = 1;
+public class F32x2Pool extends F32Pool<F32x2, F32x2Pool> implements F32x2.Factory {
 
-    public record PoolEntry(F32x2Pool pool, int idx) implements Pool.PoolEntry<F32x2,F32x2Pool>, F32x2 {
+    public record PoolEntry(F32x2Pool pool, int idx) implements Pool.PoolEntry<F32x2, F32x2Pool>, F32x2 {
+        private static final int X = 0;
+        private static final int Y = 1;
+
         private int xIdx() {
             return pool.floatStride * idx + X;
         }

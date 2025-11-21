@@ -34,7 +34,7 @@ import hat.ifacemapper.BoundSchema;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -433,7 +433,7 @@ public class CudaBackend extends C99FFIBackend {
       static  public CoreOp.FuncOp transformPTXPtrs(MethodHandles.Lookup lookup,CoreOp.FuncOp func, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
         var here = OpTk.CallSite.of(CudaBackend.class, "transformPTXPtrs");
         return OpTk.transform(here, func,(block, op) -> {
-            CopyContext cc = block.context();
+            CodeContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp){
                 if (OpTk.isIfaceBufferMethod(lookup,invokeOp)

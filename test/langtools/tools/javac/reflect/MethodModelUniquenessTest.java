@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -14,10 +14,10 @@ import java.lang.reflect.Method;
 
 public class MethodModelUniquenessTest {
 
-    @CodeReflection
+    @Reflect
     static void f() {
     }
-    @CodeReflection
+    @Reflect
     static void g() {
     }
 

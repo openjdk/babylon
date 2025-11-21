@@ -26,7 +26,7 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Type;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 public class Triton {

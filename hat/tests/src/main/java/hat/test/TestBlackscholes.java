@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.MappableIface.RO;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 
@@ -43,7 +43,7 @@ import static hat.ifacemapper.MappableIface.WO;
 
 public class TestBlackscholes {
 
-    @CodeReflection
+    @Reflect
     public static void blackScholesKernel(@RO KernelContext kc, @WO F32Array call, @WO F32Array put,
                                           @RO F32Array sArray, @RO F32Array xArray, @RO F32Array tArray,
                                           float r, float v) {
@@ -62,7 +62,7 @@ public class TestBlackscholes {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static float CND(float input) {
         float x = input;
         if (input < 0f) {
@@ -85,7 +85,7 @@ public class TestBlackscholes {
         return part1 * part2;
     }
 
-    @CodeReflection
+    @Reflect
     public static void blackScholes(@MappableIface.RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @MappableIface.RO F32Array S, @MappableIface.RO F32Array X, @MappableIface.RO F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)

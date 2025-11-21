@@ -26,28 +26,28 @@ package view.f32.pool;
 
 import view.f32.F32x4x4;
 
-public class F32x4x4Pool extends F32Pool<F32x4x4,F32x4x4Pool> implements F32x4x4.Factory {
-    static int X0Y0 = 0;
-    static int X1Y0 = 1;
-    static int X2Y0 = 2;
-    static int X3Y0 = 3;
-    static int X0Y1 = 4;
-    static int X1Y1 = 5;
-    static int X2Y1 = 6;
-    static int X3Y1 = 7;
-    static int X0Y2 = 8;
-    static int X1Y2 = 9;
-    static int X2Y2 = 10;
-    static int X3Y2 = 11;
-    static int X0Y3 = 12;
-    static int X1Y3 = 13;
-    static int X2Y3 = 14;
-    static int X3Y3 = 15;
-
-
+public class F32x4x4Pool extends F32Pool<F32x4x4, F32x4x4Pool> implements F32x4x4.Factory {
 
 
     public record PoolEntry(F32x4x4Pool pool, int idx) implements Pool.PoolEntry<F32x4x4, F32x4x4Pool>, F32x4x4 {
+        private final static int X0Y0 = 0;
+        private final static int X1Y0 = 1;
+        private final static int X2Y0 = 2;
+        private final static int X3Y0 = 3;
+        private final static int X0Y1 = 4;
+        private final static int X1Y1 = 5;
+        private final static int X2Y1 = 6;
+        private final static int X3Y1 = 7;
+        private final static int X0Y2 = 8;
+        private final static int X1Y2 = 9;
+        private final static int X2Y2 = 10;
+        private final static int X3Y2 = 11;
+        private final static int X0Y3 = 12;
+        private final static int X1Y3 = 13;
+        private final static int X2Y3 = 14;
+        private final static int X3Y3 = 15;
+
+
         private int x0y0Idx() {
             return idx * pool.floatStride + X0Y0;
         }
@@ -201,12 +201,13 @@ public class F32x4x4Pool extends F32Pool<F32x4x4,F32x4x4Pool> implements F32x4x4
     public F32x4x4 entry(int idx) {
         return new PoolEntry(this, idx);
     }
-@Override
+
+    @Override
     public F32x4x4 of(Float x0y0, Float x1y0, Float x2y0, Float x3y0,
                       Float x0y1, Float x1y1, Float x2y1, Float x3y1,
                       Float x0y2, Float x1y2, Float x2y2, Float x3y2,
                       Float x0y3, Float x1y3, Float x2y3, Float x3y3) {
-        var i = (PoolEntry)entry(count++);
+        var i = (PoolEntry) entry(count++);
         floatEntries[i.x0y0Idx()] = x0y0;
         floatEntries[i.x1y0Idx()] = x1y0;
         floatEntries[i.x2y0Idx()] = x2y0;

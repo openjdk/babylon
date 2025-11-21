@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 
 /*
@@ -36,7 +36,7 @@ import jdk.incubator.code.CodeReflection;
 
 public class PatternsTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -60,7 +60,7 @@ public class PatternsTest {
         boolean x = o instanceof String s;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -99,7 +99,7 @@ public class PatternsTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -153,7 +153,7 @@ public class PatternsTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"PatternsTest", %1 : java.type:"PatternsTest$Rectangle")java.type:"void" -> {
                 %2 : Var<java.type:"PatternsTest$Rectangle"> = var %1 @"r";
@@ -218,7 +218,7 @@ public class PatternsTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -253,7 +253,7 @@ public class PatternsTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -290,7 +290,7 @@ public class PatternsTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -367,7 +367,7 @@ public class PatternsTest {
                 return %6;
             };
             """)
-    @CodeReflection
+    @Reflect
     boolean test8(Object o) {
         return o instanceof String _;
     }
@@ -392,7 +392,7 @@ public class PatternsTest {
                 return %6;
             };
             """)
-    @CodeReflection
+    @Reflect
     boolean test9(Object o) {
         return o instanceof Rectangle(_, ConcretePoint cp);
     }
@@ -416,7 +416,7 @@ public class PatternsTest {
                 return %6;
             };
             """)
-    @CodeReflection
+    @Reflect
     static boolean test10(int i) {
         return i instanceof byte b;
     }
@@ -440,7 +440,7 @@ public class PatternsTest {
                 return %6;
             };
             """)
-    @CodeReflection
+    @Reflect
     static boolean test11(int i) {
         return i instanceof short s;
     }

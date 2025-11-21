@@ -54,7 +54,7 @@ sealed abstract class SlotOp extends Op {
 
     final int slot;
 
-    protected SlotOp(SlotOp that, CopyContext cc) {
+    protected SlotOp(SlotOp that, CodeContext cc) {
         super(that, cc);
         this.slot = that.slot;
     }
@@ -96,13 +96,13 @@ sealed abstract class SlotOp extends Op {
             this(slot, def.resultType());
         }
 
-        SlotLoadOp(SlotLoadOp that, CopyContext cc) {
+        SlotLoadOp(SlotLoadOp that, CodeContext cc) {
             super(that, cc);
             this.resultType = that.resultType;
         }
 
         @Override
-        public SlotLoadOp transform(CopyContext cc, OpTransformer ot) {
+        public SlotLoadOp transform(CodeContext cc, CodeTransformer ot) {
             return new SlotLoadOp(this, cc);
         }
 
@@ -146,12 +146,12 @@ sealed abstract class SlotOp extends Op {
             this(slot, def.operands().getFirst());
         }
 
-        SlotStoreOp(SlotStoreOp that, CopyContext cc) {
+        SlotStoreOp(SlotStoreOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SlotStoreOp transform(CopyContext cc, OpTransformer ot) {
+        public SlotStoreOp transform(CodeContext cc, CodeTransformer ot) {
             return new SlotStoreOp(this, cc);
         }
 

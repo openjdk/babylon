@@ -1,4 +1,5 @@
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
@@ -18,7 +19,7 @@ import java.util.function.IntUnaryOperator;
  */
 public class TestQuoteOp {
 
-    @CodeReflection
+    @Reflect
     public void f(int i) {
         String s = "abc";
         Runnable r = () -> {
@@ -48,7 +49,7 @@ public class TestQuoteOp {
         Assertions.assertEquals(args[2], iterator.next());
     }
 
-    @CodeReflection
+    @Reflect
     static void g(String s) {
         boolean b = s.startsWith("a");
     }
@@ -76,7 +77,7 @@ public class TestQuoteOp {
     void testWithJavacModel() {
         final int y = 88;
         int z = 99;
-        IntUnaryOperator q = (@CodeReflection IntUnaryOperator) x -> x + y + z + hashCode();
+        IntUnaryOperator q = (@Reflect IntUnaryOperator) x -> x + y + z + hashCode();
 
         // access FuncOp created by javac
         Quoted quoted = Op.ofQuotable(q).orElseThrow();

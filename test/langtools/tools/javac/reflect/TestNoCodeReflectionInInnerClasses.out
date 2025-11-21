@@ -1,4 +1,4 @@
 TestNoCodeReflectionInInnerClasses.java:12:21: compiler.err.quoted.method.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-TestNoCodeReflectionInInnerClasses.java:15:53: compiler.err.quoted.lambda.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-TestNoCodeReflectionInInnerClasses.java:19:53: compiler.err.quoted.mref.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+TestNoCodeReflectionInInnerClasses.java:15:46: compiler.err.quoted.lambda.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+TestNoCodeReflectionInInnerClasses.java:19:46: compiler.err.quoted.mref.inner.class: TestNoCodeReflectionInInnerClasses.Inner
 3 errors

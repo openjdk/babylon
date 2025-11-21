@@ -28,6 +28,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
@@ -42,24 +43,24 @@ import java.util.stream.Stream;
 
 public class TestExpressionGraphs {
 
-    @CodeReflection
+    @Reflect
     static double sub(double a, double b) {
         return a - b;
     }
 
-    @CodeReflection
+    @Reflect
     static double distance1(double a, double b) {
         return Math.abs(a - b);
     }
 
-    @CodeReflection
+    @Reflect
     static double distance1a(final double a, final double b) {
         final double diff = a - b;
         final double result = Math.abs(diff);
         return result;
     }
 
-    @CodeReflection
+    @Reflect
     static double distance1b(final double a, final double b) {
         final double diff = a - b;
         // Note, incorrect for negative zero values
@@ -67,7 +68,7 @@ public class TestExpressionGraphs {
         return result;
     }
 
-    @CodeReflection
+    @Reflect
     static double distanceN(double[] a, double[] b) {
         double sum = 0d;
         for (int i = 0; i < a.length; i++) {
@@ -76,7 +77,7 @@ public class TestExpressionGraphs {
         return Math.sqrt(sum);
     }
 
-    @CodeReflection
+    @Reflect
     static double squareDiff(double a, double b) {
         // a^2 - b^2 = (a + b) * (a - b)
         final double plus = a + b;
@@ -182,7 +183,7 @@ public class TestExpressionGraphs {
     void print(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         f = SSA.transform(f);
@@ -387,7 +388,7 @@ public class TestExpressionGraphs {
 
 
 
-    @CodeReflection
+    @Reflect
     static int h(int x) {
         x += 2;                                                 // Statement 1
         g(x);                                                   // Statement 2

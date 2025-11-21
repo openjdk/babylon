@@ -28,9 +28,9 @@
  * @run junit/othervm -Dbabylon.ssa=cytron TestStringConcatTransform
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.analysis.StringConcatTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -172,45 +172,45 @@ public class TestStringConcatTransform {
 
     public static Object[][] getTestMethods(Class<?> clazz) {
         Object[][] res = Arrays.stream(clazz.getMethods())
-                .filter((method) -> method.isAnnotationPresent(CodeReflection.class))
+                .filter((method) -> method.isAnnotationPresent(Reflect.class))
                 .map(m -> new Object[]{m})
                 .toArray(Object[][]::new);
         return res;
     }
 
     static CoreOp.FuncOp generateSSA(CoreOp.FuncOp f) {
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         lf = SSA.transform(lf);
         System.out.println(lf.toText());
         return lf;
     }
 
-    @CodeReflection
+    @Reflect
     public static String intConcat(int i, String s) {
         return i + s + "hello" + 52;
     }
 
 
-    @CodeReflection
+    @Reflect
     public static String intConcatAssignment(int i, String s) {
         String s1 = i + s;
         return s1 + "hello" + 52;
     }
 
-    @CodeReflection
+    @Reflect
     public static String intConcatExprAssignment(int i, String s) {
         String r;
         String inter = i + (r = s + "hello") + 52;
         return r + inter;
     }
 
-    @CodeReflection
+    @Reflect
     public static String intConcatWideExpr(int i, String s) {
         String s1 = i + s;
         return s1 + "hello" + 52 + "world" + 26 + "!";
     }
 
-    @CodeReflection
+    @Reflect
     public static String intConcatDoubVar(int i, String s) {
         String r;
         String inter = i + (r = s + "hello") + 52;
@@ -218,20 +218,20 @@ public class TestStringConcatTransform {
         return r + inter2;
     }
 
-    @CodeReflection
+    @Reflect
     public static String intConcatNestedSplit(int i, String s) {
         String q, r;
         String inter = i + (q = r = s + "hello") + 52;
         return q + r + inter;
     }
 
-    @CodeReflection
+    @Reflect
     public static String nonLeftAssociativeTree(String a, String b, String c, String d) {
         String s = (a + b) + (c + d);
         return s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String stringBuilderCheck(String a, String d) {
         StringBuilder sb = new StringBuilder("test");
         String s = sb + a;
@@ -239,7 +239,7 @@ public class TestStringConcatTransform {
         return t;
     }
 
-    @CodeReflection
+    @Reflect
     public static String stringBuilderArgCheck(String a, String d, StringBuilder c) {
         StringBuilder sb = c;
         String s = sb + a;
@@ -247,19 +247,19 @@ public class TestStringConcatTransform {
         return t;
     }
 
-    @CodeReflection
+    @Reflect
     public static String leftAssociativeTree(String a, String b, String c, String d) {
         String s = ((a + b) + c) + d;
         return s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String rightAssociativeTree(String a, String b, String c, String d) {
         String s = (a + (b + (c + d)));
         return s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String widenPrimitives(short a, byte b, int c, int d) {
         String s = (a + (b + (c + d + "hi")));
         return s;

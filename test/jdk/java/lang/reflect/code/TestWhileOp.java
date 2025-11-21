@@ -21,9 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -42,7 +42,7 @@ import java.util.stream.Stream;
 
 public class TestWhileOp {
 
-    @CodeReflection
+    @Reflect
     public static int whileLoop() {
         int i = 0;
         while (i < 10) {
@@ -57,14 +57,14 @@ public class TestWhileOp {
 
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         System.out.println(lf.toText());
 
         Assertions.assertEquals(whileLoop(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
-    @CodeReflection
+    @Reflect
     public static int doWhileLoop() {
         int i = 0;
         do {
@@ -79,7 +79,7 @@ public class TestWhileOp {
 
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         System.out.println(lf.toText());
 

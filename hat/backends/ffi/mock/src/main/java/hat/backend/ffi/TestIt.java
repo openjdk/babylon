@@ -27,12 +27,12 @@ package hat.backend.ffi;
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 
 public class TestIt {
 
-        @CodeReflection
+        @Reflect
         public static void matrixMultiply(float[] a, float[] b, float[] c, int size) {
             for (int i = 0; i < size; i++) {
                 for (int j = 0; j < size; j++) {

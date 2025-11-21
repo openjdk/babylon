@@ -1,4 +1,5 @@
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -18,7 +19,7 @@ import java.util.function.IntUnaryOperator;
  */
 public class TestSealOp {
 
-    @CodeReflection
+    @Reflect
     static List<Integer> f(int i) {
         return new ArrayList<>(i);
     }
@@ -32,7 +33,7 @@ public class TestSealOp {
 
     @Test
     void test1() {
-        IntUnaryOperator q = (@CodeReflection IntUnaryOperator) i -> i / 2;
+        IntUnaryOperator q = (@Reflect IntUnaryOperator) i -> i / 2;
         Quoted quoted = Op.ofQuotable(q).get();
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
@@ -57,7 +58,7 @@ public class TestSealOp {
 
     @Test
     void test4() {
-        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) -> {
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> {
             return a + b;
         };
         Quoted quoted = Op.ofQuotable(q).get();

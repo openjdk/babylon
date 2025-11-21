@@ -23,16 +23,21 @@
  * questions.
  */
 package view.f32;
-import view.f32.factories.Factory3;
+
+import view.arity.Arity3;
 
 public interface F32x3 {
     float x();
+
     float y();
+
     float z();
+
     default String asString() {
         return x() + "," + y() + "," + z();
     }
+
     @FunctionalInterface
-    interface Factory extends Factory3<Float,Float,Float,F32x3> {
+    interface Factory extends Arity3<Float, Float, Float, F32x3> {
     }
 }

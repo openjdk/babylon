@@ -30,17 +30,17 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
 public class QuotedConstantArgs {
-    @CodeReflection
+    @Reflect
     public static void addScalerKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO S32Array in, @MappableIface.WO S32Array out, int scaler) {
         out.array(kc.gix, in.array(kc.gix) + scaler);
     }
 
-    @CodeReflection
+    @Reflect
     static public void addScalerCompute(final ComputeContext computeContext, S32Array in, S32Array out, int scaler) {
         computeContext.dispatchKernel(NDRange.of(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
     }

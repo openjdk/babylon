@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -19,7 +19,7 @@ public class StringConcatTest {
                 return %6;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String test1(String a, int b) {
         return a + b;
     }
@@ -36,7 +36,7 @@ public class StringConcatTest {
                 return %7;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String test2(String a, char b) {
         a += b;
         return a;
@@ -54,7 +54,7 @@ public class StringConcatTest {
                 return %7;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String test3(String a, float b) {
         a = a + b;
         return a;

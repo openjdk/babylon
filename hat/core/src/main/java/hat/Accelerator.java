@@ -36,7 +36,7 @@ import hat.optools.OpTk;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -147,12 +147,12 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      * So given a ComputeClass such as...
      * <pre>
      *  public class MyComputeClass {
-     *    @ CodeReflection
+     *    @ Reflect
      *    public static void addDeltaKernel(KernelContext kc, S32Array arrayOfInt, int delta) {
      *        arrayOfInt.array(kc.x, arrayOfInt.array(kc.x)+delta);
      *    }
      *
-     *    @ CodeReflection
+     *    @ Reflect
      *    static public void doSomeWork(final ComputeContext cc, S32Array arrayOfInt) {
      *    }
      *  }
@@ -164,7 +164,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      *  );
      *  </pre>
      */
-    @CodeReflection
+    @Reflect
     public interface QuotableComputeContextConsumer extends Consumer<ComputeContext> {
     }
     // convenience

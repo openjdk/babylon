@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -48,7 +48,7 @@ class IntersectionTypeTest {
         void m_C();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
                 %1 : Var<java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>"> = var %0 @"x";
@@ -71,7 +71,7 @@ class IntersectionTypeTest {
 
     // #X<&m<IntersectionTypeTest, test2, func<void, IntersectionTypeTest$A>>, IntersectionTypeTest$A>
     // #X<&m<IntersectionTypeTest, test2, func<void, IntersectionTypeTest$A>, IntersectionTypeTest$A>
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
                 %1 : Var<java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
@@ -93,7 +93,7 @@ class IntersectionTypeTest {
         Object oC = x.f_C;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
                 %1 : Var<java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
@@ -136,7 +136,7 @@ class IntersectionTypeTest {
     static void g_B(B a) { }
     static void g_C(C a) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
                 %1 : Var<java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
@@ -179,7 +179,7 @@ class IntersectionTypeTest {
         public void m_C() { }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"IntersectionTypeTest$E1", %1 : java.type:"IntersectionTypeTest$E2")java.type:"void" -> {
                 %2 : Var<java.type:"IntersectionTypeTest$E1"> = var %0 @"e1";
@@ -206,7 +206,7 @@ class IntersectionTypeTest {
         x.m_C();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"IntersectionTypeTest$E1", %1 : java.type:"IntersectionTypeTest$E2")java.type:"void" -> {
                 %2 : Var<java.type:"IntersectionTypeTest$E1"> = var %0 @"e1";
@@ -234,7 +234,7 @@ class IntersectionTypeTest {
         Object oC = x.f_C;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"IntersectionTypeTest$E1", %1 : java.type:"IntersectionTypeTest$E2")java.type:"void" -> {
                 %2 : Var<java.type:"IntersectionTypeTest$E1"> = var %0 @"e1";
@@ -279,7 +279,7 @@ class IntersectionTypeTest {
         Runnable rC = x::m_C;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"IntersectionTypeTest$E1", %1 : java.type:"IntersectionTypeTest$E2")java.type:"void" -> {
                 %2 : Var<java.type:"IntersectionTypeTest$E1"> = var %0 @"e1";

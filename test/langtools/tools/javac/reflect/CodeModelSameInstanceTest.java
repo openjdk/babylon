@@ -1,7 +1,7 @@
 import jdk.incubator.code.Op;
 
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +17,7 @@ import java.util.stream.IntStream;
  */
 public class CodeModelSameInstanceTest {
 
-    @CodeReflection
+    @Reflect
     static int add(int a, int b) {
         return a + b;
     }

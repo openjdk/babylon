@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -33,7 +33,7 @@ import jdk.incubator.code.CodeReflection;
  */
 
 public class TestLoop {
-    @CodeReflection
+    @Reflect
     @LoweredModel(value = """
             func @"testFor" (%0 : java.type:"int[]")java.type:"int" -> {
                 %1 : Var<java.type:"int[]"> = var %0 @"a";
@@ -79,7 +79,7 @@ public class TestLoop {
         return sum;
     }
 
-    @CodeReflection
+    @Reflect
     @LoweredModel(value = """
             func @"testForSSA" (%0 : java.type:"int[]")java.type:"int" -> {
                 %1 : java.type:"int" = constant @0;

@@ -34,7 +34,7 @@ import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
@@ -74,7 +74,7 @@ public class Reduction {
      * @param input
      * @param partialSums
      */
-    @CodeReflection
+    @Reflect
     private static void reduce(@RO KernelContext context, @RW S32Array input, @RW S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
@@ -103,7 +103,7 @@ public class Reduction {
      * @param input
      * @param partialSums
      */
-    @CodeReflection
+    @Reflect
     private static void reduceLocal(@RO KernelContext context, @RW S32Array input, @RW S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
@@ -130,7 +130,7 @@ public class Reduction {
 
     private static final int BLOCK_SIZE = 16;
 
-    @CodeReflection
+    @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array input, @RW S32Array partialSums) {
         // 2 groups of 16 threads each
         NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));

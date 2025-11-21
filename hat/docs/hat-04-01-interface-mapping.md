@@ -31,18 +31,18 @@ We implement this in HAT by collecting the kernel(s) and compute method(s) in a 
 
 ```java
 public class SquareCompute {
-    @CodeReflection
+    @Reflect
     public static int square(int v) {
         return v * v;
     }
 
-    @CodeReflection
+    @Reflect
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
         int value = s32Array.array(kc.x);     // arr[cc.x]
         s32Array.array(kc.x, square(value));  // arr[cc.x]=value*value
     }
 
-    @CodeReflection
+    @Reflect
     public static void square(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(s32Array.length(),
                 kc -> squareKernel(kc, s32Array)
@@ -271,7 +271,7 @@ The generated OpenCL/C99 code from Java kernel code is also quite clean
 We might use a kernel to initialize the location of a bunch of Results
 
 ```java
-    @CodeReflection public static void init(KernelContext kc, ResultTable resultTable) {
+    @Reflect public static void init(KernelContext kc, ResultTable resultTable) {
         if (kc.x < kc.maxX){
            Result result = resulTable.result(kc.x);
            result.x(kc.x);

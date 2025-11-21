@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
@@ -43,13 +43,13 @@ public class HATF16ConvOp extends HATF16Op {
         this.typeElement = typeElement;
     }
 
-    public HATF16ConvOp(HATF16ConvOp op, CopyContext copyContext) {
+    public HATF16ConvOp(HATF16ConvOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.typeElement = op.typeElement;
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATF16ConvOp(this, copyContext);
     }
 
