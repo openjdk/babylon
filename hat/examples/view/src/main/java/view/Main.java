@@ -62,20 +62,20 @@ public class Main {
         );
         var wire = RasterizingRenderer.wireOf(f32, 1024, 1024);
         var fill = RasterizingRenderer.fillOf(f32, 1024, 1024);
-        Runnable cubeoctahedron =  () -> {
+        Runnable cubeoctahedron = () -> {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {
                     for (int z = -2; z < 6; z += 2) {
-                            F32Mesh3D.of(f32,"cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                        F32Mesh3D.of(f32, "cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
                     }
                 }
             }
         };
-        Runnable elite = ()->eliteReader.load(f32,args.getFirst());
+        Runnable elite = () -> eliteReader.load(f32, args.getFirst());
 
         ViewFrame viewFrame = (args.size() > 0
-                ? ViewFrame.of(f32,"view",fill, elite)
-                : ViewFrame.of(f32,"true", fill,cubeoctahedron));
+                ? ViewFrame.of(f32, "view", wire, elite)
+                : ViewFrame.of(f32, "true", fill, cubeoctahedron));
         while (true) {
             viewFrame.update();
         }

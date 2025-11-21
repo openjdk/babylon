@@ -22,29 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
+package view.arity;
 
-import view.arity.Arity6;
-
-public interface F32x2Triangle extends Comparable<F32x2Triangle> {
-    F32x2 v0();
-
-    F32x2 v1();
-
-    F32x2 v2();
-
-    float zplane();
-
-    float normal();
-
-    int rgb();
-
-    @Override
-    default int compareTo(F32x2Triangle f32x2Triangle) {
-        return Float.compare(zplane(), f32x2Triangle.zplane());
-    }
-
-    @FunctionalInterface
-    interface Factory extends Arity6<F32x2, F32x2, F32x2, Float, Float, Integer, F32x2Triangle> {
-    }
+@FunctionalInterface
+public interface Arity5<A0, A1, A2, A3, A4, R> {
+    R of(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4);
 }

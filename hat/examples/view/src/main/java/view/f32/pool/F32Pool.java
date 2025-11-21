@@ -27,6 +27,7 @@ package view.f32.pool;
 public abstract class F32Pool<T, P extends F32Pool<T, P>> extends Pool<T, P> {
     public final float floatEntries[];
     protected final int floatStride;
+
     F32Pool(int floatStride, int max) {
         super(max);
         this.floatStride = floatStride;

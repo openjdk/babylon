@@ -24,13 +24,16 @@
  * questions.
  */
 package view.f32;
-import view.f32.factories.Factory2;
+
+import view.arity.Arity2;
 
 public interface F32x2 {
     float x();
+
     float y();
+
     @FunctionalInterface
-    interface Factory extends Factory2<Float,Float,F32x2> {
+    interface Factory extends Arity2<Float, Float, F32x2> {
     }
 
 }
