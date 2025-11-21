@@ -128,7 +128,7 @@ import jdk.incubator.code.bytecode.BytecodeGenerator;
  * with the {@code CodeReflection} annotation. The model is expressed using the code
  * reflection API (see jdk.internal.java.lang.reflect.code).
  */
-public class ReflectMethods extends TreeScannerPrev {
+public class ReflectMethods extends TreeTranslatorPrev {
     protected static final Context.Key<ReflectMethods> reflectMethodsKey = new Context.Key<>();
 
     public static ReflectMethods instance(Context context) {
@@ -234,6 +234,7 @@ public class ReflectMethods extends TreeScannerPrev {
             ops = prevOps;
             currentClassSym = prevClassSym;
             codeModelsClassSym = prevCodeModelsClassSym;
+            result = tree;
             log.useSource(prev);
         }
     }
@@ -337,8 +338,7 @@ public class ReflectMethods extends TreeScannerPrev {
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
         // note that this method does NOT support recursion.
         this.make = make;
-        scan(cdef);
-        return cdef;
+        return translate(cdef);
     }
 
     public CoreOp.FuncOp getMethodBody(Symbol.ClassSymbol classSym, JCMethodDecl methodDecl, JCBlock attributedBody, TreeMaker make) {
