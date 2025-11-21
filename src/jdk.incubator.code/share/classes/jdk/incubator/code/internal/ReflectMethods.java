@@ -153,7 +153,7 @@ public class ReflectMethods extends TreeTranslator {
 
     private TreeMaker make;
     private ListBuffer<JCTree> opMethodDecls;
-    private OpMap ops;
+    private SequencedMap<String, Op> ops;
     private Symbol.ClassSymbol currentClassSym;
     private Symbol.ClassSymbol codeModelsClassSym;
     private int lambdaCount;
@@ -210,7 +210,7 @@ public class ReflectMethods extends TreeTranslator {
     @Override
     public void visitClassDef(JCClassDecl tree) {
         ListBuffer<JCTree> prevOpMethodDecls = opMethodDecls;
-        OpMap prevOps = ops;
+        SequencedMap<String, Op> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
         Symbol.ClassSymbol prevCodeModelsClassSym = codeModelsClassSym;
         int prevLambdaCount = lambdaCount;
@@ -220,11 +220,11 @@ public class ReflectMethods extends TreeTranslator {
             currentClassSym = tree.sym;
             opMethodDecls = new ListBuffer<>();
             codeModelsClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
-            ops = new OpMap();
+            ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
             if (!ops.isEmpty()) {
                 tree.defs = tree.defs.prependList(opMethodDecls.toList());
-                tree.crContext = ops;
+                tree = new JCReflectMethodsClassDecl(tree, ops);
                 currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
@@ -2692,10 +2692,16 @@ public class ReflectMethods extends TreeTranslator {
         }
     }
 
-    private static class OpMap extends LinkedHashMap<String, Op> {
+    static class JCReflectMethodsClassDecl extends JCClassDecl {
 
-        @java.io.Serial
-        private static final long serialVersionUID = 3801124242820219133L;
+        SequencedMap<String, Op> ops;
+
+        JCReflectMethodsClassDecl(JCClassDecl cls, SequencedMap<String, Op> ops) {
+            super(cls.mods, cls.name, cls.typarams, cls.extending, cls.implementing, cls.permitting, cls.defs, cls.sym);
+            this.pos = cls.pos;
+            this.type = cls.type;
+            this.ops = ops;
+        }
     }
 
     public static class Provider implements CodeReflectionTransformer {
@@ -2706,7 +2712,7 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void genCode(Context context, JCClassDecl cdef) throws IOException {
-            if (cdef.crContext instanceof OpMap ops) {
+            if (cdef instanceof JCReflectMethodsClassDecl rmcdef) {
                 JavaFileManager fileManager = context.get(JavaFileManager.class);
                 JavaFileManager.Location outLocn;
                 if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
@@ -2720,7 +2726,7 @@ public class ReflectMethods extends TreeTranslator {
                 ClassDesc hostClass = ClassDesc.of(cdef.sym.flatName().toString());
 
                 CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(
-                        ops,
+                        rmcdef.ops,
                         b -> b.op(JavaOp.fieldLoad(
                                 FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
                 byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
