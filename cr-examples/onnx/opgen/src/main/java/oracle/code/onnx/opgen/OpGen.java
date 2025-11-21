@@ -437,13 +437,13 @@ public class OpGen {
         w.write("}\n");
         w.write("\n");
 
-        w.write(s.name() + "(" + s.name() + " that, CopyContext cc) {\n");
+        w.write(s.name() + "(" + s.name() + " that, CodeContext cc) {\n");
         w.write("    super(that, cc);\n");
         w.write("}\n");
         w.write("\n");
 
         w.write("@Override\n");
-        w.write("public " + s.name() + " transform(CopyContext cc, OpTransformer ot) {\n");
+        w.write("public " + s.name() + " transform(CodeContext cc, CodeTransformer ot) {\n");
         w.write("    return new " + s.name() + "(this, cc);\n");
         w.write("}\n");
         w.write("\n");

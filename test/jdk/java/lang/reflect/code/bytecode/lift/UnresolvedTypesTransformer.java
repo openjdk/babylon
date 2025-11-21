@@ -23,12 +23,8 @@
  * questions.
  */
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.core.VarType;
@@ -266,12 +262,12 @@ final class UnresolvedTypesTransformer {
         };
     }
 
-    private OpTransformer blockParamTypesTransformer() {
-        return new OpTransformer() {
+    private CodeTransformer blockParamTypesTransformer() {
+        return new CodeTransformer() {
             @Override
             public void acceptBlock(Block.Builder block, Block b) {
                 if (block.isEntryBlock()) {
-                    CopyContext cc = block.context();
+                    CodeContext cc = block.context();
                     List<Block> sourceBlocks = b.ancestorBody().blocks();
 
                     // Override blocks with changed parameter types
@@ -288,7 +284,7 @@ final class UnresolvedTypesTransformer {
                     }
 
                 }
-                OpTransformer.super.acceptBlock(block, b);
+                CodeTransformer.super.acceptBlock(block, b);
             }
 
             @Override
@@ -299,9 +295,9 @@ final class UnresolvedTypesTransformer {
         };
     }
 
-    private OpTransformer opTypesTransformer() {
+    private CodeTransformer opTypesTransformer() {
         return (block, op) -> {
-            CopyContext cc = block.context();
+            CodeContext cc = block.context();
             switch (op) {
                 case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut ->
                     cc.mapValue(op.result(), block.op(CoreOp.constant(resolvedMap.get(ut), convertValue(ut, cop.value()))));
@@ -322,7 +318,7 @@ final class UnresolvedTypesTransformer {
         };
     }
 
-    private static OpTransformer unifyOperandsTransformer() {
+    private static CodeTransformer unifyOperandsTransformer() {
         return (block, op) -> {
             switch (op) {
                 case JavaOp.BinaryTestOp _ ->
@@ -340,7 +336,7 @@ final class UnresolvedTypesTransformer {
 
     private static void unify(Block.Builder block, Op op, TypeElement firstType, TypeElement secondType) {
         List<Value> operands = op.operands();
-        CopyContext cc = CopyContext.create(block.context());
+        CodeContext cc = CodeContext.create(block.context());
         Value first = operands.getFirst();
         boolean changed = false;
         if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
@@ -353,7 +349,7 @@ final class UnresolvedTypesTransformer {
             changed = true;
         }
         if (changed) {
-            block.context().mapValue(op.result(), block.op(op.transform(cc, OpTransformer.COPYING_TRANSFORMER)));
+            block.context().mapValue(op.result(), block.op(op.transform(cc, CodeTransformer.COPYING_TRANSFORMER)));
         } else {
             block.op(op);
         }

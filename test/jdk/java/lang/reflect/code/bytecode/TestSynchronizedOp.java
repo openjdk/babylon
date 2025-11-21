@@ -29,8 +29,8 @@
  */
 
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -65,7 +65,7 @@ public class TestSynchronizedOp {
     @Test
     public void testInstructions() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         byte[] classdata = BytecodeGenerator.generateClassData(MethodHandles.lookup(), f);
         CodeModel cmf = ClassFile.of().parse(classdata).methods().stream()
@@ -84,7 +84,7 @@ public class TestSynchronizedOp {
     @Test
     public void testExecution() throws Throwable {
         CoreOp.FuncOp f = getFuncOp("f");
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         MethodHandle mf = BytecodeGenerator.generate(MethodHandles.lookup(), f);
 

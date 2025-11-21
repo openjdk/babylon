@@ -33,7 +33,7 @@ import hat.dialect.HATVectorOp;
 import hat.optools.OpTk;
 import hat.types._V;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -135,7 +135,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorSelectOps.collect(Collectors.toSet());
         funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
+            CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -191,7 +191,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
         funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
+            CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {

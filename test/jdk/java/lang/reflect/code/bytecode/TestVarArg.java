@@ -1,6 +1,6 @@
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.internal.classfile.components.ClassPrinter;
@@ -30,7 +30,7 @@ public class TestVarArg {
         var f = getFuncOp("f");
         System.out.println(f.toText());
 
-        var lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        var lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         var bytes = BytecodeGenerator.generateClassData(MethodHandles.lookup(), f);

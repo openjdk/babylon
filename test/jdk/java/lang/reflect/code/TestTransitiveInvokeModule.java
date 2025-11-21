@@ -29,8 +29,8 @@
  */
 
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -69,7 +69,7 @@ public class TestTransitiveInvokeModule {
 
         CoreOp.ModuleOp module = createTransitiveInvokeModule(MethodHandles.lookup(), om.get());
         System.out.println(module.toText());
-        module = module.transform(OpTransformer.LOWERING_TRANSFORMER);
+        module = module.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(module.toText());
         module = SSA.transform(module);
         System.out.println(module.toText());

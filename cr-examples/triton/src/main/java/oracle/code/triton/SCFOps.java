@@ -58,7 +58,7 @@ public class SCFOps {
                 return new ForOp(range, body);
             }
 
-            public ForOp body(CopyContext cc, Consumer<Block.Builder> c) {
+            public ForOp body(CodeContext cc, Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, loopType, cc);
                 c.accept(body.entryBlock());
                 return new ForOp(range, body);
@@ -75,14 +75,14 @@ public class SCFOps {
             this.body = def.bodyDefinitions().get(0).build(this);
         }
 
-        ForOp(ForOp that, CopyContext cc, OpTransformer ot) {
+        ForOp(ForOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.body = that.body.transform(cc, ot).build(this);
         }
 
         @Override
-        public ForOp transform(CopyContext cc, OpTransformer ot) {
+        public ForOp transform(CodeContext cc, CodeTransformer ot) {
             return new ForOp(this, cc, ot);
         }
 
@@ -121,12 +121,12 @@ public class SCFOps {
             super(def.operands());
         }
 
-        YieldOp(YieldOp that, CopyContext cc) {
+        YieldOp(YieldOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public YieldOp transform(CopyContext cc, OpTransformer ot) {
+        public YieldOp transform(CodeContext cc, CodeTransformer ot) {
             return new YieldOp(this, cc);
         }
 

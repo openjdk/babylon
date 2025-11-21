@@ -23,7 +23,6 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -63,7 +62,7 @@ public class TestExpressionElimination {
         System.out.println(f.toText());
 
         @SuppressWarnings("unchecked")
-        T lf = (T) f.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        T lf = (T) f.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         lf = SSA.transform(lf);

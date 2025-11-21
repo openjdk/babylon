@@ -27,7 +27,7 @@ import java.lang.classfile.TypeKind;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -199,7 +199,7 @@ final class SlotToVarTransformer {
                     }
                 }
             }
-            CopyContext cc = block.context();
+            CodeContext cc = block.context();
             switch (op) {
                 case SlotOp.SlotLoadOp slo -> {
                     Var var = varMap.get(slo);

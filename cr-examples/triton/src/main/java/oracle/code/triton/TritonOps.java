@@ -47,7 +47,7 @@ public class TritonOps {
             this.resultType = def.resultType();
         }
 
-        TritonOp(TritonOp that, CopyContext cc) {
+        TritonOp(TritonOp that, CodeContext cc) {
             super(that, cc);
 
             this.resultType = that.resultType;
@@ -86,7 +86,7 @@ public class TritonOps {
             this.table = createTable(body);
         }
 
-        ModuleOp(ModuleOp that, CopyContext cc, OpTransformer ot) {
+        ModuleOp(ModuleOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.body = that.body.transform(cc, ot).build(this);
@@ -108,12 +108,12 @@ public class TritonOps {
         }
 
         @Override
-        public ModuleOp transform(CopyContext cc, OpTransformer ot) {
+        public ModuleOp transform(CodeContext cc, CodeTransformer ot) {
             return new ModuleOp(this, cc, ot);
         }
 
-        public ModuleOp transform(OpTransformer ot) {
-            return new ModuleOp(this, CopyContext.create(), ot);
+        public ModuleOp transform(CodeTransformer ot) {
+            return new ModuleOp(this, CodeContext.create(), ot);
         }
 
         ModuleOp(List<FuncOp> functions) {
@@ -189,11 +189,11 @@ public class TritonOps {
             this.body = def.bodyDefinitions().get(0).build(this);
         }
 
-        FuncOp(FuncOp that, CopyContext cc, OpTransformer oa) {
+        FuncOp(FuncOp that, CodeContext cc, CodeTransformer oa) {
             this(that, that.funcName, cc, oa);
         }
 
-        FuncOp(FuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
+        FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.funcName = funcName;
@@ -201,16 +201,16 @@ public class TritonOps {
         }
 
         @Override
-        public FuncOp transform(CopyContext cc, OpTransformer ot) {
+        public FuncOp transform(CodeContext cc, CodeTransformer ot) {
             return new FuncOp(this, cc, ot);
         }
 
-        public FuncOp transform(OpTransformer ot) {
-            return new FuncOp(this, CopyContext.create(), ot);
+        public FuncOp transform(CodeTransformer ot) {
+            return new FuncOp(this, CodeContext.create(), ot);
         }
 
-        public FuncOp transform(String funcName, OpTransformer ot) {
-            return new FuncOp(this, funcName, CopyContext.create(), ot);
+        public FuncOp transform(String funcName, CodeTransformer ot) {
+            return new FuncOp(this, funcName, CodeContext.create(), ot);
         }
 
         FuncOp(String funcName, Body.Builder bodyBuilder) {
@@ -246,10 +246,10 @@ public class TritonOps {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.rebind(b.context(), OpTransformer.COPYING_TRANSFORMER).op(this);
+            b.rebind(b.context(), CodeTransformer.COPYING_TRANSFORMER).op(this);
             return b;
         }
     }
@@ -277,14 +277,14 @@ public class TritonOps {
             this.funcName = funcName;
         }
 
-        CallOp(CallOp that, CopyContext cc) {
+        CallOp(CallOp that, CodeContext cc) {
             super(that, cc);
 
             this.funcName = that.funcName;
         }
 
         @Override
-        public CallOp transform(CopyContext cc, OpTransformer ot) {
+        public CallOp transform(CodeContext cc, CodeTransformer ot) {
             return new CallOp(this, cc);
         }
 
@@ -351,7 +351,7 @@ public class TritonOps {
             this.reducer = def.bodyDefinitions().get(0).build(this);
         }
 
-        ReduceOp(ReduceOp that, CopyContext cc, OpTransformer ot) {
+        ReduceOp(ReduceOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.axis = that.axis;
@@ -359,7 +359,7 @@ public class TritonOps {
         }
 
         @Override
-        public ReduceOp transform(CopyContext cc, OpTransformer ot) {
+        public ReduceOp transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceOp(this, cc, ot);
         }
 
@@ -397,12 +397,12 @@ public class TritonOps {
             super(def);
         }
 
-        ReduceReturnOp(ReduceReturnOp that, CopyContext cc) {
+        ReduceReturnOp(ReduceReturnOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReduceReturnOp transform(CopyContext cc, OpTransformer ot) {
+        public ReduceReturnOp transform(CodeContext cc, CodeTransformer ot) {
             return new ReduceReturnOp(this, cc);
         }
 
@@ -433,14 +433,14 @@ public class TritonOps {
             this.axis = axis;
         }
 
-        GetProgramIdOp(GetProgramIdOp that, CopyContext cc) {
+        GetProgramIdOp(GetProgramIdOp that, CodeContext cc) {
             super(that, cc);
 
             this.axis = that.axis;
         }
 
         @Override
-        public GetProgramIdOp transform(CopyContext cc, OpTransformer ot) {
+        public GetProgramIdOp transform(CodeContext cc, CodeTransformer ot) {
             return new GetProgramIdOp(this, cc);
         }
 
@@ -490,7 +490,7 @@ public class TritonOps {
             this.end = end;
         }
 
-        MakeRangeOp(MakeRangeOp that, CopyContext cc) {
+        MakeRangeOp(MakeRangeOp that, CodeContext cc) {
             super(that, cc);
 
             this.start = that.start;
@@ -498,7 +498,7 @@ public class TritonOps {
         }
 
         @Override
-        public MakeRangeOp transform(CopyContext cc, OpTransformer ot) {
+        public MakeRangeOp transform(CodeContext cc, CodeTransformer ot) {
             return new MakeRangeOp(this, cc);
         }
 
@@ -543,14 +543,14 @@ public class TritonOps {
             this.axis = axis;
         }
 
-        ExpandOp(ExpandOp that, CopyContext cc) {
+        ExpandOp(ExpandOp that, CodeContext cc) {
             super(that, cc);
 
             this.axis = that.axis;
         }
 
         @Override
-        public ExpandOp transform(CopyContext cc, OpTransformer ot) {
+        public ExpandOp transform(CodeContext cc, CodeTransformer ot) {
             return new ExpandOp(this, cc);
         }
 
@@ -578,12 +578,12 @@ public class TritonOps {
             super(def);
         }
 
-        SplatOp(SplatOp that, CopyContext cc) {
+        SplatOp(SplatOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public SplatOp transform(CopyContext cc, OpTransformer ot) {
+        public SplatOp transform(CodeContext cc, CodeTransformer ot) {
             return new SplatOp(this, cc);
         }
 
@@ -600,12 +600,12 @@ public class TritonOps {
             super(def);
         }
 
-        BroadcastOp(BroadcastOp that, CopyContext cc) {
+        BroadcastOp(BroadcastOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public BroadcastOp transform(CopyContext cc, OpTransformer ot) {
+        public BroadcastOp transform(CodeContext cc, CodeTransformer ot) {
             return new BroadcastOp(this, cc);
         }
 
@@ -622,12 +622,12 @@ public class TritonOps {
             super(def);
         }
 
-        AddPtrOp(AddPtrOp that, CopyContext cc) {
+        AddPtrOp(AddPtrOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public AddPtrOp transform(CopyContext cc, OpTransformer ot) {
+        public AddPtrOp transform(CodeContext cc, CodeTransformer ot) {
             return new AddPtrOp(this, cc);
         }
 
@@ -644,12 +644,12 @@ public class TritonOps {
             super(def);
         }
 
-        LoadOp(LoadOp that, CopyContext cc) {
+        LoadOp(LoadOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LoadOp transform(CopyContext cc, OpTransformer ot) {
+        public LoadOp transform(CodeContext cc, CodeTransformer ot) {
             return new LoadOp(this, cc);
         }
 
@@ -670,12 +670,12 @@ public class TritonOps {
             super(def);
         }
 
-        StoreOp(StoreOp that, CopyContext cc) {
+        StoreOp(StoreOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public StoreOp transform(CopyContext cc, OpTransformer ot) {
+        public StoreOp transform(CodeContext cc, CodeTransformer ot) {
             return new StoreOp(this, cc);
         }
 
@@ -692,12 +692,12 @@ public class TritonOps {
             super(def);
         }
 
-        ReturnOp(ReturnOp that, CopyContext cc) {
+        ReturnOp(ReturnOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReturnOp transform(CopyContext cc, OpTransformer ot) {
+        public ReturnOp transform(CodeContext cc, CodeTransformer ot) {
             return new ReturnOp(this, cc);
         }
 
@@ -718,12 +718,12 @@ public class TritonOps {
             super(def);
         }
 
-        DotOp(DotOp that, CopyContext cc) {
+        DotOp(DotOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public DotOp transform(CopyContext cc, OpTransformer ot) {
+        public DotOp transform(CodeContext cc, CodeTransformer ot) {
             return new DotOp(this, cc);
         }
 

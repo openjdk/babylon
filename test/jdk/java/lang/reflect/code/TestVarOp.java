@@ -29,7 +29,7 @@
 
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -57,7 +57,7 @@ public class TestVarOp {
         CoreOp.FuncOp f = getFuncOp("f");
         CoreOp.FuncOp ft = CoreOp.func("f", CoreType.functionType(JavaType.J_L_OBJECT, JavaType.type(CharSequence.class)))
                 .body(fb -> {
-                    fb.body(f.body(), fb.parameters(), OpTransformer.COPYING_TRANSFORMER);
+                    fb.body(f.body(), fb.parameters(), CodeTransformer.COPYING_TRANSFORMER);
                 });
 
         List<CoreOp.VarOp> vops = ft.elements()

@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 
 import java.util.List;
@@ -42,13 +42,13 @@ public class HATGlobalSizeOp extends HATThreadOp {
         this.resultType = resultType;
     }
 
-    public HATGlobalSizeOp(HATGlobalSizeOp op, CopyContext copyContext) {
+    public HATGlobalSizeOp(HATGlobalSizeOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.resultType = op.resultType;
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATGlobalSizeOp(this, copyContext);
     }
 

@@ -137,7 +137,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
          * @param opT the previous lowering code transformation, may be {@code null}
          * @return the block builder to use for further building
          */
-        Block.Builder lower(Block.Builder b, OpTransformer opT);
+        Block.Builder lower(Block.Builder b, CodeTransformer opT);
 
         /**
          * Returns a composed code transformer that composes with an operation transformer function adapted to lower
@@ -145,15 +145,15 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
          * <p>
          * This method behaves as if it returns the result of the following expression:
          * {@snippet lang = java:
-         * OpTransformer.andThen(before, lowering(before, f));
+         * CodeTransformer.andThen(before, lowering(before, f));
          *}
          *
          * @param before the code transformer to apply before
          * @param f the operation transformer function to apply after
          * @return the composed code transformer
          */
-        static OpTransformer andThenLowering(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
-            return OpTransformer.andThen(before, lowering(before, f));
+        static CodeTransformer andThenLowering(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+            return CodeTransformer.andThen(before, lowering(before, f));
         }
 
         /**
@@ -173,7 +173,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
          * @param f the operation transformer function to apply after
          * @return the adapted operation transformer function
          */
-        static BiFunction<Block.Builder, Op, Block.Builder> lowering(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+        static BiFunction<Block.Builder, Op, Block.Builder> lowering(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
             return (block, op) -> {
                 Block.Builder b = f.apply(block, op);
                 if (b == null) {
@@ -282,13 +282,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * Constructs an operation from a given operation.
      * <p>
      * The constructor defers to the {@link Op#Op(List) operands} constructor passing a list of values computed, in
-     * order, by mapping the given operation's operands using the copy context. The constructor also assigns the new
+     * order, by mapping the given operation's operands using the code context. The constructor also assigns the new
      * operation's location to the given operation's location, if any.
      *
      * @param that the given operation.
-     * @param cc   the copy context.
+     * @param cc   the code context.
      */
-    protected Op(Op that, CopyContext cc) {
+    protected Op(Op that, CodeContext cc) {
         this(cc.getValues(that.operands));
         this.location = that.location;
     }
@@ -296,16 +296,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Copies this operation and transforms its bodies, if any.
      * <p>
-     * Bodies are {@link Body#transform(CopyContext, OpTransformer) transformed} with the given copy context and
+     * Bodies are {@link Body#transform(CodeContext, CodeTransformer) transformed} with the given code context and
      * operation transformer.
      * @apiNote
-     * To copy an operation use the {@link OpTransformer#COPYING_TRANSFORMER copying transformer}.
+     * To copy an operation use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
      *
-     * @param cc the copy context.
+     * @param cc the code context.
      * @param ot the operation transformer.
      * @return the transformed operation.
      */
-    public abstract Op transform(CopyContext cc, OpTransformer ot);
+    public abstract Op transform(CodeContext cc, CodeTransformer ot);
 
     /**
      * Constructs an operation with a list of operands.

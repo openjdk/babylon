@@ -1,5 +1,5 @@
 import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -540,7 +540,7 @@ public class TestSwitchStatementOp {
     private static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
         writeModel(f, System.out, OpWriter.LocationOption.DROP_LOCATION);
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         writeModel(lf, System.out, OpWriter.LocationOption.DROP_LOCATION);
 
         return lf;

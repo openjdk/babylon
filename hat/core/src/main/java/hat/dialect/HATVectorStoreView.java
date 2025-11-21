@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
@@ -42,13 +42,13 @@ public final class HATVectorStoreView extends HATVectorOp {
         this.isSharedOrPrivate = isSharedOrPrivate;
     }
 
-    public HATVectorStoreView(HATVectorStoreView op, CopyContext copyContext) {
+    public HATVectorStoreView(HATVectorStoreView op, CodeContext copyContext) {
         super(op, copyContext);
         this.isSharedOrPrivate = op.isSharedOrPrivate;
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATVectorStoreView(this, copyContext);
     }
 

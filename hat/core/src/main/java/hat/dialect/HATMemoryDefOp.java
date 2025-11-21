@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -39,7 +39,7 @@ public abstract class HATMemoryDefOp extends HATOp {
         this.varName = varName;
     }
 
-    protected HATMemoryDefOp(HATMemoryDefOp that, CopyContext cc) {
+    protected HATMemoryDefOp(HATMemoryDefOp that, CodeContext cc) {
         super(that, cc);
         this.varName = that.varName;
     }

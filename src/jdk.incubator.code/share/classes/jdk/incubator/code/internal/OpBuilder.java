@@ -399,7 +399,7 @@ public class OpBuilder {
             var r = b.op(switchExpression(i, swBodies));
             b.op(return_(r));
         });
-        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
+        return funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
     }
 
     OpBuilder(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {

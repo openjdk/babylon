@@ -587,7 +587,7 @@ public final class TritonTransformer {
                                                     Map<String, TritonOps.FuncOp> fsymTable) {
         // @@@ Avoid constructing for each operation -- block builder passed as argument or a scoped value
         TritonBuilderInterpreter tbi = new TritonBuilderInterpreter(fsymTable, kblock);
-        CopyContext cc = kblock.context();
+        CodeContext cc = kblock.context();
         switch (op) {
             case VarOp varOp -> {
                 // @@@ Cannot copy op because the result type
@@ -674,7 +674,7 @@ public final class TritonTransformer {
         return kblock;
     }
 
-    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, JavaOp.ForOp fop,
+    static void transformToSCFFor(CodeContext cc, Block.Builder kblock, JavaOp.ForOp fop,
                                   Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
                                   Map<String, TritonOps.FuncOp> fsymTable) {
         Body body = fop.loopBody();
@@ -723,7 +723,7 @@ public final class TritonTransformer {
         // @@@ Build in java code model, then transform?
         SCFOps.ForOp scffor = SCFOps.for_(kblock.parentBody(), start, end, step, iterValues)
                 // Ensure existing context is used
-                .body(CopyContext.create(cc), builder -> {
+                .body(CodeContext.create(cc), builder -> {
                     // Create index var initialized from entry block parameter
                     Value index = builder.parameters().get(0);
                     valueTypeMap.put(index, JavaType.INT);

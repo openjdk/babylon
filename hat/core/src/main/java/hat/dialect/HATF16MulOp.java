@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
@@ -38,12 +38,12 @@ public class HATF16MulOp extends HATF16BinaryOp {
         super(typeElement, OpType.MUL, references, f32, operands);
     }
 
-    public HATF16MulOp(HATF16MulOp op, CopyContext copyContext) {
+    public HATF16MulOp(HATF16MulOp op, CodeContext copyContext) {
         super(op, copyContext);
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATF16MulOp(this, copyContext);
     }
 }

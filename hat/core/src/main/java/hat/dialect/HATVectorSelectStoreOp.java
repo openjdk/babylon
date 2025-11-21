@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -47,7 +47,7 @@ public class HATVectorSelectStoreOp extends HATVectorOp {
         this.resultVarOp = resultVarOp;
     }
 
-    public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CopyContext cc) {
+    public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CodeContext cc) {
         super(that, cc);
         this.elementType = that.elementType;
         this.lane = that.lane;
@@ -55,7 +55,7 @@ public class HATVectorSelectStoreOp extends HATVectorOp {
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATVectorSelectStoreOp(this, copyContext);
     }
 

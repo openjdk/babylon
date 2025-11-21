@@ -91,7 +91,7 @@ public class TestLocalTransformationsAdaption {
         CoreOp.FuncOp f = getFuncOp("f");
         System.out.println(f.toText());
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), f, 2);
@@ -135,7 +135,7 @@ public class TestLocalTransformationsAdaption {
         });
         System.out.println(fc.toText());
 
-        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
+        fc = fc.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
@@ -187,7 +187,7 @@ public class TestLocalTransformationsAdaption {
         });
         System.out.println(fc.toText());
 
-        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
+        fc = fc.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
@@ -214,14 +214,14 @@ public class TestLocalTransformationsAdaption {
         });
         System.out.println(fc.toText());
 
-        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
+        fc = fc.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assertions.assertEquals(f(2), x);
     }
 
-    static void printCall(CopyContext cc, JavaOp.InvokeOp invokeOp, Block.Builder opBuilder) {
+    static void printCall(CodeContext cc, JavaOp.InvokeOp invokeOp, Block.Builder opBuilder) {
         List<Value> adaptedInvokeOperands = cc.getValues(invokeOp.operands());
 
         String prefix = "ENTER";

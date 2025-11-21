@@ -42,12 +42,12 @@ public class TritonTestOps {
             super(def.operands());
         }
 
-        ConsumeOp(ConsumeOp that, CopyContext cc) {
+        ConsumeOp(ConsumeOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ConsumeOp transform(CopyContext cc, OpTransformer ot) {
+        public ConsumeOp transform(CodeContext cc, CodeTransformer ot) {
             return new ConsumeOp(this, cc);
         }
 

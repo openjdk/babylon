@@ -22,7 +22,7 @@
  */
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -209,7 +209,7 @@ public final class ForwardDifferentiation {
         };
     }
 
-    void adaptSuccessor(CopyContext cc, Block.Reference from) {
+    void adaptSuccessor(CodeContext cc, Block.Reference from) {
         List<Value> as = from.arguments().stream()
                 .filter(activeSet::contains)
                 .toList();
