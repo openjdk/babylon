@@ -379,8 +379,8 @@ public sealed abstract class CoreOp extends Op {
                 funcs.add(cur);
                 List<CoreOp.FuncOp> temp = new LinkedList<>();
                 cur.elements().filter(e -> e instanceof JavaOp.InvokeOp).forEach(e -> {
-                    if (invokeToFuncOp((JavaOp.InvokeOp) e, l) != null) {
-                        temp.addFirst(invokeToFuncOp((JavaOp.InvokeOp) e, l));
+                    if (invokeToFuncOp((JavaOp.InvokeOp) e, l) instanceof CoreOp.FuncOp resolvedFuncOp) {
+                        temp.addFirst(resolvedFuncOp);
                     }
                 });
                 stack.addAll(temp);
