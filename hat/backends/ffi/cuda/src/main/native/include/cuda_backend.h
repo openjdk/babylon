@@ -124,6 +124,8 @@ class CudaQueue final : public Backend::Queue {
 
         int estimateThreadsPerBlock(int dimensions);
 
+        int estimateThreadsPerBlock(int dimensions, int globalSizePerDimension, int localSize);
+
         void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
 
         ~CudaQueue() override;
