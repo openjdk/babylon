@@ -21,12 +21,6 @@ public class TreeTranslatorPrev extends TreeTranslator {
         }
     }
 
-    public void scan(JCTree tree, JCTree prevNode) {
-        this.prevNode = null;
-        currentNode = prevNode;
-        translate(tree);
-    }
-
     JCTree currentNode() {
         return currentNode;
     }
