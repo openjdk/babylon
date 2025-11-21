@@ -785,6 +785,13 @@ public class JavaCompiler {
      */
     JavaFileObject genCode(Env<AttrContext> env, JCClassDecl cdef) throws IOException {
         try {
+            if (Feature.REFLECT_METHODS.allowedInSource(source)) {
+                Optional<CodeReflectionTransformer> reflectMethods = reflectMethods();
+                if (reflectMethods.isPresent()) {
+                    reflectMethods.get().genCode(context, cdef);
+                }
+            }
+
             if (gen.genClass(env, cdef) && (errorCount() == 0))
                 return writer.writeClass(cdef.sym);
         } catch (ClassWriter.PoolOverflow ex) {

@@ -128,7 +128,7 @@ import jdk.incubator.code.bytecode.BytecodeGenerator;
  * with the {@code CodeReflection} annotation. The model is expressed using the code
  * reflection API (see jdk.internal.java.lang.reflect.code).
  */
-public class ReflectMethods extends TreeScannerPrev {
+public class ReflectMethods extends TreeTranslatorPrev {
     protected static final Context.Key<ReflectMethods> reflectMethodsKey = new Context.Key<>();
 
     public static ReflectMethods instance(Context context) {
@@ -147,7 +147,6 @@ public class ReflectMethods extends TreeScannerPrev {
     private final Lower lower;
     private final TypeEnvs typeEnvs;
     private final Flow flow;
-    private final JavaFileManager fileManager;
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
@@ -178,7 +177,6 @@ public class ReflectMethods extends TreeScannerPrev {
         lower = Lower.instance(context);
         typeEnvs = TypeEnvs.instance(context);
         flow = Flow.instance(context);
-        fileManager = context.get(JavaFileManager.class);
         crSyms = new CodeReflectionSymbols(context);
     }
 
@@ -225,9 +223,9 @@ public class ReflectMethods extends TreeScannerPrev {
             codeModelsClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
             ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
-            tree.defs = tree.defs.prependList(opMethodDecls.toList());
             if (!ops.isEmpty()) {
-                synthClassDecl();
+                tree.defs = tree.defs.prependList(opMethodDecls.toList());
+                tree = new JCReflectMethodsClassDecl(tree, ops);
                 currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
@@ -236,6 +234,7 @@ public class ReflectMethods extends TreeScannerPrev {
             ops = prevOps;
             currentClassSym = prevClassSym;
             codeModelsClassSym = prevCodeModelsClassSym;
+            result = tree;
             log.useSource(prev);
         }
     }
@@ -336,46 +335,10 @@ public class ReflectMethods extends TreeScannerPrev {
         return md;
     }
 
-    private CoreOp.ModuleOp opBuilder() {
-        return OpBuilder.createBuilderFunctions(
-                ops,
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-
-    }
-
-    private void synthClassDecl() {
-        try {
-            JavaFileManager.Location outLocn;
-            if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
-                outLocn = fileManager.getLocationForModule(StandardLocation.CLASS_OUTPUT, currentClassSym.packge().modle.name.toString());
-            } else {
-                outLocn = StandardLocation.CLASS_OUTPUT;
-            }
-            String className = codeModelsClassSym.flatName().toString();
-            ClassDesc classDesc = ClassDesc.of(className);
-            JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, currentClassSym.sourcefile);
-            ClassDesc hostClass = ClassDesc.of(currentClassSym.className());
-            CoreOp.ModuleOp module = opBuilder();
-            byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
-            // inject InnerClassesAttribute and NestHostAttribute
-            data = ClassFile.of().transformClass(ClassFile.of().parse(data), ClassTransform.endHandler(clb ->
-                    clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
-                       .with(NestHostAttribute.of(hostClass))));
-            try (OutputStream out = outFile.openOutputStream()) {
-                out.write(data);
-            }
-            syms.enterClass(currentClassSym.packge().modle, className);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
         // note that this method does NOT support recursion.
         this.make = make;
-        scan(cdef);
-        return cdef;
+        return translate(cdef);
     }
 
     public CoreOp.FuncOp getMethodBody(Symbol.ClassSymbol classSym, JCMethodDecl methodDecl, JCBlock attributedBody, TreeMaker make) {
@@ -2681,10 +2644,53 @@ public class ReflectMethods extends TreeScannerPrev {
         }
     }
 
+    static class JCReflectMethodsClassDecl extends JCClassDecl {
+
+        SequencedMap<String, Op> ops;
+
+        JCReflectMethodsClassDecl(JCClassDecl cls, SequencedMap<String, Op> ops) {
+            super(cls.mods, cls.name, cls.typarams, cls.extending, cls.implementing, cls.permitting, cls.defs, cls.sym);
+            this.pos = cls.pos;
+            this.type = cls.type;
+            this.ops = ops;
+        }
+    }
+
     public static class Provider implements CodeReflectionTransformer {
         @Override
         public JCTree translateTopLevelClass(Context context, JCTree tree, TreeMaker make) {
             return ReflectMethods.instance(context).translateTopLevelClass(tree, make);
+        }
+
+        @Override
+        public void genCode(Context context, JCClassDecl cdef) throws IOException {
+            if (cdef instanceof JCReflectMethodsClassDecl rmcdef) {
+                JavaFileManager fileManager = context.get(JavaFileManager.class);
+                JavaFileManager.Location outLocn;
+                if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
+                    outLocn = fileManager.getLocationForModule(StandardLocation.CLASS_OUTPUT, cdef.sym.packge().modle.name.toString());
+                } else {
+                    outLocn = StandardLocation.CLASS_OUTPUT;
+                }
+                String className = cdef.sym.flatName().toString() + "$$CM";
+                ClassDesc classDesc = ClassDesc.of(className);
+                JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, cdef.sym.sourcefile);
+                ClassDesc hostClass = ClassDesc.of(cdef.sym.flatName().toString());
+
+                CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(
+                        rmcdef.ops,
+                        b -> b.op(JavaOp.fieldLoad(
+                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+                byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
+                // inject InnerClassesAttribute and NestHostAttribute
+                var clm = ClassFile.of().parse(data);
+                data = ClassFile.of().transformClass(clm, ClassTransform.endHandler(clb ->
+                        clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
+                           .with(NestHostAttribute.of(hostClass))));
+                try (OutputStream out = outFile.openOutputStream()) {
+                    out.write(data);
+                }
+            }
         }
     }
 
