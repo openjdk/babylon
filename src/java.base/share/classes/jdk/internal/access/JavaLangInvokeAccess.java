@@ -27,8 +27,14 @@ package jdk.internal.access;
 
 import jdk.internal.foreign.abi.NativeEntryPoint;
 
+import java.lang.constant.ClassDesc;
+import java.lang.constant.MethodHandleDesc;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.MemoryLayout;
+import java.lang.invoke.CallSite;
+import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Constructor;
@@ -170,4 +176,21 @@ public interface JavaLangInvokeAccess {
      * This method should only be used by ReflectionFactory::newConstructorForSerialization.
      */
     MethodHandle serializableConstructor(Class<?> decl, Constructor<?> ctorToCall) throws IllegalAccessException;
+
+    record ReflectableLambdaInfo(ClassDesc quotedClass, ClassDesc funcOpClass,
+                                 MethodHandle extractOpHandle, MethodHandle opHandle) { }
+
+    CallSite metafactoryInternal(MethodHandles.Lookup caller,
+                                               String interfaceMethodName,
+                                               MethodType factoryType,
+                                               MethodType interfaceMethodType,
+                                               MethodHandle implementation,
+                                               MethodType dynamicMethodType,
+                                               ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException;
+
+    CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
+                                    String interfaceMethodName,
+                                    MethodType factoryType,
+                                    ReflectableLambdaInfo reflectableLambdaInfo,
+                                    Object... args) throws LambdaConversionException;
 }

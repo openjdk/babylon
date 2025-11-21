@@ -58,6 +58,8 @@ import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -83,10 +85,10 @@ public final class BytecodeGenerator {
             "metafactory",
             CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
 
-    private static final DirectMethodHandleDesc DMHD_LAMBDA_ALT_METAFACTORY = ofCallsiteBootstrap(
-            LambdaMetafactory.class.describeConstable().orElseThrow(),
-            "altMetafactory",
-            CD_CallSite, CD_Object.arrayType());
+    private static final DirectMethodHandleDesc DMHD_REFLECTABLE_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
+            ReflectableLambdaMetafactory.class.describeConstable().orElseThrow(),
+            "metafactory",
+            CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
 
     private static final DirectMethodHandleDesc DMHD_STRING_CONCAT = ofCallsiteBootstrap(
             StringConcatFactory.class.describeConstable().orElseThrow(),
@@ -932,36 +934,23 @@ public final class BytecodeGenerator {
                             ClassDesc[] captureTypes = op.capturedValues().stream()
                                     .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
                             int lambdaIndex = lambdaSink.size();
+                            DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
+                            String intfMethodName = intfMethod.getName();
                             if (op.isQuotable()) {
-                                cob.invokedynamic(DynamicCallSiteDesc.of(
-                                        DMHD_LAMBDA_ALT_METAFACTORY,
-                                        intfMethod.getName(),
-                                        MethodTypeDesc.of(intfType.toNominalDescriptor(),
-                                                          captureTypes),
-                                        toMTD(intfMethod),
-                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
-                                                                  className,
-                                                                  "lambda$" + lambdaIndex,
-                                                                  mtd.insertParameterTypes(0, captureTypes)),
-                                        mtd,
-                                        LambdaMetafactory.FLAG_QUOTABLE,
-                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
-                                                className,
-                                                "op$lambda$" + lambdaIndex,
-                                                OP_METHOD_DESC)));
+                                lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
+                                intfMethodName = intfMethodName + "=" + "op$lambda$" + lambdaIndex;
                                 quotable.set(lambdaSink.size());
-                            } else {
-                                cob.invokedynamic(DynamicCallSiteDesc.of(
-                                        DMHD_LAMBDA_METAFACTORY,
-                                        intfMethod.getName(),
-                                        MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
-                                        toMTD(intfMethod),
-                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
-                                                                  className,
-                                                                  "lambda$" + lambdaIndex,
-                                                                  mtd.insertParameterTypes(0, captureTypes)),
-                                        mtd));
                             }
+                            cob.invokedynamic(DynamicCallSiteDesc.of(
+                                    lambdaMetafactory,
+                                    intfMethodName,
+                                    MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
+                                    toMTD(intfMethod),
+                                    MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                                              className,
+                                                              "lambda$" + lambdaIndex,
+                                                              mtd.insertParameterTypes(0, captureTypes)),
+                                    mtd));
                             lambdaSink.add(op);
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);

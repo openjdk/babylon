@@ -33,7 +33,6 @@ import jdk.incubator.code.extern.*;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
@@ -133,6 +132,8 @@ public class OpBuilder {
     static final String OP_BUILDER_F_NAME_1 = "$op1";
     static final String OP_BUILDER_F_NAME_2 = "$op2";
     static final String OP_BUILDER_F_NAME_3 = "$op3";
+    static final String TYPE_BUILDER_F_NAME = "$type";
+    static final String EXTER_TYPE_BUILDER_F_NAME = "$exterType";
 
     static final FunctionType LIST_BUILDER_F_TYPE = functionType(
             J_U_LIST,
@@ -148,7 +149,7 @@ public class OpBuilder {
             J_C_LOCATION, // location: Location or null
             J_L_OBJECT, // operand(s): Value, List<Value> or null
             J_L_OBJECT, // successor(s): Block.Reference, List<Block.Reference> or null
-            J_L_OBJECT, // result type: TypeElement or null for void
+            INT, // result type index
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
@@ -159,7 +160,7 @@ public class OpBuilder {
             J_C_LOCATION, // location: Location or null
             J_L_OBJECT, // operand(s): Value, List<Value> or null
             J_L_OBJECT, // successor(s): Block.Reference, List<Block.Reference> or null
-            J_L_OBJECT, // result type: TypeElement or null for void
+            INT, // result type index
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
@@ -171,21 +172,21 @@ public class OpBuilder {
             INT, // location.columnt
             J_L_OBJECT, // operand(s): Value, List<Value> or null
             J_L_OBJECT, // successor(s): Block.Reference, List<Block.Reference> or null
-            J_L_OBJECT, // result type: TypeElement or null for void
+            INT, // result type index
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
+
+    static final FunctionType TYPE_BUILDER_F_TYPE = functionType(JavaType.type(TypeElement.class), INT);
 
     final Map<Value, Value> valueMap;
 
     final Map<Block, Value> blockMap;
 
-    final Map<ExternalizedTypeElement, Value> exTypeElementMap;
+    final SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes;
 
     final Map<TypeElement, Value> typeElementMap;
 
     final Block.Builder builder;
-
-    final Value typeElementFactory;
 
     /**
      * Transform the given code model to one that builds it.
@@ -201,10 +202,14 @@ public class OpBuilder {
      */
     public static ModuleOp createBuilderFunctions(SequencedMap<String, ? extends Op> ops, Function<Block.Builder, Value> dialectFactoryF) {
         List<FuncOp> funcs = new ArrayList<>();
+        SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes = new LinkedHashMap<>();
         for (var e : ops.sequencedEntrySet()) {
-            funcs.add(new OpBuilder(dialectFactoryF).build(e.getKey(), e.getValue()));
+            OpBuilder opBuilder = new OpBuilder(registeredExternalizedTypes);
+            funcs.add(opBuilder.build(e.getKey(), e.getValue()));
+            registeredExternalizedTypes = opBuilder.registeredExternalizedTypes;
         }
         funcs.addAll(createSupportFunctions(dialectFactoryF));
+        funcs.add(createExternTypeHelperFunc(registeredExternalizedTypes));
         ModuleOp module = module(funcs);
         module.seal();
         return module;
@@ -244,7 +249,7 @@ public class OpBuilder {
                 //                Location location,
                 //                Object operands,
                 //                Object successors,
-                //                TypeElement resultType,
+                //                int resultTypeIndex,
                 //                Object attributes,
                 //                Object bodyDefinitions) {
                 //     return <dialect factory>.opFactory().constructOp(
@@ -252,7 +257,7 @@ public class OpBuilder {
                 //                                location,
                 //                                $list(operands),
                 //                                $list(successors),
-                //                                resultType,
+                //                                $type(resultTypeIndex),
                 //                                $map(attributes),
                 //                                $list(bodyDefinitions)));
                 // }
@@ -266,7 +271,7 @@ public class OpBuilder {
                                     args.get(1),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(2))),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(3))),
-                                    args.get(4),
+                                    b.op(funcCall(TYPE_BUILDER_F_NAME, TYPE_BUILDER_F_TYPE, args.get(4))),
                                     b.op(funcCall(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE, args.get(5))),
                                     b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(6)))))))));
                 }),
@@ -275,7 +280,7 @@ public class OpBuilder {
                 //                       Location location,
                 //                       Object operands,
                 //                       Object successors,
-                //                       TypeElement resultType,
+                //                       int resultTypeIndex,
                 //                       Object attributes,
                 //                       Object bodyDefinitions) {
                 //     return b.op($op1(name,
@@ -306,7 +311,7 @@ public class OpBuilder {
                 //                       int column,
                 //                       Object operands,
                 //                       Object successors,
-                //                       TypeElement resultType,
+                //                       int resultTypeIndex,
                 //                       Object attributes,
                 //                       Object bodyDefinitions) {
                 //     return $op2(b,
@@ -330,20 +335,81 @@ public class OpBuilder {
                             args.get(6),
                             args.get(7),
                             args.get(8)))));
+                }),
+                //  static private TypeElement $type(int typeIndex) {
+                //      return JavaOp.JAVA_DIALECT_FACTORY.typeElementFactory().constructType($exType(typeIndex));
+                //  }
+                func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class))).body(b -> {
+                    var i = b.parameter(INT);
+                    var typeElementFactory = b.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactoryF.apply(b)));
+                    var exterType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class)), i));
+                    var typeElement = b.op(invoke(MethodRef.method(TypeElementFactory.class, "constructType", TypeElement.class, ExternalizedTypeElement.class), typeElementFactory, exterType));
+                    b.op(return_(typeElement));
                 })
         );
     }
 
-    OpBuilder(Function<Block.Builder, Value> dialectFactoryF) {
+    private static FuncOp createExternTypeHelperFunc(Map<ExternalizedTypeElement, List<Integer>> registeredExterTypes) {
+        /*
+        static private ExternalizedTypeElement $exType(int typeIndex) {
+            return switch(typeIndex) {
+                case 0 -> ExternalizedTypeElement.of("void");
+                case 1 -> ExternalizedTypeElement.of("java.type.primitive", exType(0));
+                default -> throw new IllegalStateException();
+            };
+        }
+        */
+        FuncOp funcOp = func(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class))).body(b -> {
+            Block.Parameter i = b.parameter(INT);
+            List<Body.Builder> swBodies = new ArrayList<>();
+            for (Map.Entry<ExternalizedTypeElement, List<Integer>> e : registeredExterTypes.entrySet()) {
+                Body.Builder l = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
+                Block.Parameter target = l.entryBlock().parameter(INT);
+                Integer typeIndex = e.getValue().getLast();
+                Result p = l.entryBlock().op(eq(target, l.entryBlock().op(constant(INT, typeIndex))));
+                l.entryBlock().op(core_yield(p));
+
+                Body.Builder expr = Body.Builder.of(b.parentBody(), functionType(type(ExternalizedTypeElement.class)));
+                List<Value> args = new ArrayList<>();
+                args.add(expr.entryBlock().op(constant(J_L_STRING, e.getKey().identifier())));
+                for (int j = 0; j < e.getValue().size() - 1; j++) {
+                    Value index = expr.entryBlock().op(constant(INT, e.getValue().get(j)));
+                    Result opr = expr.entryBlock().op(funcCall(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class)), index));
+                    args.add(opr);
+                }
+                MethodRef mr;
+                Result type;
+                if (e.getKey().arguments().size() < 5) {
+                    List<Class<?>> params = new ArrayList<>();
+                    params.add(String.class);
+                    params.addAll(Collections.nCopies(e.getKey().arguments().size(), ExternalizedTypeElement.class));
+                    mr = MethodRef.method(ExternalizedTypeElement.class, "of", ExternalizedTypeElement.class, params);
+                    type = expr.entryBlock().op(invoke(mr, args));
+                } else {
+                    mr = MethodRef.method(ExternalizedTypeElement.class, "of", ExternalizedTypeElement.class,
+                            String.class, ExternalizedTypeElement[].class);
+                    type = expr.entryBlock().op(invoke(InvokeOp.InvokeKind.STATIC, true, type(ExternalizedTypeElement.class), mr, args));
+                }
+                expr.entryBlock().op(core_yield(type));
+
+                swBodies.add(l);
+                swBodies.add(expr);
+            }
+
+            var r = b.op(switchExpression(i, swBodies));
+            b.op(return_(r));
+        });
+        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
+    }
+
+    OpBuilder(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {
         this.valueMap = new HashMap<>();
         this.blockMap = new HashMap<>();
-        this.exTypeElementMap = new HashMap<>();
         this.typeElementMap = new HashMap<>();
+        this.registeredExternalizedTypes = registeredExternalizedTypes;
 
         Body.Builder body = Body.Builder.of(null, BUILDER_F_TYPE);
         this.builder = body.entryBlock();
-        var dialectFactory = dialectFactoryF.apply(builder);
-        this.typeElementFactory = builder.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactory));
     }
 
     FuncOp build(String name, Op op) {
@@ -427,7 +493,7 @@ public class OpBuilder {
         }
         args.add(buildFlexibleList(type(Value.class), operands));
         args.add(buildFlexibleList(type(Block.Reference.class), successors));
-        args.add(buildType(resultType));
+        args.add(builder.op(constant(INT, registerType(resultType.externalize()))));
         args.add(buildAttributeMap(inputOp, attributes));
         args.add(buildFlexibleList(type(Body.Builder.class), bodies));
         return builder.op(bb ? simpleLoc ? funcCall(OP_BUILDER_F_NAME_3, OP_BUILDER_F_OVERRIDE_3, args)
@@ -492,39 +558,24 @@ public class OpBuilder {
         return body;
     }
 
-    Value buildType(TypeElement _t) {
-        return typeElementMap.computeIfAbsent(_t, t -> {
-            Value exTypeElem = buildExternalizedType(t.externalize());
-            return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
-        });
+    private int registerType(ExternalizedTypeElement ete) {
+        if (!registeredExternalizedTypes.containsKey(ete)) {
+            List<Integer> values = new ArrayList<>();
+            for (ExternalizedTypeElement argument : ete.arguments()) {
+                values.add(registerType(argument));
+            }
+            values.add(registeredExternalizedTypes.size()); // insertion order of the new key
+            registeredExternalizedTypes.put(ete, values);
+        }
+        return registeredExternalizedTypes.get(ete).getLast(); // returns the insertion order of the key
     }
 
-    Value buildExternalizedType(ExternalizedTypeElement e) {
-        // Cannot use computeIfAbsent due to recursion
-        if (exTypeElementMap.get(e) instanceof Value v) {
-            return v;
-        }
-
-        List<Value> arguments = new ArrayList<>();
-        for (ExternalizedTypeElement a : e.arguments()) {
-            arguments.add(buildExternalizedType(a));
-        }
-
-        Value identifier = builder.op(constant(J_L_STRING, e.identifier()));
-        Value ve;
-        if (e.arguments().size() < 5) {
-            MethodRef elemOf = MethodRef.method(EX_TYPE_ELEM, "of",
-                    EX_TYPE_ELEM, Stream.concat(Stream.of(J_L_STRING),
-                            Collections.nCopies(e.arguments().size(), EX_TYPE_ELEM).stream()).toList());
-            arguments.addFirst(identifier);
-            ve = builder.op(invoke(elemOf, arguments));
-        } else {
-            Value list = buildList(EX_TYPE_ELEM, arguments);
-            ve = builder.op(invoke(EX_TYPE_ELEM_OF_LIST, identifier, list));
-        }
-
-        exTypeElementMap.put(e, ve);
-        return ve;
+    Value buildType(TypeElement _t) {
+        return typeElementMap.computeIfAbsent(_t, t -> {
+            int typeIndex = registerType(_t.externalize());
+            Op.Result i = builder.op(constant(INT, typeIndex));
+            return builder.op(funcCall(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class)), i));
+        });
     }
 
     Value buildAttributeMap(Op inputOp, Map<String, Object> attributes) {

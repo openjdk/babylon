@@ -29,7 +29,6 @@ package com.sun.tools.javac.comp;
 import com.sun.source.tree.MemberReferenceTree.ReferenceMode;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Attribute.TypeCompound;
-import com.sun.tools.javac.code.Source.Feature;
 import com.sun.tools.javac.code.Symbol.*;
 import com.sun.tools.javac.code.Type.TypeVar;
 import com.sun.tools.javac.jvm.Target;
@@ -48,8 +47,6 @@ import static com.sun.tools.javac.code.TypeTag.TYPEVAR;
 import static com.sun.tools.javac.code.TypeTag.VOID;
 import static com.sun.tools.javac.comp.CompileStates.CompileState;
 import com.sun.tools.javac.tree.JCTree.JCBreak;
-
-import javax.lang.model.type.TypeKind;
 
 /** This pass translates Generic Java to conventional Java.
  *
@@ -640,6 +637,7 @@ public class TransTypes extends TreeTranslator {
         return interfaceParameterIsIntersectionOrUnionType(tree) ||
                 tree.hasKind(ReferenceKind.SUPER) ||
                 needsVarArgsConversion(tree) ||
+                tree.codeReflectionInfo != null ||
                 isArrayOp(tree) ||
                 (!target.runtimeUseNestAccess() && isPrivateInOtherClass(tree)) ||
                 isProtectedInSuperClassOfEnclosingClassInOtherPackage(tree.sym, env.enclClass.sym) ||
@@ -682,7 +680,7 @@ public class TransTypes extends TreeTranslator {
                 slam.owner = tree.owner;
                 slam.type = tree.type;
                 slam.pos = tree.pos;
-                slam.codeModel = tree.codeModel;
+                slam.codeReflectionInfo = tree.codeReflectionInfo;
                 slam.wasMethodReference = true;
                 if (receiverExpression != null) {
                     // use a let expression so that the receiver expression is evaluated eagerly

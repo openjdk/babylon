@@ -375,7 +375,8 @@ public class TestBytecode {
         int apply(int a);
     }
 
-    public interface QuotableFunc extends Quotable {
+    @CodeReflection
+    public interface QuotableFunc {
         int apply(int a);
     }
 

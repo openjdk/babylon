@@ -76,7 +76,7 @@ public class TestQuoteOp {
     void testWithJavacModel() {
         final int y = 88;
         int z = 99;
-        Quotable q = (IntUnaryOperator & Quotable) x -> x + y + z + hashCode();
+        IntUnaryOperator q = (@CodeReflection IntUnaryOperator) x -> x + y + z + hashCode();
 
         // access FuncOp created by javac
         Quoted quoted = Op.ofQuotable(q).orElseThrow();

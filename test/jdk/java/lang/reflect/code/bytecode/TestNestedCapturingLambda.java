@@ -30,7 +30,6 @@
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -46,7 +45,8 @@ import java.util.stream.Stream;
 public class TestNestedCapturingLambda {
 
     @FunctionalInterface
-    interface QIntSupplier extends IntSupplier, Quotable {
+    @CodeReflection
+    interface QIntSupplier extends IntSupplier {
     }
 
     @CodeReflection

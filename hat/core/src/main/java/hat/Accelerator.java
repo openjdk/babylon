@@ -36,8 +36,8 @@ import hat.optools.OpTk;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
 
@@ -164,7 +164,8 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      *  );
      *  </pre>
      */
-    public interface QuotableComputeContextConsumer extends Quotable, Consumer<ComputeContext> {
+    @CodeReflection
+    public interface QuotableComputeContextConsumer extends Consumer<ComputeContext> {
     }
     // convenience
     public Config config(){

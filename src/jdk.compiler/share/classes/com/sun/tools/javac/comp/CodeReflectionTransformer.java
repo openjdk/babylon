@@ -39,8 +39,8 @@ public interface CodeReflectionTransformer {
     /**
      * Analyze the code in the provided class, generating code models for the following program elements:
      * <li>methods annotated with {@code CodeReflection};
-     * <li>lambdas or method references whose target type is {@code Quoted}; and
-     * <li>lambdas or method references whose target is an intersection type that contains {@code Quotable}.
+     * <li>lambdas or method references whose target type is a functional interface annotated with {@code CodeReflection}; and
+     * <li>lambdas or method references whose target is a cast that contains the {@code CodeReflection} annotation.
      * @param context the compiler context
      * @param tree the tree to analyze
      * @param make the tree maker

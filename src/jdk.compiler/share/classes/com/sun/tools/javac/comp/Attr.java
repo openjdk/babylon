@@ -448,6 +448,8 @@ public class Attr extends JCTree.Visitor {
     public <R> R runWithAttributedMethod(Env<AttrContext> env, JCMethodDecl tree, Function<JCBlock, R> attributedAction) {
         JavaFileObject prevSource = log.useSource(env.toplevel.sourcefile);
         try {
+            annotate.queueScanTreeAndTypeAnnotate(tree.body, env, tree.sym);
+            annotate.flush();
             JCBlock dupTree = (JCBlock)deferredAttr.attribSpeculative(tree.body, env, statInfo,
                     null, DeferredAttr.AttributionMode.ATTRIB_TO_TREE,
                     argumentAttr.withLocalCacheContext());

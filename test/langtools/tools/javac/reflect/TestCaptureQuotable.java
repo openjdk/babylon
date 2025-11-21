@@ -32,9 +32,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.dialect.core.CoreOp.Var;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -53,7 +53,7 @@ public class TestCaptureQuotable {
     @ParameterizedTest
     @MethodSource("ints")
     public void testCaptureIntParam(int x) {
-        Quotable quotable = (Quotable & IntUnaryOperator)y -> x + y;
+        IntUnaryOperator quotable = (@CodeReflection IntUnaryOperator) y -> x + y;
         Quoted quoted = Op.ofQuotable(quotable).get();
         assertEquals(1, quoted.capturedValues().size());
         assertEquals(x, ((Var)quoted.capturedValues().values().iterator().next()).value());
@@ -69,7 +69,7 @@ public class TestCaptureQuotable {
     public void testCaptureThisRefAndIntConstant() {
         final int x = 100;
         String hello = "hello";
-        Quotable quotable = (Quotable & ToIntFunction<Number>)y -> y.intValue() + hashCode() + hello.length() + x;
+        ToIntFunction<Number> quotable = (@CodeReflection ToIntFunction<Number>)y -> y.intValue() + hashCode() + hello.length() + x;
         Quoted quoted = Op.ofQuotable(quotable).get();
         assertEquals(3, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
@@ -86,7 +86,7 @@ public class TestCaptureQuotable {
 
     @Test
     public void testCaptureThisInInvocationArg() {
-        Quotable quotable = (Quotable & ToIntFunction<Number>)y -> y.intValue() + Integer.valueOf(hashCode());
+        ToIntFunction<Number> quotable = (@CodeReflection ToIntFunction<Number>)y -> y.intValue() + Integer.valueOf(hashCode());
         Quoted quoted = Op.ofQuotable(quotable).get();
         assertEquals(1, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
@@ -103,7 +103,7 @@ public class TestCaptureQuotable {
 
     @Test
     public void testCaptureThisInNewArg() {
-        Quotable quotable = (Quotable & ToIntFunction<Number>)y -> y.intValue() + new R(hashCode()).i;
+        ToIntFunction<Number> quotable = (@CodeReflection ToIntFunction<Number>)y -> y.intValue() + new R(hashCode()).i;
         Quoted quoted = Op.ofQuotable(quotable).get();
         assertEquals(1, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
@@ -128,7 +128,7 @@ public class TestCaptureQuotable {
         int i7 = ia[6] = 6;
         int i8 = ia[7] = 7;
 
-        Quotable quotable = (Quotable & IntSupplier) () -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8;
+        IntSupplier quotable = (@CodeReflection IntSupplier) () -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8;
         Quoted quoted = Op.ofQuotable(quotable).get();
         assertEquals(ia.length, quoted.capturedValues().size());
         assertEquals(new ArrayList<>(quoted.capturedValues().keySet()), quoted.op().capturedValues());
@@ -147,8 +147,8 @@ public class TestCaptureQuotable {
             this.x = x;
         }
 
-        Quotable quotable() {
-            return (Quotable & IntUnaryOperator) y -> x + y;
+        IntUnaryOperator quotable() {
+            return (@CodeReflection IntUnaryOperator) y -> x + y;
         }
     }
 
@@ -156,7 +156,7 @@ public class TestCaptureQuotable {
     @MethodSource("ints")
     public void testCaptureIntField(int x) {
         Context context = new Context(x);
-        Quotable quotable = context.quotable();
+        IntUnaryOperator quotable = context.quotable();
         Quoted quoted = Op.ofQuotable(quotable).get();
         assertEquals(1, quoted.capturedValues().size());
         assertEquals(context, quoted.capturedValues().values().iterator().next());
@@ -176,7 +176,7 @@ public class TestCaptureQuotable {
     @MethodSource("ints")
     public void testCaptureReferenceReceiver(int i) {
         int prevCount = Box.count;
-        Quotable quotable = (Quotable & IntUnaryOperator)new Box(i)::add;
+        IntUnaryOperator quotable = (@CodeReflection IntUnaryOperator)new Box(i)::add;
         Quoted quoted = Op.ofQuotable(quotable).get();
         assertEquals(prevCount + 1, Box.count); // no duplicate receiver computation!
         assertEquals(1, quoted.capturedValues().size());
