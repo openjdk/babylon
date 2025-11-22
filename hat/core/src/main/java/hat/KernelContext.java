@@ -139,9 +139,9 @@ public class KernelContext {
     }
 
     private boolean isLocalDefined(NDRange.Local local) {
-        return local != NDRange.EMPTY_LOCAL_1D
-                && local != NDRange.EMPTY_LOCAL_2D
-                && local != NDRange.EMPTY_LOCAL_3D;
+        return local != NDRange.Local1D.EMPTY
+                && local != NDRange.Local2D.EMPTY
+                && local != NDRange.Local3D.EMPTY;
     }
 
     public boolean hasLocalMesh() {
