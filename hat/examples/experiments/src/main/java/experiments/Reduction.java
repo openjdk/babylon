@@ -133,8 +133,7 @@ public class Reduction {
     @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array input, @RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
-        cc.dispatchKernel(ndRange, kc -> reduceLocal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32,16), kc -> reduceLocal(kc, input, partialSums));
     }
 
     public static void main(String[] args) {

@@ -92,7 +92,7 @@ public class Main {
 
     @Reflect
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(NDRange.of(call.length()),
+        cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }

@@ -102,7 +102,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float cdelT = delT;
         float cespSqr = espSqr;
 
-        cc.dispatchKernel(NDRange.of(universe.length()), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
+        cc.dispatchKernel(NDRange.of1D(universe.length()), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
     }
 
     final CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel;

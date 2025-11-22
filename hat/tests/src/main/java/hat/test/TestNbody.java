@@ -105,8 +105,7 @@ public class TestNbody {
 
     @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(universe.length()));
-        cc.dispatchKernel(ndRange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
+        cc.dispatchKernel(NDRange.of1D(universe.length()), kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
     }
 
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {

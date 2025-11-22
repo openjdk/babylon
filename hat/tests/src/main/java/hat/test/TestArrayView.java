@@ -57,7 +57,7 @@ public class TestArrayView {
 
     @Reflect
     public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(NDRange.of(s32Array.length()),
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernel(kc, s32Array)
         );
     }
@@ -90,8 +90,7 @@ public class TestArrayView {
 
     @Reflect
     public static void squareNoVarOp(@RO ComputeContext cc, @RW S32Array s32Array) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(s32Array.length()));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernelNoVarOp(kc, s32Array)
         );
     }
@@ -121,7 +120,7 @@ public class TestArrayView {
 
     @Reflect
     public static void square2D(@RO ComputeContext cc, @RW S32Array2D s32Array2D) {
-        cc.dispatchKernel(NDRange.of(s32Array2D.width() * s32Array2D.height()),
+        cc.dispatchKernel(NDRange.of1D(s32Array2D.width() * s32Array2D.height()),
                 kc -> square2DKernel(kc, s32Array2D)
         );
     }
@@ -271,7 +270,7 @@ public class TestArrayView {
         @Reflect
         static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RO CellGrid grid, @WO CellGrid gridRes) {
             int range = grid.width() * grid.height();
-            cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid, gridRes));
+            cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, ctrl, grid, gridRes));
         }
     }
 
@@ -391,7 +390,7 @@ public class TestArrayView {
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
         computeContext.dispatchKernel(
-                NDRange.of(s32Array2D.width()*s32Array2D.height()), //0..S32Array2D.size()
+                NDRange.of1D(s32Array2D.width()*s32Array2D.height()), //0..S32Array2D.size()
                 kc -> mandel(kc, s32Array2D, pallete, x, y, scale));
     }
 
@@ -492,7 +491,7 @@ public class TestArrayView {
 
     @Reflect
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(NDRange.of(call.length()),
+        cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }
@@ -623,7 +622,7 @@ public class TestArrayView {
 
     @Reflect
     public static void privateAndLocal(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(NDRange.of(s32Array.length()),
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernelWithPrivateAndLocal(kc, s32Array)
         );
     }

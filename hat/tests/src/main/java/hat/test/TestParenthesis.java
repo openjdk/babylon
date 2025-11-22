@@ -70,20 +70,17 @@ public class TestParenthesis {
 
     @Reflect
     public static void compute(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
-        cc.dispatchKernel(ndRange,kc -> compute(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute(kc, data));
     }
 
     @Reflect
     public static void compute2(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
-        cc.dispatchKernel(ndRange,kc -> compute2(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute2(kc, data));
     }
 
     @Reflect
     public static void compute3(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(data.length()));
-        cc.dispatchKernel(ndRange,kc -> compute3(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute3(kc, data));
     }
 
     @HatTest
