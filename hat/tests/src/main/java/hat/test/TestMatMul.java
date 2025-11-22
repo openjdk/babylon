@@ -737,8 +737,7 @@ public class TestMatMul {
 
     @Reflect
     public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, final int size) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, size)
         );
     }

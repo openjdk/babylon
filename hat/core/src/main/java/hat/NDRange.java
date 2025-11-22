@@ -37,7 +37,15 @@ package hat;
  */
 public interface NDRange {
 
+
     int dimension();
+
+    default boolean hasLocal(){
+        return (this instanceof NDRange.NDRange1D r1 && r1.local() != NDRange.EMPTY_LOCAL_1D)||
+                (this instanceof NDRange.NDRange2D r2 && r2.local() != NDRange.EMPTY_LOCAL_2D)||
+                (this instanceof NDRange.NDRange3D r3 && r3.local() != NDRange.EMPTY_LOCAL_3D);
+    }
+
     interface _1D extends NDRange {
         @Override
         default int dimension() {
@@ -121,11 +129,32 @@ public interface NDRange {
         Local local();
     }
 
-    record NDRange1D(Global1D global, Local1D local) implements Range, _1D { }
+    record NDRange1D(Global1D global, Local1D local) implements Range, _1D {
+        public static NDRange1D of(int gsx, int lsx){
+            return new NDRange1D(Global1D.of(gsx), Local1D.of(lsx));
+        }
+        static NDRange1D of(int gsx){
+            return new NDRange1D(Global1D.of(gsx), EMPTY_LOCAL_1D);
+        }
+    }
 
-    record NDRange2D(Global2D global, Local2D local) implements Range, _2D { }
+    record NDRange2D(Global2D global, Local2D local) implements Range, _2D {
+        static NDRange2D of(int gsx, int gsy, int lsx, int lsy ){
+            return new NDRange2D(Global2D.of(gsx,gsy), Local2D.of(lsx,lsy));
+        }
+        static NDRange2D of(int gsx, int gsy){
+            return NDRange.of(Global2D.of(gsx,gsy), NDRange.EMPTY_LOCAL_2D);
+        }
+    }
 
-    record NDRange3D(Global3D global, Local3D local) implements Range, _3D { }
+    record NDRange3D(Global3D global, Local3D local) implements Range, _3D {
+        static NDRange3D of(int gsx, int gsy, int gsz, int lsx, int lsy, int lsz ){
+            return new NDRange3D(Global3D.of(gsx,gsy,gsz), Local3D.of(lsx,lsy,lsz));
+        }
+        static NDRange3D of(int gsx, int gsy, int gsz){
+            return NDRange.of(Global3D.of(gsx,gsy,gsz), NDRange.EMPTY_LOCAL_3D);
+        }
+    }
 
     static NDRange1D of(int x) {
         return new NDRange1D(Global1D.of(x), NDRange.EMPTY_LOCAL_1D);
@@ -161,4 +190,24 @@ public interface NDRange {
     Local2D EMPTY_LOCAL_2D = Local2D.of(0, 0);
     Local3D EMPTY_LOCAL_3D = Local3D.of(0, 0, 0);
 
+    static NDRange1D of1D(int gsx,  int lsx) {
+        return NDRange1D.of(gsx,lsx);
+    }
+    static NDRange1D of1D(int gsx) {
+        return NDRange1D.of(gsx);
+    }
+
+    static NDRange2D of2D(int gsx, int gsy, int lsx, int lsy) {
+        return NDRange2D.of(gsx,gsy,lsx,lsy);
+    }
+    static NDRange2D of2D(int gsx,int gsy) {
+        return NDRange2D.of(gsx,gsy);
+    }
+
+    static NDRange3D of3D(int gsx, int gsy, int gsz, int lsx, int lsy, int lsz) {
+        return NDRange3D.of(gsx,gsy,gsz, lsx,lsy,lsz);
+    }
+    static NDRange3D of3D(int gsx,int gsy, int gsz) {
+        return NDRange3D.of(gsx,gsy, gsz);
+    }
 }
