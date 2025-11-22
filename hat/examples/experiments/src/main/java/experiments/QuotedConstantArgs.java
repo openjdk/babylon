@@ -42,7 +42,7 @@ public class QuotedConstantArgs {
 
     @Reflect
     static public void addScalerCompute(final ComputeContext computeContext, S32Array in, S32Array out, int scaler) {
-        computeContext.dispatchKernel(NDRange.of(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
+        computeContext.dispatchKernel(NDRange.of1D(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
     }
 
     public static void main(String[] args) {

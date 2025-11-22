@@ -62,9 +62,7 @@ public class LocalIds {
 
     @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
-        // 2 groups of 16 threads each
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(BLOCK_SIZE));
-        cc.dispatchKernel(ndRange, kc -> assign(kc, arrayA, arrayB, arrayC));
+        cc.dispatchKernel(NDRange.of1D(32,BLOCK_SIZE), kc -> assign(kc, arrayA, arrayB, arrayC));
     }
 
     public static void main(String[] args) {

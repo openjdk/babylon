@@ -50,7 +50,7 @@ public class MinBufferTest {
         @Reflect
         public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
             for (int i = 0; i < n; i++) {
-                cc.dispatchKernel(NDRange.of(len), kc -> inc(kc, s32Array, len));
+                cc.dispatchKernel(NDRange.of1D(len), kc -> inc(kc, s32Array, len));
                 System.out.println(i);//s32Array.array(0));
             }
         }

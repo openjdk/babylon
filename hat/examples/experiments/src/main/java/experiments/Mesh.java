@@ -128,7 +128,7 @@ public class Mesh {
 
         @Reflect
         public static void buildMesh(ComputeContext cc, MeshData meshData) {
-            cc.dispatchKernel(NDRange.of(meshData.points()),
+            cc.dispatchKernel(NDRange.of1D(meshData.points()),
                     kc -> initPoints(kc, meshData)
             );
 
