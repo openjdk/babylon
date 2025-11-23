@@ -26,11 +26,17 @@ package nbody;
 
 import hat.Accelerator;
 import hat.buffer.Buffer;
+import hat.buffer.Float4;
 import hat.ifacemapper.Schema;
 
 public interface Universe extends Buffer {
     int length();
-
+    default Float4[] posArrView(){
+        return null;
+    }
+    default Float4[] velArrView(){
+        return null;
+    }
     interface Body extends Struct {
         float x();
 
