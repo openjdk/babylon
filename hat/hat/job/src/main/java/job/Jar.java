@@ -41,6 +41,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -49,9 +50,100 @@ import java.util.stream.Collectors;
 
 public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, Dependency.WithPath, Dependency.ExecutableJar {
     final Set<Path> exclude;
+    final JavacOpts javacOpts;
+    public interface StringListBuilder {
+        List<String> strings();
+        StringListBuilder add(String ...s);
+        StringListBuilder add(List<String> list);
+        StringListBuilder addIf(boolean c, String ...s);
+        StringListBuilder addIf(boolean c, List<String> list);
+        static StringListBuilder of(){
+            record StringListBuilderImpl (List<String> strings) implements StringListBuilder{
+                @Override
+                public StringListBuilder add(String ...s) {
+                    return add(List.of(s));
+                }
+                @Override
+                public StringListBuilder add(List<String> list) {
+                    strings.addAll(list);
+                    return this;
+                }
+                @Override
+                public StringListBuilder addIf(boolean c, List<String> list) {
+                    if (c){
+                        strings.addAll(list);
+                    }
+                    return this;
+                }
+                @Override
+                public StringListBuilder addIf(boolean c, String ...s) {
+                   return addIf(c, List.of(s));
+                }
+            }
+            return new StringListBuilderImpl(new ArrayList<>());
+        }
+    }
+    public interface JavacOpts{
+        List<String> vmOpts();
+        List<String> opts();
 
-    protected Jar(Project.Id id, Set<Path> exclude, Set<Dependency> dependencies) {
+        static JavacOpts of(List<String> vmOpts, List<String> opts){
+            record JavacOptsImpl(List<String> vmOpts, List<String> opts) implements JavacOpts{
+            }
+            return new JavacOptsImpl(vmOpts,opts);
+        }
+        static JavacOpts of(Consumer<StringListBuilder> v){
+            StringListBuilder vmOptBuilder = StringListBuilder.of();
+            StringListBuilder optBuilder = StringListBuilder.of();
+            v.accept(vmOptBuilder);
+            return of(vmOptBuilder.strings(),optBuilder.strings());
+        }
+
+        static JavacOpts of(Consumer<StringListBuilder> v, Consumer<StringListBuilder> o){
+            StringListBuilder vmOptBuilder = StringListBuilder.of();
+            StringListBuilder optBuilder = StringListBuilder.of();
+            v.accept(vmOptBuilder);
+            o.accept(optBuilder);
+            return of(vmOptBuilder.strings(),optBuilder.strings());
+        }
+
+        static JavacOpts of(){
+            return of(new ArrayList<>(),new ArrayList<>());
+        }
+    }
+
+    public interface JavaOpts{
+        List<String> opts();
+        List<String> args();
+
+        static JavaOpts of(List<String> opts, List<String> args){
+            record JavaOptsImpl(List<String>opts, List<String> args) implements JavaOpts{
+            }
+            return new JavaOptsImpl(opts,args);
+        }
+        static JavaOpts of(Consumer<StringListBuilder> v){
+            StringListBuilder vmOptBuilder = StringListBuilder.of();
+            StringListBuilder optBuilder = StringListBuilder.of();
+            v.accept(vmOptBuilder);
+            return of(vmOptBuilder.strings(),optBuilder.strings());
+        }
+
+        static JavaOpts of(Consumer<StringListBuilder> v, Consumer<StringListBuilder> o){
+            StringListBuilder vmOptBuilder = StringListBuilder.of();
+            StringListBuilder optBuilder = StringListBuilder.of();
+            v.accept(vmOptBuilder);
+            o.accept(optBuilder);
+            return of(vmOptBuilder.strings(),optBuilder.strings());
+        }
+
+        static JavaOpts of(){
+            return of(new ArrayList<>(),new ArrayList<>());
+        }
+    }
+
+    protected Jar(Project.Id id, JavacOpts javacOpts,Set<Path> exclude, Set<Dependency> dependencies) {
         super(id, dependencies);
+        this.javacOpts = javacOpts;
         this.exclude = exclude;
         if (id.path() != null && !Files.exists(id.path())) {
             System.err.println("The path does not exist: " + id.path());
@@ -62,13 +154,20 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
         }
         id.project().add(this);
     }
-
-    public static Jar of(Project.Id id, Set<Path> exclude, Set<Dependency> dependencies) {
-        return new Jar(id, exclude, dependencies);
+    public static Jar of(Project.Id id, JavacOpts javacOpts, Set<Path> exclude, Set<Dependency> dependencies) {
+        return new Jar(id, javacOpts,exclude, dependencies);
     }
 
+    public static Jar of(Project.Id id, Set<Path> exclude, Set<Dependency> dependencies) {
+        return new Jar(id, JavacOpts.of(), exclude, dependencies);
+    }
+    public static Jar of(Project.Id id, JavacOpts javacOpts, Set<Dependency> dependencies) {
+        return new Jar(id, javacOpts,Set.of(), dependencies);
+    }
+
+
     public static Jar of(Project.Id id, Set<Dependency> dependencies) {
-        return new Jar(id, Set.of(), dependencies);
+        return new Jar(id,JavacOpts.of(), Set.of(), dependencies);
     }
 
     public static Jar of(Project.Id id, Set<Path> exclude, Dependency... dependencies) {
@@ -115,25 +214,23 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
 
     @Override
     public boolean build() {
-        List<String> opts = new ArrayList<>(
-                List.of(
-                        "--source=26",
-                        "--enable-preview",
-                        "--add-modules=jdk.incubator.code",
-                        "-g",
-                        "-d", classesDirName()
-                ));
-        Dag dag = new Dag(dependencies());
-        var deps = classPath(dag.ordered());
-        if (!deps.isEmpty()) {
-            opts.addAll(List.of(
-                    "--class-path=" + deps
-            ));
-        }
+        List<String> opts = new ArrayList<>();
+        opts.addAll(id().project().javacOpts().vmOpts());
+        opts.addAll(javacOpts.vmOpts());
         opts.addAll(List.of(
-                        "--source-path=" + javaSourcePathName()
+                "-d", classesDirName()
                 )
         );
+        Dag dag = new Dag(dependencies());
+        var deps = classPath(dag.ordered());
+
+        if (!deps.isEmpty()) {
+            opts.add("--class-path=" + deps);
+        }
+        opts.addAll(id.project().javacOpts().opts());
+        opts.addAll(javacOpts.opts());
+        opts.add("--source-path=" + javaSourcePathName());
+        //System.out.println("javac opts "+ String.join(" ", opts));
         JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
 
         id().project().clean(this, classesDir());
@@ -275,19 +372,13 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
         ForkExec.Opts opts = ForkExec.Opts.of(ProcessHandle.current()
                 .info()
                 .command()
-                .orElseThrow()).add(
-                "--enable-preview",
-                "--enable-native-access=ALL-UNNAMED"
-        );
+                .orElseThrow()).add(vmOpts);
         opts.add(
-                "--add-modules=jdk.incubator.code",
                 "--class-path", classPathWithThisLast(depsInOrder),
                 "-Djava.library.path=" + id().project().buildPath()
         );
         vmOpts.forEach(opts::add);
-        opts.add(
-                mainClassName
-        );
+        opts.add(mainClassName);
         args.forEach(opts::add);
         id().project().reporter.command(this, opts.toString());
         System.out.println(String.join(" ", opts.toString()));
@@ -300,5 +391,9 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
             System.out.println("Java failed to execute, is a valid java in your path ? " + id().fullHyphenatedName());
         }
         return result.status() == 0;
+    }
+    public boolean run(String mainClassName, Set<Dependency> depsInOrder, JavaOpts javaOpts) {
+        return run(mainClassName,depsInOrder,javaOpts.opts(),javaOpts.args());
+
     }
 }
