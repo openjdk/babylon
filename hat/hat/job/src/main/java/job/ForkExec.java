@@ -66,7 +66,10 @@ public class ForkExec {
 
         }
         Opts add(String ...opts){
-            this.opts.addAll(List.of(opts));
+            return add(List.of(opts));
+        }
+        Opts add(List<String>opts){
+            this.opts.addAll(opts);
             return this;
         }
 

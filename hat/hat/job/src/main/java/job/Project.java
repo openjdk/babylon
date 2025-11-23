@@ -206,13 +206,13 @@ public class Project {
     private final Path rootPath;
     private final Path buildPath;
     private final Path confPath;
-
+    private final Jar.JavacOpts javacOpts;
     private final Map<String, Dependency> artifacts = new LinkedHashMap<>();
 
     public String name() {
         return rootPath().getFileName().toString();
     }
-
+    public Jar.JavacOpts javacOpts() {return javacOpts;}
     public Path rootPath() {
         return rootPath;
     }
@@ -227,15 +227,18 @@ public class Project {
 
     public final Reporter reporter;
 
-    public Project(Path root, Reporter reporter) {
+    public Project(Path root, Jar.JavacOpts javacOpts,Reporter reporter) {
         this.rootPath = root;
+        this.javacOpts = javacOpts;
         if (!Files.exists(root)) {
             throw new IllegalArgumentException("Root path for project does not exist: " + root);
         }
         this.buildPath = root.resolve("build");
         this.confPath = root.resolve("conf");
         this.reporter = reporter;
-
+    }
+    public Project(Path root, Reporter reporter) {
+        this(root, Jar.JavacOpts.of(),reporter);
     }
 
 
