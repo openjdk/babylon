@@ -83,6 +83,18 @@ public interface Float4 extends _V4 {
     static Float4 add(Float4 vA, Float4 vB) {
         return vA.lanewise(vB, Float::sum);
     }
+    static Float4 add(Float4 vA, float scalar) {
+        return Float4.of(vA.x()+scalar,vA.y()+scalar, vA.z()+scalar,vA.w()+scalar);
+    }
+    static Float4 sub(Float4 vA, float scalar) {
+        return Float4.of(vA.x()-scalar,vA.y()-scalar, vA.z()-scalar,vA.w()-scalar);
+    }
+    static Float4 mul(Float4 vA, float scalar) {
+        return Float4.of(vA.x()*scalar,vA.y()*scalar, vA.z()*scalar,vA.w()*scalar);
+    }
+    static Float4 sqr(Float4 vA) {
+        return Float4.mul(vA,vA);
+    }
 
     static Float4 sub(Float4 vA, Float4 vB) {
         return vA.lanewise(vB, (a, b) -> a - b);
@@ -99,15 +111,24 @@ public interface Float4 extends _V4 {
     default Float4 add(Float4 vb) {
         return Float4.add(this, vb);
     }
-
+    default Float4 add(float scalar) {
+        return Float4.add(this, scalar);
+    }
+    default Float4 sqr() {
+        return Float4.sqr(this);
+    }
     default Float4 sub(Float4 vb) {
         return Float4.sub(this, vb);
     }
-
+    default Float4 sub(float scalar) {
+        return Float4.sub(this, scalar);
+    }
     default Float4 mul(Float4 vb) {
         return Float4.mul(this, vb);
     }
-
+    default Float4 mul(float scalar) {
+        return Float4.mul(this, scalar);
+    }
     default Float4 div(Float4 vb) {
         return Float4.div(this, vb);
     }
