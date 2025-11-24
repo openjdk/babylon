@@ -69,7 +69,7 @@ public class TestJavaHATCodeBuilder {
         static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
             computeContext.dispatchKernel(
-                    NDRange.of(s32Array2D.width()*s32Array2D.height()),  //0..S32Array2D.size()
+                    NDRange.of1D(s32Array2D.width()*s32Array2D.height()),  //0..S32Array2D.size()
                     kc -> mandel(kc,  pallete,s32Array2D, x, y, scale));
         }
 

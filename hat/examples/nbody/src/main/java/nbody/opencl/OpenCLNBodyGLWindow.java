@@ -28,12 +28,14 @@ package nbody.opencl;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.buffer.Float4;
 import hat.ifacemapper.BufferState;
 import hat.NDRange;
 import jdk.incubator.code.Reflect;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
 import nbody.Universe;
+import wrap.Wrap;
 import wrap.opencl.CLPlatform;
 import wrap.opencl.CLWrapComputeContext;
 import wrap.opengl.GLTexture;
@@ -95,6 +97,30 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         me.vy(me.vy() + accy);
         me.vz(me.vz() + accz);
     }
+    interface F32x4Arr {
+
+    }
+    @Reflect
+    static public void nbodyKernelf4(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
+        var acc = Float4.of(0,0,0,0);
+        var posArr = universe.posArrView();
+        var velArr = universe.velArrView();
+        var pos = posArr[kc.gix];
+        var vel = velArr[kc.gix];
+        for (int i = 0; i < kc.gix; i++) {
+            var delta = posArr[i].sub(pos);
+            var delSqr = delta.sqr();
+            var delSqrSum = delSqr.x() + delSqr.y() + delSqr.z();
+            var invDist = 1f / (float) Math.sqrt(delSqrSum + espSqr);
+            var invDistCubed = invDist * invDist * invDist;
+            acc = acc.add(delta.mul(mass * invDistCubed));
+        }
+        acc = acc.mul(delT);
+        pos = pos.add(vel.mul(delT).add(acc.mul(.5f * delT)));
+        vel = vel.add(acc);
+        posArr[kc.gix] = pos;
+        velArr[kc.gix] = vel;
+    }
 
     @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, float mass, float delT, float espSqr) {
@@ -102,7 +128,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float cdelT = delT;
         float cespSqr = espSqr;
 
-        cc.dispatchKernel(NDRange.of(universe.length()), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
+        cc.dispatchKernel(NDRange.of1D(universe.length()), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
     }
 
     final CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel;

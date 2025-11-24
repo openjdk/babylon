@@ -126,15 +126,13 @@ public class TestReductions {
     @Reflect
     private static void reduceGlobal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         // 2 groups of 16 threads each
-       NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
-        cc.dispatchKernel(ndRange, kc -> reduceGlobal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceGlobal(kc, input, partialSums));
     }
 
     @Reflect
     private static void reduceLocal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
-        cc.dispatchKernel(ndRange, kc -> reduceLocal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceLocal(kc, input, partialSums));
     }
 
     @HatTest

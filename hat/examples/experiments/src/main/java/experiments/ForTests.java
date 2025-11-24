@@ -77,9 +77,9 @@ public class ForTests {
 
         @Reflect
         static void compute(ComputeContext computeContext, F32Array a) {
-            computeContext.dispatchKernel(NDRange.of(a.length()), (kc) -> counted(kc, a));
-            computeContext.dispatchKernel(NDRange.of(a.length()), (kc) -> tuple(kc, a));
-            computeContext.dispatchKernel(NDRange.of(a.length()), (kc) -> breakAndContinue(kc, a));
+            computeContext.dispatchKernel(NDRange.of1D(a.length()), (kc) -> counted(kc, a));
+            computeContext.dispatchKernel(NDRange.of1D(a.length()), (kc) -> tuple(kc, a));
+            computeContext.dispatchKernel(NDRange.of1D(a.length()), (kc) -> breakAndContinue(kc, a));
         }
 
     }

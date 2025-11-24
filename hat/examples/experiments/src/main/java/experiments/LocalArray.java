@@ -83,8 +83,7 @@ public class LocalArray {
 
     @Reflect
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
-        computeContext.dispatchKernel(ndRange,
+        computeContext.dispatchKernel(NDRange.of1D(32,16),
                 kernelContext -> compute(kernelContext, data)
         );
     }

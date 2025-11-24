@@ -348,11 +348,11 @@ public class PrefixSum {
         }
         results.add(view(ref));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of(data.length()), kc -> groupScan(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()), kc -> groupScan(kc, data));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of(GROUP_SIZE), kc -> crossGroupScan(kc, data));
+        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), kc -> crossGroupScan(kc, data));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of(GROUP_SIZE), kc -> sumKernel(kc, data));
+        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), kc -> sumKernel(kc, data));
       //  results.add(view(data));
         results.add(view(seq));
         boolean brokenBytecodeGen = false;

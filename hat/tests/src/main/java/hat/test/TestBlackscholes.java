@@ -87,7 +87,7 @@ public class TestBlackscholes {
 
     @Reflect
     public static void blackScholes(@MappableIface.RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @MappableIface.RO F32Array S, @MappableIface.RO F32Array X, @MappableIface.RO F32Array T, float r, float v) {
-        cc.dispatchKernel(NDRange.of(call.length()),
+        cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }

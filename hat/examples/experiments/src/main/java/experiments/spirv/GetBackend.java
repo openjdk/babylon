@@ -108,7 +108,7 @@ public class GetBackend {
 
         @Reflect
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
-            computeContext.dispatchKernel(NDRange.of(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
+            computeContext.dispatchKernel(NDRange.of1D(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
         }
 
     }

@@ -25,6 +25,7 @@
 package hat.device;
 
 import hat.buffer.F16;
+import hat.codebuilders.C99CodeBuilder;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -41,8 +42,7 @@ public class DeviceSchema<T extends DeviceType> {
     private final Class<T> klass;
     private final List<List<String>> members = new ArrayList<>();
     private final Map<String, Integer> arraySize = new HashMap<>();
-    private final Map<Class<?>, Consumer<DeviceSchema<T>>> deps = new HashMap<>();
-    private final StringBuilder representationBuilder = new StringBuilder();
+    private final C99CodeBuilder representationBuilder = new C99CodeBuilder<>();
     private final Set<String> visited = new HashSet<>();
 
     private static final Map<Class<?>, String> specialTypes = new HashMap<>();
@@ -84,7 +84,6 @@ public class DeviceSchema<T extends DeviceType> {
         // increment the level
         this.currentLevel++;
         this.members.add(new LinkedList<>());
-        deps.put(klass, depConsumer);
         depConsumer.accept(this);
         materialize(representationBuilder, klass);
         return this;
@@ -105,13 +104,11 @@ public class DeviceSchema<T extends DeviceType> {
     // then it recursively inspect its inner members.
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
-    private void materialize(StringBuilder sb, Class<?> klass) {
+    private void materialize(C99CodeBuilder builder, Class<?> klass) {
         try {
             Class<?> aClass = Class.forName(klass.getName());
             Method[] declaredMethods = aClass.getDeclaredMethods();
-            sb.append("<");
-            sb.append(klass.getName());
-            sb.append(':');
+            builder.lt().identifier(klass.getName()).colon();
             visited.add(klass.getName());
 
             for (String fieldName : members.get(currentLevel)) {
@@ -126,9 +123,9 @@ public class DeviceSchema<T extends DeviceType> {
 
                         if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
                             // inspect the dependency and add it at the front of the string builder
-                            StringBuilder depsBuilder = new StringBuilder();
+                            C99CodeBuilder depsBuilder = new C99CodeBuilder<>(builder.getText());
                             materialize(depsBuilder, returnType);
-                            sb = depsBuilder.append(sb);
+                            builder = depsBuilder;
                         }
 
                         String type = returnType.getName();
@@ -137,21 +134,21 @@ public class DeviceSchema<T extends DeviceType> {
                         }
 
                         if (arraySize.containsKey(method.getName())) {
-                            sb.append("[");                        // Array indicator
-                            sb.append(":");                        // separator
-                            sb.append(type);                       // type
-                            sb.append(":");                        // separator
-                            sb.append(method.getName());           // variableName
-                            sb.append(":");                        // separator
-                            sb.append(arraySize.get(method.getName()));  // Array size
-                            sb.append(";");                        // member separator
+                            builder.osbrace()                       // Array indicator
+                                    .colon()                        // separator
+                                    .typeName(type)                 // type
+                                    .colon()                        // separator
+                                    .identifier(method.getName())   // variableName
+                                    .colon()                        // separator
+                                    .identifier(Integer.toString(arraySize.get(method.getName()))) // Array size
+                                    .semicolon();                   // member separator
                         } else {
-                            sb.append("s");                         // scalar indicator
-                            sb.append(":");                         // separator
-                            sb.append(type);                        // type
-                            sb.append(":");                         // separator
-                            sb.append(method.getName());            // var name
-                            sb.append(";");                         // member separator
+                            builder.identifier("s")            // scalar indicator
+                                    .colon()                        // separator
+                                    .typeName(type)                 // type
+                                    .colon()                        // separator
+                                    .identifier(method.getName())   // var name
+                                    .semicolon();                   // member separator
                         }
                         wasProcessed = true;
                     }
@@ -165,10 +162,10 @@ public class DeviceSchema<T extends DeviceType> {
         } catch (ClassNotFoundException e) {
             IO.println("Error during materialization of DeviceType: " + e.getMessage());
         }
-        sb.append(">");
+        builder.gt();
     }
 
     public String toText() {
-        return this.representationBuilder.toString();
+        return this.representationBuilder.getText();
     }
 }

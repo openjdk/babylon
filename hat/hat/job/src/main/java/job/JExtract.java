@@ -30,8 +30,8 @@ import java.util.Set;
 public class JExtract extends Jar {
     final JExtractOptProvider optProvider;
 
-    private JExtract(Project.Id id, Set<Path> exclude, Set<Dependency> dependencies) {
-        super(id, exclude, dependencies);
+    private JExtract(Project.Id id, JavacOpts javacOpts, Set<Path> exclude, Set<Dependency> dependencies) {
+        super(id,javacOpts, exclude, dependencies);
         // We expect the dependencies to include a JextractOptProvider
         var optionalProvider = dependencies.stream().filter(dep -> dep instanceof JExtractOptProvider).map(dep -> (JExtractOptProvider) dep).findFirst();
         this.optProvider = optionalProvider.orElseThrow();
@@ -71,12 +71,16 @@ public class JExtract extends Jar {
     public boolean clean() {
         return false;
     }
-
-    static public JExtract extract(Project.Id id, Set<Dependency> dependencies) {
-        return new JExtract(id, Set.of(), dependencies);
+    static public JExtract extract(Project.Id id, JavacOpts javacOpts, Set<Dependency> dependencies) {
+        return new JExtract(id, javacOpts,Set.of(), dependencies);
     }
-
+    static public JExtract extract(Project.Id id, Set<Dependency> dependencies) {
+        return new JExtract(id, JavacOpts.of(),Set.of(), dependencies);
+    }
+    static public JExtract extract(Project.Id id,JavacOpts javacOpts, Dependency... dependencies) {
+        return new JExtract(id, javacOpts,Set.of(), Set.of(dependencies));
+    }
     static public JExtract extract(Project.Id id, Dependency... dependencies) {
-        return new JExtract(id, Set.of(), Set.of(dependencies));
+        return new JExtract(id, JavacOpts.of(),Set.of(), Set.of(dependencies));
     }
 }

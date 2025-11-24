@@ -114,7 +114,7 @@ public class MatrixMultiply {
         @Reflect
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
             computeContext.dispatchKernel(
-                    NDRange.of(size * size),                // range is passed as int and creation internalized
+                    NDRange.of1D(size * size),                // range is passed as int and creation internalized
                     (kid) -> matmul(kid, a, b, c, size));  // kid is Kid1D has kid.x and kid.maxX
         }
 

@@ -65,11 +65,9 @@ public class TestMandel {
 
     @Reflect
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(s32Array2D.width() & s32Array2D.height()));
-        computeContext.dispatchKernel(ndRange,
-                kc -> {
-                    TestMandel.mandel(kc, s32Array2D, pallete, x, y, scale);
-                });
+        computeContext.dispatchKernel(NDRange.of1D(s32Array2D.width() * s32Array2D.height()),
+                kc -> TestMandel.mandel(kc, s32Array2D, pallete, x, y, scale)
+        );
     }
 
     public static void mandelSeq(@RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {

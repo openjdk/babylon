@@ -212,7 +212,7 @@ public class Main {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
             while (viewer.stillRunning()) {
-                cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid));
+                cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, ctrl, grid));
 
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 
