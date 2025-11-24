@@ -160,4 +160,43 @@ public class TestDeviceType {
             HATAsserts.assertTrue(true);
         }
     }
+
+    public interface MultiDimFix extends DeviceType {
+        _2D array(int index);
+        void array(int index, _2D value);
+
+        interface _2D {
+            _3D _range2(int index);
+            void _range2(int index, _3D val);
+
+            interface _3D {
+                int value(int index);
+                void value(int index, int val);
+            }
+        }
+
+        DeviceSchema<MultiDimFix> schema = DeviceSchema.of(MultiDimFix.class, builder ->
+                builder.withArray("array", 2048)
+                        .withDeps(_2D.class,subrange -> subrange.withArray("_range2", 64)
+                                .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));
+
+        static MultiDimFix create() {
+            return null;
+        }
+    }
+
+    @HatTest
+    public void testdevice_type_04() {
+        // Same test as the previous one with the correct field names
+        try {
+            MultiDimFix myDeviceArray = MultiDimFix.create();
+            String text = MultiDimFix.schema.toText();
+            // If we request the correct method, the result should be as follows:
+            IO.println(text);
+            boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
+            HATAsserts.assertFalse(isEquals);
+        } catch (ExceptionInInitializerError e) {
+            HATAsserts.assertTrue(true);
+        }
+    }
 }
