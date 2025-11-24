@@ -32,6 +32,7 @@ import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.internal.OpDeclaration;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -320,48 +321,39 @@ public sealed abstract class CoreOp extends Op {
             return b;
         }
 
-        static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
-            try {
-                var method = invokeOp.invokeDescriptor().resolveToMethod(l);
-                return Op.ofMethod(method).orElse(null);
-            } catch (ReflectiveOperationException _) {
-                throw new IllegalStateException("Could not resolve invokeOp to method");
-            }
-        }
-
-        static CoreOp.FuncOp lambdaToFuncOp(JavaOp.LambdaOp lambdaOp, String lambdaName) {
-            Map<Block.Parameter, Op.Result> newParams = new HashMap<>();
-            return CoreOp.func(lambdaName, lambdaOp.body().transform(CopyContext.create(), ((bb, op) -> {
-                boolean usesNewParameter = false;
-                if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                    for (Value operand : varLoadOp.operands()) {
-                        // if the current operand hasn't been mapped or it is an inserted parameter
-                        if (operand instanceof Op.Result res && (bb.context().getValueOrDefault(res, null) == null || (
-                                bb.context().getValue(operand) instanceof Block.Parameter param && newParams.containsKey(param)
-                        ))) {
-                            usesNewParameter = true;
-                            Block.Parameter p;
-                            Op.Result varOpRes;
-                            if (newParams.containsKey((Block.Parameter) bb.context().getValueOrDefault(res, null))) {
-                                p = (Block.Parameter) bb.context().getValueOrDefault(res, null);
-                                varOpRes = newParams.get(p);
-                            } else {
-                                p = (res.type() instanceof VarType varType) ? bb.parameter(varType.valueType()) : bb.parameter(res.type());
-                                varOpRes = bb.op(CoreOp.var(p));
-                                newParams.put(p, varOpRes);
-                            }
-                            CoreOp.VarAccessOp.VarLoadOp newVarLoadOp = CoreOp.varLoad(varOpRes);
-                            newVarLoadOp.setLocation(varLoadOp.location());
-                            bb.context().mapValue(varLoadOp.result(), bb.op(newVarLoadOp));
-                            bb.context().mapValue(operand, p);
+        static CoreOp.FuncOp convertInvokeToFuncCallOp(CoreOp.FuncOp funcOp, MethodHandles.Lookup l) {
+            return funcOp.transform(funcOp.funcName(), (blockBuilder, op) -> {
+                if (op instanceof JavaOp.InvokeOp iop) {
+                    Method invokeOpCalledMethod = null;
+                    try {
+                        invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l);
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
+                    }
+                    if (invokeOpCalledMethod instanceof Method m) {
+                        CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
+                        if (f != null) {
+                            Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                                    iop.invokeDescriptor().name(),
+                                    f.invokableType(),
+                                    blockBuilder.context().getValues(iop.operands())));
+                            blockBuilder.context().mapValue(op.result(), result);
+                            return blockBuilder;
                         }
                     }
                 }
-                if (!usesNewParameter) {
-                    bb.op(op);
-                }
-                return bb;
-            })));
+                blockBuilder.op(op);
+                return blockBuilder;
+            });
+        }
+
+        static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
+            try {
+                Method method = invokeOp.invokeDescriptor().resolveToMethod(l);
+                return Op.ofMethod(method).orElse(null);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Could not resolve invokeOp to method");
+            }
         }
 
         /**
@@ -369,14 +361,15 @@ public sealed abstract class CoreOp extends Op {
          * The funcOps in the moduleOp functionTable are returned in the order encountered within the funcOp.
          */
         public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp f, MethodHandles.Lookup l) {
+            Set<CoreOp.FuncOp> visited = new HashSet<>();
             List<CoreOp.FuncOp> funcs = new ArrayList<>();
             Deque<CoreOp.FuncOp> stack = new LinkedList<>();
 
             stack.add(f);
             while (!stack.isEmpty()) {
                 CoreOp.FuncOp cur = stack.removeLast();
-                if (funcs.contains(cur)) continue;
-                funcs.add(cur);
+                if (!visited.add(cur)) continue;
+                funcs.add(convertInvokeToFuncCallOp(cur, l));
                 List<CoreOp.FuncOp> temp = new LinkedList<>();
                 cur.elements().filter(e -> e instanceof JavaOp.InvokeOp).forEach(e -> {
                     if (invokeToFuncOp((JavaOp.InvokeOp) e, l) instanceof CoreOp.FuncOp resolvedFuncOp) {
@@ -393,12 +386,26 @@ public sealed abstract class CoreOp extends Op {
          * The funcOps in the moduleOp functionTable are returned in the order encountered within the lambdaOp.
          */
         public static CoreOp.ModuleOp ofLambdaOp(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, String lambdaName) {
-            if (Arrays.stream(l.lookupClass().getMethods()).anyMatch(method -> method.getName().equals(lambdaName))) {
+            boolean methodNameExists = Arrays.stream(l.lookupClass().getMethods())
+                    .anyMatch(method -> method.getName().equals(lambdaName));
+            if (methodNameExists) {
                 throw new IllegalArgumentException("Method of name " + lambdaName + " already exists");
-            };
-            CoreOp.FuncOp funcOp = (lambdaOp.body().elements().filter(e -> e instanceof JavaOp.InvokeOp).count() == 1) ?
-                    invokeToFuncOp((JavaOp.InvokeOp) lambdaOp.body().elements().filter(e -> e instanceof JavaOp.InvokeOp).findFirst().get(), l) :
-                    lambdaToFuncOp(lambdaOp, lambdaName);
+            }
+            CoreOp.FuncOp funcOp;
+            List<JavaOp.InvokeOp> invokeOps = lambdaOp.body().elements()
+                    .filter(e -> e instanceof JavaOp.InvokeOp)
+                    .map(e -> (JavaOp.InvokeOp) e)
+                    .toList();
+            if (invokeOps.size() == 1 &&
+                    lambdaOp.body().elements().filter(e -> e instanceof Op).allMatch(
+                            e -> e instanceof VarOp ||
+                                    e instanceof VarAccessOp.VarLoadOp ||
+                                    e instanceof JavaOp.InvokeOp ||
+                                    e instanceof BodyTerminating)) {
+                funcOp = invokeToFuncOp(invokeOps.getFirst(), l);
+            } else {
+                funcOp = lambdaOp.toFuncOp(lambdaName);
+            }
             return ofFuncOp(funcOp, l);
         }
     }
