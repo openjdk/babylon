@@ -71,6 +71,8 @@ import java.util.stream.Stream;
 import static java.lang.constant.ConstantDescs.*;
 import java.util.LinkedHashMap;
 import java.util.SequencedMap;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.impl.ExceptionTableCompactor;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 
@@ -78,6 +80,23 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  * Transformer of code models to bytecode.
  */
 public final class BytecodeGenerator {
+
+    /**
+     * A transformer that lowers operations unsupported by BytecodeGenerator.
+     */
+    static CodeTransformer BYTECODE_LOWERING_TRANSFORMER = (block, op) -> {
+        return switch (op) {
+//            case JavaOp.JavaSwitchOp swop -> {
+//
+//            }
+            case Op.Lowerable lop ->
+                lop.lower(block, null);
+            default -> {
+                block.op(op);
+                yield block;
+            }
+        };
+    };
 
     private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
             LambdaMetafactory.class.describeConstable().orElseThrow(),
@@ -171,27 +190,29 @@ public final class BytecodeGenerator {
         return generateClassData(lookup, clsName, new LinkedHashMap<>(Map.of(name, iop)));
     }
 
+    @SuppressWarnings("unchecked")
     private static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                           ClassDesc clName,
                                                                           SequencedMap<String, ? extends O> ops) {
-
-        byte[] classBytes = ClassFile.of().build(clName, clb -> {
+        byte[] classBytes;
+        classBytes = ClassFile.of().build(clName, clb -> {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             BitSet quotable = new BitSet();
             for (var e : ops.sequencedEntrySet()) {
-                generateMethod(lookup, clName, e.getKey(), e.getValue(), clb, ops, lambdaSink, quotable);
+                O lowered = (O)e.getValue().transform(CodeContext.create(), BYTECODE_LOWERING_TRANSFORMER);
+                generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, quotable);
             }
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
                 if (quotable.get(i)) {
                     // return (FuncOp) OpParser.fromOpString(opText)
                     clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
-                        ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
-                                .loadConstant(Quoted.embedOp(lop).toText())
-                                .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
-                                        "fromStringOfJavaCodeModel",
-                                        MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
-                                .areturn()));
+                            ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
+                                    .loadConstant(Quoted.embedOp(lop).toText())
+                                    .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
+                                            "fromStringOfJavaCodeModel",
+                                            MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
+                                    .areturn()));
                 }
                 generateMethod(lookup, clName, "lambda$" + i, lop, clb, ops, lambdaSink, quotable);
             }
@@ -209,7 +230,6 @@ public final class BytecodeGenerator {
                                                                      SequencedMap<String, ? extends O> functionTable,
                                                                      List<LambdaOp> lambdaSink,
                                                                      BitSet quotable) {
-
         List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(
                 iop.invokableType()).insertParameterTypes(0, capturedValues.stream()
