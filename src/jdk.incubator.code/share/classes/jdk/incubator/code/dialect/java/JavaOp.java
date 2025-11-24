@@ -329,54 +329,22 @@ public sealed abstract class JavaOp extends Op {
         }
 
         public CoreOp.FuncOp toFuncOp(String lambdaName) {
-            // Lambda parameter types as first sequence of function parameter types
             List<TypeElement> parameters = new ArrayList<>(this.invokableType().parameterTypes());
-            // Lambda capture types as subsequence sequence of function parameter types
             for (Value v : this.capturedValues()) {
-                if (v.type() instanceof VarType vt) {
-                    // Unpack var type
-                    parameters.add(vt.valueType());
-                } else {
-                    parameters.add(v.type());
-                }
+                TypeElement capturedType = v.type() instanceof VarType varType ? varType.valueType() : v.type();
+                parameters.add(capturedType);
             }
-
             return CoreOp.func(lambdaName, CoreType.functionType(this.invokableType().returnType(), parameters)).body(builder -> {
-                int pos = this.invokableType().parameterTypes().size();
-                // Map captured values, creating inlined var operations
-                for (Value capturedValue : this.capturedValues()) {
-                    Block.Parameter p = builder.parameters().get(pos++);
-                    Value functionValue = capturedValue.type() instanceof VarType
-                            ? builder.op(CoreOp.var(p))
-                            : p;
-                    builder.context().mapValue(capturedValue, functionValue);
+                int idx = this.invokableType().parameterTypes().size();
+                for (Value v : capturedValues()) {
+                    Block.Parameter p = builder.parameters().get(idx++);
+                    Value functionValue = v.type() instanceof VarType ? builder.op(CoreOp.var(p)) : p;
+                    builder.context().mapValue(v, functionValue);
                 }
-
-                // Copy the lambda body into the function body
-                // Mapping the lambda's operands to first sequence of function parameters
                 List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableType().parameterTypes().size());
                 builder.body(this.body(), outputValues, CodeTransformer.COPYING_TRANSFORMER);
             });
         }
-
-
-        // public CoreOp.FuncOp toFuncOp(String lambdaName) {
-        //     List<TypeElement> parameters = new ArrayList<>(this.invokableType().parameterTypes());
-        //     for (Value v : this.capturedValues()) {
-        //         TypeElement capturedType = v.type() instanceof VarType varType ? varType.valueType() : v.type();
-        //         parameters.add(capturedType);
-        //     }
-        //     return CoreOp.func(lambdaName, CoreType.functionType(this.invokableType().returnType(), parameters)).body(builder -> {
-        //         int idx = this.invokableType().parameterTypes().size();
-        //         for (Value v : capturedValues()) {
-        //             Block.Parameter p = builder.parameters().get(idx++);
-        //             Value functionValue = v.type() instanceof VarType ? builder.op(CoreOp.var(p)) : p;
-        //             builder.context().mapValue(v, functionValue);
-        //         }
-        //         List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableType().parameterTypes().size());
-        //         builder.body(this.body(), outputValues, CodeTransformer.COPYING_TRANSFORMER);
-        //     });
-        // }
 
         static InvokeOp extractMethodInvoke(Map<Value, Value> valueMapping, List<Op> ops) {
             InvokeOp methodRefInvokeOp = null;
