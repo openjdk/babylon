@@ -26,8 +26,9 @@ package matmul;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.NDRange;
 import hat.KernelContext;
+import hat.NDRange.Global2D;
+import hat.NDRange.Local2D;
 import hat.backend.Backend;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
@@ -42,6 +43,9 @@ import java.lang.invoke.MethodHandles;
 import java.util.Random;
 import java.util.stream.IntStream;
 
+import static hat.NDRange.NDRange2D;
+import static hat.NDRange.of1D;
+import static hat.NDRange.of2D;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 
@@ -670,7 +674,7 @@ public class Main {
 
     @Reflect
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(NDRange.of1D(globalSize,16),
+        cc.dispatchKernel(of1D(globalSize,16),
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -679,50 +683,50 @@ public class Main {
 
     @Reflect
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        cc.dispatchKernel(NDRange.of1D(size,16),
+        cc.dispatchKernel(of1D(size,16),
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @Reflect
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
+        cc.dispatchKernel(of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
+        cc.dispatchKernel(of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
+        cc.dispatchKernel(of2D(globalSize, globalSize, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
+        cc.dispatchKernel(of2D(256, 256,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW F32ArrayPadded matrixC, int globalSize) {
-        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
+        cc.dispatchKernel(of2D(256, 256,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DRegisterTilingHalf(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
-
-        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
+        var range = NDRange2D.of(Global2D.of(256, 256), Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(range,
                 kc -> matrixMultiplyKernel2DRegisterTilingHalf(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }

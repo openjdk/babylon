@@ -83,22 +83,22 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
 
     interface Global {}
 
-    interface Global1D extends  _1DX, Global{
-        private static Global1D of(int x) {
+    interface Global1D extends  _1DX, Global {
+        static Global1D of(int x) {
             record Impl(int x) implements Global1D{ }
             return new Impl(x);
         }
     }
 
-    interface Global2D extends  _2DXY, Global{
-        private static Global2D of(int x,int y) {
-            record Impl(int x, int y) implements Global2D{};
+    interface Global2D extends  _2DXY, Global {
+        static Global2D of(int x,int y) {
+            record Impl(int x, int y) implements Global2D {};
             return new Impl(x, y);
         }
     }
 
-    interface Global3D extends  _3DXYZ, Global{
-        private static Global3D of(int x, int y, int z) {
+    interface Global3D extends  _3DXYZ, Global {
+        static Global3D of(int x, int y, int z) {
             record Impl(int x, int y, int z) implements Global3D{};
             return new Impl(x,y,z);
         }
@@ -106,15 +106,15 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
 
     interface Local{}
 
-    interface Local1D extends  _1DX, Local{
-        private static Local1D of(int x) {
+    interface Local1D extends  _1DX, Local {
+        static Local1D of(int x) {
             record Impl(int x) implements Local1D{};
             return new Impl(x);
         }
         Local1D EMPTY = Local1D.of(0);
     }
-    interface Local2D extends  _2DXY, Local{
-        private static Local2D of(int x,int y) {
+    interface Local2D extends  _2DXY, Local {
+        static Local2D of(int x,int y) {
             record Impl(int x, int y) implements Local2D{};
             return new Impl(x, y);
         }
@@ -122,8 +122,8 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
 
     }
 
-    interface Local3D extends  _3DXYZ, Local{
-        private static Local3D of(int x, int y, int z) {
+    interface Local3D extends  _3DXYZ, Local {
+        static Local3D of(int x, int y, int z) {
             record Impl(int x, int y, int z) implements Local3D{};
             return new Impl(x,y,z);
         }
@@ -135,15 +135,31 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         Local local();
     }
 
-    record  NDRange1D(Global1D global, Local1D local) implements Range<Global1D,Local1D>, _1D {
+    record NDRange1D(Global1D global, Local1D local) implements Range<Global1D,Local1D>, _1D {
+        public static NDRange1D of(Global1D global, Local1D local) {
+            return new NDRange1D(global, local);
+        }
+        public static NDRange1D of(Global1D global) {
+            return new NDRange1D(global, Local1D.EMPTY);
+        }
     }
+
     static NDRange<Global1D,Local1D> of1D(int gsx,  int lsx) {
         return  new NDRange1D(Global1D.of(gsx), Local1D.of(lsx));
     }
+
     static NDRange<Global1D,Local1D> of1D(int gsx) {
         return new NDRange1D(Global1D.of(gsx), Local1D.EMPTY);
     }
-    record NDRange2D(Global2D global, Local2D local) implements Range<Global2D,Local2D>, _2D {
+
+    record NDRange2D(Global2D global, Local2D local) implements Range<Global2D, Local2D>, _2D {
+        public static NDRange2D of(Global2D global, Local2D local) {
+            return new NDRange2D(global, local);
+        }
+
+        public static NDRange2D of(Global2D global) {
+            return new NDRange2D(global, Local2D.EMPTY);
+        }
     }
 
     static NDRange<Global2D,Local2D> of2D(int gsx, int gsy, int lsx, int lsy) {
@@ -154,6 +170,12 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
     }
 
     record NDRange3D(Global3D global, Local3D local) implements Range<Global3D,Local3D>, _3D {
+        public static NDRange3D of(Global3D global, Local3D local) {
+            return new NDRange3D(global, local);
+        }
+        public static NDRange3D of(Global3D global) {
+            return new NDRange3D(global, Local3D.EMPTY);
+        }
     }
 
     static NDRange<Global3D,Local3D> of3D(int gsx, int gsy, int gsz, int lsx, int lsy, int lsz) {
