@@ -226,7 +226,9 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                         if (hat.get(backendName) instanceof Jar backend) {
                             if (hat.get(runnableName) instanceof Jar runnable) {
                                 // we conditionally add this if we need OpenGL on MAC
-                                javaOpts.opts().add(runnableName.equals("nbody") && mac.isAvailable()?"-XstartOnFirstThread":"");
+                                if (runnableName.equals("nbody") && mac.isAvailable()){
+                                     javaOpts.opts().add("-XstartOnFirstThread");
+                                }
                                 // move the rest of command line args to the args of the vm
                                 javaOpts.args().addAll(args);args.clear();
 
