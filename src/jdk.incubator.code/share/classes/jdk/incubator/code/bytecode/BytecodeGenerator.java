@@ -31,6 +31,7 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.instruction.SwitchCase;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDescs;
@@ -1058,7 +1059,23 @@ public final class BytecodeGenerator {
                     }
                 }
                 case ConstantLabelSwitchOp op -> {
-                    // @@@ generate tableswitch or lookupswitch
+                    op.targets.forEach(t -> setCatchStack(t, recentCatchBlocks));
+                    var cases = new ArrayList<SwitchCase>();
+                    int lo = Integer.MAX_VALUE;
+                    int hi = Integer.MIN_VALUE;
+                    for (int i = 0; i < op.labels.size(); i++) {
+                        int val = op.labels.get(i);
+                        cases.add(SwitchCase.of(val, getLabel(op.targets.get(i))));
+                        if (val < lo) lo = val;
+                        if (val > hi) hi = val;
+
+                    }
+                    Label defTarget = getLabel(op.targets.getLast());
+                    if (tableSwitchOverLookupSwitch(lo, hi, cases.size())) {
+                        cob.tableswitch(defTarget, cases);
+                    } else {
+                        cob.lookupswitch(defTarget, cases);
+                    }
                 }
                 case ExceptionRegionEnter op -> {
                     List<Block.Reference> enteringCatchBlocks = op.catchBlocks();
@@ -1117,6 +1134,19 @@ public final class BytecodeGenerator {
             }
             recentCatchBlocks = newCatchBlocks;
         }
+    }
+
+    // Determine whether to issue a tableswitch or a lookupswitch
+    // instruction.
+    private static boolean tableSwitchOverLookupSwitch(long lo, long hi, long nlabels) {
+            long table_space_cost = 4 + (hi - lo + 1); // words
+            long table_time_cost = 3; // comparisons
+            long lookup_space_cost = 3 + 2 * nlabels;
+            long lookup_time_cost = nlabels;
+            return
+                nlabels > 0 &&
+                table_space_cost + 3 * table_time_cost <=
+                lookup_space_cost + 3 * lookup_time_cost;
     }
 
     // Checks if the Op.Result is used more than once in operands and block arguments
