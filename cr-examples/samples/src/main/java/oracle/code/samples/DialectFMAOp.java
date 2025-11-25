@@ -24,11 +24,11 @@
  */
 package oracle.code.samples;
 
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.SSA;
@@ -80,13 +80,13 @@ public class DialectFMAOp {
             this.typeElement = typeElement;
         }
 
-        FMA(Op that, CopyContext cc) {
+        FMA(Op that, CodeContext cc) {
             super(that, cc);
             this.typeElement = that.resultType();
         }
 
         @Override
-        public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
             return new FMA(this, copyContext);
         }
 
@@ -150,7 +150,7 @@ public class DialectFMAOp {
 
         // 5. Transform the code model to include the FMA op
         CoreOp.FuncOp dialectModel = functionModel.transform((builder, op) -> {
-            CopyContext context = builder.context();
+            CodeContext context = builder.context();
             if (!nodesInvolved.contains(op)) {
                 builder.op(op);
             } else if (op instanceof JavaOp.MulOp  mulOp) {
