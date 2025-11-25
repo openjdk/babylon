@@ -81,13 +81,46 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  */
 public final class BytecodeGenerator {
 
+    static final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminating {
+
+        final List<Integer> labels;
+        final List<Block.Reference> targets;
+
+        ConstantLabelSwitchOp(Value target, List<Integer> labels, List<Block.Reference> targets) {
+            super(List.of(target));
+            assert targets.size() == labels.size() + 1; // last is the default target
+            this.labels = labels;
+            this.targets = targets;
+        }
+
+        @Override
+        public Op transform(CodeContext cc, CodeTransformer ot) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return JavaType.VOID;
+        }
+
+        @Override
+        public List<Block.Reference> successors() {
+            return targets;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("", labels);
+        }
+    }
+
     /**
      * A transformer that lowers operations unsupported by BytecodeGenerator.
      */
     static CodeTransformer BYTECODE_LOWERING_TRANSFORMER = (block, op) -> {
         return switch (op) {
-//            case JavaOp.JavaSwitchOp swop -> {
-//
+//            case JavaOp.JavaSwitchOp swop when isConstantLabelSwitch(swop)-> {
+//               @@@ lower JavaOp.JavaSwitchOp to ConstantLabelSwitchOp
 //            }
             case Op.Lowerable lop ->
                 lop.lower(block, null);
@@ -1023,6 +1056,9 @@ public final class BytecodeGenerator {
                         processFirstOperand(op);
                         conditionalBranch(Opcode.IFEQ, op.trueBranch(), op.falseBranch());
                     }
+                }
+                case ConstantLabelSwitchOp op -> {
+                    // @@@ generate tableswitch or lookupswitch
                 }
                 case ExceptionRegionEnter op -> {
                     List<Block.Reference> enteringCatchBlocks = op.catchBlocks();
