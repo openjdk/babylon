@@ -1069,6 +1069,7 @@ public final class BytecodeGenerator {
                         if (val > hi) hi = val;
                     }
                     Label defTarget = getLabel(op.targets.getLast());
+                    processFirstOperand(op);
                     if (tableSwitchOverLookupSwitch(lo, hi, cases.size())) {
                         cob.tableswitch(defTarget, cases);
                     } else {
