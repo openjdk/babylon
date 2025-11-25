@@ -86,8 +86,8 @@ public final class BytecodeGenerator {
         final List<Integer> labels;
         final List<Block.Reference> targets;
 
-        ConstantLabelSwitchOp(Value target, List<Integer> labels, List<Block.Reference> targets) {
-            super(List.of(target));
+        ConstantLabelSwitchOp(Value intSelector, List<Integer> labels, List<Block.Reference> targets) {
+            super(List.of(intSelector));
             assert targets.size() == labels.size() + 1; // last is the default target
             this.labels = labels;
             this.targets = targets;
