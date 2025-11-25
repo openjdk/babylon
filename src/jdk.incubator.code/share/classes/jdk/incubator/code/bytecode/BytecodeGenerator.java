@@ -47,11 +47,14 @@ import java.lang.invoke.StringConcatFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.impl.BranchCompactor;
+import jdk.incubator.code.bytecode.impl.ExceptionTableCompactor;
 import jdk.incubator.code.bytecode.impl.LocalsCompactor;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.java.*;
@@ -64,17 +67,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.constant.ConstantDescs.*;
-import java.util.LinkedHashMap;
-import java.util.SequencedMap;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.bytecode.impl.ExceptionTableCompactor;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 
 /**
@@ -1068,7 +1068,6 @@ public final class BytecodeGenerator {
                         cases.add(SwitchCase.of(val, getLabel(op.targets.get(i))));
                         if (val < lo) lo = val;
                         if (val > hi) hi = val;
-
                     }
                     Label defTarget = getLabel(op.targets.getLast());
                     if (tableSwitchOverLookupSwitch(lo, hi, cases.size())) {
