@@ -33,6 +33,9 @@ import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.internal.OpDeclaration;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -2906,6 +2909,106 @@ public sealed abstract class JavaOp extends Op {
                 }
             }
             return false;
+        }
+
+        private static boolean isFinalVar(VarOp varOp) {
+            return varOp.initOperand() != null && varOp.result().uses().stream().noneMatch(u -> u.op() instanceof VarAccessOp.VarStoreOp);
+        }
+
+        private static boolean isBoxingMethod(MethodRef mr) {
+            return List.of(J_L_BYTE, J_L_CHARACTER, J_L_SHORT, J_L_INTEGER, J_L_LONG, J_L_FLOAT, J_L_DOUBLE).contains(mr.refType())
+                    && mr.name().equals("valueOf");
+        }
+
+        private static boolean isConstantExpr(Value v, MethodHandles.Lookup l) {
+            if (!(v instanceof Result opr)) {
+                return false;
+            }
+            Op op = opr.op();
+            if (op instanceof ConstantOp cop) {
+                return cop.resultType() instanceof PrimitiveType || cop.resultType().equals(J_L_STRING);
+            }
+            if (op instanceof VarAccessOp.VarLoadOp varLoadOp) {
+                return isFinalVar(varLoadOp.varOp()) && isConstantExpr(varLoadOp.varOp().initOperand(), l);
+            }
+            if (op instanceof ConvOp convOp) {
+                return (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) &&
+                        isConstantExpr(convOp.operands().get(0), l);
+            }
+            if (op instanceof InvokeOp invokeOp) {
+                return isBoxingMethod(invokeOp.invokeDescriptor()) && isConstantExpr(invokeOp.operands().get(0), l);
+            }
+            if (op instanceof FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                Field field;
+                try {
+                    field = fieldLoadOp.fieldDescriptor().resolveToField(l);
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+                return field.isEnumConstant() || field.accessFlags().containsAll(Set.of(AccessFlag.STATIC, AccessFlag.FINAL));
+            }
+            if (op instanceof UnaryOp unaryOp) {
+                return isConstantExpr(unaryOp.operands().get(0), l);
+            }
+            if (op instanceof BinaryOp binaryOp) {
+                return binaryOp.operands().stream().allMatch(o -> isConstantExpr(o, l));
+            }
+            if (op instanceof BinaryTestOp binaryTestOp) {
+                return binaryTestOp.operands().stream().allMatch(o -> isConstantExpr(o, l));
+            }
+            if (op instanceof ConditionalExpressionOp cexpr) {
+                // bodies must yield constant expressions
+                return isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue(), l) &&
+                        isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue(), l) &&
+                        isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue(), l);
+            }
+            // conditional and, conditional or, example ?
+            if (op instanceof ConditionalAndOp cand) {
+                return isConstantExpr(((CoreOp.YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue(), l) &&
+                        isConstantExpr(((CoreOp.YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue(), l);
+            }
+            if (op instanceof ConditionalOrOp cor) {
+                // we can have a method isBodyYieldConstantExpr(Body)
+                return isConstantExpr(((CoreOp.YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue(), l) &&
+                        isConstantExpr(((CoreOp.YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue(), l);
+            }
+            return false;
+        }
+
+        private static boolean isCaseConstantLabel(Body label, MethodHandles.Lookup l) {
+            if (label.blocks().size() != 1 || !(label.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
+                    !(yop.yieldValue() instanceof Result r)) {
+                return false;
+            }
+
+            if (r.op() instanceof EqOp eqOp) { // EqOp for primitives, method invocation for Strings
+                return isConstantExpr(eqOp.operands().get(1), l);
+            }
+            if (r.op() instanceof InvokeOp invokeOp) {
+                MethodRef OBJECTS_EQUALS_METHOD = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
+                if (!invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS_METHOD)) {
+                    return false;
+                }
+                // case null
+                if (invokeOp.operands().get(1) instanceof Op.Result opr && opr.op() instanceof ConstantOp cop && cop.value() == null) {
+                    return true;
+                }
+                return isConstantExpr(invokeOp.operands().get(1), l);
+            }
+            if (r.op() instanceof ConditionalOrOp cor) { // list of case constant
+                return cor.bodies().stream().allMatch(b -> isCaseConstantLabel(b, l));
+            }
+            return r.op() instanceof ConstantOp cop && cop.resultType().equals(BOOLEAN); // default label
+        }
+
+        public boolean isCaseConstantSwitch(MethodHandles.Lookup l) {
+            for (int i = 0; i < bodies.size(); i+=2) {
+                Body label = bodies.get(i);
+                if (!isCaseConstantLabel(label, l)) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
