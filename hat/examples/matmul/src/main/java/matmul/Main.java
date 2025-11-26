@@ -610,8 +610,8 @@ public class Main {
                         F16 privB = regN.array(resIdxN);
                         F16 mul = F16.mul(privA, privB);
                         F16 acc = threadResults.array(resIdxM * TN + resIdxN);
-                        F16 acc2 = F16.add(acc, mul);   // FIXME: this is a partial fix until we support expressions such as: acc = acc <OP> val
-                        threadResults.array((resIdxM * TN + resIdxN)).value(acc2.value());
+                        acc = F16.add(acc, mul);
+                        threadResults.array((resIdxM * TN + resIdxN)).value(acc.value());
                     }
                 }
             }

@@ -32,7 +32,7 @@ import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateVarInitOp;
+import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorSelectLoadOp;
@@ -152,7 +152,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
-    T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateVarInitOp hatPrivateVarInitOp);
+    T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateInitVarOp hatPrivateInitVarOp);
 
     T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp);
 
@@ -186,7 +186,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATBarrierOp $ -> barrier(buildContext, $);
             case HATLocalVarOp $ -> hatLocalVarOp(buildContext, $);
             case HATPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
-            case HATPrivateVarInitOp $ -> hatPrivateVarInitOp(buildContext, $);
+            case HATPrivateInitVarOp $ -> hatPrivateVarInitOp(buildContext, $);
             case HATGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
             case HATGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
             case HATLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
