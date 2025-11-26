@@ -2499,7 +2499,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         MemberReferenceToLambda(JCMemberReference tree, Symbol currentClass) {
             this.tree = tree;
             this.owner = new MethodSymbol(0, names.lambda, tree.target, currentClass);
-            if (tree.kind == ReferenceKind.BOUND && !isThisOrSuper(tree.getQualifierExpression())) {
+            if (tree.kind == ReferenceKind.BOUND && !TreeInfo.isThisQualifier(tree.getQualifierExpression())) {
                 // true bound method reference, hoist receiver expression out
                 Type recvType = types.asSuper(tree.getQualifierExpression().type, tree.sym.owner);
                 VarSymbol vsym = makeSyntheticVar("rec$", recvType);
@@ -2638,10 +2638,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
             return vsym;
         }
-
-        boolean isThisOrSuper(JCExpression expression) {
-            return TreeInfo.isThisQualifier(expression) || TreeInfo.isSuperQualifier(tree);
-        }
     }
 
     static class JCReflectMethodsClassDecl extends JCClassDecl {
@@ -2771,7 +2767,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 com.sun.tools.javac.util.List<Type> typeArgs = com.sun.tools.javac.util.List.from(ct.typeArguments()).map(this::typeElementToType);
                 yield new Type.ClassType(enclosing, typeArgs, typeElementToType(ct.rawType()).tsym);
             }
-            case ClassType ct -> types.erasure(syms.enterClass(attrEnv().toplevel.modle, ct.toClassName()));
+            case ClassType ct -> types.erasure(syms.enterClass(attrEnv().toplevel.modle, names.fromString(ct.toClassName())).type);
             case jdk.incubator.code.dialect.java.ArrayType at -> new Type.ArrayType(typeElementToType(at.componentType()), syms.arrayClass);
             default -> Type.noType;
         };

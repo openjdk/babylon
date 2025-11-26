@@ -327,18 +327,6 @@ public class Symtab {
         return enterClass(java_base, names.fromString(s)).type;
     }
 
-    /** Enter a class into symbol table.
-     *  @param s The name of the class.
-     */
-    public Type enterClass(ModuleSymbol moduleSymbol, String s) {
-        try {
-            return enterClass(moduleSymbol, names.fromString(s)).type;
-        } catch (Throwable ex) {
-            ex.printStackTrace();
-            return Type.noType;
-        }
-    }
-
     public void synthesizeEmptyInterfaceIfMissing(final Type type) {
         final Completer completer = type.tsym.completer;
         type.tsym.completer = new Completer() {

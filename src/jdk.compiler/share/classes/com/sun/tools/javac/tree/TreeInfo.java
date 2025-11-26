@@ -167,19 +167,6 @@ public class TreeInfo {
         }
     }
 
-    public static boolean isSuperQualifier(JCTree tree) {
-        switch (tree.getTag()) {
-            case PARENS:
-                return isThisQualifier(skipParens(tree));
-            case IDENT: {
-                JCIdent id = (JCIdent)tree;
-                return id.name == id.name.table.names._super;
-            }
-            default:
-                return false;
-        }
-    }
-
     /** Is this tree an identifier, possibly qualified by 'this'?
      */
     public static boolean isIdentOrThisDotIdent(JCTree tree) {
@@ -663,6 +650,11 @@ public class TreeInfo {
     public static int getEndPos(JCTree tree, EndPosTable endPosTable) {
         if (tree == null)
             return Position.NOPOS;
+
+        if (endPosTable == null) {
+            // fall back on limited info in the tree
+            return endPos(tree);
+        }
 
         int mapPos = endPosTable.getEndPos(tree);
         if (mapPos != Position.NOPOS)
