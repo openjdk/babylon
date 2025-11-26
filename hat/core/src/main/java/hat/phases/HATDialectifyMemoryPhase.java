@@ -29,7 +29,7 @@ import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryLoadOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATPhaseUtils;
-import hat.dialect.HATPrivateVarInitOp;
+import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Block;
@@ -256,7 +256,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
         @Override
         protected HATMemoryOp factory(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            HATPrivateVarInitOp privateVarOp = new HATPrivateVarInitOp(varOp.varName(),
+            HATPrivateInitVarOp privateVarOp = new HATPrivateInitVarOp(varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
                     invokeOp.invokeDescriptor().refType(),

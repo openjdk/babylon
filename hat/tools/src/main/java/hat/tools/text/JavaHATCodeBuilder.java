@@ -30,10 +30,9 @@ import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateVarInitOp;
+import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorOp;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATF16BinaryOp;
@@ -228,7 +227,7 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     }
 
     @Override
-    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateVarInitOp hatPrivateVarInitOp) {
+    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateInitVarOp hatPrivateInitVarOp) {
         blockComment("Private Var Init Op Not Implemented");
         return self();
     }

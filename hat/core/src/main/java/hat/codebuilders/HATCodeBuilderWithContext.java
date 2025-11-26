@@ -26,12 +26,12 @@ package hat.codebuilders;
 
 import hat.buffer.F16;
 import hat.buffer.F16Array;
-import hat.device.DeviceType;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATPhaseUtils;
+import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
@@ -81,10 +81,18 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
         Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
-        if (op instanceof CoreOp.VarOp varOp) {
-            varName(varOp).equals();
-        } else if (op instanceof HATF16VarOp hatf16VarOp) {
-            varName(hatf16VarOp).equals();
+        // When the op is intended to operate as VarOp, then we need to include it in the following switch.
+        // This is because HAT has its own dialect, and some of the Ops operate on HAT Types (not included in the Java
+        // dialect). For instance, private data structures, local data structures, vector types, etc.
+        switch (op) {
+            case CoreOp.VarOp varOp -> varName(varOp).equals();
+            case HATF16VarOp hatf16VarOp -> varName(hatf16VarOp).equals();
+            case HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp).equals();
+            case HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp).equals();
+            case HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp).equals();
+            case HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp).equals();
+            case null, default -> {
+            }
         }
         parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
         return self();
