@@ -514,7 +514,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public final T bfloatType() {
-        return typeName(BF16.HAT_MAPPING_TYPE + "_t");
+        return typeName(BF16.class.getSimpleName() + "_t");
     }
 
     @Override
