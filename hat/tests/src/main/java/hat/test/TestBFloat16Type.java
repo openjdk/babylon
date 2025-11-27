@@ -31,8 +31,6 @@ import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.BF16;
 import hat.buffer.BF16Array;
-import hat.buffer.F16;
-import hat.buffer.F16Array;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HATAsserts;
 import jdk.incubator.code.Reflect;
@@ -45,7 +43,7 @@ import static hat.ifacemapper.MappableIface.*;
 public class TestBFloat16Type {
 
     @Reflect
-    public static void kenrel_copy(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void kernel_copy(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             b.array(kernelContext.gix).value(ha.value());
@@ -92,8 +90,58 @@ public class TestBFloat16Type {
     }
 
     @Reflect
+    public static void bf16_05(@RO KernelContext kernelContext, @RW BF16Array a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            BF16 ha = a.array(kernelContext.gix);
+            BF16 initVal = BF16.of( 2.1f);
+            ha.value(initVal.value());
+        }
+    }
+
+    @Reflect
+    public static void bf16_06(@RO KernelContext kernelContext, @RW BF16Array a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            BF16 initVal = BF16.of(kernelContext.gix);
+            BF16 ha = a.array(kernelContext.gix);
+            ha.value(initVal.value());
+        }
+    }
+
+    @Reflect
+    public static void bf16_08(@RO KernelContext kernelContext, @RW BF16Array a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            BF16 initVal = BF16.float2bfloat16(kernelContext.gix);
+            BF16 ha = a.array(kernelContext.gix);
+            ha.value(initVal.value());
+        }
+    }
+
+    @Reflect
+    public static void bf16_09(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            BF16 ha = a.array(kernelContext.gix);
+            float f = BF16.bfloat162float(ha);
+            BF16 result = BF16.float2bfloat16(f);
+            BF16 hb = b.array(kernelContext.gix);
+            hb.value(result.value());
+        }
+    }
+
+    @Reflect
+    public static void bf16_10(@RO KernelContext kernelContext, @RO BF16Array a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            BF16 ha = a.array(kernelContext.gix);
+            BF16 f16 = BF16.of(1.1f);
+            float f = BF16.bfloat162float(f16);
+            BF16 result = BF16.float2bfloat16(f);
+            ha.value(result.value());
+        }
+    }
+
+
+    @Reflect
     public static void compute01(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.kenrel_copy(kernelContext, a, b));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.kernel_copy(kernelContext, a, b));
     }
 
     @Reflect
@@ -112,6 +160,31 @@ public class TestBFloat16Type {
     public static void compute04(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestBFloat16Type.bf16_04(kernelContext, a, b, c));
+    }
+
+    @Reflect
+    public static void compute05(@RO ComputeContext computeContext, @RW BF16Array a) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_05(kernelContext, a));
+    }
+
+    @Reflect
+    public static void compute06(@RO ComputeContext computeContext, @RW BF16Array a) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_06(kernelContext, a));
+    }
+
+    @Reflect
+    public static void compute08(@RO ComputeContext computeContext, @RW BF16Array a) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_08(kernelContext, a));
+    }
+
+    @Reflect
+    public static void compute09(@RO ComputeContext computeContext, @RW BF16Array a, @WO BF16Array b) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_09(kernelContext, a, b));
+    }
+
+    @Reflect
+    public static void compute10(@RO ComputeContext computeContext, @RW BF16Array a) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_10(kernelContext, a));
     }
 
     @HatTest
@@ -162,7 +235,7 @@ public class TestBFloat16Type {
     public void test_bfloat16_03() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
-        final int size = 16;
+        final int size = 256;
         BF16Array arrayA = BF16Array.create(accelerator, size);
         BF16Array arrayB = BF16Array.create(accelerator, size);
         BF16Array arrayC = BF16Array.create(accelerator, size);
@@ -189,7 +262,7 @@ public class TestBFloat16Type {
     public void test_bfloat16_04() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
-        final int size = 16;
+        final int size = 256;
         BF16Array arrayA = BF16Array.create(accelerator, size);
         BF16Array arrayB = BF16Array.create(accelerator, size);
         BF16Array arrayC = BF16Array.create(accelerator, size);
@@ -217,6 +290,119 @@ public class TestBFloat16Type {
             BF16 r5 = BF16.add(r4, r3);
 
             HATAsserts.assertEquals(BF16.bfloat162float(r5), BF16.bfloat162float(gotResult), 0.01f);
+        }
+    }
+
+    @HatTest
+    public void test_bfloat16_05() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 16;
+        BF16Array arrayA = BF16Array.create(accelerator, size);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(BF16.float2bfloat16(0.0f).value());
+        }
+
+        accelerator.compute(computeContext -> {
+            TestBFloat16Type.compute05(computeContext, arrayA);
+        });
+
+        for (int i = 0; i < arrayA.length(); i++) {
+            BF16 val = arrayA.array(i);
+            HATAsserts.assertEquals(2.1f, BF16.bfloat162float(val), 0.01f);
+        }
+    }
+
+    @HatTest
+    public void test_bfloat16_06() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 512;
+        BF16Array arrayA = BF16Array.create(accelerator, size);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(BF16.float2bfloat16(0.0f).value());
+        }
+
+        accelerator.compute(computeContext -> {
+            TestBFloat16Type.compute06(computeContext, arrayA);
+        });
+
+        for (int i = 0; i < arrayA.length(); i++) {
+            BF16 val = arrayA.array(i);
+            HATAsserts.assertEquals(i, BF16.bfloat162float(val), 0.01f);
+        }
+    }
+
+    @HatTest
+    public void test_bfloat16_07() {
+        // Test CPU Implementation of BF16
+        BF16 a = BF16.of(2.5f);
+        BF16 b = BF16.of(3.5f);
+        BF16 c = BF16.add(a, b);
+        HATAsserts.assertEquals((2.5f + 3.5f), BF16.bfloat162float(c), 0.01f);
+
+        BF16 d = BF16.sub(a, b);
+        HATAsserts.assertEquals((2.5f - 3.5f), BF16.bfloat162float(d), 0.01f);
+
+        BF16 e = BF16.mul(a, b);
+        HATAsserts.assertEquals((2.5f * 3.5f), BF16.bfloat162float(e), 0.01f);
+
+        BF16 f = BF16.div(a, b);
+        HATAsserts.assertEquals((2.5f / 3.5f), BF16.bfloat162float(f), 0.01f);
+    }
+
+    @HatTest
+    public void test_bfloat16_08() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 256;
+        BF16Array arrayA = BF16Array.create(accelerator, size);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(BF16.float2bfloat16(0.0f).value());
+        }
+
+        accelerator.compute(computeContext -> {
+            TestBFloat16Type.compute08(computeContext, arrayA);
+        });
+
+        for (int i = 0; i < arrayA.length(); i++) {
+            BF16 val = arrayA.array(i);
+            HATAsserts.assertEquals(i, BF16.bfloat162float(val), 0.01f);
+        }
+    }
+
+    @HatTest
+    public void test_bfloat16_09() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 16;
+        BF16Array arrayA = BF16Array.create(accelerator, size);
+        BF16Array arrayB = BF16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(BF16.float2bfloat16(r.nextFloat()).value());
+        }
+
+        accelerator.compute(computeContext -> TestBFloat16Type.compute09(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            BF16 val = arrayB.array(i);
+            HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
+        }
+    }
+
+    @HatTest
+    public void test_bfloat16_10() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 256;
+        BF16Array arrayA = BF16Array.create(accelerator, size);
+
+        accelerator.compute(computeContext -> TestBFloat16Type.compute10(computeContext, arrayA));
+
+        for (int i = 0; i < arrayA.length(); i++) {
+            BF16 val = arrayA.array(i);
+            HATAsserts.assertEquals(1.1f, BF16.bfloat162float(val), 0.01f);
         }
     }
 }

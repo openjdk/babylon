@@ -228,8 +228,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-        oparen().halfType().cparen().obrace();
-        identifier("__float2half").oparen();
+        oparen();
+        ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> halfType();
+            case ReducedFloatType.BFloat16 _ -> bfloatType();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+        cparen().obrace();
+
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> identifier("__float2half").oparen();
+            case ReducedFloatType.BFloat16 _ -> identifier("__nv_bfloat16").oparen();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+
         Value param =  hatF16ConvOp.operands().getFirst();
         if (param instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -240,7 +253,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        identifier("__half2float").oparen();
+        ReducedFloatType reducedFloatType = hatF16ToFloatConvOp.reducedFloatType();
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> identifier("__half2float");
+            case ReducedFloatType.BFloat16 _ -> identifier("__nv_bfloat16");
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+
+        oparen();
         Value param =  hatF16ToFloatConvOp.operands().getFirst();
         if (param instanceof Op.Result r) {
             recurse(builderContext, r.op());
