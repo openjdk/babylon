@@ -289,6 +289,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         oparen().halfType().cparen().obrace().oparen();
 
         if (f32Mixed == HATF16BinaryOp.LAST_OP) {
+            // In this method we will need to add the __nv_bfloat16 corresponding converstions.
             identifier("__half2float").oparen();
         }
 

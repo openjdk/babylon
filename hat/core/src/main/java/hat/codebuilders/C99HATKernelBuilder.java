@@ -135,11 +135,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public T privateDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
+    public T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
         return suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp()).nl();
     }
 
-    public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
+    public T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
         return localPtrPrefix() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
     }
@@ -235,9 +235,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
-        halfType()
-                .space()
-                .identifier(hatF16VarOp.varName())
+
+        ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> halfType();
+            case ReducedFloatType.BFloat16 _ ->  bfloatType();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+
+        space().identifier(hatF16VarOp.varName())
                 .space().equals().space();
         Value operand = hatF16VarOp.operands().getFirst();
         if (operand instanceof Op.Result r) {
@@ -253,7 +259,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         Value op2 = hatF16BinaryOp.operands().get(1);
         List<Boolean> references = hatF16BinaryOp.references();
 
-        oparen().halfType().cparen().obrace().oparen();
+        oparen();
+
+        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> halfType();
+            case ReducedFloatType.BFloat16 _ ->  bfloatType();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+
+        cparen().obrace().oparen();
         if (op1 instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
@@ -354,6 +369,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatBFloat16VarOp(ScopedCodeBuilderContext builderContext, HATBFloat16VarOp hatBFloat16VarOp) {
+        // In this method, the only difference is the halftype vs the bfloat-type
         bfloatType()
                 .space()
                 .identifier(hatBFloat16VarOp.varName())
@@ -371,6 +387,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         Value op2 = hatBFLOATBinaryOp.operands().get(1);
         List<Boolean> references = hatBFLOATBinaryOp.references();
 
+        // In this method, the only difference is the bfloatType vs the halfType
         oparen().bfloatType().cparen().obrace().oparen();
         if (op1 instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -398,6 +415,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatBFloat16VarLoadOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarLoadOp hatBFloat16VarLoadOp) {
+        // In this method, there is NO difference at all
         identifier(hatBFloat16VarLoadOp.varName());
         dot().identifier("value");
         return self();

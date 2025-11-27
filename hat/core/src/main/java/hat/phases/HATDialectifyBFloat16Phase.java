@@ -169,8 +169,6 @@ public class HATDialectifyBFloat16Phase implements HATDialect {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyBFloat16Operations" );
         before(here,funcOp);
 
-        IO.println("BEFORE: " + funcOp.toText());
-
         Stream<CodeElement<?, ?>> bfloats = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
@@ -198,7 +196,6 @@ public class HATDialectifyBFloat16Phase implements HATDialect {
             }
             return blockBuilder;
         });
-        IO.println("AFTER: " + funcOp.toText());
         after(here,funcOp);
         return funcOp;
     }
@@ -213,6 +210,10 @@ public class HATDialectifyBFloat16Phase implements HATDialect {
         blockBuilder.context().mapValue(varLoadOp.result(), opResult);
     }
 
+    private boolean isReturnType16Bits(JavaOp.InvokeOp invokeOp) {
+        return (invokeOp.resultType() == JavaType.CHAR || invokeOp.resultType() == JavaType.SHORT);
+    }
+
     private CoreOp.FuncOp dialectifyBFloatStores(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyBFloatStores");
         before(here,funcOp);
@@ -220,8 +221,7 @@ public class HATDialectifyBFloat16Phase implements HATDialect {
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isBFloat16Operation(invokeOp, "value") && invokeOp.resultType() == JavaType.CHAR) {
-                            // This invoke only has one argument: the value to store
+                        if (isBFloat16Operation(invokeOp, "value") && isReturnType16Bits(invokeOp)) {
                             Value value = invokeOp.operands().getFirst();
                             if (value instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                                 Value valLoad = varLoadOp.operands().getFirst();
@@ -251,7 +251,6 @@ public class HATDialectifyBFloat16Phase implements HATDialect {
             return blockBuilder;
         });
 
-        IO.println("AFTER STORES: " + funcOp.toText());
         after(here, funcOp);
         return funcOp;
     }

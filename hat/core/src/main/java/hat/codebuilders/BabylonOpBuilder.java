@@ -183,6 +183,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATVectorSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
             case HATVectorVarLoadOp $ -> hatVectorVarLoadOp(buildContext, $);
             case HATVectorOfOp $ -> hatVectorOfOps(buildContext, $);
+
             case HATF16VarOp $ -> hatF16VarOp(buildContext, $);
             case HATF16BinaryOp $ -> hatF16BinaryOp(buildContext, $);
             case HATF16VarLoadOp $ -> hatF16VarLoadOp(buildContext, $);

@@ -36,6 +36,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
     protected final TypeElement elementType;
     protected final BinaryOpType operationType;
     protected final List<Boolean> references;
+    private final ReducedFloatType reducedFloatType;
     protected final byte f32;
 
     public static final byte FIRST_OP = 0x01;
@@ -58,12 +59,13 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         }
     }
 
-    public HATF16BinaryOp(TypeElement typeElement, BinaryOpType operationType, List<Boolean> references, byte f32, List<Value> operands) {
+    public HATF16BinaryOp(TypeElement typeElement, ReducedFloatType reducedFloatType, BinaryOpType operationType, List<Boolean> references, byte f32, List<Value> operands) {
         super("", operands);
         this.elementType = typeElement;
         this.operationType = operationType;
         this.references = references;
         this.f32 = f32;
+        this.reducedFloatType = reducedFloatType;
     }
 
     public HATF16BinaryOp(HATF16BinaryOp op, CodeContext copyContext) {
@@ -72,6 +74,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         this.operationType = op.operationType;
         this.references = op.references;
         this.f32 = op.f32;
+        this.reducedFloatType = op.reducedFloatType;
     }
 
     @Override
@@ -96,4 +99,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         return f32;
     }
 
+    public ReducedFloatType reducedFloatType() {
+        return reducedFloatType;
+    }
 }
