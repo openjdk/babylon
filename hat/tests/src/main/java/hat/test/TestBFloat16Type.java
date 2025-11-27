@@ -31,8 +31,6 @@ import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.BF16;
 import hat.buffer.BF16Array;
-import hat.buffer.F16;
-import hat.buffer.F16Array;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
@@ -257,8 +255,6 @@ public class TestBFloat16Type {
         a.array(0).value(acc.value());
     }
 
-
-
     @Reflect
     public static void compute01(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.kernel_copy(kernelContext, a, b));
@@ -341,8 +337,6 @@ public class TestBFloat16Type {
     public static void compute17(@RO ComputeContext computeContext, @RW BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(1), kernelContext -> TestBFloat16Type.bf16_17(kernelContext, a));
     }
-
-
 
     @HatTest
     public void test_bfloat16_01() {
