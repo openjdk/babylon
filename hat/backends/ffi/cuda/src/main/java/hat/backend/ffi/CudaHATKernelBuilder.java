@@ -316,8 +316,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         cparen().obrace().oparen();
 
         if (f32Mixed == HATF16BinaryOp.LAST_OP) {
-            // In this method we will need to add the __nv_bfloat16 corresponding converstions.
-            identifier("__half2float").oparen();
+            switch (reducedFloatType) {
+                case ReducedFloatType.HalfFloat _ ->  identifier("__half2float").oparen();
+                case ReducedFloatType.BFloat16 _ ->  identifier("__bfloat162float").oparen();
+                default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+            }
         }
 
         if (op1 instanceof Op.Result r) {
@@ -336,7 +339,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
 
         if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
-            identifier("__half2float").oparen();
+            switch (reducedFloatType) {
+                case ReducedFloatType.HalfFloat _ ->  identifier("__half2float").oparen();
+                case ReducedFloatType.BFloat16 _ ->  identifier("__bfloat162float").oparen();
+                default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+            }
         }
 
         if (op2 instanceof Op.Result r) {
