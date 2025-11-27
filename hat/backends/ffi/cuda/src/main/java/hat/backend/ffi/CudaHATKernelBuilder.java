@@ -286,7 +286,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Boolean> references = hatF16BinaryOp.references();
         byte f32Mixed = hatF16BinaryOp.getF32();
 
-        oparen().halfType().cparen().obrace().oparen();
+        oparen();
+        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> halfType();
+            case ReducedFloatType.BFloat16 _ -> bfloatType();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+        cparen().obrace().oparen();
 
         if (f32Mixed == HATF16BinaryOp.LAST_OP) {
             // In this method we will need to add the __nv_bfloat16 corresponding converstions.
