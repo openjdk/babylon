@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.buffer.BF16;
 import hat.buffer.F16;
 import hat.ifacemapper.MappableIface;
 import hat.optools.OpTk;
@@ -73,6 +74,7 @@ public class HATFinalDetectionPhase implements HATDialect {
                     if (!isMappableType) {
                         // Special types?
                         isMappableType = OpTk.isAssignable(MethodHandles.lookup(), javaType, F16.class);
+                        isMappableType |= OpTk.isAssignable(MethodHandles.lookup(), javaType, BF16.class);
                     }
                 }
 

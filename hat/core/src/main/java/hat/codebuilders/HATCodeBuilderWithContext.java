@@ -24,18 +24,11 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.BF16;
+import hat.buffer.BF16Array;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
-import hat.dialect.HATBarrierOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATMemoryOp;
-import hat.dialect.HATPhaseUtils;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -72,6 +65,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case HATVectorLoadOp $ -> varName($);
             case HATVectorBinaryOp $ -> varName($);
             case HATF16VarOp $ -> varName($);
+            case HATBFloat16VarOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -91,6 +85,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp).equals();
             case HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp).equals();
             case HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp).equals();
+            case HATBFloat16VarOp hatBFloat16VarOp -> varName(hatBFloat16VarOp).equals();
             case null, default -> {
             }
         }
@@ -355,6 +350,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
+    private boolean isbfloat16(Schema.IfaceType ifaceType) {
+        return (ifaceType.iface.getName().equals(BF16.class.getName())
+                || ifaceType.iface.getName().equals(BF16Array.BF16Impl.class.getName()));
+    }
+
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
@@ -365,6 +365,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
                             if (isHalfType(ifaceType)) {
                                 typeName("half");
+                            } else if (isbfloat16(ifaceType)) {
+                                typeName("BFLOAT16");
                             } else {
                                 typeName(primitiveField.type.getSimpleName());
                             }
@@ -449,6 +451,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
                 || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())
+                || invokeOp.invokeDescriptor().refType().toString().equals(BF16.class.getCanonicalName())
                 || HATPhaseUtils.isDeviceTypeInvokeDescriptor(invokeOp)) {
             if (invokeOp.operands().size() == 1
                     && OpTk.funcName(invokeOp) instanceof String funcName

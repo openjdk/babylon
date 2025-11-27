@@ -24,21 +24,11 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.BF16;
+import hat.buffer.BF16Array;
 import hat.buffer.Buffer;
 import hat.buffer.F16;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
-import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATVectorMakeOfOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
@@ -90,7 +80,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             globalPtrPrefix().suffix_t(classType).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             // Check for special types (e.g., FP16)
+            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
             globalPtrPrefix().suffix_t(F16Impl.NAME).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(BF16.class.getCanonicalName())) {
+            // Special type: BFLOAT16
+            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
+            globalPtrPrefix().suffix_t(BF16Array.BF16Impl.class.getSimpleName()).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")) {
             globalPtrPrefix().suffix_t("KernelContext").asterisk();
         } else {
@@ -267,7 +262,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
             dot().identifier("value");
         }
-        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+        space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
 
         if (op2 instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -354,6 +349,57 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
             csbrace();
         }
+        return self();
+    }
+
+    @Override
+    public T hatBFloat16VarOp(ScopedCodeBuilderContext builderContext, HATBFloat16VarOp hatBFloat16VarOp) {
+        bfloatType()
+                .space()
+                .identifier(hatBFloat16VarOp.varName())
+                .space().equals().space();
+        Value operand = hatBFloat16VarOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(builderContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public T hatBFloat16BinaryOp(ScopedCodeBuilderContext buildContext, HATBFLOATBinaryOp hatBFLOATBinaryOp) {
+        Value op1 = hatBFLOATBinaryOp.operands().get(0);
+        Value op2 = hatBFLOATBinaryOp.operands().get(1);
+        List<Boolean> references = hatBFLOATBinaryOp.references();
+
+        oparen().bfloatType().cparen().obrace().oparen();
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        if (references.getFirst()) {
+            rarrow().identifier("value");
+        } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+        space().identifier(hatBFLOATBinaryOp.binaryOperationType().symbol()).space();
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        if (references.get(1)) {
+            rarrow().identifier("value");
+        } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+
+        cparen().cbrace();
+        return self();
+    }
+
+    @Override
+    public T hatBFloat16VarLoadOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarLoadOp hatBFloat16VarLoadOp) {
+        identifier(hatBFloat16VarLoadOp.varName());
+        dot().identifier("value");
         return self();
     }
 

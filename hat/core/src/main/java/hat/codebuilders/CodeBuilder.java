@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.BF16;
 import hat.buffer.F16;
 import hat.util.StreamMutable;
 
@@ -510,6 +511,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public final T halfType() {
         return typeName(F16.HAT_MAPPING_TYPE + "_t");
+    }
+
+    public final T bfloatType() {
+        return typeName(BF16.HAT_MAPPING_TYPE + "_t");
     }
 
     @Override

@@ -55,23 +55,20 @@ import static hat.dialect.HATPhaseUtils.findF16IsLocal;
 
 public class HATDialectifyFP16Phase implements HATDialect {
 
-    public enum OpMethod {
+    private final Accelerator accelerator;
+
+    private enum BinaryOpMethod {
         ADD("add"),
         SUB("sub"),
         MUL("mul"),
         DIV("div");
 
         final String methodName;
-        OpMethod(String name) {
+        BinaryOpMethod(String name) {
             this.methodName = name;
-        }
-
-        public String methodName() {
-            return this.methodName;
         }
     }
 
-    private final Accelerator accelerator;
     public HATDialectifyFP16Phase(Accelerator accelerator) {
         this.accelerator = accelerator;
     }
@@ -162,7 +159,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
         blockBuilder.context().mapValue(varLoadOp.result(), op1);
     }
 
-    private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, OpMethod method) {
+    private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpMethod method) {
         List<Value> operands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
 
@@ -194,7 +191,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
         blockBuilder.context().mapValue(invokeOp.result(), op1);
     }
 
-    private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, OpMethod method) {
+    private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, BinaryOpMethod method) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Ops" );
         before(here,funcOp);
 
@@ -352,7 +349,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        for (OpMethod method : OpMethod.values())
+        for (BinaryOpMethod method : BinaryOpMethod.values())
             // F16 Operations
             funcOp = dialectifyF16Ops(funcOp, method);
 

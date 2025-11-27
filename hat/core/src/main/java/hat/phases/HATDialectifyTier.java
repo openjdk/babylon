@@ -71,6 +71,9 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp, CoreOp.FuncOp>
         // F16 type
         hatPhases.add(new HATDialectifyFP16Phase(accelerator));
 
+        // BFloat16 type
+        hatPhases.add(new HATDialectifyBFloat16Phase(accelerator));
+
         hatPhases.add(new HATDialectifyArrayViewPhase(accelerator));
     }
 

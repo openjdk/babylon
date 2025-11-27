@@ -24,30 +24,7 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HATBarrierOp;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATVectorMakeOfOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -148,13 +125,19 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp);
 
-    T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp);
+    T hatVectorMakeOf(ScopedCodeBuilderContext buildContext, HATVectorMakeOfOp hatVectorMakeOfOp);
 
-    T hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
+    T hatF16ToFloatConvOp(ScopedCodeBuilderContext buildContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
-    T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateInitVarOp hatPrivateInitVarOp);
+    T hatPrivateVarInitOp(ScopedCodeBuilderContext buildContext, HATPrivateInitVarOp hatPrivateInitVarOp);
 
-    T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp);
+    T hatMemoryLoadOp(ScopedCodeBuilderContext buildContext, HATMemoryLoadOp hatMemoryLoadOp);
+
+    T hatBFloat16VarOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarOp hatBFloat16VarOp);
+
+    T hatBFloat16BinaryOp(ScopedCodeBuilderContext buildContext, HATBFLOATBinaryOp hatBFLOATBinaryOp);
+
+    T hatBFloat16VarLoadOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarLoadOp hatBFloat16VarLoadOp);
 
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
@@ -207,6 +190,12 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATVectorMakeOfOp $ -> hatVectorMakeOf(buildContext, $);
             case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp(buildContext, $);
             case HATMemoryLoadOp $ -> hatMemoryLoadOp(buildContext, $);
+
+            // Bfloat16
+            case HATBFloat16VarOp $ -> hatBFloat16VarOp(buildContext, $);
+            case HATBFLOATBinaryOp $ -> hatBFloat16BinaryOp(buildContext, $);
+            case HATBFloat16VarLoadOp $ -> hatBFloat16VarLoadOp(buildContext, $);
+
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

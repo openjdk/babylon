@@ -71,7 +71,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_BIY", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstOne())))
                 .hashDefine("HAT_BIZ", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
                 .hashDefine("HAT_BARRIER", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen())
-                .buildStructSingleMember("F16", "value", "half");
+                .hashDefine("BFLOAT16", _ -> keyword("half"))
+                .buildStructSingleMember("F16", "value", "half")
+                .buildStructSingleMember("BF16", "value", "BFLOAT16");
     }
 
     @Override

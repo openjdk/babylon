@@ -25,13 +25,7 @@
 package hat.codebuilders;
 
 
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATMemoryOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -206,6 +200,10 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return self();
     }
 
+    public T varName(HATBFloat16VarOp hatbFloat16VarOp) {
+        identifier(hatbFloat16VarOp.varName());
+        return self();
+    }
 
     public T pragmaKeyword() {
         return keyword("pragma");
@@ -241,7 +239,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         for (String value : values) {
             hash().includeKeyword().space().lt().identifier(value).gt().nl();
         }
-        return nl();
+        return self();
     }
     public T include(String... values) {
         for (String value : values) {

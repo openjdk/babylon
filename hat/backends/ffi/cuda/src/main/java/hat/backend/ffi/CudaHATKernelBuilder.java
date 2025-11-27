@@ -70,8 +70,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BIY", _ -> keyword("blockIdx").dot().threadDimId(1))
                 .hashDefine("HAT_BIZ", _ -> keyword("blockIdx").dot().threadDimId(2))
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
-                .includeSys("cuda_fp16.h")
-                .buildStructSingleMember("F16", "value", "half");
+                .includeSys("cuda_fp16.h", "cuda_bf16.h")
+                .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
+                .buildStructSingleMember("F16", "value", "half")
+                .buildStructSingleMember("BF16", "value", "BFLOAT16");
     }
 
     @Override
@@ -303,7 +305,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             cparen();
         }
 
-        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+        space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
 
         if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
             identifier("__half2float").oparen();

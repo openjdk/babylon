@@ -25,6 +25,7 @@
 package hat.optools;
 
 import hat.ComputeContext;
+import hat.buffer.BF16;
 import hat.buffer.F16;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
@@ -234,6 +235,7 @@ public class OpTk {
                         || (op instanceof HATMemoryOp)
                         || (op instanceof HATVectorVarOp)
                         || (op instanceof HATF16VarOp)
+                        || (op instanceof HATBFloat16VarOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
@@ -243,9 +245,13 @@ public class OpTk {
         return (JavaType) op.invokeDescriptor().refType();
     }
 
+    private static boolean isHATReservedType(JavaOp.InvokeOp invokeOp) {
+        String invokeRefType = invokeOp.invokeDescriptor().refType().toString();
+        return invokeRefType.equals(F16.class.getCanonicalName()) || invokeRefType.equals(BF16.class.getCanonicalName());
+    }
+
     public static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class) ||
-                invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName()));
+        return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class) || isHATReservedType(invokeOp));
     }
 
     public static boolean isKernelContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
@@ -330,6 +336,7 @@ public class OpTk {
             case HATVectorSelectLoadOp o -> 0;      // same as VarLoadOp
             case HATVectorLoadOp o -> 0;
             case HATF16VarLoadOp o -> 0;
+            case HATBFloat16VarLoadOp o -> 0;
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;

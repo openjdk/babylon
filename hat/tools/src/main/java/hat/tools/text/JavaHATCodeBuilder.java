@@ -26,27 +26,7 @@ package hat.tools.text;
 
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATVectorMakeOfOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -235,6 +215,24 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     @Override
     public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp) {
         blockComment("Memory Load Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatBFloat16VarOp(ScopedCodeBuilderContext builderContext, HATBFloat16VarOp hatBFloat16VarOp) {
+        blockComment("BFloat16 Var Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatBFloat16BinaryOp(ScopedCodeBuilderContext builderContext, HATBFLOATBinaryOp hatBFLOATBinaryOp) {
+        blockComment("BFloat16 Binary Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatBFloat16VarLoadOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarLoadOp hatBFloat16VarLoadOp) {
+        blockComment("BFloat16 Var Load Op Not Implemented");
         return self();
     }
 
