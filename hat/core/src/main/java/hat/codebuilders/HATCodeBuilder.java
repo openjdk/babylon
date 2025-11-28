@@ -205,6 +205,16 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return self();
     }
 
+    public T builtin_float2bfloat16() {
+        identifier("float2bfloat16");
+        return self();
+    }
+
+    public T builtin_bfloat162float() {
+        identifier("bfloat162float");
+        return self();
+    }
+
     public T pragmaKeyword() {
         return keyword("pragma");
     }

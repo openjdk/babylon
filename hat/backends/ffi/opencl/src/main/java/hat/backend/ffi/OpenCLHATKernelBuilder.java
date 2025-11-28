@@ -36,8 +36,11 @@ import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorVarOp;
+import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+
+import java.util.Objects;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -216,10 +219,25 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-        oparen().halfType().cparen().obrace();
+        ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
+
+        oparen();
+        if (reducedFloatType instanceof ReducedFloatType.HalfFloat) {
+            halfType();
+        } else if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+            bfloatType();
+        }
+
+        cparen().obrace();
+        if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+            builtin_float2bfloat16().oparen();
+        }
         Value initValue = hatF16ConvOp.operands().getFirst();
         if (initValue instanceof Op.Result r) {
             recurse(buildContext, r.op());
+        }
+        if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+            cparen();
         }
         cbrace();
         return self();
@@ -247,7 +265,20 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        oparen().floatType().cparen();
+
+        // Type conversions:
+        // half -> float
+        // bfloat16 -> float
+
+        ReducedFloatType reducedFloatType = hatF16ToFloatConvOp.reducedFloatType();
+
+        if (reducedFloatType instanceof ReducedFloatType.HalfFloat) {
+            // half -> float
+            oparen().floatType().cparen();
+        } else if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+            // bfloat16 -> float
+            builtin_bfloat162float().oparen();
+        }
         Value value = hatF16ToFloatConvOp.operands().getFirst();
         if (value instanceof Op.Result r) {
             recurse(builderContext, r.op());
@@ -256,6 +287,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             rarrow().identifier("value");
         } else if (!hatF16ToFloatConvOp.wasFloat()) {
             dot().identifier("value");
+        }
+        if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+            cparen();
         }
         return self();
     }

@@ -252,18 +252,30 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    private boolean isMixedFirstOperand(byte f32Mixed) {
+        return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.FIRST_OP;
+    }
+
+    private boolean isMixedSecondOperand(byte f32Mixed) {
+        return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.LAST_OP;
+    }
+
     private T binaryOperationsForBfloat16(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatf16BinaryOp) {
         Value op1 = hatf16BinaryOp.operands().get(0);
         Value op2 = hatf16BinaryOp.operands().get(1);
         List<Boolean> references = hatf16BinaryOp.references();
+        byte f32Mixed = hatf16BinaryOp.getF32();
 
         oparen().bfloatType()
                 .cparen().obrace().oparen();
 
-        identifier("float2bfloat16")
-                .oparen()
-                .identifier("bfloat162float")
+        builtin_float2bfloat16()
                 .oparen();
+
+        if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
+            builtin_bfloat162float().oparen();
+        }
+
 
         if (op1 instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -273,10 +285,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
             dot().identifier("value");
         }
-        cparen().identifier(hatf16BinaryOp.binaryOperationType().symbol()).space();
 
-        identifier("bfloat162float")
-                .oparen();
+        if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
+            cparen();
+        }
+        space().identifier(hatf16BinaryOp.binaryOperationType().symbol()).space();
+
+        if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
+            builtin_bfloat162float().oparen();
+        }
+
         if (op2 instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
@@ -287,9 +305,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             dot().identifier("value");
         }
 
-        cparen().cparen()
-                .cparen()
-                .cbrace();
+        if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
+            cparen();
+        }
+        cparen().cparen().cbrace();
         return self();
     }
 
@@ -305,13 +324,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         Value op2 = hatF16BinaryOp.operands().get(1);
         List<Boolean> references = hatF16BinaryOp.references();
 
-        oparen();
-
-        switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> halfType();
-            case ReducedFloatType.BFloat16 _ ->  bfloatType();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        }
+        oparen().halfType();
 
         cparen().obrace().oparen();
         if (op1 instanceof Op.Result r) {

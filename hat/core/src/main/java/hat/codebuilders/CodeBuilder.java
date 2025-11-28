@@ -521,6 +521,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T comment(String text) {
         return emitText(text);
     }
+
     @Override
     public T identifier(String text) {
         return emitText(text);
@@ -564,5 +565,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return emitText(" ");
     }
 
-
+    public T builtin(String text) {
+        return emitText(text);
+    }
 }

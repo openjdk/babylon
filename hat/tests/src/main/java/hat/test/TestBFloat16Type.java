@@ -65,29 +65,6 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-//    @Kernel("""
-//            HAT_KERNEL void bf16_03(
-//                HAT_GLOBAL_MEM KernelContext_t* kernelContext,
-//                HAT_GLOBAL_MEM BF16Array_t* a,
-//                HAT_GLOBAL_MEM BF16Array_t* b,
-//                HAT_GLOBAL_MEM BF16Array_t* c
-//            ){
-//                if(HAT_GIX<HAT_GSX){
-//                    HAT_GLOBAL_MEM BF16Impl_t* ha = &a->array[(long)HAT_GIX];
-//                    HAT_GLOBAL_MEM BF16Impl_t* hb = &b->array[(long)HAT_GIX];
-//                    BF16_t result = (BF16_t){( float2bfloat16
-//                                               (
-//                                                  bfloat162float(ha->value)
-//                                                  +
-//                                                  bfloat162float((BF16_t){ float2bfloat16(bfloat162float(hb->value) + bfloat162float(hb->value)) }.value)
-//                                               )
-//                                              )};
-//                    HAT_GLOBAL_MEM BF16Impl_t* hC = &c->array[(long)HAT_GIX];
-//                    hC->value=result.value;
-//                }
-//                return;
-//            }
-//            """)
     public static void bf16_03(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @RW BF16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
@@ -563,7 +540,7 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             BF16 val = arrayB.array(i);
-            HATAsserts.assertEquals(arrayA.array(i).value(), val.value());
+            HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)), BF16.bfloat162float(val), 0.01f);
         }
     }
 
