@@ -31,12 +31,16 @@ import com.sun.tools.javac.code.Kinds.Kind;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
+import com.sun.tools.javac.code.Symbol.TypeVariableSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.IntersectionClassType;
 import com.sun.tools.javac.code.Type.MethodType;
+import com.sun.tools.javac.code.Type.StructuralTypeMapping;
+import com.sun.tools.javac.code.Type.TypeVar;
+import com.sun.tools.javac.code.Type.UnionClassType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.comp.AttrContext;
@@ -2702,7 +2706,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
     JavaType typeToTypeElement(Type t) {
         Assert.check(!t.hasTag(METHOD));
-        t = types.upward(t, false, types.captures(t));
+        t = asDenotable(t);
         return switch (t.getTag()) {
             case VOID -> JavaType.VOID;
             case CHAR -> JavaType.CHAR;
@@ -2830,5 +2834,52 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
     Env<AttrContext> attrEnv() {
         return typeEnvs.get(currentClassSym);
+    }
+
+    Type asDenotable(Type t) {
+        // The goal of this type mapping is to replace occurrences of intersection and union types
+        // with fresh type variables with appropriate upper bounds. For instance, consider the generic type
+        // Foo<A & B & C>. We need to:
+        // 1. replace A & B & C with a fresh type variable, so this becomes Foo<#1>, #1 <: A
+        // 2. add #1 to the set of type-variables to be projected
+        // 3. run upward projection on Foo<#1>, which gives Foo<? extends A>
+        // In other words, by replacing intersection types with fresh type variables we make sure that the output
+        // of this method is a type that is fully denotable -- e.g. can be fully represented in terms of the
+        // TypeElement API.
+        class DenotableProjection extends StructuralTypeMapping<Void> {
+            final ListBuffer<Type> tvars = new ListBuffer<>();
+            final Type t;
+
+            DenotableProjection(Type t) {
+                tvars.appendList(types.captures(t));
+                this.t = t;
+            }
+
+            Type asDenotable() {
+                return types.upward(apply(t), tvars.toList());
+            }
+
+            @Override
+            public Type visitClassType(Type.ClassType t, Void unused) {
+                if (t.isIntersection()) {
+                    Type bound = visit(((IntersectionClassType) t).getExplicitComponents().head, null);
+                    return addTypeVar(bound, t.tsym);
+                } else if (t.isUnion()) {
+                    Type bound = visit(((UnionClassType)t).getLub(), null);
+                    return addTypeVar(bound, t.tsym);
+                } else {
+                    return super.visitClassType(t, null);
+                }
+            }
+
+            Type addTypeVar(Type bound, Symbol owner) {
+                var tvsym = new TypeVariableSymbol(0, names.empty, null, owner);
+                tvsym.type = new TypeVar(tvsym, bound, syms.botType);
+                tvars.append(tvsym.type);
+                return tvsym.type;
+            }
+        }
+
+        return new DenotableProjection(t).asDenotable();
     }
 }
