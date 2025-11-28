@@ -252,8 +252,54 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    private T binaryOperationsForBfloat16(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatf16BinaryOp) {
+        Value op1 = hatf16BinaryOp.operands().get(0);
+        Value op2 = hatf16BinaryOp.operands().get(1);
+        List<Boolean> references = hatf16BinaryOp.references();
+
+        oparen().bfloatType()
+                .cparen().obrace().oparen();
+
+        identifier("float2bfloat16")
+                .oparen()
+                .identifier("bfloat162float")
+                .oparen();
+
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        if (references.getFirst()) {
+            rarrow().identifier("value");
+        } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+        cparen().identifier(hatf16BinaryOp.binaryOperationType().symbol()).space();
+
+        identifier("bfloat162float")
+                .oparen();
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        if (references.get(1)) {
+            rarrow().identifier("value");
+        } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+
+        cparen().cparen()
+                .cparen()
+                .cbrace();
+        return self();
+    }
+
     @Override
     public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+
+        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
+        if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+            return binaryOperationsForBfloat16(buildContext, hatF16BinaryOp);
+        }
 
         Value op1 = hatF16BinaryOp.operands().get(0);
         Value op2 = hatF16BinaryOp.operands().get(1);
@@ -261,7 +307,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         oparen();
 
-        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
         switch (reducedFloatType) {
             case ReducedFloatType.HalfFloat _ -> halfType();
             case ReducedFloatType.BFloat16 _ ->  bfloatType();
