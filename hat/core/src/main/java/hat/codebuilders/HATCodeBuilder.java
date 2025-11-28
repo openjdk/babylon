@@ -200,11 +200,6 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return self();
     }
 
-    public T varName(HATBFloat16VarOp hatbFloat16VarOp) {
-        identifier(hatbFloat16VarOp.varName());
-        return self();
-    }
-
     public T builtin_float2bfloat16() {
         identifier("float2bfloat16");
         return self();

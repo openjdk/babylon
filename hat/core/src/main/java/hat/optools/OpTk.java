@@ -235,7 +235,6 @@ public class OpTk {
                         || (op instanceof HATMemoryOp)
                         || (op instanceof HATVectorVarOp)
                         || (op instanceof HATF16VarOp)
-                        || (op instanceof HATBFloat16VarOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
@@ -336,7 +335,6 @@ public class OpTk {
             case HATVectorSelectLoadOp o -> 0;      // same as VarLoadOp
             case HATVectorLoadOp o -> 0;
             case HATF16VarLoadOp o -> 0;
-            case HATBFloat16VarLoadOp o -> 0;
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;

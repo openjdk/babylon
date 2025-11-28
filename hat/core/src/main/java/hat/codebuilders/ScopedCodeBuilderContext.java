@@ -24,7 +24,6 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HATBFloat16VarOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATVectorVarOp;
@@ -65,10 +64,6 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
 
             if (value instanceof Op.Result result && result.op() instanceof HATF16VarOp hatf16VarOp) {
                 return hatf16VarOp;
-            }
-
-            if (value instanceof Op.Result result && result.op() instanceof HATBFloat16VarOp hatbFloat16VarOp) {
-                return hatbFloat16VarOp;
             }
 
             if (parent != null) {

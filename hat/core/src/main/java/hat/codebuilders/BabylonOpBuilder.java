@@ -133,12 +133,6 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatMemoryLoadOp(ScopedCodeBuilderContext buildContext, HATMemoryLoadOp hatMemoryLoadOp);
 
-    T hatBFloat16VarOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarOp hatBFloat16VarOp);
-
-    T hatBFloat16BinaryOp(ScopedCodeBuilderContext buildContext, HATBFLOATBinaryOp hatBFLOATBinaryOp);
-
-    T hatBFloat16VarLoadOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarLoadOp hatBFloat16VarLoadOp);
-
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -183,7 +177,6 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATVectorSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
             case HATVectorVarLoadOp $ -> hatVectorVarLoadOp(buildContext, $);
             case HATVectorOfOp $ -> hatVectorOfOps(buildContext, $);
-
             case HATF16VarOp $ -> hatF16VarOp(buildContext, $);
             case HATF16BinaryOp $ -> hatF16BinaryOp(buildContext, $);
             case HATF16VarLoadOp $ -> hatF16VarLoadOp(buildContext, $);
@@ -191,12 +184,6 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATVectorMakeOfOp $ -> hatVectorMakeOf(buildContext, $);
             case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp(buildContext, $);
             case HATMemoryLoadOp $ -> hatMemoryLoadOp(buildContext, $);
-
-            // Bfloat16
-            case HATBFloat16VarOp $ -> hatBFloat16VarOp(buildContext, $);
-            case HATBFLOATBinaryOp $ -> hatBFloat16BinaryOp(buildContext, $);
-            case HATBFloat16VarLoadOp $ -> hatBFloat16VarLoadOp(buildContext, $);
-
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

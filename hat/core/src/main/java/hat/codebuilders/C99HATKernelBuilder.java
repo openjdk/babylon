@@ -425,60 +425,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    @Override
-    public T hatBFloat16VarOp(ScopedCodeBuilderContext builderContext, HATBFloat16VarOp hatBFloat16VarOp) {
-        // In this method, the only difference is the halftype vs the bfloat-type
-        bfloatType()
-                .space()
-                .identifier(hatBFloat16VarOp.varName())
-                .space().equals().space();
-        Value operand = hatBFloat16VarOp.operands().getFirst();
-        if (operand instanceof Op.Result r) {
-            recurse(builderContext, r.op());
-        }
-        return self();
-    }
-
-    @Override
-    public T hatBFloat16BinaryOp(ScopedCodeBuilderContext buildContext, HATBFLOATBinaryOp hatBFLOATBinaryOp) {
-        Value op1 = hatBFLOATBinaryOp.operands().get(0);
-        Value op2 = hatBFLOATBinaryOp.operands().get(1);
-        List<Boolean> references = hatBFLOATBinaryOp.references();
-
-        // In this method, the only difference is the bfloatType vs the halfType
-        oparen().bfloatType().cparen().obrace().oparen();
-        if (op1 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-        if (references.getFirst()) {
-            rarrow().identifier("value");
-        } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-            dot().identifier("value");
-        }
-        space().identifier(hatBFLOATBinaryOp.binaryOperationType().symbol()).space();
-
-        if (op2 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-
-        if (references.get(1)) {
-            rarrow().identifier("value");
-        } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-            dot().identifier("value");
-        }
-
-        cparen().cbrace();
-        return self();
-    }
-
-    @Override
-    public T hatBFloat16VarLoadOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarLoadOp hatBFloat16VarLoadOp) {
-        // In this method, there is NO difference at all
-        identifier(hatBFloat16VarLoadOp.varName());
-        dot().identifier("value");
-        return self();
-    }
-
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return kernelPrefix().voidType().space().funcName(funcOp);
     }

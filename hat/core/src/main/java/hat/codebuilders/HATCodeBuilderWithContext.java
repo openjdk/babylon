@@ -65,7 +65,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case HATVectorLoadOp $ -> varName($);
             case HATVectorBinaryOp $ -> varName($);
             case HATF16VarOp $ -> varName($);
-            case HATBFloat16VarOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -85,7 +84,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp).equals();
             case HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp).equals();
             case HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp).equals();
-            case HATBFloat16VarOp hatBFloat16VarOp -> varName(hatBFloat16VarOp).equals();
             case null, default -> {
             }
         }

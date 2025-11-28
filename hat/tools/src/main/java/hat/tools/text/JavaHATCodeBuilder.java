@@ -218,24 +218,6 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
         return self();
     }
 
-    @Override
-    public T hatBFloat16VarOp(ScopedCodeBuilderContext builderContext, HATBFloat16VarOp hatBFloat16VarOp) {
-        blockComment("BFloat16 Var Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatBFloat16BinaryOp(ScopedCodeBuilderContext builderContext, HATBFLOATBinaryOp hatBFLOATBinaryOp) {
-        blockComment("BFloat16 Binary Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatBFloat16VarLoadOp(ScopedCodeBuilderContext buildContext, HATBFloat16VarLoadOp hatBFloat16VarLoadOp) {
-        blockComment("BFloat16 Var Load Op Not Implemented");
-        return self();
-    }
-
     public T createJava(ScopedCodeBuilderContext buildContext) {
         buildContext.funcScope(buildContext.funcOp, () -> {
             typeName(buildContext.funcOp.resultType().toString()).space().funcName(buildContext.funcOp);
