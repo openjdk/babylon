@@ -26,32 +26,40 @@ package job;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
 public class CMake extends DependencyImpl<CMake> implements Dependency.Buildable, Dependency.WithPath {
+
     public ForkExec.Result cmake(Consumer<String> lineConsumer, List<String> tailopts) {
-        ForkExec.Opts opts = ForkExec.Opts.of("cmake");
-        tailopts.forEach(opts::add);
-        id.project().reporter.command(this, opts.toString());
-        id.project().reporter.progress(this, opts.toString());
-        var result =  ForkExec.forkExec(this, id.project().rootPath(), opts);
+        StringList stringList = StringList.of()
+                .add("cmake")
+                .add(tailopts);
+
+        if (id().project().cmakeOpts().command()) {
+            System.out.println(stringList);
+        }
+        if (id().project().cmakeOpts().progress()) {
+            System.out.println("cmake "+id().fullHyphenatedName());
+        }
+        if (id().project().cmakeOpts().verbose()) {
+            System.out.println(stringList);
+        }
+        var result =  ForkExec.forkExec(this, false, id.project().rootPath(), stringList);
         result.stdErrAndOut().forEach((line) -> {
             lineConsumer.accept(line);
-            id().project().reporter.info(this, line);
+            if (id().project().cmakeOpts().verbose()) {
+               System.out.println( line);
+            }
         });
 
         if (result.status()!=0){
-            id().project().reporter.error(this, opts.toString());
+            System.err.println( stringList);
             throw new RuntimeException("CMake failed");
         }
         return result;
-    }
-
-    @Override
-    public List<Path> generatedPaths() {
-        throw new IllegalStateException("who called me");
     }
 
     ForkExec.Result cmake(Consumer<String> lineConsumer, String... opts) {
@@ -77,19 +85,15 @@ public class CMake extends DependencyImpl<CMake> implements Dependency.Buildable
 
     @Override
     public boolean build() {
-        cmakeInit(_ -> {
-        });
-        cmakeBuild(_ -> {
-        });
+        cmakeInit(_ -> {});
+        cmakeBuild(_ -> {});
         return false;
     }
 
     @Override
-    public boolean clean() {
-        cmakeInit(_ -> {
-        });
-        cmakeClean(_ -> {
-        });
+    public boolean clean(boolean verbose) {
+        cmakeInit(_ -> {});
+        cmakeClean(_ -> {});
         return false;
     }
 
@@ -128,4 +132,101 @@ public class CMake extends DependencyImpl<CMake> implements Dependency.Buildable
         return of(id, Set.of(dependencies));
     }
 
+    public  interface Config extends CommonConfig<Config>{
+        boolean command();
+
+        boolean verbose();
+        boolean progress();
+
+        boolean warnings();
+        List<String> vmOpts();
+
+        record ConfigImpl(boolean command, boolean warnings, boolean progress, boolean verbose, List<String> vmOpts) implements Config {
+        }
+
+        static Config of(boolean command, boolean warnings, boolean progress, boolean verbose, List<String> vmOpts) {
+            return new ConfigImpl(command, warnings,progress,verbose, vmOpts);
+        }
+
+        interface Builder extends Config {
+            Builder command(boolean f);
+            Builder warnings(boolean f);
+            Builder progress(boolean f);
+            Builder verbose(boolean f);
+
+            Builder vmOpt(String... s);
+
+
+            class Impl implements Builder {
+                boolean command;
+                boolean warnings;
+                boolean progress;
+                boolean verbose;
+                List<String> vmOpts = new ArrayList<>();
+
+                @Override
+                public Builder command(boolean f) {
+                    command = f;
+                    return this;
+                }
+                @Override
+                public Builder warnings(boolean f) {
+                    warnings= f;
+                    return this;
+                }
+                @Override
+                public Builder progress(boolean f) {
+                    progress= f;
+                    return this;
+                }
+
+                @Override
+                public Builder verbose(boolean f) {
+                    verbose = f;
+                    return this;
+                }
+
+                @Override
+                public Builder vmOpt(String... opts) {
+                    List.of(opts).forEach(s -> vmOpts.add(s));
+                    return this;
+                }
+
+
+                @Override
+                public boolean command() {
+                    return command;
+                }
+
+                @Override
+                public boolean verbose() {
+                    return verbose;
+                }
+                @Override
+                public boolean warnings() {
+                    return warnings;
+                }
+                @Override
+                public boolean progress() {
+                    return progress;
+                }
+
+                @Override
+                public List<String> vmOpts() {
+                    return new ArrayList<>();
+                }
+            }
+        }
+
+
+        static Config of(Consumer<Builder> javacOptBuilderConsumer) {
+            Builder builder = new Builder.Impl();
+            javacOptBuilderConsumer.accept(builder);
+            return of(builder.command(), builder.warnings(), builder.progress(), builder.verbose(), builder.vmOpts());
+        }
+
+        static Config of() {
+            return of(false, false, false,false,new ArrayList<>());
+        }
+    }
 }

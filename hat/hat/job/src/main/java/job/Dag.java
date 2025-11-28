@@ -78,6 +78,9 @@ public class Dag {
         public Dag(Dependency...deps) {
              this(Stream.of(deps).collect(Collectors.toSet()));
         }
+        public static Set<Dependency> ordered(Dependency ... deps){
+              return new Dag(deps).ordered();
+        }
 
         public String toDot(){
             StringBuilder sb = new StringBuilder();

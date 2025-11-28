@@ -25,13 +25,18 @@
 package job;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class JExtract extends Jar {
     final JExtractOptProvider optProvider;
-
-    private JExtract(Project.Id id, JavacOpts javacOpts, Set<Path> exclude, Set<Dependency> dependencies) {
-        super(id,javacOpts, exclude, dependencies);
+    public void check(){
+       // We dont care if the src does not exist unlike a clean jar
+    }
+    private JExtract(Project.Id id,  Set<Path> exclude, Set<Dependency> dependencies) {
+        super(id, exclude, dependencies);
         // We expect the dependencies to include a JextractOptProvider
         var optionalProvider = dependencies.stream().filter(dep -> dep instanceof JExtractOptProvider).map(dep -> (JExtractOptProvider) dep).findFirst();
         this.optProvider = optionalProvider.orElseThrow();
@@ -47,19 +52,23 @@ public class JExtract extends Jar {
     public boolean build() {
         try {
             id.project().mkdir(javaSourcePath());
-            var opts = ForkExec.Opts.of("jextract").add(
+            var opts = StringList.of().add(
+                    "jextract",
                     "--target-package", id().shortHyphenatedName(),
                     "--output", javaSourcePath().toString()
             );
             optProvider.jExtractOpts(opts);
             optProvider.writeCompilerFlags(id().project().rootPath());
-            id().project().reporter.command(this, opts.toString());
-            System.out.println(String.join(" ", opts.toString()));
-            id().project().reporter.progress(this, "extracting");
-            var result= ForkExec.forkExec(this, id.project().rootPath(),opts);
-            result.stdErrAndOut().forEach((line)->{
-                id().project().reporter.warning(this, line);
-            });
+            if (id.project().jextractOpts().command()) {
+                System.out.println(opts.toString());
+            }
+            if (id.project().jextractOpts().progress()) {
+                System.out.println("extracting "+id().fullHyphenatedName());
+            }
+            var result = ForkExec.forkExec(this, false, id.project().rootPath(), opts);
+            if (id.project().jextractOpts().verbose()){
+                result.stdErrAndOut().forEach(System.out::println);
+             }
             super.build();
             return result.status()==0;
         } catch (Exception e) {
@@ -68,19 +77,96 @@ public class JExtract extends Jar {
     }
 
     @Override
-    public boolean clean() {
+    public boolean clean(boolean verbose) {
         return false;
     }
-    static public JExtract extract(Project.Id id, JavacOpts javacOpts, Set<Dependency> dependencies) {
-        return new JExtract(id, javacOpts,Set.of(), dependencies);
+    static public JExtract extract(Project.Id id,  Set<Dependency> dependencies) {
+        return new JExtract(id,Set.of(), dependencies);
     }
-    static public JExtract extract(Project.Id id, Set<Dependency> dependencies) {
-        return new JExtract(id, JavacOpts.of(),Set.of(), dependencies);
-    }
-    static public JExtract extract(Project.Id id,JavacOpts javacOpts, Dependency... dependencies) {
-        return new JExtract(id, javacOpts,Set.of(), Set.of(dependencies));
-    }
-    static public JExtract extract(Project.Id id, Dependency... dependencies) {
-        return new JExtract(id, JavacOpts.of(),Set.of(), Set.of(dependencies));
+
+    public  interface Config extends CommonConfig<Config>{
+        boolean command();
+        boolean warnings();
+        boolean progress();
+        boolean verbose();
+
+
+
+        record ConfigImpl(boolean command ,boolean warnings, boolean progress,  boolean verbose) implements Config {
+        }
+
+        static Config of(boolean command, boolean warnings, boolean progress,boolean verbose) {
+            return new ConfigImpl(command, warnings,progress,verbose);
+        }
+
+        interface Builder extends Config {
+            Builder command(boolean f);
+
+            Builder warnings(boolean f);
+            Builder progress(boolean f);
+
+            Builder verbose(boolean f);
+
+
+
+            class Impl implements Builder {
+                boolean command;
+                boolean warnings;
+                boolean progress;
+                boolean verbose;
+
+
+                @Override
+                public Builder command(boolean f) {
+                    command = f;
+                    return this;
+                }
+                @Override
+                public Builder warnings(boolean f) {
+                    warnings = f;
+                    return this;
+                }
+                @Override
+                public Builder progress(boolean f) {
+                    progress = f;
+                    return this;
+                }
+
+                @Override
+                public Builder verbose(boolean f) {
+                    verbose = f;
+                    return this;
+                }
+                @Override
+                public boolean command() {
+                    return command;
+                }
+                @Override
+                public boolean warnings() {
+                    return warnings;
+                }
+                @Override
+                public boolean progress() {
+                    return progress;
+                }
+
+                @Override
+                public boolean verbose() {
+                    return verbose;
+                }
+
+            }
+        }
+
+
+        static Config of(Consumer<Builder> javacOptBuilderConsumer) {
+            Builder builder = new Builder.Impl();
+            javacOptBuilderConsumer.accept(builder);
+            return of(builder.command(), builder.warnings(),builder.progress(),builder.verbose());
+        }
+
+        static Config of() {
+            return of(false, false, false, false);
+        }
     }
 }
