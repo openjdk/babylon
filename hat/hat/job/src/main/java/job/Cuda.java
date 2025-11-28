@@ -42,11 +42,11 @@ public class Cuda extends CMakeInfo {
     }
 
     public Cuda(Project.Id id, Dependency ...dependencies) {
-        this(id, Set.of(dependencies));
+        this(id,Set.of(dependencies));
     }
 
     @Override
-    public void jExtractOpts(ForkExec.Opts opts) {
+    public void jExtractOpts(StringList stringList) {
 
     }
 }

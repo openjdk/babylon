@@ -31,6 +31,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Pattern;
 
 public class Util {
@@ -90,5 +92,30 @@ public class Util {
         }catch(IOException ioe){
             throw new IllegalStateException(ioe);
         }
+    }
+
+    public static Path currentDirAsPath() {
+        return Path.of(System.getProperty("user.dir"));
+    }
+
+    public static String currentProcessPath() {
+        return ProcessHandle.current().info().command().orElseThrow();
+    }
+
+    public static void forEachEntry(Path path, Predicate<JarEntry> jarEntryPredicate, Consumer<JarEntry> jarEntryConsumer) {
+        try {
+            var jarFile = new JarFile(path.toString());
+            var entries = jarFile.entries();
+            while (entries.hasMoreElements() && entries.nextElement() instanceof JarEntry jarEntry) {
+                if (jarEntryPredicate.test(jarEntry)) {
+                    jarEntryConsumer.accept(jarEntry);
+                }
+            }
+        }catch (IOException ioe){
+            throw new RuntimeException(ioe);
+        }
+    }
+    public static void forEachEntry(Path path, Consumer<JarEntry> jarEntryConsumer) {
+       forEachEntry(path,jarEntry -> true, jarEntryConsumer);
     }
 }
