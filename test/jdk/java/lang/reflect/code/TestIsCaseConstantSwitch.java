@@ -2,11 +2,12 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -15,52 +16,26 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @enablePreview
  * @run junit TestIsCaseConstantSwitch
  */
 public class TestIsCaseConstantSwitch {
-
-    @Test
-    void testIsConstantLabelSwitch() throws NoSuchMethodException {
-        Method m = this.getClass().getDeclaredMethod("caseConstantSwitchExpressions", int.class, E.class);
-        CoreOp.FuncOp codeModel = Op.ofMethod(m).get();
-        List<SwitchExpressionOp> swExprOps = codeModel.body().entryBlock().ops().stream()
-                .filter(o -> o instanceof SwitchExpressionOp)
-                .map(o -> ((SwitchExpressionOp) o)).toList();
-        for (SwitchExpressionOp swExprOp : swExprOps) {
-            Assertions.assertTrue(swExprOp.isCaseConstantSwitch(MethodHandles.lookup()), swExprOp.toText());
-        }
-
-        // test with methods in TestSwitchExpressionOp and in TestSwitchStatementOp
-        List<CoreOp.FuncOp> funcOps = Stream.concat(
-                        Arrays.stream(TestSwitchExpressionOp.class.getDeclaredMethods()),
-                        Arrays.stream(TestSwitchStatementOp.class.getDeclaredMethods()))
-                .filter(dm -> dm.getName().startsWith("caseConstant") && dm.isAnnotationPresent(Reflect.class))
-                .map(dm -> Op.ofMethod(dm).get())
-                .toList();
-        for (CoreOp.FuncOp fop : funcOps) {
-            JavaSwitchOp swOp = ((JavaSwitchOp) fop.body().entryBlock().ops().stream().filter(o -> o instanceof JavaSwitchOp).findFirst().get());
-            Assertions.assertTrue(swOp.isCaseConstantSwitch(MethodHandles.lookup()), fop.toText());
-        }
-    }
 
     class C {
         static final int x = 26;
     }
 
-    enum E {
-        V;
-    }
-
     @Reflect
-    private static void caseConstantSwitchExpressions(int i, E e) {
+    private static void caseConstantSwitchExpressions() {
         // switch label
-            // case label
-                // list of case constant
-                    // every case constant must be either a constant expression or the name of an enum constant
-                // null literal
-                // list of case patterns
-            // default label
+        // case label
+        // list of case constant
+        // every case constant must be either a constant expression or the name of an enum constant
+        // null literal
+        // list of case patterns
+        // default label
         final int fv = 25;
+        int i = -1;
         String r = switch (i) {
             // literal of primitive type
             case 1 -> "A";
@@ -96,26 +71,93 @@ public class TestIsCaseConstantSwitch {
             // simple names that refer to constant variables
             case fv -> "L";
             // qualified names of the form TypeName.Identifier that refer to constant variables
-             case C.x -> "M";
-             // list of case constants
+            case C.x -> "M";
+            // list of case constants
             case 21, 30 -> null;
+            // casts
+            case (int) 31L -> "N";
+            case (int) 34f -> "NN";
+            // default
             default -> "X";
         };
 
-        String r2 = switch (r) {
-            // string literal
-            case "A" -> "A+";
-            case null -> "A++";
+        // we can have a target of type Byte, Short, Character, Integer
+        // as long as we don't introduce case null, javac will generate labels identical to what we have in source code
+        Integer ii = -2;
+        r = switch (ii) {
+            case 1 -> "A";
             default -> "X";
         };
-
-        String r3 = switch (e) {
-            // name of an enum constant
-             case E.V -> "V";
-            case null -> "N";
-            default -> "D";
-        };
-
     }
 
+    enum E {
+        V;
+    }
+
+    @Reflect
+    static void nonCaseConstantSwitchExpressions() {
+        int r;
+
+        String s = "";
+        r = switch (s) {
+            case "A" -> 1;
+            default -> 0;
+        };
+
+        E e = E.V;
+        r = switch (e) {
+            case V -> 1;
+        };
+
+        boolean b = false;
+        r = switch (b) {
+            case true -> 1;
+            default -> 0;
+        };
+
+        long l = 5L;
+        r = switch (l) {
+            case 1L -> 1;
+            default -> 0;
+        };
+
+        float f = 5f;
+        r = switch (f) {
+            case 1f -> 1;
+            default -> 0;
+        };
+
+        double d = 5d;
+        r = switch (d) {
+            case 1d -> 1;
+            default -> 0;
+        };
+
+        Integer i = 4;
+        r = switch (i) {
+            case 1 -> 1;
+            case null -> -1;
+            default -> 0;
+        };
+    }
+
+    static Stream<Arguments> cases() {
+        return Stream.of(
+                Arguments.of("caseConstantSwitchExpressions", true),
+                Arguments.of("nonCaseConstantSwitchExpressions", false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("cases")
+    void testIsConstantLabelSwitch(String methodName, boolean expected) throws NoSuchMethodException {
+        Method m = this.getClass().getDeclaredMethod(methodName);
+        CoreOp.FuncOp codeModel = Op.ofMethod(m).get();
+        List<SwitchExpressionOp> swExprOps = codeModel.body().entryBlock().ops().stream()
+                .filter(o -> o instanceof SwitchExpressionOp)
+                .map(o -> ((SwitchExpressionOp) o)).toList();
+        for (SwitchExpressionOp swExprOp : swExprOps) {
+            Assertions.assertEquals(expected, swExprOp.isCaseConstantSwitch(MethodHandles.lookup()), swExprOp.toText());
+        }
+    }
 }

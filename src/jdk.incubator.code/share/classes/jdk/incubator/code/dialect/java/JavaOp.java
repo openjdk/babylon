@@ -2981,7 +2981,8 @@ public sealed abstract class JavaOp extends Op {
                 return false;
             }
 
-            if (r.op() instanceof EqOp eqOp) { // EqOp for primitives, method invocation for Strings
+            // EqOp for primitives, method invocation for Strings and Reference Types
+            if (r.op() instanceof EqOp eqOp) {
                 return isConstantExpr(eqOp.operands().get(1), l);
             }
             if (r.op() instanceof InvokeOp invokeOp) {
@@ -2991,7 +2992,7 @@ public sealed abstract class JavaOp extends Op {
                 }
                 // case null
                 if (invokeOp.operands().get(1) instanceof Op.Result opr && opr.op() instanceof ConstantOp cop && cop.value() == null) {
-                    return true;
+                    return false;
                 }
                 return isConstantExpr(invokeOp.operands().get(1), l);
             }
@@ -3002,6 +3003,9 @@ public sealed abstract class JavaOp extends Op {
         }
 
         public boolean isCaseConstantSwitch(MethodHandles.Lookup l) {
+            if (!isIntegralType(this.operands().get(0).type())) {
+                return false;
+            }
             for (int i = 0; i < bodies.size(); i+=2) {
                 Body label = bodies.get(i);
                 if (!isCaseConstantLabel(label, l)) {
@@ -3009,6 +3013,18 @@ public sealed abstract class JavaOp extends Op {
                 }
             }
             return true;
+        }
+
+        private static boolean isIntegralType(TypeElement te) {
+            return isIntegralPrimitiveType(te) || isIntegralReferenceType(te);
+        }
+
+        private static boolean isIntegralPrimitiveType(TypeElement te) {
+            return List.of(BYTE, SHORT, CHAR, INT).contains(te);
+        }
+
+        private static boolean isIntegralReferenceType(TypeElement te) {
+            return List.of(J_L_BYTE, J_L_SHORT, J_L_CHARACTER, J_L_INTEGER).contains(te);
         }
     }
 
