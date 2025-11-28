@@ -192,7 +192,6 @@ public class TestDeviceType {
             MultiDimFix myDeviceArray = MultiDimFix.create();
             String text = MultiDimFix.schema.toText();
             // If we request the correct method, the result should be as follows:
-            IO.println(text);
             boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
             HATAsserts.assertFalse(isEquals);
         } catch (ExceptionInInitializerError e) {

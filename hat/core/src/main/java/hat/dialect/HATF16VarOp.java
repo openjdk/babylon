@@ -37,15 +37,18 @@ import java.util.Map;
 public class HATF16VarOp extends HATF16Op {
 
     private final VarType typeElement;
+    private final ReducedFloatType reducedFloatType;
 
-    public HATF16VarOp(String varName, VarType typeElement, List<Value> operands) {
+    public HATF16VarOp(String varName, ReducedFloatType reducedFloatType, VarType typeElement, List<Value> operands) {
         super(varName, operands);
         this.typeElement = typeElement;
+        this.reducedFloatType = reducedFloatType;
     }
 
     public HATF16VarOp(HATF16VarOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.typeElement = op.typeElement;
+        this.reducedFloatType = op.reducedFloatType;
     }
 
     @Override
@@ -61,6 +64,10 @@ public class HATF16VarOp extends HATF16Op {
     @Override
     public Map<String, Object> externalize() {
         return Map.of("hat.dialect.fp16varop." + varName(), typeElement);
+    }
+
+    public ReducedFloatType reducedFloatType() {
+        return reducedFloatType;
     }
 
 }

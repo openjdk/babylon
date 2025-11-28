@@ -22,28 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.buffer;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+import hat.Accelerator;
+import hat.ifacemapper.Schema;
 
-import java.util.List;
+public interface BF16Array extends Buffer {
+    int length();
 
-public class HATF16AddOp extends HATF16BinaryOp {
+    BF16Impl array(long index);
 
-    public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-        super(typeElement, reducedFloatType, BinaryOpType.ADD, references, f32, operands);
+    interface BF16Impl extends Struct, BF16 {
+        String NAME = "F16Impl";
+
+        char value();
+        void value(char value);
     }
 
-    public HATF16AddOp(HATF16AddOp op, CodeContext copyContext) {
-        super(op, copyContext);
-    }
+    Schema<BF16Array> schema = Schema.of(BF16Array.class, bf16array ->
+            bf16array.arrayLen("length")
+                     .array("array", bfloat16 -> bfloat16.fields("value")));
 
-    @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATF16AddOp(this, copyContext);
+    static BF16Array create(Accelerator accelerator, int length){
+        return schema.allocate(accelerator, length);
     }
 }
