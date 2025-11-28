@@ -328,6 +328,24 @@ public sealed abstract class JavaOp extends Op {
             return Optional.of(methodRefInvokeOp);
         }
 
+        public CoreOp.FuncOp toFuncOp(String lambdaName) {
+            List<TypeElement> parameters = new ArrayList<>(this.invokableType().parameterTypes());
+            for (Value v : this.capturedValues()) {
+                TypeElement capturedType = v.type() instanceof VarType varType ? varType.valueType() : v.type();
+                parameters.add(capturedType);
+            }
+            return CoreOp.func(lambdaName, CoreType.functionType(this.invokableType().returnType(), parameters)).body(builder -> {
+                int idx = this.invokableType().parameterTypes().size();
+                for (Value v : capturedValues()) {
+                    Block.Parameter p = builder.parameters().get(idx++);
+                    Value functionValue = v.type() instanceof VarType ? builder.op(CoreOp.var(p)) : p;
+                    builder.context().mapValue(v, functionValue);
+                }
+                List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableType().parameterTypes().size());
+                builder.body(this.body(), outputValues, CodeTransformer.COPYING_TRANSFORMER);
+            });
+        }
+
         static InvokeOp extractMethodInvoke(Map<Value, Value> valueMapping, List<Op> ops) {
             InvokeOp methodRefInvokeOp = null;
             for (Op op : ops) {
