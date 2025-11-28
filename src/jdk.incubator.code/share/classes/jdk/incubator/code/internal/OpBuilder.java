@@ -359,7 +359,7 @@ public class OpBuilder {
             };
         }
         */
-        FuncOp funcOp = func(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class))).body(b -> {
+        return func(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class))).body(b -> {
             Block.Parameter i = b.parameter(INT);
             List<Body.Builder> swBodies = new ArrayList<>();
             for (Map.Entry<ExternalizedTypeElement, List<Integer>> e : registeredExterTypes.entrySet()) {
@@ -399,7 +399,6 @@ public class OpBuilder {
             var r = b.op(switchExpression(i, swBodies));
             b.op(return_(r));
         });
-        return funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
     }
 
     OpBuilder(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {

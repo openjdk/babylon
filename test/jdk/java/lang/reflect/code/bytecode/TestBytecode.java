@@ -642,15 +642,8 @@ public class TestBytecode {
     public void testGenerate(TestData d) throws Throwable {
         CoreOp.FuncOp func = Op.ofMethod(d.testMethod).get();
 
-        CoreOp.FuncOp lfunc;
         try {
-            lfunc = func.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
-        } catch (UnsupportedOperationException uoe) {
-            throw new TestSkippedException("lowering caused:", uoe);
-        }
-
-        try {
-            MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
+            MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), func);
             Object receiver1, receiver2;
             if (d.testMethod.accessFlags().contains(AccessFlag.STATIC)) {
                 receiver1 = null;
@@ -667,7 +660,6 @@ public class TestBytecode {
             });
         } catch (Throwable e) {
             System.out.println(func.toText());
-            System.out.println(lfunc.toText());
             String methodName = d.testMethod().getName();
             for (var mm : CLASS_MODEL.methods()) {
                 if (mm.methodName().equalsString(methodName)

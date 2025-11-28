@@ -79,10 +79,7 @@ public class TestInvokeSuper {
     static MethodHandle generate(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lf.toText());
-
-        return BytecodeGenerator.generate(MethodHandles.lookup().in(B.class), lf);
+        return BytecodeGenerator.generate(MethodHandles.lookup().in(B.class), f);
     }
 
     static CoreOp.FuncOp getFuncOp(Class<?> c, String name) {

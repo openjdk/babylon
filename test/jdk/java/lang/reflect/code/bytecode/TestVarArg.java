@@ -30,14 +30,11 @@ public class TestVarArg {
         var f = getFuncOp("f");
         System.out.println(f.toText());
 
-        var lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lf.toText());
-
         var bytes = BytecodeGenerator.generateClassData(MethodHandles.lookup(), f);
         var classModel = ClassFile.of().parse(bytes);
         ClassPrinter.toYaml(classModel, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
 
-        MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lf);
+        MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), f);
         Assertions.assertEquals(f(), mh.invoke());
     }
 
