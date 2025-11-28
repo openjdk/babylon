@@ -109,11 +109,11 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * The method handle is obtained by invoking the corresponding method on the provided lookup, as determined by
      * the provided {@code kind}:
      * <ul>
-     *     <li>if <code>kind == SUPER && isConstructor()</code>, then {@link MethodHandles.Lookup#findConstructor(Class, MethodType)} is used;</li>
-     *     <li>if <code>kind == STATIC && !isConstructor()</code>, then {@link MethodHandles.Lookup#findStatic(Class, String, MethodType)} is used;</li>
-     *     <li>if <code>kind == INSTANCE && !isConstructor()</code>, then {@link MethodHandles.Lookup#findVirtual(Class, String, MethodType)} is used;</li>
-     *     <li>if <code>kind == SUPER && !isConstructor()</code>, then {@link MethodHandles.Lookup#findSpecial(Class, String, MethodType, Class)} is used;</li>
-     *     <li>otherwise, the provided {@code kind} is unsupported for this method reference, and {@link IllegalArgumentException} is thrown</li>.
+     *     <li>if {@code kind == SUPER && isConstructor()}, then {@link MethodHandles.Lookup#findConstructor(Class, MethodType)} is used;</li>
+     *     <li>if {@code kind == STATIC && !isConstructor()}, then {@link MethodHandles.Lookup#findStatic(Class, String, MethodType)} is used;</li>
+     *     <li>if {@code kind == INSTANCE && !isConstructor()}, then {@link MethodHandles.Lookup#findVirtual(Class, String, MethodType)} is used;</li>
+     *     <li>if {@code kind == SUPER && !isConstructor()}, then {@link MethodHandles.Lookup#findSpecial(Class, String, MethodType, Class)} is used;</li>
+     *     <li>otherwise, the provided {@code kind} is unsupported for this method reference, and {@link IllegalArgumentException} is thrown.</li>
      * </ul>
      * @param l the lookup used for resolving this method reference
      * @param kind the invocation kind to be used for resolving this method reference

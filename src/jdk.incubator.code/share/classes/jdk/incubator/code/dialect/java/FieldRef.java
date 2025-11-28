@@ -79,7 +79,7 @@ public sealed interface FieldRef extends JavaRef
      * <ol>
      *     <li>first {@link MethodHandles.Lookup#findStaticVarHandle(Class, String, Class)} is used;</li>
      *     <li>if the above step fails, then {@link MethodHandles.Lookup#findVarHandle(Class, String, Class)} is used;</li>
-     *     <li>otherwise, resolution fails and an exception is thrown</li>.
+     *     <li>otherwise, resolution fails and an exception is thrown.</li>
      * </ol>
      * @param l the lookup used for resolving this field reference
      * @throws ReflectiveOperationException if a resolution error occurs
