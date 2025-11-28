@@ -24,7 +24,30 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.*;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATBlockThreadIdOp;
+import hat.dialect.HATF16BinaryOp;
+import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATF16ToFloatConvOp;
+import hat.dialect.HATF16VarLoadOp;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATGlobalSizeOp;
+import hat.dialect.HATGlobalThreadIdOp;
+import hat.dialect.HATLocalSizeOp;
+import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATLocalVarOp;
+import hat.dialect.HATMemoryLoadOp;
+import hat.dialect.HATPrivateInitVarOp;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorMakeOfOp;
+import hat.dialect.HATVectorOfOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.HATVectorVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
