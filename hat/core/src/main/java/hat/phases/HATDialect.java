@@ -24,16 +24,12 @@
  */
 package hat.phases;
 
-
 import hat.Accelerator;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Function;
 
 public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
@@ -59,14 +55,15 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
                 && isMethod(invokeOp,methodName);
     }
 
-    default void before(OpTk.CallSite callSite, CoreOp.FuncOp funcOp){
+    default void before(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {
         if (accelerator().backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model before " + callSite.clazz().getSimpleName()+": " + funcOp.toText());
+            IO.println("[INFO] Code model before [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: "  + System.lineSeparator() + funcOp.toText());
         }
     }
-    default void after(OpTk.CallSite callSite, CoreOp.FuncOp funcOp){
+
+    default void after(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {
         if (accelerator().backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model after " + callSite.clazz().getSimpleName()+": " + funcOp.toText());
+            IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: " + System.lineSeparator() + funcOp.toText());
         }
     }
 }

@@ -24,7 +24,6 @@
  */
 package hat.tools.textmodel.terminal;
 
-
 import hat.tools.textmodel.tokens.Token;
 
 import java.io.PrintStream;
