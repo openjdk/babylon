@@ -163,9 +163,6 @@ public class LambdaToMethod extends TreeTranslator {
     /** Flag for alternate metafactories indicating the lambda object requires multiple bridges */
     public static final int FLAG_BRIDGES = LambdaMetafactory.FLAG_BRIDGES;
 
-    /** Flag for alternate metafactories indicating the lambda object is intended to be quotable */
-    public static final int FLAG_QUOTABLE = 1 << 3;
-
     // <editor-fold defaultstate="collapsed" desc="Instantiating">
     protected static final Context.Key<LambdaToMethod> unlambdaKey = new Context.Key<>();
 
