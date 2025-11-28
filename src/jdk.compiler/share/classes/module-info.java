@@ -23,6 +23,8 @@
  * questions.
  */
 
+import javax.tools.JavaCompiler;
+import javax.tools.StandardLocation;
 import com.sun.tools.javac.comp.CodeReflectionTransformer;
 
 /**
