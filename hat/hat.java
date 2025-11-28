@@ -84,15 +84,23 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
     if (args.isEmpty()) {
         help();
     } else {
-        // We need these to build
-        var javacOpts = Jar.JavacOpts.of(vm->vm.add("--source=26","--enable-preview","--add-modules=jdk.incubator.code", "-g"));
-        // These to run
-        var javaOpts = Jar.JavaOpts.of(v->v.add("--enable-preview", "--enable-native-access=ALL-UNNAMED", "--add-modules=jdk.incubator.code"));
-
         var hat = new Project(
-                Path.of(System.getProperty("user.dir")),
-                javacOpts, // These opts are applied to all javac compilations in the project
-                Reporter.progressAndErrors);
+                Util.currentDirAsPath(),
+                // These opts will be applied to all javac, cmake and jextract tools
+                Jar.JavacConfig.of(o->o.progress(true)
+                        .debug().enablePreview().source(26).addModules("jdk.incubator.code")
+                ),
+                CMake.Config.of(o->o.progress(true)),
+                JExtract.Config.of(o->o.progress(true))
+        );
+
+        var commonJavaOpts = Jar.JavaConfig.of(o -> o
+                .verbose(true)
+                .command(true)
+                .enablePreview()
+                .addModules("jdk.incubator.code")
+                .enableNativeAccess("ALL-UNNAMED"));
+
         var cmake = hat.isAvailable("cmake", "--version");
         if (!cmake.isAvailable()) {
             System.out.println("We need cmake, to check the availability of opencl, cuda etc so we wont be able to build much  ");
@@ -115,6 +123,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         // These next three 'optional' dependencies use cmake to determine availability.  We delegate to cmake which
         //    a) determines if capability is available,
         //    b) if they are, they extract from cmake vars (see conf/cmake-info/OpenCL/properties for example) information export headers and libs needed by JExtract
+        var jextractOpts= JExtract.Config.of(o-> o.command(true));
+        var cmakeOpts = CMake.Config.of(o->o.command(true));
         var openclCmakeInfo = new OpenCL(hat.id("cmake-info-opencl"), cmake);
         var openglCmakeInfo = new OpenGL(hat.id("cmake-info-opengl"), cmake);
         var cudaCmakeInfo = new Cuda(hat.id("cmake-info-cuda"), cmake);
@@ -167,28 +177,20 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         // Finally we have everything needed for nbody
         var example_nbody = hat.jar("example{s}-nbody", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
-        class Stats {
-            int passed = 0;
-            int failed = 0;
-            int unsupported = 0;
-        }
-        var testEngine = "hat.test.engine.HATTestEngine";
 
+        var testEnginePackage = "hat.test.engine";
+        var testEngineClassName = "HATTestEngine";
         while (!args.isEmpty()) {
             var arg = args.removeFirst();
             switch (arg) {
                 case "help" -> logoAndHelp();
-                case "clean" -> hat.clean();
+                case "clean" -> hat.clean(true);
                 case "dot" -> {
-                    var dag = hat.all();
-                    var available = dag.available();
-                    Files.writeString(Path.of("bld.dot") , available.toDot());
+                    Files.writeString(Path.of("bld.dot") , hat.all().available().toDot());
                     System.out.println("Consider...\n    dot bld.dot -Tsvg > bld.svg");
                 }
                 case "bld" -> {
-                    var dag = hat.all();
-                    var available = dag.available();
-                    hat.build(available);
+                    hat.build(hat.all().available());
                 }
                 case "sanity" -> {
                     final  var copyrightPattern = Pattern.compile("^.*Copyright.*202[0-9].*(Intel|Oracle).*$");
@@ -217,24 +219,15 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 case "run" -> {
                     if (args.size() > 1) {
                         var backendName = args.removeFirst();
-                        // We transfer all command line opts starting with - across as opts to java
-                        while (args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
-                            javaOpts.opts().add(args.removeFirst());
-                        }
-                        // Next should be the runnable name
-                        var runnableName = args.removeFirst();
                         if (hat.get(backendName) instanceof Jar backend) {
-                            if (hat.get(runnableName) instanceof Jar runnable) {
-                                // we conditionally add this if we need OpenGL on MAC
-                                if (runnableName.equals("nbody") && mac.isAvailable()){
-                                     javaOpts.opts().add("-XstartOnFirstThread");
-                                }
-                                // move the rest of command line args to the args of the vm
-                                javaOpts.args().addAll(args);args.clear();
-
-                                runnable.run(runnableName + ".Main", new job.Dag(runnable, backend).ordered(), javaOpts);
+                            var javaOpts = commonJavaOpts.with( o -> o
+                                    .collectVmOpts(args).mainClass(args.removeFirst(),"Main")
+                                    .startOnFirstThreadIf(o.packageName().equals("nbody") && mac.isAvailable()).collectArgs(args)
+                            );
+                            if (hat.get(javaOpts.packageName()) instanceof Jar runnable) {
+                                runnable.run(javaOpts,runnable, backend);
                             } else {
-                                System.err.println("Found backend "+ backendName  +" but failed to find runnable/example " + runnableName);
+                                System.err.println("Found backend "+ backendName  +" but failed to find runnable/example " + javaOpts.packageName());
                             }
                         } else {
                             System.err.println("Failed to find backend " + backendName);
@@ -244,94 +237,85 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     }
                 }
                 case "test-suite" -> {
-                    if (args.size() > 0) {
+                    if (!args.isEmpty()) {
                         var backendName = args.removeFirst();
                         if (hat.get(backendName) instanceof Jar backend) {
-                            // We transfer all command line opts starting with - across as opts to java
-                            while (!args.isEmpty() && args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
-                                javaOpts.opts().add(args.removeFirst());
-                            }
+                            System.out.println("""
+                            *****************************************************************
+                            HAT Test Report
+                            *****************************************************************
+                            """);
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
-                           var suiteRe = Pattern.compile("(hat/test/Test[a-zA-Z0-9]*).class");
-                           var jarFile = new JarFile(tests.jarFile().toString());
-                           var entries = jarFile.entries();
-                           var orderedDag  = new job.Dag(tests, backend).ordered();
-                           while (entries.hasMoreElements()) {
-                              if (suiteRe.matcher(entries.nextElement().getName()) instanceof Matcher matched && matched.matches()){
-                                  javaOpts.args().clear();
-                                  javaOpts.args().addAll(args);// so we have all the trailing args to pass to all tests
-                                  javaOpts.args().add(matched.group(1).replace('/','.'));
-                                  tests.run(testEngine, orderedDag, javaOpts);
-                              }
-                           }
-                            args.clear();
-                           System.out.println("\n\n");
-                           System.out.println("*****************************************************************");
-                           logo();
-                           System.out.println("                     HAT Test Report ");
-                           System.out.println("*****************************************************************");
+                             var commonTestSuiteJavaOpts = commonJavaOpts.with( o -> o
+                                     .command(false).collectVmOpts(args).mainClass(testEnginePackage,testEngineClassName) //  note no app args as add them below
+                            );
+
+                            tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_,matcher)->
+                                    tests.run(Jar.JavaConfig.of(commonTestSuiteJavaOpts, o-> o.arg(matcher.group(1).replace('/','.'))),  tests, backend)
+                            );
+                           args.clear();
                            var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+), unsupported: (\\d+)");
+                            class Stats {
+                                int passed = 0;
+                                int failed = 0;
+                                int unsupported = 0;
+                                @Override public String toString(){
+                                    return String.format("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%\\n",
+                                            passed, failed, unsupported, ((float)(passed * 100 / (passed + failed + unsupported))));
+                                }
+                            }
                            var stats = new Stats();
                            Files.readAllLines(test_reports_txt).forEach(line->{
-                              System.out.println(line);
+                               if (!commonTestSuiteJavaOpts.verbose()) { //We already dumped this info to stdout above
+                                   System.out.println(line);
+                               }
                               if (pattern.matcher(line) instanceof Matcher matcher && matcher.find()){
                                  stats.passed+=Integer.parseInt(matcher.group(1));
                                  stats.failed+=Integer.parseInt(matcher.group(2));
                                  stats.unsupported+=Integer.parseInt(matcher.group(3));
                               }
-                          });
-                          System.out.printf("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%\\n",
-                                stats.passed, stats.failed, stats.unsupported, ((float)(stats.passed * 100 / (stats.passed + stats.failed + stats.unsupported))));
-                        } else {
+                            });
+                            System.out.println(stats);
+                            } else {
                            System.err.println("Failed to find backend   " + backendName);
                         }
                     } else {
                         System.err.println("For test-suite we require a backend ");
                     }
                 }
-                case "test" -> {
+                case "test"-> {
                     if (args.size() >= 2) {
                         var backendName = args.removeFirst();
-
                         if (hat.get(backendName) instanceof Jar backend) {
-                                 // We transfer all command line opts starting with - across as opts to java
-                            while (!args.isEmpty() && args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
-                                javaOpts.opts().add(args.removeFirst());
-                            }
-                            // This should be the class name
-                            var classAndMethod = args.removeFirst();
-                            javaOpts.args().add(classAndMethod);
-                            // move the rest of command line args to the args of the vm
-                            javaOpts.args().addAll(args);args.clear();
-                            var orderedDag  = new job.Dag(tests, backend).ordered();
-                            tests.run(testEngine, orderedDag, javaOpts);
-
+                            var javaOpts = commonJavaOpts.with( o -> o
+                                    .verbose(true).command(true).collectVmOpts(args).mainClass(testEnginePackage,testEngineClassName).collectArgs(args)
+                            );
+                            tests.run(javaOpts,tests,backend);
                         } else {
                             System.err.println("Failed to find backend   " + backendName);
                         }
                     } else {
-                        System.err.println("For test we require a backend and a TestClass.");
-                        System.err.println("Examples: ");
-                        System.err.println("$ test ffi-opencl hat.test.TestMatMul");
-                        System.err.println("$ test ffi-opencl hat.test.TestMatMul#method");
+                        System.err.println("""
+                           For test we require a backend and a TestClass.");
+                           Examples:
+                               $ test ffi-opencl hat.test.TestMatMul
+                               $ test ffi-opencl hat.test.TestMatMul#method
+                           """);
                     }
                     args.clear(); //!! :)
                 }
                 case "exp" -> {
                     if (args.size() > 1) {
                         var backendName = args.removeFirst();
-                        var runnableName = "experiments";
-                        var vmOpts = new ArrayList<String>(List.of());
-                        while (args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
-                            vmOpts.add(args.removeFirst());
-                        }
-                        var className = args.removeFirst();
                         if (hat.get(backendName) instanceof Jar backend) {
-                            if (hat.get(runnableName) instanceof Jar runnable) {
-                                runnable.run(runnableName + "."+className, new job.Dag(runnable, backend).ordered(), vmOpts,args);
+                            var javaOpts = Jar.JavaConfig.of(commonJavaOpts, o -> o
+                                    .collectVmOpts(args).mainClass("experiments", args.removeFirst()).collectArgs(args)
+                            );
+                            if (hat.get(javaOpts.packageName()) instanceof Jar runnable) {
+                                runnable.run(javaOpts,runnable, backend);
                             } else {
-                                System.err.println("Failed to find runnable " + runnableName);
+                                System.err.println("Failed to find runnable " + javaOpts.mainClassName());
                             }
                         } else {
                             System.err.println("Failed to find " + backendName);

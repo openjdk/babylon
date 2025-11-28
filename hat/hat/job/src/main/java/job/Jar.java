@@ -41,110 +41,22 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, Dependency.WithPath, Dependency.ExecutableJar {
     final Set<Path> exclude;
-    final JavacOpts javacOpts;
-    public interface StringListBuilder {
-        List<String> strings();
-        StringListBuilder add(String ...s);
-        StringListBuilder add(List<String> list);
-        StringListBuilder addIf(boolean c, String ...s);
-        StringListBuilder addIf(boolean c, List<String> list);
-        static StringListBuilder of(){
-            record StringListBuilderImpl (List<String> strings) implements StringListBuilder{
-                @Override
-                public StringListBuilder add(String ...s) {
-                    return add(List.of(s));
-                }
-                @Override
-                public StringListBuilder add(List<String> list) {
-                    strings.addAll(list);
-                    return this;
-                }
-                @Override
-                public StringListBuilder addIf(boolean c, List<String> list) {
-                    if (c){
-                        strings.addAll(list);
-                    }
-                    return this;
-                }
-                @Override
-                public StringListBuilder addIf(boolean c, String ...s) {
-                   return addIf(c, List.of(s));
-                }
-            }
-            return new StringListBuilderImpl(new ArrayList<>());
-        }
-    }
-    public interface JavacOpts{
-        List<String> vmOpts();
-        List<String> opts();
 
-        static JavacOpts of(List<String> vmOpts, List<String> opts){
-            record JavacOptsImpl(List<String> vmOpts, List<String> opts) implements JavacOpts{
-            }
-            return new JavacOptsImpl(vmOpts,opts);
-        }
-        static JavacOpts of(Consumer<StringListBuilder> v){
-            StringListBuilder vmOptBuilder = StringListBuilder.of();
-            StringListBuilder optBuilder = StringListBuilder.of();
-            v.accept(vmOptBuilder);
-            return of(vmOptBuilder.strings(),optBuilder.strings());
-        }
-
-        static JavacOpts of(Consumer<StringListBuilder> v, Consumer<StringListBuilder> o){
-            StringListBuilder vmOptBuilder = StringListBuilder.of();
-            StringListBuilder optBuilder = StringListBuilder.of();
-            v.accept(vmOptBuilder);
-            o.accept(optBuilder);
-            return of(vmOptBuilder.strings(),optBuilder.strings());
-        }
-
-        static JavacOpts of(){
-            return of(new ArrayList<>(),new ArrayList<>());
-        }
-    }
-
-    public interface JavaOpts{
-        List<String> opts();
-        List<String> args();
-
-        static JavaOpts of(List<String> opts, List<String> args){
-            record JavaOptsImpl(List<String>opts, List<String> args) implements JavaOpts{
-            }
-            return new JavaOptsImpl(opts,args);
-        }
-        static JavaOpts of(Consumer<StringListBuilder> v){
-            StringListBuilder vmOptBuilder = StringListBuilder.of();
-            StringListBuilder optBuilder = StringListBuilder.of();
-            v.accept(vmOptBuilder);
-            return of(vmOptBuilder.strings(),optBuilder.strings());
-        }
-
-        static JavaOpts of(Consumer<StringListBuilder> v, Consumer<StringListBuilder> o){
-            StringListBuilder vmOptBuilder = StringListBuilder.of();
-            StringListBuilder optBuilder = StringListBuilder.of();
-            v.accept(vmOptBuilder);
-            o.accept(optBuilder);
-            return of(vmOptBuilder.strings(),optBuilder.strings());
-        }
-
-        static JavaOpts of(){
-            return of(new ArrayList<>(),new ArrayList<>());
-        }
-    }
-
-    protected Jar(Project.Id id, JavacOpts javacOpts,Set<Path> exclude, Set<Dependency> dependencies) {
-        super(id, dependencies);
-        this.javacOpts = javacOpts;
-        this.exclude = exclude;
+    public void check(){
         if (id.path() != null && !Files.exists(id.path())) {
             System.err.println("The path does not exist: " + id.path());
         }
@@ -152,22 +64,21 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
             var jsp = javaSourcePath();
             System.out.println("Failed to find java source " + jsp + " path for " + id.shortHyphenatedName());
         }
-        id.project().add(this);
-    }
-    public static Jar of(Project.Id id, JavacOpts javacOpts, Set<Path> exclude, Set<Dependency> dependencies) {
-        return new Jar(id, javacOpts,exclude, dependencies);
     }
 
-    public static Jar of(Project.Id id, Set<Path> exclude, Set<Dependency> dependencies) {
-        return new Jar(id, JavacOpts.of(), exclude, dependencies);
+    protected Jar(Project.Id id, Set<Path> exclude, Set<Dependency> dependencies) {
+        super(id, dependencies);
+        this.exclude = exclude;
+        check(); // some targets might skip this
+        id.project().add(this);
     }
-    public static Jar of(Project.Id id, JavacOpts javacOpts, Set<Dependency> dependencies) {
-        return new Jar(id, javacOpts,Set.of(), dependencies);
+    public static Jar of(Project.Id id,  Set<Path> exclude, Set<Dependency> dependencies) {
+        return new Jar(id, exclude, dependencies);
     }
 
 
     public static Jar of(Project.Id id, Set<Dependency> dependencies) {
-        return new Jar(id,JavacOpts.of(), Set.of(), dependencies);
+        return new Jar(id, Set.of(), dependencies);
     }
 
     public static Jar of(Project.Id id, Set<Path> exclude, Dependency... dependencies) {
@@ -178,7 +89,22 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
         return of(id, Set.of(), Set.of(dependencies));
     }
 
-    public static class JavaSource extends SimpleJavaFileObject {
+    public void forEachEntry(Predicate<JarEntry> jarEntryPredicate,Consumer<JarEntry> jarEntryConsumer) {
+       Util.forEachEntry(jarFile(),jarEntryPredicate,jarEntryConsumer);
+    }
+    public void forEachMatchingEntry(String re, BiConsumer<JarEntry, Matcher> matchingJarEntryConsumer){
+        var pattern = Pattern.compile(re);
+        forEachEntry(jarEntry->{
+            if (pattern.matcher(jarEntry.getName()) instanceof Matcher matched && matched.matches()){
+                matchingJarEntryConsumer.accept(jarEntry,matched);
+            }
+        });
+    }
+    public void forEachEntry(Consumer<JarEntry> jarEntryConsumer) {
+        Util.forEachEntry(jarFile(),jarEntryConsumer);
+    }
+
+    private static class JavaSource extends SimpleJavaFileObject {
         Path path;
 
         @Override
@@ -201,61 +127,52 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
     }
 
     @Override
-    public List<Path> generatedPaths() {
-        throw new IllegalStateException("who called me");
-    }
-
-
-    @Override
-    public boolean clean() {
-        id().project().clean(null, classesDir(), jarFile());
+    public boolean clean(boolean verbose) {
+        id().project().clean(verbose,null, classesDir(), jarFile());
         return true;
     }
 
     @Override
     public boolean build() {
-        List<String> opts = new ArrayList<>();
-        opts.addAll(id().project().javacOpts().vmOpts());
-        opts.addAll(javacOpts.vmOpts());
-        opts.addAll(List.of(
-                "-d", classesDirName()
-                )
-        );
         Dag dag = new Dag(dependencies());
         var deps = classPath(dag.ordered());
+        StringList javacCombinedOps = StringList.of()
+                .add(id().project().javacOpts().vmOpts())
+                .add("-d", classesDirName())
+                .addIf(!deps.isEmpty(), "--class-path="+deps)
+                .add("--source-path=" + javaSourcePathName());
 
-        if (!deps.isEmpty()) {
-            opts.add("--class-path=" + deps);
-        }
-        opts.addAll(id.project().javacOpts().opts());
-        opts.addAll(javacOpts.opts());
-        opts.add("--source-path=" + javaSourcePathName());
-        //System.out.println("javac opts "+ String.join(" ", opts));
         JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
 
-        id().project().clean(this, classesDir());
+        id().project().clean(id().project().javacOpts().verbose(), this, classesDir());
 
         if (Files.exists(javaSourcePath())) {
             try (var files = Files.walk(javaSourcePath())) {
                 var listOfSources = files.filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".java") && !exclude.contains(p)).map(JavaSource::new).toList();
-                id().project().reporter.command(this, "javac " +
-                        String.join(" ", opts) + " " + String.join(" ",
-                        listOfSources.stream().map(JavaSource::getName).collect(Collectors.toList())));
-
-
+                if (id().project().javacOpts().command()){
+                    var commandLine = "javac " +
+                            javacCombinedOps + " " + String.join(" ", listOfSources.stream().map(JavaSource::getName).collect(Collectors.toList()));
+                    System.out.println(commandLine);
+                }
+               // if (id().project().javacOpts().progress()){
+                 //   System.out.println("javac "+id.fullHyphenatedName());
+               // }
                 var diagnosticListener = new DiagnosticListener<JavaFileObject>() {
                     @Override
                     public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
                         if (diagnostic.getKind() == Diagnostic.Kind.ERROR) {
-                            id().project().reporter.error(Jar.this, diagnostic.toString());
+                            System.err.println(diagnostic.getKind() + ":"+ diagnostic);
                         } else if (diagnostic.getKind() == Diagnostic.Kind.WARNING) {
-                            id().project().reporter.warning(Jar.this, diagnostic.toString());
+                            System.out.println(diagnostic.getKind() + ":"+ diagnostic);
                         } else if (diagnostic.getKind() == Diagnostic.Kind.MANDATORY_WARNING) {
-                            id().project().reporter.warning(Jar.this, "!!" + diagnostic.toString());
+                            System.out.println(diagnostic.getKind() + ":"+ diagnostic);
                         } else if (diagnostic.getKind() == Diagnostic.Kind.NOTE) {
-                            id().project().reporter.note(Jar.this, diagnostic.toString());
+                            if (id().project().javacOpts().verbose()) {
+                                System.out.println(diagnostic.getKind() + ":"+ diagnostic);
+                            }
                         } else {
-                            id().project().reporter.warning(Jar.this, diagnostic.getKind() + ":" + diagnostic.toString());
+                            System.out.println(diagnostic.getKind() + ":"+ diagnostic);
+                          //  id().project().reporter.warning(Jar.this, diagnostic.getKind() + ":" + diagnostic.toString());
                         }
                     }
                 };
@@ -263,11 +180,14 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
                         new PrintWriter(System.err),
                         javac.getStandardFileManager(diagnosticListener, null, null),
                         diagnosticListener,
-                        opts,
+                        javacCombinedOps.list(),
                         null,
                         listOfSources
-                )).generate().forEach(gc ->
-                        id.project().reporter.note(this, gc.getName())
+                )).generate().forEach(gc -> {
+                            if (id().project().javacOpts().verbose()) {
+                               System.out.println(gc.getName());
+                            }
+                        }
                 );
 
                 List<Path> dirsToJar = new ArrayList<>(List.of(classesDir()));
@@ -278,18 +198,18 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
                 Manifest manifest = new Manifest();
                 Attributes mainAttributes = manifest.getMainAttributes();
                 mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-               // mainAttributes.put(Attributes.Name.MAIN_CLASS,   id().shortHyphenatedName()+".Main");
-               // mainAttributes.put(Attributes.Name.IMPLEMENTATION_VENDOR, "HAT's Java Opinionated Builder (JOB)");
                 var jarStream = new JarOutputStream(Files.newOutputStream(jarFile()), manifest);
                 record RootAndPath(Path root, Path path) {
                 }
-                id().project().reporter.command(this, "jar cvf " + jarFile() + " " +
-                        String.join(dirsToJar.stream().map(Path::toString).collect(Collectors.joining(" "))));
-                id().project().reporter.progress(this, "compiled " + listOfSources.size() + " file" + (listOfSources.size() > 1 ? "s" : "") + " to " + jarFile().getFileName());
-
+                if (id().project().javacOpts().command()) {
+                    System.out.println( "jar cvf " + jarFile() + " " +
+                            String.join(dirsToJar.stream().map(Path::toString).collect(Collectors.joining(" "))));
+                }
+                if (id().project().javacOpts().progress()) {
+                    System.out.println("compiled " + listOfSources.size() + " file" + (listOfSources.size() > 1 ? "s" : "") + " to " + jarFile().getFileName());
+                }
                 dirsToJar.forEach(r -> {
                     try {
-
                         Files.walk(r)
                                 .filter(p -> !Files.isDirectory(p))
                                 .map(p -> new RootAndPath(r, p))
@@ -367,33 +287,422 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
         return id().path().resolve("src/main/java");
     }
 
+
     @Override
-    public boolean run(String mainClassName, Set<Dependency> depsInOrder, List<String> vmOpts, List<String> args) {
-        ForkExec.Opts opts = ForkExec.Opts.of(ProcessHandle.current()
-                .info()
-                .command()
-                .orElseThrow()).add(vmOpts);
-        opts.add(
-                "--class-path", classPathWithThisLast(depsInOrder),
-                "-Djava.library.path=" + id().project().buildPath()
-        );
-        vmOpts.forEach(opts::add);
-        opts.add(mainClassName);
-        args.forEach(opts::add);
-        id().project().reporter.command(this, opts.toString());
-        System.out.println(String.join(" ", opts.toString()));
-        id().project().reporter.progress(this, "running");
-        var result = ForkExec.forkExec(this, id().project().rootPath(), opts);
+    public boolean run(JavaConfig javaConfig, Dependency ...unorderedDeps) {
+        // unordered deps just contains the min . we need a full ordered dag
+        var depsInOrder = Dag.ordered(unorderedDeps);
+        StringList stringList = StringList.of()
+                .add(Util.currentProcessPath())
+                .add(javaConfig.vmOpts())
+                .add(
+                   "--class-path", classPathWithThisLast(depsInOrder),
+                   "-Djava.library.path=" + id().project().buildPath()
+                )
+                .add(javaConfig.vmOpts())
+                .add(javaConfig.mainClassName());
+                stringList.add(javaConfig.args());
+        if (javaConfig.command()) {
+           // id().project().reporter.command(this, stringList.toString());
+            System.out.println(stringList.toString());
+        }
+        var result = ForkExec.forkExec(this, javaConfig.verbose(), id().project().rootPath(), stringList);
         result.stdErrAndOut().forEach((line) -> {
-            id().project().reporter.warning(this, line);
+            if (javaConfig.verbose()) {
+               System.out.println(line);
+            }
         });
         if (result.status() != 0) {
             System.out.println("Java failed to execute, is a valid java in your path ? " + id().fullHyphenatedName());
         }
         return result.status() == 0;
     }
-    public boolean run(String mainClassName, Set<Dependency> depsInOrder, JavaOpts javaOpts) {
-        return run(mainClassName,depsInOrder,javaOpts.opts(),javaOpts.args());
 
+    public  interface JavacConfig extends CommonConfig<JavacConfig> {
+
+
+        List<String> vmOpts();
+
+        record JavacConfigImpl(boolean command, boolean warnings, boolean progress, boolean verbose, List<String> vmOpts) implements JavacConfig {
+        }
+
+        static JavacConfig of(boolean command,boolean warnings, boolean progress, boolean verbose, List<String> vmOpts) {
+            return new JavacConfigImpl(command,warnings, progress, verbose, vmOpts);
+        }
+
+
+
+
+        interface Builder extends  JavacConfig {
+            Builder command(boolean f);
+            Builder warnings(boolean f);
+            Builder verbose(boolean f);
+            Builder progress(boolean f);
+            Builder vmOpt(String... s);
+
+            Builder debug();
+
+            Builder enablePreview();
+
+            Builder source(int n);
+
+            Builder addModules(String moduleName);
+
+
+            class Impl implements Builder {
+                boolean command;
+                boolean warnings;
+                boolean progress;
+                boolean verbose;
+                List<String> vmOpts = new ArrayList<>();
+
+                @Override
+                public Builder command(boolean f) {
+                    command = f;
+                    return this;
+                }
+                @Override
+                public Builder warnings(boolean f) {
+                    warnings = f;
+                    return this;
+                }
+
+                @Override
+                public Builder verbose(boolean f) {
+                    verbose = f;
+                    return this;
+                }
+                @Override
+                public Builder progress(boolean f) {
+                    progress = f;
+                    return this;
+                }
+
+                @Override
+                public Builder vmOpt(String... opts) {
+                    List.of(opts).forEach(s -> vmOpts.add(s));
+                    return this;
+                }
+
+                @Override
+                public Builder debug() {
+                    return vmOpt("-g");
+                }
+
+                @Override
+                public Builder enablePreview() {
+                    return vmOpt("--enable-preview");
+                }
+
+                @Override
+                public Builder source(int n) {
+                    return vmOpt("--source=" + n);
+                }
+
+                @Override
+                public Builder addModules(String moduleName) {
+                    return vmOpt("--add-modules=" + moduleName);
+                }
+
+                @Override
+                public boolean command() {
+                    return command;
+                }
+
+                @Override
+                public boolean verbose() {
+                    return verbose;
+                }
+                @Override
+                public boolean progress() {
+                    return progress;
+                }
+                @Override
+                public boolean warnings() {
+                    return warnings;
+                }
+                @Override
+                public List<String> vmOpts() {
+                    return new ArrayList<>();
+                }
+            }
+        }
+
+
+        static JavacConfig of(Consumer<Builder> javacOptBuilderConsumer) {
+            Builder builder = new Builder.Impl();
+            javacOptBuilderConsumer.accept(builder);
+            return of(builder.command(),builder.warnings(),builder.progress(), builder.verbose(), builder.vmOpts());
+        }
+
+        static JavacConfig of() {
+            return of(false, false,false,false, new ArrayList<>());
+        }
+    }
+
+    public  interface JavaConfig extends CommonConfig<JavaConfig> {
+
+        String packageName();
+
+        String mainClassName();
+
+        List<String> vmOpts();
+
+        List<String> args();
+
+
+        record JavaConfigImpl(boolean command, boolean warnings, boolean progress, boolean verbose, String packageName,
+                              String mainClassName, List<String> vmOpts, List<String> args) implements JavaConfig {
+        }
+
+        static JavaConfig of(boolean command, boolean warnings, boolean progress, boolean verbose, String packageName, String mainClassName, List<String> vmOpts, List<String> args) {
+            return new JavaConfigImpl(command, warnings, progress, verbose, packageName, mainClassName, vmOpts, args);
+        }
+
+        interface Builder extends JavaConfig {
+            Builder command(boolean f);
+
+            Builder warnings(boolean f);
+            Builder progress(boolean f);
+            Builder verbose(boolean f);
+
+            Builder vmOpt(String... s);
+
+            Builder arg(String... s);
+
+            Builder vmOpts(List<String> vmOpts);
+
+            Builder args(List<String> vmOpts);
+
+            Builder debug();
+
+            Builder enablePreview();
+
+            Builder source(int n);
+
+            Builder addModules(String moduleName);
+
+            Builder enableNativeAccess(String moduleName);
+
+            Builder startOnFirstThreadIf();
+
+            Builder startOnFirstThreadIf(boolean flag);
+
+            Builder mainClassName(String mainClassName);
+
+            Builder packageName(String packageName);
+
+            Builder mainClass(String packageName, String className);
+
+            Builder with(Consumer<Builder> builder);
+
+            Builder whilst(Supplier<Boolean> predicate, Consumer<Builder> builder);
+
+            Builder collectVmOpts(List<String> args);
+
+            Builder collectArgs(List<String> args);
+
+            class Impl implements Builder {
+                boolean command;
+                boolean warnings;
+                boolean verbose;
+                boolean progress;
+                String packageName;
+                String mainClassName;
+                List<String> vmOpts = new ArrayList<>();
+                List<String> args = new ArrayList<>();
+
+                @Override
+                public Builder command(boolean f) {
+                    command = f;
+                    return this;
+                }
+
+                @Override
+                public Builder warnings(boolean f) {
+                    warnings = f;
+                    return this;
+                }
+                @Override
+                public Builder progress(boolean f) {
+                    progress = f;
+                    return this;
+                }
+
+                @Override
+                public Builder verbose(boolean f) {
+                    verbose = f;
+                    return this;
+                }
+
+                @Override
+                public Builder vmOpt(String... vmOpts) {
+                    this.vmOpts(List.of(vmOpts));
+                    return this;
+                }
+
+                @Override
+                public Builder vmOpts(List<String> vmOpts) {
+                    this.vmOpts.addAll(vmOpts);
+                    return this;
+                }
+
+                @Override
+                public Builder arg(String... args) {
+                    this.args(List.of(args));
+                    return this;
+                }
+
+                @Override
+                public Builder args(List<String> args) {
+                    this.args.addAll(args);
+                    return this;
+                }
+
+                @Override
+                public Builder debug() {
+                    return vmOpt("-g");
+                }
+
+                @Override
+                public Builder enablePreview() {
+                    return vmOpt("--enable-preview");
+                }
+
+                @Override
+                public Builder startOnFirstThreadIf() {
+                    return vmOpt("-XstartOnFirstThread");
+                }
+
+                @Override
+                public Builder startOnFirstThreadIf(boolean flag) {
+                    if (flag) {
+                        startOnFirstThreadIf();
+                    }
+                    return this;
+                }
+
+                @Override
+                public Builder source(int n) {
+                    return vmOpt("--source=" + n);
+                }
+
+                @Override
+                public Builder addModules(String moduleName) {
+                    return vmOpt("--add-modules=" + moduleName);
+                }
+
+                @Override
+                public Builder enableNativeAccess(String moduleName) {
+                    return vmOpt("--enable-native-access=" + moduleName);
+                }
+
+                @Override
+                public Builder mainClassName(String mainClassName) {
+                    this.mainClassName = mainClassName;
+                    return this;
+                }
+
+                @Override
+                public Builder packageName(String packageName) {
+                    this.packageName = packageName;
+                    return this;
+                }
+
+                @Override
+                public Builder mainClass(String packageName, String mainClassName) {
+                    this.packageName = packageName;
+                    this.mainClassName = packageName + "." + mainClassName;
+                    return this;
+                }
+
+                @Override
+                public Builder with(Consumer<Builder> nestedBuilder) {
+                    nestedBuilder.accept(this);
+                    return this;
+                }
+
+                @Override
+                public Builder whilst(Supplier<Boolean> predicate, Consumer<Builder> nestedBuilder) {
+                    while (predicate.get()) {
+                        nestedBuilder.accept(this);
+                    }
+                    return this;
+                }
+
+                @Override
+                public Builder collectVmOpts(List<String> args) {
+                    return whilst(() -> (!args.isEmpty() && args.getFirst() instanceof String s && s.startsWith("-")), _ -> vmOpt(args.removeFirst()));
+                }
+
+                @Override
+                public Builder collectArgs(List<String> args) {
+                    return whilst(() -> !args.isEmpty(), _ -> arg(args.removeFirst()));
+                }
+
+                @Override
+                public String mainClassName() {
+                    return mainClassName;
+                }
+
+                @Override
+                public String packageName() {
+                    return packageName;
+                }
+
+                @Override
+                public boolean command() {
+                    return command;
+                }
+
+                @Override
+                public boolean warnings() {
+                    return warnings;
+                }
+                @Override
+                public boolean progress() {
+                    return progress;
+                }
+
+                @Override
+                public boolean verbose() {
+                    return verbose;
+                }
+
+                @Override
+                public List<String> vmOpts() {
+                    return vmOpts;
+                }
+
+                @Override
+                public List<String> args() {
+                    return args;
+                }
+            }
+        }
+
+
+        static JavaConfig of(Consumer<Builder> javaOptBuilderConsumer) {
+            Builder builder = new Builder.Impl();
+            javaOptBuilderConsumer.accept(builder);
+            return of(builder.command(), builder.warnings(), builder.progress(),builder.verbose(), builder.packageName(), builder.mainClassName(), builder.vmOpts(), builder.args());
+        }
+
+        static JavaConfig of(JavaConfig javaOpts, Consumer<Builder> javaOptBuilderConsumer) {
+            Builder builder = new Builder.Impl();
+            builder
+                    .verbose(javaOpts.verbose())
+                    .command(javaOpts.command())
+                    .packageName(javaOpts.packageName())
+                    .mainClassName(javaOpts.mainClassName())
+                    .vmOpts(javaOpts.vmOpts())
+                    .args(javaOpts.args());
+            javaOptBuilderConsumer.accept(builder);
+            return of(builder.command(), builder.warnings(), builder.progress(),builder.verbose(), builder.packageName(), builder.mainClassName(), builder.vmOpts(), builder.args());
+        }
+
+        default JavaConfig with(Consumer<Builder> javaOptsBuilderConsumer){
+            return JavaConfig.of(this,javaOptsBuilderConsumer);
+        }
     }
 }

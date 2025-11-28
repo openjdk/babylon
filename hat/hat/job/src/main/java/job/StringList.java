@@ -24,33 +24,40 @@
  */
 package job;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
-public interface Dependency {
-    Project.Id id();
+public class StringList {
+    private List<String> opts = new ArrayList<>();
+    public List<String> list(){
+        return opts;
+    }
+    private StringList() {
 
-    Set<Dependency> dependencies();
-
-    interface WithPath extends Dependency {
+    }
+    StringList addIf(boolean condition, String... opts) {
+        return condition?add(List.of(opts)):this;
     }
 
-    interface Buildable extends Dependency {
-        boolean build();
-        boolean clean(boolean verbose);
+    StringList add(String... opts) {
+        return add(List.of(opts));
     }
 
-    interface Executable extends Dependency {
+    StringList add(List<String> opts) {
+        this.opts.addAll(opts);
+        return this;
     }
 
-    interface ExecutableJar extends Executable {
-        boolean run(Jar.JavaConfig javaOpts, Dependency ...unorderedDeps);
+  //  public static Opts of(String executable) {
+    //    return of().add(executable);
+   // }
+    public static StringList of() {
+        return new StringList();
     }
 
-    interface Runnable extends Executable {
-        boolean run();
+    @Override
+    public String toString() {
+        return String.join(" ", opts);
     }
 
-    interface Optional extends Dependency {
-        boolean isAvailable();
-    }
 }
