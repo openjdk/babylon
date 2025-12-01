@@ -45,37 +45,30 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.StringConcatFactory;
+import java.lang.reflect.AccessFlag;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SequencedMap;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Quoted;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+
+import jdk.incubator.code.*;
 import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import jdk.incubator.code.bytecode.impl.ExceptionTableCompactor;
 import jdk.incubator.code.bytecode.impl.LocalsCompactor;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
+import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
  * Transformer of code models to bytecode.
@@ -85,19 +78,19 @@ public final class BytecodeGenerator {
     /**
      * A transformer that lowers operations unsupported by BytecodeGenerator.
      */
-    static CodeTransformer BYTECODE_LOWERING_TRANSFORMER = (block, op) -> {
-        return switch (op) {
-//            case JavaOp.JavaSwitchOp swop when isConstantLabelSwitch(swop)-> {
-//               @@@ lower JavaOp.JavaSwitchOp to ConstantLabelSwitchOp
+//    static CodeTransformer BYTECODE_LOWERING_TRANSFORMER = (block, op) -> {
+//        return switch (op) {
+//            case JavaOp.JavaSwitchOp swop when new ConstantLabelSwitchChecker(swop, lookup).isCaseConstantSwitch() -> {
+//               //@@@ lower JavaOp.JavaSwitchOp to ConstantLabelSwitchOp
 //            }
-            case Op.Lowerable lop ->
-                lop.lower(block, null);
-            default -> {
-                block.op(op);
-                yield block;
-            }
-        };
-    };
+//            case Op.Lowerable lop ->
+//                lop.lower(block, null);
+//            default -> {
+//                block.op(op);
+//                yield block;
+//            }
+//        };
+//    };
 
     private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
             LambdaMetafactory.class.describeConstable().orElseThrow(),
@@ -145,6 +138,134 @@ public final class BytecodeGenerator {
         }
     }
 
+    public static final class ConstantLabelSwitchChecker {
+        private final MethodHandles.Lookup lookup;
+        private JavaSwitchOp swOp;
+
+        public ConstantLabelSwitchChecker(JavaSwitchOp swOp, MethodHandles.Lookup lookup) {
+            this.swOp = swOp;
+            this.lookup = lookup;
+        }
+
+        private static boolean isFinalVar(VarOp varOp) {
+            return varOp.initOperand() != null && varOp.result().uses().stream().noneMatch(u -> u.op() instanceof VarAccessOp.VarStoreOp);
+        }
+
+        private static boolean isBoxingMethod(MethodRef mr) {
+            return List.of(J_L_BYTE, J_L_CHARACTER, J_L_SHORT, J_L_INTEGER, J_L_LONG, J_L_FLOAT, J_L_DOUBLE).contains(mr.refType())
+                    && mr.name().equals("valueOf");
+        }
+
+        private static boolean isIntegralType(TypeElement te) {
+            return isIntegralPrimitiveType(te) || isIntegralReferenceType(te);
+        }
+
+        private static boolean isIntegralPrimitiveType(TypeElement te) {
+            return List.of(BYTE, SHORT, CHAR, INT).contains(te);
+        }
+
+        private static boolean isIntegralReferenceType(TypeElement te) {
+            return List.of(J_L_BYTE, J_L_SHORT, J_L_CHARACTER, J_L_INTEGER).contains(te);
+        }
+
+        private boolean isConstantExpr(Value v) {
+            if (!(v instanceof Result opr)) {
+                return false;
+            }
+            Op op = opr.op();
+            if (op instanceof ConstantOp cop) {
+                return cop.resultType() instanceof PrimitiveType || cop.resultType().equals(J_L_STRING);
+            }
+            if (op instanceof VarAccessOp.VarLoadOp varLoadOp) {
+                return isFinalVar(varLoadOp.varOp()) && isConstantExpr(varLoadOp.varOp().initOperand());
+            }
+            if (op instanceof ConvOp convOp) {
+                return (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) &&
+                        isConstantExpr(convOp.operands().get(0));
+            }
+            if (op instanceof InvokeOp invokeOp) {
+                return isBoxingMethod(invokeOp.invokeDescriptor()) && isConstantExpr(invokeOp.operands().get(0));
+            }
+            if (op instanceof FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                Field field;
+                try {
+                    field = fieldLoadOp.fieldDescriptor().resolveToField(lookup);
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+                return field.isEnumConstant() || field.accessFlags().containsAll(Set.of(AccessFlag.STATIC, AccessFlag.FINAL));
+            }
+            if (op instanceof UnaryOp unaryOp) {
+                return isConstantExpr(unaryOp.operands().get(0));
+            }
+            if (op instanceof BinaryOp binaryOp) {
+                return binaryOp.operands().stream().allMatch(o -> isConstantExpr(o));
+            }
+            if (op instanceof BinaryTestOp binaryTestOp) {
+                return binaryTestOp.operands().stream().allMatch(o -> isConstantExpr(o));
+            }
+            if (op instanceof ConditionalExpressionOp cexpr) {
+                // bodies must yield constant expressions
+                return isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
+                        isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue()) &&
+                        isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue());
+            }
+            // conditional and, conditional or, example ?
+            if (op instanceof ConditionalAndOp cand) {
+                return isConstantExpr(((CoreOp.YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
+                        isConstantExpr(((CoreOp.YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+            }
+            if (op instanceof ConditionalOrOp cor) {
+                // we can have a method isBodyYieldConstantExpr(Body)
+                return isConstantExpr(((CoreOp.YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
+                        isConstantExpr(((CoreOp.YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+            }
+            return false;
+        }
+
+        private boolean isCaseConstantLabel(Body label) {
+            if (label.blocks().size() != 1 || !(label.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
+                    !(yop.yieldValue() instanceof Result r)) {
+                return false;
+            }
+
+            // EqOp for primitives, method invocation for Strings and Reference Types
+            if (r.op() instanceof EqOp eqOp) {
+                return isConstantExpr(eqOp.operands().get(1));
+            }
+            if (r.op() instanceof InvokeOp invokeOp) {
+                MethodRef OBJECTS_EQUALS_METHOD = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
+                if (!invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS_METHOD)) {
+                    return false;
+                }
+                // case null
+                if (invokeOp.operands().get(1) instanceof Op.Result opr && opr.op() instanceof ConstantOp cop && cop.value() == null) {
+                    return false;
+                }
+                return isConstantExpr(invokeOp.operands().get(1));
+            }
+            if (r.op() instanceof ConditionalOrOp cor) { // list of case constant
+                return cor.bodies().stream().allMatch(b -> isCaseConstantLabel(b));
+            }
+            return r.op() instanceof ConstantOp cop && cop.resultType().equals(BOOLEAN); // default label
+        }
+
+        public boolean isCaseConstantSwitch() {
+            if (!isIntegralType(swOp.operands().get(0).type())) {
+                return false;
+            }
+            for (int i = 0; i < swOp.bodies().size(); i+=2) {
+                Body label = swOp.bodies().get(i);
+                if (!isCaseConstantLabel(label)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    //
+
     /**
      * Transforms the function operation to bytecode encapsulated in a method of a class file.
      * <p>
@@ -191,6 +312,71 @@ public final class BytecodeGenerator {
         return generateClassData(lookup, clsName, new LinkedHashMap<>(Map.of(name, iop)));
     }
 
+    record LabelsAndTargets(List<Integer> labels, List<Block.Reference> targets) {}
+
+    static LabelsAndTargets getLabelsAndTargets(MethodHandles.Lookup lookup, JavaSwitchOp swOp) {
+        var labels = new ArrayList<Integer>();
+        var targets = new ArrayList<Block.Reference>();
+        for (int i = 0; i < swOp.bodies().size() - 1; i += 2) {
+            List<Integer> ls = getLabels(lookup, swOp.bodies().get(i));
+            labels.addAll(ls);
+            // labels is empty for case default
+            targets.addAll(Collections.nCopies(Math.max(ls.size(), 1), new Block.Reference(swOp.bodies().get(i + 1).entryBlock(), List.of())));
+        }
+        return new LabelsAndTargets(labels, targets);
+    }
+
+    static List<Integer> getLabels(MethodHandles.Lookup lookup, Body body) {
+        if (body.blocks().size() != 1 || !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
+                !(yop.yieldValue() instanceof Result opr)) {
+            throw new IllegalStateException("Body of a java switch fails the expected structure");
+        }
+        var labels = new ArrayList<Integer>();
+        if (opr.op() instanceof EqOp eqOp) {
+            labels.add(extractConstantLabel(lookup, body, eqOp));
+        } else if (opr.op() instanceof InvokeOp invokeOp &&
+                invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class))) {
+            labels.add(extractConstantLabel(lookup, body, invokeOp));
+        } else if (opr.op() instanceof ConditionalOrOp cor) {
+            for (Body corbody : cor.bodies()) {
+                labels.addAll(getLabels(lookup, corbody));
+            }
+        } else if (!(opr.op() instanceof CoreOp.ConstantOp)){ // not default label
+            throw new IllegalStateException();
+        }
+        return labels;
+    }
+
+    static Integer extractConstantLabel(MethodHandles.Lookup lookup, Body body, Op whenToStop) {
+        Op lastOp = body.entryBlock().ops().get(body.entryBlock().ops().indexOf(whenToStop) - 1);
+        CoreOp.FuncOp funcOp = CoreOp.func("f", CoreType.functionType(lastOp.result().type())).body(block -> {
+            // in case we refer to constant variables in the label
+            for (Value capturedValue : body.capturedValues()) {
+                if (!(capturedValue instanceof Result r) || !(r.op() instanceof CoreOp.VarOp vop)) {
+                    continue;
+                }
+                block.op(((Result) vop.initOperand()).op());
+                block.op(vop);
+            }
+            Result last = null;
+            for (Op op : body.entryBlock().ops()) {
+                if (op.equals(whenToStop)) {
+                    break;
+                }
+                last = block.op(op);
+            }
+            block.op(CoreOp.return_(last));
+        });
+        Object res = Interpreter.invoke(lookup, funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER));
+        return switch (res) {
+            case Byte b -> Integer.valueOf(b);
+            case Short s -> Integer.valueOf(s);
+            case Character c -> Integer.valueOf(c);
+            case Integer i -> i;
+            default -> throw new IllegalStateException(); // @@@ not going to happen
+        };
+    }
+
     @SuppressWarnings("unchecked")
     private static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                           ClassDesc clName,
@@ -200,7 +386,35 @@ public final class BytecodeGenerator {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             BitSet quotable = new BitSet();
             for (var e : ops.sequencedEntrySet()) {
-                O lowered = (O)e.getValue().transform(CodeContext.create(), BYTECODE_LOWERING_TRANSFORMER);
+                O lowered = (O)e.getValue().transform(CodeContext.create(), ((block, op) -> switch (op) {
+                    case JavaSwitchOp swOp when new ConstantLabelSwitchChecker(swOp, lookup).isCaseConstantSwitch() -> {
+                        LabelsAndTargets labelsAndTargets = getLabelsAndTargets(lookup, swOp);
+                        List<Block.Reference> targets = new ArrayList<>();
+                        // the targets need to be part of the block's body
+                        Block.Builder end = block.block(swOp.resultType());
+                        block.context().mapValue(swOp.result(), end.parameters().get(0));
+                        for (Block.Reference reference : labelsAndTargets.targets()) {
+                            Block.Builder b = block.block();
+                            for (Op o : reference.targetBlock().ops()) {
+                                if (o instanceof CoreOp.YieldOp yop) {
+                                    b.op(CoreOp.branch(end.successor(b.context().getValue(yop.yieldValue()))));
+                                } else {
+                                    b.op(o);
+                                }
+                            }
+                            targets.add(b.successor(List.of()));
+                        }
+                        Value selector = block.context().getValue(swOp.operands().get(0));
+                        block.op(new ConstantLabelSwitchOp(selector, labelsAndTargets.labels(), targets));
+                        yield end;
+                    }
+                    case Lowerable lop ->
+                            lop.lower(block, null);
+                    default -> {
+                        block.op(op);
+                        yield block;
+                    }
+                }));
                 generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, quotable);
             }
             for (int i = 0; i < lambdaSink.size(); i++) {

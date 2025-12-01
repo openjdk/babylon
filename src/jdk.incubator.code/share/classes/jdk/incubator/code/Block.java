@@ -116,7 +116,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param target    the target block.
          * @param arguments the target block arguments, a copy will be made as needed.
          */
-        Reference(Block target, List<? extends Value> arguments) {
+        public Reference(Block target, List<? extends Value> arguments) {
             this.target = target;
             this.arguments = List.copyOf(arguments);
         }

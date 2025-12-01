@@ -396,6 +396,15 @@ public class OpBuilder {
                 swBodies.add(expr);
             }
 
+            // default case
+            Body.Builder dl = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
+            Block.Parameter target = dl.entryBlock().parameter(INT);
+            dl.entryBlock().op(core_yield(dl.entryBlock().op(constant(BOOLEAN, true))));
+            Body.Builder de = Body.Builder.of(b.parentBody(), functionType(type(ExternalizedTypeElement.class)));
+            de.entryBlock().op(throw_(de.entryBlock().op(new_(MethodRef.constructor(IllegalStateException.class)))));
+            swBodies.add(dl);
+            swBodies.add(de);
+
             var r = b.op(switchExpression(i, swBodies));
             b.op(return_(r));
         });
