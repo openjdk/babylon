@@ -64,7 +64,6 @@ public final class Interpreter {
      * @return the interpreter result of invokable operation.
      * @param <T> the type of Invokable.
      * @throws InterpreterException if there is a failure to interpret
-     * @throws Throwable if interpretation results in the throwing of an uncaught exception
      */
     public static <T extends Op & Op.Invokable>
     Object invoke(MethodHandles.Lookup l, T op,
@@ -89,7 +88,6 @@ public final class Interpreter {
      * @return the interpreter result of invokable operation.
      * @param <T> the type of Invokable.
      * @throws InterpreterException if there is a failure to interpret
-     * @throws Throwable if interpretation results in the throwing of an uncaught exception
      */
     public static <T extends Op & Op.Invokable>
     Object invoke(MethodHandles.Lookup l, T op,
