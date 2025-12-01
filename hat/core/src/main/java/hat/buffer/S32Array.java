@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.annotations.ProvidesDimFor;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
@@ -33,15 +34,12 @@ import java.util.function.Function;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Buffer {
-
-    int length();
+    @ProvidesDimFor("array") int length();
     int array(long idx);
     void array(long idx, int i);
 
-    int HEADER_BYTES = 4;
-
-    Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
-            .arrayLen("length").array("array"));
+    long HEADER_BYTES = JAVA_INT.byteSize();
+    Schema<S32Array> schema = Schema.of(S32Array.class);
 
     static S32Array create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);

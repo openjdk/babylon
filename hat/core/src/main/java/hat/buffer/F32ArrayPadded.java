@@ -30,16 +30,17 @@ import hat.ifacemapper.Schema;
 import java.lang.foreign.MemorySegment;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32ArrayPadded extends Buffer {
     int length();
     float array(long idx);
     void array(long idx, float f);
-
-    int ARRAY_OFFSET = 16;
+    long PAD_SIZE = 12;
+    long ARRAY_OFFSET = JAVA_INT.byteSize()+PAD_SIZE;
 
     Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, $ -> $
-            .arrayLen("length").pad(ARRAY_OFFSET-4).array("array"));
+            .arrayLen("length").pad(PAD_SIZE).array("array"));
 
     static F32ArrayPadded create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
