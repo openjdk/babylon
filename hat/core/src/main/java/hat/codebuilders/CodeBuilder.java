@@ -509,7 +509,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public final T halfType() {
-        return typeName(F16.HAT_MAPPING_TYPE + "_t");
+        return typeName(F16.class.getSimpleName() + "_t");
     }
 
     @Override
