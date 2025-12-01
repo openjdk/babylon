@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import hat.KernelContext;
 import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.dialect.HATBlockThreadIdOp;
@@ -59,7 +60,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T types() {
         return this
                 .charTypeDefs("byte", "boolean")
-                .typedefStructOrUnion(true, "KernelContext", _ -> {
+                .typedefStructOrUnion(true, KernelContext.class.getSimpleName(), _ -> {
                     intDeclaration("dimensions").semicolon().nl();
                 });
     }
@@ -91,8 +92,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             // Check for special types (e.g., FP16)
             globalPtrPrefix().suffix_t(F16Impl.class.getSimpleName()).asterisk();
-        } else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")) {
-            globalPtrPrefix().suffix_t("KernelContext").asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
+            globalPtrPrefix().suffix_t(KernelContext.class.getSimpleName()).asterisk();
         } else {
             typeName(javaType.toString());
         }
