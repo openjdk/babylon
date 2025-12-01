@@ -312,16 +312,16 @@ public final class BytecodeGenerator {
         return generateClassData(lookup, clsName, new LinkedHashMap<>(Map.of(name, iop)));
     }
 
-    record LabelsAndTargets(List<Integer> labels, List<Block.Reference> targets) {}
+    record LabelsAndTargets(List<Integer> labels, List<Block> targets) {}
 
     static LabelsAndTargets getLabelsAndTargets(MethodHandles.Lookup lookup, JavaSwitchOp swOp) {
         var labels = new ArrayList<Integer>();
-        var targets = new ArrayList<Block.Reference>();
+        var targets = new ArrayList<Block>();
         for (int i = 0; i < swOp.bodies().size() - 1; i += 2) {
             List<Integer> ls = getLabels(lookup, swOp.bodies().get(i));
             labels.addAll(ls);
-            // labels is empty for case default
-            targets.addAll(Collections.nCopies(Math.max(ls.size(), 1), new Block.Reference(swOp.bodies().get(i + 1).entryBlock(), List.of())));
+            // getLabels returns an empty list, for case default
+            targets.addAll(Collections.nCopies(Math.max(ls.size(), 1), swOp.bodies().get(i + 1).entryBlock()));
         }
         return new LabelsAndTargets(labels, targets);
     }
@@ -393,9 +393,9 @@ public final class BytecodeGenerator {
                         // the targets need to be part of the block's body
                         Block.Builder end = block.block(swOp.resultType());
                         block.context().mapValue(swOp.result(), end.parameters().get(0));
-                        for (Block.Reference reference : labelsAndTargets.targets()) {
+                        for (Block t : labelsAndTargets.targets()) {
                             Block.Builder b = block.block();
-                            for (Op o : reference.targetBlock().ops()) {
+                            for (Op o : t.ops()) {
                                 if (o instanceof CoreOp.YieldOp yop) {
                                     b.op(CoreOp.branch(end.successor(b.context().getValue(yop.yieldValue()))));
                                 } else {
