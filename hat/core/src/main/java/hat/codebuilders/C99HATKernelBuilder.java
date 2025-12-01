@@ -90,7 +90,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             globalPtrPrefix().suffix_t(classType).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             // Check for special types (e.g., FP16)
-            globalPtrPrefix().suffix_t(F16Impl.NAME).asterisk();
+            globalPtrPrefix().suffix_t(F16Impl.class.getSimpleName()).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")) {
             globalPtrPrefix().suffix_t("KernelContext").asterisk();
         } else {
