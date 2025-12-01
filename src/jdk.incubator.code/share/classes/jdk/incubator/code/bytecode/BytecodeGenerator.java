@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.bytecode;
 
+import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
@@ -80,39 +81,6 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  * Transformer of code models to bytecode.
  */
 public final class BytecodeGenerator {
-
-    static final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminating {
-
-        final List<Integer> labels;
-        final List<Block.Reference> targets;
-
-        ConstantLabelSwitchOp(Value intSelector, List<Integer> labels, List<Block.Reference> targets) {
-            super(List.of(intSelector));
-            assert targets.size() == labels.size() + 1; // last is the default target
-            this.labels = labels;
-            this.targets = targets;
-        }
-
-        @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public TypeElement resultType() {
-            return JavaType.VOID;
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return targets;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("", labels);
-        }
-    }
 
     /**
      * A transformer that lowers operations unsupported by BytecodeGenerator.
@@ -1058,17 +1026,17 @@ public final class BytecodeGenerator {
                     }
                 }
                 case ConstantLabelSwitchOp op -> {
-                    op.targets.forEach(t -> setCatchStack(t, recentCatchBlocks));
+                    op.successors().forEach(t -> setCatchStack(t, recentCatchBlocks));
                     var cases = new ArrayList<SwitchCase>();
                     int lo = Integer.MAX_VALUE;
                     int hi = Integer.MIN_VALUE;
-                    for (int i = 0; i < op.labels.size(); i++) {
-                        int val = op.labels.get(i);
-                        cases.add(SwitchCase.of(val, getLabel(op.targets.get(i))));
+                    for (int i = 0; i < op.labels().size(); i++) {
+                        int val = op.labels().get(i);
+                        cases.add(SwitchCase.of(val, getLabel(op.successors().get(i))));
                         if (val < lo) lo = val;
                         if (val > hi) hi = val;
                     }
-                    Label defTarget = getLabel(op.targets.getLast());
+                    Label defTarget = getLabel(op.successors().getLast());
                     processFirstOperand(op);
                     if (tableSwitchOverLookupSwitch(lo, hi, cases.size())) {
                         cob.tableswitch(defTarget, cases);
