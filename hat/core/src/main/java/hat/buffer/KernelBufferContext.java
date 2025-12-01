@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.annotations.Order;
 import hat.ifacemapper.Schema;
 
 public interface KernelBufferContext extends Buffer {
@@ -42,7 +43,7 @@ public interface KernelBufferContext extends Buffer {
 
     int dimensions();
 
-    void dimensions(int numDimensions);
+    void dimensions(int dimensions);
 
     // Global: new names
     int gix();
@@ -83,15 +84,12 @@ public interface KernelBufferContext extends Buffer {
     int biz();
     void biz(int biz);
 
-    Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class,
-            kernelContext -> kernelContext
-                    .fields("dimensions",  // Dimension (1D, 2D or 3D)
-                            "gix", "giy", "giz",   // global thread-id accesses
-                            "gsx", "gsy", "gsz",   // global sizes
-                            "lix", "liy", "liz",   // local (thread-ids)
-                            "lsx", "lsy", "lsz",   // block size
-                            "bix", "biy", "biz"    // block id
-                    ));
+    @Order({"dimensions",  // Dimension (1D, 2D or 3D)
+            "gix", "giy", "giz",   // global thread-id accesses
+            "gsx", "gsy", "gsz",   // global sizes
+            "lix", "liy", "liz",   // local (thread-ids)
+            "lsx", "lsy", "lsz",   // block size
+            "bix", "biy", "biz"}  ) Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
 
     static KernelBufferContext createDefault(Accelerator accelerator) {
         KernelBufferContext kernelBufferContext = schema.allocate(accelerator);
