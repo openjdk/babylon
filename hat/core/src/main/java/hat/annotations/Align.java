@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,26 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.annotations;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public interface F16Array extends Buffer {
-    int length();
-    F16Impl array(long index);
-
-    interface F16Impl extends Struct, F16 {
-        short value();
-        void value(short value);
-    }
-
-    Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
-            f16array.arrayLen("length")
-                    .array("array",
-                            half -> half.fields("value")));
-
-    static F16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Align {
+    long value();
 }

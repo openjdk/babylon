@@ -25,21 +25,23 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.annotations.ProvidesDimFor;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
+    @ProvidesDimFor("array")
     int length();
     float array(long idx);
     void array(long idx, float f);
 
-    int ARRAY_OFFSET = 4;
+    long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<F32Array> schema = Schema.of(F32Array.class, s32Array ->
-            s32Array.arrayLen("length").array("array"));
+    Schema<F32Array> schema = Schema.of(F32Array.class);
 
     static F32Array create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);

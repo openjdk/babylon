@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 import hat.buffer.BF16;
 import hat.buffer.BF16Array;
+import hat.KernelContext;
 import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.dialect.HATBlockThreadIdOp;
@@ -62,7 +63,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T types() {
         return this
                 .charTypeDefs("byte", "boolean")
-                .typedefStructOrUnion(true, "KernelContext", _ -> {
+                .typedefStructOrUnion(true, KernelContext.class.getSimpleName(), _ -> {
                     intDeclaration("dimensions").semicolon().nl();
                 });
     }
@@ -93,14 +94,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             globalPtrPrefix().suffix_t(classType).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             // Check for special types (e.g., FP16)
+            globalPtrPrefix().suffix_t(F16Impl.class.getSimpleName()).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
+            // Check for special types (e.g., FP16)
             // TODO: We need to update this with a custom op, so we avoid direct use of Impls
-            globalPtrPrefix().suffix_t(F16Impl.NAME).asterisk();
+            globalPtrPrefix().suffix_t(KernelContext.class.getSimpleName()).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(BF16.class.getCanonicalName())) {
             // Special type: BFLOAT16
             // TODO: We need to update this with a custom op, so we avoid direct use of Impls
             globalPtrPrefix().suffix_t(BF16Array.BF16Impl.class.getSimpleName()).asterisk();
-        } else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")) {
-            globalPtrPrefix().suffix_t("KernelContext").asterisk();
         } else {
             typeName(javaType.toString());
         }
@@ -148,11 +150,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
+    public T privateDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
         return suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp()).nl();
     }
 
-    public T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
+    public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
         return localPtrPrefix() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
     }
