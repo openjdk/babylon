@@ -34,6 +34,15 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaType;
 
+/**
+ * The terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch} instructions.
+ * <p>
+ * This operation accepts an int operand, variable number of distinct constant labels
+ * and the same number of successors + 1 (the default).
+ * When the operand is matching one of the labels, the relevant successor is selected.
+ * If none of the labels is matching, the last "default" successor is selected.
+ * The selected successor refers to the next block to branch to.
+ */
 public final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminating {
 
     final List<Integer> labels;
@@ -44,7 +53,7 @@ public final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminati
         assert targets.size() == labels.size() + 1; // last is the default target
         this.labels = labels;
         this.targets = targets;
-    } // last is the default target
+    }
 
     ConstantLabelSwitchOp(ConstantLabelSwitchOp that, CodeContext cc) {
         super(that, cc);
