@@ -30,7 +30,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -46,25 +47,103 @@ import java.util.stream.Stream;
 public class TestSwitch {
 
     @Reflect
-    static String switchExpression(int i) {
+    static String lookupSwitchExpression(int i) {
         return switch (i) {
-            case 7 -> "magic number";
+            case 7,8 -> "magic number";
             case 42 -> "Answer to the Ultimate Question of Life, the Universe, and Everything";
             case 101 -> "introduction to a subject";
             default -> "not important";
         };
     }
 
-    @Test
-    public void testSwitchExpression() throws Throwable {
-        CoreOp.FuncOp f = getFuncOp("switchExpression");
+    @Reflect
+    static String tableSwitchExpression(int i) {
+        return switch (i) {
+            case -1 -> "?";
+            case 0 -> "none";
+            case 1 -> "one";
+            case 2 -> "two";
+            case 3 -> "three";
+            default -> "many";
+        };
+    }
+
+    @Reflect
+    static String lookupSwitchStatement(int i) {
+        String ret = null;
+        switch (i) {
+            case 7 : ret = "magic number"; break;
+            case 42 : return "Answer to the Ultimate Question of Life, the Universe, and Everything";
+            case 101 : ret = "introduction to a subject"; break;
+            default : return "not important";
+        }
+        return ret;
+    }
+
+    @Reflect
+    static String tableSwitchStatement(int i) {
+        String ret = null;
+        switch (i) {
+            case -1 : ret = "?"; break;
+            case 0 : return "none";
+            case 1 : ret = "one"; break;
+            case 2 : return "two";
+            case 3 : ret ="three"; break;
+            default : return"many";
+        }
+        return ret;
+    }
+
+    @Reflect
+    static String outOfOrderFallThrought(int i) {
+        String ret = "";
+        switch (i) {
+            default : ret += "? ";
+            case 4 : ret += "four ";
+            case 2 : ret += "two ";
+            case 3 : ret += "three ";
+            case 1 : ret += "one";
+        }
+        return ret;
+    }
+
+    @Reflect
+    static String nestedExpressions(int i) {
+        return switch (i) {
+            case -1 -> "?";
+            case 0 -> "none";
+            case 1 -> "one";
+            case 2 -> "two";
+            case 3 -> "three";
+            default -> switch (i) {
+                case 7,8 -> "magic number";
+                case 42 -> "Answer to the Ultimate Question of Life, the Universe, and Everything";
+                case 101 -> "introduction to a subject";
+                default -> "not important";
+            };
+        };
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "lookupSwitchExpression",
+        "tableSwitchExpression",
+//        "lookupSwitchStatement", @@@ lower BreakOp
+//        "tableSwitchStatement", @@@ lower BreakOp
+//        "outOfOrderFallThrought", @@@ lower SwitchFallthroughOp
+//        "nestedExpressions", @@@ lower recursively
+    })
+
+    public void testSwitch(String methodName) throws Throwable {
+        Method m = getMethod(methodName);
+        CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
 
         Assertions.assertTrue(getModel(f).code().get().elementStream()
                 .anyMatch(i -> i instanceof TableSwitchInstruction || i instanceof LookupSwitchInstruction));
 
         MethodHandle mh = generate(f);
-        for (int i = 0; i < 110; i++) {
-            Assertions.assertEquals(switchExpression(i), (String)mh.invokeExact(i));
+        for (int i = -1; i < 110; i++) {
+            Assertions.assertEquals((String)m.invoke(null, i), (String)mh.invokeExact(i));
         }
     }
 
@@ -81,12 +160,11 @@ public class TestSwitch {
         return mm;
     }
 
-    static CoreOp.FuncOp getFuncOp(String name) {
+    static Method getMethod(String name) {
         Optional<Method> om = Stream.of(TestSwitch.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
 
-        Method m = om.get();
-        return Op.ofMethod(m).get();
+        return om.get();
     }
 }
