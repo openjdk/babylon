@@ -1,5 +1,5 @@
 import jdk.incubator.code.*;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.bytecode.impl.LoweringTransform;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -19,7 +19,7 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
  * @enablePreview
  * @compile TestIsCaseConstantSwitch.java
  * @run junit TestIsCaseConstantSwitch
@@ -169,7 +169,7 @@ public class TestIsCaseConstantSwitch {
                 .map(o -> ((SwitchExpressionOp) o)).toList();
         for (SwitchExpressionOp swExprOp : swExprOps) {
             Assertions.assertEquals(
-                    new BytecodeGenerator.ConstantLabelSwitchChecker(swExprOp, MethodHandles.lookup()).isCaseConstantSwitch(),
+                    new LoweringTransform.ConstantLabelSwitchChecker(swExprOp, MethodHandles.lookup()).isCaseConstantSwitch(),
                     expected,
                     swExprOp.toText());
         }
