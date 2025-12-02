@@ -667,7 +667,7 @@ public sealed abstract class JavaOp extends Op {
 
         static void validateArgCount(InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeDescriptor, List<Value> operands) {
             int paramCount = invokeDescriptor.type().parameterTypes().size();
-            int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
+            int argCount = operands.size() - (invokeKind == InvokeKind.STATIC || invokeDescriptor.isConstructor() ? 0 : 1);
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
                 throw new IllegalArgumentException(invokeKind + " " + isVarArgs + " " + invokeDescriptor);
@@ -4950,6 +4950,70 @@ public sealed abstract class JavaOp extends Op {
         }
     }
 
+    @OpDeclaration(ClassDecOp.NAME)
+    public static final class ClassDecOp extends JavaOp
+            implements Op.Nested {
+
+        static final String NAME = "class.dec";
+        static final String ATTRIBUTE_CLASS_TYPE = NAME + ".type";
+
+        private final ClassType classType;
+        private final Body fieldsAndMethods;
+
+        ClassDecOp(ExternalizedOp def) {
+            // Required attribute
+            ClassType classType = def.extractAttributeValue(ATTRIBUTE_CLASS_TYPE,
+                    true, v -> switch (v) {
+                        case ClassType ct -> ct;
+                        case null, default ->
+                                throw new UnsupportedOperationException("Unsupported class type value:" + v);
+                    });
+
+            Body.Builder fieldsAndMethods = def.bodyDefinitions().get(0);
+
+            this(classType, fieldsAndMethods);
+        }
+
+        ClassDecOp(ClassType classType, Body.Builder fieldsAndMethods) {
+            super(List.of());
+
+            this.classType = classType;
+            this.fieldsAndMethods = fieldsAndMethods.build(this);
+        }
+
+        ClassDecOp(ClassDecOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            this.classType = that.classType;
+            this.fieldsAndMethods = that.fieldsAndMethods.transform(cc, ot).build(this);
+        }
+
+        @Override
+        public Op transform(CopyContext cc, OpTransformer ot) {
+            return new ClassDecOp(this, cc, ot);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            // @@@ for now
+            return VOID;
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return List.of(fieldsAndMethods);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("", classType);
+        }
+    }
+
+    public static ClassDecOp classDecOp(ClassType classType, Body.Builder fieldsAndMethods) {
+        return new ClassDecOp(classType, fieldsAndMethods);
+    }
+
     static Op createOp(ExternalizedOp def) {
         Op op = switch (def.name()) {
             case "add" -> new AddOp(def);
@@ -5012,6 +5076,11 @@ public sealed abstract class JavaOp extends Op {
             case "sub" -> new SubOp(def);
             case "throw" -> new ThrowOp(def);
             case "xor" -> new XorOp(def);
+            case "class.dec" -> new ClassDecOp(def);
+            // @@@ better error reporting
+            // instead of:
+            //Caused by: java.lang.NullPointerException: Cannot invoke "jdk.incubator.code.Op.result()" because "op" is null
+            //at jdk.incubator.code/jdk.incubator.code.Block$Builder.op(Block.java:688)
             default -> null;
         };
         if (op != null) {
