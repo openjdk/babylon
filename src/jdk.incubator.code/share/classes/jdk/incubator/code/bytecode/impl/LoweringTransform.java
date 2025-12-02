@@ -220,8 +220,8 @@ public final class LoweringTransform {
         for (int i = 0; i < swOp.bodies().size() - 1; i += 2) {
             List<Integer> ls = getLabels(lookup, swOp.bodies().get(i));
             labels.addAll(ls);
-            // getLabels returns an empty list, for case default
-            targets.addAll(Collections.nCopies(Math.max(ls.size(), 1), swOp.bodies().get(i + 1).entryBlock()));
+            // getLabels returns list with null, for case default
+            targets.addAll(Collections.nCopies(ls.size(), swOp.bodies().get(i + 1).entryBlock()));
         }
         return new LabelsAndTargets(labels, targets);
     }
@@ -241,7 +241,9 @@ public final class LoweringTransform {
             for (Body corbody : cor.bodies()) {
                 labels.addAll(getLabels(lookup, corbody));
             }
-        } else if (!(opr.op() instanceof CoreOp.ConstantOp)){ // not default label
+        } else if (opr.op() instanceof CoreOp.ConstantOp){ // default label
+            labels.add(null);
+        } else {
             throw new IllegalStateException();
         }
         return labels;

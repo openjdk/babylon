@@ -1001,13 +1001,21 @@ public final class BytecodeGenerator {
                     var cases = new ArrayList<SwitchCase>();
                     int lo = Integer.MAX_VALUE;
                     int hi = Integer.MIN_VALUE;
+                    Label defTarget = null;
                     for (int i = 0; i < op.labels().size(); i++) {
-                        int val = op.labels().get(i);
-                        cases.add(SwitchCase.of(val, getLabel(op.successors().get(i))));
-                        if (val < lo) lo = val;
-                        if (val > hi) hi = val;
+                        Integer val = op.labels().get(i);
+                        Label target = getLabel(op.successors().get(i));
+                        if (val == null) { // default target has null label value
+                            defTarget = target;
+                        } else {
+                            cases.add(SwitchCase.of(val, target));
+                            if (val < lo) lo = val;
+                            if (val > hi) hi = val;
+                        }
                     }
-                    Label defTarget = getLabel(op.successors().getLast());
+                    if (defTarget == null) {
+                        throw new IllegalArgumentException("Missing default target");
+                    }
                     processFirstOperand(op);
                     if (tableSwitchOverLookupSwitch(lo, hi, cases.size())) {
                         cob.tableswitch(defTarget, cases);
