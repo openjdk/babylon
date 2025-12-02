@@ -70,23 +70,6 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  */
 public final class BytecodeGenerator {
 
-    /**
-     * A transformer that lowers operations unsupported by BytecodeGenerator.
-     */
-//    static CodeTransformer BYTECODE_LOWERING_TRANSFORMER = (block, op) -> {
-//        return switch (op) {
-//            case JavaOp.JavaSwitchOp swop when new ConstantLabelSwitchChecker(swop, lookup).isCaseConstantSwitch() -> {
-//               //@@@ lower JavaOp.JavaSwitchOp to ConstantLabelSwitchOp
-//            }
-//            case Op.Lowerable lop ->
-//                lop.lower(block, null);
-//            default -> {
-//                block.op(op);
-//                yield block;
-//            }
-//        };
-//    };
-
     private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
             LambdaMetafactory.class.describeConstable().orElseThrow(),
             "metafactory",
