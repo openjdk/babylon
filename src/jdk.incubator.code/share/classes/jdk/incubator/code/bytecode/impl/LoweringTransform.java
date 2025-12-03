@@ -57,8 +57,8 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  */
 public final class LoweringTransform {
 
-    private static Block.Builder lowerToConstantLabelSwitchOp(Block.Builder block, JavaOp.JavaSwitchOp swOp,
-                                                              LabelsAndTargets labelsAndTargets) {
+    private static Block.Builder lowerToConstantLabelSwitchOp(Block.Builder block, CodeTransformer transformer,
+                                                              JavaOp.JavaSwitchOp swOp, LabelsAndTargets labelsAndTargets) {
         List<Block> targets = labelsAndTargets.targets();
         List<Block.Builder> blocks = new ArrayList<>();
         for (int i = 0; i < targets.size(); i++) {
@@ -98,11 +98,7 @@ public final class LoweringTransform {
                     b.op(branch(exit.successor(b.context().getValue(yop.yieldValue()))));
                     yield b;
                 }
-                case Lowerable lop -> lop.lower(b, null);
-                default -> {
-                    b.op(op);
-                    yield b;
-                }
+                default -> transformer.acceptOp(b, op);
             });
         }
 
@@ -115,10 +111,9 @@ public final class LoweringTransform {
         return (block, op) -> switch (op) {
                     case JavaOp.JavaSwitchOp swOp when new ConstantLabelSwitchChecker(swOp, lookup).isCaseConstantSwitch() -> {
                         LabelsAndTargets labelsAndTargets = getLabelsAndTargets(lookup, swOp);
-                        yield lowerToConstantLabelSwitchOp(block, swOp, labelsAndTargets);
+                        yield lowerToConstantLabelSwitchOp(block, block.transformer(), swOp, labelsAndTargets);
                     }
-                    case Op.Lowerable lop ->
-                            lop.lower(block, null);
+                    case Op.Lowerable lop -> lop.lower(block, null);
                     default -> {
                         block.op(op);
                         yield block;
