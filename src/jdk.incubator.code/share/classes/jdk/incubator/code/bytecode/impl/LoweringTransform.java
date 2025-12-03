@@ -261,25 +261,26 @@ public final class LoweringTransform {
         return new LabelsAndTargets(labels, targets);
     }
 
+    static final MethodRef OBJECTS_EQUALS = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
+
     static List<Integer> getLabels(MethodHandles.Lookup lookup, Body body) {
         if (body.blocks().size() != 1 || !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
                 !(yop.yieldValue() instanceof Op.Result opr)) {
             throw new IllegalStateException("Body of a java switch fails the expected structure");
         }
         var labels = new ArrayList<Integer>();
-        if (opr.op() instanceof JavaOp.EqOp eqOp) {
-            labels.add(extractConstantLabel(lookup, body, eqOp));
-        } else if (opr.op() instanceof JavaOp.InvokeOp invokeOp &&
-                invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class))) {
-            labels.add(extractConstantLabel(lookup, body, invokeOp));
-        } else if (opr.op() instanceof JavaOp.ConditionalOrOp cor) {
-            for (Body corbody : cor.bodies()) {
-                labels.addAll(getLabels(lookup, corbody));
+        switch (opr.op()) {
+            case JavaOp.EqOp eqOp -> labels.add(extractConstantLabel(lookup, body, eqOp));
+            case JavaOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS) ->
+                    labels.add(extractConstantLabel(lookup, body, invokeOp));
+            case JavaOp.ConditionalOrOp cor -> {
+                for (Body corbody : cor.bodies()) {
+                    labels.addAll(getLabels(lookup, corbody));
+                }
             }
-        } else if (opr.op() instanceof CoreOp.ConstantOp){ // default label
-            labels.add(null);
-        } else {
-            throw new IllegalStateException();
+            case CoreOp.ConstantOp constantOp ->  // default label
+                    labels.add(null);
+            case null, default -> throw new IllegalStateException();
         }
         return labels;
     }
