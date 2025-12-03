@@ -155,55 +155,43 @@ public final class LoweringTransform {
             if (!(v instanceof Op.Result opr)) {
                 return false;
             }
-            Op op = opr.op();
-            if (op instanceof CoreOp.ConstantOp cop) {
-                return cop.resultType() instanceof PrimitiveType || cop.resultType().equals(J_L_STRING);
-            }
-            if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                return isFinalVar(varLoadOp.varOp()) && isConstantExpr(varLoadOp.varOp().initOperand());
-            }
-            if (op instanceof JavaOp.ConvOp convOp) {
-                return (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) &&
-                        isConstantExpr(convOp.operands().get(0));
-            }
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                return isBoxingMethod(invokeOp.invokeDescriptor()) && isConstantExpr(invokeOp.operands().get(0));
-            }
-            if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-                Field field;
-                try {
-                    field = fieldLoadOp.fieldDescriptor().resolveToField(lookup);
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
+            return switch (opr.op()) {
+                case CoreOp.ConstantOp cop ->
+                        cop.resultType() instanceof PrimitiveType || cop.resultType().equals(J_L_STRING);
+                case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
+                        isFinalVar(varLoadOp.varOp()) && isConstantExpr(varLoadOp.varOp().initOperand());
+                case JavaOp.ConvOp convOp ->
+                        (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) &&
+                                isConstantExpr(convOp.operands().get(0));
+                case JavaOp.InvokeOp invokeOp ->
+                        isBoxingMethod(invokeOp.invokeDescriptor()) && isConstantExpr(invokeOp.operands().get(0));
+                case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
+                    Field field;
+                    try {
+                        field = fieldLoadOp.fieldDescriptor().resolveToField(lookup);
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
+                    }
+                    yield field.isEnumConstant() || field.accessFlags().containsAll(Set.of(AccessFlag.STATIC, AccessFlag.FINAL));
                 }
-                return field.isEnumConstant() || field.accessFlags().containsAll(Set.of(AccessFlag.STATIC, AccessFlag.FINAL));
-            }
-            if (op instanceof JavaOp.UnaryOp unaryOp) {
-                return isConstantExpr(unaryOp.operands().get(0));
-            }
-            if (op instanceof JavaOp.BinaryOp binaryOp) {
-                return binaryOp.operands().stream().allMatch(o -> isConstantExpr(o));
-            }
-            if (op instanceof JavaOp.BinaryTestOp binaryTestOp) {
-                return binaryTestOp.operands().stream().allMatch(o -> isConstantExpr(o));
-            }
-            if (op instanceof JavaOp.ConditionalExpressionOp cexpr) {
-                // bodies must yield constant expressions
-                return isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
-                        isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue()) &&
-                        isConstantExpr(((CoreOp.YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue());
-            }
-            // conditional and, conditional or, example ?
-            if (op instanceof JavaOp.ConditionalAndOp cand) {
-                return isConstantExpr(((CoreOp.YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
-                        isConstantExpr(((CoreOp.YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-            }
-            if (op instanceof JavaOp.ConditionalOrOp cor) {
-                // we can have a method isBodyYieldConstantExpr(Body)
-                return isConstantExpr(((CoreOp.YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
-                        isConstantExpr(((CoreOp.YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-            }
-            return false;
+                case JavaOp.UnaryOp unaryOp -> isConstantExpr(unaryOp.operands().get(0));
+                case JavaOp.BinaryOp binaryOp -> binaryOp.operands().stream().allMatch(this::isConstantExpr);
+                case JavaOp.BinaryTestOp binaryTestOp ->
+                        binaryTestOp.operands().stream().allMatch(this::isConstantExpr);
+                case JavaOp.ConditionalExpressionOp cexpr -> // bodies must yield constant expressions
+                        isConstantExpr(((YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
+                                isConstantExpr(((YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue()) &&
+                                isConstantExpr(((YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue());
+
+                case JavaOp.ConditionalAndOp cand ->
+                        isConstantExpr(((YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
+                                isConstantExpr(((YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+                case JavaOp.ConditionalOrOp cor ->
+                    // we can have a method isBodyYieldConstantExpr(Body)
+                        isConstantExpr(((YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
+                                isConstantExpr(((YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+                default -> false;
+            };
         }
 
         private boolean isCaseConstantLabel(Body label) {
@@ -213,24 +201,19 @@ public final class LoweringTransform {
             }
 
             // EqOp for primitives, method invocation for Strings and Reference Types
-            if (r.op() instanceof JavaOp.EqOp eqOp) {
-                return isConstantExpr(eqOp.operands().get(1));
-            }
-            if (r.op() instanceof JavaOp.InvokeOp invokeOp) {
-                MethodRef OBJECTS_EQUALS_METHOD = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
-                if (!invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS_METHOD)) {
-                    return false;
+            return switch (r.op()) {
+                case JavaOp.EqOp eqOp -> isConstantExpr(eqOp.operands().get(1));
+                case JavaOp.InvokeOp invokeOp when !invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS) -> false;
+                case JavaOp.InvokeOp invokeOp -> {
+                    // case null
+                    if (invokeOp.operands().get(1) instanceof Op.Result opr && opr.op() instanceof CoreOp.ConstantOp cop && cop.value() == null) {
+                        yield false;
+                    }
+                    yield  isConstantExpr(invokeOp.operands().get(1));
                 }
-                // case null
-                if (invokeOp.operands().get(1) instanceof Op.Result opr && opr.op() instanceof CoreOp.ConstantOp cop && cop.value() == null) {
-                    return false;
-                }
-                return isConstantExpr(invokeOp.operands().get(1));
-            }
-            if (r.op() instanceof JavaOp.ConditionalOrOp cor) { // list of case constant
-                return cor.bodies().stream().allMatch(b -> isCaseConstantLabel(b));
-            }
-            return r.op() instanceof CoreOp.ConstantOp cop && cop.resultType().equals(BOOLEAN); // default label
+                case JavaOp.ConditionalOrOp cor -> cor.bodies().stream().allMatch(b -> isCaseConstantLabel(b));
+                default -> r.op() instanceof CoreOp.ConstantOp cop && cop.resultType().equals(BOOLEAN);
+            };
         }
 
         public boolean isCaseConstantSwitch() {
