@@ -251,7 +251,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                      .command(false).collectVmOpts(args).mainClass(testEnginePackage,testEngineClassName) //  note no app args as add them below
                             );
 
-                            tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_,matcher)->
+                            tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_,matcher) ->
                                     tests.run(Jar.JavaConfig.of(commonTestSuiteJavaOpts, o-> o.arg(matcher.group(1).replace('/','.'))),  tests, backend)
                             );
                            args.clear();

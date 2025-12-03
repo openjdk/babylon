@@ -49,7 +49,7 @@ public class ForkExec {
                     .start();
             new BufferedReader(new InputStreamReader(process.getInputStream())).lines().forEach(line->{
                 if (show) {
-                    System.out.println(line);
+                    IO.println(line);
                 }
                 stdErrAndOut.add(line);
             });

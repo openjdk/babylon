@@ -307,11 +307,6 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
             System.out.println(stringList.toString());
         }
         var result = ForkExec.forkExec(this, javaConfig.verbose(), id().project().rootPath(), stringList);
-        result.stdErrAndOut().forEach((line) -> {
-            if (javaConfig.verbose()) {
-               System.out.println(line);
-            }
-        });
         if (result.status() != 0) {
             System.out.println("Java failed to execute, is a valid java in your path ? " + id().fullHyphenatedName());
         }
@@ -685,7 +680,7 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
         static JavaConfig of(Consumer<Builder> javaOptBuilderConsumer) {
             Builder builder = new Builder.Impl();
             javaOptBuilderConsumer.accept(builder);
-            return of(builder.command(), builder.warnings(), builder.progress(),builder.verbose(), builder.packageName(), builder.mainClassName(), builder.vmOpts(), builder.args());
+            return of(builder.command(), builder.warnings(), builder.progress(), builder.verbose(), builder.packageName(), builder.mainClassName(), builder.vmOpts(), builder.args());
         }
 
         static JavaConfig of(JavaConfig javaOpts, Consumer<Builder> javaOptBuilderConsumer) {
