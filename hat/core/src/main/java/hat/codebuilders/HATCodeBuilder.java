@@ -37,6 +37,10 @@ import java.util.function.Consumer;
 
 public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBuilder<T> {
 
+    public static final String HAT_BUILT_IN_FLOAT_TO_BFLOAT16 = "floatTobfloat16";
+    public static final String HAT_BUILT_IN_BFLOAT16_TO_FLOAT = "bfloat16Tofloat";
+    public static final String HAT_BUILT_IN_COPY_BYTES = "byteCopy";
+
     public T oracleCopyright(){
         return blockComment("""
                 * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
@@ -201,12 +205,12 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
 
     public T builtin_float2bfloat16() {
-        identifier("float2bfloat16");
+        identifier(HAT_BUILT_IN_FLOAT_TO_BFLOAT16);
         return self();
     }
 
     public T builtin_bfloat162float() {
-        identifier("bfloat162float");
+        identifier(HAT_BUILT_IN_BFLOAT16_TO_FLOAT);
         return self();
     }
 
@@ -394,6 +398,87 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
                 .in()
                     .typeName(type).space().typeName(member).semicolon().nl()
                 .out().cbrace().space().suffix_t(structName).semicolon().nl();
+        return self();
+    }
+
+    public T buildForLoopHeader(String loopVar, String init, String loopBound) {
+        forKeyword().paren(_ -> intType().space().identifier(loopVar).space().equals().identifier(init).semicolon().space()
+                        .identifier(loopVar).lt().identifier(loopBound).semicolon().space()
+                        .identifier(loopVar).plusplus());
+        return self();
+    }
+
+    /**
+     * <code>
+     *  void byteCopy(void *dest, const void* src, size_t size) {
+     *      unsigned char *c = (unsigned char*)dest;
+     *      unsigned char *s = (unsigned char*)src;
+     *      for (int i = 0; i < size; i++) {
+     *          *c++ = *s++;
+     *      }
+     *  }
+     * </code>
+     * @return
+     */
+    public T buildByteKernelFunction() {
+        voidType().space().identifier(HAT_BUILT_IN_COPY_BYTES)
+                .paren(_-> voidType().space().asterisk().identifier("dest").comma()
+                            .voidType().space().asterisk().identifier("src").comma()
+                            .typeName("size_t").space().asterisk().identifier("size"));
+        braceNlIndented(_ ->
+                semicolonNlTerminated( _ -> unsignedCharType().space().asterisk().identifier("c").space()
+                        .equals().space().paren( _ -> unsignedCharType().asterisk()).identifier("dest"))
+                .semicolonNlTerminated( _ ->unsignedCharType().space().asterisk().identifier("s").space()
+                        .equals().space().paren( _ -> unsignedCharType().asterisk()).identifier("src"))
+                    .buildForLoopHeader("i", "0", "size")
+                            .braceNlIndented(_ -> semicolonNlTerminated( _ -> asterisk().identifier("c").plusplus().space().equals().space().asterisk().identifier("s").plusplus())));
+        return self();
+    }
+
+    /**
+     * <code>
+     *  float bfloat16Tofloat(ushort bf16) {
+     *      uint bitsRecovered = bf16 << 16;
+     *      float r = bitsRecovered;
+     *      byteCopy(&r, &bitsRecovered, sizeof(r));
+     *      return r;
+     * }
+     * </code>
+     *
+     * @param parameterName
+     * @return
+     */
+    public T build_builtin_bfloat162float(String parameterName) {
+        floatType().space().identifier(HAT_BUILT_IN_BFLOAT16_TO_FLOAT).paren(_ -> unsignedShortType().space().identifier(parameterName))
+                .brace( _ ->
+                        semicolonNlTerminated( _ -> nl().unsignedIntType().space().identifier("bits").space().equals().space().identifier(parameterName).leftShift().constant("16"))
+                        .semicolonNlTerminated( _ -> floatType().space().identifier("r").space().equals().space().identifier("bits"))
+                        .semicolonNlTerminated(_ -> identifier(HAT_BUILT_IN_COPY_BYTES).paren( _ -> ampersand().identifier("r").comma().space().ampersand().identifier("bits").comma().sizeof(_ -> identifier("r"))))
+                        .semicolonNlTerminated(_-> returnKeyword().space().identifier("r"))
+                );
+        return self();
+    }
+
+    /**
+     * <code>
+     * ushort floatTobfloat16(float f) {
+     *      uint bits;
+     *      byteCopy(&bits, &f, sizeof(bits));
+     *      short bf16 = bits >> 16;
+     *      return bf16;
+     * }
+     * </code>
+     * @param parameterName
+     * @return
+     */
+    public T build_builtin_float2bfloat16(String parameterName) {
+        shortType().space().identifier(HAT_BUILT_IN_FLOAT_TO_BFLOAT16).paren(_ -> floatType().space().identifier(parameterName))
+                .brace( _ ->
+                             semicolonNlTerminated( _ -> nl().unsignedIntType().space().identifier("bits"))
+                            .semicolonNlTerminated(_ -> identifier(HAT_BUILT_IN_COPY_BYTES).paren( _ -> ampersand().identifier("bits").comma().space().ampersand().identifier(parameterName).comma().sizeof(_ -> identifier("bits"))))
+                            .semicolonNlTerminated( _ -> shortType().space().identifier("bf16").space().equals().space().identifier("bits").rightShift().constant("16"))
+                            .semicolonNlTerminated(_-> returnKeyword().space().identifier("bf16"))
+                        );
         return self();
     }
 }

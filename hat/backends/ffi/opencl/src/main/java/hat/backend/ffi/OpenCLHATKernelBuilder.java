@@ -85,29 +85,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("BFLOAT16", _ -> keyword("ushort"))
                 .buildStructSingleMember("F16", "value", "half")
                 .buildStructSingleMember("BF16", "value", "BFLOAT16")
-                .identifier("""
-                        void byteCopy(void *dest, const void* src, size_t size) {
-                            unsigned char *c = (unsigned char*)dest;
-                            unsigned char *s = (unsigned char*)src;
-                            for (int i = 0; i < size; i++) {
-                                *c++ = *s++;
-                            }
-                        }
-
-                        float bfloat162float(ushort bf16) {
-                            uint bitsRecovered = bf16 << 16;
-                            float r = bitsRecovered;
-                            byteCopy(&r, &bitsRecovered, sizeof(r));
-                            return r;
-                        }
-
-                        ushort float2bfloat16(float f) {
-                            uint bits;
-                            byteCopy(&bits, &f, sizeof(bits));
-                            short bf16 = bits >> 16;
-                            return bf16;
-                        }
-                        """);
+                .buildByteKernelFunction()
+                .build_builtin_bfloat162float("bf16")
+                .build_builtin_float2bfloat16("f");
     }
 
     @Override

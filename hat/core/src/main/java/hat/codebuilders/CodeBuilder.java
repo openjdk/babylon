@@ -572,4 +572,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T composeIdentifier(String preffix, String postfix) {
         return identifier(preffix + postfix);
     }
+
+    public T sizeof() {
+        return emitText("sizeof");
+    }
+
+    public T sizeof(Consumer<T> consumer) {
+        return emitText("sizeof").paren(consumer);
+    }
 }
