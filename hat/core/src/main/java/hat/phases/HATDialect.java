@@ -46,7 +46,9 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
     }
 
     default boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp, String methodName) {
-        return OpTk.isIfaceBufferMethod(accelerator().lookup, invokeOp) && isMethod(invokeOp, methodName);
+        if (OpTk.isIfaceBufferMethod(accelerator().lookup, invokeOp) && isMethod(invokeOp, methodName)) {
+            return true;
+        } else return OpTk.isHatType(accelerator().lookup, invokeOp) && isMethod(invokeOp, methodName);
     }
 
     default boolean isKernelContextInvokeWithName(Op op, String methodName) {

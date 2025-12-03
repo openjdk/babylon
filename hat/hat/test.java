@@ -180,7 +180,8 @@ void main(String[] argv) {
                 "hat.test.TestArrayView",
                 "hat.test.TestVectorTypes",
                 "hat.test.TestF16Type",
-                "hat.test.TestFloat2"
+                "hat.test.TestFloat2",
+                "hat.test.TestBFloat16Type",
         };
 
         // Test the whole suite

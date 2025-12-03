@@ -24,26 +24,17 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+public interface ReducedFloatType {
 
-import java.util.List;
-
-public class HATF16AddOp extends HATF16BinaryOp {
-
-    public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-        super(typeElement, reducedFloatType, BinaryOpType.ADD, references, f32, operands);
+    interface HalfFloat extends ReducedFloatType {
+        static HalfFloat of() {
+            return new HalfFloat() {};
+        }
     }
 
-    public HATF16AddOp(HATF16AddOp op, CodeContext copyContext) {
-        super(op, copyContext);
-    }
-
-    @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATF16AddOp(this, copyContext);
+    interface BFloat16 extends ReducedFloatType {
+        static BFloat16 of() {
+            return new BFloat16() {};
+        }
     }
 }

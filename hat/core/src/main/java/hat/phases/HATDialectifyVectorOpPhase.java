@@ -26,7 +26,6 @@ package hat.phases;
 
 import hat.Accelerator;
 import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATPhaseUtils;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorAddOp;
 import hat.dialect.HATVectorDivOp;
@@ -111,7 +110,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         Set<Class<?>> interfaces = Set.of();
         try {
             Class<?> aClass = Class.forName(typeElement.toString());
-            interfaces = HATPhaseUtils.inspectAllInterfaces(aClass);
+            interfaces = OpTk.inspectAllInterfaces(aClass);
         } catch (ClassNotFoundException _) {
         }
         return interfaces.contains(_V.class) && isMethod(invokeOp, vectorOperation.methodName);

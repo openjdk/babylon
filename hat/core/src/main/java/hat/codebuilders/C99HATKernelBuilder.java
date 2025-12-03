@@ -24,6 +24,8 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.BF16;
+import hat.buffer.BF16Array;
 import hat.KernelContext;
 import hat.buffer.Buffer;
 import hat.buffer.F16;
@@ -40,6 +42,7 @@ import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.ReducedFloatType;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
@@ -57,10 +60,41 @@ import java.util.function.Consumer;
 import static hat.buffer.F16Array.F16Impl;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
+
+    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return kernelPrefix().voidType().space().funcName(funcOp);
+    }
+
+    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
+    }
+
+    public T kernelPrefix() {
+        return keyword("HAT_KERNEL").space();
+    }
+
+    public T functionPrefix() {
+        return keyword("HAT_FUNC").space();
+    }
+
+    public T globalPtrPrefix() {
+        return keyword("HAT_GLOBAL_MEM").space();
+    }
+
+    public T localPtrPrefix() {
+        return keyword("HAT_LOCAL_MEM").space();
+    }
+
+    public T syncBlockThreads() {
+        return identifier("HAT_BARRIER");
+    }
+
+    public abstract T defines();
+
     public T types() {
         return this
                 .charTypeDefs("byte", "boolean")
-                .typedefStructOrUnion(true, KernelContext.class.getSimpleName(), _ -> {
+                .typedefStructOrUnion(true, KernelContext.class, _ -> {
                     intDeclaration("dimensions").semicolon().nl();
                 });
     }
@@ -75,30 +109,36 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
+    T typedefStructOrUnion(boolean isStruct, Class<?> klass, Consumer<T> consumer) {
         return typedefKeyword()
                 .space()
                 .structOrUnion(isStruct)
                 .space()
-                .either(isStruct, _ -> suffix_s(name), _ -> suffix_u(name))
+                .either(isStruct, _ -> suffix_s(klass), _ -> suffix_u(klass))
                 .braceNlIndented(consumer)
-                .suffix_t(name).semicolon().nl();
+                .suffix_t(klass).semicolon().nl();
     }
 
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
             globalPtrPrefix().suffix_t(classType).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
+            globalPtrPrefix().suffix_t(KernelContext.class).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             // Check for special types (e.g., FP16)
-            globalPtrPrefix().suffix_t(F16Impl.class.getSimpleName()).asterisk();
-        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
-            globalPtrPrefix().suffix_t(KernelContext.class.getSimpleName()).asterisk();
+            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
+            globalPtrPrefix().suffix_t(F16Impl.class).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(BF16.class.getCanonicalName())) {
+            // Special type: BFLOAT16
+            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
+            globalPtrPrefix().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             typeName(javaType.toString());
         }
         return self();
     }
+
     public T kernelMethod(ScopedCodeBuilderContext buildContext,CoreOp.FuncOp funcOp) {
           buildContext.funcScope(funcOp, () -> {
               nl();
@@ -180,8 +220,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-
-
     public T globalId(int id) {
         switch (id) {
             case 0 -> identifier("HAT_GIX");
@@ -241,9 +279,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
-        halfType()
-                .space()
-                .identifier(hatF16VarOp.varName())
+
+        ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> halfType();
+            case ReducedFloatType.BFloat16 _ ->  bfloatType();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+
+        space().identifier(hatF16VarOp.varName())
                 .space().equals().space();
         Value operand = hatF16VarOp.operands().getFirst();
         if (operand instanceof Op.Result r) {
@@ -252,14 +296,31 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    @Override
-    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+    private boolean isMixedFirstOperand(byte f32Mixed) {
+        return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.FIRST_OP;
+    }
 
-        Value op1 = hatF16BinaryOp.operands().get(0);
-        Value op2 = hatF16BinaryOp.operands().get(1);
-        List<Boolean> references = hatF16BinaryOp.references();
+    private boolean isMixedSecondOperand(byte f32Mixed) {
+        return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.LAST_OP;
+    }
 
-        oparen().halfType().cparen().obrace().oparen();
+    private T binaryOperationsForBfloat16(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatf16BinaryOp) {
+        Value op1 = hatf16BinaryOp.operands().get(0);
+        Value op2 = hatf16BinaryOp.operands().get(1);
+        List<Boolean> references = hatf16BinaryOp.references();
+        byte f32Mixed = hatf16BinaryOp.getF32();
+
+        oparen().bfloatType()
+                .cparen().obrace().oparen();
+
+        builtin_float2bfloat16()
+                .oparen();
+
+        if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
+            builtin_bfloat162float().oparen();
+        }
+
+
         if (op1 instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
@@ -268,7 +329,57 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
             dot().identifier("value");
         }
-        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+
+        if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
+            cparen();
+        }
+        space().identifier(hatf16BinaryOp.binaryOperationType().symbol()).space();
+
+        if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
+            builtin_bfloat162float().oparen();
+        }
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        if (references.get(1)) {
+            rarrow().identifier("value");
+        } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+
+        if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
+            cparen();
+        }
+        cparen().cparen().cbrace();
+        return self();
+    }
+
+    @Override
+    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+
+        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
+        if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+            return binaryOperationsForBfloat16(buildContext, hatF16BinaryOp);
+        }
+
+        Value op1 = hatF16BinaryOp.operands().get(0);
+        Value op2 = hatF16BinaryOp.operands().get(1);
+        List<Boolean> references = hatF16BinaryOp.references();
+
+        oparen().halfType();
+
+        cparen().obrace().oparen();
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        if (references.getFirst()) {
+            rarrow().identifier("value");
+        } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+            dot().identifier("value");
+        }
+        space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
 
         if (op2 instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -357,35 +468,4 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
-
-    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return kernelPrefix().voidType().space().funcName(funcOp);
-    }
-
-    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
-        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
-    }
-
-    public T kernelPrefix() {
-        return keyword("HAT_KERNEL").space();
-    }
-
-    public T functionPrefix() {
-        return keyword("HAT_FUNC").space();
-    }
-
-    public T globalPtrPrefix() {
-        return keyword("HAT_GLOBAL_MEM").space();
-    }
-
-    public T localPtrPrefix() {
-        return keyword("HAT_LOCAL_MEM").space();
-    }
-
-    public T syncBlockThreads() {
-        return identifier("HAT_BARRIER");
-    }
-
-    public abstract T defines();
-
 }

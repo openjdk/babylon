@@ -50,5 +50,4 @@ public abstract class HATF16Op extends HATOp {
     public void  varName(String varName) {
         this.varName = varName;
     }
-
 }

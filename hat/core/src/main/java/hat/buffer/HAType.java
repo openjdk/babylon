@@ -22,28 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.buffer;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-
-import java.util.List;
-
-public class HATF16AddOp extends HATF16BinaryOp {
-
-    public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-        super(typeElement, reducedFloatType, BinaryOpType.ADD, references, f32, operands);
-    }
-
-    public HATF16AddOp(HATF16AddOp op, CodeContext copyContext) {
-        super(op, copyContext);
-    }
-
-    @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATF16AddOp(this, copyContext);
-    }
+public interface HAType {
 }

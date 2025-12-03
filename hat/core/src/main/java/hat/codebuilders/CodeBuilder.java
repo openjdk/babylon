@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.BF16;
 import hat.buffer.F16;
 import hat.util.StreamMutable;
 
@@ -512,10 +513,15 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return typeName(F16.class.getSimpleName() + "_t");
     }
 
+    public final T bfloatType() {
+        return typeName(BF16.class.getSimpleName() + "_t");
+    }
+
     @Override
     public final T comment(String text) {
         return emitText(text);
     }
+
     @Override
     public T identifier(String text) {
         return emitText(text);
@@ -559,5 +565,19 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return emitText(" ");
     }
 
+    public T builtin(String text) {
+        return emitText(text);
+    }
 
+    public T composeIdentifier(String preffix, String postfix) {
+        return identifier(preffix + postfix);
+    }
+
+    public T sizeof() {
+        return emitText("sizeof");
+    }
+
+    public T sizeof(Consumer<T> consumer) {
+        return emitText("sizeof").paren(consumer);
+    }
 }

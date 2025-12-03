@@ -24,7 +24,6 @@
  */
 package hat.dialect;
 
-import hat.device.DeviceType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -33,10 +32,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -186,43 +182,4 @@ public class HATPhaseUtils {
         }
     }
 
-    public static void inspectNewLevel(Class<?> interfaceClass, Set<Class<?>> interfaceSet) {
-        if (interfaceClass != null && interfaceSet.add(interfaceClass)) {
-            // only if we add a new interface class, we inspect all interfaces that extends the current inspected class
-            Arrays.stream(interfaceClass.getInterfaces())
-                    .forEach(superInterface -> inspectNewLevel(superInterface, interfaceSet));
-        }
-    }
-
-    public static Set<Class<?>> inspectAllInterfaces(Class<?> klass) {
-        Set<Class<?>> interfaceSet = new HashSet<>();
-        while (klass != null) {
-            Arrays.stream(klass.getInterfaces())
-                    .forEach(interfaceClass -> inspectNewLevel(interfaceClass, interfaceSet));
-            klass = klass.getSuperclass();
-        }
-        return interfaceSet;
-    }
-
-    public static boolean isDeviceType(JavaOp.InvokeOp invokeOp) {
-        TypeElement typeElement = invokeOp.resultType();
-        Set<Class<?>> interfaces = Set.of();
-        try {
-            Class<?> aClass = Class.forName(typeElement.toString());
-            interfaces = inspectAllInterfaces(aClass);
-        } catch (ClassNotFoundException _) {
-        }
-        return interfaces.contains(DeviceType.class);
-    }
-
-    public static boolean isDeviceTypeInvokeDescriptor(JavaOp.InvokeOp invokeOp) {
-        TypeElement typeElement = invokeOp.invokeDescriptor().refType();
-        Set<Class<?>> interfaces = Set.of();
-        try {
-            Class<?> aClass = Class.forName(typeElement.toString());
-            interfaces = inspectAllInterfaces(aClass);
-        } catch (ClassNotFoundException _) {
-        }
-        return interfaces.contains(DeviceType.class);
-    }
 }
