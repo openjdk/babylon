@@ -41,6 +41,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T semicolon() {
         return symbol(";");
     }
+    public T semicolonNl() {
+        return semicolon().nl();
+    }
 
     public T comma() {
         return symbol(",");
@@ -62,9 +65,18 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T rightShift() {
         return symbol(">>");
     }
+    public T rightShift(int v) {
+        return rightShift().intValue(v);
+    }
+    public T leftShift(int v) {
+        return leftShift().intValue(v);
+    }
 
     public T equals() {
         return symbol("=");
+    }
+    public T assign() {
+        return space().equals().space();
     }
 
     public T dollar() {
@@ -161,7 +173,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T returnKeyword() {
         return keyword("return");
     }
-
+    public T returnKeyword(String identifier) {
+        return returnKeyword().space().identifier(identifier);
+    }
 
     public T switchKeyword() {
         return keyword("switch");
@@ -188,9 +202,14 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T ampersand() {
         return symbol("&");
     }
-
+    public T addressOf(String identifier) {
+        return ampersand().identifier(identifier);
+    }
     public T asterisk() {
         return symbol("*");
+    }
+    public T dereference(String identifier) {
+        return asterisk().identifier(identifier);
     }
 
     public T mul() {
@@ -482,7 +501,18 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T voidType() {
         return typeName("void");
     }
-
+    public final T voidPtrType() {
+        return voidType().space().asterisk();
+    }
+    public final T voidPtrType(String identifier) {
+        return voidPtrType().identifier(identifier);
+    }
+    public final T size_t() {
+        return typeName("size_t");
+    }
+    public final T size_t(String identifier) {
+        return size_t().space().identifier(identifier);
+    }
     public final T charType() {
         return typeName("char");
     }
@@ -490,6 +520,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public final T floatType() {
         return typeName("float");
+    }
+    public final T floatType(String identifier) {
+        return floatType().space().identifier(identifier);
     }
 
     public final T longType() {
@@ -507,6 +540,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public final T shortType() {
         return typeName("short");
+    }
+    public final T shortType(String identifier) {
+        return shortType().space().identifier(identifier);
     }
 
     public final T halfType() {
@@ -576,8 +612,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T sizeof() {
         return emitText("sizeof");
     }
-
+    public T sizeof(String identifier) {
+        return sizeof(_->paren(_->identifier(identifier)));
+    }
     public T sizeof(Consumer<T> consumer) {
-        return emitText("sizeof").paren(consumer);
+        return sizeof().paren(consumer);
     }
 }

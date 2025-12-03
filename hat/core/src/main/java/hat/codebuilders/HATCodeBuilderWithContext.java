@@ -362,7 +362,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
                     var fieldIdx = StreamMutable.of(0);
-                    separated(ifaceType.fields, (_) -> nl(), field -> {
+                    separated(ifaceType.fields, (_) -> semicolon().nl(), field -> {
                         boolean isLast = fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
                             if (isHalfType(ifaceType)) {
@@ -429,11 +429,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                 }
                             }
                         } else if (field instanceof Schema.SchemaNode.Padding padding) {
-                            emitText(padding.toC99()).semicolon().nl();
+                            emitText(padding.toC99());
                         } else {
                             throw new IllegalStateException("hmm");
                         }
-                        semicolon();
                         fieldIdx.set(fieldIdx.get() + 1);
                     });
                 }).suffix_t(ifaceType.iface).semicolon().nl().nl();

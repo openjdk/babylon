@@ -40,8 +40,6 @@ import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.Objects;
-
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
     public OpenCLHATKernelBuilder vstore(int dims) {
@@ -85,8 +83,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("BFLOAT16", _ -> keyword("ushort"))
                 .buildStructSingleMember("F16", "value", "half")
                 .buildStructSingleMember("BF16", "value", "BFLOAT16")
-                .buildByteKernelFunction()
-                .build_builtin_bfloat162float("bf16")
+                .build_builtin_byteCopy()
+                .build_builtin_bfloat16ToFloat("bf16")
                 .build_builtin_float2bfloat16("f");
     }
 
@@ -265,7 +263,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             oparen().floatType().cparen();
         } else if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
             // bfloat16 -> float
-            builtin_bfloat162float().oparen();
+            builtin_bfloat16ToFloat().oparen();
         }
         Value value = hatF16ToFloatConvOp.operands().getFirst();
         if (value instanceof Op.Result r) {
