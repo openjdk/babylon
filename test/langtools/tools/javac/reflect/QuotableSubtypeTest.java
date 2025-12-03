@@ -49,6 +49,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableRunnable QUOTED_NO_PARAM_VOID = () -> { };
 
     @Reflect
@@ -63,6 +64,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntSupplier QUOTED_NO_PARAM_CONST = () -> 1;
 
     @Reflect
@@ -78,6 +80,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntUnaryOperator QUOTED_ID = x -> x;
 
     @Reflect
@@ -96,6 +99,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntBinaryOperator QUOTED_PLUS = (x, y) -> x + y;
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -106,6 +110,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableRunnable QUOTED_THROW_NO_PARAM = () -> { throw new AssertionError(); };
 
     @IR("""
@@ -120,6 +125,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntUnaryOperator QUOTED_CAPTURE_PARAM = new Object() {
         QuotableIntUnaryOperator captureContext(int x) {
             return y -> x + y;
@@ -129,6 +135,7 @@ public class QuotableSubtypeTest {
     static class Context {
         int x, y;
 
+        @Reflect
         QuotableIntUnaryOperator capture() {
             return z -> x + y + z;
         }
@@ -148,6 +155,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntUnaryOperator QUOTED_CAPTURE_FIELD = new Context().capture();
 
     @Reflect
@@ -202,6 +210,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableRunnable QUOTED_NO_PARAM_VOID_REF = QuotableSubtypeTest::m;
 
     static int g(int i) { return i; }
@@ -217,6 +226,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntUnaryOperator QUOTED_INT_PARAM_INT_RET_REF = QuotableSubtypeTest::g;
 
     @Reflect
@@ -233,11 +243,13 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntFunction<int[]> QUOTED_INT_PARAM_ARR_RET_REF = int[]::new;
 
     static class ContextRef {
         int g(int i) { return i; }
 
+        @Reflect
         QuotableIntUnaryOperator capture() {
             return this::g;
         }
@@ -254,6 +266,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static final QuotableIntUnaryOperator QUOTED_CAPTURE_THIS_REF = new ContextRef().capture();
 
     static final int Z = 42;
@@ -267,6 +280,7 @@ public class QuotableSubtypeTest {
                 return;
             };
             """)
+    @Reflect
     static QuotableRunnable QUOTED_CAPTURE_FINAL_STATIC_FIELD = () -> {
         int x = Z;
     };
@@ -281,6 +295,7 @@ public class QuotableSubtypeTest {
                   return;
             };
             """)
+    @Reflect
     // the lambda model used to contain operation that perform unnecessary type conversion
     static QuotableRunnable QUOTED_RETURN_VOID = () -> {
         n(1);
@@ -298,13 +313,14 @@ public class QuotableSubtypeTest {
                   return;
             };
             """)
+    @Reflect
     // the lambda model used to contain ReturnOp with a value, even though the lambda type is void
     static QuotableRunnable QUOTED_EXPRESSION_RETURN_VOID = () -> new Object();
 
     @IR("""
             func @"f" ()java.type:"void" -> {
                   %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
-                      %2 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=false ()java.type:"void" -> {
+                      %2 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                           return;
                       };
                       %3 : Var<java.type:"java.lang.Runnable"> = var %2 @"r";
@@ -313,6 +329,7 @@ public class QuotableSubtypeTest {
                   return;
             };
             """)
+    @Reflect
     static QuotableRunnable QUOTED_NESTED_LAMBDA = () -> {
         Runnable r = () -> {};
     };
@@ -329,6 +346,7 @@ public class QuotableSubtypeTest {
                   return;
             };
             """)
+    @Reflect
     // @@@ should this be the excepted behaviour in case we have a nested quotable lambda ?
     static QuotableRunnable QUOTED_NESTED_QUOTABLE_LAMBDA = () -> {
         QuotableRunnable r = () -> {};

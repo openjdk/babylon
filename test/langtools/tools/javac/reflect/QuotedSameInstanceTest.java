@@ -29,6 +29,7 @@ public class QuotedSameInstanceTest {
 
     @Reflect
     interface QuotableIntUnaryOperator extends IntUnaryOperator { }
+    @Reflect
     private static final QuotableIntUnaryOperator q2 = x -> x;
 
     @Test

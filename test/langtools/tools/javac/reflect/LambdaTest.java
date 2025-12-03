@@ -39,7 +39,7 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"LambdaTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isQuotable=true (%2 : java.type:"java.lang.String")java.type:"void" -> {
                     %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
                     %4 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                     %5 : java.type:"java.lang.String" = var.load %3;
@@ -63,7 +63,7 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"LambdaTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.String" -> {
                     %2 : java.type:"java.lang.String" = constant @"Hello World";
                     return %2;
                 };
@@ -84,7 +84,7 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"LambdaTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.String" -> {
                     %2 : java.type:"java.lang.String" = constant @"Hello World";
                     return %2;
                 };
@@ -101,7 +101,7 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"LambdaTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.String" -> {
                     %2 : java.type:"java.lang.String" = field.load %0 @java.ref:"LambdaTest::s_f:java.lang.String";
                     return %2;
                 };
@@ -122,10 +122,10 @@ public class LambdaTest {
                 %4 : Var<java.type:"int"> = var %2 @"j";
                 %5 : java.type:"int" = constant @3;
                 %6 : Var<java.type:"int"> = var %5 @"k";
-                %7 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                %7 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Integer" -> {
                     %8 : java.type:"int" = constant @4;
                     %9 : Var<java.type:"int"> = var %8 @"l";
-                    %10 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                    %10 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Integer" -> {
                         %11 : java.type:"int" = var.load %4;
                         %12 : java.type:"int" = var.load %6;
                         %13 : java.type:"int" = add %11 %12;
@@ -170,7 +170,7 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"LambdaTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Integer" -> {
                     %2 : java.type:"int" = field.load %0 @java.ref:"LambdaTest::f:int";
                     %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;

@@ -97,7 +97,7 @@ public class CodeReflectionTester {
         String found = canonicalizeModel(method, Op.ofMethod(method).orElseThrow());
         IR ir = method.getAnnotation(IR.class);
         if (ir == null) {
-            error("No @IR annotation found on reflective method");
+            // nothing to check
             return;
         }
         checkModel(method, found, ir);
