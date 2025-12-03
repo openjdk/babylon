@@ -2145,12 +2145,12 @@ public sealed abstract class JavaOp extends Op {
         }
     }
 
-    record BranchTarget(Block.Builder breakBlock, Block.Builder continueBlock) {
+    public record BranchTarget(Block.Builder breakBlock, Block.Builder continueBlock) {
     }
 
     static final String BRANCH_TARGET_MAP_PROPERTY_KEY = "BRANCH_TARGET_MAP";
 
-    static BranchTarget getBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement) {
+    public static BranchTarget getBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement) {
         @SuppressWarnings("unchecked")
         Map<CodeElement<?, ?>, BranchTarget> m = (Map<CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
         if (m != null) {
@@ -2159,7 +2159,7 @@ public sealed abstract class JavaOp extends Op {
         return null;
     }
 
-    static void setBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement, BranchTarget t) {
+    public static void setBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement, BranchTarget t) {
         @SuppressWarnings("unchecked")
         Map<CodeElement<?, ?>, BranchTarget> x = (Map<CodeElement<?, ?>, BranchTarget>) cc.computePropertyIfAbsent(
                 BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());

@@ -45,6 +45,9 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.interpreter.Interpreter;
 
+import static jdk.incubator.code.dialect.core.CoreOp.Lowerable;
+import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
+import static jdk.incubator.code.dialect.core.CoreOp.branch;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
@@ -54,28 +57,65 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  */
 public final class LoweringTransform {
 
+    private static Block.Builder lowerToConstantLabelSwitchOp(Block.Builder block, JavaOp.JavaSwitchOp swOp,
+                                                              LabelsAndTargets labelsAndTargets) {
+        List<Block> targets = labelsAndTargets.targets();
+        List<Block.Builder> blocks = new ArrayList<>();
+        for (int i = 0; i < targets.size(); i++) {
+            Block.Builder bb = block.block();
+            blocks.add(bb);
+        }
+
+        Block.Builder exit;
+        if (targets.isEmpty()) {
+            exit = block;
+        } else {
+            if (swOp.resultType() != VOID) {
+                exit = block.block(swOp.resultType());
+            } else {
+                exit = block.block();
+            }
+            if (swOp instanceof JavaOp.SwitchExpressionOp) {
+                exit.context().mapValue(swOp.result(), exit.parameters().get(0));
+            }
+        }
+
+        JavaOp.setBranchTarget(block.context(), swOp, new JavaOp.BranchTarget(exit, null));
+        // map statement body to nextExprBlock
+        // this mapping will be used for lowering SwitchFallThroughOp
+        for (int i = 0; i < targets.size() - 1; i++) {
+            JavaOp.setBranchTarget(block.context(), targets.get(i).parent(), new JavaOp.BranchTarget(null, blocks.get(i+1)));
+        }
+
+        for (int i = 0; i < targets.size(); i++) {
+            Block.Builder curr = blocks.get(i);
+            curr.body(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
+                case YieldOp _ when swOp instanceof JavaOp.SwitchStatementOp -> {
+                    b.op(branch(exit.successor()));
+                    yield b;
+                }
+                case YieldOp yop when swOp instanceof JavaOp.SwitchExpressionOp -> {
+                    b.op(branch(exit.successor(b.context().getValue(yop.yieldValue()))));
+                    yield b;
+                }
+                case Lowerable lop -> lop.lower(b, null);
+                default -> {
+                    b.op(op);
+                    yield b;
+                }
+            });
+        }
+
+        Value selector = block.context().getValue(swOp.operands().get(0));
+        block.op(new ConstantLabelSwitchOp(selector, labelsAndTargets.labels(), blocks.stream().map(Block.Builder::successor).toList()));
+        return exit;
+    }
+
     public static CodeTransformer getInstance(MethodHandles.Lookup lookup) {
         return (block, op) -> switch (op) {
                     case JavaOp.JavaSwitchOp swOp when new ConstantLabelSwitchChecker(swOp, lookup).isCaseConstantSwitch() -> {
                         LabelsAndTargets labelsAndTargets = getLabelsAndTargets(lookup, swOp);
-                        List<Block.Reference> targets = new ArrayList<>();
-                        // the targets need to be part of the block's body
-                        Block.Builder end = block.block(swOp.resultType());
-                        block.context().mapValue(swOp.result(), end.parameters().get(0));
-                        for (Block t : labelsAndTargets.targets()) {
-                            Block.Builder b = block.block();
-                            for (Op o : t.ops()) {
-                                if (o instanceof CoreOp.YieldOp yop) {
-                                    b.op(CoreOp.branch(end.successor(b.context().getValue(yop.yieldValue()))));
-                                } else {
-                                    b.op(o);
-                                }
-                            }
-                            targets.add(b.successor(List.of()));
-                        }
-                        Value selector = block.context().getValue(swOp.operands().get(0));
-                        block.op(new ConstantLabelSwitchOp(selector, labelsAndTargets.labels(), targets));
-                        yield end;
+                        yield lowerToConstantLabelSwitchOp(block, swOp, labelsAndTargets);
                     }
                     case Op.Lowerable lop ->
                             lop.lower(block, null);

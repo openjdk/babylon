@@ -128,10 +128,10 @@ public class TestSwitch {
     @ValueSource(strings = {
         "lookupSwitchExpression",
         "tableSwitchExpression",
-//        "lookupSwitchStatement", @@@ lower BreakOp
-//        "tableSwitchStatement", @@@ lower BreakOp
-//        "outOfOrderFallThrought", @@@ lower SwitchFallthroughOp
-//        "nestedExpressions", @@@ lower recursively
+        "lookupSwitchStatement",
+        "tableSwitchStatement",
+        "outOfOrderFallThrought",
+        "nestedExpressions"
     })
 
     public void testSwitch(String methodName) throws Throwable {
