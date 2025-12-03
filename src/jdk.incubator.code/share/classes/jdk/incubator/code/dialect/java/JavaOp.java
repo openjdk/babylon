@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,7 @@ import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.internal.BranchTarget;
 import jdk.incubator.code.internal.OpDeclaration;
 
 import java.util.*;
@@ -2070,7 +2071,7 @@ public sealed abstract class JavaOp extends Op {
 
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
             Op opt = target();
-            BranchTarget t = getBranchTarget(b.context(), opt);
+            BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
             if (t != null) {
                 b.op(branch(f.apply(t).successor()));
             } else {
@@ -2145,27 +2146,6 @@ public sealed abstract class JavaOp extends Op {
         }
     }
 
-    public record BranchTarget(Block.Builder breakBlock, Block.Builder continueBlock) {
-    }
-
-    static final String BRANCH_TARGET_MAP_PROPERTY_KEY = "BRANCH_TARGET_MAP";
-
-    public static BranchTarget getBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement) {
-        @SuppressWarnings("unchecked")
-        Map<CodeElement<?, ?>, BranchTarget> m = (Map<CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
-        if (m != null) {
-            return m.get(codeElement);
-        }
-        return null;
-    }
-
-    public static void setBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement, BranchTarget t) {
-        @SuppressWarnings("unchecked")
-        Map<CodeElement<?, ?>, BranchTarget> x = (Map<CodeElement<?, ?>, BranchTarget>) cc.computePropertyIfAbsent(
-                BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());
-        x.put(codeElement, t);
-    }
-
     /**
      * The yield operation, that can model Java language yield statements.
      */
@@ -2217,7 +2197,7 @@ public sealed abstract class JavaOp extends Op {
 
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
             Op opt = target();
-            BranchTarget t = getBranchTarget(b.context(), opt);
+            BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
             if (t != null) {
                 b.op(branch(f.apply(t).successor(b.context().getValue(yieldValue()))));
             } else {
@@ -2298,7 +2278,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
             Block.Builder exit = b.block();
-            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
@@ -2389,7 +2369,7 @@ public sealed abstract class JavaOp extends Op {
             b.op(monitorEnter(monitorTarget));
 
             Block.Builder exit = b.block();
-            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             // Exception region for the body
             Block.Builder syncRegionEnter = b.block();
@@ -2524,7 +2504,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
             Block.Builder exit = b.block();
-            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             AtomicBoolean first = new AtomicBoolean();
             b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
@@ -2708,7 +2688,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
             Block.Builder exit = b.block();
-            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             // Create predicate and action blocks
             List<Block.Builder> builders = new ArrayList<>();
@@ -2833,11 +2813,11 @@ public sealed abstract class JavaOp extends Op {
                 }
             }
 
-            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            BranchTarget.setBranchTarget(b.context(), this, exit, null);
             // map statement body to nextExprBlock
             // this mapping will be used for lowering SwitchFallThroughOp
             for (int i = 1; i < bodies().size() - 2; i+=2) {
-                setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
+                BranchTarget.setBranchTarget(b.context(), bodies().get(i), null, blocks.get(i + 2));
             }
 
             for (int i = 0; i < bodies().size(); i++) {
@@ -3014,7 +2994,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
-            BranchTarget t = getBranchTarget(b.context(), ancestorBody());
+            BranchTarget t = BranchTarget.getBranchTarget(b.context(), ancestorBody());
             if (t != null) {
                 b.op(branch(f.apply(t).successor()));
             } else {
@@ -3243,7 +3223,7 @@ public sealed abstract class JavaOp extends Op {
                 }
             }));
 
-            setBranchTarget(b.context(), this, new BranchTarget(exit, update));
+            BranchTarget.setBranchTarget(b.context(), this, exit, update);
 
             body.body(this.body, initValues, andThenLowering(opT, (_, _) -> null));
 
@@ -3460,7 +3440,7 @@ public sealed abstract class JavaOp extends Op {
                 }));
 
                 Block.Builder update = b.block();
-                setBranchTarget(b.context(), this, new BranchTarget(exit, update));
+                BranchTarget.setBranchTarget(b.context(), this, exit, update);
 
                 body.body(this.body, initValues, andThenLowering(opT, (_, _) -> null));
 
@@ -3486,7 +3466,7 @@ public sealed abstract class JavaOp extends Op {
                     }
                 }));
 
-                setBranchTarget(b.context(), this, new BranchTarget(exit, header));
+                BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
                 body.body(this.body, initValues, andThenLowering(opT, (_, _) -> null));
             }
@@ -3618,7 +3598,7 @@ public sealed abstract class JavaOp extends Op {
                 }
             }));
 
-            setBranchTarget(b.context(), this, new BranchTarget(exit, header));
+            BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
             body.body(loopBody(), List.of(), andThenLowering(opT, (_, _) -> null));
 
@@ -3739,7 +3719,7 @@ public sealed abstract class JavaOp extends Op {
 
             b.op(branch(body.successor()));
 
-            setBranchTarget(b.context(), this, new BranchTarget(exit, header));
+            BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
             body.body(loopBody(), List.of(), andThenLowering(opT, (_, _) -> null));
 
@@ -4027,7 +4007,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder exit = b.block(resultType());
             exit.context().mapValue(result(), exit.parameters().get(0));
 
-            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             List<Block.Builder> builders = List.of(b.block(), b.block());
             b.body(bodies.get(0), List.of(), andThenLowering(opT, (block, op) -> {
@@ -4263,7 +4243,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             Block.Builder exit = b.block();
-            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             // Simple case with no catch and finally bodies
             if (catchers.isEmpty() && finalizer == null) {
