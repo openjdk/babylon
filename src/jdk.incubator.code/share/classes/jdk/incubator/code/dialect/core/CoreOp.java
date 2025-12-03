@@ -392,17 +392,8 @@ public sealed abstract class CoreOp extends Op {
                 throw new IllegalArgumentException("Method of name " + lambdaName + " already exists");
             }
             CoreOp.FuncOp funcOp;
-            List<JavaOp.InvokeOp> invokeOps = lambdaOp.body().elements()
-                    .filter(e -> e instanceof JavaOp.InvokeOp)
-                    .map(e -> (JavaOp.InvokeOp) e)
-                    .toList();
-            if (invokeOps.size() == 1 &&
-                    lambdaOp.body().elements().filter(e -> e instanceof Op).allMatch(
-                            e -> e instanceof VarOp ||
-                                    e instanceof VarAccessOp.VarLoadOp ||
-                                    e instanceof JavaOp.InvokeOp ||
-                                    e instanceof BodyTerminating)) {
-                funcOp = invokeToFuncOp(invokeOps.getFirst(), l);
+            if (lambdaOp.directInvocation().isPresent()) {
+                funcOp = invokeToFuncOp(lambdaOp.directInvocation().get(), l);
             } else {
                 funcOp = lambdaOp.toFuncOp(lambdaName);
             }
