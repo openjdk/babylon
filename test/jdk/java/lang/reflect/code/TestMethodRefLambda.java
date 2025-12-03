@@ -55,6 +55,7 @@ public class TestMethodRefLambda {
     @Reflect
     interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {}
 
+    @Reflect
     List<Object> methodRefLambdas() {
         return List.of(
                 (QuotableIntUnaryOperator) TestMethodRefLambda::m1,
