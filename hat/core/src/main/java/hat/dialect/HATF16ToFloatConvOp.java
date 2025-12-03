@@ -38,12 +38,14 @@ public class HATF16ToFloatConvOp extends HATF16Op {
     private final TypeElement typeElement;
     private final boolean isLocal;
     private final boolean wasFloat;
+    private final ReducedFloatType reducedFloatType;
 
-    public HATF16ToFloatConvOp(TypeElement typeElement, boolean isLocal, boolean wasFloat, List<Value> operands) {
+    public HATF16ToFloatConvOp(TypeElement typeElement, ReducedFloatType reducedFloatType, boolean isLocal, boolean wasFloat, List<Value> operands) {
         super("", operands);
         this.typeElement = typeElement;
         this.isLocal = isLocal;
         this.wasFloat = wasFloat;
+        this.reducedFloatType = reducedFloatType;
     }
 
     public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CodeContext copyContext) {
@@ -51,6 +53,7 @@ public class HATF16ToFloatConvOp extends HATF16Op {
         this.typeElement = op.typeElement;
         this.isLocal = op.isLocal;
         this.wasFloat = op.wasFloat;
+        this.reducedFloatType = op.reducedFloatType;
     }
 
     @Override
@@ -74,6 +77,10 @@ public class HATF16ToFloatConvOp extends HATF16Op {
 
     public boolean wasFloat() {
         return wasFloat;
+    }
+
+    public ReducedFloatType reducedFloatType() {
+        return reducedFloatType;
     }
 
 }

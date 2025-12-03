@@ -24,18 +24,13 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.BF16;
+import hat.buffer.BF16Array;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
+import hat.buffer.HAType;
 import hat.device.DeviceType;
-import hat.dialect.HATBarrierOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATMemoryOp;
-import hat.dialect.HATPhaseUtils;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -49,6 +44,8 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+
+import java.util.List;
 
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements BabylonOpBuilder<T> {
 
@@ -81,10 +78,18 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
         Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
-        if (op instanceof CoreOp.VarOp varOp) {
-            varName(varOp).equals();
-        } else if (op instanceof HATF16VarOp hatf16VarOp) {
-            varName(hatf16VarOp).equals();
+        // When the op is intended to operate as VarOp, then we need to include it in the following switch.
+        // This is because HAT has its own dialect, and some of the Ops operate on HAT Types (not included in the Java
+        // dialect). For instance, private data structures, local data structures, vector types, etc.
+        switch (op) {
+            case CoreOp.VarOp varOp -> varName(varOp).equals();
+            case HATF16VarOp hatf16VarOp -> varName(hatf16VarOp).equals();
+            case HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp).equals();
+            case HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp).equals();
+            case HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp).equals();
+            case HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp).equals();
+            case null, default -> {
+            }
         }
         parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
         return self();
@@ -347,16 +352,23 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
+    private boolean isbfloat16(Schema.IfaceType ifaceType) {
+        return (ifaceType.iface.getName().equals(BF16.class.getName())
+                || ifaceType.iface.getName().equals(BF16Array.BF16Impl.class.getName()));
+    }
+
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
                     var fieldIdx = StreamMutable.of(0);
-                    separated(ifaceType.fields, (_) -> nl(), field -> {
+                    separated(ifaceType.fields, (_) -> semicolon().nl(), field -> {
                         boolean isLast = fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
                             if (isHalfType(ifaceType)) {
                                 typeName("half");
+                            } else if (isbfloat16(ifaceType)) {
+                                typeName("BFLOAT16");
                             } else {
                                 typeName(primitiveField.type.getSimpleName());
                             }
@@ -388,7 +400,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                 }
                             }
                         } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
-                            suffix_t(ifaceField.ifaceType.iface.getSimpleName());
+                            suffix_t(ifaceField.ifaceType.iface);
                             space().typeName(ifaceField.name);
                             if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
                                 if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
@@ -417,14 +429,13 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                 }
                             }
                         } else if (field instanceof Schema.SchemaNode.Padding padding) {
-                            emitText(padding.toC99()).semicolon().nl();
+                            emitText(padding.toC99());
                         } else {
                             throw new IllegalStateException("hmm");
                         }
-                        semicolon();
                         fieldIdx.set(fieldIdx.get() + 1);
                     });
-                }).suffix_t(ifaceType.iface.getSimpleName()).semicolon().nl().nl();
+                }).suffix_t(ifaceType.iface).semicolon().nl().nl();
         return self();
     }
 
@@ -440,8 +451,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
-                || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())
-                || HATPhaseUtils.isDeviceTypeInvokeDescriptor(invokeOp)) {
+                || OpTk.isInvokeDescriptorSubtypeOfAnyMatch(invokeOp, List.of(HAType.class, DeviceType.class))) {
             if (invokeOp.operands().size() == 1
                     && OpTk.funcName(invokeOp) instanceof String funcName
                     && funcName.startsWith("atomic")

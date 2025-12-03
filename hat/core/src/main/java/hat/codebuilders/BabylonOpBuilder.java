@@ -31,21 +31,21 @@ import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
+import hat.dialect.HATGlobalSizeOp;
+import hat.dialect.HATGlobalThreadIdOp;
+import hat.dialect.HATLocalSizeOp;
+import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateVarInitOp;
+import hat.dialect.HATPrivateInitVarOp;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
 import hat.optools.OpTk;
@@ -148,13 +148,13 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp);
 
-    T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp);
+    T hatVectorMakeOf(ScopedCodeBuilderContext buildContext, HATVectorMakeOfOp hatVectorMakeOfOp);
 
-    T hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
+    T hatF16ToFloatConvOp(ScopedCodeBuilderContext buildContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
-    T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateVarInitOp hatPrivateVarInitOp);
+    T hatPrivateVarInitOp(ScopedCodeBuilderContext buildContext, HATPrivateInitVarOp hatPrivateInitVarOp);
 
-    T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp);
+    T hatMemoryLoadOp(ScopedCodeBuilderContext buildContext, HATMemoryLoadOp hatMemoryLoadOp);
 
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
@@ -186,7 +186,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATBarrierOp $ -> barrier(buildContext, $);
             case HATLocalVarOp $ -> hatLocalVarOp(buildContext, $);
             case HATPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
-            case HATPrivateVarInitOp $ -> hatPrivateVarInitOp(buildContext, $);
+            case HATPrivateInitVarOp $ -> hatPrivateVarInitOp(buildContext, $);
             case HATGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
             case HATGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
             case HATLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);

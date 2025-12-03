@@ -29,12 +29,9 @@ import hat.ifacemapper.Schema;
 
 public interface F16Array extends Buffer {
     int length();
-
     F16Impl array(long index);
 
     interface F16Impl extends Struct, F16 {
-        String NAME = "F16Impl";
-
         short value();
         void value(short value);
     }

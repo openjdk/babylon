@@ -24,33 +24,12 @@
  */
 package job;
 
-import java.util.Set;
+public interface CommonConfig<T extends CommonConfig<T>> {
+    boolean command();
 
-public interface Dependency {
-    Project.Id id();
+    boolean warnings();
 
-    Set<Dependency> dependencies();
+    boolean verbose();
 
-    interface WithPath extends Dependency {
-    }
-
-    interface Buildable extends Dependency {
-        boolean build();
-        boolean clean(boolean verbose);
-    }
-
-    interface Executable extends Dependency {
-    }
-
-    interface ExecutableJar extends Executable {
-        boolean run(Jar.JavaConfig javaOpts, Dependency ...unorderedDeps);
-    }
-
-    interface Runnable extends Executable {
-        boolean run();
-    }
-
-    interface Optional extends Dependency {
-        boolean isAvailable();
-    }
+    boolean progress();
 }

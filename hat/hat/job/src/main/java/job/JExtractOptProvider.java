@@ -27,6 +27,6 @@ package job;
 import java.nio.file.Path;
 
 interface JExtractOptProvider {
-    void jExtractOpts(ForkExec.Opts opts);
+    void jExtractOpts(StringList stringList);
      void writeCompilerFlags(Path outputDir);
 }

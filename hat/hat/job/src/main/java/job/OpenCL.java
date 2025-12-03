@@ -41,16 +41,16 @@ public class OpenCL extends CMakeInfo {
     }
 
     @Override
-    public void jExtractOpts(ForkExec.Opts opts) {
+    public void jExtractOpts(StringList stringList) {
         if (isAvailable()) {
             if (darwin) {
-                opts.add(
+                stringList.add(
                         "--library", ":/System/Library/Frameworks/OpenCL.framework/OpenCL",
                         "--header-class-name", "opencl_h",
                         fwk + "/OpenCL.framework/Headers/opencl.h"
                 );
             } else if (linux) {
-                opts.add(
+                stringList.add(
                         "--library", asString("OpenCL_LIBRARY"),
                         "--include-dir","\"/usr/include/linux;/usr/include\"",
                         "--header-class-name", "opencl_h",

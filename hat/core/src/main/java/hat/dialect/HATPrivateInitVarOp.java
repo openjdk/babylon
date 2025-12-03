@@ -34,14 +34,14 @@ import jdk.incubator.code.dialect.java.ClassType;
 import java.util.List;
 import java.util.Map;
 
-public class HATPrivateVarInitOp extends HATMemoryOp {
+public class HATPrivateInitVarOp extends HATMemoryOp {
 
     private final TypeElement typeElement;
     private final ClassType klassType;
     private final TypeElement invokeResultType;
     private final String varName;
 
-    public HATPrivateVarInitOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+    public HATPrivateInitVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
         super(varName, operands);
         this.varName = varName;
         this.typeElement = typeElement;
@@ -49,7 +49,7 @@ public class HATPrivateVarInitOp extends HATMemoryOp {
         this.invokeResultType = invokeResultType;
     }
 
-    public HATPrivateVarInitOp(HATPrivateVarInitOp op, CodeContext copyContext) {
+    public HATPrivateInitVarOp(HATPrivateInitVarOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.varName = op.varName;
         this.typeElement = op.resultType();
@@ -59,7 +59,7 @@ public class HATPrivateVarInitOp extends HATMemoryOp {
 
     @Override
     public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATPrivateVarInitOp(this, copyContext);
+        return new HATPrivateInitVarOp(this, copyContext);
     }
 
     @Override

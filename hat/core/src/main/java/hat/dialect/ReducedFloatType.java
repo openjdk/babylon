@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,35 +22,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package job;
+package hat.dialect;
 
-import java.util.Set;
+public interface ReducedFloatType {
 
-public interface Dependency {
-    Project.Id id();
-
-    Set<Dependency> dependencies();
-
-    interface WithPath extends Dependency {
+    interface HalfFloat extends ReducedFloatType {
+        static HalfFloat of() {
+            return new HalfFloat() {};
+        }
     }
 
-    interface Buildable extends Dependency {
-        boolean build();
-        boolean clean(boolean verbose);
-    }
-
-    interface Executable extends Dependency {
-    }
-
-    interface ExecutableJar extends Executable {
-        boolean run(Jar.JavaConfig javaOpts, Dependency ...unorderedDeps);
-    }
-
-    interface Runnable extends Executable {
-        boolean run();
-    }
-
-    interface Optional extends Dependency {
-        boolean isAvailable();
+    interface BFloat16 extends ReducedFloatType {
+        static BFloat16 of() {
+            return new BFloat16() {};
+        }
     }
 }

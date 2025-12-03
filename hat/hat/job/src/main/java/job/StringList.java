@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,8 +22,42 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package job;
 
-public interface HATVector {
+import java.util.ArrayList;
+import java.util.List;
+
+public class StringList {
+    private List<String> opts = new ArrayList<>();
+    public List<String> list(){
+        return opts;
+    }
+    private StringList() {
+
+    }
+    StringList addIf(boolean condition, String... opts) {
+        return condition?add(List.of(opts)):this;
+    }
+
+    StringList add(String... opts) {
+        return add(List.of(opts));
+    }
+
+    StringList add(List<String> opts) {
+        this.opts.addAll(opts);
+        return this;
+    }
+
+  //  public static Opts of(String executable) {
+    //    return of().add(executable);
+   // }
+    public static StringList of() {
+        return new StringList();
+    }
+
+    @Override
+    public String toString() {
+        return String.join(" ", opts);
+    }
 
 }

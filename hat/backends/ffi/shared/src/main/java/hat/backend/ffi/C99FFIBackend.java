@@ -31,12 +31,8 @@ import hat.KernelContext;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
-import hat.buffer.F16;
-import hat.buffer.KernelBufferContext;
+import hat.buffer.*;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.buffer.ArgArray;
-import hat.buffer.Buffer;
-import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
@@ -222,7 +218,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 builder.semicolon().nl();
             }
             builder.out();
-            builder.cbrace().suffix_t(dsName).semicolon().nl();
+            builder.cbrace().suffix_t(dsName).semicolon().nl().nl();
         }
     }
 
@@ -283,6 +279,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             // Add HAT reserved types
             typedefs.add(F16.class.getName());
+            typedefs.add(BF16.class.getName());
 
             for (TypeElement typeElement : localIFaceList) {
                 try {

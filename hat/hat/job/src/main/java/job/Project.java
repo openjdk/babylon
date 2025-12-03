@@ -65,9 +65,11 @@ public class Project {
         return Jar.of(id(strId),excludedFiles,dependencies);
     }
     public JExtract jextract(String strId, Dependency... dependencies){
+        return JExtract.extract(id(strId),Set.of(dependencies));
+    }
+    public JExtract jextract(String strId, Set<Dependency> dependencies){
         return JExtract.extract(id(strId),dependencies);
     }
-
     enum IdType {Unknown, CMakeAndJar, Jar,CMake,CMakeInfo,JExtract,Custom}
 
     public record Id(Project project, IdType type, String fullHyphenatedName, String projectRelativeHyphenatedName,
@@ -206,13 +208,17 @@ public class Project {
     private final Path rootPath;
     private final Path buildPath;
     private final Path confPath;
-    private final Jar.JavacOpts javacOpts;
+    private final Jar.JavacConfig javacOpts;
+    private final CMake.Config cmakeOpts;
+    private final JExtract.Config jextractOpts;
     private final Map<String, Dependency> artifacts = new LinkedHashMap<>();
 
     public String name() {
         return rootPath().getFileName().toString();
     }
-    public Jar.JavacOpts javacOpts() {return javacOpts;}
+    public Jar.JavacConfig javacOpts() {return javacOpts;}
+    public CMake.Config cmakeOpts() {return cmakeOpts;}
+    public JExtract.Config jextractOpts() {return jextractOpts;}
     public Path rootPath() {
         return rootPath;
     }
@@ -225,20 +231,17 @@ public class Project {
         return confPath;
     }
 
-    public final Reporter reporter;
 
-    public Project(Path root, Jar.JavacOpts javacOpts,Reporter reporter) {
+    public Project(Path root, Jar.JavacConfig javacConfig, CMake.Config cmakeConfig, JExtract.Config jextractConfig) {
         this.rootPath = root;
-        this.javacOpts = javacOpts;
+        this.javacOpts = javacConfig;
+        this.cmakeOpts = cmakeConfig;
+        this.jextractOpts = jextractConfig;
         if (!Files.exists(root)) {
             throw new IllegalArgumentException("Root path for project does not exist: " + root);
         }
         this.buildPath = root.resolve("build");
         this.confPath = root.resolve("conf");
-        this.reporter = reporter;
-    }
-    public Project(Path root, Reporter reporter) {
-        this(root, Jar.JavacOpts.of(),reporter);
     }
 
 
@@ -263,14 +266,18 @@ public class Project {
         }
     }
 
-    public void clean(Dependency dependency, Path... paths) {
+    public void clean(boolean verbose, Dependency dependency, Path... paths) {
         for (Path path : paths) {
             if (Files.exists(path)) {
                 try (var files = Files.walk(path)) {
                     files.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-                    reporter.command(dependency, "rm -rf " + path);
+                    if (verbose){
+                        System.out.println("rm -rf " + path);
+                    }
                     mkdir(path);
-                    reporter.command(dependency, "mkdir -p " + path);
+                    if (verbose){
+                        System.out.println("mkdir -p " + path);
+                    }
                 } catch (Throwable t) {
                     throw new RuntimeException(t);
                 }
@@ -290,7 +297,7 @@ public class Project {
         }
     }
 
-    public Dag clean(Set<Dependency> dependencies) {
+    public Dag clean(boolean verbose,Set<Dependency> dependencies) {
         boolean all = false;
         if (dependencies.isEmpty()) {
             all = true;
@@ -300,15 +307,15 @@ public class Project {
         dag.ordered().stream()
                 .filter(d -> d instanceof Dependency.Buildable)
                 .map(d -> (Dependency.Buildable) d)
-                .forEach(Dependency.Buildable::clean);
+                .forEach(d->d.clean(verbose));
         if (all) {
             rmdir(buildPath());
         }
         return dag;
     }
 
-    public Dag clean(String... names) {
-        return clean(Set.of(names).stream().map(s -> this.artifacts.get(s)).collect(Collectors.toSet()));
+    public Dag clean(boolean verbose, String... names) {
+        return clean(verbose,Set.of(names).stream().map(s -> this.artifacts.get(s)).collect(Collectors.toSet()));
     }
 
     public Dag build(Dag dag) {

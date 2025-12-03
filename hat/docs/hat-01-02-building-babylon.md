@@ -27,32 +27,15 @@ Openjdk Babylon can be found here [https://github.com/openjdk/babylon](https://g
 If you follow the steps below to build babylon, you should not have to
 change any of the maven or cmake build files for hat.
 
-
 ## Some useful vars
 
-You will need an existing version of JDK to build babylon and jtreg.
+You will need an existing version of JDK to build babylon and [jtreg](https://github.com/openjdk/jtreg).
 
-The following build process assumes you have `BOOT_JDK` set to an existing JDK
+The following build process assumes you have `BOOT_JDK` set to an existing JDK ([JDK 25+](https://jdk.java.net/25/)).
+Note that for the Babylon development we use [JDK 26](https://jdk.java.net/26/).
 
 ```bash
-export BOOT_JDK=${HOME}/java/jdk-22.0.1.jdk/Contents/Home/
-```
-
-If you don't have jdk22, these steps are slightly different for Mac OSX and Ubuntu
-
-### Ubuntu
-
-```
-cd ${HOME}/java
-wget https://download.java.net/java/GA/jdk22.0.1/c7ec1332f7bb44aeba2eb341ae18aca4/8/GPL/openjdk-22.0.1_linux-x64_bin.tar.gz
-export BOOT_JDK=${HOME}/java/jdk-22.0.1.jdk
-```
-
-### Mac OSX Aarch64
-```
-cd ${HOME}/java
-wget https://download.java.net/java/GA/jdk22.0.1/c7ec1332f7bb44aeba2eb341ae18aca4/8/GPL/openjdk-22.0.1_linux-x64_bin.tar.gz
-export BOOT_JDK=${HOME}/java/jdk-22.0.1.jdk/Contents/Home
+export BOOT_JDK=${HOME}/java/jdk-25.0.1.jdk/Contents/Home/
 ```
 
 ### Create a suitable github dir
@@ -90,10 +73,10 @@ git clone https://github.com/openjdk/jtreg
 We will build it now using our `BOOT_JDK`
 
 ```bash
-export JTREG_HOME=${GITHUB}/jtreg
-cd ${JTREG_HOME}
+export JTREG_ROOT=${GITHUB}/jtreg
+cd ${JTREG_ROOT}
 bash make/build.sh --jdk ${BOOT_JDK}
-export JTREG=${JTREG_HOME}/build/images/jtreg
+export JTREG_HOME=${JTREG_ROOT}/build/images/jtreg
 ```
 
 ### Configure
@@ -102,7 +85,7 @@ export JTREG=${JTREG_HOME}/build/images/jtreg
 cd ${GITHUB}
 git clone https://github.com/openjdk/babylon.git
 cd ${GITHUB}/babylon
-bash configure  --with-boot-jdk=${BOOT_JDK} --with-jtreg=${JTREG}
+bash configure  --with-boot-jdk=${BOOT_JDK} --with-jtreg=${JTREG_HOME}
 ```
 If you have never built JDK before you may find that the 'configure'
 step will suggest packages to install.

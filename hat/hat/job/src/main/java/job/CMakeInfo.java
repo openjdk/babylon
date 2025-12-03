@@ -80,7 +80,7 @@ public abstract class CMakeInfo extends CMake implements Dependency.Optional, JE
     final Map<String, String> otherVarMap = new LinkedHashMap<>();
     final boolean available;
 
-    CMakeInfo(Project.Id id, String find, String response, Set<String> varsIn, Set<Dependency> buildDependencies) {
+    CMakeInfo(Project.Id id,  String find, String response, Set<String> varsIn, Set<Dependency> buildDependencies) {
         super(id, id.project().confPath().resolve("cmake-info").resolve(find), buildDependencies);
         this.find = find;
         this.response = response;

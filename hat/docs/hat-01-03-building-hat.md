@@ -42,15 +42,13 @@ sudo apt install cmake
 brew install cmake
 ```
 
-
 You will also need a Babylon JDK built (the one we built [here](hat-01-02-building-babylon.md))
-
 
 ## Setting your PATH variable
 
 To build HAT we will need `JAVA_HOME` to point to our prebuilt babylon jdk
 
-I suggest you also create a `JEXTRACT_HOME` var to point to the location where you placed JEXTRACT)
+I suggest you also create a `JEXTRACT_HOME` var to point to the location where you placed `JEXTRACT`)
 
 In my case
 ```
@@ -61,13 +59,12 @@ Make sure also that `cmake` in in your PATH
 
 ## ./env.bash
 
-Thankfully just sourcing the top level `env.bash` script should then be able to set up your PATH for you.
+Thankfully just sourcing the top level `env.bash` script should then be able to set up your `PATH` for you.
 
 It should detect the arch type (AARCH64 or X86_46) and
-select the correct relative parent dir for your BABYLON_JDK and inject that dir in your PATH.
+select the correct relative parent dir for your BABYLON_JDK and inject that dir in your `PATH`.
 
-It should also add jextract to your PATH (based on the value you set above for JEXTRACT_HOME)
-
+It should also add jextract to your PATH (based on the value you set above for `JEXTRACT_HOME`)
 
 
 ```bash
@@ -112,10 +109,9 @@ or files without appropriate licence headers
 
 This is run using
 
-```
+```bash
 java @hat/sanity
 ```
-
 
 ## Running an example
 
@@ -188,6 +184,106 @@ Is just a shortcut for
 java --add-modules jdk.incubator.code --enable-preview --source 26 hat/bld.java
 ```
 
+# HAT Testing Framework
+
+## Local Testing
+
+For the OpenCL backend:
+
+```bash
+java -cp hat/job.jar hat.java test-suite ffi-opencl
+```
+
+For the CUDA backend:
+
+```bash
+java -cp hat/job.jar hat.java test-suite ffi-cuda
+```
+
+## Individual tests
+
+```bash
+java -cp hat/job.jar hat.java test-suite ffi-cuda CLASS#method
+```
+
+Passing a particular method to test is optional.
+
+For example, to test the whole `TestArrays` class:
+
+```bash
+java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestArrays
+
+HAT Engine Testing Framework
+Testing Backend: hat.backend.ffi.OpenCLBackend
+
+Class: hat.test.TestArrays
+Testing: #testHelloHat                  ..................... [ok]
+Testing: #testVectorAddition            ..................... [ok]
+Testing: #testVectorSaxpy               ..................... [ok]
+Testing: #testSmallGrid                 ..................... [ok]
+
+passed: 4, failed: 0, unsupported: 0
+```
+
+To test a single method (e.g., `testVectorAddition`):
+
+
+```bash
+java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestArrays#testVectorAddition
+
+HAT Engine Testing Framework
+Testing Backend: hat.backend.ffi.OpenCLBackend
+
+Class: hat.test.TestArrays
+Testing: #testVectorAddition            ..................... [ok]
+
+passed: 1, failed: 0, unsupported: 0
+```
+
+## Remote Testing
+
+HAT provides its own testing framework that can be used to test on remote GPU servers.
+First, you need to generate and configure the template:
+
+```bash
+bash scripts/remoteTesting.sh --generate-config-file
+```
+
+This flag generates a file in the local directory called `remoteTesting.conf`.
+We just need to fill the template with the server names, and user names, fork to use, backends to test and the branch to use.
+
+For instance:
+
+```bash
+# HAT Remote Testing Settings
+SERVERS=server1 server2
+REMOTE_USERS=juan juan
+FORK=git@github.com:my-fork/babylon.git
+
+#List of Backends to test
+BACKENDS=ffi-cuda ffi-opencl
+
+## Remote path. It assumes all servers use the same path
+REMOTE_PATH=repos/babylon
+## Branch to test
+BRANCH=code-reflection
+```
+
+This assumes you have the `ssh-keygen` already configured.
+
+Then, we need to build the project Babylon:
+
+```bash
+bash scripts/remoteTesting.sh --build-babylon
+```
+
+This builds babylon for each of the servers specified. The project is stored in the path specified in `REMOTE_PATH`.
+
+Once it is finished, you can run the unit-tests on the remote GPU servers as follows:
+
+```bash
+bash scripts/remoteTesting.sh
+```
 
 ----
 ### HAT runtime environment variable.
