@@ -568,4 +568,8 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T builtin(String text) {
         return emitText(text);
     }
+
+    public T composeIdentifier(String preffix, String postfix) {
+        return identifier(preffix + postfix);
+    }
 }

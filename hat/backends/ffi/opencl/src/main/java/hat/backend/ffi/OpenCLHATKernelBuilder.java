@@ -44,6 +44,14 @@ import java.util.Objects;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
+    public OpenCLHATKernelBuilder vstore(int dims) {
+        return identifier("vstore" + dims);
+    }
+
+    public OpenCLHATKernelBuilder vload(int dims) {
+        return identifier("vload" + dims);
+    }
+
     @Override
     public OpenCLHATKernelBuilder defines() {
         return self()
@@ -112,7 +120,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
-        identifier("vstore" + hatVectorStoreView.vectorN())
+        vstore(hatVectorStoreView.vectorN())
                 .oparen();
         // if the value to be stored is an operation, recurse on the operation
         if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
@@ -164,7 +172,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-        identifier("vload" + hatVectorLoadOp.vectorN())
+        vload(hatVectorLoadOp.vectorN())
                 .oparen()
                 .intConstZero()
                 .comma()

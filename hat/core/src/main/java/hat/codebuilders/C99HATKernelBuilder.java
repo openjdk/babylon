@@ -60,6 +60,37 @@ import java.util.function.Consumer;
 import static hat.buffer.F16Array.F16Impl;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
+
+    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return kernelPrefix().voidType().space().funcName(funcOp);
+    }
+
+    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
+    }
+
+    public T kernelPrefix() {
+        return keyword("HAT_KERNEL").space();
+    }
+
+    public T functionPrefix() {
+        return keyword("HAT_FUNC").space();
+    }
+
+    public T globalPtrPrefix() {
+        return keyword("HAT_GLOBAL_MEM").space();
+    }
+
+    public T localPtrPrefix() {
+        return keyword("HAT_LOCAL_MEM").space();
+    }
+
+    public T syncBlockThreads() {
+        return identifier("HAT_BARRIER");
+    }
+
+    public abstract T defines();
+
     public T types() {
         return this
                 .charTypeDefs("byte", "boolean")
@@ -108,6 +139,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
     public T kernelMethod(ScopedCodeBuilderContext buildContext,CoreOp.FuncOp funcOp) {
           buildContext.funcScope(funcOp, () -> {
               nl();
@@ -188,8 +220,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         blockId(hatBlockThreadIdOp.getDimension());
         return self();
     }
-
-
 
     public T globalId(int id) {
         switch (id) {
@@ -439,35 +469,4 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
-
-    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return kernelPrefix().voidType().space().funcName(funcOp);
-    }
-
-    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
-        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
-    }
-
-    public T kernelPrefix() {
-        return keyword("HAT_KERNEL").space();
-    }
-
-    public T functionPrefix() {
-        return keyword("HAT_FUNC").space();
-    }
-
-    public T globalPtrPrefix() {
-        return keyword("HAT_GLOBAL_MEM").space();
-    }
-
-    public T localPtrPrefix() {
-        return keyword("HAT_LOCAL_MEM").space();
-    }
-
-    public T syncBlockThreads() {
-        return identifier("HAT_BARRIER");
-    }
-
-    public abstract T defines();
-
 }
