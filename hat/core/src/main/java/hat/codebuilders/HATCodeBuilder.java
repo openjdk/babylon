@@ -93,7 +93,6 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return identifier(klass.getSimpleName()).identifier("_s");
     }
 
-
     public T intDeclaration(String name) {
         return intType().space().identifier(name);
     }
@@ -436,7 +435,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         voidType().space().identifier(HAT_BUILT_IN_COPY_BYTES)
                 .paren(_-> voidType().space().asterisk().identifier("dest").comma()
                             .voidType().space().asterisk().identifier("src").comma()
-                            .typeName("size_t").space().asterisk().identifier("size"));
+                            .typeName("size_t").space().identifier("size"));
         braceNlIndented(_ ->
                 semicolonNlTerminated( _ -> unsignedCharType().space().asterisk().identifier("c").space()
                         .equals().space().paren( _ -> unsignedCharType().asterisk()).identifier("dest"))

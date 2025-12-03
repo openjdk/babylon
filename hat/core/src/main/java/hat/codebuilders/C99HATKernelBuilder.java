@@ -123,11 +123,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
             globalPtrPrefix().suffix_t(classType).asterisk();
-        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
-            // Check for special types (e.g., FP16)
-            globalPtrPrefix().suffix_t(F16Impl.class).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
             globalPtrPrefix().suffix_t(KernelContext.class).asterisk();
+        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
+            // Check for special types (e.g., FP16)
+            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
+            globalPtrPrefix().suffix_t(F16Impl.class).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(BF16.class.getCanonicalName())) {
             // Special type: BFLOAT16
             // TODO: We need to update this with a custom op, so we avoid direct use of Impls
