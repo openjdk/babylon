@@ -313,12 +313,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Boolean> references = hatF16BinaryOp.references();
         byte f32Mixed = hatF16BinaryOp.getF32();
 
-        oparen();
-        generateReduceFloatType(reducedFloatType);
-        cparen().obrace().oparen();
+        paren( _-> generateReduceFloatType(reducedFloatType)).obrace().oparen();
 
         if (f32Mixed == HATF16BinaryOp.LAST_OP) {
-            generateReducedFloatConversionToFloat(reducedFloatType);
+            generateReducedFloatConversionToFloat(reducedFloatType).oparen();
         }
 
         if (op1 instanceof Op.Result r) {
@@ -337,7 +335,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
 
         if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
-            generateReducedFloatConversionToFloat(reducedFloatType);
+            generateReducedFloatConversionToFloat(reducedFloatType).oparen();
         }
 
         if (op2 instanceof Op.Result r) {
@@ -351,6 +349,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
+            // close the pending parenthesis
             cparen();
         }
 
@@ -358,27 +357,30 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private void buildReducedFloatType(ReducedFloatType reducedFloatType) {
+    private CudaHATKernelBuilder buildReducedFloatType(ReducedFloatType reducedFloatType) {
         switch (reducedFloatType) {
             case ReducedFloatType.HalfFloat _ -> half2float();
             case ReducedFloatType.BFloat16 _ -> __nv_bfloat16();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
         }
+        return self();
     }
 
-    private void generateReduceFloatType(ReducedFloatType reducedFloatType) {
+    private CudaHATKernelBuilder generateReduceFloatType(ReducedFloatType reducedFloatType) {
         switch (reducedFloatType) {
             case ReducedFloatType.HalfFloat _ -> halfType();
             case ReducedFloatType.BFloat16 _ -> bfloatType();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
         }
+        return self();
     }
 
-    private void generateReducedFloatConversionToFloat(ReducedFloatType reducedFloatType) {
+    private CudaHATKernelBuilder generateReducedFloatConversionToFloat(ReducedFloatType reducedFloatType) {
         switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ ->  half2float().oparen();
-            case ReducedFloatType.BFloat16 _ ->  __bfloat162float().oparen();
+            case ReducedFloatType.HalfFloat _ ->  half2float();
+            case ReducedFloatType.BFloat16 _ ->  __bfloat162float();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
         }
+        return self();
     }
 }

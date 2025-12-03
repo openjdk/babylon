@@ -396,7 +396,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                 }
                             }
                         } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
-                            suffix_t(ifaceField.ifaceType.iface.getSimpleName());
+                            suffix_t(ifaceField.ifaceType.iface);
                             space().typeName(ifaceField.name);
                             if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
                                 if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
@@ -432,7 +432,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         semicolon();
                         fieldIdx.set(fieldIdx.get() + 1);
                     });
-                }).suffix_t(ifaceType.iface.getSimpleName()).semicolon().nl().nl();
+                }).suffix_t(ifaceType.iface).semicolon().nl().nl();
         return self();
     }
 

@@ -81,6 +81,18 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return identifier(name).identifier("_s");
     }
 
+    public T suffix_t(Class<?> klass) {
+        return identifier(klass.getSimpleName()).identifier("_t");
+    }
+
+    public T suffix_u(Class<?> klass) {
+        return identifier(klass.getSimpleName()).identifier("_u");
+    }
+
+    public T suffix_s(Class<?> klass) {
+        return identifier(klass.getSimpleName()).identifier("_s");
+    }
+
 
     public T intDeclaration(String name) {
         return intType().space().identifier(name);

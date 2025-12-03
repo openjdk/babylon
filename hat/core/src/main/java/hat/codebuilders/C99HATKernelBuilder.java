@@ -94,7 +94,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T types() {
         return this
                 .charTypeDefs("byte", "boolean")
-                .typedefStructOrUnion(true, KernelContext.class.getSimpleName(), _ -> {
+                .typedefStructOrUnion(true, KernelContext.class, _ -> {
                     intDeclaration("dimensions").semicolon().nl();
                 });
     }
@@ -109,14 +109,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
+    T typedefStructOrUnion(boolean isStruct, Class<?> klass, Consumer<T> consumer) {
         return typedefKeyword()
                 .space()
                 .structOrUnion(isStruct)
                 .space()
-                .either(isStruct, _ -> suffix_s(name), _ -> suffix_u(name))
+                .either(isStruct, _ -> suffix_s(klass), _ -> suffix_u(klass))
                 .braceNlIndented(consumer)
-                .suffix_t(name).semicolon().nl();
+                .suffix_t(klass).semicolon().nl();
     }
 
     @Override
@@ -125,15 +125,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             globalPtrPrefix().suffix_t(classType).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             // Check for special types (e.g., FP16)
-            globalPtrPrefix().suffix_t(F16Impl.class.getSimpleName()).asterisk();
+            globalPtrPrefix().suffix_t(F16Impl.class).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
-            // Check for special types (e.g., FP16)
-            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
-            globalPtrPrefix().suffix_t(KernelContext.class.getSimpleName()).asterisk();
+            globalPtrPrefix().suffix_t(KernelContext.class).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(BF16.class.getCanonicalName())) {
             // Special type: BFLOAT16
             // TODO: We need to update this with a custom op, so we avoid direct use of Impls
-            globalPtrPrefix().suffix_t(BF16Array.BF16Impl.class.getSimpleName()).asterisk();
+            globalPtrPrefix().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             typeName(javaType.toString());
         }
