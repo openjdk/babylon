@@ -162,6 +162,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private Symbol.ClassSymbol currentClassSym;
     private Symbol.ClassSymbol codeModelsClassSym;
     private int lambdaCount;
+    private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
     @SuppressWarnings("this-escape")
     protected ReflectMethods(Context context) {
@@ -220,6 +221,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         Symbol.ClassSymbol prevCodeModelsClassSym = codeModelsClassSym;
         int prevLambdaCount = lambdaCount;
         JavaFileObject prev = log.useSource(tree.sym.sourcefile);
+        computeCapturesIfNeeded(tree);
         try {
             lambdaCount = 0;
             currentClassSym = tree.sym;
@@ -240,6 +242,25 @@ public class ReflectMethods extends TreeTranslatorPrev {
             codeModelsClassSym = prevCodeModelsClassSym;
             result = tree;
             log.useSource(prev);
+        }
+    }
+
+    void computeCapturesIfNeeded(JCClassDecl tree) {
+        if (tree.sym.isDirectlyOrIndirectlyLocal() && !localCaptures.containsKey(tree.sym)) {
+            // we need to keep track of captured locals using same strategy as Lower
+            class FreeVarScanner extends Lower.FreeVarCollector {
+                FreeVarScanner() {
+                    lower.super(tree);
+                }
+
+                @Override
+                protected void addFreeVars(ClassSymbol c) {
+                    localCaptures.getOrDefault(c, List.of())
+                            .forEach(s -> addFreeVar((VarSymbol)s));
+                }
+            }
+            FreeVarScanner fvs = new FreeVarScanner();
+            localCaptures.put(tree.sym, List.copyOf(fvs.analyzeCaptures()));
         }
     }
 
@@ -405,7 +426,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
         private Type pt = Type.noType;
         private final boolean isQuoted;
         private Type bodyTarget;
-        private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
         BodyScanner(JCMethodDecl tree) {
             this.tree = tree;
@@ -502,6 +522,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             @Override
             public void visitClassDef(JCClassDecl tree) {
+                computeCapturesIfNeeded(tree);
                 seenClasses.add(tree.sym);
                 super.visitClassDef(tree);
             }
@@ -536,9 +557,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             @Override
             public void visitNewClass(JCNewClass tree) {
-                if (tree.type.tsym.owner.kind == MTH &&
-                        !seenClasses.contains(tree.type.tsym)) {
-                    throw unsupported(tree);
+                if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
+                    for (Symbol c : localCaptures.get(tree.type.tsym)) {
+                        addFreeVar((VarSymbol) c);
+                    }
+                }
+                if (tree.encl == null && tree.type.tsym.hasOuterInstance()) {
+                    capturesThis = true;
                 }
                 super.visitNewClass(tree);
             }
@@ -1315,15 +1340,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // @@@ Support local classes in pre-construction contexts
+            // this cannot happen, as constructors cannot be reflectable
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal() && (tree.type.tsym.flags() & NOOUTERTHIS) != 0) {
                 throw unsupported(tree);
             }
 
             List<TypeElement> argtypes = new ArrayList<>();
             Type type = tree.type;
-            Type outer = type.getEnclosingType();
             List<Value> args = new ArrayList<>();
-            if (!outer.hasTag(TypeTag.NONE)) {
+            if (type.tsym.hasOuterInstance()) {
                 // Obtain outer value for inner class, and add as first argument
                 JCTree.JCExpression encl = tree.encl;
                 Value outerInstance;
@@ -2388,22 +2413,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitClassDef(JCClassDecl tree) {
-            if (tree.sym.isDirectlyOrIndirectlyLocal()) {
-                // we need to keep track of captured locals using same strategy as Lower
-                class FreeVarScanner extends Lower.FreeVarCollector {
-                    FreeVarScanner() {
-                        lower.super(tree);
-                    }
-
-                    @Override
-                    protected void addFreeVars(ClassSymbol c) {
-                        localCaptures.getOrDefault(c, List.of())
-                                .forEach(s -> addFreeVar((VarSymbol)s));
-                    }
-                }
-                FreeVarScanner fvs = new FreeVarScanner();
-                localCaptures.put(tree.sym, List.copyOf(fvs.analyzeCaptures()));
-            }
+            computeCapturesIfNeeded(tree);
         }
 
         UnsupportedASTException unsupported(JCTree tree) {
