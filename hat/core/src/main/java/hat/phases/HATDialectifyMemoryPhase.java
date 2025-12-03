@@ -25,10 +25,10 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.device.DeviceType;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryLoadOp;
 import hat.dialect.HATMemoryOp;
-import hat.dialect.HATPhaseUtils;
 import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.optools.OpTk;
@@ -48,8 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static hat.dialect.HATPhaseUtils.isDeviceTypeInvokeDescriptor;
 
 public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
@@ -133,7 +131,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
             if (isIfaceBufferInvokeWithName(invokeOp, HATPrivateVarOp.INTRINSIC_NAME)) {
                 return true;
             } else {
-                return isMethod(invokeOp, HATPrivateVarOp.INTRINSIC_NAME) && HATPhaseUtils.isDeviceType(invokeOp);
+                return isMethod(invokeOp, HATPrivateVarOp.INTRINSIC_NAME) && OpTk.isDeviceType(invokeOp);
             }
         }
 
@@ -162,7 +160,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
             if (isIfaceBufferInvokeWithName(invokeOp, HATLocalVarOp.INTRINSIC_NAME)) {
                 return true;
             } else {
-                return (isMethod(invokeOp, HATLocalVarOp.INTRINSIC_NAME) &&  HATPhaseUtils.isDeviceType(invokeOp));
+                return (isMethod(invokeOp, HATLocalVarOp.INTRINSIC_NAME) &&  OpTk.isDeviceType(invokeOp));
             }
         }
 
@@ -191,7 +189,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
             if (isIfaceBufferInvokeWithName(invokeOp, HATLocalVarOp.INTRINSIC_NAME)) {
                 return true;
             } else {
-                return (isMethod(invokeOp, HATLocalVarOp.INTRINSIC_NAME) &&  HATPhaseUtils.isDeviceType(invokeOp));
+                return (isMethod(invokeOp, HATLocalVarOp.INTRINSIC_NAME) &&  OpTk.isDeviceType(invokeOp));
             }
         }
 
@@ -200,7 +198,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
         }
 
         private boolean meetConditionsForMemoryLoadOp(JavaOp.InvokeOp invokeOp) {
-            return isDeviceTypeInvokeDescriptor(invokeOp)
+            return OpTk.isInvokeDescriptorSubtypeOf(invokeOp, DeviceType.class)
                     && (invokeOp.resultType() != JavaType.VOID)
                     && (!(invokeOp.resultType() instanceof PrimitiveType))
                     && (!isDeviceTypeReservedMethod(invokeOp));

@@ -25,8 +25,7 @@
 package hat.optools;
 
 import hat.ComputeContext;
-import hat.buffer.BF16;
-import hat.buffer.F16;
+import hat.buffer.HAType;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
 import hat.device.DeviceType;
@@ -175,11 +174,17 @@ public class OpTk {
     public static boolean isAssignable(MethodHandles.Lookup lookup, JavaType javaType, Class<?>... classes) {
         if (javaType instanceof ClassType classType) {
             Type type = classTypeToTypeOrThrow(lookup, classType);
-            for (Class<?> clazz : classes) {
-                if (clazz.isAssignableFrom((Class<?>) type)) {
-                    return true;
-                }
-            }
+            return Arrays.stream(classes).anyMatch(clazz -> clazz.isAssignableFrom((Class<?>) type));
+        }
+        return false;
+
+    }
+
+    public static boolean isAssignableTo(MethodHandles.Lookup lookup, JavaType javaType, Class<?>... classes) {
+        if (javaType instanceof ClassType classType) {
+            Type type = classTypeToTypeOrThrow(lookup, classType);
+            Class<?> evalKlass = (Class<?>) type;
+            return Arrays.stream(classes).anyMatch(evalKlass::isAssignableFrom);
         }
         return false;
 
@@ -244,13 +249,12 @@ public class OpTk {
         return (JavaType) op.invokeDescriptor().refType();
     }
 
-    private static boolean isHATReservedType(JavaOp.InvokeOp invokeOp) {
-        String invokeRefType = invokeOp.invokeDescriptor().refType().toString();
-        return invokeRefType.equals(F16.class.getCanonicalName()) || invokeRefType.equals(BF16.class.getCanonicalName());
+    public static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+        return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class));
     }
 
-    public static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class) || isHATReservedType(invokeOp));
+    public static boolean isHatType(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+        return (isAssignableTo(lookup, javaRefType(invokeOp), DeviceType.class, MappableIface.class, HAType.class));
     }
 
     public static boolean isKernelContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
@@ -488,6 +492,62 @@ public class OpTk {
     }
     public static boolean fieldNameMatches(JavaOp.FieldAccessOp.FieldAccessOp fieldAccessOp, Pattern pattern) {
         return pattern.matcher(fieldName(fieldAccessOp)).matches();
+    }
+
+    public static void inspectNewLevel(Class<?> interfaceClass, Set<Class<?>> interfaceSet) {
+        if (interfaceClass != null && interfaceSet.add(interfaceClass)) {
+            // only if we add a new interface class, we inspect all interfaces that extends the current inspected class
+            Arrays.stream(interfaceClass.getInterfaces())
+                    .forEach(superInterface -> inspectNewLevel(superInterface, interfaceSet));
+        }
+    }
+
+    public static Set<Class<?>> inspectAllInterfaces(Class<?> klass) {
+        Set<Class<?>> interfaceSet = new HashSet<>();
+        while (klass != null) {
+            Arrays.stream(klass.getInterfaces())
+                    .forEach(interfaceClass -> inspectNewLevel(interfaceClass, interfaceSet));
+            klass = klass.getSuperclass();
+        }
+        return interfaceSet;
+    }
+
+    public static boolean isDeviceType(JavaOp.InvokeOp invokeOp) {
+        TypeElement typeElement = invokeOp.resultType();
+        Set<Class<?>> interfaces = Set.of();
+        try {
+            Class<?> aClass = Class.forName(typeElement.toString());
+            interfaces = inspectAllInterfaces(aClass);
+        } catch (ClassNotFoundException _) {
+        }
+        return interfaces.contains(DeviceType.class);
+    }
+
+    public static boolean isInvokeDescriptorSubtypeOf(JavaOp.InvokeOp invokeOp, Class<?> klass) {
+        TypeElement typeElement = invokeOp.invokeDescriptor().refType();
+        Set<Class<?>> interfaces = Set.of();
+        try {
+            Class<?> aClass = Class.forName(typeElement.toString());
+            interfaces = inspectAllInterfaces(aClass);
+        } catch (ClassNotFoundException _) {
+        }
+        return interfaces.contains(klass);
+    }
+
+    public static boolean isInvokeDescriptorSubtypeOfAnyMatch(JavaOp.InvokeOp invokeOp, List<Class<?>> klasses) {
+        TypeElement typeElement = invokeOp.invokeDescriptor().refType();
+        Set<Class<?>> interfaces = Set.of();
+        try {
+            Class<?> aClass = Class.forName(typeElement.toString());
+            interfaces = inspectAllInterfaces(aClass);
+        } catch (ClassNotFoundException _) {
+        }
+        for (Class<?> klass : klasses) {
+            if (interfaces.contains(klass)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public  record CallSite(Class<?> clazz,String methodName, boolean tracing){

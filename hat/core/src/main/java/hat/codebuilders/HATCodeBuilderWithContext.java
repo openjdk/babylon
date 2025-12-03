@@ -28,6 +28,8 @@ import hat.buffer.BF16;
 import hat.buffer.BF16Array;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
+import hat.buffer.HAType;
+import hat.device.DeviceType;
 import hat.dialect.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
@@ -42,6 +44,8 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+
+import java.util.List;
 
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements BabylonOpBuilder<T> {
 
@@ -448,9 +452,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
-                || invokeOp.invokeDescriptor().refType().toString().equals(F16.class.getCanonicalName())
-                || invokeOp.invokeDescriptor().refType().toString().equals(BF16.class.getCanonicalName())
-                || HATPhaseUtils.isDeviceTypeInvokeDescriptor(invokeOp)) {
+                || OpTk.isInvokeDescriptorSubtypeOfAnyMatch(invokeOp, List.of(HAType.class, DeviceType.class))) {
             if (invokeOp.operands().size() == 1
                     && OpTk.funcName(invokeOp) instanceof String funcName
                     && funcName.startsWith("atomic")

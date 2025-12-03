@@ -30,7 +30,6 @@ import hat.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
 

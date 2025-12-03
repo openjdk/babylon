@@ -24,7 +24,7 @@
  */
 package hat.buffer;
 
-public interface BF16 {
+public interface BF16 extends HAType {
 
     char value();
     void value(char value);
