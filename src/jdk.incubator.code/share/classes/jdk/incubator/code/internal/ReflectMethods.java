@@ -242,7 +242,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     void computeCapturesIfNeeded(JCClassDecl tree) {
-        if (tree.sym.isDirectlyOrIndirectlyLocal()) {
+        if (tree.sym.isDirectlyOrIndirectlyLocal() && !localCaptures.containsKey(tree.sym)) {
             // we need to keep track of captured locals using same strategy as Lower
             class FreeVarScanner extends Lower.FreeVarCollector {
                 FreeVarScanner() {
