@@ -93,10 +93,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T types() {
         return this
-                .charTypeDefs("byte", "boolean")
-                .typedefStructOrUnion(true, KernelContext.class, _ -> {
-                    intDeclaration("dimensions").semicolon().nl();
-                });
+                .charTypeDefs("byte", "boolean").nl()
+                .typedefStructOrUnion(true, KernelContext.class, _ ->
+                    intDeclaration("dimensions").semicolon()
+                )
+                .nl();
     }
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -182,7 +183,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T privateDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
-        return suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp()).nl();
+        return suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
     }
 
     public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
@@ -317,7 +318,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .oparen();
 
         if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
-            builtin_bfloat162float().oparen();
+            builtin_bfloat16ToFloat().oparen();
         }
 
 
@@ -336,7 +337,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         space().identifier(hatf16BinaryOp.binaryOperationType().symbol()).space();
 
         if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
-            builtin_bfloat162float().oparen();
+            builtin_bfloat16ToFloat().oparen();
         }
 
         if (op2 instanceof Op.Result r) {

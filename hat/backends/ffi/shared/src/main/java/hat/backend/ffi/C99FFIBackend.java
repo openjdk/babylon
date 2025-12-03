@@ -218,7 +218,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 builder.semicolon().nl();
             }
             builder.out();
-            builder.cbrace().suffix_t(dsName).semicolon().nl();
+            builder.cbrace().suffix_t(dsName).semicolon().nl().nl();
         }
     }
 
