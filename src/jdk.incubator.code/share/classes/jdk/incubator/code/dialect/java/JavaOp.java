@@ -2814,21 +2814,43 @@ public sealed abstract class JavaOp extends Op {
                 b = continueBlock;
             }
 
+            int defLabelIndex = -1;
+            for (int i = 0; i < bodies().size(); i+=2) {
+                Block eb = bodies().get(i).entryBlock();
+                // @@@ confusing YieldOp with Core.YieldOp in checks
+                if (eb.terminatingOp() instanceof CoreOp.YieldOp yop && yop.yieldValue() instanceof Op.Result r
+                        && r.op() instanceof ConstantOp cop && cop.resultType().equals(BOOLEAN)) {
+                    defLabelIndex = i;
+                    break;
+                }
+            }
+
             List<Block.Builder> blocks = new ArrayList<>();
             for (int i = 0; i < bodies().size(); i++) {
-                Block.Builder bb = b.block();
-                if (i == 0) {
-                    bb = b;
+                Block.Builder bb;
+                if (i == defLabelIndex) {
+                    // we don't need a block for default label
+                    bb = null;
+                } else {
+                    bb = b.block();
                 }
                 blocks.add(bb);
+            }
+            // append ops of the first non default label to b
+            for (int i = 0; i < blocks.size(); i+=2) {
+                if (blocks.get(i) == null) {
+                    continue;
+                }
+                blocks.set(i, b);
+                break;
             }
 
             Block.Builder exit;
             if (bodies().isEmpty()) {
                 exit = b;
             } else {
-                exit = b.block(resultType());
-                if (this instanceof SwitchExpressionOp) {
+                exit = resultType() == VOID ? b.block() : b.block(resultType());
+                if (!exit.parameters().isEmpty()) {
                     exit.context().mapValue(result(), exit.parameters().get(0));
                 }
             }
@@ -2840,42 +2862,53 @@ public sealed abstract class JavaOp extends Op {
                 setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
             }
 
-            for (int i = 0; i < bodies().size(); i++) {
-                boolean isLabelBody = i % 2 == 0;
-                Block.Builder curr = blocks.get(i);
-                if (isLabelBody) {
-                    Block.Builder statement = blocks.get(i + 1);
-                    boolean isLastLabel = i == blocks.size() - 2;
-                    Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
-                    curr.body(bodies().get(i), List.of(selectorExpression), andThenLowering(opT,
-                            (block, op) -> switch (op) {
-                                case CoreOp.YieldOp _ when isLastLabel && this instanceof SwitchExpressionOp -> {
-                                    block.op(branch(statement.successor()));
-                                    yield block;
-                                }
-                                case CoreOp.YieldOp yop -> {
-                                    block.op(conditionalBranch(
-                                        block.context().getValue(yop.yieldValue()),
-                                        statement.successor(),
-                                        isLastLabel ? exit.successor() : nextLabel.successor()));
-                                    yield block;
-                                }
-                                default -> null;
-                            }));
-                } else { // statement body
-                    curr.body(bodies().get(i), blocks.get(i).parameters(), andThenLowering(opT,
-                            (block, op) -> switch (op) {
-                                case CoreOp.YieldOp _ when this instanceof SwitchStatementOp -> {
-                                    block.op(branch(exit.successor()));
-                                    yield block;
-                                }
-                                case CoreOp.YieldOp yop when this instanceof SwitchExpressionOp -> {
-                                    block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
-                                    yield block;
-                                }
-                                default -> null;
-                            }));
+            for (int i = 0; i < bodies().size(); i+=2) {
+                if (i == defLabelIndex) {
+                    continue;
                 }
+                Block.Builder statement = blocks.get(i + 1);
+                boolean isLastLabel = i == blocks.size() - 2;
+                Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
+                int finalDefLabelIndex = defLabelIndex;
+                blocks.get(i).body(bodies().get(i), List.of(selectorExpression), andThenLowering(opT,
+                        (block, op) -> switch (op) {
+                            case CoreOp.YieldOp yop -> {
+                                Block.Reference falseTarget;
+                                if (nextLabel != null) {
+                                    falseTarget = nextLabel.successor();
+                                } else if (finalDefLabelIndex != -1) {
+                                    falseTarget = blocks.get(finalDefLabelIndex + 1).successor();
+                                } else {
+                                    falseTarget = exit.successor();
+                                }
+                                block.op(conditionalBranch(block.context().getValue(yop.yieldValue()),
+                                        statement.successor(), falseTarget));
+                                yield block;
+                            }
+                            default -> null;
+                        }));
+
+                blocks.get(i + 1).body(bodies().get(i + 1), List.of(), andThenLowering(opT,
+                        (block, op) -> switch (op) {
+                            case CoreOp.YieldOp yop -> {
+                                List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
+                                block.op(branch(exit.successor(args)));
+                                yield block;
+                            }
+                            default -> null;
+                        }));
+            }
+
+            if (defLabelIndex != -1) {
+                blocks.get(defLabelIndex + 1).body(bodies().get(defLabelIndex + 1), List.of(), andThenLowering(opT,
+                        (block, op) -> switch (op) {
+                            case CoreOp.YieldOp yop -> {
+                                List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
+                                block.op(branch(exit.successor(args)));
+                                yield block;
+                            }
+                            default -> null;
+                        }));
             }
 
             return exit;
