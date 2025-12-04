@@ -50,7 +50,6 @@ import com.sun.tools.javac.comp.Env;
 import com.sun.tools.javac.comp.Flow;
 import com.sun.tools.javac.comp.Lower;
 import com.sun.tools.javac.comp.CodeReflectionTransformer;
-import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.comp.TypeEnvs;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
@@ -114,9 +113,6 @@ import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
 import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
-import static com.sun.tools.javac.resources.CompilerProperties.Errors.*;
-import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
-import static com.sun.tools.javac.resources.CompilerProperties.Warnings.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.classfile.ClassFile;
@@ -128,6 +124,9 @@ import java.lang.invoke.MethodHandles;
 import javax.tools.JavaFileManager;
 import javax.tools.StandardLocation;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+
+import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
+import static com.sun.tools.javac.resources.CompilerProperties.Warnings.*;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
@@ -211,7 +210,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
                 if (dumpIR) {
                     // dump the method IR if requested
-                    log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
+                    log.note(ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToMethodRef(tree.sym));
@@ -300,7 +299,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
-                log.note(QuotedIrDump(funcOp.toText()));
+                log.note(ReflectableLambdaIrDump(funcOp.toText()));
             }
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
@@ -338,7 +337,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
-                log.note(QuotedIrDump(funcOp.toText()));
+                log.note(ReflectableMrefIrDump(funcOp.toText()));
             }
             // create a method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
