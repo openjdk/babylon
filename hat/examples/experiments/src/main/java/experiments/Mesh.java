@@ -25,6 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -160,7 +161,8 @@ public class Mesh {
                 vertex3D.to(random.nextInt(meshData.points()));
             }
 
-            accelerator.compute(cc -> Compute.buildMesh(cc, meshData));
+            accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                    cc -> Compute.buildMesh(cc, meshData));
         }else{
             System.out.println("layouts differ");
         }

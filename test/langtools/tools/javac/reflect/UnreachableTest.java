@@ -101,7 +101,7 @@ public class UnreachableTest {
     @Reflect
     @IR("""
             func @"test4" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=false (%1 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"i";
                     java.if
                         ()java.type:"boolean" -> {

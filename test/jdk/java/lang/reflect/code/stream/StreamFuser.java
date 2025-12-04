@@ -41,29 +41,6 @@ import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public final class StreamFuser {
 
-    // Quotable functional interfaces
-
-    @Reflect
-    public interface QuotablePredicate<T> extends Predicate<T> {
-    }
-
-    @Reflect
-    public interface QuotableFunction<T, R> extends Function<T, R> {
-    }
-
-    @Reflect
-    public interface QuotableSupplier<T> extends Supplier<T> {
-    }
-
-    @Reflect
-    public interface QuotableConsumer<T> extends Consumer<T> {
-    }
-
-    @Reflect
-    public interface QuotableBiConsumer<T, U> extends BiConsumer<T, U> {
-    }
-
-
     StreamFuser() {}
 
     public static <T> StreamExprBuilder<T> fromList(Class<T> elementClass) {
@@ -136,18 +113,18 @@ public final class StreamFuser {
         }
 
         @SuppressWarnings("unchecked")
-        public <R> StreamExprBuilder<R> map(QuotableFunction<T, R> f) {
+        public <R> StreamExprBuilder<R> map(Function<T, R> f) {
             streamOps.add(new MapStreamOp(f));
             return (StreamExprBuilder<R>) this;
         }
 
         @SuppressWarnings("unchecked")
-        public <R> StreamExprBuilder<R> flatMap(QuotableFunction<T, Iterable<R>> f) {
+        public <R> StreamExprBuilder<R> flatMap(Function<T, Iterable<R>> f) {
             streamOps.add(new FlatMapStreamOp(f));
             return (StreamExprBuilder<R>) this;
         }
 
-        public StreamExprBuilder<T> filter(QuotablePredicate<T> f) {
+        public StreamExprBuilder<T> filter(Predicate<T> f) {
             streamOps.add(new FilterStreamOp(f));
             return this;
         }
@@ -204,7 +181,7 @@ public final class StreamFuser {
             }
         }
 
-        public FuncOp forEach(QuotableConsumer<T> quotableConsumer) {
+        public FuncOp forEach(Consumer<T> quotableConsumer) {
             if (!(Op.ofQuotable(quotableConsumer).get().op() instanceof JavaOp.LambdaOp consumer)) {
                 throw new IllegalArgumentException("Quotable consumer is not lambda operation");
             }
@@ -231,7 +208,7 @@ public final class StreamFuser {
                     });
         }
 
-        public <C> FuncOp collect(QuotableSupplier<C> quotableSupplier, QuotableBiConsumer<C, T> quotableAccumulator) {
+        public <C> FuncOp collect(Supplier<C> quotableSupplier, BiConsumer<C, T> quotableAccumulator) {
             if (!(Op.ofQuotable(quotableSupplier).get().op() instanceof JavaOp.LambdaOp supplier)) {
                 throw new IllegalArgumentException("Quotable supplier is not lambda operation");
             }

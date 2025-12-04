@@ -63,6 +63,7 @@ public class TestArrayView {
     }
 
     @HatTest
+    @Reflect
     public static void testSquare() {
 
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
@@ -96,6 +97,7 @@ public class TestArrayView {
     }
 
     @HatTest
+    @Reflect
     public static void testSquareNoVarOp() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
@@ -126,6 +128,7 @@ public class TestArrayView {
     }
 
     @HatTest
+    @Reflect
     public static void testSquare2D() {
 
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
@@ -275,6 +278,7 @@ public class TestArrayView {
     }
 
     @HatTest
+    @Reflect
     public static void testLife() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
@@ -395,6 +399,7 @@ public class TestArrayView {
     }
 
     @HatTest
+    @Reflect
     public static void testMandel() {
         final int width = 1024;
         final int height = 1024;
@@ -521,6 +526,7 @@ public class TestArrayView {
     }
 
     @HatTest
+    @Reflect
     public static void testBlackScholes() {
         int size = 1024;
         Random rand = new Random();
@@ -628,6 +634,7 @@ public class TestArrayView {
     }
 
     @HatTest
+    @Reflect
     public static void testPrivateAndLocal() {
 
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());

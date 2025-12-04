@@ -160,15 +160,9 @@ public class TestLambdaOps {
         Assertions.assertEquals(fop.invokableType().returnType(), type(Quoted.class));
     }
 
-    @FunctionalInterface
     @Reflect
-    public interface QuotableIntSupplier extends IntSupplier {
-    }
-
-    @Reflect
-    static QuotableIntSupplier quote(int i) {
-        QuotableIntSupplier s = () -> i;
-        return s;
+    static IntSupplier quote(int i) {
+        return () -> i;
     }
 
     @Test
@@ -177,7 +171,7 @@ public class TestLambdaOps {
         System.out.println(g.toText());
 
         {
-            QuotableIntSupplier op = (QuotableIntSupplier) Interpreter.invoke(MethodHandles.lookup(), g, 42);
+            IntSupplier op = (IntSupplier) Interpreter.invoke(MethodHandles.lookup(), g, 42);
             Assertions.assertEquals(42, op.getAsInt());
 
             Quoted q = Op.ofQuotable(op).get();
@@ -195,7 +189,7 @@ public class TestLambdaOps {
         }
 
         {
-            QuotableIntSupplier op = quote(42);
+            IntSupplier op = quote(42);
             Assertions.assertEquals(42, op.getAsInt());
 
             Quoted q = Op.ofQuotable(op).get();
@@ -213,15 +207,6 @@ public class TestLambdaOps {
             Assertions.assertEquals(0, r);
         }
     }
-
-    @Reflect
-    interface QuotableIntUnaryOperator extends IntUnaryOperator {}
-
-    @Reflect
-    interface QuotableFunction<T, R> extends Function<T, R> {}
-
-    @Reflect
-    interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {}
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestLambdaOps.class.getDeclaredMethods())

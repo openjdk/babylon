@@ -25,6 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.annotations.Kernel;
@@ -379,7 +380,8 @@ public class PrefixSum {
 
 
         // Compute on the accelerator
-        accelerator.compute(cc -> PrefixSum.compute(cc, input));
+        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                cc -> PrefixSum.compute(cc, input));
 
 
     }

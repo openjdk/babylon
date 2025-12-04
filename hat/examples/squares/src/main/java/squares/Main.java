@@ -25,6 +25,7 @@
 package squares;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -62,7 +63,7 @@ public class Main {
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }
-        accelerator.compute(
+        accelerator.compute((@Reflect QuotableComputeContextConsumer)
                 cc -> Main.square(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {

@@ -25,6 +25,7 @@
 package matmul;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange.Global2D;
@@ -896,21 +897,21 @@ public class Main {
             long start = System.nanoTime();
             switch (configuration) {
                 case _MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
-                case _1D -> accelerator.compute(cc ->
+                case _1D -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
-                case _1DFC -> accelerator.compute(cc ->
+                case _1DFC -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
-                case _2D -> accelerator.compute(cc ->
+                case _2D -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
-                case _2DLI -> accelerator.compute(cc ->
+                case _2DLI -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
-                case _2DTILING -> accelerator.compute(cc ->
+                case _2DTILING -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
-                case _2DREGISTER_TILING -> accelerator.compute(cc ->
+                case _2DREGISTER_TILING -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply2DRegisterTiling(cc, matrixA, matrixB, matrixC, size));
-                case _2DREGISTER_TILING_VECTORIZED -> accelerator.compute(cc ->
+                case _2DREGISTER_TILING_VECTORIZED -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply2DRegisterTilingVectorizedAccesses(cc, matrixAPad, matrixBPad, matrixCPad, size));
-                case _2DREGISTER_TILING_FP16 -> accelerator.compute(cc ->
+                case _2DREGISTER_TILING_FP16 -> accelerator.compute((@Reflect QuotableComputeContextConsumer) cc ->
                         matrixMultiply2DRegisterTilingHalf(cc, matrixAHalf, matrixBHalf, matrixCHalf, size));
                 default -> throw new RuntimeException("Unknown configuration: " + configuration);
             }

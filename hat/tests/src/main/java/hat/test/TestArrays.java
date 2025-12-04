@@ -97,6 +97,7 @@ public class TestArrays {
     }
 
     @HatTest
+    @Reflect
     public static void testHelloHat() {
         final int size = 64;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -122,6 +123,7 @@ public class TestArrays {
     }
 
     @HatTest
+    @Reflect
     public static void testVectorAddition() {
         final int size = 8192;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -148,6 +150,7 @@ public class TestArrays {
     }
 
     @HatTest
+    @Reflect
     public static void testVectorSaxpy() {
         final int size = 8192;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -178,6 +181,7 @@ public class TestArrays {
     }
 
     @HatTest
+    @Reflect
     public static void testSmallGrid() {
         final int size = 50;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

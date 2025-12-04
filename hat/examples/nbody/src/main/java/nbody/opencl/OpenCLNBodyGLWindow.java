@@ -26,6 +26,7 @@ package nbody.opencl;
 
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.buffer.Float4;
@@ -368,7 +369,8 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
             float cdelT = delT;
             float cespSqr = espSqr;
             Universe cuniverse = universe;
-            accelerator.compute(cc -> nbodyCompute(cc, cuniverse, cmass, cdelT, cespSqr));
+            accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                    cc -> nbodyCompute(cc, cuniverse, cmass, cdelT, cespSqr));
         } else if (mode.equals(Mode.OpenCL4) || mode.equals(Mode.OpenCL)) {
 
             kernel.run(clWrapComputeContext, bodyCount, universe, mass, delT, espSqr);

@@ -25,6 +25,7 @@
 package life;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -255,7 +256,8 @@ public class Main {
 
         viewer.mainPanel.repaint();
         viewer.waitForStart();
-         accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                cc -> Compute.compute(cc, viewer, control, cellGrid));
 
     }
 }

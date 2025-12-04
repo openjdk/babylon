@@ -24,6 +24,8 @@
  */
 package hat.test;
 
+import jdk.incubator.code.Reflect;
+
 import hat.buffer.F16;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
@@ -69,6 +71,7 @@ public class TestDeviceType {
      * Note that {@link F16} type is provided by hat, and it can be used within {@link DeviceType}.
      */
     @HatTest
+    @Reflect
     public void testdevice_type_01() {
         MyDeviceArray myDeviceArray = MyDeviceArray.create();
         String text = MyDeviceArray.schema.toText();
@@ -104,6 +107,7 @@ public class TestDeviceType {
     }
 
     @HatTest
+    @Reflect
     public void testdevice_type_02() {
         MyNDRAnge myDeviceArray = MyNDRAnge.create();
         String text = MyNDRAnge.schema.toText();
@@ -147,6 +151,7 @@ public class TestDeviceType {
     }
 
     @HatTest
+    @Reflect
     public void testdevice_type_03() {
         // This test is expected to fail. It request a member called "range2" from the _2D class.
         // However, the method name is "_range2". Thus the requested method doen't exits.
@@ -186,6 +191,7 @@ public class TestDeviceType {
     }
 
     @HatTest
+    @Reflect
     public void testdevice_type_04() {
         // Same test as the previous one with the correct field names
         try {
