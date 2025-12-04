@@ -154,9 +154,6 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
                             javacCombinedOps + " " + String.join(" ", listOfSources.stream().map(JavaSource::getName).collect(Collectors.toList()));
                     System.out.println(commandLine);
                 }
-               // if (id().project().javacOpts().progress()){
-                 //   System.out.println("javac "+id.fullHyphenatedName());
-               // }
                 var diagnosticListener = new DiagnosticListener<JavaFileObject>() {
                     @Override
                     public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
@@ -314,8 +311,6 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
     }
 
     public  interface JavacConfig extends CommonConfig<JavacConfig> {
-
-
         List<String> vmOpts();
 
         record JavacConfigImpl(boolean command, boolean warnings, boolean progress, boolean verbose, List<String> vmOpts) implements JavacConfig {
@@ -324,9 +319,6 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
         static JavacConfig of(boolean command,boolean warnings, boolean progress, boolean verbose, List<String> vmOpts) {
             return new JavacConfigImpl(command,warnings, progress, verbose, vmOpts);
         }
-
-
-
 
         interface Builder extends  JavacConfig {
             Builder command(boolean f);
@@ -375,7 +367,7 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
 
                 @Override
                 public Builder vmOpt(String... opts) {
-                    List.of(opts).forEach(s -> vmOpts.add(s));
+                    vmOpts.addAll(List.of(opts));
                     return this;
                 }
 
@@ -418,7 +410,7 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
                 }
                 @Override
                 public List<String> vmOpts() {
-                    return new ArrayList<>();
+                   return vmOpts;
                 }
             }
         }
