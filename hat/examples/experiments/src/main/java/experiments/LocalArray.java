@@ -26,6 +26,7 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -96,7 +97,7 @@ public class LocalArray {
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
-        accelerator.compute(computeContext -> {
+        accelerator.compute((@Reflect QuotableComputeContextConsumer) computeContext -> {
             LocalArray.myCompute(computeContext, data);
         });
 

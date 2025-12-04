@@ -25,6 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -80,7 +81,8 @@ public class LocalIds {
         arrayC.fill(i -> 0);
 
         // Compute on the accelerator
-        accelerator.compute( cc -> LocalIds.mySimpleCompute(cc, arrayA, arrayB, arrayC));
+        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                cc -> LocalIds.mySimpleCompute(cc, arrayA, arrayB, arrayC));
 
         int[] expectedIds = new int[size];
         int j = 0;

@@ -25,6 +25,7 @@
 package experiments.spirv;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -132,7 +133,7 @@ public class MatrixMultiply {
         var b = F32Array.create(accelerator, arrB.length);
         var c = F32Array.create(accelerator, size * size);
         System.out.print(SchemaBuilder.schema(c));
-        accelerator.compute(
+        accelerator.compute((@Reflect QuotableComputeContextConsumer)
                 cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size)
         );
 
