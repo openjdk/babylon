@@ -219,10 +219,7 @@ public class TestTryFinallyNested {
     static MethodHandle generate(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lf.toText());
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), f);
     }
 
     static <T> Consumer<T> asConsumer(MethodHandle mh) {

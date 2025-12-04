@@ -359,7 +359,7 @@ public class OpBuilder {
             };
         }
         */
-        FuncOp funcOp = func(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class))).body(b -> {
+        return func(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class))).body(b -> {
             Block.Parameter i = b.parameter(INT);
             List<Body.Builder> swBodies = new ArrayList<>();
             for (Map.Entry<ExternalizedTypeElement, List<Integer>> e : registeredExterTypes.entrySet()) {
@@ -396,10 +396,18 @@ public class OpBuilder {
                 swBodies.add(expr);
             }
 
+            // default case
+            Body.Builder dl = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
+            Block.Parameter target = dl.entryBlock().parameter(INT);
+            dl.entryBlock().op(core_yield(dl.entryBlock().op(constant(BOOLEAN, true))));
+            Body.Builder de = Body.Builder.of(b.parentBody(), functionType(type(ExternalizedTypeElement.class)));
+            de.entryBlock().op(throw_(de.entryBlock().op(new_(MethodRef.constructor(IllegalStateException.class)))));
+            swBodies.add(dl);
+            swBodies.add(de);
+
             var r = b.op(switchExpression(i, swBodies));
             b.op(return_(r));
         });
-        return funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
     }
 
     OpBuilder(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {

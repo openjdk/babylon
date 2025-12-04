@@ -1575,26 +1575,17 @@ public class ReflectMethods extends TreeTranslatorPrev {
                                                           List<JCTree.JCCase> cases, FunctionType caseBodyType,
                                                           boolean isDefaultCaseNeeded) {
             List<Body.Builder> bodies = new ArrayList<>();
-            Body.Builder defaultLabel = null;
-            Body.Builder defaultBody = null;
+            boolean hasDefaultCase = false;
 
             for (JCTree.JCCase c : cases) {
                 Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
-                Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType);
-
-                if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
-                    defaultLabel = caseLabel;
-                    defaultBody = caseBody;
-                } else {
-                    bodies.add(caseLabel);
-                    bodies.add(caseBody);
-                }
+                Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType, cases.getLast() == c);
+                bodies.add(caseLabel);
+                bodies.add(caseBody);
+                hasDefaultCase = c.labels.head instanceof JCTree.JCDefaultCaseLabel;
             }
 
-            if (defaultLabel != null) {
-                bodies.add(defaultLabel);
-                bodies.add(defaultBody);
-            } else if (isDefaultCaseNeeded) {
+            if (!hasDefaultCase && isDefaultCaseNeeded) {
                 // label
                 pushBody(tree, CoreType.functionType(JavaType.BOOLEAN));
                 append(CoreOp.core_yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
@@ -1716,7 +1707,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             return body;
         }
 
-        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
+        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType, boolean isLastCase) {
             Body.Builder body = null;
             Type yieldType = tree.type != null ? adaptBottom(tree.type) : Type.noType;
 
@@ -1752,7 +1743,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     scan(c.stats);
 
                     appendTerminating(c.completesNormally ?
-                            headCl instanceof JCTree.JCDefaultCaseLabel ? CoreOp::core_yield : JavaOp::switchFallthroughOp
+                            isLastCase ? CoreOp::core_yield : JavaOp::switchFallthroughOp
                             : CoreOp::unreachable);
 
                     body = stack.body;

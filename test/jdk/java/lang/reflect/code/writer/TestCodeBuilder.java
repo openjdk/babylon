@@ -129,7 +129,7 @@ public class TestCodeBuilder {
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                module.functionTable().get(fExpected.funcName()));
+                module.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(fExpected.funcName()));
         Assertions.assertEquals(fExpected.toText(), fActual.toText());
     }
 
