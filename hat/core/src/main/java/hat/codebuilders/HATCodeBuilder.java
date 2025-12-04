@@ -481,7 +481,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         floatType().space().builtin_bfloat16ToFloat().paren(_ -> unsignedShortType(parameterName))
                 .brace( _ ->
                         nl()
-                        .unsignedIntType("bits").equals().identifier(parameterName).leftShift(12).semicolonNl()
+                        .unsignedIntType("bits").equals().identifier(parameterName).leftShift(16).semicolonNl()
                         .floatType("r").equals().identifier("bits").semicolonNl()
                         .builtin_byteCopy().paren(_ -> addressOf("r").commaSpace().addressOf("bits").comma().sizeof("r")).semicolonNl()
                         .returnKeyword("r").semicolonNl()

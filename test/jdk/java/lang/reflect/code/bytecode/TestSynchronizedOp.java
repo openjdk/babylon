@@ -65,7 +65,6 @@ public class TestSynchronizedOp {
     @Test
     public void testInstructions() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         byte[] classdata = BytecodeGenerator.generateClassData(MethodHandles.lookup(), f);
         CodeModel cmf = ClassFile.of().parse(classdata).methods().stream()
@@ -84,7 +83,6 @@ public class TestSynchronizedOp {
     @Test
     public void testExecution() throws Throwable {
         CoreOp.FuncOp f = getFuncOp("f");
-        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         MethodHandle mf = BytecodeGenerator.generate(MethodHandles.lookup(), f);
 

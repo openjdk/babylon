@@ -84,14 +84,19 @@ else
     fi
 
     if command -v jextract; then 
-       echo 'jextract in your PATH'
+       echo 'jextract is in your PATH'
        export JEXTRACT_HOME=$(dirname $(dirname $(command -v jextract)))
     else
        if [[ -z "${JEXTRACT_HOME}" ]]; then 
-          echo "No user provided JEXTRACT_HOME var, we will try ~/jextract-22"
+          echo "No user provided JEXTRACT_HOME var, we will try ~/jextract-22 and ~/jextract-25"
           if [[ -d ~/jextract-22/bin ]]; then 
              export JEXTRACT_HOME=$(realpath ~/jextract-22)
              echo "We found jextract here ${JEXTRACT_HOME}"
+          elif [[ -d ~/jextract-25/bin ]]; then 
+             export JEXTRACT_HOME=$(realpath ~/jextract-25)
+             echo "We found jextract here ${JEXTRACT_HOME}"
+          else
+             echo "We could not find jextract either in your PATH or in common locations ~/jextract-25 or ~/jextract-22"
           fi
        else
           echo "Using user supplied JEXTRACT_HOME ${JEXTRACT_HOME}"
@@ -124,7 +129,7 @@ else
       echo "We expected either:-"
       echo "    \${PWD} to be in a hat subdir of a compiled babylon jdk build" 
       echo "or" 
-      echo "    BABYLON_JDK_HOME to be set, to a compiled babylon jdk build"
+      echo "    BABYLON_JDK_HOME to be set to a pre compiled babylon jdk build"
       echo ""
       echo "If you are in a hat subdir make sure babylon jdk is built ;)"
       echo ""
