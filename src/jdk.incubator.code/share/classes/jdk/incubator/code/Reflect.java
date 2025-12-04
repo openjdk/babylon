@@ -40,7 +40,7 @@ import java.lang.reflect.Method;
  * This annotation only has effect on the program elements listed below:
  * <li>When a method is annotated with this annotation, the method becomes reflectable, and all the lambda expressions
  * and method references enclosed in it also become reflectable.</li>
- * <li>When a variable declaration (a field, or a local variable) is annotated with this annotation, all the methods, lambda expressions
+ * <li>When a variable declaration (a field, or a local variable) is annotated with this annotation, all lambda expressions
  * and method references enclosed in the variable initializer (if present) also become reflectable.</li>
  * <li>When the type of a cast expression is annotated with this annotation, the lambda expression
  * or method reference the cast refers to (if any) becomes reflectable.</li>
