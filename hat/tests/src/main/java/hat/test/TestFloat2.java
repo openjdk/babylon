@@ -343,6 +343,7 @@ public class TestFloat2 {
 
 
     @HatTest
+    @Reflect
     public void testFloat2_01() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -365,6 +366,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_02() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -385,6 +387,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_03() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -405,6 +408,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_04() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -425,6 +429,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_05() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -446,6 +451,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_06() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -467,6 +473,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_07() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -488,6 +495,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_08() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -510,6 +518,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_09() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -532,6 +541,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_10() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -552,6 +562,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_11() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -572,6 +583,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_12() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -592,6 +604,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_13() {
         // Test the CPU implementation of Float4
         Float2 vA = Float2.of(1, 2);
@@ -623,6 +636,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_14() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -641,6 +655,7 @@ public class TestFloat2 {
     }
 
     @HatTest
+    @Reflect
     public void testFloat2_15() {
         final int size = 2048;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

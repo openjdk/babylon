@@ -84,6 +84,7 @@ public class TestParenthesis {
     }
 
     @HatTest
+    @Reflect
     public static void testParenthesis01() {
         final int size = 1;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -102,6 +103,7 @@ public class TestParenthesis {
     }
 
     @HatTest
+    @Reflect
     public static void testParenthesis02() {
         final int size = 1;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -120,6 +122,7 @@ public class TestParenthesis {
     }
 
     @HatTest
+    @Reflect
     public static void testParenthesis03() {
         final int size = 1;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

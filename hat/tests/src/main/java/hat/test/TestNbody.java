@@ -139,6 +139,7 @@ public class TestNbody {
     }
 
     @HatTest
+    @Reflect
     public void testNbody() {
         final int NUM_BODIES = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

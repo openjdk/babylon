@@ -347,6 +347,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes01() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -369,6 +370,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes02() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -391,6 +393,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes03() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -413,6 +416,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes04() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -435,6 +439,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes05() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -456,6 +461,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes06() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -477,6 +483,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes07() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -498,6 +505,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes08() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -520,6 +528,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes09() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -542,6 +551,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes10() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -562,6 +572,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes11() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -582,6 +593,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes12() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -602,6 +614,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes13() {
         // Test the CPU implementation of Float4
         Float4 vA = Float4.of(1, 2, 3, 4);
@@ -643,6 +656,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes14() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -661,6 +675,7 @@ public class TestVectorTypes {
     }
 
     @HatTest
+    @Reflect
     public void testVectorTypes15() {
         final int size = 2048;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

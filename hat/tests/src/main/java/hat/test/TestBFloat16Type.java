@@ -340,6 +340,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_01() {
         final int size = 256;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -359,6 +360,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_02() {
         final int size = 256;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -384,6 +386,7 @@ public class TestBFloat16Type {
         }
     }
     @HatTest
+    @Reflect
     public void test_bfloat16_03() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -411,6 +414,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_04() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -446,6 +450,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_05() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -466,6 +471,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_06() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -486,6 +492,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_07() {
         // Test CPU Implementation of BF16
         BF16 a = BF16.of(2.5f);
@@ -504,6 +511,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_08() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -524,6 +532,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_09() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -545,6 +554,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_10() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
@@ -559,6 +569,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_11() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
@@ -579,6 +590,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_12() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
@@ -601,6 +613,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_13() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
@@ -623,6 +636,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_14() {
         // Testing mixed types
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -644,6 +658,7 @@ public class TestBFloat16Type {
     }
 
     @HatTest
+    @Reflect
     public void test_bfloat16_15() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
@@ -665,6 +680,7 @@ public class TestBFloat16Type {
 
     // Check accumulators
     @HatTest
+    @Reflect
     public void test_bfloat16_16() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1;
@@ -681,6 +697,7 @@ public class TestBFloat16Type {
 
     // Check accumulators in private memory
     @HatTest
+    @Reflect
     public void test_bfloat16_17() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1;

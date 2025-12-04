@@ -387,6 +387,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_01() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -407,6 +408,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_02() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -434,6 +436,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_03() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -461,6 +464,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_04() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -496,6 +500,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_05() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -516,6 +521,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_06() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -536,6 +542,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_07() {
         // Test CPU Implementation of F16
         F16 a = F16.of(2.5f);
@@ -554,6 +561,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_08() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -574,6 +582,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_09() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -595,6 +604,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_10() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
@@ -609,6 +619,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_11() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
@@ -629,6 +640,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_12() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
@@ -651,6 +663,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_13() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
@@ -673,6 +686,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_14() {
         // Testing mixed types
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -694,6 +708,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_15() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
@@ -714,6 +729,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     //@HatTest
+@Reflect
     public void testF16_16() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
@@ -738,6 +754,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_17() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1;
@@ -753,6 +770,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @HatTest
+    @Reflect
     public void testF16_18() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1;

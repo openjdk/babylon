@@ -61,6 +61,7 @@ public class TestConstants {
      * Test to check if final values are represented in the generated code.
      */
     @HatTest
+    @Reflect
     public static void testConstants01() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -112,6 +113,7 @@ public class TestConstants {
      * final code gen.
      */
     @HatTest
+    @Reflect
     public static void testConstants02() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

@@ -93,6 +93,7 @@ public class TestMandel {
     }
 
     @HatTest
+    @Reflect
     public void testMandel() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int width = 1024;

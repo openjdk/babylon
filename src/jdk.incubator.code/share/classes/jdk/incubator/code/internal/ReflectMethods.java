@@ -1034,7 +1034,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         }
                     }
                 }
-                case INTERFACE, CLASS, RECORD, ENUM -> {
+                case PACKAGE, INTERFACE, CLASS, RECORD, ENUM -> {
                     result = null;
                 }
                 default -> {
@@ -1094,7 +1094,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             }
                         }
                     }
-                    case INTERFACE, CLASS, RECORD, ENUM -> {
+                    case PACKAGE, INTERFACE, CLASS, RECORD, ENUM -> {
                         result = null;
                     }
                     default -> {
@@ -2503,10 +2503,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public UnsupportedASTException(JCTree tree) {
             this.tree = tree;
         }
+
+        @Override
+        public String toString() {
+            return super.toString() + ":" + tree;
+        }
     }
 
     boolean isReflectable(JCMethodDecl tree) {
-        return !tree.sym.isAbstract() && (codeReflectionEnabled ||
+        return codeReflectionEnabled ||
+                (tree.body != null &&
                 tree.sym.attribute(crSyms.codeReflectionType.tsym) != null);
     }
 

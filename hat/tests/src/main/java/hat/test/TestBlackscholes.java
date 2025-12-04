@@ -118,6 +118,7 @@ public class TestBlackscholes {
     }
 
     @HatTest
+    @Reflect
     public void testBlackscholes() {
         int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
