@@ -42,10 +42,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.IntSupplier;
-import java.util.function.IntUnaryOperator;
+import java.util.function.*;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -230,5 +227,14 @@ public class TestLambdaOps {
 
         Method m = om.get();
         return Op.ofMethod(m).get();
+    }
+
+    @Test
+    public void testToFuncOp() {
+        int a = 0, b = 0, c = 0;
+        Consumer<Integer> lambda = (@Reflect Consumer<Integer>) (d) -> {d += a + b + c;};
+        LambdaOp qop = (LambdaOp) Op.ofQuotable(lambda).get().op();
+        FuncOp funcOp = qop.toFuncOp(null);
+        System.out.println(funcOp.toText());
     }
 }

@@ -371,6 +371,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         public CoreOp.FuncOp toFuncOp(String lambdaName) {
+            if (lambdaName == null) lambdaName = "";
             List<TypeElement> parameters = new ArrayList<>(this.invokableType().parameterTypes());
             for (Value v : this.capturedValues()) {
                 TypeElement capturedType = v.type() instanceof VarType varType ? varType.valueType() : v.type();
