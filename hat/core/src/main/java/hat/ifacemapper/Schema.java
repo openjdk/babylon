@@ -25,16 +25,22 @@
 package hat.ifacemapper;
 
 import hat.Accelerator;
+import hat.annotations.Order;
+import hat.annotations.ProvidesDimFor;
 import hat.buffer.Buffer;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ValueType;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
@@ -44,9 +50,9 @@ public class Schema<T extends Buffer> {
 
     public static abstract class SchemaNode {
         public static final class Padding extends FieldNode {
-            int len;
+            long len;
 
-            Padding(IfaceType parent, int len) {
+            Padding(IfaceType parent, long len) {
                 super(parent, AccessorInfo.Key.NONE, "pad" + len);
                 this.len = len;
             }
@@ -123,6 +129,47 @@ public class Schema<T extends Buffer> {
         parentFieldConsumer.accept(struct);
         return new Schema<>(iface, struct);
     }
+
+    public static <T extends Buffer> Schema<T> of(Class<T> iface) {
+        // first lets try to find the Schema field
+
+        Field schema = null;
+        try{
+            schema = iface.getDeclaredField("schema");
+        }catch (NoSuchFieldException nsfe){
+            throw new RuntimeException(nsfe);
+        }
+        if (!Modifier.isStatic(schema.getModifiers())){
+            throw new RuntimeException("no static field called schema");
+        }
+        String[] order = (schema.getAnnotation(Order.class) instanceof Order orderAnnotation)?orderAnnotation.value():null;
+
+
+        Set<String> handled = new HashSet<>();
+        return of(iface, (schemaBuilder)-> {
+                    Arrays.stream(iface.getDeclaredMethods()).filter(m -> Modifier.isAbstract(m.getModifiers())).forEach(m -> {
+                                if (m.getAnnotation(ProvidesDimFor.class) instanceof ProvidesDimFor providesDimFor) {
+
+                                    schemaBuilder.arrayLen(m.getName()).array(providesDimFor.value());
+                                    if (!handled.contains(m.getName())) {
+                                        handled.add(m.getName());
+                                    }
+                                    //if (!handled.contains(providesDimFor.value())) {
+                                        handled.add(providesDimFor.value());
+                                   // }
+                                } else if (order == null && !handled.contains(m.getName())) {
+                                    System.out.println(m.getName());
+                                    schemaBuilder.fields(m.getName());
+                                    handled.add(m.getName());
+                                }
+                            }
+                    );
+                    if (order != null) {
+                        schemaBuilder.fields(order);
+                    }
+                }
+        );
+}
 
     public void toText(Consumer<String> stringConsumer) {
         rootIfaceType.toText("", stringConsumer);
@@ -271,7 +318,7 @@ public class Schema<T extends Buffer> {
         public static class ArrayBuildState {
             IfaceType ifaceType;
             List<FieldNode.ArrayLen> arrayLenFields;
-            int padding = 0;
+            long padding = 0;
             int stride = 1;
 
             public IfaceType array(String name) {
@@ -283,7 +330,7 @@ public class Schema<T extends Buffer> {
                 return this;
             }
 
-            public ArrayBuildState pad(int padding) {
+            public ArrayBuildState pad(long padding) {
                 this.padding = padding;
                 var paddingField = new SchemaNode.Padding(ifaceType, padding);
                 ifaceType.addField(paddingField);

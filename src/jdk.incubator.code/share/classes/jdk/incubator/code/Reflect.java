@@ -31,7 +31,7 @@ import java.lang.annotation.*;
  * Enables code reflection for a method annotated with this annotation.
  */
 @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD,
-         ElementType.METHOD, ElementType.TYPE_USE, ElementType.TYPE})
+         ElementType.METHOD, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Reflect {
 }

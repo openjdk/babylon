@@ -51,24 +51,6 @@ public interface Buffer extends MappableIface {
         return BufferState.of(this).getStateString();
     }
 
-    //  default boolean isDeviceDirty(){
-    //    return BufferState.of(this).isDeviceDirty();
-   // }
-   // default boolean isHostChecked(){
-     //   return BufferState.of(this).isHostChecked();
-   // }
-
-   // default void clearDeviceDirty(){
-   //      BufferState.of(this).clearDeviceDirty();
-   // }
-    //default void setHostDirty(){
-      //  BufferState.of(this).setHostDirty(true);
-   // }
-
-   // default void setHostChecked(){
-     //   BufferState.of(this).setHostChecked(true);
-   // }
-
     interface Union extends MappableIface {
     }
 

@@ -245,7 +245,7 @@ public interface ArgArray extends Buffer {
             case "S" -> "S";
             case "I" -> "S";
             case "F" -> "F";
-            case "D" -> "F";
+            case "D" -> "D";
             case "J" -> "S";
             default -> throw new IllegalStateException("Unexpected value: " + descriptor);
         } + valueLayout.byteSize() * 8;

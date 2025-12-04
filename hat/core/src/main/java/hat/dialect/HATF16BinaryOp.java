@@ -34,14 +34,15 @@ import java.util.Map;
 public abstract class HATF16BinaryOp extends HATF16Op {
 
     protected final TypeElement elementType;
-    protected final OpType operationType;
+    protected final BinaryOpType operationType;
     protected final List<Boolean> references;
+    private final ReducedFloatType reducedFloatType;
     protected final byte f32;
 
     public static final byte FIRST_OP = 0x01;
     public static final byte LAST_OP = 0x10;
 
-    public enum OpType {
+    public enum BinaryOpType {
         ADD("+"),
         SUB("-"),
         MUL("*"),
@@ -49,7 +50,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
 
         String symbol;
 
-        OpType(String symbol) {
+        BinaryOpType(String symbol) {
             this.symbol = symbol;
         }
 
@@ -58,12 +59,13 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         }
     }
 
-    public HATF16BinaryOp(TypeElement typeElement, OpType operationType, List<Boolean> references, byte f32, List<Value> operands) {
+    public HATF16BinaryOp(TypeElement typeElement, ReducedFloatType reducedFloatType, BinaryOpType operationType, List<Boolean> references, byte f32, List<Value> operands) {
         super("", operands);
         this.elementType = typeElement;
         this.operationType = operationType;
         this.references = references;
         this.f32 = f32;
+        this.reducedFloatType = reducedFloatType;
     }
 
     public HATF16BinaryOp(HATF16BinaryOp op, CodeContext copyContext) {
@@ -72,6 +74,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         this.operationType = op.operationType;
         this.references = op.references;
         this.f32 = op.f32;
+        this.reducedFloatType = op.reducedFloatType;
     }
 
     @Override
@@ -84,7 +87,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         return Map.of("hat.dialect.fp16." + varName(), operationType.symbol());
     }
 
-    public OpType operationType() {
+    public BinaryOpType binaryOperationType() {
         return operationType;
     }
 
@@ -96,4 +99,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         return f32;
     }
 
+    public ReducedFloatType reducedFloatType() {
+        return reducedFloatType;
+    }
 }

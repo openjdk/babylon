@@ -22,35 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package job;
+package hat.annotations;
 
-import java.util.Set;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public interface Dependency {
-    Project.Id id();
-
-    Set<Dependency> dependencies();
-
-    interface WithPath extends Dependency {
-    }
-
-    interface Buildable extends Dependency {
-        boolean build();
-        boolean clean(boolean verbose);
-    }
-
-    interface Executable extends Dependency {
-    }
-
-    interface ExecutableJar extends Executable {
-        boolean run(Jar.JavaConfig javaOpts, Dependency ...unorderedDeps);
-    }
-
-    interface Runnable extends Executable {
-        boolean run();
-    }
-
-    interface Optional extends Dependency {
-        boolean isAvailable();
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface After {
+    String value();
 }

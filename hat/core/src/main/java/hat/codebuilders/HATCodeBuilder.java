@@ -25,13 +25,7 @@
 package hat.codebuilders;
 
 
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATMemoryOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -42,6 +36,10 @@ import java.util.Arrays;
 import java.util.function.Consumer;
 
 public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBuilder<T> {
+
+
+
+
 
     public T oracleCopyright(){
         return blockComment("""
@@ -70,7 +68,6 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
       );
     }
 
-
     public T suffix_t(String name) {
         return identifier(name).identifier("_t");
     }
@@ -83,6 +80,17 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return identifier(name).identifier("_s");
     }
 
+    public T suffix_t(Class<?> klass) {
+        return suffix_t(klass.getSimpleName());
+    }
+
+    public T suffix_u(Class<?> klass) {
+        return suffix_u(klass.getSimpleName());
+    }
+
+    public T suffix_s(Class<?> klass) {
+        return suffix_s(klass.getSimpleName());
+    }
 
     public T intDeclaration(String name) {
         return intType().space().identifier(name);
@@ -206,6 +214,15 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return self();
     }
 
+    public T builtin_float2bfloat16() {
+        identifier("floatTobfloat16");
+        return self();
+    }
+
+    public T builtin_bfloat16ToFloat() {
+        identifier("bfloat16Tofloat");
+        return self();
+    }
 
     public T pragmaKeyword() {
         return keyword("pragma");
@@ -241,7 +258,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         for (String value : values) {
             hash().includeKeyword().space().lt().identifier(value).gt().nl();
         }
-        return nl();
+        return self();
     }
     public T include(String... values) {
         for (String value : values) {
@@ -264,6 +281,15 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
     public final T unsignedCharType() {
         return typeName("unsigned").space().charType();
+    }
+    public final T unsignedCharType(String identifier) {
+        return unsignedCharType().space().identifier(identifier);
+    }
+    public final T unsignedCharPtrType() {
+        return unsignedCharType().space().asterisk();
+    }
+    public final T unsignedCharPtrType(String identifier) {
+        return unsignedCharPtrType().identifier(identifier);
     }
 
     public T charTypeDefs(String... names) {
@@ -324,12 +350,19 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return typeName("unsigned").space().intType();
     }
 
+    public final T unsignedIntType(String identifier ) {
+        return unsignedIntType().space().identifier(identifier);
+    }
+
     public final T unsignedLongType() {
         return typeName("unsigned").space().longType();
     }
 
     public final T unsignedShortType() {
         return typeName("unsigned").space().shortType();
+    }
+    public final T unsignedShortType(String identifier) {
+        return unsignedShortType().space().identifier(identifier);
     }
 
     //Unused?
@@ -391,6 +424,94 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
                 .in()
                     .typeName(type).space().typeName(member).semicolon().nl()
                 .out().cbrace().space().suffix_t(structName).semicolon().nl();
+        return self();
+    }
+
+    public T buildForLoopHeader(String loopVar, String init, String loopBound) {
+        forKeyword().paren(_ -> intType().space().identifier(loopVar).space().equals().identifier(init).semicolon().space()
+                        .identifier(loopVar).lt().identifier(loopBound).semicolon().space()
+                        .identifier(loopVar).plusplus());
+        return self();
+    }
+
+    public T builtin_byteCopy(){
+        return identifier("byteCopy");
+    }
+
+    /**
+     * <code>
+     *  void byteCopy(void *dest, const void* src, size_t size) {
+     *      unsigned char *c = (unsigned char*)dest;
+     *      unsigned char *s = (unsigned char*)src;
+     *      for (int i = 0; i < size; i++) {
+     *          *c++ = *s++;
+     *      }
+     *  }
+     * </code>
+     * @return
+     */
+    public T build_builtin_byteCopy() {
+        voidType().space().builtin_byteCopy()
+                .paren(_-> voidPtrType("dest").commaSpace().voidPtrType("src").commaSpace().size_t("size"));
+        braceNlIndented(_ ->
+                         unsignedCharPtrType("c").equals().paren( _ -> unsignedCharPtrType()).identifier("dest").semicolonNl()
+                        .unsignedCharPtrType("s").equals().paren( _ -> unsignedCharPtrType()).identifier("src").semicolonNl()
+                        .buildForLoopHeader("i", "0", "size").braceNlIndented(_ ->
+                                         dereference("c").plusplus().equals().dereference("s").plusplus().semicolon()
+                                 )
+        );
+        nl();
+        return self();
+    }
+
+    /**
+     * <code>
+     *  float bfloat16Tofloat(ushort bf16) {
+     *      uint bitsRecovered = bf16 << 16;
+     *      float r = bitsRecovered;
+     *      byteCopy(&r, &bitsRecovered, sizeof(r));
+     *      return r;
+     * }
+     * </code>
+     *
+     * @param parameterName
+     * @return
+     */
+    public T build_builtin_bfloat16ToFloat(String parameterName) {
+        floatType().space().builtin_bfloat16ToFloat().paren(_ -> unsignedShortType(parameterName))
+                .brace( _ ->
+                        nl()
+                        .unsignedIntType("bits").equals().identifier(parameterName).leftShift(12).semicolonNl()
+                        .floatType("r").equals().identifier("bits").semicolonNl()
+                        .builtin_byteCopy().paren(_ -> addressOf("r").commaSpace().addressOf("bits").comma().sizeof("r")).semicolonNl()
+                        .returnKeyword("r").semicolonNl()
+                );
+        nl();
+        return self();
+    }
+
+    /**
+     * <code>
+     * ushort floatTobfloat16(float f) {
+     *      uint bits;
+     *      byteCopy(&bits, &f, sizeof(bits));
+     *      short bf16 = bits >> 16;
+     *      return bf16;
+     * }
+     * </code>
+     * @param parameterName
+     * @return
+     */
+    public T build_builtin_float2bfloat16(String parameterName) {
+        shortType().space().builtin_float2bfloat16().paren(_ -> floatType().space().identifier(parameterName))
+                .brace( _ -> nl()
+                        .unsignedIntType("bits").semicolonNl()
+                        .builtin_byteCopy().paren(_ ->
+                                addressOf("bits").commaSpace().addressOf(parameterName).commaSpace().sizeof("bits")).semicolonNl()
+                                .shortType("bf16").equals().identifier("bits").rightShift(16).semicolonNl()
+                                .returnKeyword("bf16").semicolonNl()
+                );
+        nl();
         return self();
     }
 }
