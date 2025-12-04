@@ -42,6 +42,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testAdd() throws Exception {
         var a = Tensor.ofFlat(1f, 2, 3);
         assertEquals(
@@ -55,6 +56,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testSub() throws Exception {
         var b = Tensor.ofFlat(6f, 5, 4);
         var a = Tensor.ofFlat(1f, 2, 3);
@@ -69,6 +71,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testFconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1f);
@@ -82,6 +85,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testFconstants() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
@@ -95,6 +99,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testLconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1l);
@@ -108,6 +113,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testLconstants() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
@@ -121,6 +127,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testReshapeAndShape() throws Exception {
         var data = Tensor.ofFlat(1f, 2, 3, 4, 5, 6, 7, 8);
         var shape = Tensor.ofFlat(2l, 2, 2);
@@ -136,6 +143,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testIndicesOfMaxPool() throws Exception {
         var x = Tensor.ofShape(new long[]{2, 2, 2}, 1f, 2, 3, 4, 5, 6, 7, 8);
         assertEquals(
@@ -149,6 +157,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testConcat() throws Exception {
         var input1 = Tensor.ofFlat(1f, 2, 3);
         var input2 = Tensor.ofFlat(4f, 5);
@@ -163,6 +172,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testSplit() throws Exception {
         var input = Tensor.ofFlat(1f, 2, 3, 4, 5);
         var split = Tensor.ofFlat(5l);
@@ -189,6 +199,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testIfConst() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);
@@ -215,6 +226,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testIfCapture() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);
@@ -236,6 +248,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testInitialized() throws Exception {
 
         assertEquals(initialized(),
@@ -258,6 +271,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testIfInitialized() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var condTrue = Tensor.ofScalar(true);
@@ -286,6 +300,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testForLoopAdd() throws Exception {
         var expected = Tensor.ofFlat(0f, 8, 16, 24);
         var value = Tensor.ofFlat(0f, 1, 2, 3);
@@ -306,6 +321,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testLoop() throws Exception {
         var b = Tensor.ofScalar(true);
         var res = execute(() -> loop(b));
@@ -321,6 +337,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testRecordArgAdd() throws Exception {
         var arg = new ArgRecord(Tensor.ofFlat(3f), Tensor.ofFlat(4f));
         assertEquals(recordArgAdd(arg), execute(() -> recordArgAdd(arg)));
@@ -332,6 +349,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testConstantArrayArg() throws Exception {
         Tensor<Float>[] arg = new Tensor[]{Tensor.ofFlat(2f), Tensor.ofFlat(3f)};
         assertEquals(constantArrayArg(arg), execute(() -> constantArrayArg(arg)));
@@ -346,6 +364,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testConstantArrayInit() throws Exception {
         assertEquals(constantArrayInit(), execute(() -> constantArrayInit()));
     }
@@ -356,6 +375,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testConstantArrayReturn() throws Exception {
         Tensor<Float> val = Tensor.ofFlat(3f);
         assertEquals(constantArrayReturn(val), execute(() -> constantArrayReturn(val)));
@@ -369,6 +389,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testConstantArrayInRecordReturn() throws Exception {
         Tensor<Float> key = Tensor.ofFlat(1f);
         Tensor<Float> val = Tensor.ofFlat(3f);
@@ -385,6 +406,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testUnrollingConstantArrayReturn() throws Exception {
         assertEquals(unrollingConstantArrayReturn(), execute(() -> unrollingConstantArrayReturn()));
     }

@@ -26,9 +26,25 @@
 package jdk.incubator.code;
 
 import java.lang.annotation.*;
+import java.lang.reflect.Method;
 
 /**
- * Enables code reflection for a method annotated with this annotation.
+ * A program element annotated with this annotation enables code reflection in the annotated program element,
+ * or in one or more program elements contained within the annotated program element.
+ * <p>
+ * The program elements for which code reflection is enabled are said to be a <em>reflectable</em> program elements.
+ * There are three kinds of reflectable program elements: methods, lambda expressions and method references.
+ * Code models for reflectable methods can be obtained using the {@link Op#ofMethod(Method)} method. Code
+ * models for reflectable lambdas and method references can be obtained using the {@link Op#ofQuotable(Object)} method.
+ * <p>
+ * This annotation only has effect on the program elements listed below:
+ * <li>When a method is annotated with this annotation, the method becomes reflectable, and all the lambda expressions
+ * and method references enclosed in it also become reflectable.</li>
+ * <li>When a variable declaration (a field, or a local variable) is annotated with this annotation, all the methods, lambda expressions
+ * and method references enclosed in the variable initializer (if present) also become reflectable.</li>
+ * <li>When the type of a cast expression is annotated with this annotation, the lambda expression
+ * or method reference the cast refers to (if any) becomes reflectable.</li>
+ * </ul>
  */
 @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD,
          ElementType.METHOD, ElementType.TYPE_USE})

@@ -47,23 +47,14 @@ import java.util.function.IntUnaryOperator;
 public class TestMethodRefLambda {
 
     @Reflect
-    interface QuotableIntUnaryOperator extends IntUnaryOperator {}
-
-    @Reflect
-    interface QuotableFunction<T, R> extends Function<T, R> {}
-
-    @Reflect
-    interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {}
-
-    @Reflect
     List<Object> methodRefLambdas() {
         return List.of(
-                (QuotableIntUnaryOperator) TestMethodRefLambda::m1,
-                (QuotableIntUnaryOperator) TestMethodRefLambda::m2,
-                (QuotableFunction<Integer, Integer>) TestMethodRefLambda::m1,
-                (QuotableFunction<Integer, Integer>) TestMethodRefLambda::m2,
-                (QuotableIntUnaryOperator) this::m3,
-                (QuotableBiFunction<TestMethodRefLambda, Integer, Integer>) TestMethodRefLambda::m4
+                (IntUnaryOperator) TestMethodRefLambda::m1,
+                (IntUnaryOperator) TestMethodRefLambda::m2,
+                (Function<Integer, Integer>) TestMethodRefLambda::m1,
+                (Function<Integer, Integer>) TestMethodRefLambda::m2,
+                (IntUnaryOperator) this::m3,
+                (BiFunction<TestMethodRefLambda, Integer, Integer>) TestMethodRefLambda::m4
         );
     }
 

@@ -27,6 +27,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
+import java.util.function.Supplier;
 import jdk.incubator.code.Reflect;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -168,7 +169,7 @@ public class WalkTheMazeTest {
     @Test
     public void testWalkAroundTheMaze() throws Exception {
         try (var arena = Arena.ofConfined()) {
-            var directions = execute(arena, MethodHandles.lookup(), () -> walkAroundTheMaze());
+            var directions = execute(arena, MethodHandles.lookup(), (@Reflect Supplier<Tensor<Byte>>)() -> walkAroundTheMaze());
             Assertions.assertEquals(expectedPath, new String(directions.data().toArray(ValueLayout.JAVA_BYTE)));
         }
     }
