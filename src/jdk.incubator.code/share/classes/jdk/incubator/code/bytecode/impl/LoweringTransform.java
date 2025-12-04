@@ -43,9 +43,9 @@ import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import jdk.incubator.code.internal.BranchTarget;
 import jdk.incubator.code.interpreter.Interpreter;
 
-import static jdk.incubator.code.dialect.core.CoreOp.Lowerable;
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
 import static jdk.incubator.code.dialect.java.JavaType.*;
@@ -80,11 +80,11 @@ public final class LoweringTransform {
             }
         }
 
-        JavaOp.setBranchTarget(block.context(), swOp, new JavaOp.BranchTarget(exit, null));
+        BranchTarget.setBranchTarget(block.context(), swOp, exit, null);
         // map statement body to nextExprBlock
         // this mapping will be used for lowering SwitchFallThroughOp
         for (int i = 0; i < targets.size() - 1; i++) {
-            JavaOp.setBranchTarget(block.context(), targets.get(i).parent(), new JavaOp.BranchTarget(null, blocks.get(i+1)));
+            BranchTarget.setBranchTarget(block.context(), targets.get(i).parent(), null, blocks.get(i+1));
         }
 
         for (int i = 0; i < targets.size(); i++) {
