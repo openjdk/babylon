@@ -94,18 +94,6 @@ public class TestExpressionGraphs {
         Optional<CoreOp.FuncOp> oModel = Op.ofMethod(m);
         CoreOp.FuncOp model = oModel.orElseThrow();
 
-        // Depth-first search, reporting elements in pre-order
-        model.traverse(null, (acc, codeElement) -> {
-            // Count the depth of the code element by
-            // traversing up the tree from child to parent
-            int depth = 0;
-            CodeElement<?, ?> parent = codeElement;
-            while ((parent = parent.parent()) != null) depth++;
-            // Print out code element class
-            System.out.println("  ".repeat(depth) + codeElement.getClass());
-            return acc;
-        });
-
         // Stream of elements topologically sorted in depth-first search pre-order
         model.elements().forEach(codeElement -> {
             // Count the depth of the code element
@@ -125,18 +113,6 @@ public class TestExpressionGraphs {
         // Get the code model for method distance1
         Optional<CoreOp.FuncOp> oModel = Op.ofMethod(m);
         CoreOp.FuncOp model = oModel.orElseThrow();
-
-        // Depth-first search, reporting elements in pre-order
-        model.traverse(null, (acc, codeElement) -> {
-            // Count the depth of the code element by
-            // traversing up the tree from child to parent
-            int depth = 0;
-            CodeElement<?, ?> parent = codeElement;
-            while ((parent = parent.parent()) != null) depth++;
-            // Print out code element class
-            System.out.println("  ".repeat(depth) + codeElement.getClass());
-            return acc;
-        });
 
         // Stream of elements topologically sorted in depth-first search pre-order
         model.elements().forEach(codeElement -> {
@@ -534,8 +510,9 @@ public class TestExpressionGraphs {
     }
 
     static Map<Value, Node<Value>> expressionGraphs(Body b) {
+        LinkedHashMap<Value, Node<Value>> graphs = new LinkedHashMap<>();
         // Traverse the model building structurally shared expression graphs
-        return b.traverse(new LinkedHashMap<>(), (graphs, codeElement) -> {
+        b.elements().forEach(codeElement -> {
             switch (codeElement) {
                 case Body _ -> {
                     // Do nothing
@@ -560,8 +537,8 @@ public class TestExpressionGraphs {
                     graphs.put(op.result(), new Node<>(op.result(), edges));
                 }
             }
-            return graphs;
         });
+        return graphs;
     }
 
     static Map<Value, Node<Value>> prunedExpressionGraphs(CoreOp.FuncOp f) {
@@ -569,8 +546,9 @@ public class TestExpressionGraphs {
     }
 
     static Map<Value, Node<Value>> prunedExpressionGraphs(Body b) {
+        LinkedHashMap<Value, Node<Value>> graphs = new LinkedHashMap<>();
         // Traverse the model building structurally shared expression graphs
-        return b.traverse(new LinkedHashMap<>(), (graphs, codeElement) -> {
+        b.elements().forEach(codeElement -> {
             switch (codeElement) {
                 case Body _ -> {
                     // Do nothing
@@ -607,8 +585,8 @@ public class TestExpressionGraphs {
                     graphs.put(op.result(), new Node<>(op.result(), edges));
                 }
             }
-            return graphs;
         });
+        return graphs;
     }
 
     record Node<T>(T value, List<Node<T>> edges) {
