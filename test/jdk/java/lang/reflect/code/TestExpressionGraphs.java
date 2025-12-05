@@ -511,6 +511,7 @@ public class TestExpressionGraphs {
 
     static Map<Value, Node<Value>> expressionGraphs(Body b) {
         LinkedHashMap<Value, Node<Value>> graphs = new LinkedHashMap<>();
+        // Traverse the model building structurally shared expression graphs
         b.elements().forEach(codeElement -> {
             switch (codeElement) {
                 case Body _ -> {
