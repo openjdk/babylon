@@ -170,21 +170,17 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
         if (hatVSelectStoreOp.resultValue() != null) {
             // We have detected a direct resolved result (resolved name)
             varName(hatVSelectStoreOp.resultValue());
-        } else {
-            // otherwise, we traverse to resolve the expression
-            Value storeValue = hatVSelectStoreOp.operands().get(1);
-            if (storeValue instanceof Op.Result r) {
+        } else if (hatVSelectStoreOp.operands().get(1) instanceof Op.Result r) {
                 recurse(buildContext, r.op());
-            }
+
         }
         return self();
     }
 
     @Override
     public OpenCLHatKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-        oparen().typeName("half").cparen();
-        Value initValue = hatF16ConvOp.operands().getFirst();
-        if (initValue instanceof Op.Result r) {
+        paren(_->typeName("half"));
+        if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
         return self();
@@ -206,15 +202,12 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
 
     @Override
     public OpenCLHatKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
-        oparen().identifier(hatVectorOfOp.buildType()).cparen().oparen();
-        return self();
+        return paren(_->identifier(hatVectorOfOp.buildType()));
     }
 
     @Override
     public OpenCLHatKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        oparen().halfType().cparen();
-        identifier(hatF16ToFloatConvOp.varName());
-        return self();
+        return paren(_->halfType()).identifier(hatF16ToFloatConvOp.varName());
     }
 
 }

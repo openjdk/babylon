@@ -359,48 +359,42 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
-
         ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
         if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
             return binaryOperationsForBfloat16(buildContext, hatF16BinaryOp);
         }
-
         Value op1 = hatF16BinaryOp.operands().get(0);
         Value op2 = hatF16BinaryOp.operands().get(1);
         List<Boolean> references = hatF16BinaryOp.references();
 
-        oparen().halfType();
-
-        cparen().obrace().oparen();
-        if (op1 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-        if (references.getFirst()) {
-            rarrow().identifier("value");
-        } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-            dot().identifier("value");
-        }
-        space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
-
-        if (op2 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-
-        if (references.get(1)) {
-            rarrow().identifier("value");
-        } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-            dot().identifier("value");
-        }
-
-        cparen().cbrace();
+        paren(_-> halfType());
+        brace(_-> {
+            paren(_-> {
+                if (op1 instanceof Op.Result r) {
+                    recurse(buildContext, r.op());
+                }
+                if (references.getFirst()) {
+                    rarrow().identifier("value");
+                } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+                    dot().identifier("value");
+                }
+                space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
+                if (op2 instanceof Op.Result r) {
+                    recurse(buildContext, r.op());
+                }
+                if (references.get(1)) {
+                    rarrow().identifier("value");
+                } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+                    dot().identifier("value");
+                }
+            });
+        });
         return self();
     }
 
     @Override
     public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
-        identifier(hatF16VarLoadOp.varName());
-        dot().identifier("value");
-        return self();
+        return identifier(hatF16VarLoadOp.varName()).dot().identifier("value");
     }
 
     @Override
@@ -413,60 +407,32 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
-        genVectorIdentifier(buildContext, hatVectorOp);
-
-        List<Value> inputOperands = hatVectorOp.operands();
-        int i;
-        for (i = 0; i < (inputOperands.size() - 1); i++) {
-            var operand = inputOperands.get(i);
-            if ((operand instanceof Op.Result r)) {
-                recurse(buildContext, r.op());
-            }
-            comma().space();
-        }
-        // Last parameter
-        var operand = inputOperands.get(i);
-        if ((operand instanceof Op.Result r)) {
-            recurse(buildContext, r.op());
-        }
-        cparen();
-        return self();
+        return genVectorIdentifier(buildContext, hatVectorOp)
+                .paren(_->separated(
+                        hatVectorOp.operands(),//.stream().map(operand->(Op.Result)operand),
+                        _ -> commaSpace(),
+                        (operand) -> recurse(buildContext, OpTk.asResultOrThrow(operand).op())
+                        )
+                );
     }
 
     @Override
     public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateInitVarOp hatPrivateInitVarOp) {
-        suffix_t(hatPrivateInitVarOp.classType()).space().identifier(hatPrivateInitVarOp.varName());
-        space().equals().space();
-        Value operand = hatPrivateInitVarOp.operands().getFirst();
-        if (operand instanceof Op.Result r) {
-            recurse(builderContext, r.op());
-        }
-        return self();
+        return suffix_t(hatPrivateInitVarOp.classType())
+                .space()
+                .identifier(hatPrivateInitVarOp.varName())
+                .space()
+                .equals()
+                .space()
+                .recurse(builderContext,OpTk.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op());
     }
 
     @Override
     public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp) {
-        List<Value> operands = hatMemoryLoadOp.operands();
-        Value base = operands.get(0);
-        if (base instanceof Op.Result r) {
-           recurse(builderContext, r.op());
-        }
-        dot().identifier(hatMemoryLoadOp.memberName());
-
-        if (operands.size() > 1) {
-            // If the hatMemoryLoadOp has more than 1 operand,
-            // then we know that the second operand represents
-            // an index to access an array, since members, otherwise,
-            // will be accessed via structVarName.member1.member2.member3...,  etc.
-
-            // The following code generates [ indexValue ]
-            osbrace();
-            Value index = operands.get(1);
-            if (index instanceof Op.Result r) {
-                recurse(builderContext, r.op());
-            }
-            csbrace();
-        }
-        return self();
+        return recurse(builderContext, OpTk.asResultOrThrow(hatMemoryLoadOp.operands().getFirst()).op())
+                .dot().identifier(hatMemoryLoadOp.memberName())
+                .when(hatMemoryLoadOp.operands().size() > 1,_->// If the hatMemoryLoadOp has more than 1 operand, the second is the index
+                   sbrace(_-> recurse(builderContext, OpTk.asResultOrThrow(hatMemoryLoadOp.operands().get(1)).op()))
+                );
     }
 }
