@@ -97,7 +97,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
                 .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp()).nl());
 
-        builder.nl().kernelEntrypoint(buildContext, args).nl();
+        builder.nl().kernelEntrypoint(buildContext).nl();
 
         System.out.println("Original");
         System.out.println(kernelCallGraph.entrypoint.funcOp().toText());

@@ -81,8 +81,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_BIZ", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
                 .hashDefine("HAT_BARRIER", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen())
                 .hashDefine("BFLOAT16", _ -> keyword("ushort"))
-                .buildStructSingleMember("F16", "value", "half")
-                .buildStructSingleMember("BF16", "value", "BFLOAT16")
+                .buildStructSingleValueMember("F16",  "half")
+                .buildStructSingleValueMember("BF16",  "BFLOAT16")
                 .build_builtin_byteCopy()
                 .build_builtin_bfloat16ToFloat("bf16")
                 .build_builtin_float2bfloat16("f");
@@ -251,7 +251,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         if (reducedFloatType instanceof ReducedFloatType.HalfFloat) {
             // half -> float
-            oparen().floatType().cparen();
+            oparen().f32Type().cparen();
         } else if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
             // bfloat16 -> float
             builtin_bfloat16ToFloat().oparen();

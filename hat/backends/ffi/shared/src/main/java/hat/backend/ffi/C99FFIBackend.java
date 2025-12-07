@@ -318,7 +318,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
             hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
             buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
-            builder.nl().kernelEntrypoint(buildContext, args).nl();
+            builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {
                 IO.println("Original");
