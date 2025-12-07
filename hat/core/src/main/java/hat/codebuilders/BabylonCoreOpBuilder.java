@@ -52,9 +52,11 @@ import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 /* this should not be too C99 specific */
-public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
+public interface BabylonCoreOpBuilder<T extends C99HATCodeBuilder<?>> {
+    T type(ScopedCodeBuilderContext buildContext, JavaType javaType);
 
     T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp);
 
@@ -108,54 +110,6 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T returnOp(ScopedCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp);
 
-    T barrier(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp);
-
-    T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp barrierOp);
-
-    T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp);
-
-    T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp hatGlobalThreadIdOp);
-
-    T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp hatGlobalSizeOp);
-
-    T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp hatLocalThreadIdOp);
-
-    T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp);
-
-    T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp);
-
-    T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp);
-
-    T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatFloat4StoreOp);
-
-    T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp);
-
-    T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp);
-
-    T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp);
-
-    T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp);
-
-    T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp);
-
-    T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp);
-
-    T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp);
-
-    T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp);
-
-    T hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp);
-
-    T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp);
-
-    T hatVectorMakeOf(ScopedCodeBuilderContext buildContext, HATVectorMakeOfOp hatVectorMakeOfOp);
-
-    T hatF16ToFloatConvOp(ScopedCodeBuilderContext buildContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
-
-    T hatPrivateVarInitOp(ScopedCodeBuilderContext buildContext, HATPrivateInitVarOp hatPrivateInitVarOp);
-
-    T hatMemoryLoadOp(ScopedCodeBuilderContext buildContext, HATMemoryLoadOp hatMemoryLoadOp);
-
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -183,30 +137,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case JavaOp.BinaryOp $ -> binaryOp(buildContext, $);
             case JavaOp.JavaConditionalOp $ -> conditionalOp(buildContext, $);
             case JavaOp.UnaryOp $ -> unaryOp(buildContext, $);
-            case HATBarrierOp $ -> barrier(buildContext, $);
-            case HATLocalVarOp $ -> hatLocalVarOp(buildContext, $);
-            case HATPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
-            case HATPrivateInitVarOp $ -> hatPrivateVarInitOp(buildContext, $);
-            case HATGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
-            case HATGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
-            case HATLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
-            case HATLocalSizeOp $ -> hatLocalSizeOp(buildContext, $);
-            case HATBlockThreadIdOp $ -> hatBlockThreadIdOp(buildContext, $);
-            case HATVectorVarOp $ -> hatVectorVarOp(buildContext, $);
-            case HATVectorStoreView $ -> hatVectorStoreOp(buildContext, $);
-            case HATVectorBinaryOp $ -> hatBinaryVectorOp(buildContext, $);
-            case HATVectorLoadOp $ -> hatVectorLoadOp(buildContext, $);
-            case HATVectorSelectLoadOp $ -> hatSelectLoadOp(buildContext, $);
-            case HATVectorSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
-            case HATVectorVarLoadOp $ -> hatVectorVarLoadOp(buildContext, $);
-            case HATVectorOfOp $ -> hatVectorOfOps(buildContext, $);
-            case HATF16VarOp $ -> hatF16VarOp(buildContext, $);
-            case HATF16BinaryOp $ -> hatF16BinaryOp(buildContext, $);
-            case HATF16VarLoadOp $ -> hatF16VarLoadOp(buildContext, $);
-            case HATF16ConvOp $ -> hatF16ConvOp(buildContext, $);
-            case HATVectorMakeOfOp $ -> hatVectorMakeOf(buildContext, $);
-            case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp(buildContext, $);
-            case HATMemoryLoadOp $ -> hatMemoryLoadOp(buildContext, $);
+
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

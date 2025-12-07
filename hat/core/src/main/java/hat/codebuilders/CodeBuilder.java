@@ -286,6 +286,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T paren(Consumer<T> consumer) {
         return oparen().accept(consumer).cparen();
     }
+
     public T ocparen() {
         return oparen().cparen();
     }
@@ -472,6 +473,33 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         });
         return self();
     }
+    public <I> T commaSpaceSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
+        return separated(iterable,_->commaSpace(),consumer);
+    }
+    public T commaSpaceSeparated(Consumer<T> ...consumers){
+        for (int i=0;i<consumers.length;i++){
+            if (i>0){
+                commaSpace();
+            }
+            consumers[i].accept(self());
+        }
+        return self();
+    }
+    public <I> T commaSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
+        return separated(iterable,_->comma(),consumer);
+    }
+    public <I> T commaNlSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
+        return separated(iterable,_->comma().nl(),consumer);
+    }
+    public <I> T barSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
+        return separated(iterable,_->bar(),consumer);
+    }
+    public <I> T semicolonNlSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
+        return separated(iterable,_->semicolonNl(),consumer);
+    }
+    public <I> T nlSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
+        return separated(iterable,_->nl(),consumer);
+    }
     public <I> T separated(Stream<I> stream, Consumer<T> separator, Consumer<I> consumer) {
         var first  =StreamMutable.of(true);
         stream.forEach(  t -> {
@@ -483,6 +511,15 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
             consumer.accept(t);
         });
         return self();
+    }
+    public <I> T commaSpaceSeparated(Stream<I> stream,  Consumer<I> consumer) {
+        return separated(stream,_->commaSpace(),consumer);
+    }
+    public <I> T commaSeparated(Stream<I> stream,  Consumer<I> consumer) {
+        return separated(stream,_->comma(),consumer);
+    }
+    public <I> T nlSeparated(Stream<I> stream,  Consumer<I> consumer) {
+        return separated(stream,_->nl(),consumer);
     }
     public final T intType() {
         return typeName("int");
@@ -517,12 +554,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return typeName("char");
     }
 
-
-    public final T floatType() {
+    public final T f32Type() {
         return typeName("float");
     }
-    public final T floatType(String identifier) {
-        return floatType().space().identifier(identifier);
+    public final T f32Type(String identifier) {
+        return f32Type().space().identifier(identifier);
     }
 
     public final T longType() {
@@ -613,7 +649,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return emitText("sizeof");
     }
     public T sizeof(String identifier) {
-        return sizeof(_->paren(_->identifier(identifier)));
+        return sizeof(_->identifier(identifier));
     }
     public T sizeof(Consumer<T> consumer) {
         return sizeof().paren(consumer);

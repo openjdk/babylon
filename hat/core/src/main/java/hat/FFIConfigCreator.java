@@ -87,8 +87,9 @@ public class FFIConfigCreator {
                 cb.identifier("device").paren(_ ->
                         cb.paren(_ -> cb.configBitsAnd().intHexValue(0xf0)).space().rightShift().space().intValue(4)).braceNlIndented(_ ->
                         cb.ifKeyword().paren(_ -> cb.identifier("showDeviceInfo")).braceNlIndented(_ -> {
-                            cb.separated(Config.bitList.stream().filter(bit -> bit.size() == 1), CodeBuilder::nl, bit ->
-                                    cb.stdCout("native " + C99HATConfigBuilder.toCamelExceptFirst(bit.name()) + " ").space().leftShift().space().camelExceptFirst(bit.name()).space().leftShift().space().stdEndl().semicolon()
+                            cb.nlSeparated(
+                                    Config.bitList.stream().filter(bit -> bit.size() == 1),
+                                    bit -> cb.stdCout("native " + cb.toCamelExceptFirst(bit.name()) + " ").space().leftShift().space().camelExceptFirst(bit.name()).space().leftShift().space().stdEndl().semicolon()
                             );
                             cb.nl().stdCout("native platform ").space().leftShift().space().identifier("platform").space().leftShift().space().stdEndl().semicolon();
                             cb.nl().stdCout("native device ").space().leftShift().space().identifier("device").space().leftShift().space().stdEndl().semicolon();
