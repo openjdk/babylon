@@ -176,6 +176,10 @@ public class OpBuilder {
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
+    static final MethodRef STRING_FORMAT = MethodRef.method(String.class, "format", String.class, String.class,
+            Object[].class);
+
+
     static final FunctionType TYPE_BUILDER_F_TYPE = functionType(JavaType.type(TypeElement.class), INT);
 
     final Map<Value, Value> valueMap;
@@ -422,6 +426,25 @@ public class OpBuilder {
 
     FuncOp build(String name, Op op) {
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
+        // check java version
+        var expectedVersion = builder.op(constant(INT, Runtime.version().feature()));
+        var version = builder.op(invoke(MethodRef.method(Runtime.class, "version", Runtime.Version.class)));
+        var actualVersion = builder.op(invoke(MethodRef.method(Runtime.Version.class, "feature", int.class), version));
+        IfOp ifop = if_(builder.parentBody()).if_(c -> {
+            var p = c.op(neq(actualVersion, expectedVersion));
+            c.op(core_yield(p));
+        }).then(t -> {
+            var errMessage = t.op(invoke(
+                    InvokeOp.InvokeKind.STATIC, true,
+                    J_L_STRING, STRING_FORMAT,
+                    t.op(constant(J_L_STRING, "Code model was compiled with java version %d, but the actual version is %d")),
+                    box(J_L_INTEGER, expectedVersion), box(J_L_INTEGER, actualVersion)
+            ));
+            t.op(throw_(
+                    t.op(new_(MethodRef.constructor(IllegalStateException.class, String.class), errMessage))
+            ));
+        }).else_();
+        builder.op(ifop);
         Value result = buildOp(null, ancestorBody, op);
         // seal op
         builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
