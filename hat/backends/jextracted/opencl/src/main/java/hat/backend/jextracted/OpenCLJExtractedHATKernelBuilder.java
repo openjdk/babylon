@@ -205,7 +205,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
 
     @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        return paren(_->halfType()).identifier(hatF16ToFloatConvOp.varName());
+        return paren(_-> f16Type()).identifier(hatF16ToFloatConvOp.varName());
     }
 
 }
