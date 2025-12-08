@@ -46,7 +46,7 @@
 package heal;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.ComputeConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -321,8 +321,8 @@ public class Compute {
             );
             Box selectionBox = Box.create(accelerator, selection.x1(), selection.y1(), selection.x2(), selection.y2());
 
-            accelerator.compute((@Reflect QuotableComputeContextConsumer)
-                    cc -> Compute.bestFitCompute(cc, bestMatchOffset, s32Array2D, searchArea, selectionBox, xyrgbList
+            accelerator.compute((@Reflect ComputeConsumer)
+                    cc -> heal.Compute.bestFitCompute(cc, bestMatchOffset, s32Array2D, searchArea, selectionBox, xyrgbList
             ));
             searchSevenSegmentDisplay.set((int)(System.currentTimeMillis() - hatStart));
            // searchTB.setText(Long.toString(System.currentTimeMillis() - hatStart));

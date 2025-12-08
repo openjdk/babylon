@@ -107,16 +107,16 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         this.accelerator.backend.computeContextHandoff(this);
     }
 
-    public void dispatchKernel(NDRange ndRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        dispatchKernelWithComputeRange(ndRange, quotableKernelContextConsumer);
+    public void dispatchKernel(NDRange ndRange, KernelConsumer kernel) {
+        dispatchKernelWithComputeRange(ndRange, kernel);
     }
 
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
-    private CallGraph getKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
+    private CallGraph getKernelCallGraph(KernelConsumer kernel) {
+        Quoted quoted = Op.ofQuotable(kernel).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef = OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
+        MethodRef methodRef = OpTk.getTargetInvokeOp( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         if (kernelCallGraph == null){
             throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?) ");
@@ -124,10 +124,10 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
-    private void dispatchKernelWithComputeRange(NDRange ndRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        CallGraph cg = getKernelCallGraph(quotableKernelContextConsumer);
+    private void dispatchKernelWithComputeRange(NDRange ndRange, KernelConsumer kernel) {
+        CallGraph cg = getKernelCallGraph(kernel);
         try {
-            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
+            Object[] args = OpTk.getQuotedCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
             KernelContext kernelContext = accelerator.range(ndRange);
             args[0] = kernelContext;
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, kernelContext, args);
@@ -174,6 +174,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     }
 
     @Reflect
-    public interface QuotableKernelContextConsumer extends Consumer<KernelContext> { }
+    @FunctionalInterface
+    public interface KernelConsumer extends Consumer<KernelContext> { }
 
 }

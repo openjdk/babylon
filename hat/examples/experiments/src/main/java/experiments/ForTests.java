@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.ComputeConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -92,8 +92,8 @@ public class ForTests {
                 (backend) -> backend.getClass().getSimpleName().startsWith("OpenCL")
         );
         var a = F32Array.create(accelerator,100);
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
-                cc -> Compute.compute(cc, a)
+        accelerator.compute((@Reflect ComputeConsumer)
+                cc -> ForTests.Compute.compute(cc, a)
         );
 
     }

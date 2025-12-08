@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.ComputeConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -62,8 +62,8 @@ public class MinBufferTest {
         int len = 10000000;
         int valueToAdd = 10;
         S32Array s32Array = S32Array.create(accelerator, len,i->i);
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
-                cc -> Compute.add(cc, s32Array, len, valueToAdd));
+        accelerator.compute((@Reflect ComputeConsumer)
+                cc -> MinBufferTest.Compute.add(cc, s32Array, len, valueToAdd));
         // Quite an expensive way of adding 20 to each array element
         for (int i = 0; i < 20; i++) {
             System.out.println(i + "=" + s32Array.array(i));

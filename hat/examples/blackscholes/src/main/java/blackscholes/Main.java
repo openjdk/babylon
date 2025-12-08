@@ -26,7 +26,7 @@
 package blackscholes;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.ComputeConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -126,7 +126,7 @@ public class Main {
         float r = 0.02f;
         float v = 0.30f;
 
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+        accelerator.compute((@Reflect ComputeConsumer)
                 cc -> blackScholes(cc, call, put, S, X, T, r, v));
         for (int i = 0; i < 10; i++) {
             System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + call.array(i) + "\t\t put option price = " + put.array(i));
