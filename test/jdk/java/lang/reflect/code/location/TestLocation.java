@@ -47,7 +47,7 @@ public class TestLocation {
     @Test
     public void testLocation() {
         CoreOp.FuncOp f = getFuncOp(ClassWithReflectedMethod.class, "f");
-        f.traverse(null, (o, ce) -> {
+        f.elements().forEach(ce -> {
             if (ce instanceof CoreOp.ConstantOp cop) {
                 Location loc = cop.location();
                 Assertions.assertNotNull(loc);
@@ -56,7 +56,6 @@ public class TestLocation {
                 int expectedLine = Integer.parseInt((String) cop.value());
                 Assertions.assertEquals(expectedLine, actualLine);
             }
-            return null;
         });
     }
 

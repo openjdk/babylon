@@ -66,7 +66,7 @@ public class TypeConvertor {
     }
 
     void detectConstantArrays(CoreOp.FuncOp f) {
-        f.traverse(null, (_, ce) -> {
+        f.elements().forEach(ce -> {
             if (ce instanceof JavaOp.NewOp no && no.resultType() instanceof ClassType recordType && isRecord(recordType)) {
                 Class<?> recordClass;
                 try {
@@ -98,7 +98,6 @@ public class TypeConvertor {
                     }
                 }
             }
-            return null;
         });
     }
 
