@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.device.DeviceType;
 import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
 import hat.optools.OpTk;
@@ -63,94 +64,108 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
 
         return entry.transform(entry.funcName(), (bb, op) -> {
             switch (op) {
-                case JavaOp.InvokeOp iop -> {
+                case JavaOp.InvokeOp invokeOp -> {
                     // catching HATVectorBinaryOps not stored in VarOps
-                    if (isVectorBinaryOperation(iop)) {
+                    if (isVectorBinaryOperation(invokeOp)) {
                         HATVectorBinaryOp vBinaryOp = buildVectorBinaryOp(
-                                iop.invokeDescriptor().name(),
-                                iop.externalizeOpName(),
-                                iop.resultType(),
-                                bb.context().getValues(iop.operands())
+                                invokeOp.invokeDescriptor().name(),
+                                invokeOp.externalizeOpName(),
+                                invokeOp.resultType(),
+                                bb.context().getValues(invokeOp.operands())
                         );
-                        vBinaryOp.setLocation(iop.location());
+                        vBinaryOp.setLocation(invokeOp.location());
                         Op.Result res = bb.op(vBinaryOp);
-                        bb.context().mapValue(iop.result(), res);
-                        replaced.put(iop.result(), res);
+                        bb.context().mapValue(invokeOp.result(), res);
+                        replaced.put(invokeOp.result(), res);
                         return bb;
-                    } else if (isBufferArray(iop) &&
-                            firstOperand(iop) instanceof Op.Result r) { // ensures we can use iop as key for replaced vvv
-                        replaced.put(iop.result(), r);
+                    } else if (isBufferArray(invokeOp) &&
+                            firstOperand(invokeOp) instanceof Op.Result r) { // ensures we can use iop as key for replaced vvv
+                        replaced.put(invokeOp.result(), r);
                         // map buffer VarOp to its corresponding VarLoadOp
-                        bufferVarLoads.put(((Op.Result) firstOperand(r.op())).op(), (CoreOp.VarAccessOp.VarLoadOp) r.op());
+                        bufferVarLoads.put((firstOperandAsRes(r.op())).op(), (CoreOp.VarAccessOp.VarLoadOp) r.op());
                         return bb;
                     }
                 }
-                case CoreOp.VarOp vop -> {
-                    if (isBufferInitialize(vop) &&
-                            firstOperand(vop) instanceof Op.Result r) { // makes sure we don't process a new int[] for example
+                case CoreOp.VarOp varOp -> {
+                    if (isBufferInitialize(varOp) &&
+                            firstOperand(varOp) instanceof Op.Result r) { // makes sure we don't process a new int[] for example
                         Op bufferLoad = replaced.get(r).op(); // gets VarLoadOp associated w/ og buffer
-                        replaced.put(vop.result(), (Op.Result) firstOperand(bufferLoad)); // gets VarOp associated w/ og buffer
+                        replaced.put(varOp.result(), firstOperandAsRes(bufferLoad)); // gets VarOp associated w/ og buffer
                         return bb;
-                    } else if (isVectorOp(vop)) {
-                        List<Value> operands = (vop.operands().isEmpty()) ? List.of() : List.of(firstOperand(vop));
-                        HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(vop.resultType().valueType());
+                    } else if (isVectorOp(varOp)) {
+                        List<Value> operands = (varOp.operands().isEmpty()) ? List.of() : List.of(firstOperand(varOp));
+                        HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(varOp.resultType().valueType());
                         HATVectorVarOp vVarOp = new HATVectorVarOp(
-                                vop.varName(),
-                                vop.resultType(),
+                                varOp.varName(),
+                                varOp.resultType(),
                                 md.vectorTypeElement(),
                                 md.lanes(),
                                 bb.context().getValues(operands)
                         );
-                        vVarOp.setLocation(vop.location());
+                        vVarOp.setLocation(varOp.location());
                         Op.Result res = bb.op(vVarOp);
-                        bb.context().mapValue(vop.result(), res);
+                        bb.context().mapValue(varOp.result(), res);
                         return bb;
                     }
                 }
-                case CoreOp.VarAccessOp.VarLoadOp vlop -> {
-                    if ((isBufferInitialize(vlop)) &&
-                            firstOperand(vlop) instanceof Op.Result r) {
+                case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
+                    if ((isBufferInitialize(varLoadOp)) &&
+                            firstOperand(varLoadOp) instanceof Op.Result r) {
                         if (r.op() instanceof CoreOp.VarOp) { // if this is the VarLoadOp after the .arrayView() InvokeOp
-                            Op.Result replacement = (notGlobalVarOp(vlop)) ?
-                                    (Op.Result) firstOperand(((Op.Result) firstOperand(r.op())).op()) :
+                            Op.Result replacement = (notGlobalVarOp(varLoadOp)) ?
+                                    firstOperandAsRes((firstOperandAsRes(r.op())).op()) :
                                     bufferVarLoads.get(replaced.get(r).op()).result();
-                            replaced.put(vlop.result(), replacement);
+                            replaced.put(varLoadOp.result(), replacement);
                         } else { // if this is a VarLoadOp loading the buffer
                             Value loaded = getValue(bb, replaced.get(r));
                             CoreOp.VarAccessOp.VarLoadOp newVarLoad = CoreOp.VarAccessOp.varLoad(loaded);
-                            newVarLoad.setLocation(vlop.location());
+                            newVarLoad.setLocation(varLoadOp.location());
                             Op.Result res = bb.op(newVarLoad);
-                            bb.context().mapValue(vlop.result(), res);
-                            replaced.put(vlop.result(), res);
+                            bb.context().mapValue(varLoadOp.result(), res);
+                            replaced.put(varLoadOp.result(), res);
                         }
                         return bb;
                     }
                 }
-                // TODO: implement more generic array handling for any-dimension arrays
-                case JavaOp.ArrayAccessOp.ArrayLoadOp alop -> {
-                    if (isBufferArray(alop) &&
-                            firstOperand(alop) instanceof Op.Result r) {
+                case JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp -> {
+                    if (isBufferArray(arrayLoadOp) &&
+                            firstOperand(arrayLoadOp) instanceof Op.Result r) {
                         Op.Result buffer = replaced.getOrDefault(r, r);
-                        if (isVectorOp(alop)) {
-                            Op vop = ((Op.Result) firstOperand(buffer.op())).op();
+                        if (isVectorOp(arrayLoadOp)) {
+                            Op vop = (firstOperandAsRes(buffer.op())).op();
                             String name = switch (vop) {
                                 case CoreOp.VarOp varOp -> varOp.varName();
                                 case HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
                                 case HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
                                 default -> throw new IllegalStateException("Unexpected value: " + vop);
                             };
-                            HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(alop.resultType());
+                            HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(arrayLoadOp.resultType());
                             HATVectorLoadOp vLoadOp = new HATVectorLoadOp(
                                     name,
-                                    CoreType.varType(((ArrayType) firstOperand(alop).type()).componentType()),
+                                    CoreType.varType(((ArrayType) firstOperand(arrayLoadOp).type()).componentType()),
                                     md.vectorTypeElement(),
                                     md.lanes(),
-                                    notGlobalVarOp(alop),
-                                    bb.context().getValues(List.of(buffer, alop.operands().getLast()))
+                                    notGlobalVarOp(arrayLoadOp),
+                                    bb.context().getValues(List.of(buffer, arrayLoadOp.operands().getLast()))
                             );
-                            vLoadOp.setLocation(alop.location());
+                            vLoadOp.setLocation(arrayLoadOp.location());
                             Op.Result res = bb.op(vLoadOp);
-                            bb.context().mapValue(alop.result(), res);
+                            bb.context().mapValue(arrayLoadOp.result(), res);
+                        // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
+                        //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                        //     List<Value> operands = new ArrayList<>();
+                        //     operands.add(info.buffer);
+                        //     operands.addAll(info.indices);
+                        //     HATPtrLoadOp ptrLoadOp = new HATPtrLoadOp(
+                        //             arrayLoadOp.resultType(),
+                        //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                        //             info.indices(),
+                        //             bb.context().getValues(operands)
+                        //     );
+                        //     ptrLoadOp.setLocation(arrayLoadOp.location());
+                        //     Op.Result res = bb.op(ptrLoadOp);
+                        //     bb.context().mapValue(arrayLoadOp.result(), res);
+                        // }
                             return bb;
                         }
                         if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
@@ -158,7 +173,7 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                                 // idea: we want to calculate the idx for the buffer access
                                 // idx = (long) (((long) rowOp.idx * (long) buffer.width()) + alop.idx)
                                 Op.Result x = (Op.Result) getValue(bb, rowOp.operands().getLast());
-                                Op.Result y = (Op.Result) getValue(bb, alop.operands().getLast());
+                                Op.Result y = (Op.Result) getValue(bb, arrayLoadOp.operands().getLast());
                                 Op.Result ogBufferLoad = replaced.get((Op.Result) firstOperand(rowOp));
                                 Op.Result ogBuffer = replaced.getOrDefault((Op.Result) firstOperand(ogBufferLoad.op()), (Op.Result) firstOperand(ogBufferLoad.op()));
                                 Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(getValue(bb, ogBuffer)));
@@ -172,56 +187,73 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                                 Op.Result mul = bb.op(JavaOp.mul(getValue(bb, longY), getValue(bb, longWidth)));
                                 Op.Result idx = bb.op(JavaOp.add(getValue(bb, longX), getValue(bb, mul)));
 
-                                Class<?> storedClass = typeElementToClass(alop.result().type());
+                                Class<?> storedClass = typeElementToClass(arrayLoadOp.result().type());
                                 MethodRef arrayMethod = MethodRef.method(c, "array", storedClass, long.class);
                                 Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, getValue(bb, ogBufferLoad), getValue(bb, idx)));
-                                bb.context().mapValue(alop.result(), invokeRes);
+                                bb.context().mapValue(arrayLoadOp.result(), invokeRes);
                             } else {
-                                JavaOp.ConvOp conv = JavaOp.conv(JavaType.LONG, getValue(bb, alop.operands().get(1)));
+                                JavaOp.ConvOp conv = JavaOp.conv(JavaType.LONG, getValue(bb, arrayLoadOp.operands().get(1)));
                                 Op.Result convRes = bb.op(conv);
 
                                 Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) buffer.type());
-                                Class<?> storedClass = typeElementToClass(alop.result().type());
+                                Class<?> storedClass = typeElementToClass(arrayLoadOp.result().type());
                                 MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
                                 Op.Result invokeRes = bb.op(JavaOp.invoke(m, getValue(bb, buffer), convRes));
-                                bb.context().mapValue(alop.result(), invokeRes);
+                                bb.context().mapValue(arrayLoadOp.result(), invokeRes);
                             }
                         }
                     }
                     return bb;
                 }
-                // handles only 1D and 2D arrays
-                case JavaOp.ArrayAccessOp.ArrayStoreOp asop -> {
-                    if (isBufferArray(asop) &&
-                            firstOperand(asop) instanceof Op.Result r) {
+                case JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
+                    if (isBufferArray(arrayStoreOp) &&
+                            firstOperand(arrayStoreOp) instanceof Op.Result r) {
                         Op.Result buffer = replaced.getOrDefault(r, r);
-                        if (isVectorOp(asop)) {
-                            Op varOp = findVarOpOrHATVarOP(((Op.Result) asop.operands().getLast()).op());
+                        if (isVectorOp(arrayStoreOp)) {
+                            Op varOp = findVarOpOrHATVarOP(((Op.Result) arrayStoreOp.operands().getLast()).op());
                             String name = (varOp instanceof HATVectorVarOp) ? ((HATVectorVarOp) varOp).varName() : ((CoreOp.VarOp) varOp).varName();
                             TypeElement resultType = (varOp instanceof HATVectorVarOp) ? (varOp).resultType() : ((CoreOp.VarOp) varOp).resultType();
-                            ClassType classType = ((ClassType) ((ArrayType) firstOperand(asop).type()).componentType());
+                            ClassType classType = ((ClassType) ((ArrayType) firstOperand(arrayStoreOp).type()).componentType());
                             HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(classType);
                             HATVectorStoreView vStoreOp = new HATVectorStoreView(
                                     name,
                                     resultType,
                                     md.lanes(),
                                     md.vectorTypeElement(),
-                                    notGlobalVarOp(asop),
-                                    bb.context().getValues(List.of(buffer, asop.operands().getLast(), asop.operands().get(1)))
+                                    notGlobalVarOp(arrayStoreOp),
+                                    bb.context().getValues(List.of(buffer, arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)))
                             );
-                            vStoreOp.setLocation(asop.location());
+                            vStoreOp.setLocation(arrayStoreOp.location());
                             Op.Result res = bb.op(vStoreOp);
-                            bb.context().mapValue(asop.result(), res);
+                            bb.context().mapValue(arrayStoreOp.result(), res);
+                        // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
+                        //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                        //     List<Value> operands = new ArrayList<>();
+                        //     operands.add(info.buffer());
+                        //     // operands.add(arrayStoreOp.operands().getLast());
+                        //     operands.addAll(info.indices);
+                        //     HATPtrStoreOp ptrLoadOp = new HATPtrStoreOp(
+                        //             arrayStoreOp.resultType(),
+                        //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                        //             info.indices(),
+                        //             getValue(bb, arrayStoreOp.operands().getLast()),
+                        //             bb.context().getValues(operands)
+                        //             // bb.context().getValues(List.of(info.buffer(), arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)))
+                        //     );
+                        //     ptrLoadOp.setLocation(arrayStoreOp.location());
+                        //     Op.Result res = bb.op(ptrLoadOp);
+                        //     bb.context().mapValue(arrayStoreOp.result(), res);
+                        // }
                             return bb;
                         }
                         if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
                             if (r.op() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp rowOp) {
                                 Op.Result x = (Op.Result) rowOp.operands().getLast();
-                                Op.Result y = (Op.Result) asop.operands().get(1);
+                                Op.Result y = (Op.Result) arrayStoreOp.operands().get(1);
                                 Op.Result ogBufferLoad = replaced.get((Op.Result) firstOperand(rowOp));
                                 Op.Result ogBuffer = replaced.getOrDefault((Op.Result) firstOperand(ogBufferLoad.op()), (Op.Result) firstOperand(ogBufferLoad.op()));
                                 Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(getValue(bb, ogBuffer)));
-                                Op.Result computed = (Op.Result) asop.operands().getLast();
+                                Op.Result computed = (Op.Result) arrayStoreOp.operands().getLast();
 
                                 Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) ((VarType) ogBuffer.type()).valueType());
                                 MethodRef m = MethodRef.method(c, "width", int.class);
@@ -234,10 +266,10 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
 
                                 MethodRef arrayMethod = MethodRef.method(c, "array", void.class, long.class, int.class);
                                 Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, getValue(bb, ogBufferLoad), getValue(bb, idx), getValue(bb, computed)));
-                                bb.context().mapValue(asop.result(), invokeRes);
+                                bb.context().mapValue(arrayStoreOp.result(), invokeRes);
                             } else {
-                                Op.Result idx = bb.op(JavaOp.conv(JavaType.LONG, getValue(bb, asop.operands().get(1))));
-                                Value val = getValue(bb, asop.operands().getLast());
+                                Op.Result idx = bb.op(JavaOp.conv(JavaType.LONG, getValue(bb, arrayStoreOp.operands().get(1))));
+                                Value val = getValue(bb, arrayStoreOp.operands().getLast());
 
                                 boolean noRootVlop = (buffer.op() instanceof CoreOp.VarOp);
                                 ClassType classType = (noRootVlop) ?
@@ -250,7 +282,7 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                                 Op.Result invokeRes = (noRootVlop) ?
                                         bb.op(JavaOp.invoke(m, getValue(bb, r), idx, val)) :
                                         bb.op(JavaOp.invoke(m, getValue(bb, buffer), idx, val));
-                                bb.context().mapValue(asop.result(), invokeRes);
+                                bb.context().mapValue(arrayStoreOp.result(), invokeRes);
                             }
                         }
                     }
@@ -269,21 +301,37 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                     }
                     return bb;
                 }
-                case HATVectorSelectLoadOp vSelectLoad -> {
-                    CoreOp.VarOp vop = findVarOp(((Op.Result) firstOperand(op)).op());
+                // case JavaOp.ArrayLengthOp arrayLengthOp -> {
+                //     if (isBufferArray(arrayLengthOp) &&
+                //             firstOperand(arrayLengthOp) instanceof Op.Result r) {
+                //         ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                //         HATPtrLengthOp ptrLengthOp = new HATPtrLengthOp(
+                //                 arrayLengthOp.resultType(),
+                //                 (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                //                 info.indices(),
+                //                 bb.context().getValues(List.of(info.buffer()))
+                //         );
+                //         ptrLengthOp.setLocation(arrayLengthOp.location());
+                //         Op.Result res = bb.op(ptrLengthOp);
+                //         bb.context().mapValue(arrayLengthOp.result(), res);
+                //         return bb;
+                //     }
+                // }
+                case HATVectorSelectLoadOp vectorSelectLoadOp -> {
+                    CoreOp.VarOp vop = findVarOp((firstOperandAsRes(op)).op());
                     String name = (vop == null) ? "" : vop.varName();
                     HATVectorSelectLoadOp vSelectOp = new HATVectorSelectLoadOp(
                             name,
                             op.resultType(),
-                            getLane(vSelectLoad.mapLane()),
+                            getLane(vectorSelectLoadOp.mapLane()),
                             bb.context().getValues(op.operands())
                     );
                     vSelectOp.setLocation(op.location());
-                    bb.context().mapValue(vSelectLoad.result(), bb.op(vSelectOp));
+                    bb.context().mapValue(vectorSelectLoadOp.result(), bb.op(vSelectOp));
                     return bb;
                 }
-                case HATVectorSelectStoreOp vSelectStore -> {
-                    CoreOp.VarOp vop = findVarOp(((Op.Result) firstOperand(op)).op());
+                case HATVectorSelectStoreOp vectorSelectStoreOp -> {
+                    CoreOp.VarOp vop = findVarOp((firstOperandAsRes(op)).op());
                     String name = (vop == null) ? "" : vop.varName();
                     CoreOp.VarOp resultOp =
                             (((Op.Result) op.operands().getLast()).op() instanceof JavaOp.ArithmeticOperation ||
@@ -292,30 +340,28 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                     HATVectorSelectStoreOp vSelectOp = new HATVectorSelectStoreOp(
                             name,
                             op.resultType(),
-                            getLane(vSelectStore.mapLane()),
+                            getLane(vectorSelectStoreOp.mapLane()),
                             resultOp,
                             bb.context().getValues(op.operands())
                     );
                     vSelectOp.setLocation(op.location());
-                    bb.context().mapValue(vSelectStore.result(), bb.op(vSelectOp));
+                    bb.context().mapValue(vectorSelectStoreOp.result(), bb.op(vSelectOp));
                     return bb;
                 }
-                case HATVectorVarLoadOp vVarLoad -> {
-                    List<Value> inputOperandsVarLoad = vVarLoad.operands();
-                    List<Value> outputOperandsVarLoad = bb.context().getValues(inputOperandsVarLoad);
-                    Op varOp = findVarOpOrHATVarOP(vVarLoad);
+                case HATVectorVarLoadOp vectorVarLoadOp -> {
+                    Op varOp = findVarOpOrHATVarOP(vectorVarLoadOp);
                     String name = (varOp instanceof HATVectorVarOp) ? ((HATVectorVarOp) varOp).varName() : ((CoreOp.VarOp) varOp).varName();
-                    HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(vVarLoad.resultType());
+                    HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(vectorVarLoadOp.resultType());
                     HATVectorVarLoadOp newVectorVarLoadOp = new HATVectorVarLoadOp(
                             name,
-                            vVarLoad.resultType(),
+                            vectorVarLoadOp.resultType(),
                             md.vectorTypeElement(),
                             md.lanes(),
-                            outputOperandsVarLoad
+                            bb.context().getValues(vectorVarLoadOp.operands())
                     );
-                    newVectorVarLoadOp.setLocation(vVarLoad.location());
+                    newVectorVarLoadOp.setLocation(vectorVarLoadOp.location());
                     Op.Result res = bb.op(newVectorVarLoadOp);
-                    bb.context().mapValue(vVarLoad.result(), res);
+                    bb.context().mapValue(vectorVarLoadOp.result(), res);
                     return bb;
                 }
                 default -> {
@@ -324,6 +370,59 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
             bb.op(op);
             return bb;
         });
+    }
+
+    record ArrayAccessInfo(Op.Result buffer, List<Op.Result> indices) {};
+
+    record Node<T>(T value, List<Node<T>> edges) {
+        ArrayAccessInfo getInfo(Map<Op.Result, Op.Result> replaced) {
+            List<Node<T>> wl = new ArrayList<>();
+            Set<Node<T>> seen = new HashSet<>();
+            Op.Result buffer = null;
+            List<Op.Result> indices = new ArrayList<>();
+            wl.add(this);
+            while (!wl.isEmpty()) {
+                Node<T> cur = wl.removeFirst();
+                seen.add(cur);
+                if (cur.value instanceof Op.Result res) {
+                    if (res.op() instanceof JavaOp.ArrayAccessOp || res.op() instanceof JavaOp.ArrayLengthOp) {
+                        buffer = res;
+                        indices.addFirst(res.op() instanceof JavaOp.ArrayAccessOp ? ((Op.Result) res.op().operands().get(1)) : ((Op.Result) res.op().operands().get(0)));
+                    }
+                }
+                for (Node<T> node : edges) {
+                    if (!seen.contains(node)) wl.add(node);
+                }
+            }
+            buffer = replaced.get((Op.Result) firstOperand(buffer.op()));
+            return new ArrayAccessInfo(buffer, indices);
+        }
+    }
+
+    static ArrayAccessInfo arrayAccessInfo(Value value, Map<Op.Result, Op.Result> replaced) {
+        return expressionGraph(value).getInfo(replaced);
+    }
+
+    // TODO: check?
+    static Node<Value> expressionGraph(Value value) {
+        return expressionGraph(new HashMap<>(), value);
+    }
+
+    static Node<Value> expressionGraph(Map<Value, Node<Value>> visited, Value value) {
+        // If value has already been visited return its node
+        if (visited.containsKey(value)) {
+            return visited.get(value);
+        }
+
+        // Find the expression graphs for each operand
+        List<Node<Value>> edges = new ArrayList<>();
+        for (Value operand : value.dependsOn()) {
+            if (operand instanceof Op.Result res && res.op() instanceof JavaOp.InvokeOp iop && iop.invokeDescriptor().name().toLowerCase().contains("arrayview")) continue;
+            edges.add(expressionGraph(operand));
+        }
+        Node<Value> node = new Node<>(value, edges);
+        visited.put(value, node);
+        return node;
     }
 
     /*
@@ -383,11 +482,15 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
         return false;
     }
 
-    public Value firstOperand(Op op) {
+    public static Op.Result firstOperandAsRes(Op op) {
+        return (firstOperand(op) instanceof Op.Result res) ? res : null;
+    }
+
+    public static Value firstOperand(Op op) {
         return op.operands().getFirst();
     }
 
-    public Value getValue(Block.Builder bb, Value value) {
+    public static Value getValue(Block.Builder bb, Value value) {
         return bb.context().getValueOrDefault(value, value);
     }
 
@@ -399,6 +502,7 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
     public boolean notGlobalVarOp(Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) searchForOp(op, Set.of(JavaOp.InvokeOp.class));
         return iop.invokeDescriptor().name().toLowerCase().contains("local") ||
+                iop.invokeDescriptor().name().toLowerCase().contains("shared") ||
                 iop.invokeDescriptor().name().toLowerCase().contains("private");
     }
 
@@ -430,7 +534,8 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                 element instanceof JavaOp.InvokeOp iop &&
                         iop.resultType() instanceof ArrayType &&
                         iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        OpTk.isAssignable(accelerator.lookup, javaType, MappableIface.class)));
+                        (OpTk.isAssignable(accelerator.lookup, javaType, MappableIface.class)
+                        || OpTk.isAssignable(accelerator.lookup, javaType, DeviceType.class))));
     }
 
     public Class<?> typeElementToClass(TypeElement type) {

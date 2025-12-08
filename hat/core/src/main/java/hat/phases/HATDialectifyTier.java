@@ -41,6 +41,9 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp, CoreOp.FuncOp>
         // barriers
         hatPhases.add(new HATDialectifyBarrierPhase(accelerator));
 
+        // array views
+        hatPhases.add(new HATDialectifyArrayViewPhase(accelerator));
+
         // Memory
         hatPhases.add(new HATDialectifyMemoryPhase.LocalMemoryPhase(accelerator));
         hatPhases.add(new HATDialectifyMemoryPhase.PrivateMemoryPhase(accelerator));
@@ -71,7 +74,6 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp, CoreOp.FuncOp>
         // F16 type
         hatPhases.add(new HATDialectifyFP16Phase(accelerator));
 
-        hatPhases.add(new HATDialectifyArrayViewPhase(accelerator));
     }
 
     // It computes a set of function code model transformations from FuncOp to FuncOp'.
