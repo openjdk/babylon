@@ -549,6 +549,14 @@ public class OpTk {
         return false;
     }
 
+    public static Op.Result asResultOrThrow(Value value) {
+        if (value instanceof Op.Result r) {
+           return r;
+        }else{
+            throw new RuntimeException("Value not a result");
+        }
+    }
+
     public  record CallSite(Class<?> clazz,String methodName, boolean tracing){
         public static CallSite of(Class<?> clazz, String methodName) {
             return new CallSite(clazz,methodName, Boolean.getBoolean("TRACE_CALLSITES"));

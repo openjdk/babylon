@@ -58,11 +58,9 @@ import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-
     public C99FFIBackend(String libName, Config config) {
         super(libName, config);
     }
-
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
         public final KernelCallGraph kernelCallGraph;
@@ -79,10 +77,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
-        private void setGlobalMesh(NDRange.Global global) {
+        public void dispatch(KernelContext kernelContext, Object[] args) {
             kernelBufferContext.gsy(1);
             kernelBufferContext.gsz(1);
-            switch (global) {
+            switch (kernelContext.ndRange.global()) {
                 case NDRange.Global1D global1D -> {
                     kernelBufferContext.gsx(global1D.x());
                     kernelBufferContext.dimensions(global1D.dimension());
@@ -99,59 +97,37 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     kernelBufferContext.dimensions(global3D.dimension());
                 }
                 case null, default -> {
-                    throw new IllegalArgumentException("Unknown global range " + global.getClass());
+                    throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.global().getClass());
                 }
             }
-        }
-
-        private void setLocalMesh(NDRange.Local local) {
-            kernelBufferContext.lsy(1);
-            kernelBufferContext.lsz(1);
-            switch (local) {
-                case NDRange.Local1D local1D -> {
-                    kernelBufferContext.lsx(local1D.x());
-                    kernelBufferContext.dimensions(local1D.dimension());
+            if (kernelContext.ndRange.hasLocal()) {
+                kernelBufferContext.lsy(1);
+                kernelBufferContext.lsz(1);
+                switch (kernelContext.ndRange.local()) {
+                    case NDRange.Local1D local1D -> {
+                        kernelBufferContext.lsx(local1D.x());
+                        kernelBufferContext.dimensions(local1D.dimension());
+                    }
+                    case NDRange.Local2D local2D -> {
+                        kernelBufferContext.lsx(local2D.x());
+                        kernelBufferContext.lsy(local2D.y());
+                        kernelBufferContext.dimensions(local2D.dimension());
+                    }
+                    case NDRange.Local3D local3D -> {
+                        kernelBufferContext.lsx(local3D.x());
+                        kernelBufferContext.lsy(local3D.y());
+                        kernelBufferContext.lsz(local3D.z());
+                        kernelBufferContext.dimensions(local3D.dimension());
+                    }
+                    case null, default -> {
+                        throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.local().getClass());
+                    }
                 }
-                case NDRange.Local2D local2D -> {
-                    kernelBufferContext.lsx(local2D.x());
-                    kernelBufferContext.lsy(local2D.y());
-                    kernelBufferContext.dimensions(local2D.dimension());
-                }
-                case NDRange.Local3D local3D -> {
-                    kernelBufferContext.lsx(local3D.x());
-                    kernelBufferContext.lsy(local3D.y());
-                    kernelBufferContext.lsz(local3D.z());
-                    kernelBufferContext.dimensions(local3D.dimension());
-                }
-                case null, default -> {
-                    throw new IllegalArgumentException("Unknown global range " + local.getClass());
-                }
-            }
-        }
-
-        private void setDefaultLocalMesh() {
-            kernelBufferContext.lsx(0);
-            kernelBufferContext.lsy(0);
-            kernelBufferContext.lsz(0);
-        }
-
-        private void setupComputeRange(KernelContext kernelContext) {
-            NDRange ndRange = kernelContext.getNDRange();
-            if (!(ndRange instanceof NDRange.Range range)) {
-                throw new IllegalArgumentException("NDRange must be of type NDRange.Range");
-            }
-            boolean isLocalMeshDefined = kernelContext.hasLocalMesh();
-            NDRange.Global global = range.global();
-            setGlobalMesh(global);
-            if (isLocalMeshDefined) {
-                setLocalMesh(range.local());
             } else {
-                setDefaultLocalMesh();
+                kernelBufferContext.lsx(0);
+                kernelBufferContext.lsy(0);
+                kernelBufferContext.lsz(0);
             }
-        }
-
-        public void dispatch(KernelContext kernelContext, Object[] args) {
-            setupComputeRange(kernelContext);
             args[0] = this.kernelBufferContext;
             ArgArray.update(argArray, kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);
@@ -240,7 +216,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         var annotation = kernelCallGraph.entrypoint.method.getAnnotation(Kernel.class);
-
         if (annotation!=null){
             var typedef = kernelCallGraph.entrypoint.method.getAnnotation(TypeDef.class);
             if (typedef!=null){
@@ -286,6 +261,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     // Approach 1: The first approach support iFace and Buffer types to be used in Local and Private memory
                     // TODO: Once we decide to move towards the DeviceType implementation, we will remove this part
                     Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
+                    // DON'T DO THIS !!!!  we are needlessly allocating a memory segment here pn each dispatch!!!
+                    // just to get the bound schema.
                     Method method = clazz.getMethod("create", hat.Accelerator.class);
                     method.setAccessible(true);
                     Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
@@ -302,13 +279,12 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                         // new approach for supporting DeviceTypes
                         Field schemaField = clazz.getDeclaredField("schema");
                         schemaField.setAccessible(true);
-                        Object schema = schemaField.get(schemaField);
-
-                        Class<?> deviceSchemaClass = Class.forName(DeviceSchema.class.getName());
-                        Method toTextMethod = deviceSchemaClass.getDeclaredMethod("toText");
-                        toTextMethod.setAccessible(true);
-                        String toText = (String) toTextMethod.invoke(schema);
+                        var schema = (DeviceSchema<?>)schemaField.get(schemaField);
+                        // <1> We are creating text form of DeviceType schema
+                        String toText = schema.toText();
                         if (toText != null) {
+                            // <2> just to then parse the text from above.
+                            // Lets get the model in a cleaner form
                             generateDeviceTypeStructs(builder, toText, typedefs);
                         } else {
                             throw new RuntimeException("[ERROR] Could not find valid device schema ");
@@ -327,6 +303,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             kernelCallGraph.getModuleOp().functionTable()
                     .forEach((_, funcOp) -> {
                         // TODO: did we just trash the callgraph sidetables?
+
+                        //  Why are we transforming the callgraph here
                         HATFinalDetectionPhase finals = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
                         finals.apply(funcOp);
 
@@ -336,10 +314,11 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     });
 
             // Update the constants-map for the main kernel
+            // Why are we doing this here we should not be mutating the kernel callgraph at this point
             HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
             hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
             buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
-            builder.nl().kernelEntrypoint(buildContext, args).nl();
+            builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {
                 IO.println("Original");

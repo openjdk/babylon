@@ -112,11 +112,15 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
     public PTXHATKernelBuilder parameters(List<FuncOpParams.Info> infoList) {
         paren(_ ->
-                nl().separated(infoList,(t)->t.comma().nl(), (info) -> {
-            ptxIndent().dot().param().space().paramType(info.javaType);
-            space().regName(info.varOp.varName());
-            paramNames.add(info.varOp.varName());
-        }).nl()).nl();
+                nl()
+                        .commaNlSeparated(
+                        infoList,
+                        info -> {
+                            ptxIndent().dot().param().space().paramType(info.javaType);
+                            space().regName(info.varOp.varName());
+                            paramNames.add(info.varOp.varName());
+                        }
+                        ).nl()).nl();
         return this;
     }
 
@@ -514,9 +518,11 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                 call().uni().space().oparen().retVal().cparen().commaSpace().identifier(OpTk.methodOrThrow(MethodHandles.lookup(),op).getName()).commaSpace();
                 final int[] counter = {0};
                 paren(_ ->
-                        separated(op.operands(),(_)->commaSpace(),
-                        //commaSeparated(op.operands(),
-                                _ -> param().intVal(counter[0]++))).ptxNl();
+                        commaSpaceSeparated(
+                                op.operands(),
+                                _ -> param().intVal(counter[0]++)
+                        )
+                ).ptxNl();
                 ld().dot().param().paramType(op.resultType()).space().resultReg(op, getResultType(op.resultType())).commaSpace().osbrace().retVal().csbrace();
                 ptxNl().cbrace();
             }

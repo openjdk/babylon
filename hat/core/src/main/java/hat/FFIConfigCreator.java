@@ -24,7 +24,6 @@
  */
 package hat;
 
-import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.C99HATConfigBuilder;
 import hat.util.StreamMutable;
 
@@ -64,20 +63,20 @@ public class FFIConfigCreator {
                 cb.staticConstIntShiftedOne(bit.name() + "_BIT", 32, i.get());
                 i.set(i.get() + 1);
             });
-            cb.constKeyword().space().staticKeyword().space().charType().space().asterisk().bitNamesVar().osbrace().csbrace().semicolon().space().lineComment("See below for initialization");
-            cb.constKeyword().space().staticKeyword().space().charType().space().asterisk().bitDescriptionsVar().osbrace().csbrace().semicolon().space().lineComment("See below for initialization");
+            cb.constKeyword().space().staticKeyword().space().s08Type().space().asterisk().bitNamesVar().osbrace().csbrace().semicolon().space().lineComment("See below for initialization");
+            cb.constKeyword().space().staticKeyword().space().s08Type().space().asterisk().bitDescriptionsVar().osbrace().csbrace().semicolon().space().lineComment("See below for initialization");
 
-            cb.intType().space().identifier("configBits").semicolon().nl();
+            cb.s32Type().space().identifier("configBits").semicolon().nl();
 
             Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
                     cb.identifier("bool").space().camelExceptFirst(bit.name()).semicolon().nl()
             );
 
-            cb.intType().space().identifier("platform").semicolon().nl();
-            cb.intType().space().identifier("device").semicolon().nl();
+            cb.s32Type().space().identifier("platform").semicolon().nl();
+            cb.s32Type().space().identifier("device").semicolon().nl();
             cb.identifier("bool").space().identifier("alwaysCopy").semicolon().nl();
             //Constructor
-            cb.explicitKeyword().space().className().paren((_) -> cb.intType().space().configBitsVar()).colon().nl().indent((_) -> {
+            cb.explicitKeyword().space().className().paren((_) -> cb.s32Type().space().configBitsVar()).colon().nl().indent((_) -> {
                 cb.configBitsVar().paren((_) -> cb.configBitsVar()).comma().nl();
                 Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
                         cb.camelExceptFirst(bit.name()).paren((_) -> cb.paren((_) -> cb.configBitsAndBitName(bit.name())).eq().identifier(bit.name() + "_BIT")).comma().nl()
@@ -87,8 +86,9 @@ public class FFIConfigCreator {
                 cb.identifier("device").paren(_ ->
                         cb.paren(_ -> cb.configBitsAnd().intHexValue(0xf0)).space().rightShift().space().intValue(4)).braceNlIndented(_ ->
                         cb.ifKeyword().paren(_ -> cb.identifier("showDeviceInfo")).braceNlIndented(_ -> {
-                            cb.separated(Config.bitList.stream().filter(bit -> bit.size() == 1), CodeBuilder::nl, bit ->
-                                    cb.stdCout("native " + C99HATConfigBuilder.toCamelExceptFirst(bit.name()) + " ").space().leftShift().space().camelExceptFirst(bit.name()).space().leftShift().space().stdEndl().semicolon()
+                            cb.nlSeparated(
+                                    Config.bitList.stream().filter(bit -> bit.size() == 1),
+                                    bit -> cb.stdCout("native " + cb.toCamelExceptFirst(bit.name()) + " ").space().leftShift().space().camelExceptFirst(bit.name()).space().leftShift().space().stdEndl().semicolon()
                             );
                             cb.nl().stdCout("native platform ").space().leftShift().space().identifier("platform").space().leftShift().space().stdEndl().semicolon();
                             cb.nl().stdCout("native device ").space().leftShift().space().identifier("device").space().leftShift().space().stdEndl().semicolon();
@@ -101,13 +101,13 @@ public class FFIConfigCreator {
 
 
         cb.hashIfdef("shared_cpp", (_) -> {
-            cb.constKeyword().space().charType().space().asterisk().className().colon().colon().bitNamesVar().ocsbrace().equals().brace((_) -> {
+            cb.constKeyword().space().s08Type().space().asterisk().className().colon().colon().bitNamesVar().ocsbrace().equals().brace((_) -> {
                 cb.nl();
                 Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
                         cb.dquote().identifier(bit.name() + "_BIT").dquote().comma().nl()
                 );
             }).semicolon().nl();
-            cb.constKeyword().space().charType().space().asterisk().className().colon().colon().bitDescriptionsVar().ocsbrace().equals().brace((_) -> {
+            cb.constKeyword().space().s08Type().space().asterisk().className().colon().colon().bitDescriptionsVar().ocsbrace().equals().brace((_) -> {
                 cb.nl();
                 Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
                         cb.dquote().identifier(bit.description()).dquote().comma().nl()
