@@ -24,10 +24,10 @@
  */
 package hat.tools.textmodel.tokens;
 
+import hat.util.Regex;
+
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public interface Leaf extends Token {
     @Override
@@ -43,16 +43,17 @@ public interface Leaf extends Token {
         return isOneOf(Set.of(strings));
     }
 
-    default Matcher matcher(Pattern regex) {
-        Matcher matcher = regex.matcher(asString());
-        if (matcher.matches()) {
-            return matcher;
+    default Regex.Match matcher(Regex regex) {
+        Regex.Result matcher = regex.is(asString());
+        if (matcher instanceof Regex.Match) {
+            return (Regex.Match) matcher;
         } else {
             return null;
         }
     }
 
-    default boolean matches(Pattern regex) {
+
+    default boolean matches(Regex regex) {
         return matcher(regex) != null;
     }
 }

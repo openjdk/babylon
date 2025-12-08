@@ -33,22 +33,22 @@ import hat.tools.textmodel.tokens.LeafReplacementToken;
 import hat.tools.textmodel.tokens.ReservedWord;
 import hat.tools.textmodel.tokens.Seq;
 import hat.tools.textmodel.tokens.Token;
-
-import java.util.regex.Pattern;
+import hat.util.Regex;
 
 public class JavaTextModel extends TextModel {
 
 
     public static class JavaModifier extends LeafReplacementToken {
-        public static final Pattern regex = Pattern.compile("static|abstract|public|private|protected|final");
+        public static final Regex regex = Regex.of("static|abstract|public|private|protected|final");
         public JavaModifier(Token t) {
             super(t);
         }
     }
     public static class JavaType extends LeafReplacementToken  {
-       public static final Pattern regex = Pattern.compile(
+
+        public static final Regex regex = Regex.of(
                 "var|if|while|case|switch|break|for|new|import|instanceof|default|return|super|package"
-       );
+        );
 
         public JavaType(Token t) {
             super(t);
@@ -70,7 +70,7 @@ public class JavaTextModel extends TextModel {
          // @ (char) -> At
          replace(true, Ch::isAnAt, At::new);
 
-         Pattern javaTypes = Pattern.compile("void|int|float|double|boolean|char|short|long|class|record|interface|String");
+         Regex javaTypes = Regex.of("void|int|float|double|boolean|char|short|long|class|record|interface|String");
 
          replace(true,t -> Seq.isA(t, $->$.matches(javaTypes)), ReservedWord::new);
 

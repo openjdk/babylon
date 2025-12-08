@@ -30,50 +30,45 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public record Regex(Pattern pattern) {
-    public interface Match {
-        boolean matched();
+    public interface Result {
     }
 
-    public interface OK extends Match {
+    public interface Match extends Result {
         Regex regex();
         Matcher matcher();
-        default  String string(int idx) {
+        default  String stringOf(int idx) {
             return matcher().group(idx);
         }
 
-        default float asFloat(int idx) {
-            return Float.parseFloat(string(idx));
+        default float floatOf(int idx) {
+            return Float.parseFloat(stringOf(idx));
         }
 
-        default  int asInt(int idx) {
-            return Integer.parseInt(string(idx));
+        default  int intOf(int idx) {
+            return Integer.parseInt(stringOf(idx));
         }
-        default  int[] asInts(int from, int count) {
+        default  int[] intArrayOf(int from, int count) {
             int[] ints = new int[count];
             for (int i = 0; i<count; i++) {
-                ints[i]= Integer.parseInt(string(from + i));
+                ints[i]= Integer.parseInt(stringOf(from + i));
             }
             return ints;
         }
-        default  float[] asFloats(int from, int count) {
+        default  float[] floatArrayOf(int from, int count) {
             float[] floats = new float[count];
             for (int i = 0; i<count; i++) {
-                floats[i]=Float.parseFloat(string(from + i));
+                floats[i]=Float.parseFloat(stringOf(from + i));
             }
             return floats;
         }
-    }
-
-
-    public record DefaultOk(Regex regex, Matcher matcher, boolean matched) implements OK {
-        public static OK of(Regex regex, Matcher matcher) {
-            return new DefaultOk(regex, matcher, true);
+        default int count(){
+            return matcher().groupCount();
         }
     }
 
-    record FAIL(boolean matched) implements Match {
-        public static FAIL of() {
-            return new FAIL(false);
+    interface FAIL extends Result {
+        static FAIL of() {
+            return new FAIL(){};
         }
     }
 
@@ -81,41 +76,41 @@ public record Regex(Pattern pattern) {
         return new Regex(Pattern.compile(String.join("", strings)));
     }
 
-    public static Match any(String line, Regex... regexes) {
+    public static Result any(String line, Regex... regexes) {
         for (Regex r : regexes) {
-            if (r.is(line) instanceof OK ok) {
-                return ok;
+            if (r.is(line) instanceof Match match) {
+                return match;
             }
         }
         return FAIL.of();
     }
-    public Match is(String s, Predicate<Matcher> matcherPredicate, BiFunction<Regex,Matcher,OK> factory) {
+    public Result is(String s, Predicate<Matcher> matcherPredicate, BiFunction<Regex,Matcher, Match> factory) {
         if (pattern.matcher(s) instanceof Matcher matcher && matcher.matches() && matcherPredicate.test(matcher)) {
             return factory.apply(this, matcher);
         } else {
             return FAIL.of();
         }
     }
-    public Match is(String s, BiFunction<Regex,Matcher,OK> factory) {
+    public Result is(String s, BiFunction<Regex,Matcher, Match> factory) {
         return is(s, _->true,factory);
     }
-    public Match is(String s, Predicate<Matcher> matcherPredicate) {
-        return is(s, matcherPredicate,(r,m)->new DefaultOk(r,m, true));
+    public Result is(String s, Predicate<Matcher> matcherPredicate) {
+        record DefaultMatch(Regex regex, Matcher matcher) implements Match { }
+        return is(s, matcherPredicate, DefaultMatch::new);
     }
-    public Match is(String s) {
+    public Result is(String s) {
         return is(s, _->true);
     }
     public boolean matches(String s, Predicate<Matcher> matcherPredicate) {
-        return is(s, matcherPredicate).matched();
+        return is(s, matcherPredicate) instanceof Match;
     }
     public boolean matches(String s) {
-        return is(s).matched();
+        return is(s) instanceof Match;
     }
     public boolean matchesOrThrow(String s) {
-        if(!is(s).matched()){
-            throw new RuntimeException("failed expected match");
-        }else{
+        if(is(s) instanceof Match) {
             return true;
         }
+        throw new RuntimeException("failed expected match");
     }
 }

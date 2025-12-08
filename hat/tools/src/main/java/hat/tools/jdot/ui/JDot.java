@@ -31,6 +31,7 @@ import hat.tools.json.JsonNumber;
 import hat.tools.json.JsonObject;
 import hat.tools.json.JsonString;
 import hat.tools.json.JsonValue;
+import hat.util.Regex;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -66,15 +67,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class JDot {
     public static final String FloatRegex = "([0-9]+|[0-9]*\\.[0-9]*)"; // not completely foolproof but seems to work for  json0 DOT
     public static final String FloatPointRegex = FloatRegex + "," + FloatRegex;
-    public static final Pattern RectRegex = Pattern.compile(FloatPointRegex + "," + FloatPointRegex);
-    public static final Pattern PointRegex = Pattern.compile(FloatPointRegex);
+    public static final Regex RectRegex = Regex.of(FloatPointRegex,  ",",FloatPointRegex);
+    public static final Regex PointRegex = Regex.of(FloatPointRegex);
 
     public static class JsonQuery {
         public static JsonValue query(JsonValue jsonValue, String path) {
@@ -552,9 +551,8 @@ public class JDot {
     public JDot(JsonValue jsonValue) {
         this.jsonValue = jsonValue;
         String bb = JsonQuery.str(jsonValue, "bb");
-        this.bounds = RectRegex.matcher(bb) instanceof Matcher m && m.matches() && m.groupCount() == 4
-                ? new Rectangle2D.Float(Float.parseFloat(m.group(1)), Float.parseFloat(m.group(2)),
-                Float.parseFloat(m.group(3)), Float.parseFloat(m.group(4)))
+        this.bounds = RectRegex.is(bb) instanceof Regex.Match m && m.count() == 4
+                ? new Rectangle2D.Float(m.floatOf(1), m.floatOf(2),m.floatOf(3), m.floatOf(4))
                 : null;
 
         List<Renderable> renderables = new ArrayList<>();
@@ -564,8 +562,8 @@ public class JDot {
             var posStr = JsonQuery.str(edgeJsonValue, "pos");
 
             var points = Arrays.stream(posStr.substring(2).split(" "))
-                    .map(s -> (PointRegex.matcher(s) instanceof Matcher m && m.matches() && m.groupCount() == 2)
-                            ? new Point2D.Float(Float.parseFloat(m.group(1)), bounds.height - Float.parseFloat(m.group(2)))
+                    .map(s -> (PointRegex.is(s) instanceof Regex.Match m && m.count() == 2)
+                            ? new Point2D.Float(m.floatOf(1), bounds.height - m.floatOf(2))
                             : null).toList();
             var curve = new Curve(edgeJsonValue, posStr.charAt(0), points);
             renderables.add(curve);
@@ -574,19 +572,17 @@ public class JDot {
             var shape = JsonQuery.str(objectJsonValue, "shape");
             var posStr = JsonQuery.str(objectJsonValue, "pos");
             var points = Arrays.stream(posStr.split(" "))
-                    .map(s -> (PointRegex.matcher(s) instanceof Matcher m && m.matches() && m.groupCount() == 2)
-                            ? new Point2D.Float(Float.parseFloat(m.group(1)), bounds.height - Float.parseFloat(m.group(2)))
+                    .map(s -> (PointRegex.is(s) instanceof Regex.Match m && m.count() == 2)
+                            ? new Point2D.Float(m.floatOf(1), bounds.height - m.floatOf(2))
                             : null).toList();
 
             if (shape != null && shape.equals("record")) {
                 var rectString = JsonQuery.str(objectJsonValue, "rects").split(" ");
                 var recordRects = Arrays.stream(rectString).map(s -> {
-                    if (RectRegex.matcher(s) instanceof Matcher m && m.matches() && m.groupCount() == 4) {
-                        var x1 = Float.parseFloat(m.group(1));
-                        var y1 = bounds.height - Float.parseFloat(m.group(4));
-                        var x2 = Float.parseFloat(m.group(3));
-                        var y2 = bounds.height - Float.parseFloat(m.group(2));
-                        return new Rectangle2D.Float(x1, y1, x2 - x1, y2 - y1);
+                    if (RectRegex.is(s) instanceof Regex.Match m &&  m.count() == 4) {
+                        var y1 = bounds.height - m.floatOf(4);
+                        var y2 = bounds.height - m.floatOf(2);
+                        return new Rectangle2D.Float(m.floatOf(1), y1, m.floatOf(3) - m.floatOf(1), y2 - y1);
                     } else {
                         return null;
                     }
