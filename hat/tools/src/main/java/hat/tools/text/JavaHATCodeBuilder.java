@@ -39,7 +39,7 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
 
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
-        return null;
+        return typeName(javaType.toString());
     }
 
     @Override
@@ -75,8 +75,6 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
         return self();
     }
 
-
-
     public T createJava(ScopedCodeBuilderContext buildContext) {
         buildContext.funcScope(buildContext.funcOp, () -> {
             typeName(buildContext.funcOp.resultType().toString()).space().funcName(buildContext.funcOp);
@@ -92,6 +90,6 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
                     )
             );
         });
-        return self();
+        return nl();
     }
 }
