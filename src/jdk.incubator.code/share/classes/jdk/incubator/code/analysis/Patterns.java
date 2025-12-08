@@ -212,7 +212,6 @@ public final class Patterns {
                     () -> r,
                     (r, e) -> e instanceof Op op ? opm.apply(r, op) : r)
             ).findFirst().orElseThrow();
-//            return o.traverse(r, CodeElement.opVisitor(opm));
         }
 
         /**
@@ -282,7 +281,6 @@ public final class Patterns {
                 () -> init,
                 (r, e) -> e instanceof Op op ? opm.apply(r, op) : r)
         ).findFirst().orElseThrow();
-//        return t.traverse(init, CodeElement.opVisitor(opm));
     }
 
 
