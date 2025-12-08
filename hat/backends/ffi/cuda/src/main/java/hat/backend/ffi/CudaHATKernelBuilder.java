@@ -87,8 +87,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
-                .buildStructSingleValueMember("F16", "half")
-                .buildStructSingleValueMember("BF16",  "BFLOAT16");
+                .typedefSingleValueStruct("F16", "half")
+                .typedefSingleValueStruct("BF16",  "BFLOAT16");
     }
 
     @Override
@@ -365,8 +365,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private CudaHATKernelBuilder generateReduceFloatType(ReducedFloatType reducedFloatType) {
         switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> halfType();
-            case ReducedFloatType.BFloat16 _ -> bfloatType();
+            case ReducedFloatType.HalfFloat _ -> f16Type();
+            case ReducedFloatType.BFloat16 _ -> bf16Type();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
         }
         return self();

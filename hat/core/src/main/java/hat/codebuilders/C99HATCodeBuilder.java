@@ -25,7 +25,6 @@
 package hat.codebuilders;
 import jdk.incubator.code.dialect.java.ClassType;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeBuilder<T> {
@@ -167,90 +166,38 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
         return keyword("extern");
     }
 
-    public final T unsignedCharType() {
-        return typeName("unsigned").space().charType();
+    public final T u08Type() {
+        return typeName("unsigned").space().s08Type();
     }
-    public final T unsignedCharType(String identifier) {
-        return unsignedCharType().space().identifier(identifier);
+    public final T u08Type(String identifier) {
+        return u08Type().space().identifier(identifier);
     }
     public final T u08PtrType() {
-        return unsignedCharType().space().asterisk();
+        return u08Type().space().asterisk();
     }
     public final T u08PtrType(String identifier) {
         return u08PtrType().identifier(identifier);
     }
 
-    public final T charTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> charType(), _ -> identifier(name)));
-        return self();
-    }
 
-    public final T unsignedCharTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> unsignedCharType(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T shortTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> shortType(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T unsignedShortTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> unsignedShortType(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T intTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> intType(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T unsignedIntTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> u32Type(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T floatTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> f32Type(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T longTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> longType(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T unsignedLongTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> unsignedLongType(), _ -> identifier(name)));
-        return self();
-    }
-
-    public final T doubleTypeDefs(String... names) {
-        Arrays.stream(names).forEach(name -> typedef(_ -> doubleType(), _ -> identifier(name)));
-        return self();
-    }
-
-     public final  T typedef(Consumer<T> lhs, Consumer<T> rhs) {
-        return semicolonNlTerminated(_ -> typedefKeyword().space().accept(lhs).space().accept(rhs));
-    }
 
     public final T u32Type() {
-        return typeName("unsigned").space().intType();
+        return typeName("unsigned").space().s32Type();
     }
 
     public final T u32Type(String identifier ) {
         return u32Type().space().identifier(identifier);
     }
 
-    public final T unsignedLongType() {
-        return typeName("unsigned").space().longType();
+    public final T u64Type() {
+        return typeName("unsigned").space().s64Type();
     }
 
-    public final T unsignedShortType() {
-        return typeName("unsigned").space().shortType();
+    public final T u16Type() {
+        return typeName("unsigned").space().s16Type();
     }
-    public final T unsignedShortType(String identifier) {
-        return unsignedShortType().space().identifier(identifier);
+    public final T u16Type(String identifier) {
+        return u16Type().space().identifier(identifier);
     }
 
     public final  T typedefStructOrUnion(boolean isStruct, Class<?> klass, Consumer<T> consumer) {
@@ -272,5 +219,78 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
                 .braceNlIndented(consumer)
                 .suffix_t(name)
                 .semicolonNl();
+    }
+    public final T typedefStruct(Class<?>clazz, Consumer<T> consumer) {
+        return typedefStruct(clazz.getSimpleName(), consumer);
+    }
+
+
+    public final T typedefSingleValueStruct(String structName, String type) {
+        return typedefStruct(structName,_-> typeName(type).space().identifier("value").semicolonNl());
+    }
+
+    public final T funcDef(Consumer<T> type,Consumer<T> name, Consumer<T> args, Consumer<T> body){
+        type.accept(self());
+        space();
+        name.accept(self());
+        paren(args);
+        braceNlIndented(body);
+        return nl();
+    }
+    public final T assign(Consumer<T> lhs, Consumer<T> rhs){
+        lhs.accept(self());
+        space().equals().space();
+        rhs.accept(self());
+        return self();
+    }
+
+    public final T cast(Consumer<T> type){
+        return paren(_-> type.accept(self()));
+    }
+    public final T returnKeyword(Consumer<T> exp){
+        return returnKeyword().space().paren(_-> exp.accept(self())).semicolon();
+    }
+
+    public final T call(Consumer<T> name,Consumer<T> ...args){
+        name.accept(self());
+        return paren(_->commaSpaceSeparated(args));
+    }
+    public final T call(String name,Consumer<T> ...args){
+        return call(_->identifier(name),args);
+    }
+
+    public final T forLoop(Consumer<T> init, Consumer<T> test, Consumer<T>mutate, Consumer<T>body){
+        return  forKeyword()
+                .paren(_->{
+                    init.accept(self());
+                    semicolon().space();
+                    test.accept(self());
+                    semicolon().space();mutate.accept(self());
+                })
+                .braceNlIndented(body::accept)
+                .nl();
+    }
+
+
+    public final T sizeof() {
+        return emitText("sizeof");
+    }
+    public final T sizeof(String identifier) {
+        return sizeof(_->identifier(identifier));
+    }
+    public final T sizeof(Consumer<T> consumer) {
+        return sizeof().paren(consumer);
+    }
+    public final T voidPtrType() {
+        return voidType().space().asterisk();
+    }
+    public final T voidPtrType(String identifier) {
+        return voidPtrType().identifier(identifier);
+    }
+    public final T sizeType() {
+        return typeName("size_t");
+    }
+    public final T sizeType(String identifier) {
+        return sizeType().space().identifier(identifier);
     }
 }

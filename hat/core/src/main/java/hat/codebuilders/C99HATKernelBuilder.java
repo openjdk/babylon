@@ -27,7 +27,6 @@ package hat.codebuilders;
 import hat.buffer.BF16;
 import hat.buffer.BF16Array;
 import hat.KernelContext;
-import hat.buffer.Buffer;
 import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.dialect.HATBarrierOp;
@@ -55,7 +54,6 @@ import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 import hat.util.StreamMutable;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -63,32 +61,33 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 import static hat.buffer.F16Array.F16Impl;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T>implements BabylonKernelOpBuilder<T>  {
-
-    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return kernelPrefix().voidType().space().funcName(funcOp);
-    }
-
-    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
-        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
-    }
-
-    public T kernelPrefix() {
+    public T HAT_KERNEL() {
         return keyword("HAT_KERNEL").space();
     }
-
-    public T functionPrefix() {
+    public T HAT_FUNC() {
         return keyword("HAT_FUNC").space();
     }
 
-    public T globalPtrPrefix() {
+    public T HAT_GLOBAL_MEM() {
         return keyword("HAT_GLOBAL_MEM").space();
     }
+    public T HAT_LOCAL_MEM() {
+        return keyword("HAT_LOCAL_MEM").space();
+    }
+    public T HAT_BARRIER() {
+        return keyword("HAT_BARRIER").space();
+    }
+    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return HAT_KERNEL().voidType().space().funcName(funcOp);
+    }
 
+    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+        return HAT_FUNC().type(codeBuilderContext,javaType).space().funcName(funcOp);
+    }
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return (ifaceType.iface.getName().equals(F16.class.getName())
@@ -194,11 +193,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
         return suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
     }
-    public T localPtrPrefix() {
-        return keyword("HAT_LOCAL_MEM").space();
-    }
+
     public final T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        return localPtrPrefix() // we should be able to compose-call to privateDeclaration?
+        return HAT_LOCAL_MEM() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType())
                 .space()
                 .varName(localArrayDeclaration.varOp());
@@ -206,9 +203,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatBarrierOp(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp) {
-        return identifier("HAT_BARRIER");
+        return HAT_BARRIER();
     }
-
 
 
     @Override
@@ -223,12 +219,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T defines();
 
     public T types() {
-        return charTypeDefs("byte", "boolean")
-                .nl()
-                .typedefStructOrUnion(true, KernelContext.class, _ ->
-                    intDeclaration("dimensions").semicolon()
-                )
-                .nl();
+        return
+                 typedefKeyword().space().s08Type("byte").semicolonNl()
+                .typedefKeyword().space().s08Type("boolean").semicolonNl()
+                .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl();
     }
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -243,17 +237,17 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
-            globalPtrPrefix().suffix_t(classType).asterisk();
+            HAT_GLOBAL_MEM().suffix_t(classType).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
-            globalPtrPrefix().suffix_t(KernelContext.class).asterisk();
+            HAT_GLOBAL_MEM().suffix_t(KernelContext.class).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             // Check for special types (e.g., FP16)
             // TODO: We need to update this with a custom op, so we avoid direct use of Impls
-            globalPtrPrefix().suffix_t(F16Impl.class).asterisk();
+            HAT_GLOBAL_MEM().suffix_t(F16Impl.class).asterisk();
         } else if (javaType instanceof ClassType classType && classType.toClassName().equals(BF16.class.getCanonicalName())) {
             // Special type: BFLOAT16
             // TODO: We need to update this with a custom op, so we avoid direct use of Impls
-            globalPtrPrefix().suffix_t(BF16Array.BF16Impl.class).asterisk();
+            HAT_GLOBAL_MEM().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             typeName(javaType.toString());
         }
@@ -374,21 +368,23 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         return varName(hatVectorVarLoadOp);
     }
+    public final T f16Type() {
+        return suffix_t(F16.class);
+    }
 
+    public final T bf16Type() {
+        return suffix_t(BF16.class);
+    }
     @Override
     public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
         ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
         return (switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> halfType();
-            case ReducedFloatType.BFloat16 _ ->  bfloatType();
+            case ReducedFloatType.HalfFloat _ -> f16Type();
+            case ReducedFloatType.BFloat16 _ ->  bf16Type();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        })
-                .space()
-                .identifier(hatF16VarOp.varName())
-                .space()
-                .equals()
-                .space()
-                .recurse(buildContext, OpTk.asResultOrThrow(hatF16VarOp.operands().getFirst()).op());
+        }).space().assign(
+                _-> identifier(hatF16VarOp.varName()),
+                _->recurse(buildContext, OpTk.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
     }
 
     private boolean isMixedFirstOperand(byte f32Mixed) {
@@ -409,7 +405,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         byte f32Mixed = hatf16BinaryOp.getF32();
 
-        paren(_->bfloatType());
+        paren(_-> bf16Type());
         brace(_-> {
             paren(_-> {
                 builtin_float2bfloat16();
@@ -460,7 +456,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
             return binaryOperationsForBfloat16(buildContext, hatF16BinaryOp);
         }
-        paren(_-> halfType());
+        paren(_-> f16Type());
         return brace(_->
             paren(_-> {
                 recurse(buildContext, OpTk.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
@@ -507,13 +503,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateInitVarOp hatPrivateInitVarOp) {
-        return suffix_t(hatPrivateInitVarOp.classType())
-                .space()
-                .identifier(hatPrivateInitVarOp.varName())
-                .space()
-                .equals()
-                .space()
-                .recurse(builderContext,OpTk.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op());
+        return suffix_t(hatPrivateInitVarOp.classType()).space()
+                .assign(
+                        _-> identifier(hatPrivateInitVarOp.varName()),
+                        _->recurse(builderContext,OpTk.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
     }
 
     @Override
@@ -525,49 +518,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 );
     }
 
-    public final T buildStructSingleValueMember(String structName,  String type) {
-       return typedefStruct(structName,_-> typeName(type).space().identifier("value").semicolonNl());
-    }
-
-    public final T buildForLoopHeader(String loopVar, String init, String loopBound) {
-        forKeyword().paren(_ -> intType().space().identifier(loopVar).space().equals().identifier(init).semicolon().space()
-                .identifier(loopVar).lt().identifier(loopBound).semicolon().space()
-                .identifier(loopVar).plusplus());
-        return self();
-    }
-
-    //public final T call_builtin_byteCopy(){
-      //  return identifier("");
-   // }
-
-    public final T funcDef(Consumer<T> type,Consumer<T> name, Consumer<T> args, Consumer<T> body){
-         type.accept(self());
-         space();
-         name.accept(self());
-         paren(args);
-         braceNlIndented(body);
-         return nl();
-    }
-    public final T assign(Consumer<T> lhs,Consumer<T> rhs){
-        lhs.accept(self());
-        space().equals().space();
-        rhs.accept(self());
-        return semicolonNl();
-    }
-    public final T cast(Consumer<T> type){
-        return paren(_-> type.accept(self()));
-    }
-    public final T returnKeyword(Consumer<T> exp){
-        return returnKeyword().space().paren(_-> exp.accept(self())).semicolon();
-    }
-
-    public final T call(Consumer<T> name,Consumer<T> ...args){
-        name.accept(self());
-        return paren(_->commaSpaceSeparated(args));
-    }
-    public final T call(String name,Consumer<T> ...args){
-        return call(_->identifier(name),args);
-    }
 
     /**
      * <code>
@@ -586,16 +536,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return funcDef(
                 _->voidType(),
                 _->identifier("byteCopy"),
-                _->commaSpaceSeparated(
-                        _-> voidPtrType("dest"),
-                        _-> voidPtrType("src"),
-                        _-> size_t("size")
+                _->args(
+                        _->voidPtrType("dest"),
+                        _->voidPtrType("src"),
+                        _->sizeType("size")
                 ),
                 _ ->
-                   assign(_->u08PtrType("c"), _->cast(_ -> u08PtrType()).identifier("dest"))
-                   .assign(_->u08PtrType("s"), _->cast(_ -> u08PtrType()).identifier("src"))
-                   .buildForLoopHeader("i", "0", "size").braceNlIndented(_ ->
-                        dereference("c").plusplus().equals().dereference("s").plusplus().semicolon()
+                    assign(_->u08PtrType("c"), _->cast(_ -> u08PtrType()).identifier("dest")).semicolonNl()
+                   .assign(_->u08PtrType("s"), _->cast(_ -> u08PtrType()).identifier("src")).semicolonNl()
+                   .forLoop(
+                           _->assign(_-> s32Type("i"), _->intConstZero()),
+                           _->identifier("i").lt().identifier("size"),
+                           _->identifier("i").plusplus(),
+                           _->dereference("c").plusplus().equals().dereference("s").plusplus().semicolon()
                    )
                 );
     }
@@ -616,11 +569,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T build_builtin_bfloat16ToFloat(String parameterName) {
         return funcDef(_->f32Type(),
                 _->builtin_bfloat16ToFloat(),
-                _->unsignedShortType(parameterName),
-                 _ -> assign(_->u32Type("bits"), _->identifier(parameterName).leftShift(16))
+                _-> u16Type(parameterName),
+                 _ -> assign(_->u32Type("bits"), _->identifier(parameterName).leftShift(16)).semicolonNl()
                       .f32Type("r").semicolonNl()
-                      .call("byteCopy",_->addressOf("r"),_->addressOf("bits"),_->sizeof("r"))
-                      .semicolonNl()
+                      .call("byteCopy",_->addressOf("r"),_->addressOf("bits"),_->sizeof("r")).semicolonNl()
                       .returnKeyword(_->identifier("r"))
                 );
     }
@@ -639,7 +591,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      */
     public final T build_builtin_float2bfloat16(String parameterName) {
         return funcDef(
-                _->shortType(),
+                _-> s16Type(),
                 _->builtin_float2bfloat16(),
                 _->f32Type(parameterName),
                 _->

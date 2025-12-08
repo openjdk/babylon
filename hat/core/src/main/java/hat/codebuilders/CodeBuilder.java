@@ -24,8 +24,6 @@
  */
 package hat.codebuilders;
 
-import hat.buffer.BF16;
-import hat.buffer.F16;
 import hat.util.StreamMutable;
 
 import java.util.function.Consumer;
@@ -485,6 +483,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         }
         return self();
     }
+    public T args(Consumer<T> ...consumers){
+       return  commaSpaceSeparated(consumers);
+    }
     public <I> T commaSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
         return separated(iterable,_->comma(),consumer);
     }
@@ -521,8 +522,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public <I> T nlSeparated(Stream<I> stream,  Consumer<I> consumer) {
         return separated(stream,_->nl(),consumer);
     }
-    public final T intType() {
+    public final T s32Type() {
         return typeName("int");
+    }
+    public final T s32Type(String identifier) {
+        return s32Type().space().identifier(identifier);
     }
 
     public final T intConstZero() {
@@ -538,20 +542,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T voidType() {
         return typeName("void");
     }
-    public final T voidPtrType() {
-        return voidType().space().asterisk();
-    }
-    public final T voidPtrType(String identifier) {
-        return voidPtrType().identifier(identifier);
-    }
-    public final T size_t() {
-        return typeName("size_t");
-    }
-    public final T size_t(String identifier) {
-        return size_t().space().identifier(identifier);
-    }
-    public final T charType() {
+
+    public final T s08Type() {
         return typeName("char");
+    }
+    public final T s08Type(String name) {
+        return s08Type().space().identifier(name);
     }
 
     public final T f32Type() {
@@ -561,33 +557,27 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return f32Type().space().identifier(identifier);
     }
 
-    public final T longType() {
+    public final T s64Type() {
         return typeName("long");
     }
 
-    public final T doubleType() {
+    public final T f64Type() {
         return typeName("double");
     }
 
-    public final T booleanType() {
+    public final T boolType() {
         return typeName("char");
     }
 
 
-    public final T shortType() {
+    public final T s16Type() {
         return typeName("short");
     }
-    public final T shortType(String identifier) {
-        return shortType().space().identifier(identifier);
+    public final T s16Type(String identifier) {
+        return s16Type().space().identifier(identifier);
     }
 
-    public final T halfType() {
-        return typeName(F16.class.getSimpleName() + "_t");
-    }
 
-    public final T bfloatType() {
-        return typeName(BF16.class.getSimpleName() + "_t");
-    }
 
     @Override
     public final T comment(String text) {
@@ -645,13 +635,17 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return identifier(preffix + postfix);
     }
 
-    public T sizeof() {
-        return emitText("sizeof");
+
+    public  String toCamelExceptFirst(String s) {
+        String[] parts = s.split("_");
+        StringBuilder camelCaseString = new StringBuilder();
+        for (String part : parts) {
+            camelCaseString.append(camelCaseString.isEmpty()
+                    ? part.toLowerCase()
+                    : part.substring(0, 1).toUpperCase() + part.substring(1).toLowerCase());
+        }
+        return camelCaseString.toString();
     }
-    public T sizeof(String identifier) {
-        return sizeof(_->identifier(identifier));
-    }
-    public T sizeof(Consumer<T> consumer) {
-        return sizeof().paren(consumer);
-    }
+
+
 }
