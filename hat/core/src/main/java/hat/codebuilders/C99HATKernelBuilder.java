@@ -425,7 +425,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 } else if (hatf16BinaryOp.operands().get(0) instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
                     dot().identifier("value");
                 }else{
-                    throw new IllegalStateException("what happens here 1");
+                    //throw new IllegalStateException("what happens here 1");
                 }
 
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
@@ -443,7 +443,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 } else if (hatf16BinaryOp.operands().get(1) instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
                     dot().identifier("value");
                 } else{
-                        throw new IllegalStateException("what happens here 2");
+                      //  throw new IllegalStateException("what happens here 2");
                 }
                 if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
                     cparen();
