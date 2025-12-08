@@ -24,12 +24,13 @@
  */
 package hat.tools.textmodel.tokens;
 
+import hat.util.Regex;
+
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 public class IntConst extends LeafReplacementToken {
     public final int i;
-    public static final Pattern regex = Pattern.compile("[0-9][0-9]*");
+    public static final Regex regex = Regex.of("[0-9][0-9]*");
 
     public IntConst(Token t) {
         super(t);

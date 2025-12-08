@@ -38,9 +38,19 @@ public class SchemaBuilder extends CodeBuilder<SchemaBuilder> {
         either(layout.name().isPresent(), (_) -> identifier(layout.name().get()), (_) -> questionMark()).colon();
         switch (layout) {
             case StructLayout structLayout ->
-                brace((_) -> separated(structLayout.memberLayouts(),(_)->comma(), this::layout));
+                brace(_ ->
+                        commaSeparated(
+                                structLayout.memberLayouts(),
+                                this::layout
+                        )
+                );
             case UnionLayout unionLayout ->
-                chevron((_) -> separated(unionLayout.memberLayouts(),(_)->bar(), this::layout));
+                chevron(_ ->
+                        barSeparated(
+                                unionLayout.memberLayouts(),
+                                this::layout
+                        )
+                );
             case ValueLayout valueLayout ->
                 literal(ArgArray.valueLayoutToSchemaString(valueLayout));
             case PaddingLayout paddingLayout ->

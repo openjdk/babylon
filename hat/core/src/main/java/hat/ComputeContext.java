@@ -107,7 +107,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         this.accelerator.backend.computeContextHandoff(this);
     }
 
-    public void dispatchKernel(NDRange ndRange, KernelConsumer kernel) {
+    public void dispatchKernel(NDRange<?, ?> ndRange, KernelConsumer kernel) {
         dispatchKernelWithComputeRange(ndRange, kernel);
     }
 
@@ -124,7 +124,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
-    private void dispatchKernelWithComputeRange(NDRange ndRange, KernelConsumer kernel) {
+    private void dispatchKernelWithComputeRange(NDRange<?, ?> ndRange, KernelConsumer kernel) {
         CallGraph cg = getKernelCallGraph(kernel);
         try {
             Object[] args = OpTk.getQuotedCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);

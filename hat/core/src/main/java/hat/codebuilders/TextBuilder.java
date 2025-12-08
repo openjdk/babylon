@@ -126,7 +126,7 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
         for (int i = 0; i < text.length(); i++) {
             buf.append(escape(text.charAt(i)));
         }
-        return emitText(text);
+        return emitText(buf.toString());
     }
 
      T emitText(String text) {

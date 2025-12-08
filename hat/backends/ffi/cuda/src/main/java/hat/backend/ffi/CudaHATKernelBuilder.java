@@ -65,8 +65,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder defines() {
         return self()
                 .hashDefine("HAT_CUDA")
-                 // .hashIfdef("HAT_CUDA", _ ->
-                   //     indent(_ -> self()
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
                 .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space().keyword("inline"))
@@ -89,8 +87,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
-                .buildStructSingleMember("F16", "value", "half")
-                .buildStructSingleMember("BF16", "value", "BFLOAT16");
+                .typedefSingleValueStruct("F16", "half")
+                .typedefSingleValueStruct("BF16",  "BFLOAT16");
     }
 
     @Override
@@ -102,7 +100,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
-
         keyword("reinterpret_cast")
                 .lt()
                 .typeName(hatVectorStoreView.buildType())
@@ -368,8 +365,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private CudaHATKernelBuilder generateReduceFloatType(ReducedFloatType reducedFloatType) {
         switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> halfType();
-            case ReducedFloatType.BFloat16 _ -> bfloatType();
+            case ReducedFloatType.HalfFloat _ -> f16Type();
+            case ReducedFloatType.BFloat16 _ -> bf16Type();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
         }
         return self();
