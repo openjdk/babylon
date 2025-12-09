@@ -556,7 +556,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      * <code>
      *  float bfloat16Tofloat(ushort bf16) {
      *      b16_t b;
-     *      b.s[0] = 0x0000;
+     *      b.s[0] = 0;
      *      b.s[1] = s;
      *      return b.f;
      * }
@@ -569,10 +569,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         String identifier = "b";
         return funcDef(_ -> f32Type(),
                        _ -> builtin_bfloat16ToFloat(),
-                       _ -> ushortType(parameterName),
-                       _ -> declareTypeBFloat16Type(identifier).semicolonNl()
-                               .identifier(identifier).dot().identifier("s").osbrace().intConstZero().csbrace().equals().constant("0x0000").semicolonNl()
-                               .identifier(identifier).dot().identifier("s").osbrace().intConstOne().csbrace().equals().constant(parameterName).semicolonNl()
+                       _ -> u16Type(parameterName),
+                       _ -> bfloat16Type(identifier).semicolonNl()
+                               .identifier(identifier).dot().identifier("s").sbrace( _ -> intConstZero()).equals().intConstZero().semicolonNl()
+                               .identifier(identifier).dot().identifier("s").sbrace( _ -> intConstOne()).equals().constant(parameterName).semicolonNl()
                                .returnKeyword(_-> identifier("b").dot().identifier("f")));
     }
 
@@ -588,12 +588,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      */
     public final T build_builtin_float2bfloat16(String parameterName) {
         return funcDef(
-                _-> ushort(),
-                _->builtin_float2bfloat16(),
-                _->f32Type(parameterName),
-                _-> declareTypeBFloat16Type("b").space().equals().space().obrace().identifier(parameterName).cbrace().semicolonNl()
-                   .returnKeyword(_->identifier("b").dot().identifier("s").osbrace().intConstOne().csbrace())
-                );
+                _ -> u16Type(),
+                _ -> builtin_float2bfloat16(),
+                _ -> f32Type(parameterName),
+                _ -> assign(_ -> bfloat16Type("b"),
+                        _ ->  brace( _ -> identifier(parameterName)).semicolonNl()
+                                .returnKeyword(_ ->identifier("b").dot().identifier("s").sbrace(_ -> intConstOne()))));
     }
 
 }

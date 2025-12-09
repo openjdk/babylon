@@ -200,7 +200,7 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
         return u16Type().space().identifier(identifier);
     }
 
-    public final T declareTypeBFloat16Type(String identifier) {
+    public final T bfloat16Type(String identifier) {
         return suffix_t("BFLOAT16_UNION").space().identifier(identifier);
     }
 
@@ -247,7 +247,7 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
     public final T unionBfloat16() {
         return typedefUnion("BFLOAT16_UNION", _ -> {
             typeName("float").space().identifier("f").semicolon().nl();
-            ushortType("s").sizeArray(2).semicolon();
+            u16Type("s").sizeArray(2).semicolon();
         });
     }
 
