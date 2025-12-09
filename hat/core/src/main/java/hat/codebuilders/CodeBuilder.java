@@ -524,7 +524,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public <I> T semicolonNlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
-        return separated(iterable, _ -> semicolonNl(), consumer);
+        return separated(iterable, _ -> semicolonNl(), consumer).semicolon();
     }
 
     public <I> T nlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
@@ -584,10 +584,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return typeName("char");
     }
 
-    public final T ushort() {
-        return typeName("ushort");
-    }
-
     public final T s08Type(String name) {
         return s08Type().space().identifier(name);
     }
@@ -598,10 +594,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public final T f32Type(String identifier) {
         return f32Type().space().identifier(identifier);
-    }
-
-    public final T ushortType(String identifier) {
-        return ushort().space().identifier(identifier);
     }
 
     public final T s64Type() {
@@ -695,7 +687,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public final T sizeArray(int size) {
-        return osbrace().constant(Integer.toString(size)).csbrace();
+        return sbrace( _ -> constant(Integer.toString(size)));
     }
 
 }

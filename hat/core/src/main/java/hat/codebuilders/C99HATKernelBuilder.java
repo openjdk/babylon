@@ -91,11 +91,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return (ifaceType.iface.getName().equals(F16.class.getName())
+                // TODO: we should avoid direct implementations here
                 || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
     public final boolean isbfloat16(Schema.IfaceType ifaceType) {
         return (ifaceType.iface.getName().equals(BF16.class.getName())
+                // TODO: we should avoid direct implementations here
                 || ifaceType.iface.getName().equals(BF16Array.BF16Impl.class.getName()));
     }
 
@@ -122,7 +124,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             }
                             space().typeName(primitiveField.name);
                             if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
-                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
+                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray) {
                                     if (isLast && ifaceType.parent == null) {
                                         sbrace(_ -> literal(1));
                                     } else {
@@ -515,40 +517,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .dot().identifier(hatMemoryLoadOp.memberName())
                 .when(hatMemoryLoadOp.operands().size() > 1,_->// If the hatMemoryLoadOp has more than 1 operand, the second is the index
                    sbrace(_-> recurse(builderContext, OpTk.asResultOrThrow(hatMemoryLoadOp.operands().get(1)).op()))
-                );
-    }
-
-
-    /**
-     * <code>
-     *  void byteCopy(void *dest, const void* src, size_t size) {
-     *      unsigned char *c = (unsigned char*)dest;
-     *      unsigned char *s = (unsigned char*)src;
-     *      for (int i = 0; i < size; i++) {
-     *          *c++ = *s++;
-     *      }
-     *  }
-     * </code>
-     * @return
-     */
-    public final T build_builtin_byteCopy() {
-        return funcDef(
-                _->voidType(),
-                _->identifier("byteCopy"),
-                _->args(
-                        _->voidPtrType("dest"),
-                        _->voidPtrType("src"),
-                        _->sizeType("size")
-                ),
-                _ ->
-                    assign(_->u08PtrType("c"), _->cast(_ -> u08PtrType()).identifier("dest")).semicolonNl()
-                   .assign(_->u08PtrType("s"), _->cast(_ -> u08PtrType()).identifier("src")).semicolonNl()
-                   .forLoop(
-                           _->assign(_-> s32Type("i"), _->intConstZero()),
-                           _->identifier("i").lt().identifier("size"),
-                           _->identifier("i").plusplus(),
-                           _->dereference("c").plusplus().equals().dereference("s").plusplus().semicolon()
-                   )
                 );
     }
 
