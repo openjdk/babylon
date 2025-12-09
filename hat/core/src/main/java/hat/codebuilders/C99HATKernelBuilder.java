@@ -520,48 +520,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 );
     }
 
-
-    /**
-     * <code>
-     *  void byteCopy(void *dest, const void* src, size_t size) {
-     *      unsigned char *c = (unsigned char*)dest;
-     *      unsigned char *s = (unsigned char*)src;
-     *      for (int i = 0; i < size; i++) {
-     *          *c++ = *s++;
-     *      }
-     *  }
-     * </code>
-     * @return
-     */
-
-    public final T build_builtin_byteCopy() {
-        return funcDef(
-                _->voidType(),
-                _->identifier("byteCopy"),
-                _->args(
-                        _->voidPtrType("dest"),
-                        _->voidPtrType("src"),
-                        _->sizeType("size")
-                ),
-                _ ->
-                    assign(_->u08PtrType("c"), _->cast(_ -> u08PtrType()).identifier("dest")).semicolonNl()
-                   .assign(_->u08PtrType("s"), _->cast(_ -> u08PtrType()).identifier("src")).semicolonNl()
-                   .forLoop(
-                           _->assign(_-> s32Type("i"), _->intConstZero()),
-                           _->identifier("i").lt().identifier("size"),
-                           _->identifier("i").plusplus(),
-                           _->dereference("c").plusplus().equals().dereference("s").plusplus().semicolon()
-                   )
-                );
-    }
-
     /**
      * <code>
      *  float bfloat16Tofloat(ushort bf16) {
-     *      uint bitsRecovered = bf16 << 16;
-     *      float r = bitsRecovered;
-     *      byteCopy(&r, &bitsRecovered, sizeof(r));
-     *      return r;
+     *      b16_t b;
+     *      b.s[0] = 0;
+     *      b.s[1] = s;
+     *      return b.f;
      * }
      * </code>
      *
@@ -569,23 +534,21 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      * @return
      */
     public final T build_builtin_bfloat16ToFloat(String parameterName) {
-        return funcDef(_->f32Type(),
-                _->builtin_bfloat16ToFloat(),
-                _-> u16Type(parameterName),
-                 _ -> assign(_->u32Type("bits"), _->identifier(parameterName).leftShift(16)).semicolonNl()
-                      .f32Type("r").semicolonNl()
-                      .call("byteCopy",_->addressOf("r"),_->addressOf("bits"),_->sizeof("r")).semicolonNl()
-                      .returnKeyword(_->identifier("r"))
-                );
+        String identifier = "b";
+        return funcDef(_ -> f32Type(),
+                       _ -> builtin_bfloat16ToFloat(),
+                       _ -> u16Type(parameterName),
+                       _ -> bfloat16Type(identifier).semicolonNl()
+                               .identifier(identifier).dot().identifier("s").sbrace( _ -> intConstZero()).equals().intConstZero().semicolonNl()
+                               .identifier(identifier).dot().identifier("s").sbrace( _ -> intConstOne()).equals().constant(parameterName).semicolonNl()
+                               .returnKeyword(_-> identifier("b").dot().identifier("f")));
     }
 
     /**
      * <code>
      * ushort floatTobfloat16(float f) {
-     *      uint bits;
-     *      byteCopy(&bits, &f, sizeof(bits));
-     *      short bf16 = bits >> 16;
-     *      return bf16;
+     *      b16_t b1 = {f};
+     *      return b1.s[1];
      * }
      * </code>
      * @param parameterName
@@ -593,14 +556,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      */
     public final T build_builtin_float2bfloat16(String parameterName) {
         return funcDef(
-                _-> s16Type(),
-                _->builtin_float2bfloat16(),
-                _->f32Type(parameterName),
-                _->
-                   u32Type("bits").semicolonNl()
-                   .call("byteCopy", _->addressOf("bits"), _->addressOf(parameterName), _->sizeof("bits")).semicolonNl()
-                   .returnKeyword(_->identifier("bits").rightShift(16))
-                );
+                _ -> u16Type(),
+                _ -> builtin_float2bfloat16(),
+                _ -> f32Type(parameterName),
+                _ -> assign(_ -> bfloat16Type("b"),
+                        _ ->  brace( _ -> identifier(parameterName)).semicolonNl()
+                                .returnKeyword(_ ->identifier("b").dot().identifier("s").sbrace(_ -> intConstOne()))));
     }
 
 }
