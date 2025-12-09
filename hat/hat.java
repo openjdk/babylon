@@ -279,6 +279,11 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                 }
                             });
                             System.out.println(stats);
+                            if (stats.failed > 0) {
+                                System.exit(-1);
+                            } else {
+                                System.exit(0);
+                            }
                             } else {
                            System.err.println("Failed to find backend   " + backendName);
                         }
