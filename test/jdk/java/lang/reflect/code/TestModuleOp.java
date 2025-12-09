@@ -76,13 +76,16 @@ public class TestModuleOp {
         return (c(i) / 4) + j;
     }
 
+    @Reflect
+    public static int e(int i) {if (i == 0) return i; return e(--i);}
+
     @Test
     public void testEmptyLambda() {
         Runnable runnable = (@Reflect Runnable) () -> {};
         LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
-        Assertions.assertTrue(moduleOp.functionTable().containsKey("rootLambda"));
-        Assertions.assertTrue(moduleOp.functionTable().get("rootLambda").elements().allMatch(e -> e instanceof ReturnOp || e instanceof FuncOp || !(e instanceof Op)));
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0")));
+        Assertions.assertTrue(moduleOp.functionTable().get("rootLambda_0").elements().allMatch(e -> e instanceof ReturnOp || e instanceof FuncOp || !(e instanceof Op)));
     }
 
     @Test
@@ -90,8 +93,7 @@ public class TestModuleOp {
         Runnable runnable = (@Reflect Runnable) () -> a();
         LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
-        Assertions.assertTrue(moduleOp.functionTable().containsKey("a"));
-        Assertions.assertFalse(moduleOp.functionTable().containsKey("rootLambda"));
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("a_0")));
     }
 
     @Test
@@ -101,7 +103,7 @@ public class TestModuleOp {
         Consumer<Integer> lambda = (@Reflect Consumer<Integer>) (j) -> c(b(i) + array[j]);
         LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(lambda).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
-        Assertions.assertTrue(moduleOp.functionTable().keySet().containsAll(List.of("rootLambda", "b", "c")));
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0", "b_1", "c_2")));
     }
 
     @Test
@@ -111,12 +113,12 @@ public class TestModuleOp {
         Consumer<Integer> lambda = (@Reflect Consumer<Integer>) (k) -> c(i > k ? b(i) : c(d(j, k)));
         LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(lambda).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
-        Assertions.assertTrue(moduleOp.functionTable().keySet().containsAll(List.of("rootLambda", "b", "c", "d")));
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0", "b_1", "d_2", "c_3")));
     }
 
     @Test
     public void testRepeatLambdaName() {
-        Runnable runnable = (@Reflect Runnable) () -> {};
+        @Reflect IntUnaryOperator runnable = (@Reflect IntUnaryOperator) (int j) -> {return b(1);};
         LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
         Assertions.assertThrows(IllegalArgumentException.class, () -> ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "b"));
     }
@@ -132,9 +134,14 @@ public class TestModuleOp {
         };
         LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(lambda).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
-        System.out.println(moduleOp.toText());
-        Assertions.assertTrue(moduleOp.functionTable().keySet().containsAll(List.of("rootLambda", "a", "b", "c", "d")));
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0", "c_1", "a_2", "d_3", "b_4")));
     }
 
-
+    @Test
+    public void testRecursion() throws ReflectiveOperationException {
+        Runnable runnable = (@Reflect Runnable) () -> e(1);
+        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
+        ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "e");
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("e_0", "e_1")));
+    }
 }

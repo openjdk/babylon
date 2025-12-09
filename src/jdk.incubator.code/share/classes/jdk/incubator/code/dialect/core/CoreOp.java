@@ -321,32 +321,6 @@ public sealed abstract class CoreOp extends Op {
             return b;
         }
 
-        static CoreOp.FuncOp convertInvokeToFuncCallOp(CoreOp.FuncOp funcOp, MethodHandles.Lookup l) {
-            return funcOp.transform(funcOp.funcName(), (blockBuilder, op) -> {
-                if (op instanceof JavaOp.InvokeOp iop) {
-                    Method invokeOpCalledMethod = null;
-                    try {
-                        invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l);
-                    } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException(e);
-                    }
-                    if (invokeOpCalledMethod instanceof Method m) {
-                        CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
-                        if (f != null) {
-                            Op.Result result = blockBuilder.op(CoreOp.funcCall(
-                                    iop.invokeDescriptor().name(),
-                                    f.invokableType(),
-                                    blockBuilder.context().getValues(iop.operands())));
-                            blockBuilder.context().mapValue(op.result(), result);
-                            return blockBuilder;
-                        }
-                    }
-                }
-                blockBuilder.op(op);
-                return blockBuilder;
-            });
-        }
-
         static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
             try {
                 Method method = invokeOp.invokeDescriptor().resolveToMethod(l);
@@ -361,22 +335,54 @@ public sealed abstract class CoreOp extends Op {
          * The funcOps in the moduleOp functionTable are returned in the order encountered within the funcOp.
          */
         public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp f, MethodHandles.Lookup l) {
-            Set<CoreOp.FuncOp> visited = new HashSet<>();
+            Map<String, FuncOp> visited = new HashMap<>();
             List<CoreOp.FuncOp> funcs = new ArrayList<>();
             Deque<CoreOp.FuncOp> stack = new LinkedList<>();
 
-            stack.add(f);
+            int idx = 0;
+            stack.push(f);
             while (!stack.isEmpty()) {
-                CoreOp.FuncOp cur = stack.removeLast();
-                if (!visited.add(cur)) continue;
-                funcs.add(convertInvokeToFuncCallOp(cur, l));
-                List<CoreOp.FuncOp> temp = new LinkedList<>();
-                cur.elements().filter(e -> e instanceof JavaOp.InvokeOp).forEach(e -> {
-                    if (invokeToFuncOp((JavaOp.InvokeOp) e, l) instanceof CoreOp.FuncOp resolvedFuncOp) {
-                        temp.addFirst(resolvedFuncOp);
+                CoreOp.FuncOp cur = stack.pop();
+
+                String name = cur.funcName() + "::" + cur.invokableType();
+                if (visited.containsKey(name)) {
+                    if (visited.get(name).equals(cur)) continue;
+                    throw new IllegalArgumentException("Method of name " + cur.funcName() + " already exists");
+                } else {
+                    visited.put(name, cur);
+                }
+                List<CoreOp.FuncOp> temp = new ArrayList<>();
+
+                // traversing to convert invokeOps -> funcCallOps and gathering invokeOps to be processed later
+                FuncOp transformed = cur.transform(cur.funcName() + "_" + idx++, (blockBuilder, op) -> {
+                    if (op instanceof JavaOp.InvokeOp iop) {
+                        Method invokeOpCalledMethod = null;
+                        try {
+                            invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l);
+                        } catch (ReflectiveOperationException e) {
+                            throw new RuntimeException("Could not resolve invokeOp to method");
+                        }
+                        if (invokeOpCalledMethod instanceof Method m) {
+                            CoreOp.FuncOp funcOp = Op.ofMethod(m).orElse(null);
+                            if (funcOp != null) {
+                                temp.add(funcOp);
+                                Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                                        iop.invokeDescriptor().name(),
+                                        funcOp.invokableType(),
+                                        blockBuilder.context().getValues(iop.operands())));
+                                blockBuilder.context().mapValue(op.result(), result);
+                                return blockBuilder;
+                            }
+                        }
                     }
+                    blockBuilder.op(op);
+                    return blockBuilder;
                 });
-                stack.addAll(temp);
+
+                funcs.add(transformed);
+                for (FuncOp funcOp : temp.reversed()) {
+                    stack.push(funcOp);
+                }
             }
             return CoreOp.module(funcs);
         }
@@ -386,17 +392,10 @@ public sealed abstract class CoreOp extends Op {
          * The funcOps in the moduleOp functionTable are returned in the order encountered within the lambdaOp.
          */
         public static CoreOp.ModuleOp ofLambdaOp(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, String lambdaName) {
-            boolean methodNameExists = Arrays.stream(l.lookupClass().getMethods())
-                    .anyMatch(method -> method.getName().equals(lambdaName));
-            if (methodNameExists) {
-                throw new IllegalArgumentException("Method of name " + lambdaName + " already exists");
-            }
-            CoreOp.FuncOp funcOp;
-            if (lambdaOp.directInvocation().isPresent()) {
-                funcOp = invokeToFuncOp(lambdaOp.directInvocation().get(), l);
-            } else {
-                funcOp = lambdaOp.toFuncOp(lambdaName);
-            }
+            if (lambdaName == null) lambdaName = "";
+            CoreOp.FuncOp funcOp = lambdaOp.directInvocation().isPresent() ?
+                    invokeToFuncOp(lambdaOp.directInvocation().get(), l) :
+                    lambdaOp.toFuncOp(lambdaName);
             return ofFuncOp(funcOp, l);
         }
     }

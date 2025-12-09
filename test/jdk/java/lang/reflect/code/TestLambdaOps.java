@@ -216,10 +216,12 @@ public class TestLambdaOps {
 
     @Test
     public void testToFuncOp() {
-        int a = 0, b = 0, c = 0;
-        Consumer<Integer> lambda = (@Reflect Consumer<Integer>) (d) -> {d += a + b + c;};
+        int a = 4, b = 3, c = 6;
+        IntUnaryOperator lambda = (@Reflect IntUnaryOperator) (d) -> {d += 2 * a + (b % 2) + (int) Math.exp(c); return d;};
         LambdaOp qop = (LambdaOp) Op.ofQuotable(lambda).get().op();
         FuncOp funcOp = qop.toFuncOp(null);
-        System.out.println(funcOp.toText());
+        int funcOpRes = (int) Interpreter.invoke(MethodHandles.lookup(), funcOp, 1, 4, 3, 6);
+        int lambdaRes = lambda.applyAsInt(1);
+        Assertions.assertEquals(funcOpRes, lambdaRes);
     }
 }
