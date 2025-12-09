@@ -124,7 +124,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             }
                             space().typeName(primitiveField.name);
                             if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
-                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
+                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray) {
                                     if (isLast && ifaceType.parent == null) {
                                         sbrace(_ -> literal(1));
                                     } else {
