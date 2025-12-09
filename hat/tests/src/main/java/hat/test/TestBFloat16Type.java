@@ -449,7 +449,11 @@ public class TestBFloat16Type {
             BF16 r4 = BF16.add(r1, r2);
             BF16 r5 = BF16.add(r4, r3);
 
-            HATAsserts.assertEquals(BF16.bfloat162float(r5), BF16.bfloat162float(gotResult), 0.01f);
+            try {
+                HATAsserts.assertEquals(BF16.bfloat162float(r5), BF16.bfloat162float(gotResult), 0.01f);
+            } catch (HATAssertionError hatAssertionError) {
+                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+            }
         }
     }
 
