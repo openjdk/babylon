@@ -24,6 +24,7 @@
  */
 package hat.tools.textmodel;
 
+import hat.util.Regex;
 import jdk.incubator.code.dialect.core.CoreOp;
 import hat.tools.textmodel.tokens.Arrow;
 import hat.tools.textmodel.tokens.At;
@@ -48,8 +49,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class BabylonTextModel extends TextModel {
@@ -76,15 +75,15 @@ public class BabylonTextModel extends TextModel {
     }
 
     public static class BabylonLocationAttribute extends BabylonNamedAttribute implements LineCol {
-        static Pattern locPattern = Pattern.compile("\"([0-9]+):([0-9]+)[^\"]*\"");
+        static Regex locPattern = Regex.of("\"([0-9]+):([0-9]+)[^\"]*\"");
         public final int line;
         public final int col;
 
         public BabylonLocationAttribute(Token l, Token lm, Token rm, Token r) {
             super(l, lm, rm, r);
-            if (locPattern.matcher(r.asString()) instanceof Matcher m && m.matches() && m.groupCount() > 1) {
-                line = Integer.parseInt(m.group(1));
-                col = Integer.parseInt(m.group(2));
+            if (locPattern.is(r.asString()) instanceof Regex.Match m && m.count() > 1) {
+                line = m.intOf(1);
+                col = m.intOf(2);
             } else {
                 throw new IllegalArgumentException("invalid location attribute no line/col");
             }
@@ -102,15 +101,12 @@ public class BabylonTextModel extends TextModel {
     }
 
     public static class BabylonFileLocationAttribute extends BabylonLocationAttribute {
-        static Pattern locFilePattern = Pattern.compile("\"([0-9]+):([0-9]+):file:([^\"]*)\"");
+        static Regex locFilePattern = Regex.of("\"([0-9]+):([0-9]+):file:([^\"]*)\"");
         final Path path;
 
         static Path getPathFromFileLocString(String fileLocString) {
-            return locFilePattern.matcher(fileLocString) instanceof Matcher m
-                    && m.matches()
-                    && m.groupCount() > 2
-                    && m.group(3) instanceof String filename
-                    && Path.of(filename) instanceof Path javaSource
+            return locFilePattern.is(fileLocString) instanceof Regex.Match m && m.count() > 2
+                    && m.stringOf(3) instanceof String filename && Path.of(filename) instanceof Path javaSource
                     ? javaSource : null;
         }
 
@@ -144,14 +140,14 @@ public class BabylonTextModel extends TextModel {
     }
 
     public static class BabylonBlock extends LeafReplacementToken {
-        static final public Pattern regex = Pattern.compile("block_([0-9]+)");
+        static final public Regex regex = Regex.of("block_([0-9]+)");
 
         public final int id;
 
         public BabylonBlock(Token t1, Token t2) {
             super(t1, t2);
-            if (regex.matcher(t2.asString()) instanceof Matcher m && m.matches() && m.groupCount() == 1) {
-                id = Integer.parseInt(m.group(1));
+            if (regex.is(t2.asString()) instanceof Regex.Match m && m.count() == 1) {
+                id = m.intOf(1);
             } else {
                 throw new IllegalArgumentException("invalid block attribute no id");
             }
@@ -185,7 +181,7 @@ public class BabylonTextModel extends TextModel {
     }
 
     public static class BabylonOp extends LeafReplacementToken {
-        public static final Pattern regex = Pattern.compile(
+        public static final Regex regex = Regex.of(
                 "(field|var)\\.(store|load)|var|return|yield|continue|invoke|conv|mul|div|add|sub|constant|mod|lt"
         );
 
@@ -195,7 +191,7 @@ public class BabylonTextModel extends TextModel {
     }
 
     public static class BabylonBlockOrBody extends LeafReplacementToken {
-        public static final Pattern regex = Pattern.compile("java\\.(if|while)");
+        public static final Regex regex = Regex.of("java\\.(if|while)");
 
         public BabylonBlockOrBody(Token t) {
             super(t);
@@ -230,7 +226,7 @@ public class BabylonTextModel extends TextModel {
         // map all seqs to DottedName
         replace(true, t -> Seq.isA(t, $ -> $.matches(DottedName.regex)), DottedName::new);
 
-        Pattern reservedWords = Pattern.compile("(func|Var)");
+       Regex reservedWords = Regex.of("(func|Var)");
         // reserved word -> ReservedWord
         replace(true, t -> DottedName.isA(t, $ -> $.matches(reservedWords)), ReservedWord::new);
 
@@ -344,8 +340,8 @@ public class BabylonTextModel extends TextModel {
         doc.parse(text);
         doc.find(true, (t) -> t instanceof StringLiteral, (t) -> {
             if (t instanceof StringLiteral sl
-                    && sl.matcher(BabylonFileLocationAttribute.locFilePattern) instanceof Matcher m
-                    && Path.of(m.group(3)) instanceof Path javaSource && Files.exists(javaSource)
+                    && BabylonFileLocationAttribute.locFilePattern.is(sl.asString()) instanceof Regex.Match m
+                    && Path.of(m.stringOf(3)) instanceof Path javaSource && Files.exists(javaSource)
             ) {
                 doc.javaSource = javaSource;
                 try {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,26 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.tools.textmodel.tokens;
+package hat.test.exceptions;
 
-import hat.util.Regex;
-
-import java.util.function.Predicate;
-
-public class IntConst extends LeafReplacementToken {
-    public final int i;
-    public static final Regex regex = Regex.of("[0-9][0-9]*");
-
-    public IntConst(Token t) {
-        super(t);
-        var s = t.asString();
-        this.i = Integer.parseInt(s);
-    }
-
-    public static boolean isA(Token t, Predicate<IntConst> predicate) {
-        return t instanceof IntConst intConst && predicate.test(intConst);
-    }
-    public static boolean isA(Token t) {
-        return isA(t, _->true);
+public class HATExpectedPrecisionError extends HATTestException {
+    public HATExpectedPrecisionError(String message) {
+        super(message);
     }
 }

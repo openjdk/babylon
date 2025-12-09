@@ -27,6 +27,10 @@ package hat.test.engine;
 import hat.Accelerator;
 import hat.backend.Backend;
 import hat.test.annotation.HatTest;
+import hat.test.exceptions.HATAssertionError;
+import hat.test.exceptions.HATExpectedFailureException;
+import hat.test.exceptions.HATExpectedPrecisionError;
+import hat.test.exceptions.HATTestException;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -37,6 +41,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class HATTestEngine {
 
@@ -48,6 +53,7 @@ public class HATTestEngine {
         int passed = 0;
         int failed = 0;
         int unsupported = 0;
+        int precisionErrors = 0;
         public void incrementPassed() {
             passed++;
         }
@@ -55,6 +61,7 @@ public class HATTestEngine {
             failed++;
         }
         public void incrementUnsupported() { unsupported++; }
+        public void incrementPrevisionError() { precisionErrors++; }
 
         public int getPassed() {
             return passed;
@@ -63,10 +70,11 @@ public class HATTestEngine {
             return failed;
         }
         public int getUnsupported() { return unsupported; }
+        public int getPrecisionErrors() { return precisionErrors; }
 
         @Override
         public String toString() {
-            return String.format("passed: %d, failed: %d, unsupported: %d", passed, failed, unsupported);
+            return String.format("passed: %d, failed: %d, unsupported: %d, precision-errors: %d", passed, failed, unsupported, precisionErrors);
         }
     }
 
@@ -74,7 +82,7 @@ public class HATTestEngine {
         try {
             HATTestFormatter.testing(builder, method.getName());
             method.invoke(instance);
-            HATTestFormatter.ok(builder);
+            HATTestFormatter.passed(builder);
             stats.incrementPassed();
         } catch (HATAssertionError e) {
             HATTestFormatter.fail(builder);
@@ -82,6 +90,9 @@ public class HATTestEngine {
         } catch (HATExpectedFailureException failureException) {
             HATTestFormatter.expectedToFail(builder, failureException.getMessage());
             stats.incrementUnsupported();
+        } catch (HATExpectedPrecisionError expectedPrecisionError) {
+            HATTestFormatter.expectedPrecisionError(builder, expectedPrecisionError.getMessage());
+            stats.incrementPrevisionError();
         } catch (IllegalAccessException | InvocationTargetException e) {
             if (e.getCause() instanceof HATAssertionError hatAssertionError) {
                 HATTestFormatter.failWithReason(builder, hatAssertionError.getMessage());
@@ -89,6 +100,9 @@ public class HATTestEngine {
             } else if (e.getCause() instanceof HATExpectedFailureException failureException) {
                 HATTestFormatter.expectedToFail(builder, failureException.getMessage());
                 stats.incrementUnsupported();
+            } else if (e.getCause() instanceof HATExpectedPrecisionError expectedPrecisionError) {
+                HATTestFormatter.expectedToFail(builder, expectedPrecisionError.getMessage());
+                stats.incrementPrevisionError();
             }  else {
                 e.getCause().printStackTrace();
                 HATTestFormatter.fail(builder);
@@ -115,10 +129,10 @@ public class HATTestEngine {
     }
 
     public static void printStats(StringBuilder builder, Stats stats) {
-        System.out.println();
-        System.out.println(builder.toString());
-        System.out.println(stats.toString());
-        System.out.println();
+        IO.println();
+        IO.println(builder.toString());
+        IO.println(stats.toString());
+        IO.println();
     }
 
     public static void dumpStats(StringBuilder builder, Stats stats) {

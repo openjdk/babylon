@@ -25,17 +25,16 @@
 package hat.codebuilders;
 
 import hat.Config;
-import jdk.incubator.code.Op;
 
 public  class C99HATConfigBuilder extends C99HATCodeBuilder<C99HATConfigBuilder> {
 
    public  C99HATConfigBuilder staticConstInt(String name, int padWidth, int value) {
-        staticKeyword().space().constexprKeyword().space().intType().space().identifier(name, padWidth).space().equals().space().intHexValue(value).semicolon().nl();
+        staticKeyword().space().constexprKeyword().space().s32Type().space().identifier(name, padWidth).space().equals().space().intHexValue(value).semicolon().nl();
         return this;
     }
 
     public C99HATConfigBuilder staticConstIntShiftedOne(String name, int padWidth, int shift) {
-        staticKeyword().space().constexprKeyword().space().intType().space().identifier(name, padWidth).space().equals().space().intValue(1).leftShift().intHexValue(shift).semicolon().nl();
+        staticKeyword().space().constexprKeyword().space().s32Type().space().identifier(name, padWidth).space().equals().space().intValue(1).leftShift().intHexValue(shift).semicolon().nl();
         return this;
     }
 
@@ -61,17 +60,6 @@ public  class C99HATConfigBuilder extends C99HATCodeBuilder<C99HATConfigBuilder>
 
     public C99HATConfigBuilder configBitsAndBitName(String bitName) {
         return configBitsAnd().identifier(bitName + "_BIT");
-    }
-
-    public  String toCamelExceptFirst(String s) {
-        String[] parts = s.split("_");
-        StringBuilder camelCaseString = new StringBuilder();
-        for (String part : parts) {
-            camelCaseString.append(camelCaseString.isEmpty()
-                    ? part.toLowerCase()
-                    : part.substring(0, 1).toUpperCase() + part.substring(1).toLowerCase());
-        }
-        return camelCaseString.toString();
     }
 
     public C99HATConfigBuilder camelExceptFirst(String s) {

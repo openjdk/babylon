@@ -24,14 +24,16 @@
  */
 package hat.tools.textmodel.tokens;
 
+
+import hat.util.Regex;
+
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 public class DottedName extends LeafReplacementToken {
     public DottedName(Token l, Token m, Token r) {
         super(l, m, r);
     }
-public static final Pattern regex = Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
+public static final Regex regex = Regex.of("[A-Za-z][A-Za-z0-9_]*");
     public DottedName(Token seq) {
         super(seq);
     }

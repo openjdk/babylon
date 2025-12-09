@@ -33,7 +33,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBuilder<T> {
 
-    public T oracleCopyright(){
+    public final T oracleCopyright(){
         return blockComment("""
                 * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
                 * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -61,106 +61,67 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
 
 
-    public T intDeclaration(String name) {
-        return intType().space().identifier(name);
+    //public final T s32Declaration(String name) {
+      //  return s32Type(name);
+   // }
+
+    public final T varName(CoreOp.VarOp varOp) {
+        return identifier(varOp.varName());
+    }
+    public final  T funcName(CoreOp.FuncCallOp funcCallOp){
+        return identifier(funcCallOp.funcName());
+    }
+    public final T funcName(CoreOp.FuncOp funcOp) {
+        return identifier(funcOp.funcName());
+    }
+    public final T fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
+        return identifier(OpTk.fieldName(fieldAccessOp));
+    }
+    public final T funcName(JavaOp.InvokeOp invokeOp){
+        return identifier(OpTk.funcName(invokeOp));
     }
 
-    public T floatDeclaration(String name) {
-        return f32Type().space().identifier(name);
-    }
-
-    public T doubleDeclaration(String name) {
-        return doubleType().space().identifier(name);
-    }
-
-    public T longDeclaration(String name) {
-        return longType().space().identifier(name);
-    }
-
-    public T booleanDeclaration(String name) {
-        return booleanType().space().identifier(name);
-    }
-
-    public T byteDeclaration(String name) {
-        return charType().space().identifier(name);
-    }
-
-    public T shortDeclaration(String name) {
-        return shortType().space().identifier(name);
-    }
-
-    public T varName(CoreOp.VarOp varOp) {
-        identifier(varOp.varName());
-        return self();
-    }
-
-    public T varName(HATMemoryOp hatLocalVarOp) {
+    public final T varName(HATMemoryOp hatLocalVarOp) {
         identifier(hatLocalVarOp.varName());
         return self();
     }
 
-    public T varName(HATVectorVarOp hatVectorVarOp) {
+    public final T varName(HATVectorVarOp hatVectorVarOp) {
         identifier(hatVectorVarOp.varName());
         return self();
     }
 
-    public T varName(HATVectorLoadOp vectorLoadOp) {
+    public final T varName(HATVectorLoadOp vectorLoadOp) {
         identifier(vectorLoadOp.varName());
         return self();
     }
 
-    public T varName(HATVectorStoreView hatVectorStoreView) {
+    public final T varName(HATVectorStoreView hatVectorStoreView) {
         identifier(hatVectorStoreView.varName());
         return self();
     }
 
-    public T varName(HATVectorBinaryOp hatVectorBinaryOp) {
+    public final T varName(HATVectorBinaryOp hatVectorBinaryOp) {
         identifier(hatVectorBinaryOp.varName());
         return self();
     }
 
-    public T varName(HATVectorVarLoadOp hatVectorVarLoadOp) {
+    public final T varName(HATVectorVarLoadOp hatVectorVarLoadOp) {
         identifier(hatVectorVarLoadOp.varName());
         return self();
     }
 
-    public T varName(HATF16VarOp hatF16VarOp) {
+    public final T varName(HATF16VarOp hatF16VarOp) {
         identifier(hatF16VarOp.varName());
         return self();
     }
 
-    protected T camel(String value) {
+    protected final T camel(String value) {
         return identifier(Character.toString(Character.toLowerCase(value.charAt(0)))).identifier(value.substring(1));
     }
 
-    public T camelJoin(String prefix, String suffix) {
+    public final T camelJoin(String prefix, String suffix) {
         return camel(prefix).identifier(Character.toString(Character.toUpperCase(suffix.charAt(0)))).identifier(suffix.substring(1));
-    }
-
-    //Unused?
-  /*  public T declareVarFromJavaType(JavaType type, String varName) {
-        if (type.equals(JavaType.INT)) {
-            intDeclaration(varName);
-        } else if (type.equals(JavaType.LONG)) {
-            longDeclaration(varName);
-        } else  if (type.equals(JavaType.FLOAT)) {
-            floatDeclaration(varName);
-        } else if (type.equals(JavaType.DOUBLE)) {
-            doubleDeclaration(varName);
-        }
-        return self();
-    } */
-    public T funcName(CoreOp.FuncCallOp funcCallOp){
-        return identifier(funcCallOp.funcName());
-    }
-    public T funcName(CoreOp.FuncOp funcOp) {
-        return identifier(funcOp.funcName());
-    }
-    public T fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
-        return identifier(OpTk.fieldName(fieldAccessOp));
-    }
-    public T funcName(JavaOp.InvokeOp invokeOp){
-        return identifier(OpTk.funcName(invokeOp));
     }
 
     T symbol(Op op) {
