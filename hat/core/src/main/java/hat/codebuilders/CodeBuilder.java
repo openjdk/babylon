@@ -314,6 +314,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T nlIndentNl(Consumer<T> ct) {
         return nl().indent(ct).nl();
     }
+
     public T braceNlIndented(Consumer<T> ct) {
         return obrace().nlIndentNl(ct).cbrace();
     }
@@ -496,7 +497,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return separated(iterable,_->bar(),consumer);
     }
     public <I> T semicolonNlSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
-        return separated(iterable,_->semicolonNl(),consumer);
+        return separated(iterable,_->semicolonNl(),consumer).semicolon();
     }
     public <I> T nlSeparated(Iterable<I> iterable,  Consumer<I> consumer) {
         return separated(iterable,_->nl(),consumer);
