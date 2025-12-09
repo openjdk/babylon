@@ -25,7 +25,7 @@
 package squares;
 
 import hat.Accelerator;
-import hat.Accelerator.ComputeConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -63,7 +63,7 @@ public class Main {
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }
-        accelerator.compute((@Reflect ComputeConsumer)
+        accelerator.compute((@Reflect Compute)
                 cc -> Main.square(cc, arr)
         );
         for (int i = 0; i < arr.length(); i++) {

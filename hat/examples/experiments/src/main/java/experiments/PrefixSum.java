@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.ComputeConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.annotations.Kernel;
@@ -380,7 +380,7 @@ public class PrefixSum {
 
 
         // Compute on the accelerator
-        accelerator.compute((@Reflect ComputeConsumer)
+        accelerator.compute((@Reflect Compute)
                 cc -> PrefixSum.compute(cc, input));
 
 

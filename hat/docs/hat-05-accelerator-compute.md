@@ -197,17 +197,16 @@ The ComputeContext and the captured args are then passed to the backend for exec
 ----
 ### Notes
 
-In reality. The Accelerator receives a `ComputeConsumer`
+In reality. The Accelerator receives a `Compute`
 
 ```java
-    public interface ComputeConsumer
-        Consumer<ComputeContext> {
+    public interface Compute extends Consumer<ComputeContext> {
     }
 ```
 Here is how we extract the 'target' from such a lambda
 
 ```java
-public void compute(ComputeConsumer compute) {
+public void compute(Compute compute) {
     Quoted quoted = Op.ofQuotable(compute).orElseThrow();
     JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
     Method method = OpTk.methodOrThrow(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));

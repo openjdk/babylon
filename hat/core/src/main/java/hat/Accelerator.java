@@ -157,7 +157,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      *    }
      *  }
      *  </pre>
-     * The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code ComputeConsumer}
+     * The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code Compute}
      * <pre>
      *  accelerator.compute(cc ->
      *     MyCompute.doSomeWork(cc, arrayOfInt)
@@ -166,7 +166,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      */
     @Reflect
     @FunctionalInterface
-    public interface ComputeConsumer extends Consumer<ComputeContext> {
+    public interface Compute extends Consumer<ComputeContext> {
     }
 
     // convenience
@@ -177,7 +177,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     /**
      * This method provides the Accelerator with the {@code Compute Entrypoint} from a Compute class.
      * <p>
-     * The entrypoint is wrapped in a {@link ComputeConsumer} lambda.
+     * The entrypoint is wrapped in a {@link Compute} lambda.
      *
      * <pre>
      * accelerator.compute(cc -&gt;
@@ -185,7 +185,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      * )
      * </pre>
      */
-    public void compute(ComputeConsumer compute) {
+    public void compute(Compute compute) {
         Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
         Method method = OpTk.methodOrThrow(lookup, OpTk.getTargetInvokeOp(lambda));

@@ -107,13 +107,13 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         this.accelerator.backend.computeContextHandoff(this);
     }
 
-    public void dispatchKernel(NDRange<?, ?> ndRange, KernelConsumer kernel) {
+    public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
         dispatchKernelWithComputeRange(ndRange, kernel);
     }
 
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
-    private CallGraph getKernelCallGraph(KernelConsumer kernel) {
+    private CallGraph getKernelCallGraph(Kernel kernel) {
         Quoted quoted = Op.ofQuotable(kernel).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
         MethodRef methodRef = OpTk.getTargetInvokeOp( lambdaOp).invokeDescriptor();
@@ -124,7 +124,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
-    private void dispatchKernelWithComputeRange(NDRange<?, ?> ndRange, KernelConsumer kernel) {
+    private void dispatchKernelWithComputeRange(NDRange<?, ?> ndRange, Kernel kernel) {
         CallGraph cg = getKernelCallGraph(kernel);
         try {
             Object[] args = OpTk.getQuotedCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
@@ -175,6 +175,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     @Reflect
     @FunctionalInterface
-    public interface KernelConsumer extends Consumer<KernelContext> { }
+    public interface Kernel extends Consumer<KernelContext> { }
 
 }
