@@ -531,7 +531,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      * </code>
      * @return
      */
-
     public final T build_builtin_byteCopy() {
         return funcDef(
                 _->voidType(),
@@ -556,10 +555,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     /**
      * <code>
      *  float bfloat16Tofloat(ushort bf16) {
-     *      uint bitsRecovered = bf16 << 16;
-     *      float r = bitsRecovered;
-     *      byteCopy(&r, &bitsRecovered, sizeof(r));
-     *      return r;
+     *      b16_t b;
+     *      b.s[0] = 0x0000;
+     *      b.s[1] = s;
+     *      return b.f;
      * }
      * </code>
      *
@@ -567,23 +566,21 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      * @return
      */
     public final T build_builtin_bfloat16ToFloat(String parameterName) {
-        return funcDef(_->f32Type(),
-                _->builtin_bfloat16ToFloat(),
-                _-> u16Type(parameterName),
-                 _ -> assign(_->u32Type("bits"), _->identifier(parameterName).leftShift(16)).semicolonNl()
-                      .f32Type("r").semicolonNl()
-                      .call("byteCopy",_->addressOf("r"),_->addressOf("bits"),_->sizeof("r")).semicolonNl()
-                      .returnKeyword(_->identifier("r"))
-                );
+        String identifier = "b";
+        return funcDef(_ -> f32Type(),
+                       _ -> builtin_bfloat16ToFloat(),
+                       _ -> ushortType(parameterName),
+                       _ -> declareTypeBFloat16Type(identifier).semicolonNl()
+                               .identifier(identifier).dot().identifier("s").osbrace().intConstZero().csbrace().equals().constant("0x0000").semicolonNl()
+                               .identifier(identifier).dot().identifier("s").osbrace().intConstOne().csbrace().equals().constant(parameterName).semicolonNl()
+                               .returnKeyword(_-> identifier("b").dot().identifier("f")));
     }
 
     /**
      * <code>
      * ushort floatTobfloat16(float f) {
-     *      uint bits;
-     *      byteCopy(&bits, &f, sizeof(bits));
-     *      short bf16 = bits >> 16;
-     *      return bf16;
+     *      b16_t b1 = {f};
+     *      return b1.s[1];
      * }
      * </code>
      * @param parameterName
@@ -591,13 +588,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      */
     public final T build_builtin_float2bfloat16(String parameterName) {
         return funcDef(
-                _-> s16Type(),
+                _-> ushort(),
                 _->builtin_float2bfloat16(),
                 _->f32Type(parameterName),
-                _->
-                   u32Type("bits").semicolonNl()
-                   .call("byteCopy", _->addressOf("bits"), _->addressOf(parameterName), _->sizeof("bits")).semicolonNl()
-                   .returnKeyword(_->identifier("bits").rightShift(16))
+                _-> declareTypeBFloat16Type("b").space().equals().space().obrace().identifier(parameterName).cbrace().semicolonNl()
+                   .returnKeyword(_->identifier("b").dot().identifier("s").osbrace().intConstOne().csbrace())
                 );
     }
 
