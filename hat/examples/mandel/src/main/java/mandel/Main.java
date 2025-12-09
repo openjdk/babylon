@@ -25,6 +25,7 @@
 package mandel;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -98,7 +99,8 @@ public class Main {
         }
         S32Array pallette = S32Array.createFrom(accelerator, palletteArray);
 
-        accelerator.compute(cc -> Main.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
+        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                cc -> Main.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
 
         if (headless){
             // Well take 1 in 4 samples (so 1024 -> 128 grid) of the pallette.
@@ -128,7 +130,8 @@ public class Main {
                         final float fscale = scale;
                         final float fx = x - sign * zoomPoint.x / zoomFrames;
                         final float fy = y - sign * zoomPoint.y / zoomFrames;
-                        accelerator.compute(cc -> Main.compute(cc, pallette, s32Array2D, fx, fy, fscale));
+                        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                                cc -> Main.compute(cc, pallette, s32Array2D, fx, fy, fscale));
                         viewer.imageViewer.syncWithRGB(s32Array2D);
 
                     }

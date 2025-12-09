@@ -57,15 +57,15 @@ public sealed interface CodeElement<
      * {@return a stream of code elements sorted topologically in pre-order traversal.}
      */
     default Stream<CodeElement<?, ?>> elements() {
-        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream));
+        return Stream.of(this).gather(() -> (_, e, downstream) -> traversePreOrder(e, downstream));
     }
 
-    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
-        if (!v.push(this)) {
+    private static boolean traversePreOrder(CodeElement<?, ?> e, Gatherer.Downstream<? super CodeElement<?, ?>> d) {
+        if (!d.push(e)) {
             return false;
         }
-        for (C c : children()) {
-            if (!((CodeElement<?, ?>) c).traversePreOrder(v)) {
+        for (CodeElement<?, ?> c : e.children()) {
+            if (!traversePreOrder(c, d)) {
                 return false;
             }
         }

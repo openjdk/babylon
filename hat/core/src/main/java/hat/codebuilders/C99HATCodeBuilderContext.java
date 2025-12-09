@@ -24,20 +24,20 @@
  */
 package hat.codebuilders;
 
-import hat.buffer.BF16;
-import hat.buffer.BF16Array;
-import hat.buffer.F16;
-import hat.buffer.F16Array;
 import hat.buffer.HAType;
 import hat.device.DeviceType;
-import hat.dialect.*;
-import hat.ifacemapper.BoundSchema;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATLocalVarOp;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPrivateInitVarOp;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorVarOp;
 import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 import hat.util.StreamMutable;
-
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -47,9 +47,9 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.List;
 
-public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements BabylonOpBuilder<T> {
+public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T> implements BabylonCoreOpBuilder<T> {
 
-    public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
+  /*  public final  T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class)
                         && javaType instanceof ClassType classType) {
             suffix_t(classType).asterisk();
@@ -57,10 +57,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             typeName(javaType.toBasicType().toString());
         }
         return self();
-    }
+    } */
 
     @Override
-    public T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+    public final T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
@@ -76,7 +76,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
+    public final T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
         Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
         // When the op is intended to operate as VarOp, then we need to include it in the following switch.
         // This is because HAT has its own dialect, and some of the Ops operate on HAT Types (not included in the Java
@@ -95,7 +95,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    public record LocalArrayDeclaration(ClassType classType, HATMemoryOp varOp) {}
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (buildContext.isVarOpFinal(varOp)) {
@@ -115,19 +114,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    @Override
-    public T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp hatLocalVarOp) {
-        LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
-        localDeclaration(localArrayDeclaration);
-        return self();
-    }
 
-    @Override
-    public T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp) {
-        LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
-        privateDeclaration(localArrayDeclaration);
-        return self();
-    }
 
     @Override
     public T varOp(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp, OpTk.ParamVar paramVar) {
@@ -218,7 +205,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T tupleOp(ScopedCodeBuilderContext buildContext, CoreOp.TupleOp tupleOp) {
-        separated(tupleOp.operands(),(_)->commaSpace(),operand->{
+        commaSpaceSeparated(tupleOp.operands(),operand->{
             if (operand instanceof Op.Result result) {
                 recurse(buildContext, result.op());
             } else {
@@ -232,9 +219,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T funcCallOp(ScopedCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp) {
         funcName(funcCallOp);
         paren(_ ->
-            separated(funcCallOp.operands().stream()
-                    .filter(e->e instanceof Op.Result ).map(e->(Op.Result)e),(_)->commaSpace(), result ->
-                     recurse(buildContext,result.op())
+            commaSpaceSeparated(
+                    funcCallOp.operands().stream().filter(e->e instanceof Op.Result ).map(e->(Op.Result)e),
+                    result -> recurse(buildContext,result.op())
             )
         );
         return self();
@@ -249,7 +236,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         recurse(buildContext,forLoopOp);
         return self();
     }
-
+    @Override
     public T breakOp(ScopedCodeBuilderContext buildContext, JavaOp.BreakOp breakOp) {
         breakKeyword();
         if (!breakOp.operands().isEmpty() && breakOp.operands().getFirst() instanceof Op.Result result) {
@@ -260,7 +247,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         }
         return self();
     }
-
+    @Override
     public T continueOp(ScopedCodeBuilderContext buildContext, JavaOp.ContinueOp continueOp) {
         if (!continueOp.operands().isEmpty()
                 && continueOp.operands().getFirst() instanceof Op.Result result
@@ -290,10 +277,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                separated(OpTk.statements(ifOp.bodies().get(idx).entryBlock()),(_)->nl(), root->
-                                        statement(buildContext,root)
-                                )
-                        );
+                                        nlSeparated(OpTk.statements(ifOp.bodies().get(idx).entryBlock()),
+                                        root-> statement(buildContext,root)
+                                        ));
                     }
                     lastWasBody.set(true);
                 } else {
@@ -320,8 +306,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         .forEach(o -> recurse(buildContext, o))
         );
         braceNlIndented(_ ->
-                separated(OpTk.statements(whileOp),(_)->nl(), statement->statement(buildContext,statement)
-                       // recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                        nlSeparated(OpTk.statements(whileOp),
+                        statement->statement(buildContext,statement)
                 )
         );
         return self();
@@ -335,118 +321,20 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     semicolon().space();
                     OpTk.condBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    separated(OpTk.statements(OpTk.mutateBlock(forOp)), (_)->commaSpace(),
+                    commaSpaceSeparated(
+                            OpTk.statements(OpTk.mutateBlock(forOp)),
                             op -> recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->
-                        separated(OpTk.statements(forOp), (_)->nl(),statement ->statement(buildContext,statement)
-                              //  root-> recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                            nlSeparated(OpTk.statements(forOp),
+                                    statement ->statement(buildContext,statement)
                         )
                 )
         );
         return self();
     }
 
-    private boolean isHalfType(Schema.IfaceType ifaceType) {
-        return (ifaceType.iface.getName().equals(F16.class.getName())
-                || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
-    }
-
-    private boolean isbfloat16(Schema.IfaceType ifaceType) {
-        return (ifaceType.iface.getName().equals(BF16.class.getName())
-                || ifaceType.iface.getName().equals(BF16Array.BF16Impl.class.getName()));
-    }
-
-    public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
-        typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
-                .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
-                    int fieldCount = ifaceType.fields.size();
-                    var fieldIdx = StreamMutable.of(0);
-                    separated(ifaceType.fields, (_) -> semicolon().nl(), field -> {
-                        boolean isLast = fieldIdx.get() == fieldCount - 1;
-                        if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
-                            if (isHalfType(ifaceType)) {
-                                typeName("half");
-                            } else if (isbfloat16(ifaceType)) {
-                                typeName("BFLOAT16");
-                            } else {
-                                typeName(primitiveField.type.getSimpleName());
-                            }
-                            space().typeName(primitiveField.name);
-                            if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
-                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
-                                    if (isLast && ifaceType.parent == null) {
-                                        sbrace(_ -> literal(1));
-                                    } else {
-                                        boolean[] done = new boolean[]{false};
-                                        if (boundSchema != null) {
-                                            boundSchema.boundArrayFields().forEach(a -> {
-                                                if (a.field.equals(array)) {
-                                                    sbrace(_ -> literal(a.len));
-                                                    done[0] = true;
-                                                }
-                                            });
-                                            if (!done[0]) {
-                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
-                                            }
-                                        } else {
-                                            throw new IllegalStateException("bound schema is null  !");
-                                        }
-                                    }
-                                } else if (array instanceof Schema.FieldNode.PrimitiveFixedArray fixed) {
-                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
-                                } else {
-                                    throw new IllegalStateException("what kind of array ");
-                                }
-                            }
-                        } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
-                            suffix_t(ifaceField.ifaceType.iface);
-                            space().typeName(ifaceField.name);
-                            if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
-                                if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
-                                    if (isLast && ifaceType.parent == null) {
-                                        sbrace(_ -> literal(1));
-                                    } else {
-                                        if (boundSchema != null) {
-                                            boolean[] done = new boolean[]{false};
-                                            boundSchema.boundArrayFields().forEach(a -> {
-                                                if (a.field.equals(ifaceField)) {
-                                                    sbrace(_ -> literal(a.len));
-                                                    done[0] = true;
-                                                }
-                                            });
-                                            if (!done[0]) {
-                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
-                                            }
-                                        } else {
-                                            throw new IllegalStateException("bound schema is null  !");
-                                        }
-                                    }
-                                } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
-                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
-                                } else {
-                                    throw new IllegalStateException("what kind of array ");
-                                }
-                            }
-                        } else if (field instanceof Schema.SchemaNode.Padding padding) {
-                            emitText(padding.toC99());
-                        } else {
-                            throw new IllegalStateException("hmm");
-                        }
-                        fieldIdx.set(fieldIdx.get() + 1);
-                    });
-                }).suffix_t(ifaceType.iface).semicolon().nl().nl();
-        return self();
-    }
-
-    public T atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
-        throw new IllegalStateException("atomicInc not implemented");
-    }
-
-    @Override
-    public T barrier(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp) {
-        return syncBlockThreads();
-    }
+    public abstract  T atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name);
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
@@ -572,23 +460,14 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         } else {
             // General case
             funcName(invokeOp).paren(_ ->
-                    separated(invokeOp.operands(), ($) -> $.comma().space(), (op) -> {
-                        if (op instanceof Op.Result result) {
-                            recurse(buildContext, result.op());
-                        }
+                    commaSpaceSeparated(invokeOp.operands(),
+                            op -> {if (op instanceof Op.Result result) {recurse(buildContext, result.op());}
                     })
             );
         }
         return self();
     }
 
-
-
-    public abstract T privateDeclaration(LocalArrayDeclaration localArrayDeclaration);
-
-    public abstract T localDeclaration(LocalArrayDeclaration localArrayDeclaration);
-
-    public abstract T syncBlockThreads();
 
     @Override
     public T conditionalExpressionOp(ScopedCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
@@ -637,19 +516,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    public T suffix_t(ClassType type){
-        String name = type.toClassName();
-        int dotIdx = name.lastIndexOf('.');
-        int dollarIdx = name.lastIndexOf('$');
-        int idx = Math.max(dotIdx, dollarIdx);
-        if (idx > 0) {
-            name = name.substring(idx + 1);
-        }
-        return suffix_t(name);
-    }
+
 
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
         return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
+
 
 }

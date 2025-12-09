@@ -26,6 +26,7 @@
 package hat.backend.java;
 
 import hat.KernelContext;
+import hat.NDRange;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -60,7 +61,8 @@ public class WorkStealer {
             doneBarrier = new CyclicBarrier(threadCount + 1);
             for (int i = 0; i < threadCount; i++) {
                 final int fini = i;
-                ranges[fini] = new KernelContext(range);
+                var ndRange1D = NDRange.of1D(range);
+                ranges[fini] = new KernelContext(ndRange1D);
                 threads[fini] = new Thread(() -> {
 
                     hat.KernelContext kernelContext = ranges[fini];

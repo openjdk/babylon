@@ -151,9 +151,9 @@ class EliteMeshParser {
         }
     }
 
-    record F32x3(Regex regex, Matcher matcher, boolean matched) implements Regex.OK {
+    record F32x3(Regex regex, Matcher matcher, boolean matched) implements Regex.Match {
         float f(int idx) {
-            var s = string(idx);
+            var s = stringOf(idx);
             return (s.startsWith("-")) ?
                     (-Integer.parseInt(s.substring(2), 16) / 64f) : (Integer.parseInt(s.substring(1), 16) / 64f);
         }
@@ -163,7 +163,7 @@ class EliteMeshParser {
         }
     }
 
-    record S32xN(Regex regex, Matcher matcher, boolean matched) implements Regex.OK {
+    record S32xN(Regex regex, Matcher matcher, boolean matched) implements Regex.Match {
         S32xN(Regex r, Matcher m) {
             this(r, m, true);
         }
@@ -192,17 +192,17 @@ class EliteMeshParser {
                             sm.awaiting_hue_lig_sat();
                         }
                         case State.awaiting_hue_lig_sat _ when State.hexagonRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
-                            mesh.get().hex(s32xN.asInts(6, 6), 0xff7f00);
+                            mesh.get().hex(s32xN.intArrayOf(6, 6), 0xff7f00);
                         }
                         case State.awaiting_hue_lig_sat _ when State.pentagonRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
-                            mesh.get().pent(s32xN.asInts(6, 5), 0x7fff00);
+                            mesh.get().pent(s32xN.intArrayOf(6, 5), 0x7fff00);
                         }
                         case State.awaiting_hue_lig_sat _ when State.quadRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
-                            mesh.get().quad(s32xN.asInts(6, 4), 0x00ff7f);
+                            mesh.get().quad(s32xN.intArrayOf(6, 4), 0x00ff7f);
 
                         }
                         case State.awaiting_hue_lig_sat _ when State.triangleRegex.is(line, S32xN::new) instanceof S32xN s32xN -> {
-                            mesh.get().tri(s32xN.asInts(6, 3), 0x007fff);
+                            mesh.get().tri(s32xN.intArrayOf(6, 3), 0x007fff);
                         }
                         case State.awaiting_hue_lig_sat s when s.r().matches(line) -> {
                             mesh.get().fin();
@@ -213,7 +213,7 @@ class EliteMeshParser {
                         }
                         case State.done _ -> {
                         }
-                        case State _ when Regex.any(line, State.remRegex, State.emptyRegex, State.colonRegex).matched() -> {
+                        case State _ when Regex.any(line, State.remRegex, State.emptyRegex, State.colonRegex) instanceof Regex.Match -> {
                         }
                         case State _ -> {
                         }

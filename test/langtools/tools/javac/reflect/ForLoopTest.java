@@ -84,7 +84,7 @@ public class ForLoopTest {
                     ()java.type:"java.util.List<java.lang.String>" -> {
                         %3 : java.type:"java.util.List<java.lang.String>" = var.load %2;
                         %4 : java.type:"java.util.stream.Stream<java.lang.String>" = invoke %3 @java.ref:"java.util.List::stream():java.util.stream.Stream";
-                        %5 : java.type:"java.util.function.Predicate<java.lang.String>" = lambda (%6 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"java.util.function.Predicate<java.lang.String>" = lambda @lambda.isQuotable=true (%6 : java.type:"java.lang.String")java.type:"boolean" -> {
                             %7 : Var<java.type:"java.lang.String"> = var %6 @"s";
                             %8 : java.type:"java.lang.String" = var.load %7;
                             %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.String::length():int";

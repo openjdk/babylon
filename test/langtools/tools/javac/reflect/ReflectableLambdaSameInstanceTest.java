@@ -14,13 +14,13 @@ import java.util.stream.IntStream;
  * @test
  * @summary test that invoking Op#ofQuotable returns the same instance
  * @modules jdk.incubator.code
- * @run junit QuotedSameInstanceTest
+ * @run junit ReflectableLambdaSameInstanceTest
  */
 
-public class QuotedSameInstanceTest {
+public class ReflectableLambdaSameInstanceTest {
 
-    private static final Runnable q1 = (@Reflect Runnable) () -> {
-    };
+    @Reflect
+    private static final Runnable q1 = () -> { };
 
     @Test
     public void testWithOneThread() {
@@ -28,8 +28,7 @@ public class QuotedSameInstanceTest {
     }
 
     @Reflect
-    interface QuotableIntUnaryOperator extends IntUnaryOperator { }
-    private static final QuotableIntUnaryOperator q2 = x -> x;
+    private static final IntUnaryOperator q2 = x -> x;
 
     @Test
     public void testWithMultiThreads() {
@@ -40,18 +39,15 @@ public class QuotedSameInstanceTest {
     }
 
     @Reflect
-    public interface QuotableIntSupplier extends IntSupplier {}
-    @Reflect
-    static QuotableIntSupplier q() {
-        QuotableIntSupplier r = () -> 8;
-        return r;
+    static IntSupplier q() {
+        return () -> 8;
     }
 
     @Test
     public void testMultiThreadsViaInterpreter() throws NoSuchMethodException {
         var qm = this.getClass().getDeclaredMethod("q");
         var q = Op.ofMethod(qm).get();
-        QuotableIntSupplier quotable = (QuotableIntSupplier) Interpreter.invoke(MethodHandles.lookup(), q);
+        IntSupplier quotable = (IntSupplier) Interpreter.invoke(MethodHandles.lookup(), q);
         Object[] quotedObjects = IntStream.range(0, 1024).parallel().mapToObj(__ -> Op.ofQuotable(quotable).get()).toArray();
         for (int i = 1; i < quotedObjects.length; i++) {
             Assertions.assertSame(quotedObjects[i-1], quotedObjects[i]);

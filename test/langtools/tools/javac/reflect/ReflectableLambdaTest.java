@@ -25,9 +25,9 @@
  * @test
  * @summary Smoke test for code reflection with quotable lambdas.
  * @modules jdk.incubator.code
- * @build QuotableIntersectionTest
+ * @build ReflectableLambdaTest
  * @build CodeReflectionTester
- * @run main CodeReflectionTester QuotableIntersectionTest
+ * @run main CodeReflectionTester ReflectableLambdaTest
  */
 
 import jdk.incubator.code.Reflect;
@@ -36,7 +36,7 @@ import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
-public class QuotableIntersectionTest {
+public class ReflectableLambdaTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
@@ -126,11 +126,11 @@ public class QuotableIntersectionTest {
     }
 
     @IR("""
-            func @"f" (%0 : java.type:"QuotableIntersectionTest$Context")java.type:"void" -> {
+            func @"f" (%0 : java.type:"ReflectableLambdaTest$Context")java.type:"void" -> {
                 %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
-                    %4 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest$Context::x:int";
-                    %5 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest$Context::y:int";
+                    %4 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest$Context::x:int";
+                    %5 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest$Context::y:int";
                     %6 : java.type:"int" = add %4 %5;
                     %7 : java.type:"int" = var.load %3;
                     %8 : java.type:"int" = add %6 %7;
@@ -164,11 +164,11 @@ public class QuotableIntersectionTest {
 
     @Reflect
     @IR("""
-            func @"captureField" (%0 : java.type:"QuotableIntersectionTest")java.type:"void" -> {
+            func @"captureField" (%0 : java.type:"ReflectableLambdaTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
-                    %4 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest::x:int";
-                    %5 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest::y:int";
+                    %4 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest::x:int";
+                    %5 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest::y:int";
                     %6 : java.type:"int" = add %4 %5;
                     %7 : java.type:"int" = var.load %3;
                     %8 : java.type:"int" = add %6 %7;
@@ -188,13 +188,13 @@ public class QuotableIntersectionTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
-                    invoke @java.ref:"QuotableIntersectionTest::m():void";
+                    invoke @java.ref:"ReflectableLambdaTest::m():void";
                     return;
                 };
                 return;
             };
             """)
-    static final Runnable QUOTED_NO_PARAM_VOID_REF = (@Reflect Runnable) QuotableIntersectionTest::m;
+    static final Runnable QUOTED_NO_PARAM_VOID_REF = (@Reflect Runnable) ReflectableLambdaTest::m;
 
     static int g(int i) {
         return i;
@@ -205,13 +205,13 @@ public class QuotableIntersectionTest {
                 %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
-                    %4 : java.type:"int" = invoke %3 @java.ref:"QuotableIntersectionTest::g(int):int";
+                    %4 : java.type:"int" = invoke %3 @java.ref:"ReflectableLambdaTest::g(int):int";
                     return %4;
                 };
                 return;
             };
             """)
-    static final IntUnaryOperator QUOTED_INT_PARAM_INT_RET_REF = (@Reflect IntUnaryOperator) QuotableIntersectionTest::g;
+    static final IntUnaryOperator QUOTED_INT_PARAM_INT_RET_REF = (@Reflect IntUnaryOperator) ReflectableLambdaTest::g;
 
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -237,11 +237,11 @@ public class QuotableIntersectionTest {
     }
 
     @IR("""
-            func @"f" (%0 : java.type:"QuotableIntersectionTest$ContextRef")java.type:"void" -> {
+            func @"f" (%0 : java.type:"ReflectableLambdaTest$ContextRef")java.type:"void" -> {
                 %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"x$0";
                     %4 : java.type:"int" = var.load %3;
-                    %5 : java.type:"int" = invoke %0 %4 @java.ref:"QuotableIntersectionTest$ContextRef::g(int):int";
+                    %5 : java.type:"int" = invoke %0 %4 @java.ref:"ReflectableLambdaTest$ContextRef::g(int):int";
                     return %5;
                 };
                 return;

@@ -24,6 +24,8 @@
  */
 package hat.test;
 
+import jdk.incubator.code.Reflect;
+
 import hat.*;
 import hat.backend.Backend;
 import hat.buffer.*;
@@ -402,6 +404,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView01() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -424,6 +427,7 @@ public class TestVectorArrayView {
     }
 
     // @HatTest
+    // @Reflect
     // public void TestVectorArrayView01WithFloat4s() {
     //     final int size = 1024;
     //     var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -446,6 +450,7 @@ public class TestVectorArrayView {
     // }
     //
     // @HatTest
+    // @Reflect
     // public void TestVectorArrayView01WithSeparateAdd() {
     //     final int size = 1024;
     //     var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -468,6 +473,7 @@ public class TestVectorArrayView {
     // }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView02() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -490,6 +496,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView03() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -512,6 +519,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView04() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -534,6 +542,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView05() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -555,6 +564,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView06() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -576,6 +586,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView07() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -597,6 +608,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView08() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -619,6 +631,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView09() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -641,6 +654,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView10() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -661,6 +675,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView11() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -681,6 +696,7 @@ public class TestVectorArrayView {
     }
 
     @HatTest
+    @Reflect
     public void TestVectorArrayView12() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

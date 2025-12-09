@@ -28,6 +28,7 @@
  */
 
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -42,6 +43,7 @@ public class TestStream {
 
     @Test
     public void testMapFilterForEach() {
+        @Reflect
         CoreOp.FuncOp f = StreamFuser.fromList(Integer.class)
                 .map(Object::toString)
                 .filter(s -> s.length() < 10)
@@ -62,6 +64,7 @@ public class TestStream {
 
     @Test
     public void testMapFlatMapFilterCollect() {
+        @Reflect
         CoreOp.FuncOp f = StreamFuser.fromList(Integer.class)
                 .map(Object::toString)
                 .flatMap(s -> List.of(s, s))

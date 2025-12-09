@@ -78,6 +78,7 @@ public class TestLocal {
     }
 
     @HatTest
+    @Reflect
     public void testLocal() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);

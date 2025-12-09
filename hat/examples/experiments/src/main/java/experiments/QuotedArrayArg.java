@@ -25,6 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.QuotableComputeContextConsumer;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -55,12 +56,15 @@ public class QuotedArrayArg {
         // This works
         if (args.length == 0) {
             int lvar = array[index];
-            accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out,lvar));
+            accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                    computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out,lvar));
         }else {
             if (args.length == 1 && args[0].equals("passIndex")) {
-                accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[index]));
+                accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                        computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[index]));
             }else if (args.length == 1 && args[0].equals("passZero")) {
-                accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[0]));
+                accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                        computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[0]));
             }else{
                 throw new IllegalArgumentException("Invalid args either no args, passIndex or passZero");
             }

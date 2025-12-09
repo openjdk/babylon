@@ -24,47 +24,23 @@
  */
 package hat.tools.text;
 
+import hat.codebuilders.BabylonCoreOpBuilder;
+import hat.codebuilders.C99HATCodeBuilderContext;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.codebuilders.HATCodeBuilderWithContext;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
-import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorMakeOfOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.HATVectorVarOp;
+
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonCoreOpBuilder<T> {
+
 
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
-            try {
-                typeName(javaType.resolve(buildContext.lookup).getTypeName());
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
-            }
-        return self();
+        return typeName(javaType.toString());
     }
-
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -80,6 +56,11 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     }
 
     @Override
+    public T atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
+        return null;
+    }
+
+    @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (!invokeOp.operands().isEmpty() && invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
             recurse(buildContext, instanceResult.op());
@@ -87,166 +68,28 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
         dot().identifier(invokeOp.invokeDescriptor().name());
         paren(_ ->
                 // why the sublist? is this static vs instance?
-            separated(  invokeOp.operands().subList(0,invokeOp.operands().size()-1), (_)->commaSpace(),o->
+            commaSpaceSeparated(  invokeOp.operands().subList(0,invokeOp.operands().size()-1), o->
                     recurse(buildContext,  ((Op.Result) o).op())
             )
         );
         return self();
     }
 
-    @Override
-    public T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        blockComment("/* private declaration !! */");
-        return self();
-    }
-
-    @Override
-    public T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        blockComment("/* local declaration !! */");
-        return self();
-    }
-
-    @Override
-    public T syncBlockThreads() {
-        blockComment("/* group wide barrier!! */");
-        return self();
-    }
-
-    @Override
-    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
-        blockInlineComment("Thread ID access");
-        return self();
-    }
-
-    @Override
-    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp hatGlobalThreadIdOp) {
-        blockInlineComment("GlobalSize");
-        return self();
-    }
-
-    @Override
-    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp hatLocalThreadIdOp) {
-        blockInlineComment("Local Thread ID");
-        return self();
-    }
-
-    @Override
-    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
-        blockInlineComment("Local Size");
-        return self();
-    }
-
-    @Override
-    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
-        blockInlineComment("Block ID ");
-        return self();
-    }
-
-    @Override
-    public T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp) {
-        blockComment("Vector Variable Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
-        blockComment("Store Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
-        blockComment("Binary Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
-        blockComment("Load Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
-        blockComment("Select Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
-        blockComment("Select Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
-        blockComment("Vector Variable Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
-        blockComment("F16 Variable Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
-        blockComment("Binary F16 Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
-        blockComment("F16 Load Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-        blockComment("F16 Conv Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
-        blockComment("Vector Of Ops Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp) {
-        blockComment("Vector Make Of Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        blockComment("Float Conv Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateInitVarOp hatPrivateInitVarOp) {
-        blockComment("Private Var Init Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp) {
-        blockComment("Memory Load Op Not Implemented");
-        return self();
-    }
-
     public T createJava(ScopedCodeBuilderContext buildContext) {
         buildContext.funcScope(buildContext.funcOp, () -> {
             typeName(buildContext.funcOp.resultType().toString()).space().funcName(buildContext.funcOp);
-            parenNlIndented(_ -> separated(buildContext.paramTable.list(), (_) -> comma().nl(),
-                    param -> declareParam(buildContext, param)));
-            braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_) -> nl(),
-                    statement -> statement(buildContext, statement))
+            parenNlIndented(_ ->
+                    commaNlSeparated(
+                            buildContext.paramTable.list(),
+                            param -> declareParam(buildContext, param)
+                    )
+            );
+            braceNlIndented(_ -> nlSeparated(
+                    OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                    statement -> statement(buildContext, statement)
+                    )
             );
         });
-        return self();
+        return nl();
     }
 }

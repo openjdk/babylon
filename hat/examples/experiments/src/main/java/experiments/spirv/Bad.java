@@ -24,6 +24,8 @@
  */
 package experiments.spirv;
 
+import experiments.spirv.Bad.AcceleratorProxy.QuotableComputeConsumer;
+import hat.Accelerator;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
@@ -31,14 +33,13 @@ import java.util.function.Consumer;
 
 public class Bad {
     public static class AcceleratorProxy {
-        @Reflect
         public interface QuotableComputeConsumer extends Consumer<ComputeClosureProxy> {
         }
 
         public static class ComputeClosureProxy {
         }
 
-        public void compute(AcceleratorProxy.QuotableComputeConsumer cqr) {
+        public void compute(QuotableComputeConsumer cqr) {
            // Quoted quoted = cqr.quoted();
             //Op op = quoted.op();
             //System.out.println(op.toText());
@@ -60,6 +61,7 @@ public class Bad {
         var a = new float[]{};
         var b = new float[]{};
         var c = new float[]{};
-        accelerator.compute(cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size));
+        accelerator.compute((@Reflect QuotableComputeConsumer)
+                cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size));
     }
 }

@@ -224,8 +224,9 @@ compiler.warn.proc.use.proc.or.implicit
 
 # code reflection
 compiler.misc.feature.reflect.methods
-compiler.note.method.ir.dump
-compiler.note.quoted.ir.dump
-compiler.err.quoted.method.inner.class
-compiler.err.quoted.lambda.inner.class
-compiler.err.quoted.mref.inner.class
+compiler.note.reflectable.method.ir.dump
+compiler.note.reflectable.lambda.ir.dump
+compiler.note.reflectable.mref.ir.dump
+compiler.warn.reflectable.method.inner.class
+compiler.warn.reflectable.lambda.inner.class
+compiler.warn.reflectable.mref.inner.class

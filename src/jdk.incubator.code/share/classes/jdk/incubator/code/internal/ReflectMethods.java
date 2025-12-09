@@ -50,7 +50,6 @@ import com.sun.tools.javac.comp.Env;
 import com.sun.tools.javac.comp.Flow;
 import com.sun.tools.javac.comp.Lower;
 import com.sun.tools.javac.comp.CodeReflectionTransformer;
-import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.comp.TypeEnvs;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
@@ -100,6 +99,7 @@ import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;
 import java.lang.constant.ClassDesc;
 import java.util.*;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -113,8 +113,6 @@ import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
 import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
-import static com.sun.tools.javac.resources.CompilerProperties.Errors.*;
-import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.classfile.ClassFile;
@@ -126,6 +124,9 @@ import java.lang.invoke.MethodHandles;
 import javax.tools.JavaFileManager;
 import javax.tools.StandardLocation;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+
+import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
+import static com.sun.tools.javac.resources.CompilerProperties.Warnings.*;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
@@ -145,7 +146,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private final Types types;
     private final Names names;
     private final Symtab syms;
-    private final Resolve resolve;
     private final Gen gen;
     private final Log log;
     private final Lower lower;
@@ -154,7 +154,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
-    private final CodeModelStorageOption codeModelStorageOption;
 
     private TreeMaker make;
     private ListBuffer<JCTree> opMethodDecls;
@@ -162,6 +161,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private Symbol.ClassSymbol currentClassSym;
     private Symbol.ClassSymbol codeModelsClassSym;
     private int lambdaCount;
+    private boolean codeReflectionEnabled = false;
     private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
     @SuppressWarnings("this-escape")
@@ -172,10 +172,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
-        codeModelStorageOption = CodeModelStorageOption.parse(options.get("codeModelStorageOption"));
         names = Names.instance(context);
         syms = Symtab.instance(context);
-        resolve = Resolve.instance(context);
         types = Types.instance(context);
         gen = Gen.instance(context);
         log = Log.instance(context);
@@ -186,18 +184,33 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     @Override
+    public void visitVarDef(JCVariableDecl tree) {
+        boolean prevCodeReflectionEnabled = codeReflectionEnabled;
+        try {
+            codeReflectionEnabled = codeReflectionEnabled ||
+                    tree.sym.attribute(crSyms.codeReflectionType.tsym) != null;
+            super.visitVarDef(tree);
+        } finally {
+            codeReflectionEnabled = prevCodeReflectionEnabled;
+        }
+    }
+
+    @Override
     public void visitMethodDef(JCMethodDecl tree) {
-        if (tree.sym.attribute(crSyms.codeReflectionType.tsym) != null) {
+        boolean isReflectable = isReflectable(tree);
+        if (isReflectable) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
-                // Reflectable methods in inner classes are not supported
-                log.error(tree, QuotedMethodInnerClass(currentClassSym.enclClass()));
+                // Reflectable methods in local classes are not supported
+                log.warning(tree, ReflectableMethodInnerClass(currentClassSym.enclClass()));
+                super.visitMethodDef(tree);
+                return;
             } else {
                 // if the method is annotated, scan it
                 BodyScanner bodyScanner = new BodyScanner(tree);
                 CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
                 if (dumpIR) {
                     // dump the method IR if requested
-                    log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
+                    log.note(ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToMethodRef(tree.sym));
@@ -205,7 +218,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 ops.put(methodName.toString(), funcOp);
             }
         }
-        super.visitMethodDef(tree);
+        boolean prevCodeReflectionEnabled = codeReflectionEnabled;
+        try {
+            codeReflectionEnabled = isReflectable;
+            super.visitMethodDef(tree);
+        } finally {
+            codeReflectionEnabled = prevCodeReflectionEnabled;
+        }
     }
 
     @Override
@@ -266,10 +285,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
     @Override
     public void visitLambda(JCLambda tree) {
-        if (isQuotable(tree, prevNode())) {
+        boolean isReflectable = isReflectable(tree);
+        if (isReflectable) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
-                // Quotable lambdas in inner classes are not supported
-                log.error(tree, QuotedLambdaInnerClass(currentClassSym.enclClass()));
+                // Reflectable lambdas in local classes are not supported
+                log.warning(tree, ReflectableLambdaInnerClass(currentClassSym.enclClass()));
+                super.visitLambda(tree);
                 return;
             }
 
@@ -278,7 +299,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
-                log.note(QuotedIrDump(funcOp.toText()));
+                log.note(ReflectableLambdaIrDump(funcOp.toText()));
             }
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
@@ -289,7 +310,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // leave the lambda in place, but also leave a trail for LambdaToMethod
             tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
         }
-        super.visitLambda(tree);
+        boolean prevCodeReflectionEnabled = codeReflectionEnabled;
+        try {
+            codeReflectionEnabled = isReflectable;
+            super.visitLambda(tree);
+        } finally {
+            codeReflectionEnabled = prevCodeReflectionEnabled;
+        }
     }
 
     @Override
@@ -297,10 +324,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
         MemberReferenceToLambda memberReferenceToLambda = new MemberReferenceToLambda(tree, currentClassSym);
         JCLambda lambdaTree = memberReferenceToLambda.lambda();
 
-        if (isQuotable(tree, prevNode())) {
+        if (isReflectable(tree)) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
-                // Quotable lambdas in inner classes are not supported
-                log.error(tree, QuotedMrefInnerClass(currentClassSym.enclClass()));
+                // Reflectable method references in local classes are not supported
+                log.warning(tree, ReflectableMrefInnerClass(currentClassSym.enclClass()));
+                super.visitReference(tree);
                 return;
             }
 
@@ -309,7 +337,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
-                log.note(QuotedIrDump(funcOp.toText()));
+                log.note(ReflectableMrefIrDump(funcOp.toText()));
             }
             // create a method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
@@ -1005,7 +1033,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         }
                     }
                 }
-                case INTERFACE, CLASS, RECORD, ENUM -> {
+                case PACKAGE, INTERFACE, CLASS, RECORD, ENUM -> {
                     result = null;
                 }
                 default -> {
@@ -1065,7 +1093,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             }
                         }
                     }
-                    case INTERFACE, CLASS, RECORD, ENUM -> {
+                    case PACKAGE, INTERFACE, CLASS, RECORD, ENUM -> {
                         result = null;
                     }
                     default -> {
@@ -1468,7 +1496,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Get the functional interface type
             JavaType fiType = typeToTypeElement(tree.target);
             // build functional lambda
-            Op lambdaOp = JavaOp.lambda(fiType, stack.body, isQuotable(tree, prevNode()));
+            Op lambdaOp = JavaOp.lambda(fiType, stack.body, true);
 
             // Pop lambda body
             popBody();
@@ -2465,21 +2493,31 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public UnsupportedASTException(JCTree tree) {
             this.tree = tree;
         }
+
+        @Override
+        public String toString() {
+            return super.toString() + ":" + tree;
+        }
     }
 
-    boolean isQuotable(JCFunctionalExpression expr, JCTree prev) {
-        return isQuotable(expr.target, true) ||
-                (prev instanceof JCTypeCast castTree && isQuotable(castTree.clazz.type, false));
+    boolean isReflectable(JCMethodDecl tree) {
+        return codeReflectionEnabled ||
+                (tree.body != null &&
+                tree.sym.attribute(crSyms.codeReflectionType.tsym) != null);
     }
 
-    boolean isQuotable(Type target, boolean declAnnos) {
+    boolean isReflectable(JCFunctionalExpression expr) {
+        return codeReflectionEnabled ||
+                (prevNode() instanceof JCTypeCast castTree && isReflectable(castTree.clazz.type));
+    }
+
+    boolean isReflectable(Type target) {
         if (target.isCompound()) {
             return ((IntersectionClassType)target).getComponents().stream()
-                    .anyMatch(t -> isQuotable(t, declAnnos));
+                    .anyMatch(this::isReflectable);
         } else {
-            return declAnnos ?
-                    target.tsym.attribute(crSyms.codeReflectionType.tsym) != null :
-                    target.getAnnotationMirrors().stream().anyMatch(tc -> tc.type.tsym == crSyms.codeReflectionType.tsym);
+            return target.getAnnotationMirrors().stream()
+                    .anyMatch(tc -> tc.type.tsym == crSyms.codeReflectionType.tsym);
         }
     }
 

@@ -80,6 +80,7 @@ public class TestPrivate {
     }
 
     @HatTest
+    @Reflect
     public void testPrivate() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);

@@ -39,7 +39,6 @@ package hat;
  * @author Gary Frost
  */
 public class KernelContext {
-
     // Global accesses
     public int gix;
     public int giy;
@@ -66,97 +65,45 @@ public class KernelContext {
 
     final int dimensions;
 
-    private NDRange ndRange;
+    final public NDRange<?,?> ndRange;
 
-    public KernelContext(NDRange ndRange) {
+    public KernelContext(NDRange<?,?> ndRange) {
         this.ndRange = ndRange;
         switch (ndRange) {
             case NDRange.NDRange1D ndRange1D -> {
-                this.gsx = ndRange1D.global().x();
+                this.gsx = ((NDRange._1DX)(ndRange1D.global())).x();
                 this.gsy = 1;
                 this.gsz = 1;
+                this.dimensions = ((NDRange._1DX)(ndRange1D.global())).dimension();
             }
             case NDRange.NDRange2D ndRange2D -> {
-                this.gsx = ndRange2D.global().x();
-                this.gsy = ndRange2D.global().y();
+                this.gsx = ((NDRange._2DXY)(ndRange2D.global())).x();
+                this.gsy = ((NDRange._2DXY)(ndRange2D.global())).y();
                 this.gsz = 1;
+                this.dimensions = ((NDRange._2DXY)(ndRange2D.global())).dimension();
             }
             case NDRange.NDRange3D ndRange3D -> {
-                this.gsx = ndRange3D.global().x();
-                this.gsy = ndRange3D.global().y();
-                this.gsz = ndRange3D.global().z();
+                this.gsx = ((NDRange._3DXYZ)(ndRange3D.global())).x();
+                this.gsy = ((NDRange._3DXYZ)(ndRange3D.global())).y();
+                this.gsz = ((NDRange._3DXYZ)(ndRange3D.global())).z();
+                this.dimensions = ((NDRange._3DXYZ)(ndRange3D.global())).dimension();
             }
-            case null, default -> {
+            case null, default ->
                 throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
-            }
-        }
-        this.dimensions = ndRange.dimension();
-    }
 
-    /**
-     * 1D Kernel
-     * @param maxX Global number of threads for the first dimension (1D)
-     */
-    public KernelContext(int maxX) {
-        this.gsx = maxX;
-        this.gsy = 0;
-        this.gsz = 0;
-        this.dimensions = 1;
-    }
-
-    /**
-     * 1D Kernel
-     * @param maxX Global number of threads for the first dimension (1D)
-     * @param maxY Global number of threads for the second dimension (2D)
-     */
-    public KernelContext(int maxX, int maxY) {
-        this.gsx = maxX;
-        this.gsy = maxY;
-        this.gsz = 0;
-        this.dimensions = 2;
-    }
-
-    /**
-     * 1D Kernel
-     * @param maxX Global number of threads for the first dimension (1D)
-     * @param maxY Global number of threads for the second dimension (2D)
-     * @param maxZ Global number of threads for the second dimension (3D)
-     */
-    public KernelContext(int maxX, int maxY, int maxZ) {
-        this.gsx = maxX;
-        this.gsy = maxY;
-        this.gsz = maxZ;
-
-        this.dimensions = 3;
-    }
-
-    public int getDimensions() {
-        return this.dimensions;
-    }
-
-    public NDRange getNDRange() {
-        return this.ndRange;
-    }
-
-    private boolean isLocalDefined(NDRange.Local local) {
-        return local != NDRange.Local1D.EMPTY
-                && local != NDRange.Local2D.EMPTY
-                && local != NDRange.Local3D.EMPTY;
-    }
-
-    public boolean hasLocalMesh() {
-        switch (ndRange) {
-            case NDRange.Range range -> {
-                return (isLocalDefined(range.local()));
-            }
-            case null, default -> {
-                throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
-            }
         }
     }
 
+  //  public int getDimensions() {
+    //    return this.dimensions;
+   // }
+
+   // public NDRange<?,?> getNDRange() {
+     //   return this.ndRange;
+   // }
+
+    // This is a marker called by kernel code which is mapped to a barrier implementatiom
     public void barrier() {
 
     }
-
 }

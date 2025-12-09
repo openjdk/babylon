@@ -42,6 +42,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntUnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -368,29 +369,11 @@ public class TestBytecodeLift {
         return counter;
     }
 
-    public interface Func {
-        int apply(int a);
-    }
-
-    @Reflect
-    public interface QuotableFunc {
-        int apply(int a);
-    }
-
-    static int consume(int i, Func f) {
-        return f.apply(i + 1);
-    }
-
-    static int consumeQuotable(int i, QuotableFunc f) {
+    static int consumeQuotable(int i, IntUnaryOperator f) {
         Assertions.assertNotNull(Op.ofQuotable(f).get());
         Assertions.assertNotNull(Op.ofQuotable(f).get().op());
         Assertions.assertTrue(Op.ofQuotable(f).get().op() instanceof JavaOp.LambdaOp);
-        return f.apply(i + 1);
-    }
-
-    @Reflect
-    static int lambda(int i) {
-        return consume(i, a -> -a);
+        return f.applyAsInt(i + 1);
     }
 
     @Reflect
@@ -399,18 +382,8 @@ public class TestBytecodeLift {
     }
 
     @Reflect
-    static int lambdaWithCapture(int i, String s) {
-        return consume(i, a -> a + s.length());
-    }
-
-    @Reflect
     static int quotableLambdaWithCapture(int i, String s) {
         return consumeQuotable(i, a -> a + s.length());
-    }
-
-    @Reflect
-    static int nestedLambdasWithCaptures(int i, int j, String s) {
-        return consume(i, a -> consume(a, b -> a + b + j - s.length()) + s.length());
     }
 
     @Reflect
@@ -420,7 +393,7 @@ public class TestBytecodeLift {
 
     @Reflect
     static int methodHandle(int i) {
-        return consume(i, Math::negateExact);
+        return consumeQuotable(i, Math::negateExact);
     }
 
     int instanceMethod(int i) {
@@ -429,7 +402,7 @@ public class TestBytecodeLift {
 
     @Reflect
     int instanceMethodHandle(int i) {
-        return consume(i, this::instanceMethod);
+        return consumeQuotable(i, this::instanceMethod);
     }
 
     static void consume(boolean b, Consumer<Object> requireNonNull) {

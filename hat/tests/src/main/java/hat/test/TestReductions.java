@@ -136,6 +136,7 @@ public class TestReductions {
     }
 
     @HatTest
+    @Reflect
     public void testGlobalReduction() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 32;
@@ -170,6 +171,7 @@ public class TestReductions {
     }
 
     @HatTest
+    @Reflect
     public void testLocalReduction() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 32;
