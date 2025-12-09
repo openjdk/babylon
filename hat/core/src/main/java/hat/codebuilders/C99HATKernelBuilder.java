@@ -91,11 +91,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return (ifaceType.iface.getName().equals(F16.class.getName())
+                // TODO: we should avoid direct implementations here
                 || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
     public final boolean isbfloat16(Schema.IfaceType ifaceType) {
         return (ifaceType.iface.getName().equals(BF16.class.getName())
+                // TODO: we should avoid direct implementations here
                 || ifaceType.iface.getName().equals(BF16Array.BF16Impl.class.getName()));
     }
 
