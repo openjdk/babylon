@@ -84,7 +84,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .typedefSingleValueStruct("F16",  "half")
                 .typedefSingleValueStruct("BF16",  "BFLOAT16")
                 .unionBfloat16()
-                //.build_builtin_byteCopy()
                 .build_builtin_bfloat16ToFloat("bf16")
                 .build_builtin_float2bfloat16("f");
     }
