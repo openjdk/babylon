@@ -524,7 +524,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public <I> T semicolonNlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
-        return separated(iterable, _ -> semicolonNl(), consumer).semicolon();
+        return separated(iterable, _ -> semicolonNl(), consumer);
     }
 
     public <I> T nlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
