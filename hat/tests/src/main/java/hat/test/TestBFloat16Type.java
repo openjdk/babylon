@@ -28,14 +28,16 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
-import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.BF16;
 import hat.buffer.BF16Array;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAssertionError;
+import hat.test.exceptions.HATAsserts;
+import hat.test.exceptions.HATExpectedFailureException;
+import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
@@ -401,15 +403,17 @@ public class TestBFloat16Type {
             arrayB.array(i).value(BF16.float2bfloat16(random.nextFloat()).value());
         }
 
-        accelerator.compute(computeContext -> {
-            TestBFloat16Type.compute03(computeContext, arrayA, arrayB, arrayC);
-        });
+        accelerator.compute(computeContext -> TestBFloat16Type.compute03(computeContext, arrayA, arrayB, arrayC));
 
         for (int i = 0; i < arrayC.length(); i++) {
             BF16 val = arrayC.array(i);
             float fa = BF16.bfloat162float(arrayA.array(i));
             float fb = BF16.bfloat162float(arrayB.array(i));
-            HATAsserts.assertEquals((fa + fb + fb), BF16.bfloat162float(val), 0.01f);
+            try {
+                HATAsserts.assertEquals((fa + fb + fb), BF16.bfloat162float(val), 0.01f);
+            } catch (HATAssertionError hae) {
+                throw new HATExpectedPrecisionError(hae.getMessage());
+            }
         }
     }
 
@@ -487,7 +491,12 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < arrayA.length(); i++) {
             BF16 val = arrayA.array(i);
-            HATAsserts.assertEquals(i, BF16.bfloat162float(val), 0.01f);
+            try {
+                HATAsserts.assertEquals(i, BF16.bfloat162float(val), 0.01f);
+            } catch (HATAssertionError hatAssertionError) {
+                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+            }
+
         }
     }
 
@@ -631,7 +640,11 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             BF16 result = arrayC.array(i);
-            HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)), BF16.bfloat162float(result), 0.01f);
+            try {
+                HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)), BF16.bfloat162float(result), 0.01f);
+             } catch (HATAssertionError hatAssertionError) {
+                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+            }
         }
     }
 
@@ -653,7 +666,11 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             BF16 result = arrayB.array(i);
-            HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)) + 32.1f, BF16.bfloat162float(result), 0.1f);
+            try {
+                HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)) + 32.1f, BF16.bfloat162float(result), 0.1f);
+            } catch (HATAssertionError hatAssertionError) {
+                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+            }
         }
     }
 

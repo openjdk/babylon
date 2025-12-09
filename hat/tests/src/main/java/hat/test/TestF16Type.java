@@ -36,8 +36,8 @@ import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
-import hat.test.engine.HATExpectedFailureException;
+import hat.test.exceptions.HATAsserts;
+import hat.test.exceptions.HATExpectedFailureException;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;

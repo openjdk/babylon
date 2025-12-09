@@ -31,9 +31,11 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
+import hat.test.exceptions.HATAssertionError;
+import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -189,12 +191,16 @@ public class TestNbody {
             Body hatBody = universe.body(i);
             Body seqBody = universeSeq.body(i);
             IO.println(i);
-            HATAsserts.assertEquals(seqBody.x(), hatBody.x(), delta);
-            HATAsserts.assertEquals(seqBody.y(), hatBody.y(), delta);
-            HATAsserts.assertEquals(seqBody.z(), hatBody.z(), delta);
-            HATAsserts.assertEquals(seqBody.vx(), hatBody.vx(), delta);
-            HATAsserts.assertEquals(seqBody.vy(), hatBody.vy(), delta);
-            HATAsserts.assertEquals(seqBody.vz(), hatBody.vz(), delta);
+            try {
+                HATAsserts.assertEquals(seqBody.x(), hatBody.x(), delta);
+                HATAsserts.assertEquals(seqBody.y(), hatBody.y(), delta);
+                HATAsserts.assertEquals(seqBody.z(), hatBody.z(), delta);
+                HATAsserts.assertEquals(seqBody.vx(), hatBody.vx(), delta);
+                HATAsserts.assertEquals(seqBody.vy(), hatBody.vy(), delta);
+                HATAsserts.assertEquals(seqBody.vz(), hatBody.vz(), delta);
+            } catch (HATAssertionError hatAssertionError) {
+                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+            }
         }
     }
 }

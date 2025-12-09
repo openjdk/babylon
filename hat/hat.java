@@ -255,26 +255,28 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                     tests.run(Jar.JavaConfig.of(commonTestSuiteJavaOpts, o-> o.arg(matcher.group(1).replace('/','.'))),  tests, backend)
                             );
                            args.clear();
-                           var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+), unsupported: (\\d+)");
+                           var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+), unsupported: (\\d+), precision-errors: (\\d+)");
                             class Stats {
                                 int passed = 0;
                                 int failed = 0;
                                 int unsupported = 0;
+                                int precisionError = 0;
                                 @Override public String toString(){
-                                    return String.format("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%\\n",
-                                            passed, failed, unsupported, ((float)(passed * 100 / (passed + failed + unsupported))));
+                                    return String.format("Global passed: %d, failed: %d, unsupported: %d, precision-errors: %d, pass-rate: %.2f%%\\n",
+                                            passed, failed, unsupported, precisionError, ((float)(passed * 100 / (passed + failed + unsupported + precisionError))));
                                 }
                             }
                            var stats = new Stats();
-                           Files.readAllLines(test_reports_txt).forEach(line->{
-                               if (!commonTestSuiteJavaOpts.verbose()) { //We already dumped this info to stdout above
-                                   System.out.println(line);
-                               }
-                              if (pattern.matcher(line) instanceof Matcher matcher && matcher.find()){
-                                 stats.passed+=Integer.parseInt(matcher.group(1));
-                                 stats.failed+=Integer.parseInt(matcher.group(2));
-                                 stats.unsupported+=Integer.parseInt(matcher.group(3));
-                              }
+                            Files.readAllLines(test_reports_txt).forEach(line -> {
+                                if (!commonTestSuiteJavaOpts.verbose()) { //We already dumped this info to stdout above
+                                    System.out.println(line);
+                                }
+                                if (pattern.matcher(line) instanceof Matcher matcher && matcher.find()) {
+                                    stats.passed += Integer.parseInt(matcher.group(1));
+                                    stats.failed += Integer.parseInt(matcher.group(2));
+                                    stats.unsupported += Integer.parseInt(matcher.group(3));
+                                    stats.precisionError += Integer.parseInt(matcher.group(4));
+                                }
                             });
                             System.out.println(stats);
                             } else {

@@ -39,7 +39,7 @@ import hat.buffer.Float4;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
 
 import java.util.Random;
