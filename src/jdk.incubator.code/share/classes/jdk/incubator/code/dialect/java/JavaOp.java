@@ -5261,8 +5261,8 @@ public sealed abstract class JavaOp extends Op {
      *                                  and the invoke descriptors parameter count.
      */
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
-                                  TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
-        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, args);
+                                  TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
+        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, List.of(args));
     }
 
     /**
@@ -5278,8 +5278,8 @@ public sealed abstract class JavaOp extends Op {
      *                                  and the invoke descriptors parameter count.
      */
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
-                                  TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
-        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, List.of(args));
+                                  TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
+        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, args);
     }
 
     /**

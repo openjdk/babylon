@@ -426,22 +426,23 @@ public class OpBuilder {
 
     FuncOp build(String name, Op op) {
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
-        // check java version
-        var expectedVersion = builder.op(constant(INT, Runtime.version().feature()));
+        // check if java version at compile time matches the java version at runtime
+        var compiletimeVersion = Runtime.version().feature();
+        // runtimeVersion = Runtime.version().feature()
         var version = builder.op(invoke(MethodRef.method(Runtime.class, "version", Runtime.Version.class)));
-        var actualVersion = builder.op(invoke(MethodRef.method(Runtime.Version.class, "feature", int.class), version));
+        var runtimeVersion = builder.op(invoke(MethodRef.method(Runtime.Version.class, "feature", int.class), version));
         IfOp ifop = if_(builder.parentBody()).if_(c -> {
-            var p = c.op(neq(actualVersion, expectedVersion));
+            var p = c.op(neq(runtimeVersion, builder.op(constant(INT, compiletimeVersion))));
             c.op(core_yield(p));
         }).then(t -> {
-            var errMessage = t.op(invoke(
-                    InvokeOp.InvokeKind.STATIC, true,
-                    J_L_STRING, STRING_FORMAT,
-                    t.op(constant(J_L_STRING, "Code model was compiled with java version %d, but the actual version is %d")),
-                    box(J_L_INTEGER, expectedVersion), box(J_L_INTEGER, actualVersion)
+            var s = "The Java version used at compile time to generate and store the code model, Java " + compiletimeVersion +
+                    ", is not the same as the Java version used at runtime to load the code model, Java ";
+            var errMessage = t.op(concat(
+                    t.op(constant(J_L_STRING, s)),
+                    runtimeVersion
             ));
             t.op(throw_(
-                    t.op(new_(MethodRef.constructor(IllegalStateException.class, String.class), errMessage))
+                    t.op(new_(MethodRef.constructor(UnsupportedOperationException.class, String.class), errMessage))
             ));
         }).else_();
         builder.op(ifop);
