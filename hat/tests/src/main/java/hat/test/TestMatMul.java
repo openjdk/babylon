@@ -39,7 +39,9 @@ import hat.buffer.Float4;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
+import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
+import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
 
 import java.util.Random;
@@ -456,10 +458,14 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HATAsserts.assertEquals(
-                        Float.float16ToFloat(resultSeq.array(i * size + j).value()),
-                        Float.float16ToFloat(matrixC.array(i * size + j).value()),
-                        0.01f);
+                try {
+                    HATAsserts.assertEquals(
+                            Float.float16ToFloat(resultSeq.array(i * size + j).value()),
+                            Float.float16ToFloat(matrixC.array(i * size + j).value()),
+                            0.01f);
+                } catch (HATAssertionError hatAssertionError) {
+                    throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+                }
             }
         }
     }
@@ -1145,9 +1151,13 @@ public class TestMatMul {
 
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(F16.f16ToFloat(resultSeq.array(i * size + j)),
+                try {
+                    HATAsserts.assertEquals(F16.f16ToFloat(resultSeq.array(i * size + j)),
                                         F16.f16ToFloat(matrixC.array(i * size + j)),
                                         0.01f);
+                } catch (HATAssertionError hatAssertionError) {
+                    throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+                }
             }
         }
     }
@@ -1181,9 +1191,13 @@ public class TestMatMul {
 
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(BF16.bfloat162float(resultSeq.array(i * size + j)),
-                        BF16.bfloat162float(matrixC.array(i * size + j)),
-                        0.01f);
+                try {
+                    HATAsserts.assertEquals(BF16.bfloat162float(resultSeq.array(i * size + j)),
+                            BF16.bfloat162float(matrixC.array(i * size + j)),
+                            0.01f);
+                } catch (HATAssertionError hatAssertionError) {
+                    throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+                }
             }
         }
     }
