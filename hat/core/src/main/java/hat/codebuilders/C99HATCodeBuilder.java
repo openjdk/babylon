@@ -292,8 +292,7 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
                     test.accept(self());
                     semicolon().space();mutate.accept(self());
                 })
-                .braceNlIndented(body::accept)
-                .nl();
+                .braceNlIndented(body::accept);
     }
 
     public final T sizeof() {

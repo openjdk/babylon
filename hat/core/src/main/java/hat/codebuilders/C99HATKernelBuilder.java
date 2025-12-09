@@ -91,13 +91,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return (ifaceType.iface.getName().equals(F16.class.getName())
-                // TODO: we should avoid direct implementations here
                 || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
     }
 
     public final boolean isbfloat16(Schema.IfaceType ifaceType) {
         return (ifaceType.iface.getName().equals(BF16.class.getName())
-                // TODO: we should avoid direct implementations here
                 || ifaceType.iface.getName().equals(BF16Array.BF16Impl.class.getName()));
     }
 
@@ -185,6 +183,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         }
                         fieldIdx.set(fieldIdx.get() + 1);
                     });
+                    semicolon();
                 }).suffix_t(ifaceType.iface).semicolon().nl().nl();
         return self();
     }
@@ -415,12 +414,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
                     builtin_bfloat16ToFloat().oparen();// open
                 }
-                recurse(buildContext, OpTk.asResultOrThrow(hatf16BinaryOp.operands().get(0)).op());
+                recurse(buildContext, OpTk.asResultOrThrow(hatf16BinaryOp.operands().getFirst()).op());
 
                 List<Boolean> references = hatf16BinaryOp.references();
                 if (references.getFirst()) {
                     rarrow().identifier("value");
-                } else if (hatf16BinaryOp.operands().get(0) instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+                } else if (!OpTk.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
                     dot().identifier("value");
                 }else{
                     //throw new IllegalStateException("what happens here 1");
@@ -438,7 +437,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 recurse(buildContext, OpTk.asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
                 if (references.get(1)) {
                     rarrow().identifier("value");
-                } else if (hatf16BinaryOp.operands().get(1) instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+                } else if (!OpTk.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
                     dot().identifier("value");
                 } else{
                       //  throw new IllegalStateException("what happens here 2");
@@ -464,7 +463,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 recurse(buildContext, OpTk.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
                 if (hatF16BinaryOp.references().getFirst()) {
                     rarrow().identifier("value");
-                } else if (hatF16BinaryOp.operands().getFirst() instanceof Op.Result r2 && !(r2.op().resultType() instanceof PrimitiveType)) {
+                } else if (!OpTk.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
                     dot().identifier("value");
                 } else {
                     blockComment("hatF16BinaryOp not a result !!");
@@ -473,7 +472,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 recurse(buildContext, OpTk.asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
                 if (hatF16BinaryOp.references().get(1)) {
                     rarrow().identifier("value");
-                } else if (hatF16BinaryOp.operands().get(1) instanceof Op.Result r4 && !(r4.op().resultType() instanceof PrimitiveType)) {
+                } else if (!OpTk.isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
                     dot().identifier("value");
                 }else {
                     blockComment("hatF16BinaryOp not a value !!");

@@ -550,6 +550,18 @@ public class OpTk {
         return false;
     }
 
+    public static PrimitiveType asPrimitiveResultOrNull(Value v){
+        if (v instanceof Op.Result r){
+            if (r.op().resultType() instanceof PrimitiveType primitiveType){
+                return primitiveType;
+            }
+        }
+        return null;
+    }
+    public static boolean isPrimitiveResult(Value v){
+        return (asPrimitiveResultOrNull(v)!=null);
+    }
+
     public static Op.Result asResultOrThrow(Value value) {
         if (value instanceof Op.Result r) {
            return r;
