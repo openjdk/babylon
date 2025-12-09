@@ -33,8 +33,7 @@ import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
-import jdk.incubator.code.Reflect;
+import hat.test.exceptions.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;

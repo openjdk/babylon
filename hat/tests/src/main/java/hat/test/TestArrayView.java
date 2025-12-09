@@ -34,7 +34,7 @@ import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;

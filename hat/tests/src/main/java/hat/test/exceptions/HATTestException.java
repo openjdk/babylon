@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.test.engine;
+package hat.test.exceptions;
 
 public class HATTestException extends RuntimeException {
     public HATTestException(String message) {

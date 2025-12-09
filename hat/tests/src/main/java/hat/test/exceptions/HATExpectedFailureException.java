@@ -22,11 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.test.engine;
+package hat.test.exceptions;
 
-public class HATAssertionError extends HATTestException {
+public class HATExpectedFailureException extends HATTestException {
 
-    public HATAssertionError(String errorMessage) {
-        super(errorMessage);
+    public HATExpectedFailureException(String message) {
+        super(message);
     }
 }
