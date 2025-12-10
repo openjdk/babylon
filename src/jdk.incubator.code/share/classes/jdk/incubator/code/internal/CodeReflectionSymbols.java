@@ -33,7 +33,6 @@ import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.List;
-import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 
 import static com.sun.tools.javac.code.Flags.PUBLIC;
@@ -51,6 +50,7 @@ public class CodeReflectionSymbols {
     public final Type funcOpType;
     public final Type reflectableLambdaMetafactory;
     public final MethodSymbol quotedExtractOp;
+    public final MethodSymbol methodInvokeBSM;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -66,6 +66,14 @@ public class CodeReflectionSymbols {
                 new MethodType(List.of(funcOpType, new ArrayType(syms.objectType, syms.arrayClass)), quotedType,
                         List.nil(), syms.methodClass),
                 quotedType.tsym);
+        methodInvokeBSM = new MethodSymbol(PUBLIC | STATIC,
+                names.fromString("methodInvoke"),
+                new MethodType(
+                        List.of(syms.methodHandleLookupType, syms.stringType, syms.methodTypeType),
+                        syms.enterClass(syms.java_base, names.fromString("java.lang.invoke.CallSite")).type,
+                        List.nil(),
+                        syms.methodClass),
+                        syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.runtime.ReflectableMethodMetafactory")));
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
     }
 }

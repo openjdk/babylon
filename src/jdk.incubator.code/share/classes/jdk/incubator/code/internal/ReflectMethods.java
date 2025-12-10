@@ -111,6 +111,7 @@ import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
+import com.sun.tools.javac.jvm.PoolConstant;
 import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
 import java.io.IOException;
@@ -222,6 +223,28 @@ public class ReflectMethods extends TreeTranslatorPrev {
         try {
             codeReflectionEnabled = isReflectable;
             super.visitMethodDef(tree);
+            // MINDYfy reflectable method body
+            if (isReflectable) {
+                Symbol.DynamicMethodSymbol indySym = new Symbol.DynamicMethodSymbol(
+                    tree.name,     // method name
+                    syms.noSymbol,
+                    crSyms.methodInvokeBSM.asHandle(),
+                    tree.type, // method type
+                    new PoolConstant.LoadableConstant[0]);
+                JCFieldAccess indyQualifier = make.Select(
+                    make.QualIdent(crSyms.methodInvokeBSM.owner),
+                    indySym.name);
+                indyQualifier.sym = indySym;
+                indyQualifier.type = tree.sym.type;
+                var dynArgs = tree.params.<JCExpression>map(p -> make.Ident(p.sym));
+                JCMethodInvocation indyCall = make.App(
+                    indyQualifier,
+                    dynArgs);
+                JCTree.JCStatement bodyStmt = tree.sym.getReturnType().hasTag(TypeTag.VOID)
+                        ? make.Exec(indyCall)
+                        : make.Return(indyCall);
+                tree.body = make.Block(0, com.sun.tools.javac.util.List.of(bodyStmt));
+            }
         } finally {
             codeReflectionEnabled = prevCodeReflectionEnabled;
         }
