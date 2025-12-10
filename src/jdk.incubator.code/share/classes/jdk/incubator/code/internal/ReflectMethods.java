@@ -27,6 +27,7 @@ package jdk.incubator.code.internal;
 
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.MemberReferenceTree.ReferenceMode;
+import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Kinds.Kind;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
@@ -225,18 +226,27 @@ public class ReflectMethods extends TreeTranslatorPrev {
             super.visitMethodDef(tree);
             // MINDYfy reflectable method body
             if (isReflectable) {
+                MethodType methodType = tree.sym.type.asMethodType();
+                var dynArgs = tree.params.<JCExpression>map(p -> make.Ident(p.sym));
+                if ((tree.sym.flags() & Flags.STATIC) == 0) {
+                    dynArgs = dynArgs.prepend(make.This(currentClassSym.type));
+                    methodType = new MethodType(
+                            methodType.argtypes.prepend(currentClassSym.type),
+                            methodType.restype,
+                            methodType.thrown,
+                            methodType.tsym);
+                }
                 Symbol.DynamicMethodSymbol indySym = new Symbol.DynamicMethodSymbol(
                     tree.name,     // method name
                     syms.noSymbol,
                     crSyms.methodInvokeBSM.asHandle(),
-                    tree.type, // method type
+                    methodType,
                     new PoolConstant.LoadableConstant[0]);
                 JCFieldAccess indyQualifier = make.Select(
                     make.QualIdent(crSyms.methodInvokeBSM.owner),
                     indySym.name);
                 indyQualifier.sym = indySym;
-                indyQualifier.type = tree.sym.type;
-                var dynArgs = tree.params.<JCExpression>map(p -> make.Ident(p.sym));
+                indyQualifier.type = methodType;
                 JCMethodInvocation indyCall = make.App(
                     indyQualifier,
                     dynArgs);
@@ -244,6 +254,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         ? make.Exec(indyCall)
                         : make.Return(indyCall);
                 tree.body = make.Block(0, com.sun.tools.javac.util.List.of(bodyStmt));
+                System.out.println(tree);
             }
         } finally {
             codeReflectionEnabled = prevCodeReflectionEnabled;
