@@ -6,7 +6,9 @@ import java.lang.invoke.ConstantCallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -41,9 +43,28 @@ public class ReflectableMethodMetafactory {
     public static CallSite methodInvoke(MethodHandles.Lookup caller,
                                         String methodName,
                                         MethodType methodType) throws NoSuchMethodException {
-        Method m = caller.lookupClass().getDeclaredMethod(methodName, methodType.parameterArray());
-        CoreOp.FuncOp fop = Op.ofMethod(m).orElseThrow();
+        CoreOp.FuncOp fop = Op.ofMethod(
+                findMethod(caller.lookupClass(),
+                          methodName,
+                          methodType.parameterArray())).orElseThrow();
         MethodHandle mh = BytecodeGenerator.generate(caller, fop);
         return new ConstantCallSite(mh);
+    }
+
+    private static Method findMethod(Class<?> cls, String methodName, Class<?>[] parameters) throws NoSuchMethodException {
+        if (parameters.length > 0 && cls == parameters[0]) {
+            try {
+                // looking for instance method
+                Method m = cls.getDeclaredMethod(methodName, Arrays.copyOfRange(parameters, 1, parameters.length));
+                if (!m.accessFlags().contains(AccessFlag.STATIC)) {
+                    return m;
+                }
+            } catch (NoSuchMethodException _) {
+            }
+        }
+        // looking for static method
+        Method m = cls.getDeclaredMethod(methodName, parameters);
+        assert m.accessFlags().contains(AccessFlag.STATIC);
+        return m;
     }
 }
