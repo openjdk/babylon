@@ -117,8 +117,12 @@ public final class Verifier {
     }
 
     private void verifyOps() {
-        rootOp.traverse(null, CodeElement.opVisitor((_, op) -> {
-            // Verify operands declaration dominannce
+        rootOp.elements().forEach(e -> {
+            if (!(e instanceof Op op)) {
+                return;
+            }
+
+            // Verify operands declaration dominance
             for (var v : op.operands()) {
                 if (!op.result().isDominatedBy(v)) {
                     error("%s %s operand %s is not dominated by its declaration in %s", op.ancestorBlock(), op, v, v.declaringBlock());
@@ -128,19 +132,18 @@ public final class Verifier {
             // Verify individual Ops
             switch (op) {
                 case CoreOp.BranchOp br ->
-                    verifyBlockReferences(op, br.successors());
+                        verifyBlockReferences(op, br.successors());
                 case CoreOp.ConditionalBranchOp cbr ->
-                    verifyBlockReferences(op, cbr.successors());
+                        verifyBlockReferences(op, cbr.successors());
                 case JavaOp.ArithmeticOperation _, JavaOp.TestOperation _ ->
-                    verifyOpHandleExists(op, op.externalizeOpName());
+                        verifyOpHandleExists(op, op.externalizeOpName());
                 case JavaOp.ConvOp _ -> {
                     verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opType().returnType());
                 }
                 default -> {}
 
             }
-            return null;
-        }));
+        });
     }
 
     private void verifyBlockReferences(Op op, List<Block.Reference> references) {
@@ -208,11 +211,15 @@ public final class Verifier {
     }
 
     private void verifyExceptionRegions() {
-        rootOp.traverse(new HashMap<Block, List<Block>>(), CodeElement.blockVisitor((map, b) -> {
+        Map<Block, List<Block>> map = new HashMap<>();
+        rootOp.elements().forEach(e -> {
+            if (!(e instanceof Block b)) {
+                return;
+            }
             List<Block> catchBlocks = map.computeIfAbsent(b, _ -> List.of());
             switch (b.terminatingOp()) {
                 case CoreOp.BranchOp br ->
-                    verifyCatchStack(b, br, br.branch(), catchBlocks, map);
+                        verifyCatchStack(b, br, br.branch(), catchBlocks, map);
                 case CoreOp.ConditionalBranchOp cbr -> {
                     verifyCatchStack(b, cbr, cbr.trueBranch(), catchBlocks, map);
                     verifyCatchStack(b, cbr, cbr.falseBranch(), catchBlocks, map);
@@ -236,8 +243,7 @@ public final class Verifier {
                 }
                 default -> {}
             }
-            return map;
-        }));
+        });
     }
 
     private void verifyCatchStack(Block b, Op op, Block.Reference target, List<Block> catchBlocks, Map<Block, List<Block>> blockMap) {

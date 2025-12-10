@@ -54,17 +54,17 @@ final class UnresolvedTypesTransformer {
     }
 
     private CoreOp.FuncOp resolve(CoreOp.FuncOp func) {
-        ArrayList<Value> unresolved = func.traverse(new ArrayList<>(), (q, e) -> {
+        List<Value> unresolved = func.elements().<Value>mapMulti((e, c) -> {
             switch (e) {
                 case Block b -> b.parameters().forEach(v -> {
-                   if (toResolve(v) != null) q.add(v);
+                    if (toResolve(v) != null) c.accept(v);
                 });
                 case Op op when toResolve(op.result()) != null ->
-                   q.add(op.result());
+                        c.accept(op.result());
                 default -> {}
-           }
-           return q;
-        });
+            }
+
+        }).toList();
 
         boolean changed = true;
         while (changed) {

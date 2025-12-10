@@ -40,6 +40,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 public class TestTraverse {
@@ -74,13 +75,22 @@ public class TestTraverse {
     }
 
     void testTraverse(Op op) {
-        List<CodeElement<?, ?>> tl = op.traverse(new ArrayList<>(), (l, e) -> {
+        List<CodeElement<?, ?>> tl = traverse(new ArrayList<>(), op, (l, e) -> {
             l.add(e);
             return l;
         });
-        Assertions.assertEquals(tl, op.elements().toList());
+        Assertions.assertEquals(op.elements().toList(), tl);
 
-        Assertions.assertEquals(tl.subList(0, 2), op.elements().limit(2).toList());
+        Assertions.assertEquals(op.elements().limit(2).toList(), tl.subList(0, 2));
+    }
+
+    static <T> T traverse(T t, CodeElement<?, ?> e, BiFunction<T, CodeElement<?, ?>, T> v) {
+        t = v.apply(t, e);
+        for (CodeElement<?, ?> c : e.children()) {
+            t = traverse(t, c, v);
+        }
+
+        return t;
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

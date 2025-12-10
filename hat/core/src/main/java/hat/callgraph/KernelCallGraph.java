@@ -107,8 +107,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     void oldUpdateDag(KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
 
         var here = OpTk.CallSite.of(KernelCallGraph.class,"updateDag");
-        OpTk.traverse(here, kernelReachableResolvedMethodCall.funcOp(), (map, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
+        OpTk.elements(here, kernelReachableResolvedMethodCall.funcOp()).forEach(codeElement -> {
+            if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
               //  MethodRef methodRef = invokeOp.invokeDescriptor();
                 Class<?> javaRefTypeClass = OpTk.javaRefClassOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
                 Method invokeOpCalledMethod = OpTk.methodOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
@@ -134,7 +134,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                     // System.out.println("Were we expecting " + methodRef + " here ");
                 }
             }
-            return map;
         });
 
         boolean updated = true;

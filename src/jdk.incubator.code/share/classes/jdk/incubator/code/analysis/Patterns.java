@@ -31,8 +31,9 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
+import java.util.function.*;
+import java.util.stream.Gatherer;
+import java.util.stream.Gatherers;
 
 /**
  * A simple and experimental pattern match mechanism on values and operations.
@@ -207,7 +208,10 @@ public final class Patterns {
 
         public R matchThenApply() {
             OpPatternMatcher<R> opm = new OpPatternMatcher<>(patterns);
-            return o.traverse(r, CodeElement.opVisitor(opm));
+            return o.elements().gather(Gatherers.fold(
+                    () -> r,
+                    (r, e) -> e instanceof Op op ? opm.apply(r, op) : r)
+            ).findFirst().orElseThrow();
         }
 
         /**
@@ -262,7 +266,7 @@ public final class Patterns {
     /**
      * Matches an operation pattern against the given traversable and descendant operations (in order).
      *
-     * @param r         the initial match result
+     * @param init      the initial match result
      * @param t         the traversable
      * @param opPattern the operation pattern
      * @param matcher   the function to be applied with a match state and the current match result when an
@@ -270,10 +274,13 @@ public final class Patterns {
      * @param <R>       the match result type
      * @return the match result
      */
-    public static <R> R match(R r, CodeElement<?, ?> t, OpPattern opPattern,
+    public static <R> R match(R init, CodeElement<?, ?> t, OpPattern opPattern,
                               BiFunction<MatchState, R, R> matcher) {
         OpPatternMatcher<R> opm = new OpPatternMatcher<>(opPattern, matcher);
-        return t.traverse(r, CodeElement.opVisitor(opm));
+        return t.elements().gather(Gatherers.fold(
+                () -> init,
+                (r, e) -> e instanceof Op op ? opm.apply(r, op) : r)
+        ).findFirst().orElseThrow();
     }
 
 

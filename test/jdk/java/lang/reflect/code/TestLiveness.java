@@ -280,39 +280,44 @@ public class TestLiveness {
         Map<Value, Integer> valueMap = valueNameMapping(op);
         Map<Block, Integer> blockMap = blockNameMapping(op);
 
-        return op.traverse(new HashMap<>(),
-                CodeElement.blockVisitor((m, b) -> {
-                    if (b.ancestorOp() == op) {
-                        Liveness.BlockInfo lbi = l.getLiveness(b);
-                        m.put(blockMap.get(b),
-                                List.of(
-                                        lbi.liveIn().stream().map(valueMap::get).collect(Collectors.toSet()),
-                                        lbi.liveOut().stream().map(valueMap::get).collect(Collectors.toSet())
-                                ));
-                    }
-                    return m;
-                }));
+        Map<Integer, List<Set<Integer>>> m = new HashMap<>();
+        op.elements().forEach(e -> {
+            if (e instanceof Block b) {
+                if (b.ancestorOp() == op) {
+                    Liveness.BlockInfo lbi = l.getLiveness(b);
+                    m.put(blockMap.get(b),
+                            List.of(
+                                    lbi.liveIn().stream().map(valueMap::get).collect(Collectors.toSet()),
+                                    lbi.liveOut().stream().map(valueMap::get).collect(Collectors.toSet())
+                            ));
+                }
+            }
+        });
+        return m;
     }
 
     static Map<Block, Integer> blockNameMapping(Op top) {
         AtomicInteger i = new AtomicInteger();
-        return top.traverse(new HashMap<>(), CodeElement.blockVisitor((m, b) -> {
-            if (b.ancestorOp() != top) {
-                return m;
-            }
+        Map<Block, Integer> m = new HashMap<>();
+        top.elements().forEach(e -> {
+            if (e instanceof Block b) {
+                if (b.ancestorOp() != top) {
+                    return;
+                }
 
-            m.computeIfAbsent(b, _ -> i.getAndIncrement());
-            for (Block.Reference s : b.successors()) {
-                m.computeIfAbsent(s.targetBlock(), _ -> i.getAndIncrement());
+                m.computeIfAbsent(b, _ -> i.getAndIncrement());
+                for (Block.Reference s : b.successors()) {
+                    m.computeIfAbsent(s.targetBlock(), _ -> i.getAndIncrement());
+                }
             }
-
-            return m;
-        }));
+        });
+        return m;
     }
 
     static Map<Value, Integer> valueNameMapping(Op top) {
         AtomicInteger i = new AtomicInteger();
-        return top.traverse(new HashMap<>(), (m, e) -> {
+        Map<Value, Integer> m = new HashMap<>();
+        top.elements().forEach(e -> {
             switch (e) {
                 case Block b -> {
                     for (Block.Parameter p : b.parameters()) {
@@ -328,7 +333,7 @@ public class TestLiveness {
                 default -> {
                 }
             }
-            return m;
         });
+        return m;
     }
 }
