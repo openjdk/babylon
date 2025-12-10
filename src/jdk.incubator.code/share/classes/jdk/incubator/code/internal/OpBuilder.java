@@ -176,10 +176,6 @@ public class OpBuilder {
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
-    static final MethodRef STRING_FORMAT = MethodRef.method(String.class, "format", String.class, String.class,
-            Object[].class);
-
-
     static final FunctionType TYPE_BUILDER_F_TYPE = functionType(JavaType.type(TypeElement.class), INT);
 
     final Map<Value, Value> valueMap;
