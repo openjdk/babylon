@@ -298,7 +298,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
-        composeIdentifier("make_", hatVectorOfOp.buildType()).oparen();
+        composeIdentifier("make_", hatVectorOfOp.buildType());
         return self();
     }
 

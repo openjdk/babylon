@@ -189,14 +189,14 @@ public class OpTk {
 
     }
 
-    public static JavaOp.InvokeOp getQuotableTargetInvokeOpWrapper(JavaOp.LambdaOp lambdaOp) {
+    public static JavaOp.InvokeOp getTargetInvokeOp(JavaOp.LambdaOp lambdaOp) {
         return lambdaOp.body().entryBlock().ops().stream()
                 .filter(op -> op instanceof JavaOp.InvokeOp)
                 .map(op -> (JavaOp.InvokeOp) op)
                 .findFirst().orElseThrow();
     }
 
-    public static Object[] getQuotableCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
+    public static Object[] getQuotedCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
         var block = lambdaOp.body().entryBlock();
         var ops = block.ops();
         Object[] varLoadNames = ops.stream()
@@ -547,6 +547,18 @@ public class OpTk {
             }
         }
         return false;
+    }
+
+    public static PrimitiveType asPrimitiveResultOrNull(Value v){
+        if (v instanceof Op.Result r){
+            if (r.op().resultType() instanceof PrimitiveType primitiveType){
+                return primitiveType;
+            }
+        }
+        return null;
+    }
+    public static boolean isPrimitiveResult(Value v){
+        return (asPrimitiveResultOrNull(v)!=null);
     }
 
     public static Op.Result asResultOrThrow(Value value) {

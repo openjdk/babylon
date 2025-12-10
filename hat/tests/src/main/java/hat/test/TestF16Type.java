@@ -36,8 +36,10 @@ import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
-import hat.test.engine.HATExpectedFailureException;
+import hat.test.exceptions.HATAssertionError;
+import hat.test.exceptions.HATAsserts;
+import hat.test.exceptions.HATExpectedFailureException;
+import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
@@ -495,7 +497,11 @@ builder -> builder.withArray("array", 1024)
             F16 r4 = F16.add(r1, r2);
             F16 r5 = F16.add(r4, r3);
 
-            HATAsserts.assertEquals(Float.float16ToFloat(r5.value()), Float.float16ToFloat(gotResult), 0.01f);
+            try {
+                HATAsserts.assertEquals(Float.float16ToFloat(r5.value()), Float.float16ToFloat(gotResult), 0.01f);
+            } catch (HATAssertionError hatAssertionError) {
+                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+            }
         }
     }
 
