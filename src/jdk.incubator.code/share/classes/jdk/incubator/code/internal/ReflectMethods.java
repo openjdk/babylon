@@ -258,7 +258,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         ? make.Exec(indyCall)
                         : make.Return(indyCall);
                 tree.body = make.Block(0, com.sun.tools.javac.util.List.of(bodyStmt));
-                System.out.println(tree);
             }
         } finally {
             codeReflectionEnabled = prevCodeReflectionEnabled;

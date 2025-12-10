@@ -60,7 +60,12 @@ public class ReflectableMethodMetafactory {
 
     private static CallSite generate(MethodHandles.Lookup caller, Method m) {
         CoreOp.FuncOp fop = Op.ofMethod(m).orElseThrow();
-        MethodHandle mh = BytecodeGenerator.generate(caller, fop);
-        return new ConstantCallSite(mh);
+        try {
+            MethodHandle mh = BytecodeGenerator.generate(caller, fop);
+            return new ConstantCallSite(mh);
+        } catch (Error | Exception e) {
+            System.out.println(fop.toText());
+            throw e;
+        }
     }
 }
