@@ -38,6 +38,7 @@ import com.sun.tools.javac.util.Names;
 import static com.sun.tools.javac.code.Flags.PUBLIC;
 import static com.sun.tools.javac.code.Flags.STATIC;
 import static com.sun.tools.javac.code.Flags.VARARGS;
+import com.sun.tools.javac.code.Symbol;
 
 /**
  * This class (lazily) initialized the symbols in the jdk.incubator.code module,
@@ -50,7 +51,8 @@ public class CodeReflectionSymbols {
     public final Type funcOpType;
     public final Type reflectableLambdaMetafactory;
     public final MethodSymbol quotedExtractOp;
-    public final MethodSymbol methodInvokeBSM;
+    public final MethodSymbol staticMethodBSM;
+    public final MethodSymbol instanceMethodBSM;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -66,14 +68,14 @@ public class CodeReflectionSymbols {
                 new MethodType(List.of(funcOpType, new ArrayType(syms.objectType, syms.arrayClass)), quotedType,
                         List.nil(), syms.methodClass),
                 quotedType.tsym);
-        methodInvokeBSM = new MethodSymbol(PUBLIC | STATIC,
-                names.fromString("methodInvoke"),
-                new MethodType(
-                        List.of(syms.methodHandleLookupType, syms.stringType, syms.methodTypeType),
-                        syms.enterClass(syms.java_base, names.fromString("java.lang.invoke.CallSite")).type,
-                        List.nil(),
-                        syms.methodClass),
-                        syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.runtime.ReflectableMethodMetafactory")));
+        MethodType bsmType = new MethodType(
+                List.of(syms.methodHandleLookupType, syms.stringType, syms.methodTypeType),
+                syms.enterClass(syms.java_base, names.fromString("java.lang.invoke.CallSite")).type,
+                List.nil(),
+                syms.methodClass);
+        Symbol.ClassSymbol factorySym = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.runtime.ReflectableMethodMetafactory"));
+        staticMethodBSM = new MethodSymbol(PUBLIC | STATIC, names.fromString("staticMethod"), bsmType, factorySym);
+        instanceMethodBSM = new MethodSymbol(PUBLIC | STATIC, names.fromString("instanceMethod"), bsmType, factorySym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
     }
 }

@@ -40,31 +40,27 @@ public class ReflectableMethodMetafactory {
      * @throws NoSuchMethodException If a matching method is not found.
      * @throws NoSuchElementException If the method is code model is not present.
      */
-    public static CallSite methodInvoke(MethodHandles.Lookup caller,
+    public static CallSite staticMethod(MethodHandles.Lookup caller,
                                         String methodName,
                                         MethodType methodType) throws NoSuchMethodException {
-        CoreOp.FuncOp fop = Op.ofMethod(
-                findMethod(caller.lookupClass(),
-                          methodName,
-                          methodType.parameterArray())).orElseThrow();
-        MethodHandle mh = BytecodeGenerator.generate(caller, fop);
-        return new ConstantCallSite(mh);
+        Method m = caller.lookupClass().getDeclaredMethod(methodName, methodType.parameterArray());
+        assert m.accessFlags().contains(AccessFlag.STATIC);
+        return generate(caller, m);
     }
 
-    private static Method findMethod(Class<?> cls, String methodName, Class<?>[] parameters) throws NoSuchMethodException {
-        if (parameters.length > 0 && cls == parameters[0]) {
-            try {
-                // looking for instance method
-                Method m = cls.getDeclaredMethod(methodName, Arrays.copyOfRange(parameters, 1, parameters.length));
-                if (!m.accessFlags().contains(AccessFlag.STATIC)) {
-                    return m;
-                }
-            } catch (NoSuchMethodException _) {
-            }
-        }
-        // looking for static method
-        Method m = cls.getDeclaredMethod(methodName, parameters);
-        assert m.accessFlags().contains(AccessFlag.STATIC);
-        return m;
+    public static CallSite instanceMethod(MethodHandles.Lookup caller,
+                                          String methodName,
+                                          MethodType methodType) throws NoSuchMethodException {
+        var params = methodType.parameterArray();
+        assert params.length > 0;
+        Method m = caller.lookupClass().getDeclaredMethod(methodName, Arrays.copyOfRange(params, 1, params.length));
+        assert !m.accessFlags().contains(AccessFlag.STATIC);
+        return generate(caller, m);
+    }
+
+    private static CallSite generate(MethodHandles.Lookup caller, Method m) {
+        CoreOp.FuncOp fop = Op.ofMethod(m).orElseThrow();
+        MethodHandle mh = BytecodeGenerator.generate(caller, fop);
+        return new ConstantCallSite(mh);
     }
 }
