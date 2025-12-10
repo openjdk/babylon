@@ -134,6 +134,7 @@ public class OpBuilder {
     static final String OP_BUILDER_F_NAME_3 = "$op3";
     static final String TYPE_BUILDER_F_NAME = "$type";
     static final String EXTER_TYPE_BUILDER_F_NAME = "$exterType";
+    static final String JAVA_VERSION_CHECKER_F_NAME = "$checkJavaVersion";
 
     static final FunctionType LIST_BUILDER_F_TYPE = functionType(
             J_U_LIST,
@@ -345,6 +346,28 @@ public class OpBuilder {
                     var exterType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class)), i));
                     var typeElement = b.op(invoke(MethodRef.method(TypeElementFactory.class, "constructType", TypeElement.class, ExternalizedTypeElement.class), typeElementFactory, exterType));
                     b.op(return_(typeElement));
+                }),
+                func(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID).body(b -> {
+                    var compiletimeVersion = Runtime.version().feature();
+                    // runtimeVersion = Runtime.version().feature()
+                    var version = b.op(invoke(MethodRef.method(Runtime.class, "version", Runtime.Version.class)));
+                    var runtimeVersion = b.op(invoke(MethodRef.method(Runtime.Version.class, "feature", int.class), version));
+                    IfOp ifop = if_(b.parentBody()).if_(c -> {
+                        var p = c.op(neq(runtimeVersion, b.op(constant(INT, compiletimeVersion))));
+                        c.op(core_yield(p));
+                    }).then(t -> {
+                        var s = "The Java version used at compile time to generate and store the code model, Java " + compiletimeVersion +
+                                ", is not the same as the Java version used at runtime to load the code model, Java ";
+                        var errMessage = t.op(concat(
+                                t.op(constant(J_L_STRING, s)),
+                                runtimeVersion
+                        ));
+                        t.op(throw_(
+                                t.op(new_(MethodRef.constructor(UnsupportedOperationException.class, String.class), errMessage))
+                        ));
+                    }).else_();
+                    b.op(ifop);
+                    b.op(return_());
                 })
         );
     }
@@ -423,25 +446,7 @@ public class OpBuilder {
     FuncOp build(String name, Op op) {
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
         // check if java version at compile time matches the java version at runtime
-        var compiletimeVersion = Runtime.version().feature();
-        // runtimeVersion = Runtime.version().feature()
-        var version = builder.op(invoke(MethodRef.method(Runtime.class, "version", Runtime.Version.class)));
-        var runtimeVersion = builder.op(invoke(MethodRef.method(Runtime.Version.class, "feature", int.class), version));
-        IfOp ifop = if_(builder.parentBody()).if_(c -> {
-            var p = c.op(neq(runtimeVersion, builder.op(constant(INT, compiletimeVersion))));
-            c.op(core_yield(p));
-        }).then(t -> {
-            var s = "The Java version used at compile time to generate and store the code model, Java " + compiletimeVersion +
-                    ", is not the same as the Java version used at runtime to load the code model, Java ";
-            var errMessage = t.op(concat(
-                    t.op(constant(J_L_STRING, s)),
-                    runtimeVersion
-            ));
-            t.op(throw_(
-                    t.op(new_(MethodRef.constructor(UnsupportedOperationException.class, String.class), errMessage))
-            ));
-        }).else_();
-        builder.op(ifop);
+        builder.op(funcCall(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID));
         Value result = buildOp(null, ancestorBody, op);
         // seal op
         builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
