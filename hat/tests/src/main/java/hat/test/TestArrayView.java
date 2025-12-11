@@ -30,17 +30,21 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.*;
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class TestArrayView {
 
@@ -217,6 +221,34 @@ public class TestArrayView {
         }
     }
 
+    public static byte[][] lifeCheck(CellGrid cellGrid) {
+        int w = cellGrid.width();
+        int h = cellGrid.height();
+
+        byte[][] res = new byte[h][w];
+
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int idx = y * w + x;
+                byte cell = cellGrid.array(idx);
+                if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
+                    int count =
+                            (cellGrid.array((y - 1) * w + (x - 1)) & 1)
+                                    + (cellGrid.array((y + 0) * w + (x - 1)) & 1)
+                                    + (cellGrid.array((y + 1) * w + (x - 1)) & 1)
+                                    + (cellGrid.array((y - 1) * w + (x + 0)) & 1)
+                                    + (cellGrid.array((y + 1) * w + (x + 0)) & 1)
+                                    + (cellGrid.array((y - 1) * w + (x + 1)) & 1)
+                                    + (cellGrid.array((y + 0) * w + (x + 1)) & 1)
+                                    + (cellGrid.array((y + 1) * w + (x + 1))& 1);
+                    cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
+                }
+                res[x][y] = cell;
+            }
+        }
+        return res;
+    }
+
     public static class Compute {
         @Reflect
         public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
@@ -282,6 +314,20 @@ public class TestArrayView {
     public static void testLife() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
+        // int w = 20;
+        // int h = 20;
+        // // We oversize the grid by adding 1 to n,e,w and s
+        // CellGrid cellGrid = CellGrid.create(accelerator, w, h);
+        // CellGrid cellGridRes = CellGrid.create(accelerator, w, h);
+        //
+        // Random rand = new Random();
+        // byte[][] actualGrid = new byte[w][h];
+        // for (int y = 0; y < h; y++) {
+        //     for (int x = 0; x < w; x++) {
+        //         actualGrid[x][y] = rand.nextBoolean() ? ALIVE : DEAD;
+        //     }
+        // }
+
         // We oversize the grid by adding 1 to n,e,w and s
         CellGrid cellGrid = CellGrid.create(accelerator, 17, 17);
         CellGrid cellGridRes = CellGrid.create(accelerator, 17, 17);
@@ -318,25 +364,7 @@ public class TestArrayView {
 
         accelerator.compute(cc -> Compute.compute(cc, control, cellGrid, cellGridRes));
 
-        byte[][] resultGrid = new byte[][]{
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  ALIVE, ALIVE, ALIVE, DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  ALIVE, ALIVE, ALIVE, DEAD},
-                {DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  ALIVE, DEAD,  DEAD,  DEAD},
-                {DEAD,  ALIVE, ALIVE, ALIVE, DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  ALIVE, ALIVE, ALIVE, DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  ALIVE, ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  ALIVE, DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-                {DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD,  DEAD},
-        };
+        byte[][] resultGrid = lifeCheck(cellGrid);
 
         for (int i = 0; i < cellGrid.height(); i++) {
             for (int j = 0; j < cellGrid.width(); j++) {
@@ -415,24 +443,21 @@ public class TestArrayView {
         int[] palletteArray = new int[maxIterations];
 
         for (int i = 1; i < maxIterations; i++) {
-            palletteArray[i]=(i/8+1);// 0-7?
+            palletteArray[i]=(i/8+1);
         }
         palletteArray[0]=0;
         S32Array pallette = S32Array.createFrom(accelerator, palletteArray);
 
         accelerator.compute(cc -> compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
 
-        // Well take 1 in 4 samples (so 1024 -> 128 grid) of the pallette.
         int subsample = 16;
         char[] charPallette9 = new char []{' ', '.', ',',':', '-', '+','*', '#', '@', '%'};
         for (int y = 0; y<height/subsample; y++) {
             for (int x = 0; x<width/subsample; x++) {
                 int palletteValue = s32Array2D.get(x*subsample,y*subsample); // so 0->8
                 int paletteCheck = mandelCheck(x*subsample, y*subsample, width, height, palletteArray, originX, originY, defaultScale);
-                // System.out.print(charPallette9[palletteValue]);
                 HATAsserts.assertEquals(paletteCheck, palletteValue);
             }
-            // System.out.println();
         }
     }
 
@@ -647,6 +672,126 @@ public class TestArrayView {
         );
         for (int i = 0; i < arr.length(); i++) {
             HATAsserts.assertEquals(2 * i + 17, arr.array(i));
+        }
+    }
+
+    /*
+     * testing basic DeviceTypes
+     */
+
+    public interface SharedDeviceType extends DeviceType {
+        void array(long index, int value);
+        int array(long index);
+        DeviceSchema<SharedDeviceType> schema = DeviceSchema.of(SharedDeviceType.class,
+                arr -> arr.withArray("array", 1024));
+        static SharedDeviceType create(Accelerator accelerator) {
+            return null;
+        }
+        static SharedDeviceType createLocal() {
+            return null;
+        }
+
+        default int[] localArrayView() {
+            return null;
+        }
+    }
+
+    public interface PrivateDeviceType extends DeviceType {
+        void array(long index, int value);
+        int array(long index);
+        DeviceSchema<PrivateDeviceType> schema = DeviceSchema.of(PrivateDeviceType.class,
+                arr -> arr.withArray("array", 32));
+        static PrivateDeviceType create(Accelerator accelerator) {
+            return null;
+        }
+        static PrivateDeviceType createPrivate() {
+            return null;
+        }
+
+        default int[] privateArrayView() {
+            return null;
+        }
+    }
+
+    @Reflect
+    public static void kernelBasicDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
+        SharedDeviceType shared = SharedDeviceType.createLocal();
+        if (kc.gix < kc.gsx){
+            PrivateDeviceType priv = PrivateDeviceType.createPrivate();
+
+            int[] arr = s32Array.arrayView();
+            int[] privView = priv.privateArrayView();
+            int[] sharedView = shared.localArrayView();
+
+            privView[kc.gix] = arr[kc.gix];
+            sharedView[kc.gix] = arr[kc.gix];
+            arr[kc.gix] = privView[kc.gix] + sharedView[kc.gix];
+        }
+    }
+
+    @Reflect
+    public static void basicDeviceType(@RO ComputeContext cc, @RW S32Array s32Array) {
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()),
+                kc -> kernelBasicDeviceType(kc, s32Array)
+        );
+    }
+
+    @HatTest
+    @Reflect
+    public static void testBasicDeviceType() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var arr = S32Array.create(accelerator, 32);
+        for (int i = 0; i < arr.length(); i++) {
+            arr.array(i, i);
+        }
+        accelerator.compute(
+                cc -> basicDeviceType(cc, arr)  //QuotableComputeContextConsumer
+        );                                     //   extends Quotable, Consumer<ComputeContext>
+        for (int i = 0; i < arr.length(); i++) {
+            HATAsserts.assertEquals(2 * i, arr.array(i));
+        }
+    }
+
+    /*
+     * testing DeviceTypes instead of Buffer
+     */
+
+    @Reflect
+    public static void squareKernelDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
+        SharedDeviceType shared = SharedDeviceType.createLocal();
+        if (kc.gix < kc.gsx){
+            PrivateDeviceType priv = PrivateDeviceType.createPrivate();
+
+            int[] arr = s32Array.arrayView();
+            int[] privView = priv.privateArrayView();
+            int[] sharedView = shared.localArrayView();
+
+            privView[kc.gix] = arr[kc.gix];
+            sharedView[privView[kc.gix]] = 16 * privView[kc.gix];
+            arr[kc.gix] += privView[kc.gix] + sharedView[kc.gix];
+        }
+    }
+
+    @Reflect
+    public static void deviceType(@RO ComputeContext cc, @RW S32Array s32Array) {
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()),
+                kc -> squareKernelDeviceType(kc, s32Array)
+        );
+    }
+
+    @HatTest
+    @Reflect
+    public static void testDeviceType() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var arr = S32Array.create(accelerator, 32);
+        for (int i = 0; i < arr.length(); i++) {
+            arr.array(i, i);
+        }
+        accelerator.compute(
+                cc -> deviceType(cc, arr)  //QuotableComputeContextConsumer
+        );                                     //   extends Quotable, Consumer<ComputeContext>
+        for (int i = 0; i < arr.length(); i++) {
+            HATAsserts.assertEquals(18 * i, arr.array(i));
         }
     }
 }

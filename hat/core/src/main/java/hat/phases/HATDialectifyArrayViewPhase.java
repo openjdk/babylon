@@ -317,53 +317,6 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                 //         return bb;
                 //     }
                 // }
-                case HATVectorSelectLoadOp vectorSelectLoadOp -> {
-                    CoreOp.VarOp vop = findVarOp((firstOperandAsRes(op)).op());
-                    String name = (vop == null) ? "" : vop.varName();
-                    HATVectorSelectLoadOp vSelectOp = new HATVectorSelectLoadOp(
-                            name,
-                            op.resultType(),
-                            getLane(vectorSelectLoadOp.mapLane()),
-                            bb.context().getValues(op.operands())
-                    );
-                    vSelectOp.setLocation(op.location());
-                    bb.context().mapValue(vectorSelectLoadOp.result(), bb.op(vSelectOp));
-                    return bb;
-                }
-                case HATVectorSelectStoreOp vectorSelectStoreOp -> {
-                    CoreOp.VarOp vop = findVarOp((firstOperandAsRes(op)).op());
-                    String name = (vop == null) ? "" : vop.varName();
-                    CoreOp.VarOp resultOp =
-                            (((Op.Result) op.operands().getLast()).op() instanceof JavaOp.ArithmeticOperation ||
-                                    ((Op.Result) op.operands().getLast()).op() instanceof HATVectorSelectLoadOp) ?
-                                    null : findVarOp(((Op.Result) bb.context().getValue(op.operands().get(1))).op());
-                    HATVectorSelectStoreOp vSelectOp = new HATVectorSelectStoreOp(
-                            name,
-                            op.resultType(),
-                            getLane(vectorSelectStoreOp.mapLane()),
-                            resultOp,
-                            bb.context().getValues(op.operands())
-                    );
-                    vSelectOp.setLocation(op.location());
-                    bb.context().mapValue(vectorSelectStoreOp.result(), bb.op(vSelectOp));
-                    return bb;
-                }
-                case HATVectorVarLoadOp vectorVarLoadOp -> {
-                    Op varOp = findVarOpOrHATVarOP(vectorVarLoadOp);
-                    String name = (varOp instanceof HATVectorVarOp) ? ((HATVectorVarOp) varOp).varName() : ((CoreOp.VarOp) varOp).varName();
-                    HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(vectorVarLoadOp.resultType());
-                    HATVectorVarLoadOp newVectorVarLoadOp = new HATVectorVarLoadOp(
-                            name,
-                            vectorVarLoadOp.resultType(),
-                            md.vectorTypeElement(),
-                            md.lanes(),
-                            bb.context().getValues(vectorVarLoadOp.operands())
-                    );
-                    newVectorVarLoadOp.setLocation(vectorVarLoadOp.location());
-                    Op.Result res = bb.op(newVectorVarLoadOp);
-                    bb.context().mapValue(vectorVarLoadOp.result(), res);
-                    return bb;
-                }
                 default -> {
                 }
             }
