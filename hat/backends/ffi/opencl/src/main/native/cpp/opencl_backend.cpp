@@ -25,16 +25,17 @@
 
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState) {
+OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState, uint8_t accessor) {
     OpenCLBuffer *openclBuffer = nullptr;
     if (bufferState->vendorPtr == nullptr || bufferState->state == BufferState::NEW_STATE) {
-        openclBuffer = new OpenCLBuffer(this, bufferState);
+        openclBuffer = new OpenCLBuffer(this, bufferState, accessor);
         if (config->trace) {
-            std::cout << "We allocated arg buffer " << std::endl;
+            std::cout << "[native] Device Buffer with size " << bufferState->length << " allocated" << std::endl;
         }
+        bufferState->state = BufferState::NEW_STATE;
     } else {
         if (config->trace) {
-            std::cout << "Were reusing  buffer  buffer " << std::endl;
+            std::cout << "[native] Reusing a device-buffer " << std::hex << bufferState->vendorPtr << std::dec << std::endl;
         }
         openclBuffer = static_cast<OpenCLBuffer *>(bufferState->vendorPtr);
     }
@@ -55,6 +56,7 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
             }
             queue->wait();
             queue->release();
+            bufferState->state = BufferState::HOST_OWNED;
         } else {
             std::cout << "HOW DID WE GET HERE 1 attempting  to get buffer but buffer is not device dirty" << std::endl;
             std::exit(1);
@@ -93,10 +95,9 @@ OpenCLBackend::OpenCLBackend(int configBits)
 
     cl_uint numDevices = 0;
     platform_id = platforms[config->platform];
-    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices)) != CL_SUCCESS) {
-        if (status != CL_SUCCESS) {
-            std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status) << std::endl;
-        }
+    status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
+    if (status != CL_SUCCESS) {
+        std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status) << std::endl;
         delete[] platforms;
         return;
     }

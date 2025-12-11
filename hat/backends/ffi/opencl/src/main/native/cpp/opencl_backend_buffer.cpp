@@ -25,14 +25,24 @@
 
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferState)
+OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferState, uint8_t accessor)
         : Buffer(backend, bufferState) {
     cl_int status;
+
+    // by default is read/write
+    uint8_t access = CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE;
+    switch (accessor) {
+        case RO_BYTE: access = CL_MEM_USE_HOST_PTR | CL_MEM_READ_ONLY; break;
+        case WO_BYTE: access = CL_MEM_USE_HOST_PTR | CL_MEM_WRITE_ONLY; break;
+    }
+
     const auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
     clMem = clCreateBuffer(
         openclBackend->context,
-        CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
+        access,
+        //CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
         bufferState->length,
+        //nullptr,
         bufferState->ptr,
         &status);
 

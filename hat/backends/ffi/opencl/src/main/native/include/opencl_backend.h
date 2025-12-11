@@ -57,7 +57,7 @@ public:
     public:
         cl_mem clMem;
 
-        OpenCLBuffer(Backend *backend, BufferState *bufferState);
+        OpenCLBuffer(Backend *backend, BufferState *bufferState, uint8_t accessor);
 
         ~OpenCLBuffer() override;
     };
@@ -147,7 +147,7 @@ public:
 
     ~OpenCLBackend() override;
 
-    OpenCLBuffer *getOrCreateBuffer(BufferState *bufferState) override;
+    OpenCLBuffer *getOrCreateBuffer(BufferState *bufferState, uint8_t accessor) override;
 
     OpenCLProgram *compileProgram(OpenCLSource &openclSource);
 
