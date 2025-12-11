@@ -41,7 +41,7 @@ public class ReflectableMethodMetafactory {
     public static CallSite unreflectMethod(MethodHandles.Lookup caller, String methodName, MethodType methodType) throws NoSuchMethodException {
         for (Method m : caller.lookupClass().getDeclaredMethods()) {
             int firstParam;
-            if (m.getName().matches(methodName)
+            if (m.getName().equals(methodName)
                     && m.getReturnType() == methodType.returnType()
                     && m.getParameterCount() == methodType.parameterCount() - (firstParam = (m.getModifiers() & Modifier.STATIC) == 0 ? 1 : 0)
                     && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(), methodType.parameterArray(), firstParam, methodType.parameterCount())) {
