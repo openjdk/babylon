@@ -25,7 +25,7 @@
 package mandel;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -99,7 +99,7 @@ public class Main {
         }
         S32Array pallette = S32Array.createFrom(accelerator, palletteArray);
 
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+        accelerator.compute((@Reflect Compute)
                 cc -> Main.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
 
         if (headless){
@@ -130,7 +130,7 @@ public class Main {
                         final float fscale = scale;
                         final float fx = x - sign * zoomPoint.x / zoomFrames;
                         final float fy = y - sign * zoomPoint.y / zoomFrames;
-                        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+                        accelerator.compute((@Reflect Compute)
                                 cc -> Main.compute(cc, pallette, s32Array2D, fx, fy, fscale));
                         viewer.imageViewer.syncWithRGB(s32Array2D);
 

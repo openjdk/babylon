@@ -109,8 +109,8 @@ public class OpTk {
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
         var here = CallSite.of(OpTk.class, "createTransitiveInvokeModule");
-        traverse(here, entry, (map, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
+        elements(here, entry).forEach(codeElement -> {
+            if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
                 Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
                 try {
                     var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
@@ -124,7 +124,6 @@ public class OpTk {
                     throw new IllegalStateException("Could not resolve invokeWrapper to method");
                 }
             }
-            return map;
         });
 
         while (!work.isEmpty()) {
@@ -190,14 +189,14 @@ public class OpTk {
 
     }
 
-    public static JavaOp.InvokeOp getQuotableTargetInvokeOpWrapper(JavaOp.LambdaOp lambdaOp) {
+    public static JavaOp.InvokeOp getTargetInvokeOp(JavaOp.LambdaOp lambdaOp) {
         return lambdaOp.body().entryBlock().ops().stream()
                 .filter(op -> op instanceof JavaOp.InvokeOp)
                 .map(op -> (JavaOp.InvokeOp) op)
                 .findFirst().orElseThrow();
     }
 
-    public static Object[] getQuotableCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
+    public static Object[] getQuotedCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
         var block = lambdaOp.body().entryBlock();
         var ops = block.ops();
         Object[] varLoadNames = ops.stream()
@@ -578,12 +577,6 @@ public class OpTk {
         @Override public  String toString(){
             return clazz.toString()+":"+methodName;
         }
-    }
-    public static <T> T traverse(CallSite callSite, CoreOp.FuncOp funcOp, BiFunction<T, CodeElement<?,?>,T> bifunc) {
-        if (callSite.tracing){
-            System.out.println(callSite + " traverse is being deprecated!!");
-        }
-       return  funcOp.traverse(null, bifunc);
     }
     public static CoreOp.FuncOp lower(CallSite callSite, CoreOp.FuncOp funcOp) {
         if (callSite.tracing){

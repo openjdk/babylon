@@ -63,8 +63,8 @@ public class SquaresTest {
             arr.array(i, i);
         }
         accelerator.compute(
-                cc -> SquaresTest.square(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+                cc -> SquaresTest.square(cc, arr)
+        );
         for (int i = 0; i < arr.length(); i++) {
             Assert.assertEquals(i*i, arr.array(i));
         }

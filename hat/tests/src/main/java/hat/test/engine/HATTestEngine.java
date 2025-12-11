@@ -54,6 +54,7 @@ public class HATTestEngine {
         int failed = 0;
         int unsupported = 0;
         int precisionErrors = 0;
+
         public void incrementPassed() {
             passed++;
         }
@@ -62,15 +63,6 @@ public class HATTestEngine {
         }
         public void incrementUnsupported() { unsupported++; }
         public void incrementPrevisionError() { precisionErrors++; }
-
-        public int getPassed() {
-            return passed;
-        }
-        public int getFailed() {
-            return failed;
-        }
-        public int getUnsupported() { return unsupported; }
-        public int getPrecisionErrors() { return precisionErrors; }
 
         @Override
         public String toString() {
