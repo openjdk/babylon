@@ -228,7 +228,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
             if (isReflectable) {
                 MethodType methodType = tree.sym.type.asMethodType();
                 var dynArgs = tree.params.<JCExpression>map(p -> make.Ident(p.sym));
-                MethodSymbol bsm;
                 if ((tree.sym.flags() & Flags.STATIC) == 0) {
                     dynArgs = dynArgs.prepend(make.This(currentClassSym.type));
                     methodType = new MethodType(
@@ -236,18 +235,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             methodType.restype,
                             methodType.thrown,
                             methodType.tsym);
-                    bsm = crSyms.instanceMethodBSM;
-                } else {
-                    bsm = crSyms.staticMethodBSM;
                 }
                 Symbol.DynamicMethodSymbol indySym = new Symbol.DynamicMethodSymbol(
                     tree.name,     // method name
                     syms.noSymbol,
-                    bsm.asHandle(),
+                    crSyms.unreflectMethodBSM.asHandle(),
                     methodType,
                     new PoolConstant.LoadableConstant[0]);
                 JCFieldAccess indyQualifier = make.Select(
-                    make.QualIdent(crSyms.staticMethodBSM.owner),
+                    make.QualIdent(crSyms.unreflectMethodBSM.owner),
                     indySym.name);
                 indyQualifier.sym = indySym;
                 indyQualifier.type = methodType;
