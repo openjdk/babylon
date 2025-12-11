@@ -51,7 +51,8 @@ public class ReflectableMethodMetafactory {
             if (m.getName().matches(methodName)
                     && m.getReturnType() == methodType.returnType()
                     && m.getParameterCount() == methodType.parameterCount() - rec
-                    && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(), methodType.parameterArray(), rec, methodType.parameterCount())) {
+                    && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(),
+                                     methodType.parameterArray(), rec, methodType.parameterCount())) {
 
                 CoreOp.FuncOp fop = Op.ofMethod(m).orElseThrow();
                 try {

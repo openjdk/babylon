@@ -224,7 +224,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         try {
             codeReflectionEnabled = isReflectable;
             super.visitMethodDef(tree);
-            // MINDYfy reflectable method body
+            // unreflect reflectable method body
             if (isReflectable) {
                 MethodType methodType = tree.sym.type.asMethodType();
                 var dynArgs = tree.params.<JCExpression>map(p -> make.Ident(p.sym));
@@ -237,19 +237,17 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             methodType.tsym);
                 }
                 Symbol.DynamicMethodSymbol indySym = new Symbol.DynamicMethodSymbol(
-                    tree.name,     // method name
-                    syms.noSymbol,
-                    crSyms.unreflectMethodBSM.asHandle(),
-                    methodType,
-                    new PoolConstant.LoadableConstant[0]);
+                        tree.name, // method name
+                        syms.noSymbol,
+                        crSyms.unreflectMethodBSM.asHandle(),
+                        methodType,
+                        new PoolConstant.LoadableConstant[0]);
                 JCFieldAccess indyQualifier = make.Select(
-                    make.QualIdent(crSyms.unreflectMethodBSM.owner),
-                    indySym.name);
+                        make.QualIdent(crSyms.unreflectMethodBSM.owner),
+                        indySym.name);
                 indyQualifier.sym = indySym;
                 indyQualifier.type = methodType;
-                JCMethodInvocation indyCall = make.App(
-                    indyQualifier,
-                    dynArgs);
+                JCMethodInvocation indyCall = make.App(indyQualifier, dynArgs);
                 JCTree.JCStatement bodyStmt = tree.sym.getReturnType().hasTag(TypeTag.VOID)
                         ? make.Exec(indyCall)
                         : make.Return(indyCall);
