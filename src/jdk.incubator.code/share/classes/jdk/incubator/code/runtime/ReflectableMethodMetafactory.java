@@ -3,7 +3,6 @@ package jdk.incubator.code.runtime;
 import jdk.incubator.code.Op;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.ConstantCallSite;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
@@ -11,7 +10,6 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.core.CoreOp;
 
 public class ReflectableMethodMetafactory {
 
@@ -40,20 +38,14 @@ public class ReflectableMethodMetafactory {
      * @throws NoSuchMethodException If a matching method is not found.
      * @throws NoSuchElementException If the method code model is not present.
      */
-    public static CallSite unreflectMethod(MethodHandles.Lookup caller,
-                                           String methodName,
-                                           MethodType methodType) throws NoSuchMethodException {
-        Method[] methods = caller.lookupClass().getDeclaredMethods();
-        for (Method m : methods) {
-            int rec = (m.getModifiers() & Modifier.STATIC) == 0 ? 1 : 0;
+    public static CallSite unreflectMethod(MethodHandles.Lookup caller, String methodName, MethodType methodType) throws NoSuchMethodException {
+        for (Method m : caller.lookupClass().getDeclaredMethods()) {
+            int firstParam;
             if (m.getName().matches(methodName)
                     && m.getReturnType() == methodType.returnType()
-                    && m.getParameterCount() == methodType.parameterCount() - rec
-                    && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(),
-                                     methodType.parameterArray(), rec, methodType.parameterCount())) {
-
-                CoreOp.FuncOp fop = Op.ofMethod(m).orElseThrow();
-                return new ConstantCallSite(BytecodeGenerator.generate(caller, fop));
+                    && m.getParameterCount() == methodType.parameterCount() - (firstParam = (m.getModifiers() & Modifier.STATIC) == 0 ? 1 : 0)
+                    && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(), methodType.parameterArray(), firstParam, methodType.parameterCount())) {
+                return new ConstantCallSite(BytecodeGenerator.generate(caller, Op.ofMethod(m).orElseThrow()));
             }
         }
         throw new NoSuchMethodException(caller.lookupClass().getName() + "." + methodName + methodType);
