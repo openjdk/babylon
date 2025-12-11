@@ -1,13 +1,11 @@
 package jdk.incubator.code.runtime;
 
-import java.lang.classfile.ClassFile;
 import jdk.incubator.code.Op;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.ConstantCallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -40,7 +38,7 @@ public class ReflectableMethodMetafactory {
      *                   structure and is stacked automatically by the VM.
      * @return a CallSite whose target can be used to invoke the method.
      * @throws NoSuchMethodException If a matching method is not found.
-     * @throws NoSuchElementException If the method is code model is not present.
+     * @throws NoSuchElementException If the method code model is not present.
      */
     public static CallSite unreflectMethod(MethodHandles.Lookup caller,
                                            String methodName,
@@ -55,13 +53,7 @@ public class ReflectableMethodMetafactory {
                                      methodType.parameterArray(), rec, methodType.parameterCount())) {
 
                 CoreOp.FuncOp fop = Op.ofMethod(m).orElseThrow();
-                try {
-                    MethodHandle mh = BytecodeGenerator.generate(caller, fop);
-                    return new ConstantCallSite(mh);
-                } catch (Error | Exception e) {
-                    System.out.println(fop.toText());
-                    throw e;
-                }
+                return new ConstantCallSite(BytecodeGenerator.generate(caller, fop));
             }
         }
         throw new NoSuchMethodException(caller.lookupClass().getName() + "." + methodName + methodType);
