@@ -173,7 +173,7 @@ public class Main {
                 """;
 
         @Reflect
-        public static void lifePerIdx(int idx, @RO Control control, @RW CellGrid cellGrid) {
+        public static void lifePerIdx(int idx, @RW Control control, @RW CellGrid cellGrid) {
             int w = cellGrid.width();
             int h = cellGrid.height();
             int from = control.from();
@@ -196,16 +196,12 @@ public class Main {
             cellGrid.cell(idx + to, cell);
         }
 
-
         @Reflect
         public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
             if (kc.gix < kc.gsx) {
                 ComputeLife.lifePerIdx(kc.gix, control, cellGrid);
             }
         }
-
-
-
 
         @Reflect
         static public void compute(final @RO ComputeContext cc,
@@ -218,15 +214,14 @@ public class Main {
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 
                 long now = System.currentTimeMillis();
-                if (viewer.isReadyForUpdate(now)){
+                if (viewer.isReadyForUpdate(now)) {
                     viewer.update(now,grid,to);
                 }
             }
         }
     }
 
-
-    public static void main(String[] args) {
+    static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
         Arena arena = Arena.global();

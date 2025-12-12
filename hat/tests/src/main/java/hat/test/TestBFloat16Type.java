@@ -133,7 +133,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_10(@RO KernelContext kernelContext, @RO BF16Array a) {
+    public static void bf16_10(@RO KernelContext kernelContext, @RW BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 f16 = BF16.of(1.1f);

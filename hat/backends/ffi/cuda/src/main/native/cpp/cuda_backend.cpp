@@ -361,13 +361,14 @@ CudaBackend *CudaBackend::of(Backend *backend) {
     return dynamic_cast<CudaBackend *>(backend);
 }
 
-CudaBackend::CudaBuffer *CudaBackend::getOrCreateBuffer(BufferState *bufferState) {
+CudaBackend::CudaBuffer *CudaBackend::getOrCreateBuffer(BufferState *bufferState, u8_t accessor) {
     CudaBuffer *cudaBuffer = nullptr;
     if (bufferState->vendorPtr == nullptr || bufferState->state == BufferState::NEW_STATE) {
-        cudaBuffer = new CudaBuffer(this, bufferState);
+        cudaBuffer = new CudaBuffer(this, bufferState, accessor);
         if (config->trace) {
             std::cout << "We allocated arg buffer " << std::endl;
         }
+        bufferState->state = BufferState::NEW_STATE;
     } else {
         if (config->trace) {
             std::cout << "Were reusing  buffer  buffer " << std::endl;
