@@ -361,7 +361,7 @@ CudaBackend *CudaBackend::of(Backend *backend) {
     return dynamic_cast<CudaBackend *>(backend);
 }
 
-CudaBackend::CudaBuffer *CudaBackend::getOrCreateBuffer(BufferState *bufferState, __uint8_t accessor) {
+CudaBackend::CudaBuffer *CudaBackend::getOrCreateBuffer(BufferState *bufferState, u8_t accessor) {
     CudaBuffer *cudaBuffer = nullptr;
     if (bufferState->vendorPtr == nullptr || bufferState->state == BufferState::NEW_STATE) {
         cudaBuffer = new CudaBuffer(this, bufferState, accessor);
