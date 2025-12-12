@@ -57,7 +57,7 @@ public:
     public:
         cl_mem clMem;
 
-        OpenCLBuffer(Backend *backend, BufferState *bufferState, uint8_t accessor);
+        OpenCLBuffer(Backend *backend, BufferState *bufferState, u8_t accessor);
 
         ~OpenCLBuffer() override;
     };

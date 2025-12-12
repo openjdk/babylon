@@ -317,16 +317,14 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
 
                 Buffer *buffer = compilationUnit->backend->getOrCreateBuffer(bufferState, arg->value.buffer.access);
 
-                bool kernelReadsFromThisArg = arg->value.buffer.access == RW_BYTE || arg->value.buffer.access == RO_BYTE || arg->value.buffer.access == UNKNOWN_BYTE;
+                bool kernelReadsFromThisArg =  arg->value.buffer.access == RW_BYTE
+                                            || arg->value.buffer.access == RO_BYTE;
 
                 bool copyToDevice = readAccessor;
-                if (compilationUnit->backend->config->alwaysCopy) {
-                } else {
-                     copyToDevice = (bufferState->state == BufferState::NEW_STATE)
+                if (!compilationUnit->backend->config->alwaysCopy) {
+                    copyToDevice = (bufferState->state == BufferState::NEW_STATE)
                                      || ((bufferState->state == BufferState::HOST_OWNED));
                 }
-
-                 //bool copyToDevice = compilationUnit->backend->config->alwaysCopy || (bufferState->state == BufferState::NEW_STATE) || ((bufferState->state == BufferState::HOST_OWNED));
 
                 if (compilationUnit->backend->config->showWhy) {
                     std::cout << "config.alwaysCopy=" << compilationUnit->backend->config->alwaysCopy
@@ -340,7 +338,6 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 if (copyToDevice) {
                     compilationUnit->backend->queue->copyToDevice(buffer);
                     bufferState->state = BufferState::DEVICE_OWNED;
-                    // buffer->copyToDevice();
                     if (compilationUnit->backend->config->traceCopies) {
                         std::cout << "copying arg " << arg->idx << " host->device " << std::endl;
                     }
@@ -406,11 +403,9 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
             }
 
             auto *buffer = static_cast<Buffer *>(bufferState->vendorPtr);
-            //if (compilationUnit->backend->config->alwaysCopy) {
             if (kernelWroteToThisArg && compilationUnit->backend->config->alwaysCopy) {
                 compilationUnit->backend->queue->copyFromDevice(buffer);
                 bufferState->state = BufferState::HOST_OWNED;
-                // buffer->copyFromDevice();
                 if (compilationUnit->backend->config->traceCopies || compilationUnit->backend->config->traceEnqueues) {
                     std::cout << "copying arg " << arg->idx << " device->host " << std::endl;
                 }
@@ -418,9 +413,6 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 if (compilationUnit->backend->config->traceSkippedCopies) {
                     std::cout << "NOT copying arg " << arg->idx << " device->host " << std::endl;
                 }
-                //if (kernelWroteToThisArg) {
-                //    bufferState->state = BufferState::DEVICE_OWNED;
-                //}
             }
         }
     }

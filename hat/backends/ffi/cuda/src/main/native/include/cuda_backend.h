@@ -182,7 +182,7 @@ public:
     CompilationUnit * compile(int len, char *source) override;
     void computeStart() override;
     void computeEnd() override;
-    CudaBuffer * getOrCreateBuffer(BufferState *bufferState, __uint8_t accessor) override;
+    CudaBuffer * getOrCreateBuffer(BufferState *bufferState, u8_t accessor) override;
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
     explicit CudaBackend(int mode);

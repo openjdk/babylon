@@ -28,8 +28,6 @@
 #include "cuda_backend.h"
 #include <iostream>
 
-#include "shared.h"
-
 PtxSource::PtxSource()
     : Text(0L) {
 }

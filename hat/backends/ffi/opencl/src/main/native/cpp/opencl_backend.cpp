@@ -25,7 +25,7 @@
 
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState, uint8_t accessor) {
+OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState, u8_t accessor) {
     OpenCLBuffer *openclBuffer = nullptr;
     if (bufferState->vendorPtr == nullptr || bufferState->state == BufferState::NEW_STATE) {
         openclBuffer = new OpenCLBuffer(this, bufferState, accessor);
