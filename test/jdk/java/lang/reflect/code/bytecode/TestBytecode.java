@@ -533,6 +533,12 @@ public class TestBytecode {
         return ((Function<String, String>)e -> e.substring(1)).apply(s);
     }
 
+    @Reflect
+    static String staticVarargInvokeWithNoRegularArgs(String s) {
+        String a = "prefix";
+        return Arrays.asList(a, s).toString();
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
