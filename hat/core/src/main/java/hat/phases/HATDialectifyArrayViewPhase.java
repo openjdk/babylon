@@ -325,72 +325,9 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
         });
     }
 
-    record ArrayAccessInfo(Op.Result buffer, List<Op.Result> indices) {};
-
-    record Node<T>(T value, List<Node<T>> edges) {
-        ArrayAccessInfo getInfo(Map<Op.Result, Op.Result> replaced) {
-            List<Node<T>> wl = new ArrayList<>();
-            Set<Node<T>> seen = new HashSet<>();
-            Op.Result buffer = null;
-            List<Op.Result> indices = new ArrayList<>();
-            wl.add(this);
-            while (!wl.isEmpty()) {
-                Node<T> cur = wl.removeFirst();
-                seen.add(cur);
-                if (cur.value instanceof Op.Result res) {
-                    if (res.op() instanceof JavaOp.ArrayAccessOp || res.op() instanceof JavaOp.ArrayLengthOp) {
-                        buffer = res;
-                        indices.addFirst(res.op() instanceof JavaOp.ArrayAccessOp ? ((Op.Result) res.op().operands().get(1)) : ((Op.Result) res.op().operands().get(0)));
-                    }
-                }
-                for (Node<T> node : edges) {
-                    if (!seen.contains(node)) wl.add(node);
-                }
-            }
-            buffer = replaced.get((Op.Result) firstOperand(buffer.op()));
-            return new ArrayAccessInfo(buffer, indices);
-        }
-    }
-
-    static ArrayAccessInfo arrayAccessInfo(Value value, Map<Op.Result, Op.Result> replaced) {
-        return expressionGraph(value).getInfo(replaced);
-    }
-
-    // TODO: check?
-    static Node<Value> expressionGraph(Value value) {
-        return expressionGraph(new HashMap<>(), value);
-    }
-
-    static Node<Value> expressionGraph(Map<Value, Node<Value>> visited, Value value) {
-        // If value has already been visited return its node
-        if (visited.containsKey(value)) {
-            return visited.get(value);
-        }
-
-        // Find the expression graphs for each operand
-        List<Node<Value>> edges = new ArrayList<>();
-        for (Value operand : value.dependsOn()) {
-            if (operand instanceof Op.Result res && res.op() instanceof JavaOp.InvokeOp iop && iop.invokeDescriptor().name().toLowerCase().contains("arrayview")) continue;
-            edges.add(expressionGraph(operand));
-        }
-        Node<Value> node = new Node<>(value, edges);
-        visited.put(value, node);
-        return node;
-    }
-
     /*
      * Helper functions:
      */
-
-    int getLane(String fieldName) {
-        return switch (fieldName) {
-            case "x" -> 0;
-            case "y" -> 1;
-            case "z" -> 2;
-            case "w" -> 3;
-            default -> -1;
-        };
-    }
 
     private HATVectorBinaryOp buildVectorBinaryOp(String opType, String varName, TypeElement resultType, List<Value> outputOperands) {
         HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(resultType);
@@ -415,10 +352,6 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
 
     private Op findVarOpOrHATVarOP(Op op) {
         return searchForOp(op, Set.of(CoreOp.VarOp.class, HATVectorVarOp.class));
-    }
-
-    private CoreOp.VarOp findVarOp(Op op) {
-        return (CoreOp.VarOp) searchForOp(op, Set.of(CoreOp.VarOp.class));
     }
 
     public boolean isVectorOp(Op op) {
