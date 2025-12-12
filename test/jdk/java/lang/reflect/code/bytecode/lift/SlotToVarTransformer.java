@@ -47,6 +47,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -127,12 +128,15 @@ final class SlotToVarTransformer {
 
     private CoreOp.FuncOp convert(CoreOp.FuncOp func) {
         // Composing exception stack map to be able to follow slot ops from try to the handler
-        ExcStackMap excMap = func.traverse(new ExcStackMap(new ArrayList<>(), new IdentityHashMap<>()),
-                CodeElement.blockVisitor((map, b) -> map.apply(b)));
+        ExcStackMap excMap = new ExcStackMap(new ArrayList<>(), new IdentityHashMap<>());
+        func.elements().forEach(e -> {
+            if (e instanceof Block b) {
+                excMap.apply(b);
+            }
+        });
 
-        List<Var> toInitialize = func.body().traverse(new ArrayList<>(), CodeElement.opVisitor((toInit, op) -> {
-            if (op instanceof SlotOp slotOp && !varMap.containsKey(slotOp)) {
-
+        List<Var> toInitialize = func.body().elements().<Var>mapMulti((e, c) -> {
+            if (e instanceof SlotOp slotOp && !varMap.containsKey(slotOp)) {
                 // Assign variable to segments, calculate var slotType
                 Var var = new Var(); // New variable
                 var.parentBody = slotOp.ancestorBody();
@@ -181,13 +185,10 @@ final class SlotToVarTransformer {
                 if (stores.size() > 1) {
                     // A synthetic default-initialized dominant segment must be inserted to the variable, if there is more than one initial store segment.
                     // It is not necessary to link it with other variable segments, the analysys ends here.
-                    toInit.add(varMap.get(stores.getFirst()));
+                    c.accept(varMap.get(stores.getFirst()));
                 }
-
-
             }
-            return toInit;
-        }));
+        }).collect(Collectors.toCollection(ArrayList::new));
 
         return func.transform((block, op) -> {
             if (!toInitialize.isEmpty()) {

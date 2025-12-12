@@ -25,7 +25,7 @@
 package life;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -116,7 +116,7 @@ public class Main {
 
 
 
-    public static class Compute {
+    public static class ComputeLife {
         public static final String codeHeader = """
                 #define ALIVE -1
                 #define DEAD 0
@@ -199,7 +199,7 @@ public class Main {
         @Reflect
         public static void life(@RO KernelContext kc, @RW Control control, @RW CellGrid cellGrid) {
             if (kc.gix < kc.gsx) {
-                Compute.lifePerIdx(kc.gix, control, cellGrid);
+                ComputeLife.lifePerIdx(kc.gix, control, cellGrid);
             }
         }
 
@@ -210,7 +210,7 @@ public class Main {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
             while (viewer.stillRunning()) {
-                cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, ctrl, grid));
+                cc.dispatchKernel(NDRange.of1D(range), kc -> ComputeLife.life(kc, ctrl, grid));
 
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 
@@ -252,8 +252,8 @@ public class Main {
 
         viewer.mainPanel.repaint();
         viewer.waitForStart();
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
-                cc -> Compute.compute(cc, viewer, control, cellGrid));
+        accelerator.compute((@Reflect Compute)
+                cc -> ComputeLife.compute(cc, viewer, control, cellGrid));
 
     }
 }

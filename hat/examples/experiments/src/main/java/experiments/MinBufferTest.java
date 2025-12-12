@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -40,7 +40,7 @@ import java.lang.invoke.MethodHandles;
 public class MinBufferTest {
 
 
-    public static class Compute {
+    public static class ComputeApp {
         @Reflect
         public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
             if (kc.gix < kc.gsx) {
@@ -62,8 +62,8 @@ public class MinBufferTest {
         int len = 10000000;
         int valueToAdd = 10;
         S32Array s32Array = S32Array.create(accelerator, len,i->i);
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
-                cc -> Compute.add(cc, s32Array, len, valueToAdd));
+        accelerator.compute((@Reflect Compute)
+                cc -> ComputeApp.add(cc, s32Array, len, valueToAdd));
         // Quite an expensive way of adding 20 to each array element
         for (int i = 0; i < 20; i++) {
             System.out.println(i + "=" + s32Array.array(i));

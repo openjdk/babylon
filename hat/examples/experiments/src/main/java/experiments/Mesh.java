@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -116,7 +116,7 @@ public class Mesh {
         }
     }
 
-    public static class Compute {
+    public static class ComputeApp {
         @Reflect
         public static void initPoints(KernelContext kc, MeshData mesh) {
             if (kc.gix < kc.gsx) {
@@ -161,8 +161,8 @@ public class Mesh {
                 vertex3D.to(random.nextInt(meshData.points()));
             }
 
-            accelerator.compute((@Reflect QuotableComputeContextConsumer)
-                    cc -> Compute.buildMesh(cc, meshData));
+            accelerator.compute((@Reflect Compute)
+                    cc -> ComputeApp.buildMesh(cc, meshData));
         }else{
             System.out.println("layouts differ");
         }

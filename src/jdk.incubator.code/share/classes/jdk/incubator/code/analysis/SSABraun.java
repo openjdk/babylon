@@ -81,8 +81,8 @@ final class SSABraun implements CodeTransformer {
     }
 
     private void prepare(Op nestedOp) {
-        nestedOp.traverse(null, CodeElement.opVisitor((_, op) -> {
-            switch (op) {
+        nestedOp.elements().forEach(e -> {
+            switch (e) {
                 case CoreOp.VarAccessOp.VarLoadOp load -> {
                     Val val = readVariable(load.varOp(), load.ancestorBlock());
                     registerLoad(load, val);
@@ -95,7 +95,7 @@ final class SSABraun implements CodeTransformer {
                             : new Holder(initialStore.initOperand());
                     writeVariable(initialStore, initialStore.ancestorBlock(), val);
                 }
-                case Op.Terminating _ -> {
+                case Op op when op instanceof Op.Terminating -> {
                     Block block = op.ancestorBlock();
                     // handle the sealing, i.e. only now make this block a predecessor of its successors
                     for (Block.Reference successor : block.successors()) {
@@ -111,8 +111,7 @@ final class SSABraun implements CodeTransformer {
                 default -> {
                 }
             }
-            return null;
-        }));
+        });
     }
 
     private void registerLoad(CoreOp.VarAccessOp.VarLoadOp load, Val val) {

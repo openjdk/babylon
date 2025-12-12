@@ -57,7 +57,6 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
-import javax.swing.WindowConstants;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -105,8 +104,8 @@ public  class Viewer extends JFrame {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        bestMatchOffset = Compute.getBestMatchOffset(accelerator, s32Array2D, selection.close(), controls.sevenSegmentDisplay);
-                        Compute.heal(accelerator, s32Array2D, selection, bestMatchOffset);
+                        bestMatchOffset = ComputeHeal.getBestMatchOffset(accelerator, s32Array2D, selection.close(), controls.sevenSegmentDisplay);
+                        ComputeHeal.heal(accelerator, s32Array2D, selection, bestMatchOffset);
                         Timer t = new Timer(1000, new ActionListener() {
                             @Override
                             public void actionPerformed(ActionEvent e) {
