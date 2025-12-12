@@ -97,7 +97,7 @@ public:
 
     ~MockBackend() override = default;
 
-    Buffer *getOrCreateBuffer(BufferState *bufferState, uint8_t accessor) override {
+    Buffer *getOrCreateBuffer(BufferState *bufferState, __uint8_t accessor) override {
         Buffer *buffer = nullptr;
 
         /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){

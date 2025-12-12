@@ -31,7 +31,7 @@
 /*
 //http://mercury.pr.erau.edu/~siewerts/extra/code/digital-media/CUDA/cuda_work/samples/0_Simple/matrixMulDrv/matrixMulDrv.cpp
  */
-CudaBackend::CudaBuffer::CudaBuffer(Backend *backend,  BufferState *bufferState)
+CudaBackend::CudaBuffer::CudaBuffer(Backend *backend,  BufferState *bufferState, __uint8_t accessor)
         : Buffer(backend, bufferState), devicePtr() {
 
     const auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
