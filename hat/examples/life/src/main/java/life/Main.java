@@ -197,7 +197,7 @@ public class Main {
         }
 
         @Reflect
-        public static void life(@RO KernelContext kc, @RW Control control, @RW CellGrid cellGrid) {
+        public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
             if (kc.gix < kc.gsx) {
                 ComputeLife.lifePerIdx(kc.gix, control, cellGrid);
             }
@@ -205,8 +205,7 @@ public class Main {
 
         @Reflect
         static public void compute(final @RO ComputeContext cc,
-                                   //Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
-                                    Viewer viewer, @RW Control ctrl, @RW CellGrid grid) {
+                                   Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
             while (viewer.stillRunning()) {
