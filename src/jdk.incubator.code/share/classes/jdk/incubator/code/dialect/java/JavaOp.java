@@ -334,7 +334,6 @@ public sealed abstract class JavaOp extends Op {
          * <p>
          * Such a lambda operation is one with the following constraints:
          * <ol>
-         *     <li>Zero or one captured value (assuming correspondence to the {@code this} variable).
          *     <li>A body with only one (entry) block that contains only variable declaration
          *     operations, variable load operations, invoke operations to box or unbox
          *     primitive values, a single invoke operation to the method that is
@@ -352,12 +351,6 @@ public sealed abstract class JavaOp extends Op {
         public Optional<InvokeOp> directInvocation() {
             // Single block
             if (body().blocks().size() > 1) {
-                return Optional.empty();
-            }
-
-            // Zero or one (this) capture
-            List<Value> cvs = capturedValues();
-            if (cvs.size() > 1) {
                 return Optional.empty();
             }
 

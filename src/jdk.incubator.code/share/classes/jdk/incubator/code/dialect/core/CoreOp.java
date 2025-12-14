@@ -334,27 +334,24 @@ public sealed abstract class CoreOp extends Op {
          * Returns a moduleOp with the given funcOp as the root.
          * The funcOps in the moduleOp functionTable are returned in the order encountered within the funcOp.
          */
-        public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp f, MethodHandles.Lookup l) {
-            Map<String, FuncOp> visited = new HashMap<>();
-            List<CoreOp.FuncOp> funcs = new ArrayList<>();
-            Deque<CoreOp.FuncOp> stack = new LinkedList<>();
+        public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp root, MethodHandles.Lookup l) {
+            SequencedSet<FuncOp> visited = new LinkedHashSet<>();
+            Map<FuncOp, String> funcNames = new HashMap<>(); // holds the original funcOps and their new names
+            Deque<CoreOp.FuncOp> stack = new LinkedList<>(); // holds worklist of og funcOps to process
+            SequencedSet<FuncOp> transformed = new LinkedHashSet<>();
 
-            int idx = 0;
-            stack.push(f);
+            stack.push(root);
+            funcNames.put(root, root.funcName() + "_" + funcNames.size());
             while (!stack.isEmpty()) {
                 CoreOp.FuncOp cur = stack.pop();
 
-                String name = cur.funcName() + "::" + cur.invokableType();
-                if (visited.containsKey(name)) {
-                    if (visited.get(name).equals(cur)) continue;
-                    throw new IllegalArgumentException("Method of name " + cur.funcName() + " already exists");
-                } else {
-                    visited.put(name, cur);
+                if (!visited.add(cur)) {
+                    continue;
                 }
-                List<CoreOp.FuncOp> temp = new ArrayList<>();
 
+                List<CoreOp.FuncOp> calledFuncs = new ArrayList<>();
                 // traversing to convert invokeOps -> funcCallOps and gathering invokeOps to be processed later
-                FuncOp transformed = cur.transform(cur.funcName() + "_" + idx++, (blockBuilder, op) -> {
+                transformed.add(cur.transform(funcNames.get(cur), (blockBuilder, op) -> {
                     if (op instanceof JavaOp.InvokeOp iop) {
                         Method invokeOpCalledMethod = null;
                         try {
@@ -362,29 +359,28 @@ public sealed abstract class CoreOp extends Op {
                         } catch (ReflectiveOperationException e) {
                             throw new RuntimeException("Could not resolve invokeOp to method");
                         }
-                        if (invokeOpCalledMethod instanceof Method m) {
-                            CoreOp.FuncOp funcOp = Op.ofMethod(m).orElse(null);
-                            if (funcOp != null) {
-                                temp.add(funcOp);
-                                Op.Result result = blockBuilder.op(CoreOp.funcCall(
-                                        iop.invokeDescriptor().name(),
-                                        funcOp.invokableType(),
-                                        blockBuilder.context().getValues(iop.operands())));
-                                blockBuilder.context().mapValue(op.result(), result);
-                                return blockBuilder;
-                            }
+                        if (invokeOpCalledMethod instanceof Method m &&
+                                Op.ofMethod(m).orElse(null) instanceof CoreOp.FuncOp calledFunc) {
+                            calledFuncs.add(calledFunc);
+                            funcNames.computeIfAbsent(calledFunc,
+                                    f -> f.funcName() + "_" + funcNames.size());
+                            Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                                    funcNames.get(calledFunc),
+                                    calledFunc.invokableType(),
+                                    blockBuilder.context().getValues(iop.operands())));
+                            blockBuilder.context().mapValue(op.result(), result);
+                            return blockBuilder;
                         }
                     }
                     blockBuilder.op(op);
                     return blockBuilder;
-                });
+                }));
 
-                funcs.add(transformed);
-                for (FuncOp funcOp : temp.reversed()) {
-                    stack.push(funcOp);
+                for (FuncOp f : calledFuncs.reversed()) {
+                    if (!stack.contains(f)) stack.push(f);
                 }
             }
-            return CoreOp.module(funcs);
+            return CoreOp.module(transformed.stream().toList());
         }
 
         /**

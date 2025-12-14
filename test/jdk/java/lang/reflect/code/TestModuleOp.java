@@ -53,11 +53,6 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
 public class TestModuleOp {
 
     @Reflect
-    public static void lambda(Consumer<Integer> consumer) {
-        consumer.accept(4);
-    }
-
-    @Reflect
     public static void a() {
     }
 
@@ -97,6 +92,16 @@ public class TestModuleOp {
     }
 
     @Test
+    public void testMultipleCapture() {
+        int i = 0;
+        int j = 0;
+        Runnable runnable = (@Reflect Runnable) () -> d(i, j);
+        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
+        ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("d_0", "c_1")));
+    }
+
+    @Test
     public void testArray() throws NoSuchMethodException {
         int i = 10;
         int[] array = new int[i];
@@ -120,7 +125,8 @@ public class TestModuleOp {
     public void testRepeatLambdaName() {
         @Reflect IntUnaryOperator runnable = (@Reflect IntUnaryOperator) (int j) -> {return b(1);};
         LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
-        Assertions.assertThrows(IllegalArgumentException.class, () -> ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "b"));
+        ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "b");
+        Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("b_0", "b_1")));
     }
 
     @Test
