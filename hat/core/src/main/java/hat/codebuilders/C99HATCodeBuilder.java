@@ -200,6 +200,10 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
         return u16Type().space().identifier(identifier);
     }
 
+    public final T bfloat16Type(String identifier) {
+        return suffix_t("BFLOAT16_UNION").space().identifier(identifier);
+    }
+
     public final  T typedefStructOrUnion(boolean isStruct, Class<?> klass, Consumer<T> consumer) {
         return typedefKeyword()
                 .space()
@@ -220,16 +224,34 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
                 .suffix_t(name)
                 .semicolonNl();
     }
+
+    public final T typedefUnion(String name, Consumer<T> consumer) {
+        return typedefKeyword()
+                .space()
+                .union()
+                .space()
+                .suffix_s(name)
+                .braceNlIndented(consumer)
+                .suffix_t(name)
+                .semicolonNl();
+    }
+
     public final T typedefStruct(Class<?>clazz, Consumer<T> consumer) {
         return typedefStruct(clazz.getSimpleName(), consumer);
     }
 
-
     public final T typedefSingleValueStruct(String structName, String type) {
-        return typedefStruct(structName,_-> typeName(type).space().identifier("value").semicolonNl());
+        return typedefStruct(structName,_-> typeName(type).space().identifier("value").semicolon());
     }
 
-    public final T funcDef(Consumer<T> type,Consumer<T> name, Consumer<T> args, Consumer<T> body){
+    public final T unionBfloat16() {
+        return typedefUnion("BFLOAT16_UNION", _ -> {
+            typeName("float").space().identifier("f").semicolon().nl();
+            u16Type("s").sizeArray(2).semicolon();
+        });
+    }
+
+    public final T funcDef(Consumer<T> type, Consumer<T> name, Consumer<T> args, Consumer<T> body){
         type.accept(self());
         space();
         name.accept(self());
@@ -237,6 +259,7 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
         braceNlIndented(body);
         return nl();
     }
+
     public final T assign(Consumer<T> lhs, Consumer<T> rhs){
         lhs.accept(self());
         space().equals().space();
@@ -247,19 +270,21 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
     public final T cast(Consumer<T> type){
         return paren(_-> type.accept(self()));
     }
+
     public final T returnKeyword(Consumer<T> exp){
         return returnKeyword().space().paren(_-> exp.accept(self())).semicolon();
     }
 
-    public final T call(Consumer<T> name,Consumer<T> ...args){
+    public final T call(Consumer<T> name,Consumer<T> ...args) {
         name.accept(self());
         return paren(_->commaSpaceSeparated(args));
     }
-    public final T call(String name,Consumer<T> ...args){
+
+    public final T call(String name,Consumer<T> ...args) {
         return call(_->identifier(name),args);
     }
 
-    public final T forLoop(Consumer<T> init, Consumer<T> test, Consumer<T>mutate, Consumer<T>body){
+    public final T forLoop(Consumer<T> init, Consumer<T> test, Consumer<T>mutate, Consumer<T>body) {
         return  forKeyword()
                 .paren(_->{
                     init.accept(self());
@@ -267,20 +292,21 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
                     test.accept(self());
                     semicolon().space();mutate.accept(self());
                 })
-                .braceNlIndented(body::accept)
-                .nl();
+                .braceNlIndented(body::accept);
     }
-
 
     public final T sizeof() {
         return emitText("sizeof");
     }
+
     public final T sizeof(String identifier) {
         return sizeof(_->identifier(identifier));
     }
+
     public final T sizeof(Consumer<T> consumer) {
         return sizeof().paren(consumer);
     }
+
     public final T voidPtrType() {
         return voidType().space().asterisk();
     }

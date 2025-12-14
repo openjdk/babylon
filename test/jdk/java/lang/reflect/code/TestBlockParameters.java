@@ -59,13 +59,13 @@ public class TestBlockParameters {
     @Test
     public void t() {
         FuncOp m = m();
-        m.traverse(null, CodeElement.blockVisitor((_, b) -> {
-            for (Block.Parameter p : b.parameters()) {
-                testBlockParameter(p);
+        m.elements().forEach(e -> {
+            if (e instanceof Block b) {
+                for (Block.Parameter p : b.parameters()) {
+                    testBlockParameter(p);
+                }
             }
-
-            return null;
-        }));
+        });
     }
 
     void testBlockParameter(Block.Parameter p) {

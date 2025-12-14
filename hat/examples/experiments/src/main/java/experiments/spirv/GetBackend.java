@@ -25,7 +25,7 @@
 package experiments.spirv;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -121,7 +121,7 @@ public class GetBackend {
         var a = F32Array.create(accelerator, 100);
         var b = F32Array.create(accelerator, 100);
         var c = F32Array.create(accelerator, 100);
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+        accelerator.compute((@Reflect Compute)
                 cc -> MatrixMultiply.compute(cc, a, b, c, 100));
     }
 

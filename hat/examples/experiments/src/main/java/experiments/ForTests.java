@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -36,7 +36,7 @@ import jdk.incubator.code.Reflect;
 
 public class ForTests {
 
-    public static class Compute {
+    public static class ComputeApp {
 
         @Reflect
         static void breakAndContinue(KernelContext kc, F32Array a) {
@@ -92,8 +92,8 @@ public class ForTests {
                 (backend) -> backend.getClass().getSimpleName().startsWith("OpenCL")
         );
         var a = F32Array.create(accelerator,100);
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
-                cc -> Compute.compute(cc, a)
+        accelerator.compute((@Reflect Compute)
+                cc -> ComputeApp.compute(cc, a)
         );
 
     }

@@ -214,8 +214,8 @@ public class MathOptimizer {
 
         // Select invocation calls and display the lines
         System.out.println("\nPlaying with Traverse");
-        codeModel.traverse(null, (map, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
+        codeModel.elements().forEach(e -> {
+            if (e instanceof JavaOp.InvokeOp invokeOp) {
                 System.out.println("Function Name: " + invokeOp.invokeDescriptor().name());
 
                 // Maybe Location should throw a new exception instead of the NPE,
@@ -234,7 +234,6 @@ public class MathOptimizer {
                     System.out.println("[WARNING] Location is null");
                 }
             }
-            return map;
         });
 
         // In addition, we can generate bytecodes from a new code model that

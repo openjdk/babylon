@@ -102,12 +102,11 @@ public final class OnnxTransformer {
     }
 
     static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline, CoreOp.FuncOp func) {
-        func.traverse(null, (_, op) -> {
-            if(op instanceof JavaOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
+        func.elements().forEach(e -> {
+            if (e instanceof JavaOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
                 collectModuleFunctions(l, funcs, doNotInline, f);
                 doNotInline.add(funcs.putIfAbsent(io.invokeDescriptor(), f));
             }
-            return null;
         });
     }
 
@@ -149,7 +148,8 @@ public final class OnnxTransformer {
     static ModuleAndInitializers remapInitializers(TypeConvertor tc, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
         record TI(TypeElement type, int index) {}
-        var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
+        LinkedHashMap<FieldRef, TI> initializers = new LinkedHashMap();
+        module.elements().forEach(op -> {
             if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flo
                     && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
                      || tc.isRecord(flo.resultType())
@@ -157,13 +157,12 @@ public final class OnnxTransformer {
                     )) {
                 var targetType = tc.convertType(flo.result());
                 // computataion of the tuple size created out of the static array initializer field
-                i.compute(flo.fieldDescriptor(), (fd, ti) -> ti == null
-                        ? new TI(targetType, i.size())
+                initializers.compute(flo.fieldDescriptor(), (fd, ti) -> ti == null
+                        ? new TI(targetType, initializers.size())
                         : targetType instanceof TupleType newTt && ti.type() instanceof TupleType oldTt && newTt.componentTypes().size() > oldTt.componentTypes().size()
                                 ? new TI(newTt, ti.index())
                                 : ti);
             }
-            return i;
         });
 
         if (initializers.isEmpty()) {

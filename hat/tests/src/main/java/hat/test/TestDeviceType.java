@@ -30,7 +30,7 @@ import hat.buffer.F16;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 
 /**
  * Test to check the Intermediate Representation (IR) of {@link DeviceType} interfaces

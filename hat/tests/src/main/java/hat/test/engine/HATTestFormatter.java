@@ -41,9 +41,9 @@ public class HATTestFormatter {
                 .append(Colours.RESET);
     }
 
-    public static void ok(StringBuilder builder) {
+    public static void passed(StringBuilder builder) {
         builder.append(Colours.GREEN)
-                .append("[ok]")
+                .append("[passed]")
                 .append(Colours.RESET)
                 .append("\n");;
     }
@@ -59,6 +59,15 @@ public class HATTestFormatter {
         builder.append(Colours.YELLOW)
                 .append("[FAIL][EXPECTED]")
                 .append(Colours.RED)
+                .append(" Reason: ")
+                .append(reason)
+                .append(Colours.RESET)
+                .append("\n");;
+    }
+
+    public static void expectedPrecisionError(StringBuilder builder, String reason) {
+        builder.append(Colours.RED)
+                .append("[EXPECTED][PRECISION ERROR]")
                 .append(" Reason: ")
                 .append(reason)
                 .append(Colours.RESET)
