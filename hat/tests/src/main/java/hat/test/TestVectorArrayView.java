@@ -24,6 +24,8 @@
  */
 package hat.test;
 
+import hat.device.DeviceSchema;
+import hat.device.DeviceType;
 import jdk.incubator.code.Reflect;
 
 import hat.*;
@@ -31,7 +33,6 @@ import hat.backend.Backend;
 import hat.buffer.*;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
@@ -216,21 +217,13 @@ public class TestVectorArrayView {
         }
     }
 
-    private interface SharedMemory extends Buffer {
+    private interface SharedMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
-                arr -> arr.array("array", 1024));
-        static SharedMemory create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
-        }
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.withArray("array", 1024));
         static SharedMemory createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
-        }
-        default Float4 float4View(int index) {
             return null;
-        }
-        default void storeFloat4View(Float4 float4, int index) {
         }
         default Float4.MutableImpl[] float4LocalArrayView() {
             return null;
@@ -256,21 +249,13 @@ public class TestVectorArrayView {
         }
     }
 
-    private interface PrivateMemory extends Buffer {
+    private interface PrivateMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        Schema<PrivateMemory> schema = Schema.of(PrivateMemory.class,
-                arr -> arr.array("array", 4));
-        static PrivateMemory create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
-        }
+        DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,
+                arr -> arr.withArray("array", 4));
         static PrivateMemory createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
-        }
-        default Float4 float4View(int index) {
             return null;
-        }
-        default void storeFloat4View(Float4 float4, int index) {
         }
         default Float4[] float4PrivateArrayView() {
             return null;

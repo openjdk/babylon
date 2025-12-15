@@ -258,37 +258,18 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             for (TypeElement typeElement : localIFaceList) {
                 try {
-                    // Approach 1: The first approach support iFace and Buffer types to be used in Local and Private memory
-                    // TODO: Once we decide to move towards the DeviceType implementation, we will remove this part
                     Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
-                    // DON'T DO THIS !!!!  we are needlessly allocating a memory segment here pn each dispatch!!!
-                    // just to get the bound schema.
-                    Method method = clazz.getMethod("create", hat.Accelerator.class);
-                    method.setAccessible(true);
-                    Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
-                    if (invoke != null) {
-                        // code gen of the struct
-                        BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
-                        boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
-                            if (!already.contains(t)) {
-                                builder.typedef(boundSchema, t);
-                                already.add(t);
-                            }
-                        });
+                    Field schemaField = clazz.getDeclaredField("schema");
+                    schemaField.setAccessible(true);
+                    var schema = (DeviceSchema<?>)schemaField.get(schemaField);
+                    // <1> We are creating text form of DeviceType schema
+                    String toText = schema.toText();
+                    if (toText != null) {
+                        // <2> just to then parse the text from above.
+                        // Lets get the model in a cleaner form
+                        generateDeviceTypeStructs(builder, toText, typedefs);
                     } else {
-                        // new approach for supporting DeviceTypes
-                        Field schemaField = clazz.getDeclaredField("schema");
-                        schemaField.setAccessible(true);
-                        var schema = (DeviceSchema<?>)schemaField.get(schemaField);
-                        // <1> We are creating text form of DeviceType schema
-                        String toText = schema.toText();
-                        if (toText != null) {
-                            // <2> just to then parse the text from above.
-                            // Lets get the model in a cleaner form
-                            generateDeviceTypeStructs(builder, toText, typedefs);
-                        } else {
-                            throw new RuntimeException("[ERROR] Could not find valid device schema ");
-                        }
+                        throw new RuntimeException("[ERROR] Could not find valid device schema ");
                     }
                 } catch (ReflectiveOperationException e) {
                     throw new RuntimeException(e);

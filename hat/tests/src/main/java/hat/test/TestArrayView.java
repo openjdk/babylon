@@ -38,13 +38,11 @@ import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
-import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class TestArrayView {
 
@@ -589,17 +587,13 @@ public class TestArrayView {
     /*
      * basic test of local and private buffer ArrayViews
      */
-    private interface SharedMemory extends Buffer {
+    private interface SharedMemory extends DeviceType {
         void array(long index, int value);
         int array(long index);
-        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
-                arr -> arr.array("array", 1024));
-        static SharedMemory create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
-        }
-        static SharedMemory createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
-        }
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.withArray("array", 1024));
+
+        static SharedMemory createLocal() { return null; }
 
         default int[] localArrayView() {
             int[] view = new int[1024];
@@ -610,17 +604,13 @@ public class TestArrayView {
         }
     }
 
-    public interface PrivateArray extends Buffer {
+    public interface PrivateArray extends DeviceType {
         void array(long index, int value);
         int array(long index);
-        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
-                arr -> arr.array("array", 16));
-        static PrivateArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
-        }
-        static PrivateArray createPrivate() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
-        }
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+                arr -> arr.withArray("array", 16));
+
+        static PrivateArray createPrivate() { return null; }
 
         default int[] privateArrayView() {
             int[] view = new int[16];
@@ -637,8 +627,6 @@ public class TestArrayView {
         if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
             arr[kc.gix] += arr[kc.gix];
-            // int[] a = new int[4];
-            // a[1] = 4;
 
             PrivateArray priv = PrivateArray.createPrivate();
             int[] privView = priv.privateArrayView();
@@ -647,6 +635,7 @@ public class TestArrayView {
 
             int[] sharedView = shared.localArrayView();
             sharedView[0] = 16;
+            kc.barrier();
             arr[kc.gix] += sharedView[0];
         }
     }
@@ -725,6 +714,7 @@ public class TestArrayView {
 
             privView[kc.gix] = arr[kc.gix];
             sharedView[kc.gix] = arr[kc.gix];
+            kc.barrier();
             arr[kc.gix] = privView[kc.gix] + sharedView[kc.gix];
         }
     }
@@ -744,18 +734,12 @@ public class TestArrayView {
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }
-        accelerator.compute(
-                cc -> basicDeviceType(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+        accelerator.compute(cc -> basicDeviceType(cc, arr));
         for (int i = 0; i < arr.length(); i++) {
             HATAsserts.assertEquals(2 * i, arr.array(i));
         }
     }
-
-    /*
-     * testing DeviceTypes instead of Buffer
-     */
-
+    
     @Reflect
     public static void squareKernelDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
         SharedDeviceType shared = SharedDeviceType.createLocal();
@@ -768,6 +752,7 @@ public class TestArrayView {
 
             privView[kc.gix] = arr[kc.gix];
             sharedView[privView[kc.gix]] = 16 * privView[kc.gix];
+            kc.barrier();
             arr[kc.gix] += privView[kc.gix] + sharedView[kc.gix];
         }
     }
@@ -787,9 +772,7 @@ public class TestArrayView {
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }
-        accelerator.compute(
-                cc -> deviceType(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+        accelerator.compute(cc -> deviceType(cc, arr));
         for (int i = 0; i < arr.length(); i++) {
             HATAsserts.assertEquals(18 * i, arr.array(i));
         }
