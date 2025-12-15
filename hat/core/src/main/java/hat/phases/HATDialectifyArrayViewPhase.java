@@ -26,7 +26,17 @@ package hat.phases;
 
 import hat.Accelerator;
 import hat.device.DeviceType;
-import hat.dialect.*;
+import hat.dialect.HATLocalVarOp;
+import hat.dialect.HATPhaseUtils;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorAddOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorDivOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorMulOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATVectorSubOp;
+import hat.dialect.HATVectorVarOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import hat.types._V;
@@ -40,7 +50,10 @@ import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 
 import java.lang.invoke.MethodHandles;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class HATDialectifyArrayViewPhase implements HATDialect {
 
@@ -65,11 +78,11 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
         return entry.transform(entry.funcName(), (bb, op) -> {
             switch (op) {
                 case JavaOp.InvokeOp invokeOp -> {
-                    // catching HATVectorBinaryOps not stored in VarOps
                     if (isVectorBinaryOperation(invokeOp)) {
+                        // catching HATVectorBinaryOps not stored in VarOps
                         HATVectorBinaryOp vBinaryOp = buildVectorBinaryOp(
                                 invokeOp.invokeDescriptor().name(),
-                                invokeOp.externalizeOpName(),
+                                obtainVarNameFromInvoke(invokeOp),
                                 invokeOp.resultType(),
                                 bb.context().getValues(invokeOp.operands())
                         );
@@ -448,5 +461,16 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException("given type cannot be converted to class");
         }
+    }
+
+    private String obtainVarNameFromInvoke(JavaOp.InvokeOp invokeOp) {
+        Op.Result invokeResult = invokeOp.result();
+        if (!invokeResult.uses().isEmpty()) {
+            Op.Result r = invokeResult.uses().stream().toList().getFirst();
+            if (r.op() instanceof CoreOp.VarOp varOp) {
+                return varOp.varName();
+            }
+        }
+        return invokeOp.externalizeOpName();
     }
 }
