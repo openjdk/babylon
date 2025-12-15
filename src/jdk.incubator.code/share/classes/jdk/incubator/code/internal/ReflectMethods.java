@@ -1870,9 +1870,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Push init
             // @@@ When lhs assignment is a pattern we embed the pattern match into the init body and
             // return the bound variables
-            Type eType = tree.expr.type.hasTag(ARRAY) ?
-                    types.elemtype(tree.expr.type) : types.asSuper(tree.expr.type, syms.iterableType.tsym).getTypeArguments().head;
-            pushBody(var, CoreType.functionType(varEType, typeToTypeElement(eType)));
+            Type exprType = types.cvarUpperBound(tree.expr.type);
+            Type elemtype = types.elemtype(exprType); // perhaps expr is an array?
+            if (elemtype == null) {
+                Type iterableType = types.asSuper(tree.expr.type, syms.iterableType.tsym);
+                com.sun.tools.javac.util.List<Type> iterableParams = iterableType.allparams();
+                elemtype = iterableParams.isEmpty()
+                        ? syms.objectType
+                        : types.wildUpperBound(iterableParams.head);
+            }
+            pushBody(var, CoreType.functionType(varEType, typeToTypeElement(elemtype)));
             var initVarExpr = convert(stack.block.parameters().get(0), var.type);
             Op.Result varEResult = append(CoreOp.var(var.name.toString(), initVarExpr));
             append(CoreOp.core_yield(varEResult));
