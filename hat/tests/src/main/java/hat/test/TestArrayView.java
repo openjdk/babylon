@@ -739,7 +739,7 @@ public class TestArrayView {
             HATAsserts.assertEquals(2 * i, arr.array(i));
         }
     }
-    
+
     @Reflect
     public static void squareKernelDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
         SharedDeviceType shared = SharedDeviceType.createLocal();
