@@ -22,6 +22,8 @@
  */
 
 import jdk.incubator.code.Reflect;
+
+import java.util.List;
 import java.util.function.Supplier;
 
 /*
@@ -716,5 +718,75 @@ public class BoxingConversionTest {
             """)
     static void test33(Boolean i) {
         boolean j = !i;
+    }
+
+    @Reflect
+    @IR("""
+            func @"unboxForEachList" (%0 : java.type:"java.util.List<java.lang.Integer>")java.type:"int" -> {
+                %1 : Var<java.type:"java.util.List<java.lang.Integer>"> = var %0 @"li";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"j";
+                java.enhancedFor
+                    ()java.type:"java.util.List<java.lang.Integer>" -> {
+                        %4 : java.type:"java.util.List<java.lang.Integer>" = var.load %1;
+                        yield %4;
+                    }
+                    (%5 : java.type:"java.lang.Integer")Var<java.type:"int"> -> {
+                        %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                        %7 : Var<java.type:"int"> = var %6 @"i";
+                        yield %7;
+                    }
+                    (%8 : Var<java.type:"int">)java.type:"void" -> {
+                        %9 : java.type:"int" = var.load %3;
+                        %10 : java.type:"int" = var.load %8;
+                        %11 : java.type:"int" = add %9 %10;
+                        var.store %3 %11;
+                        java.continue;
+                    };
+                %12 : java.type:"int" = var.load %3;
+                return %12;
+            };
+            """)
+    static int unboxForEachList(List<Integer> li) {
+        int j = 0;
+        for (int i : li) {
+            j += i;
+        }
+        return j;
+    }
+
+    @Reflect
+    @IR("""
+            func @"unboxForEachArray" (%0 : java.type:"java.lang.Integer[]")java.type:"int" -> {
+                %1 : Var<java.type:"java.lang.Integer[]"> = var %0 @"is";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"j";
+                java.enhancedFor
+                    ()java.type:"java.lang.Integer[]" -> {
+                        %4 : java.type:"java.lang.Integer[]" = var.load %1;
+                        yield %4;
+                    }
+                    (%5 : java.type:"java.lang.Integer")Var<java.type:"int"> -> {
+                        %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                        %7 : Var<java.type:"int"> = var %6 @"i";
+                        yield %7;
+                    }
+                    (%8 : Var<java.type:"int">)java.type:"void" -> {
+                        %9 : java.type:"int" = var.load %3;
+                        %10 : java.type:"int" = var.load %8;
+                        %11 : java.type:"int" = add %9 %10;
+                        var.store %3 %11;
+                        java.continue;
+                    };
+                %12 : java.type:"int" = var.load %3;
+                return %12;
+            };
+            """)
+    static int unboxForEachArray(Integer[] is) {
+        int j = 0;
+        for (int i : is) {
+            j += i;
+        }
+        return j;
     }
 }
