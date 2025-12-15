@@ -37,6 +37,7 @@ import java.lang.constant.Constable;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicCallSiteDesc;
+import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.LambdaMetafactory;
@@ -102,7 +103,7 @@ public final class BytecodeGenerator {
 
         MethodHandles.Lookup hcl;
         try {
-            hcl = l.defineHiddenClass(classBytes, true, MethodHandles.Lookup.ClassOption.NESTMATE);
+            hcl = l.defineHiddenClassWithClassData(classBytes, l, true, MethodHandles.Lookup.ClassOption.NESTMATE);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -430,6 +431,8 @@ public final class BytecodeGenerator {
                 !(values = op.branch().arguments()).isEmpty() && values.getFirst() == opr;
             // static vararg InvokeOp with no regular args
             case InvokeOp op when op.isVarArgs() && !op.hasReceiver() && op.argOperands().isEmpty() -> false;
+            // InvokeOp SUPER
+            case InvokeOp op when op.invokeKind() == InvokeOp.InvokeKind.SUPER -> false;
             // regular check of the first operand
             default ->
                 !(values = nextOp.operands()).isEmpty() && values.getFirst() == opr;
@@ -791,6 +794,25 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case InvokeOp op -> {
+                        // Resolve referenced class to determine if interface
+                        MethodRef md = op.invokeDescriptor();
+                        JavaType refType = (JavaType)md.refType();
+                        ClassDesc specialCaller = lookup.lookupClass().describeConstable().get();
+                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
+                        if (op.invokeKind() == InvokeOp.InvokeKind.SUPER) {
+                            // constructs method handle via lookup.findSpecial using the lookup's class as the specialCaller
+                            // original lookup is stored in class data
+                            // @@@ performance can be improved by storing a list of the resolved method handles instead
+                            cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
+                               .checkcast(CD_MethodHandles_Lookup)
+                               .ldc(refType.toNominalDescriptor())
+                               .ldc(md.name())
+                               .ldc(mDesc)
+                               .ldc(specialCaller)
+                               .invokevirtual(CD_MethodHandles_Lookup,
+                                              "findSpecial",
+                                              MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType, CD_Class));
+                        }
                         if (op.isVarArgs()) {
                             processOperands(op.argOperands());
                             var varArgOperands = op.varArgOperands();
@@ -814,39 +836,30 @@ public final class BytecodeGenerator {
                         } else {
                             processOperands(op);
                         }
-                        // Resolve referenced class to determine if interface
-                        MethodRef md = op.invokeDescriptor();
-                        JavaType refType = (JavaType)md.refType();
                         Class<?> refClass;
                         try {
                              refClass = (Class<?>)refType.erasure().resolve(lookup);
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);
                         }
-                        // Determine invoke opcode
                         boolean isInterface =  refClass.isInterface();
-                        Opcode invokeOpcode = switch (op.invokeKind()) {
+                        switch (op.invokeKind()) {
                             case STATIC ->
-                                    Opcode.INVOKESTATIC;
+                                    cob.invokestatic(refType.toNominalDescriptor(),
+                                                     md.name(),
+                                                     mDesc,
+                                                     isInterface);
                             case INSTANCE ->
-                                    isInterface ? Opcode.INVOKEINTERFACE : Opcode.INVOKEVIRTUAL;
+                                    cob.invoke(isInterface ? Opcode.INVOKEINTERFACE : Opcode.INVOKEVIRTUAL,
+                                               refType.toNominalDescriptor(),
+                                               md.name(),
+                                               mDesc,
+                                               isInterface);
                             case SUPER ->
-                                    // @@@ We cannot generate an invokespecial as it will result in a verify error,
-                                    //     since the owner is not assignable to generated hidden class
-                                    // @@@ Construct method handle via lookup.findSpecial
-                                    //     using the lookup's class as the specialCaller and
-                                    //     add that method handle to the to be defined hidden class's constant data
-                                    //     Use and ldc+constant dynamic to access the class data,
-                                    //     extract the method handle and then invoke it
-                                    throw new UnsupportedOperationException("invoke super unsupported: " + op.invokeDescriptor());
-                        };
-                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
-                        cob.invoke(
-                                invokeOpcode,
-                                refType.toNominalDescriptor(),
-                                md.name(),
-                                mDesc,
-                                isInterface);
+                                    cob.invokevirtual(CD_MethodHandle,
+                                                      "invoke",
+                                                      mDesc.insertParameterTypes(0, specialCaller));
+                        }
                         ClassDesc ret = toClassDesc(op.resultType());
                         if (ret.isClassOrInterface() && !ret.equals(mDesc.returnType())) {
                             // Explicit cast if method return type differs
