@@ -5261,6 +5261,23 @@ public sealed abstract class JavaOp extends Op {
      *                                  and the invoke descriptors parameter count.
      */
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
+                                  TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
+        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, List.of(args));
+    }
+
+    /**
+     * Creates an invoke operation modelling an invocation to a method.
+     *
+     * @param invokeKind       the invoke kind
+     * @param isVarArgs        true if an invocation to a variable argument method
+     * @param returnType       the return type
+     * @param invokeDescriptor the invoke descriptor
+     * @param args             the invoke arguments
+     * @return the invoke operation
+     * @throws IllegalArgumentException if there is a mismatch between the argument count
+     *                                  and the invoke descriptors parameter count.
+     */
+    public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
                                   TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
         return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, args);
     }

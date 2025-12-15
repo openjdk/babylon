@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,32 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package hat.test.exceptions;
 
-#include "opencl_backend.h"
-
-OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferState, u8_t accessor)
-        : Buffer(backend, bufferState) {
-
-    uint8_t access = CL_MEM_USE_HOST_PTR;
-    switch (accessor) {
-        case RO_BYTE: access |= CL_MEM_READ_ONLY; break;
-        case WO_BYTE: access |=  CL_MEM_WRITE_ONLY; break;
-        default: access |= CL_MEM_READ_WRITE;
+public class HATExpectedPrecisionError extends HATTestException {
+    public HATExpectedPrecisionError(String message) {
+        super(message);
     }
-
-    const auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
-    cl_int status;
-    clMem = clCreateBuffer(
-        openclBackend->context,
-        access,
-        bufferState->length,
-        bufferState->ptr,
-        &status);
-
-    OPENCL_CHECK(status, "clCreateBuffer");
-    bufferState->vendorPtr =  static_cast<void *>(this);
-}
-
-OpenCLBackend::OpenCLBuffer::~OpenCLBuffer() {
-    clReleaseMemObject(clMem);
 }

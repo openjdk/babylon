@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -153,7 +153,7 @@ public class Reduction {
         partialSums.fill(_ -> 0);
 
         // Compute on the accelerator
-        accelerator.compute((@Reflect QuotableComputeContextConsumer)
+        accelerator.compute((@Reflect Compute)
                 cc -> Reduction.mySimpleCompute(cc, input, partialSums));
 
         int[] results = new int[2]; // 2 groups

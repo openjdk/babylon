@@ -25,11 +25,13 @@
 package hat.util;
 
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public record Regex(Pattern pattern) {
+public record Regex(Function<Match,Match> factory,Pattern pattern) {
     public interface Result {
     }
 
@@ -73,9 +75,11 @@ public record Regex(Pattern pattern) {
     }
 
     public static Regex of(String... strings) {
-        return new Regex(Pattern.compile(String.join("", strings)));
+        return of(m->m, strings);
     }
-
+    public static Regex of(Function<Match,Match> factory, String... strings) {
+        return new Regex(factory,Pattern.compile(String.join("", strings)));
+    }
     public static Result any(String line, Regex... regexes) {
         for (Regex r : regexes) {
             if (r.is(line) instanceof Match match) {
@@ -91,6 +95,7 @@ public record Regex(Pattern pattern) {
             return FAIL.of();
         }
     }
+
     public Result is(String s, BiFunction<Regex,Matcher, Match> factory) {
         return is(s, _->true,factory);
     }

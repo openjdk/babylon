@@ -157,7 +157,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      *    }
      *  }
      *  </pre>
-     * The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code QuotableComputeContextConsumer}
+     * The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code Compute}
      * <pre>
      *  accelerator.compute(cc ->
      *     MyCompute.doSomeWork(cc, arrayOfInt)
@@ -165,8 +165,10 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      *  </pre>
      */
     @Reflect
-    public interface QuotableComputeContextConsumer extends Consumer<ComputeContext> {
+    @FunctionalInterface
+    public interface Compute extends Consumer<ComputeContext> {
     }
+
     // convenience
     public Config config(){
         return backend.config();
@@ -175,7 +177,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     /**
      * This method provides the Accelerator with the {@code Compute Entrypoint} from a Compute class.
      * <p>
-     * The entrypoint is wrapped in a <a href="QuotableComputeContextConsumer.html">QuotableComputeContextConsumer</a> lambda.
+     * The entrypoint is wrapped in a {@link Compute} lambda.
      *
      * <pre>
      * accelerator.compute(cc -&gt;
@@ -183,17 +185,17 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      * )
      * </pre>
      */
-    public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
-        Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
+    public void compute(Compute compute) {
+        Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = OpTk.methodOrThrow(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));
+        Method method = OpTk.methodOrThrow(lookup, OpTk.getTargetInvokeOp(lambda));
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
         ComputeContext computeContext = cache.computeIfAbsent(method, (_) -> new ComputeContext(this, method));
-        // Here we get the captured values  from the Quotable
-        Object[] args = OpTk.getQuotableCapturedValues(lambda,quoted, method);
+        // Here we get the captured values from the lambda
+        Object[] args = OpTk.getQuotedCapturedValues(lambda, quoted, method);
         args[0] = computeContext;
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

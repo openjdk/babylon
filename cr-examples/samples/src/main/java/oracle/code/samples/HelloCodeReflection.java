@@ -132,14 +132,13 @@ public class HelloCodeReflection {
         // 7. AST Printer
         // Just for illustration purposes, this is another way to print a code model,
         // traversing each element until we reach the parent
-        codeModel.traverse(null, (acc, codeElement) -> {
+        codeModel.elements().forEach(codeElement -> {
             int depth = 0;
             CodeElement<?, ?> parent = codeElement;
             while ((parent = parent.parent()) != null) {
                 depth++;
             }
             System.out.println(" ".repeat(depth) + codeElement.getClass());
-            return acc;
         });
     }
 }

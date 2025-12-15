@@ -34,7 +34,7 @@ import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -72,8 +72,8 @@ public class TestArrayView {
             arr.array(i, i);
         }
         accelerator.compute(
-                cc -> square(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+                cc -> square(cc, arr)
+        );
         for (int i = 0; i < arr.length(); i++) {
             HATAsserts.assertEquals(i * i, arr.array(i));
         }
@@ -105,8 +105,8 @@ public class TestArrayView {
             arr.array(i, i);
         }
         accelerator.compute(
-                cc -> squareNoVarOp(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+                cc -> squareNoVarOp(cc, arr)
+        );
         for (int i = 0; i < arr.length(); i++) {
             HATAsserts.assertEquals(i * i, arr.array(i));
         }
@@ -139,8 +139,8 @@ public class TestArrayView {
             }
         }
         accelerator.compute(
-                cc -> square2D(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+                cc -> square2D(cc, arr)
+        );
         for (int i = 0; i < arr.height(); i++) {
             for (int j = 0; j < arr.width(); j++) {
                 HATAsserts.assertEquals((i * 5 + j) * (i * 5 + j), arr.get(i, j));
@@ -643,8 +643,8 @@ public class TestArrayView {
             arr.array(i, i);
         }
         accelerator.compute(
-                cc -> privateAndLocal(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+                cc -> privateAndLocal(cc, arr)
+        );
         for (int i = 0; i < arr.length(); i++) {
             HATAsserts.assertEquals(2 * i + 17, arr.array(i));
         }

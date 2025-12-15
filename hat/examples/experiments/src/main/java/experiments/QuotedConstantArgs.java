@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.Accelerator.QuotableComputeContextConsumer;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -53,10 +53,10 @@ public class QuotedConstantArgs {
         S32Array out = S32Array.create(accelerator, 32);
         if (args.length == 0) {
             int value = 1;
-            accelerator.compute((@Reflect QuotableComputeContextConsumer)
+            accelerator.compute((@Reflect Compute)
                     computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, value));
         }else if (args.length == 1 && args[0].equals("passConstant")) {
-            accelerator.compute((@Reflect QuotableComputeContextConsumer)
+            accelerator.compute((@Reflect Compute)
                     computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, 1));
         }else{
             throw new IllegalArgumentException("Invalid arguments either zero args or passConstant");
