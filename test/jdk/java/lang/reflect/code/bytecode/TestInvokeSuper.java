@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,11 +29,9 @@
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandle;
@@ -64,7 +62,6 @@ public class TestInvokeSuper {
         }
     }
 
-    @Disabled
     @Test
     public void testInvokeSuper() throws Throwable {
         CoreOp.FuncOp f = getFuncOp(B.class, "f");
