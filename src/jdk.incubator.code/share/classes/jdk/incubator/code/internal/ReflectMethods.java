@@ -108,6 +108,7 @@ import static com.sun.tools.javac.code.Flags.*;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
+import static com.sun.tools.javac.code.TypeTag.ARRAY;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
@@ -1895,14 +1896,23 @@ public class ReflectMethods extends TreeTranslatorPrev {
             popBody();
 
             JCVariableDecl var = tree.getVariable();
-            JavaType eType = typeToTypeElement(var.type);
             VarType varEType = CoreType.varType(typeToTypeElement(var.type));
 
             // Push init
             // @@@ When lhs assignment is a pattern we embed the pattern match into the init body and
             // return the bound variables
-            pushBody(var, CoreType.functionType(varEType, eType));
-            Op.Result varEResult = append(CoreOp.var(var.name.toString(), stack.block.parameters().get(0)));
+            Type exprType = types.cvarUpperBound(tree.expr.type);
+            Type elemtype = types.elemtype(exprType); // perhaps expr is an array?
+            if (elemtype == null) {
+                Type iterableType = types.asSuper(tree.expr.type, syms.iterableType.tsym);
+                com.sun.tools.javac.util.List<Type> iterableParams = iterableType.allparams();
+                elemtype = iterableParams.isEmpty()
+                        ? syms.objectType
+                        : types.wildUpperBound(iterableParams.head);
+            }
+            pushBody(var, CoreType.functionType(varEType, typeToTypeElement(elemtype)));
+            var initVarExpr = convert(stack.block.parameters().get(0), var.type);
+            Op.Result varEResult = append(CoreOp.var(var.name.toString(), initVarExpr));
             append(CoreOp.core_yield(varEResult));
             Body.Builder init = stack.body;
             // Pop init
