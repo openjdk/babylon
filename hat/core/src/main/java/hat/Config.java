@@ -25,7 +25,9 @@
 
 package hat;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public class Config {
 
@@ -147,18 +149,14 @@ public class Config {
             PROFILE_CUDA_KERNEL
     );
 
-    private int bits;
-
+    final private int bits;
 
     public int bits(){
         return bits;
     }
-    public void bits(int bits){
-        this.bits = bits;
-    }
 
-    Config(int bits){
-        bits(bits);
+    Config(int bits, boolean junk){
+        this.bits = bits;
     }
 
     // These must sync with hat/backends/ffi/shared/include/config.h
@@ -166,70 +164,49 @@ public class Config {
 
     public static Config fromEnvOrProperty() {
         if (System.getenv("HAT") instanceof String opts) {
-            System.out.println("From env " + opts);
+           // System.out.println("From env " + opts);
             return fromSpec(opts);
-        }
-        if (System.getProperty("HAT") instanceof String opts) {
-            System.out.println("From prop " + opts);
+        }else if (System.getProperty("HAT") instanceof String opts) {
+           // System.out.println("From prop " + opts);
             return fromSpec(opts);
+        }else {
+            return fromSpec("");
         }
-        return fromSpec("");
     }
 
     public static Config fromIntBits(int bits) {
-        return new Config(bits);
+        return new Config(bits,false);
     }
 
-    public static Config fromBits(List<Bit> configBits) {
-        int allBits = 0;
-        for (Bit configBit : configBits) {
-            allBits |= configBit.mask();
-        }
-        return new Config(allBits);
-    }
+     record BitValue(Bit bit, int value){}
 
-    public static Config fromBits(Bit... configBits) {
-        return fromBits(List.of(configBits));
-    }
-
-    public Config and(Bit... configBits) {
-        return Config.fromIntBits(Config.fromBits(List.of(configBits)).bits & bits);
-    }
-
-    public Config or(Bit... configBits) {
-        return Config.fromIntBits(Config.fromBits(List.of(configBits)).bits | bits);
-    }
-
-    public record BitValue(Bit bit, int value){}
-
+    // recursive!!!
     public static Config fromSpec(String spec) {
-        if (spec == null || spec.equals("")) {
-            return Config.fromIntBits(0);
-        }
-        for (Bit bit:bitList) {
-            if (bit.name().equals(spec)) {
-                return new Config(bit.mask());
+        Optional<Config> returnValue=Optional.of(Config.fromIntBits(0));
+        if (spec == null || spec.isEmpty()) {
+           // default is good
+        }else if (spec.contains(",")) {
+            returnValue =  Arrays.stream(spec.split(",")).map(Config::fromSpec).reduce((lhs, rhs) -> Config.fromIntBits(lhs.bits() | rhs.bits()));
+        } else if (!spec.contains(":")) {
+            returnValue=  bitList.stream().filter(bit->bit.name().equals(spec)).findFirst().map(b->fromIntBits(b.mask()));
+        }else{
+            var split = spec.split(":");
+            if (split.length==2) {
+                var optBit = bitList.stream().filter(bit -> bit.name().equals(split[0])).findFirst();
+                if (optBit.isPresent()) {
+                    var bv = new BitValue(optBit.get(), Integer.parseInt(split[1]));
+                    var bitz = bv.value << bv.bit().index();
+                    returnValue= Optional.of(fromIntBits(bitz));
+                }
             }
         }
-        if (spec.contains(",")) {
-            var bits = 0;
-            for (var opt: spec.split(",")) {
-                var split = opt.split(":");
-                var valName=split[0];
-                var value=split.length==1?1:Integer.parseInt(split[1]);
-                var bitValue = Config.bitList.stream()
-                        .filter(bit ->bit.name().equals(valName))
-                        .map(bit -> new BitValue(bit, value))
-                        .findFirst()
-                        .orElseThrow();
-                bits |= bitValue.value << bitValue.bit.index();
-            }
-            return fromIntBits(bits);
-        } else {
+        if (returnValue.isPresent()) {
+            return returnValue.get();
+        }else {
             System.out.println("Unexpected spec '" + spec + "'");
             System.exit(1);
-            return Config.fromIntBits(0);
         }
+        return null;
     }
 
     @Override

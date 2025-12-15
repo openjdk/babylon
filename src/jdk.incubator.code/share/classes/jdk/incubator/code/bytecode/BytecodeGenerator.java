@@ -428,6 +428,8 @@ public final class BytecodeGenerator {
             // Unconditional branch first target block argument
             case BranchOp op ->
                 !(values = op.branch().arguments()).isEmpty() && values.getFirst() == opr;
+            // static vararg InvokeOp with no regular args
+            case InvokeOp op when op.isVarArgs() && !op.hasReceiver() && op.argOperands().isEmpty() -> false;
             // regular check of the first operand
             default ->
                 !(values = nextOp.operands()).isEmpty() && values.getFirst() == opr;
