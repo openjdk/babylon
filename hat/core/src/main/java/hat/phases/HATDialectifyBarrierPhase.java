@@ -25,48 +25,26 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.Config;
 import hat.dialect.HATBarrierOp;
 import hat.optools.OpTk;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-public class HATDialectifyBarrierPhase implements HATDialect {
-
-    protected final Accelerator accelerator;
-    @Override  public Accelerator accelerator(){
-        return this.accelerator;
-    }
-    public HATDialectifyBarrierPhase(Accelerator accelerator) {
-        this.accelerator = accelerator;
-    }
+public record HATDialectifyBarrierPhase(Accelerator accelerator) implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
-        var here =  OpTk.CallSite.of(HATDialectifyBarrierPhase.class, "apply");
+        var here = OpTk.CallSite.of(HATDialectifyBarrierPhase.class, "apply");
         before(here, fromFuncOp);
         // The resulting op map also includes all op mappings (so op -> op') and the to and from funcOp
         // I expect this to be useful for tracking state...
 
         OpTk.OpMap opMap = OpTk.simpleOpMappingTransform(
                 /* for debugging we will remove */ here, fromFuncOp,
-                /* filter op                    */ op->isKernelContextInvokeWithName(op,HATBarrierOp.INTRINSIC_NAME),
+                /* filter op                    */ ce -> OpTk.isKernelContextInvokeOp(accelerator.lookup, ce,
+                                                    invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.INTRINSIC_NAME)),
                 /* replace op                   */ HATBarrierOp::new
         );
-        after(here,opMap.toFuncOp());
+        after(here, opMap.toFuncOp());
         return opMap.toFuncOp();
     }
 

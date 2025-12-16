@@ -29,7 +29,6 @@ import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
 import hat.optools.OpTk;
-import hat.types._V;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -40,24 +39,15 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyVectorSelectPhase implements HATDialect {
-
-    protected final Accelerator accelerator;
-    @Override  public Accelerator accelerator(){
-        return this.accelerator;
-    }
-    public HATDialectifyVectorSelectPhase(Accelerator accelerator) {
-        this.accelerator = accelerator;
-    }
+public record HATDialectifyVectorSelectPhase(Accelerator accelerator) implements HATDialect {
+    static Pattern xyzw = Pattern.compile("[xyzw]");
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
-        return isMethod(invokeOp, "x")
-                || isMethod(invokeOp, "y")
-                || isMethod(invokeOp, "z")
-                || isMethod(invokeOp, "w");
+        return OpTk.isMethod(invokeOp, n->xyzw.matcher(n).matches());
     }
 
     int getLane(String fieldName) {
@@ -70,46 +60,27 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
         };
     }
 
-    private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
-        String typeElement = invokeOp.invokeDescriptor().refType().toString();
-        Set<Class<?>> interfaces;
-        try {
-            Class<?> aClass = Class.forName(typeElement);
-            interfaces = OpTk.inspectAllInterfaces(aClass);
-        } catch (ClassNotFoundException _) {
-            return false;
-        }
-        return interfaces.contains(_V.class) && isVectorLane(invokeOp);
-    }
-
-    private String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findNameVector(varLoadOp.operands().get(0));
-    }
-
+    // recursive
     private String findNameVector(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findNameVector(varLoadOp);
-        } else {
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp vectorViewOp) {
-                return vectorViewOp.varName();
-            }
-            return null;
+            return findNameVector(varLoadOp.operands().getFirst());
+        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp vectorViewOp) {
+            return vectorViewOp.varName();
         }
+        throw new IllegalStateException("recurse fail findNameVector");
+
     }
 
-    private CoreOp.VarOp findVarOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVarOp(varLoadOp.operands().get(0));
-    }
 
+    //recursive
     private CoreOp.VarOp findVarOp(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findVarOp(varLoadOp);
-        } else {
-            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
-                return varOp;
-            }
-            return null;
+            return findVarOp(varLoadOp.operands().getFirst());
+        } else if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+            return varOp;
         }
+        return null;//throw new IllegalStateException("recurse fail findVarOp");
+
     }
 
     // Code Model Pattern:
@@ -121,7 +92,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
         Stream<CodeElement<?, ?>> vectorSelectOps = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isVectorOperation(invokeOp) && (invokeOp.resultType() != JavaType.VOID)) {
+                        if (OpTk.isVectorOperation(invokeOp, isVectorLane(invokeOp)) && (invokeOp.resultType() != JavaType.VOID)) {
                             Value inputOperand = invokeOp.operands().getFirst();
                             if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                                 consumer.accept(invokeOp);
@@ -143,7 +114,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                         List<Value> outputOperandsInvokeOp = context.getValues(inputInvokeOp);
                         int lane = getLane(invokeOp.invokeDescriptor().name());
                         HATVectorOp vSelectOp;
-                        String name = findNameVector(varLoadOp);
+                        String name = findNameVector(varLoadOp.operands().getFirst());
                         if (invokeOp.resultType() != JavaType.VOID) {
                             vSelectOp = new HATVectorSelectLoadOp(name, invokeOp.resultType(), lane, outputOperandsInvokeOp);
                         } else {
@@ -170,13 +141,13 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
     // %21 : java.type:"float" = var.load %19 @loc="64:18";
     // invoke %20 %21 @loc="64:13" @java.ref:"hat.buffer.Float4::x(float):void";
     private CoreOp.FuncOp vstoreSelectPhase(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(),"vstoreSelectPhase");
-         before(here, funcOp);
-          //TODO is this side table safe?
-        Stream<CodeElement<?, ?>> float4NodesInvolved = OpTk.elements(here,funcOp)
+        var here = OpTk.CallSite.of(this.getClass(), "vstoreSelectPhase");
+        before(here, funcOp);
+        //TODO is this side table safe?
+        Stream<CodeElement<?, ?>> float4NodesInvolved = OpTk.elements(here, funcOp)
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isVectorOperation(invokeOp)) {
+                        if (OpTk.isVectorOperation(invokeOp, isVectorLane(invokeOp))) {
                             List<Value> inputOperandsInvoke = invokeOp.operands();
                             Value inputOperand = inputOperandsInvoke.getFirst();
                             if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -200,7 +171,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                     List<Value> outputOperandsInvokeOp = context.getValues(inputInvokeOp);
                     int lane = getLane(invokeOp.invokeDescriptor().name());
                     HATVectorOp vSelectOp;
-                    String name = findNameVector(varLoadOp);
+                    String name = findNameVector(varLoadOp.operands().getFirst());
                     if (invokeOp.resultType() == JavaType.VOID) {
                         // The operand 1 in the store is the address (lane)
                         // The operand 1 in the store is the storeValue

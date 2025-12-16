@@ -42,6 +42,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,46 +67,23 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
             this.methodName = methodName;
         }
     }
-
-    private boolean isVectorOperation(JavaOp.InvokeOp invokeOp, Value varValue) {
-        if (varValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            TypeElement typeElement = varLoadOp.resultType();
-            Set<Class<?>> interfaces = Set.of();
-            try {
-                Class<?> aClass = Class.forName(typeElement.toString());
-                interfaces = OpTk.inspectAllInterfaces(aClass);
-            } catch (ClassNotFoundException _) {
-            }
-            return interfaces.contains(_V.class) && isMethod(invokeOp, vectorOperation.methodName);
-        }
-        return false;
-    }
-
-    private String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findNameVector(varLoadOp.operands().get(0));
-    }
-
+    //recursive
     private String findNameVector(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findNameVector(varLoadOp);
+            return findNameVector(varLoadOp.operands().getFirst());
         } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
             return hatVectorOp.varName();
         }else{
-            return null;
+            throw new IllegalStateException("no name");
         }
     }
 
-    private boolean findIsSharedOrPrivateSpace(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findIsSharedOrPrivateSpace(varLoadOp.operands().get(0));
-    }
-
+    //recursive
     private boolean findIsSharedOrPrivateSpace(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findIsSharedOrPrivateSpace(varLoadOp);
-        } else  if (v instanceof CoreOp.Result r && (r.op() instanceof HATLocalVarOp || r.op() instanceof HATPrivateVarOp)) {
-            return true;
-        }else{
-            return false;
+            return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst());
+        } else{
+            return (v instanceof CoreOp.Result r && (r.op() instanceof HATLocalVarOp || r.op() instanceof HATPrivateVarOp));
         }
     }
 
@@ -115,11 +93,11 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
         before(here,funcOp);
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if ((invokeOp.operands().size() >= 3) && (isVectorOperation(invokeOp, invokeOp.operands().get(1)))) {
+                    if (codeElement instanceof JavaOp.InvokeOp invokeOp
+                        && (invokeOp.operands().size() >= 3) &&
+                            (OpTk.isVectorOperation(invokeOp, invokeOp.operands().get(1),n->n.equals(vectorOperation.methodName)))) {
                             consumer.accept(invokeOp);
                         }
-                    }
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
@@ -131,14 +109,12 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
                 List<Value> inputOperandsVarOp = invokeOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
 
-                // Find the name of the vector view variable
-                String name = findNameVector(invokeOp.operands().get(1));
-
                 boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
 
                 HATPhaseUtils.VectorMetaData vectorMetaData  = HATPhaseUtils.getVectorTypeInfo(invokeOp, 1);
                 TypeElement vectorElementType = vectorMetaData.vectorTypeElement();
-                HATVectorOp storeView = new HATVectorStoreView(name, invokeOp.resultType(), vectorMetaData.lanes(), vectorElementType, isSharedOrPrivate,  outputOperandsVarOp);
+                HATVectorOp storeView = new HATVectorStoreView(findNameVector(invokeOp.operands().get(1)), invokeOp.resultType(), vectorMetaData.lanes(),
+                        vectorElementType, isSharedOrPrivate,  outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(storeView);
                 storeView.setLocation(invokeOp.location());
                 context.mapValue(invokeOp.result(), hatLocalResult);

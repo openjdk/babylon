@@ -48,12 +48,14 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -106,14 +108,22 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     }
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
-        TypeElement typeElement = invokeOp.resultType();
-        Set<Class<?>> interfaces = Set.of();
-        try {
-            Class<?> aClass = Class.forName(typeElement.toString());
-            interfaces = OpTk.inspectAllInterfaces(aClass);
-        } catch (ClassNotFoundException _) {
-        }
-        return interfaces.contains(_V.class) && isMethod(invokeOp, vectorOperation.methodName);
+       // boolean letsUseOpTk=false;
+      // if (letsUseOpTk) {
+           return (invokeOp.resultType() instanceof JavaType jt
+                   && OpTk.isAssignable(accelerator.lookup, jt, _V.class)
+                   && OpTk.isMethod(invokeOp, n->n.equals(vectorOperation.methodName))
+           );
+      // }else {
+        //   TypeElement typeElement = invokeOp.resultType();
+        //   Set<Class<?>> interfaces = Set.of();
+        //   try {
+        //       Class<?> aClass = Class.forName(typeElement.toString());
+        //       interfaces = OpTk.inspectAllInterfaces(aClass);
+        //   } catch (ClassNotFoundException _) {
+        //   }
+        //   return interfaces.contains(_V.class) && OpTk.isMethod(invokeOp, vectorOperation.methodName);
+      // }
     }
 
     private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

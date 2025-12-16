@@ -45,7 +45,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T> implements BabylonCoreOpBuilder<T> {
 
@@ -336,18 +337,18 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     public abstract  T atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name);
 
+    static Pattern atomicInc = Pattern.compile("(atomic.*)Inc");
+
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
-                || OpTk.isInvokeDescriptorSubtypeOfAnyMatch(invokeOp, List.of(HAType.class, DeviceType.class))) {
+                || OpTk.isInvokeDescriptorSubtypeOfAnyMatch(buildContext.lookup,invokeOp, HAType.class, DeviceType.class)) {
             if (invokeOp.operands().size() == 1
-                    && OpTk.funcName(invokeOp) instanceof String funcName
-                    && funcName.startsWith("atomic")
-                    && funcName.endsWith("Inc")
+                   // && OpTk.funcName(invokeOp) instanceof String funcName
+                    && atomicInc.matcher(OpTk.funcName(invokeOp)) instanceof Matcher matcher && matcher.matches()
                     && OpTk.javaReturnType(invokeOp).equals(JavaType.INT)) {
-                // this is a bit of a hack for atomics.
                 if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
-                    atomicInc(buildContext, instanceResult, funcName.substring(0, funcName.length() - "Inc".length()));
+                    atomicInc(buildContext, instanceResult, matcher.group(1));
                 } else {
                     throw new IllegalStateException("bad atomic");
                 }

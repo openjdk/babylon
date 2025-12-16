@@ -31,20 +31,12 @@ import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
 public class OpenCLBackend extends C99FFIBackend {
-
-    public OpenCLBackend(String configSpec) {
-        this(Config.fromSpec(configSpec));
-    }
-
-    public OpenCLBackend() {
-        this(Config.fromEnvOrProperty());
-    }
-
     public OpenCLBackend(Config config) {
         super("opencl_backend", config);
     }
-
-
+    public OpenCLBackend() {
+        this(Config.fromEnvOrProperty());
+    }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         injectBufferTracking(computeContext.computeCallGraph.entrypoint);

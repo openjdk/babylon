@@ -57,9 +57,7 @@ import java.util.stream.Stream;
 
 import static hat.dialect.HATPhaseUtils.findF16IsLocal;
 
-public class HATDialectifyFP16Phase implements HATDialect {
-
-    private final Accelerator accelerator;
+public record HATDialectifyFP16Phase(Accelerator accelerator) implements HATDialect {
 
     private enum BinaryOpMethod {
         ADD("add"),
@@ -71,10 +69,6 @@ public class HATDialectifyFP16Phase implements HATDialect {
         BinaryOpMethod(String name) {
             this.methodName = name;
         }
-    }
-
-    public HATDialectifyFP16Phase(Accelerator accelerator) {
-        this.accelerator = accelerator;
     }
 
     private ReducedFloatType categorizeReducedFloat(JavaOp.InvokeOp invokeOp) {
@@ -209,8 +203,8 @@ public class HATDialectifyFP16Phase implements HATDialect {
     }
 
     private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, BinaryOpMethod method) {
-        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Ops" );
-        before(here,funcOp);
+        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Ops");
+        before(here, funcOp);
 
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
 
@@ -245,13 +239,13 @@ public class HATDialectifyFP16Phase implements HATDialect {
             }
             return blockBuilder;
         });
-        after(here,funcOp);
+        after(here, funcOp);
         return funcOp;
     }
 
     private CoreOp.FuncOp dialectifyF16Stores(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Stores");
-        before(here,funcOp);
+        before(here, funcOp);
 
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
@@ -299,7 +293,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
 
     private CoreOp.FuncOp dialectifyF16Init(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Init");
-        before(here,funcOp);
+        before(here, funcOp);
 
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
 
@@ -309,14 +303,14 @@ public class HATDialectifyFP16Phase implements HATDialect {
                         if (isInitMethodForF16(invokeOp) && invokeOp.resultType() != JavaType.VOID) {
                             Set<Op.Result> uses = invokeOp.result().uses();
                             for (Op.Result result : uses) {
-                                if (result.op() instanceof CoreOp.VarOp varOp) {
-                                    consumer.accept(varOp);
-                                    consumer.accept(invokeOp);
-                                    ReducedFloatType reducedFloatType = categorizeReducedFloat(invokeOp);
-                                    reducedFloatsType.put(varOp, reducedFloatType);
-                                    reducedFloatsType.put(invokeOp, reducedFloatType);
-                                }
+                            if (result.op() instanceof CoreOp.VarOp varOp) {
+                                consumer.accept(varOp);
+                                consumer.accept(invokeOp);
+                                ReducedFloatType reducedFloatType = categorizeReducedFloat(invokeOp);
+                                reducedFloatsType.put(varOp, reducedFloatType);
+                                reducedFloatsType.put(invokeOp, reducedFloatType);
                             }
+                        }
                         }
                     }
                 }));
@@ -338,14 +332,14 @@ public class HATDialectifyFP16Phase implements HATDialect {
 
     private CoreOp.FuncOp dialectifyF16ToFloat(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16ToFloat");
-        before(here,funcOp);
+        before(here, funcOp);
 
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
 
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if ((isMethod(invokeOp, "f16ToFloat") || isMethod(invokeOp, "bfloat162float"))
+                        if ((OpTk.isMethod(invokeOp, n->n.equals("f16ToFloat")||n.equals("bfloat162float")))
                                 && invokeOp.resultType() == JavaType.FLOAT) {
                             consumer.accept(invokeOp);
                             reducedFloatsType.put(invokeOp, categorizeReducedFloat(invokeOp));
@@ -393,10 +387,5 @@ public class HATDialectifyFP16Phase implements HATDialect {
         // Store analysis
         funcOp = dialectifyF16Stores(funcOp);
         return funcOp;
-    }
-
-    @Override
-    public Accelerator accelerator() {
-        return accelerator;
     }
 }

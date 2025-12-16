@@ -26,45 +26,25 @@ package hat.phases;
 
 import hat.Accelerator;
 import hat.optools.OpTk;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.function.Function;
 
 public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
-
     Accelerator accelerator();
 
-    default boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
-        String kernelContextCanonicalName = hat.KernelContext.class.getName();// URRH Strings
-        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
-    }
-
-    default boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
-        return invokeOp.invokeDescriptor().name().equals(methodName);
-    }
-
-    default boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp, String methodName) {
-        if (OpTk.isIfaceBufferMethod(accelerator().lookup, invokeOp) && isMethod(invokeOp, methodName)) {
-            return true;
-        } else return OpTk.isHatType(accelerator().lookup, invokeOp) && isMethod(invokeOp, methodName);
-    }
-
-    default boolean isKernelContextInvokeWithName(Op op, String methodName) {
-        return op instanceof JavaOp.InvokeOp invokeOp
-                && isMethodFromHatKernelContext(invokeOp)
-                && isMethod(invokeOp,methodName);
+    default boolean tracing(){
+        return accelerator().backend.config().showCompilationPhases();
     }
 
     default void before(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (accelerator().backend.config().showCompilationPhases()) {
+        if (tracing()) {
             IO.println("[INFO] Code model before [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: "  + System.lineSeparator() + funcOp.toText());
         }
     }
 
     default void after(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (accelerator().backend.config().showCompilationPhases()) {
+        if (tracing()) {
             IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: " + System.lineSeparator() + funcOp.toText());
         }
     }

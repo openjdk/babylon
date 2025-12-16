@@ -55,17 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class HATDialectifyArrayViewPhase implements HATDialect {
-
-    protected final Accelerator accelerator;
-    @Override
-    public Accelerator accelerator() {
-        return this.accelerator;
-    }
-
-    public HATDialectifyArrayViewPhase(Accelerator accelerator) {
-        this.accelerator = accelerator;
-    }
+public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp entry) {
@@ -164,21 +154,21 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                             vLoadOp.setLocation(arrayLoadOp.location());
                             Op.Result res = bb.op(vLoadOp);
                             bb.context().mapValue(arrayLoadOp.result(), res);
-                        // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
-                        //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
-                        //     List<Value> operands = new ArrayList<>();
-                        //     operands.add(info.buffer);
-                        //     operands.addAll(info.indices);
-                        //     HATPtrLoadOp ptrLoadOp = new HATPtrLoadOp(
-                        //             arrayLoadOp.resultType(),
-                        //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
-                        //             info.indices(),
-                        //             bb.context().getValues(operands)
-                        //     );
-                        //     ptrLoadOp.setLocation(arrayLoadOp.location());
-                        //     Op.Result res = bb.op(ptrLoadOp);
-                        //     bb.context().mapValue(arrayLoadOp.result(), res);
-                        // }
+                            // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
+                            //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                            //     List<Value> operands = new ArrayList<>();
+                            //     operands.add(info.buffer);
+                            //     operands.addAll(info.indices);
+                            //     HATPtrLoadOp ptrLoadOp = new HATPtrLoadOp(
+                            //             arrayLoadOp.resultType(),
+                            //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                            //             info.indices(),
+                            //             bb.context().getValues(operands)
+                            //     );
+                            //     ptrLoadOp.setLocation(arrayLoadOp.location());
+                            //     Op.Result res = bb.op(ptrLoadOp);
+                            //     bb.context().mapValue(arrayLoadOp.result(), res);
+                            // }
                             return bb;
                         }
                         if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
@@ -200,7 +190,7 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                                 Op.Result mul = bb.op(JavaOp.mul(getValue(bb, longY), getValue(bb, longWidth)));
                                 Op.Result idx = bb.op(JavaOp.add(getValue(bb, longX), getValue(bb, mul)));
 
-                                Class<?> storedClass = typeElementToClass(arrayLoadOp.result().type());
+                                Class<?> storedClass = OpTk.typeElementToClass(accelerator.lookup,arrayLoadOp.result().type());
                                 MethodRef arrayMethod = MethodRef.method(c, "array", storedClass, long.class);
                                 Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, getValue(bb, ogBufferLoad), getValue(bb, idx)));
                                 bb.context().mapValue(arrayLoadOp.result(), invokeRes);
@@ -209,7 +199,7 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                                 Op.Result convRes = bb.op(conv);
 
                                 Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) buffer.type());
-                                Class<?> storedClass = typeElementToClass(arrayLoadOp.result().type());
+                                Class<?> storedClass = OpTk.typeElementToClass(accelerator.lookup,arrayLoadOp.result().type());
                                 MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
                                 Op.Result invokeRes = bb.op(JavaOp.invoke(m, getValue(bb, buffer), convRes));
                                 bb.context().mapValue(arrayLoadOp.result(), invokeRes);
@@ -239,24 +229,24 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                             vStoreOp.setLocation(arrayStoreOp.location());
                             Op.Result res = bb.op(vStoreOp);
                             bb.context().mapValue(arrayStoreOp.result(), res);
-                        // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
-                        //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
-                        //     List<Value> operands = new ArrayList<>();
-                        //     operands.add(info.buffer());
-                        //     // operands.add(arrayStoreOp.operands().getLast());
-                        //     operands.addAll(info.indices);
-                        //     HATPtrStoreOp ptrLoadOp = new HATPtrStoreOp(
-                        //             arrayStoreOp.resultType(),
-                        //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
-                        //             info.indices(),
-                        //             getValue(bb, arrayStoreOp.operands().getLast()),
-                        //             bb.context().getValues(operands)
-                        //             // bb.context().getValues(List.of(info.buffer(), arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)))
-                        //     );
-                        //     ptrLoadOp.setLocation(arrayStoreOp.location());
-                        //     Op.Result res = bb.op(ptrLoadOp);
-                        //     bb.context().mapValue(arrayStoreOp.result(), res);
-                        // }
+                            // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
+                            //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                            //     List<Value> operands = new ArrayList<>();
+                            //     operands.add(info.buffer());
+                            //     // operands.add(arrayStoreOp.operands().getLast());
+                            //     operands.addAll(info.indices);
+                            //     HATPtrStoreOp ptrLoadOp = new HATPtrStoreOp(
+                            //             arrayStoreOp.resultType(),
+                            //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                            //             info.indices(),
+                            //             getValue(bb, arrayStoreOp.operands().getLast()),
+                            //             bb.context().getValues(operands)
+                            //             // bb.context().getValues(List.of(info.buffer(), arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)))
+                            //     );
+                            //     ptrLoadOp.setLocation(arrayStoreOp.location());
+                            //     Op.Result res = bb.op(ptrLoadOp);
+                            //     bb.context().mapValue(arrayStoreOp.result(), res);
+                            // }
                             return bb;
                         }
                         if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
@@ -434,7 +424,7 @@ public class HATDialectifyArrayViewPhase implements HATDialect {
                         iop.resultType() instanceof ArrayType &&
                         iop.invokeDescriptor().refType() instanceof JavaType javaType &&
                         (OpTk.isAssignable(accelerator.lookup, javaType, MappableIface.class)
-                        || OpTk.isAssignable(accelerator.lookup, javaType, DeviceType.class))));
+                                || OpTk.isAssignable(accelerator.lookup, javaType, DeviceType.class))));
     }
 
     public Class<?> typeElementToClass(TypeElement type) {

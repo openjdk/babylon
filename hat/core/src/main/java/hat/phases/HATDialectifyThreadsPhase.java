@@ -31,6 +31,7 @@ import hat.dialect.HATGlobalThreadIdOp;
 import hat.dialect.HATLocalSizeOp;
 import hat.dialect.HATLocalThreadIdOp;
 import hat.dialect.HATThreadOp;
+import hat.optools.Trxfmr;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
@@ -44,7 +45,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class HATDialectifyThreadsPhase implements HATDialect  {
-
     protected final Accelerator accelerator;
     @Override  public Accelerator accelerator(){
         return this.accelerator;
@@ -66,16 +66,16 @@ public abstract class HATDialectifyThreadsPhase implements HATDialect  {
         Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .filter(codeElement ->codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp)
                 .map(codeElement -> (JavaOp.FieldAccessOp.FieldLoadOp)codeElement)
-                .filter(fieldLoadOp -> OpTk.fieldNameMatches(fieldLoadOp,pattern() ))
+                .filter(fieldLoadOp -> pattern().matcher(fieldLoadOp.fieldDescriptor().name()).matches())
                 .mapMulti((fieldLoadOp, consumer) ->
-                        fieldLoadOp.operands().stream()
-                                .filter(o->o instanceof Op.Result result && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp)
-                                .map(o->( CoreOp.VarAccessOp.VarLoadOp)((Op.Result)o).op())
-                                .filter(this::isMethodFromHatKernelContext)
-                                .forEach(varLoadOp -> {
-                                    consumer.accept(fieldLoadOp);
-                                    consumer.accept(varLoadOp);
-                                })
+                            fieldLoadOp.operands().stream()
+                                    .filter(o -> o instanceof Op.Result result && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp)
+                                    .map(o -> (CoreOp.VarAccessOp.VarLoadOp) ((Op.Result) o).op())
+                                    .filter(this::isMethodFromHatKernelContext)
+                                    .forEach(varLoadOp -> {
+                                        consumer.accept(fieldLoadOp);
+                                        consumer.accept(varLoadOp);
+                                    })
                 );
 
         Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
@@ -90,10 +90,10 @@ public abstract class HATDialectifyThreadsPhase implements HATDialect  {
                         .filter(operand->operand instanceof Op.Result result && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp)
                         .map(operand->(CoreOp.VarAccessOp.VarLoadOp)((Op.Result)operand).op())
                         .forEach(_-> { // why are we looping over all operands ?
-                                HATThreadOp threadOp = factory(fieldLoadOp);
-                                Op.Result threadResult = blockBuilder.op(threadOp);
-                                threadOp.setLocation(fieldLoadOp.location()); // update location
-                                context.mapValue(fieldLoadOp.result(), threadResult);
+                            HATThreadOp threadOp = factory(fieldLoadOp);
+                            Op.Result threadResult = blockBuilder.op(threadOp);
+                            threadOp.setLocation(fieldLoadOp.location()); // update location
+                            context.mapValue(fieldLoadOp.result(), threadResult);
                         });
             }
             return blockBuilder;
@@ -101,6 +101,20 @@ public abstract class HATDialectifyThreadsPhase implements HATDialect  {
         after(here,funcOp);
         return funcOp;
     }
+    public CoreOp.FuncOp applyTxfmr(CoreOp.FuncOp funcOp) {
+        return new Trxfmr.Edge.Selector<JavaOp.FieldAccessOp.FieldLoadOp, CoreOp.VarAccessOp.VarLoadOp>()
+        .select(funcOp, ce->ce instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp
+                        && Trxfmr.Edge.kernelContextFieldVarLoad(accelerator.lookup,fieldLoadOp, fieldName->pattern().matcher(fieldName).matches())
+                        instanceof Trxfmr.Edge<JavaOp.FieldAccessOp.FieldLoadOp,CoreOp.VarAccessOp.VarLoadOp> e? e:null)
+        .transform(funcOp,c->{
+            switch (c.op()){
+                case JavaOp.FieldAccessOp.FieldLoadOp $  -> c.replace(factory($));
+                case CoreOp.VarAccessOp.VarLoadOp _ -> c.remove();
+                default -> {}
+            }
+        });
+    }
+
 
     private boolean isMethodFromHatKernelContext(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         String kernelContextCanonicalName = hat.KernelContext.class.getName();
@@ -132,7 +146,7 @@ public abstract class HATDialectifyThreadsPhase implements HATDialect  {
             super(accelerator);
         }
         @Override protected Pattern pattern(){
-            return Pattern.compile("([xyz]|gi[xyz])");
+            return Pattern.compile("(gi[xyz])");
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
@@ -149,7 +163,7 @@ public abstract class HATDialectifyThreadsPhase implements HATDialect  {
             super(accelerator);
         }
         @Override protected Pattern pattern(){
-            return Pattern.compile("(gs[xyz]|max[XYZ])");
+            return Pattern.compile("(gs[xyz])");
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
