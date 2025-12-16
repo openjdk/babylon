@@ -570,4 +570,39 @@ public class ImplicitConversionTest {
     void test24(int i) {
         new Box(i, i, i, i);
     }
+
+    @Reflect
+    @IR("""
+            func @"widenForEachArray" (%0 : java.type:"byte[]")java.type:"int" -> {
+                %1 : Var<java.type:"byte[]"> = var %0 @"ba";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"j";
+                java.enhancedFor
+                    ()java.type:"byte[]" -> {
+                        %4 : java.type:"byte[]" = var.load %1;
+                        yield %4;
+                    }
+                    (%5 : java.type:"byte")Var<java.type:"int"> -> {
+                        %6 : java.type:"int" = conv %5;
+                        %7 : Var<java.type:"int"> = var %6 @"i";
+                        yield %7;
+                    }
+                    (%8 : Var<java.type:"int">)java.type:"void" -> {
+                        %9 : java.type:"int" = var.load %3;
+                        %10 : java.type:"int" = var.load %8;
+                        %11 : java.type:"int" = add %9 %10;
+                        var.store %3 %11;
+                        java.continue;
+                    };
+                %12 : java.type:"int" = var.load %3;
+                return %12;
+            };
+            """)
+    static int widenForEachArray(byte[] ba) {
+        int j = 0;
+        for (int i : ba) {
+            j += i;
+        }
+        return j;
+    }
 }
