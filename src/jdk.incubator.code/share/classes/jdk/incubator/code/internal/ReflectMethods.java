@@ -237,14 +237,18 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             methodType.thrown,
                             methodType.tsym);
                 }
+                MethodSymbol unreflectBSM = new MethodSymbol(PUBLIC | STATIC,
+                        names.fromString("$unreflect"),
+                        crSyms.unreflectBSMType,
+                        codeModelsClassSym);
                 Symbol.DynamicMethodSymbol indySym = new Symbol.DynamicMethodSymbol(
                         tree.name, // method name
                         syms.noSymbol,
-                        crSyms.unreflectMethodBSM.asHandle(),
+                        unreflectBSM.asHandle(),
                         methodType,
                         new PoolConstant.LoadableConstant[0]);
                 JCFieldAccess indyQualifier = make.Select(
-                        make.QualIdent(crSyms.unreflectMethodBSM.owner),
+                        make.QualIdent(codeModelsClassSym),
                         indySym.name);
                 indyQualifier.sym = indySym;
                 indyQualifier.type = methodType;

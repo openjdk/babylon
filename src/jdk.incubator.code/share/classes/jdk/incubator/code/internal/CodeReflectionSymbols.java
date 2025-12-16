@@ -49,8 +49,8 @@ public class CodeReflectionSymbols {
     public final Type opType;
     public final Type funcOpType;
     public final Type reflectableLambdaMetafactory;
+    public final MethodType unreflectBSMType;
     public final MethodSymbol quotedExtractOp;
-    public final MethodSymbol unreflectMethodBSM;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -66,13 +66,11 @@ public class CodeReflectionSymbols {
                 new MethodType(List.of(funcOpType, new ArrayType(syms.objectType, syms.arrayClass)), quotedType,
                         List.nil(), syms.methodClass),
                 quotedType.tsym);
-        unreflectMethodBSM = new MethodSymbol(PUBLIC | STATIC,
-                names.fromString("unreflectMethod"),
-                new MethodType(List.of(syms.methodHandleLookupType, syms.stringType, syms.methodTypeType),
-                               syms.enterClass(syms.java_base, names.fromString("java.lang.invoke.CallSite")).type,
-                               List.nil(),
-                               syms.methodClass),
-                syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.runtime.ReflectableMethodMetafactory")));
+        unreflectBSMType = new MethodType(
+                List.of(syms.methodHandleLookupType, syms.stringType, syms.methodTypeType),
+                syms.enterClass(syms.java_base, names.fromString("java.lang.invoke.CallSite")).type,
+                List.nil(),
+                syms.methodClass);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
     }
 }

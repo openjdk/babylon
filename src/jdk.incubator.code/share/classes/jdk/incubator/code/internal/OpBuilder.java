@@ -368,7 +368,140 @@ public class OpBuilder {
                     }).else_();
                     b.op(ifop);
                     b.op(return_());
-                })
+                }),
+                // @@@ find a better way to inline more complex models
+                (FuncOp)OpParser.fromStringOfJavaCodeModel("""
+                    func @"$unreflect" (%0 : java.type:"java.lang.invoke.MethodHandles$Lookup", %1 : java.type:"java.lang.String", %2 : java.type:"java.lang.invoke.MethodType")java.type:"java.lang.invoke.CallSite" -> {
+                        %3 : Var<java.type:"java.lang.invoke.MethodHandles$Lookup"> = var %0 @"caller";
+                        %4 : Var<java.type:"java.lang.String"> = var %1 @"methodName";
+                        %5 : Var<java.type:"java.lang.invoke.MethodType"> = var %2 @"methodType";
+                        %6 : java.type:"java.lang.invoke.MethodHandles$Lookup" = var.load %3;
+                        %7 : java.type:"java.lang.Class<?>" = invoke %6 @java.ref:"java.lang.invoke.MethodHandles$Lookup::lookupClass():java.lang.Class";
+                        %8 : java.type:"java.lang.reflect.Method[]" = invoke %7 @java.ref:"java.lang.Class::getDeclaredMethods():java.lang.reflect.Method[]";
+                        %9 : Var<java.type:"java.lang.reflect.Method[]"> = var %8 @"ms";
+                        java.for
+                            ()Var<java.type:"int"> -> {
+                                %10 : java.type:"int" = constant @0;
+                                %11 : Var<java.type:"int"> = var %10 @"i";
+                                yield %11;
+                            }
+                            (%12 : Var<java.type:"int">)java.type:"boolean" -> {
+                                %13 : java.type:"int" = var.load %12;
+                                %14 : java.type:"java.lang.reflect.Method[]" = var.load %9;
+                                %15 : java.type:"int" = array.length %14;
+                                %16 : java.type:"boolean" = lt %13 %15;
+                                yield %16;
+                            }
+                            (%17 : Var<java.type:"int">)java.type:"void" -> {
+                                %18 : java.type:"int" = var.load %17;
+                                %19 : java.type:"int" = constant @1;
+                                %20 : java.type:"int" = add %18 %19;
+                                var.store %17 %20;
+                                yield;
+                            }
+                            (%21 : Var<java.type:"int">)java.type:"void" -> {
+                                %22 : java.type:"java.lang.reflect.Method[]" = var.load %9;
+                                %23 : java.type:"int" = var.load %21;
+                                %24 : java.type:"java.lang.reflect.Method" = array.load %22 %23;
+                                %25 : Var<java.type:"java.lang.reflect.Method"> = var %24 @"m";
+                                %26 : java.type:"int" = java.cexpression
+                                    ()java.type:"boolean" -> {
+                                        %27 : java.type:"java.lang.reflect.Method" = var.load %25;
+                                        %28 : java.type:"int" = invoke %27 @java.ref:"java.lang.reflect.Method::getModifiers():int";
+                                        %29 : java.type:"int" = field.load @java.ref:"java.lang.reflect.Modifier::STATIC:int";
+                                        %30 : java.type:"int" = and %28 %29;
+                                        %31 : java.type:"int" = constant @0;
+                                        %32 : java.type:"boolean" = eq %30 %31;
+                                        yield %32;
+                                    }
+                                    ()java.type:"int" -> {
+                                        %33 : java.type:"int" = constant @1;
+                                        yield %33;
+                                    }
+                                    ()java.type:"int" -> {
+                                        %34 : java.type:"int" = constant @0;
+                                        yield %34;
+                                    };
+                                %35 : Var<java.type:"int"> = var %26 @"firstParam";
+                                java.if
+                                    ()java.type:"boolean" -> {
+                                        %36 : java.type:"boolean" = java.cand
+                                            ()java.type:"boolean" -> {
+                                                %37 : java.type:"boolean" = java.cand
+                                                    ()java.type:"boolean" -> {
+                                                        %38 : java.type:"boolean" = java.cand
+                                                            ()java.type:"boolean" -> {
+                                                                %39 : java.type:"java.lang.reflect.Method" = var.load %25;
+                                                                %40 : java.type:"java.lang.String" = invoke %39 @java.ref:"java.lang.reflect.Method::getName():java.lang.String";
+                                                                %41 : java.type:"java.lang.String" = var.load %4;
+                                                                %42 : java.type:"boolean" = invoke %40 %41 @java.ref:"java.lang.String::equals(java.lang.Object):boolean";
+                                                                yield %42;
+                                                            }
+                                                            ()java.type:"boolean" -> {
+                                                                %43 : java.type:"java.lang.reflect.Method" = var.load %25;
+                                                                %44 : java.type:"java.lang.Class<?>" = invoke %43 @java.ref:"java.lang.reflect.Method::getReturnType():java.lang.Class";
+                                                                %45 : java.type:"java.lang.invoke.MethodType" = var.load %5;
+                                                                %46 : java.type:"java.lang.Class<?>" = invoke %45 @java.ref:"java.lang.invoke.MethodType::returnType():java.lang.Class";
+                                                                %47 : java.type:"boolean" = eq %44 %46;
+                                                                yield %47;
+                                                            };
+                                                        yield %38;
+                                                    }
+                                                    ()java.type:"boolean" -> {
+                                                        %48 : java.type:"java.lang.reflect.Method" = var.load %25;
+                                                        %49 : java.type:"int" = invoke %48 @java.ref:"java.lang.reflect.Method::getParameterCount():int";
+                                                        %50 : java.type:"java.lang.invoke.MethodType" = var.load %5;
+                                                        %51 : java.type:"int" = invoke %50 @java.ref:"java.lang.invoke.MethodType::parameterCount():int";
+                                                        %52 : java.type:"int" = var.load %35;
+                                                        %53 : java.type:"int" = sub %51 %52;
+                                                        %54 : java.type:"boolean" = eq %49 %53;
+                                                        yield %54;
+                                                    };
+                                                yield %37;
+                                            }
+                                            ()java.type:"boolean" -> {
+                                                %55 : java.type:"java.lang.reflect.Method" = var.load %25;
+                                                %56 : java.type:"java.lang.Class<?>[]" = invoke %55 @java.ref:"java.lang.reflect.Method::getParameterTypes():java.lang.Class[]";
+                                                %57 : java.type:"int" = constant @0;
+                                                %58 : java.type:"java.lang.reflect.Method" = var.load %25;
+                                                %59 : java.type:"int" = invoke %58 @java.ref:"java.lang.reflect.Method::getParameterCount():int";
+                                                %60 : java.type:"java.lang.invoke.MethodType" = var.load %5;
+                                                %61 : java.type:"java.lang.Class<?>[]" = invoke %60 @java.ref:"java.lang.invoke.MethodType::parameterArray():java.lang.Class[]";
+                                                %62 : java.type:"int" = var.load %35;
+                                                %63 : java.type:"java.lang.invoke.MethodType" = var.load %5;
+                                                %64 : java.type:"int" = invoke %63 @java.ref:"java.lang.invoke.MethodType::parameterCount():int";
+                                                %65 : java.type:"boolean" = invoke %56 %57 %59 %61 %62 %64 @java.ref:"java.util.Arrays::equals(java.lang.Object[], int, int, java.lang.Object[], int, int):boolean";
+                                                yield %65;
+                                            };
+                                        yield %36;
+                                    }
+                                    ()java.type:"void" -> {
+                                        %66 : java.type:"java.lang.invoke.MethodHandles$Lookup" = var.load %3;
+                                        %67 : java.type:"java.lang.reflect.Method" = var.load %25;
+                                        %68 : java.type:"java.util.Optional<jdk.incubator.code.dialect.core.CoreOp$FuncOp>" = invoke %67 @java.ref:"jdk.incubator.code.Op::ofMethod(java.lang.reflect.Method):java.util.Optional";
+                                        %69 : java.type:"jdk.incubator.code.dialect.core.CoreOp$FuncOp" = invoke %68 @java.ref:"java.util.Optional::orElseThrow():java.lang.Object";
+                                        %70 : java.type:"java.lang.invoke.MethodHandle" = invoke %66 %69 @java.ref:"jdk.incubator.code.bytecode.BytecodeGenerator::generate(java.lang.invoke.MethodHandles$Lookup, jdk.incubator.code.Op):java.lang.invoke.MethodHandle";
+                                        %71 : java.type:"java.lang.invoke.ConstantCallSite" = new %70 @java.ref:"java.lang.invoke.ConstantCallSite::(java.lang.invoke.MethodHandle)";
+                                        return %71;
+                                    }
+                                    ()java.type:"void" -> {
+                                        yield;
+                                    };
+                                java.continue;
+                            };
+                        %72 : java.type:"java.lang.invoke.MethodHandles$Lookup" = var.load %3;
+                        %73 : java.type:"java.lang.Class<?>" = invoke %72 @java.ref:"java.lang.invoke.MethodHandles$Lookup::lookupClass():java.lang.Class";
+                        %74 : java.type:"java.lang.String" = invoke %73 @java.ref:"java.lang.Class::getName():java.lang.String";
+                        %75 : java.type:"java.lang.String" = constant @".";
+                        %76 : java.type:"java.lang.String" = concat %74 %75;
+                        %77 : java.type:"java.lang.String" = var.load %4;
+                        %78 : java.type:"java.lang.String" = concat %76 %77;
+                        %79 : java.type:"java.lang.invoke.MethodType" = var.load %5;
+                        %80 : java.type:"java.lang.String" = concat %78 %79;
+                        %81 : java.type:"java.lang.NoSuchMethodException" = new %80 @java.ref:"java.lang.NoSuchMethodException::(java.lang.String)";
+                        throw %81;
+                    };
+                    """)
         );
     }
 
