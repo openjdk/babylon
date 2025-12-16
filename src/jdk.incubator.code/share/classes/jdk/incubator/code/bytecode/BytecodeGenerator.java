@@ -857,7 +857,7 @@ public final class BytecodeGenerator {
                                                isInterface);
                             case SUPER ->
                                     cob.invokevirtual(CD_MethodHandle,
-                                                      "invoke",
+                                                      "invokeExact",
                                                       mDesc.insertParameterTypes(0, specialCaller));
                         }
                         ClassDesc ret = toClassDesc(op.resultType());
