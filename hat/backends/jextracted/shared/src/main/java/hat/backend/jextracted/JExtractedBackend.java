@@ -107,7 +107,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                     bldr.op(JavaOp.invoke(ACCESS.pre, computeContext, iface));  // cc->preAccess(iface);
                     bldr.op(invokeOp);                                          // iface.v();
                     bldr.op(JavaOp.invoke(ACCESS.post, computeContext, iface)); // cc->postAccess(iface) } else {
-                } else if (OpTk.isComputeContextMethod(lookup, invokeOp) || OpTk.isKernelContextMethod(lookup, invokeOp)) { //dispatchKernel
+                } else if (OpTk.isComputeContextMethod(lookup, invokeOp) || OpTk.isKernelContextInvokeOp(lookup, invokeOp,OpTk.AnyInvoke)) { //dispatchKernel
                     bldr.op(invokeOp);
                 } else {
                     invokeOp.operands().stream()

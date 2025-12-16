@@ -161,7 +161,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));                 // cc->preAccess(iface);
                         bldr.op(invokeOp);                                             // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface));                // cc->postAccess(iface)
-                    } else if (OpTk.isComputeContextMethod(lookup,invokeOp) || OpTk.isKernelContextMethod(lookup,invokeOp)) { //dispatchKernel
+                    } else if (OpTk.isComputeContextMethod(lookup,invokeOp) || OpTk.isKernelContextInvokeOp(lookup,invokeOp,OpTk.AnyInvoke)) { //dispatchKernel
                         bldr.op(invokeOp);
                     } else {
                         List<Value> list = invokeOp.operands();

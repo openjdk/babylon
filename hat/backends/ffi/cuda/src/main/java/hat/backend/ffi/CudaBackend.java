@@ -384,7 +384,6 @@ public class CudaBackend extends C99FFIBackend {
         });
         compiledKernel.dispatch(kernelContext, args);
     }
-
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
         return createCode(kernelCallGraph, new CudaHATKernelBuilder(), args);
     }

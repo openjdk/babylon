@@ -44,7 +44,7 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (OpTk.isKernelContextAccess(fieldLoadOp)) {
+        if (OpTk.isKernelContextFieldAccessOp(buildContext.lookup,fieldLoadOp,_->true)) {
             identifier("kc").dot().fieldName(fieldLoadOp);
         } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) { // only primitve fields
             var value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
