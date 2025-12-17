@@ -654,7 +654,7 @@ public class TestMatMul {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
-        final int M = size;
+      //  final int M = size;
         final int N = size;
         final int K = size;
         final int BM = 64;

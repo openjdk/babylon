@@ -159,7 +159,7 @@ public class TestVectorArrayView {
             Float4[] vC = c.float4ArrayView();
             Float4 floatA = vA[index * 4];
             Float4 floatB = vB[index * 4];
-            Float4 vD = Float4.sub(floatA, floatB);
+          //  Float4 vD = Float4.sub(floatA, floatB);
             Float4 vE = Float4.sub(floatA, floatB);
             vC[index * 4] = vE;
         }

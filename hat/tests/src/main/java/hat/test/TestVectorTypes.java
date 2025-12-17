@@ -119,7 +119,7 @@ public class TestVectorTypes {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
-            Float4 vD = Float4.sub(vA, vB);
+         //   Float4 vD = Float4.sub(vA, vB);
             Float4 vC = vA.sub(vB);
             c.storeFloat4View(vC, index * 4);
         }

@@ -135,7 +135,7 @@ public class Main {
                 """;
 
         final static String codeVal = """
-                 inline int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
+                 int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
                      return CLWrapCellGrid->cellArray[((y * w) + x + from)] & 1;
                  }
                 """;
