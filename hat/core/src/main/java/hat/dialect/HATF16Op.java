@@ -29,7 +29,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATF16Op extends HATOp {
+public abstract class HATF16Op extends HATOp implements HATVarOp{
 
     private String varName;
 
@@ -42,7 +42,7 @@ public abstract class HATF16Op extends HATOp {
         super(that, cc);
         this.varName = that.varName;
     }
-
+    @Override
     public String varName() {
         return varName;
     }

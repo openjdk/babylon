@@ -30,7 +30,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATVectorOp extends HATOp {
+public abstract class HATVectorOp extends HATOp implements HATVarOp  {
 
     protected String varName;
     protected final TypeElement typeElement;
