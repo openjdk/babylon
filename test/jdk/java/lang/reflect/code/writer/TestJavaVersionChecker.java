@@ -8,7 +8,6 @@ import java.lang.classfile.*;
 import java.lang.classfile.instruction.ConstantInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.reflect.Method;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -24,7 +23,7 @@ public class TestJavaVersionChecker {
     public static void main(String[] args) throws IOException { // transform $CM classfile
         String testClassName = TestJavaVersionChecker.class.getName();
         Path testClassesDir = Path.of(System.getProperty("test.classes"));
-        Path innerClassPath = FileSystems.getDefault().getPath(testClassesDir.toString(), testClassName + "$$CM.class");
+        Path innerClassPath = testClassesDir.resolve(testClassName + "$$CM.class");
         byte[] newInnerBytes = changeCompileTimeVersion(innerClassPath, Runtime.version().feature() - 1);
         Files.write(innerClassPath, newInnerBytes);
     }
