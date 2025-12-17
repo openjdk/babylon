@@ -292,7 +292,9 @@ public interface OpTk {
         return block.ops().stream().filter(op->
                 (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
                         || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
-                        || op instanceof HATOp
+                        || (op instanceof HATMemoryOp)
+                        || (op instanceof HATVectorVarOp)
+                        || (op instanceof HATF16VarOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
