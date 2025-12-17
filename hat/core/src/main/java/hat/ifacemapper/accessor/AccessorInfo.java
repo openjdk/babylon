@@ -26,11 +26,11 @@
 package hat.ifacemapper.accessor;
 
 import hat.ifacemapper.MapperUtil;
-import hat.util.StreamOptionalMutable;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Optional;
 
 import static hat.ifacemapper.accessor.AccessorInfo.AccessorType.GETTER;
 import static hat.ifacemapper.accessor.AccessorInfo.AccessorType.GETTER_AND_SETTER;
@@ -168,4 +168,27 @@ public record AccessorInfo(Key key,
         }
     }
 
+    private static class StreamOptionalMutable<R> {
+        private Optional<R> value = Optional.empty();
+
+        public void of(R value) {
+            this.value = Optional.of(value);
+        }
+
+        public boolean isPresent() {
+            return value.isPresent();
+        }
+
+        public R get() {
+            return value.orElseThrow();
+        }
+
+        public StreamOptionalMutable(R initial) {
+            of(initial);
+        }
+
+        public StreamOptionalMutable() {
+
+        }
+    }
 }

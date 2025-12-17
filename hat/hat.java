@@ -129,7 +129,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var cudaCmakeInfo = new Cuda(hat.id("cmake-info-cuda"), cmake);
 
         // Now we just create jars and shared libs and declare dependencies
-        var core = hat.jar("core");
+        var optkl = hat.jar("optkl");
+        var core = hat.jar("core", optkl);
         var tools = hat.jar("tools", core);
         var tests = hat.jar("tests", core, tools);
 
