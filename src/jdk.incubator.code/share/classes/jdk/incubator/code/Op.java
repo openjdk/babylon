@@ -569,6 +569,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             FuncOp funcOp = (FuncOp) opMethod.invoke(null);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
+            // op method may throw UOE in case java compile time version doesn't match runtime version
+            if (e.getCause() instanceof UnsupportedOperationException uoe) {
+                throw uoe;
+            }
             throw new RuntimeException(e);
         }
     }
