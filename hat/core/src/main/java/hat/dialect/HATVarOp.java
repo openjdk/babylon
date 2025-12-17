@@ -24,32 +24,6 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.java.ClassType;
-
-import java.util.List;
-
-public abstract class HATMemoryOp extends HATOp implements HATVarOp {
-    private final String varName;
-
-    public HATMemoryOp(String varName, List<Value> operands) {
-        super(operands);
-        this.varName = varName;
-    }
-
-    protected HATMemoryOp(HATMemoryOp that, CodeContext cc) {
-        super(that, cc);
-        this.varName = that.varName;
-    }
-
-    @Override
-    public String varName() {
-        return varName;
-    }
-
-    public abstract ClassType classType();
-
-    public abstract TypeElement invokeType();
+public interface HATVarOp {
+    String varName();
 }

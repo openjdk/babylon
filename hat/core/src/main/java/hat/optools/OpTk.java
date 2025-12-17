@@ -66,6 +66,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public interface OpTk {
@@ -97,12 +98,18 @@ public interface OpTk {
     static boolean isVarAccessFromKernelContextFieldOp(MethodHandles.Lookup lookup,CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isKernelContextFieldAccessOp(lookup, varLoadOp, AnyFieldAccess);//varLoadOp.resultType());
     }
- static JavaOp.FieldAccessOp asKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Predicate<JavaOp.FieldAccessOp> predicate) {
-     if (ce instanceof JavaOp.FieldAccessOp fieldAccessOp && isKernelContext(lookup,fieldAccessOp.fieldDescriptor().refType())){
-         return predicate.test(fieldAccessOp)?fieldAccessOp:null;
-     }
-     return null;
- }
+    static JavaOp.FieldAccessOp asKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Predicate<JavaOp.FieldAccessOp> predicate) {
+        if (ce instanceof JavaOp.FieldAccessOp fieldAccessOp && isKernelContext(lookup,fieldAccessOp.fieldDescriptor().refType())){
+            return predicate.test(fieldAccessOp)?fieldAccessOp:null;
+        }
+        return null;
+    }
+    static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, String name) {
+        return asKernelContextFieldAccessOrNull(lookup,ce,fieldAccessOp->name.equals(fieldAccessOp.fieldDescriptor().name()));
+    }
+    static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Pattern pattern) {
+        return asKernelContextFieldAccessOrNull(lookup,ce,fieldAccessOp->pattern.matcher(fieldAccessOp.fieldDescriptor().name()).matches());
+    }
     static boolean isKernelContextFieldAccessOp(MethodHandles.Lookup lookup,CodeElement<?, ?> ce, Predicate<JavaOp.FieldAccessOp> predicate) {
         return Objects.nonNull(asKernelContextFieldAccessOrNull(lookup,ce, predicate));
     }
@@ -290,14 +297,13 @@ public interface OpTk {
 
     static Stream<Op> statements(Block block) {
         return block.ops().stream().filter(op->
-                (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
-                        || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
-                        || (op instanceof HATMemoryOp)
-                        || (op instanceof HATVectorVarOp)
-                        || (op instanceof HATF16VarOp)
-                )
-                        && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
-                        && !(op instanceof CoreOp.YieldOp));
+        (
+                (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
+             || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
+             || (op instanceof HATVarOp)
+        )
+        && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
+        && !(op instanceof CoreOp.YieldOp));
     }
 
     static JavaType javaRefType(JavaOp.InvokeOp op) {
@@ -629,7 +635,30 @@ public interface OpTk {
         return operandAsResult(codeElement,n) instanceof Op.Result result?result.op():null;
     }
 
-      record CallSite(Class<?> clazz,String methodName, boolean tracing){
+    static Op.Result asResultOrNull(Value operand) {
+        return operand instanceof Op.Result result?result:null;
+    }
+    static boolean isResult(Value operand) {
+        return Objects.nonNull(asResultOrNull(operand));
+    }
+
+    static Op opOfResultOrNull(Op.Result result) {
+        return result.op() instanceof Op op?op:null;
+    }
+
+    static TypeElement resultTypeOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return varLoadOp.resultType() instanceof TypeElement typeElement?typeElement:null;
+    }
+
+    static CoreOp.VarAccessOp.VarLoadOp asVarLoadOrNull(Op op) {
+        return  op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp?varLoadOp:null;
+    }
+
+    static boolean resultType(MethodHandles.Lookup lookup, CoreOp.VarAccessOp.VarLoadOp varLoadOp, Class<?>... classes) {
+        return OpTk.isAssignable(lookup, varLoadOp.resultType(), classes);
+    }
+
+    record CallSite(Class<?> clazz,String methodName, boolean tracing){
         public static CallSite of(Class<?> clazz, String methodName) {
             return new CallSite(clazz,methodName, Boolean.getBoolean("TRACE_CALLSITES"));
         }
