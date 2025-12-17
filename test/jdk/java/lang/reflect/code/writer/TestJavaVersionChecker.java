@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.function.IntBinaryOperator;
 
 /*
  * @test
@@ -32,6 +33,19 @@ public class TestJavaVersionChecker {
     void test() throws ReflectiveOperationException, IOException {
         Method m = this.getClass().getDeclaredMethod("max", int.class, int.class);
         Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofMethod(m));
+
+        // in the lambda class initializer <clinit>, we invoke lambda op method
+        // after the changes we made to $CM classfile, the lambda op method throws UOE, causing <clinit> to fails
+        // UOE -> ExceptionInInitializerError -> InternalError
+        InternalError ie = null;
+        try {
+            IntBinaryOperator l = (@Reflect IntBinaryOperator) (a, b) -> Math.max(a, b);
+        } catch (InternalError e) {
+            Assertions.assertInstanceOf(ExceptionInInitializerError.class, e.getCause());
+            Assertions.assertInstanceOf(UnsupportedOperationException.class, e.getCause().getCause());
+            ie = e;
+        }
+        Assertions.assertNotNull(ie, "Reflectable lambda creation didn't fail as expected");
     }
 
     // change java compile time version that was embedded in the $checkJavaVersion method
@@ -40,7 +54,7 @@ public class TestJavaVersionChecker {
         try {
             inner = ClassFile.of().parse(innerClassPath);
         } catch (IOException e) {
-            Assertions.fail("Inner class holding the code model doesn't exist");
+            Assertions.fail("Inner class holding the code model doesn't exist in " + innerClassPath);
         }
 
         Optional<MethodModel> optional = inner.methods().stream().filter(m -> m.methodName().equalsString("$checkJavaVersion")).findFirst();
