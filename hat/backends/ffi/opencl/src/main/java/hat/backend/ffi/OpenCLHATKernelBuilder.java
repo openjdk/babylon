@@ -54,13 +54,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder defines() {
         return self()
                 .hashDefine("HAT_OPENCL")
-                //  .hashIfdef("HAT_OPENCL", _ ->
-                //        indent(_ -> self()
                 .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
+              //  .identifier("__attribute__((noinline)").nl()
                 .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")                      // Enable Half type
-                .hashDefine("HAT_FUNC", _ -> keyword("inline"))
+                .hashDefine("HAT_FUNC", _ -> keyword(""))
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__local"))

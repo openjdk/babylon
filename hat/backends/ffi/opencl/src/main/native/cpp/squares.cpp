@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
 
 
 
- inline int squareit(
+int squareit(
      int v
  ){
      return v*v;

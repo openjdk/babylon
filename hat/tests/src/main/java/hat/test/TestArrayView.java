@@ -252,8 +252,8 @@ public class TestArrayView {
         public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
             int w = cellGrid.width();
             int h = cellGrid.height();
-            int from = control.from();
-            int to = control.to();
+           // int from = control.from();
+           // int to = control.to();
             int x = idx % w;
             int y = idx / w;
 

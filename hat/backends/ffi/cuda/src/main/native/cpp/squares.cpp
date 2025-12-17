@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
           int array[1];
        }S32Array_t;
 
-       extern "C" __device__ inline int squareit(
+       extern "C" __device__ int squareit(
            int v
        ){
           return v*v;

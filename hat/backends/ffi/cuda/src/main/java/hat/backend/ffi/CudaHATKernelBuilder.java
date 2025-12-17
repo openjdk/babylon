@@ -67,7 +67,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_CUDA")
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space().keyword("inline"))
+                .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space())//.keyword("inline"))
                 .hashDefine("HAT_KERNEL", _->externC().space().keyword("__global__"))
                 .hashDefine("HAT_GIX", _ -> paren(_->blockId(0).asterisk().localSize(0).plus().localId(0)))
                 .hashDefine("HAT_GIY", _ -> paren(_->blockId(1).asterisk().localSize(1).plus().localId(1)))

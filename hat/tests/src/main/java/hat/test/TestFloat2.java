@@ -115,7 +115,7 @@ public class TestFloat2 {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
             Float2 vB = b.float2View(index * 2);
-            Float2 vD = Float2.sub(vA, vB);
+         //   Float2 vD = Float2.sub(vA, vB);
             Float2 vC = vA.sub(vB);
             c.storeFloat2View(vC, index * 2);
         }
