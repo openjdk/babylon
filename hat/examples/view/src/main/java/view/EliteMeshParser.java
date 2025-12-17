@@ -31,8 +31,9 @@
  */
 package view;
 
-import hat.util.Regex;
+
 import hat.util.StreamMutable;
+import optkl.Regex;
 import view.f32.F32;
 import view.f32.F32Mesh3D;
 

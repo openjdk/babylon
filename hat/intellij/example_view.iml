@@ -11,5 +11,6 @@
     <orderEntry type="module" module-name="core" />
     <orderEntry type="module" module-name="example_shared" />
     <orderEntry type="module" module-name="backend_ffi_opencl" />
+    <orderEntry type="module" module-name="optkl" />
   </component>
 </module>
