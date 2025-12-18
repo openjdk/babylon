@@ -22,19 +22,15 @@
  */
 
 import java.lang.classfile.Attributes;
-import java.lang.classfile.ClassBuilder;
-import java.lang.classfile.ClassElement;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
-import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.MethodTransform;
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.ConstantDescs;
 import java.lang.constant.DynamicCallSiteDesc;
-import java.lang.constant.MethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.ConstantCallSite;
@@ -54,9 +50,7 @@ import jdk.incubator.code.bytecode.BytecodeGenerator;
 public final class Unreflect {
 
     static final ClassDesc CD_Reflect = Reflect.class.describeConstable().get();
-
-    // lazy initialized
-    static MethodModel UNREFLECT_BSM;
+    static final ClassDesc CD_Unreflect = Unreflect.class.describeConstable().get();
 
     static boolean isReflective(MethodModel mm) {
         return mm.findAttribute(Attributes.runtimeVisibleAnnotations())
@@ -66,56 +60,32 @@ public final class Unreflect {
 
     static byte[] transform(byte[] classBytes) {
         ClassModel clm = ClassFile.of().parse(classBytes);
-        return ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(clm, new ClassTransform() {
-            boolean injectBSM = false;
-
-            @Override
-            public void accept(ClassBuilder clb, ClassElement cle) {
-                if (cle instanceof MethodModel mm) {
-                    if (isReflective(mm)) {
-                        clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
-                                .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
-                                    System.out.print('.');
-                                    injectBSM = true;
-                                    MethodTypeDesc mts = mm.methodTypeSymbol();
-                                    boolean hasReceiver = !mm.flags().has(AccessFlag.STATIC);
-                                    if (hasReceiver) {
-                                        cob.loadLocal(TypeKind.REFERENCE, cob.receiverSlot());
-                                    }
-                                    for (int i = 0; i < mts.parameterCount(); i++) {
-                                        cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
-                                    }
-                                    cob.invokedynamic(DynamicCallSiteDesc.of(
-                                                    MethodHandleDesc.ofMethod(clm.flags().has(AccessFlag.INTERFACE)
-                                                            ? DirectMethodHandleDesc.Kind.INTERFACE_STATIC
-                                                            : DirectMethodHandleDesc.Kind.STATIC,
-                                                    clm.thisClass().asSymbol(),
-                                                    UNREFLECT_BSM.methodName().stringValue(),
-                                                    UNREFLECT_BSM.methodTypeSymbol()),
-                                            mm.methodName().stringValue(),
-                                            hasReceiver ? mts.insertParameterTypes(0, clm.thisClass().asSymbol()): mts));
-                                    cob.return_(TypeKind.from(mts.returnType()));
-                                }))));
-                    } else if (!mm.methodName().equals(UNREFLECT_BSM.methodName())) { // drop unreflect BSM if already present
-                        clb.with(cle);
-                    }
+        return ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(clm, (clb, cle) -> {
+                if (cle instanceof MethodModel mm && isReflective(mm)) {
+                    clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
+                            .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
+                                System.out.print('.');
+                                MethodTypeDesc mts = mm.methodTypeSymbol();
+                                boolean hasReceiver = !mm.flags().has(AccessFlag.STATIC);
+                                if (hasReceiver) {
+                                    cob.loadLocal(TypeKind.REFERENCE, cob.receiverSlot());
+                                }
+                                for (int i = 0; i < mts.parameterCount(); i++) {
+                                    cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
+                                }
+                                cob.invokedynamic(DynamicCallSiteDesc.of(
+                                        ConstantDescs.ofCallsiteBootstrap(CD_Unreflect, "unreflect", ConstantDescs.CD_CallSite),
+                                        mm.methodName().stringValue(),
+                                        hasReceiver ? mts.insertParameterTypes(0, clm.thisClass().asSymbol()): mts));
+                                cob.return_(TypeKind.from(mts.returnType()));
+                            }))));
                 } else {
                     clb.with(cle);
                 }
-            }
-
-            @Override
-            public void atEnd(ClassBuilder clb) {
-                if (injectBSM) {
-                    System.out.println();
-                    clb.with(UNREFLECT_BSM);
-                }
-            }
-        });
+            });
     }
 
-    // BSM template
-    private static CallSite $unreflectBSM(MethodHandles.Lookup caller, String methodName, MethodType methodType)
+    public static CallSite unreflect(MethodHandles.Lookup caller, String methodName, MethodType methodType)
             throws NoSuchMethodException {
         for (Method m : caller.lookupClass().getDeclaredMethods()) {
             int firstParam = (m.getModifiers() & Modifier.STATIC) == 0 ? 1 : 0;
@@ -131,10 +101,6 @@ public final class Unreflect {
     }
 
     public static void main(String[] args) throws Exception {
-        // initialize unreflect method models
-        UNREFLECT_BSM = ClassFile.of().parse(Unreflect.class.getResourceAsStream("Unreflect.class").readAllBytes())
-                .methods().stream().filter(mm -> mm.methodName().equalsString("$unreflectBSM")).findFirst().orElseThrow();
-
         // process class files from arguments
         for (var arg : args) {
             if (!arg.endsWith(".class")) arg += ".class";
