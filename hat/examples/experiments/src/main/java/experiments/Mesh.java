@@ -31,8 +31,9 @@ import hat.NDRange;
 import hat.KernelContext;
 
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -144,8 +145,8 @@ public class Mesh {
         var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
         var meshDataOld = MeshData.create(accelerator);
 
-        String layoutNew = Buffer.getLayout(meshDataNew).toString();
-        String layoutOld = Buffer.getLayout(meshDataOld).toString();
+        String layoutNew = MappableIface.getLayout(meshDataNew).toString();
+        String layoutOld = MappableIface.getLayout(meshDataOld).toString();
         if (layoutOld.equals(layoutNew)) {
             MeshData meshData = MeshData.create(accelerator);
             Random random = new Random(System.currentTimeMillis());

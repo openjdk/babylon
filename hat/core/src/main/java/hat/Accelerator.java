@@ -26,10 +26,11 @@ package hat;
 
 
 import hat.backend.Backend;
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.buffer.BufferTracker;
+
+import hat.ifacemapper.BufferAllocator;
+import hat.ifacemapper.BufferTracker;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
 
@@ -109,33 +110,33 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundShema) {
+    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundShema) {
         return backend.allocate(segmentMapper, boundShema);
     }
 
     @Override
-    public void preMutate(Buffer b) {
+    public void preMutate(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).preMutate(b);
         }
     }
 
     @Override
-    public void postMutate(Buffer b) {
+    public void postMutate(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).postMutate(b);
         }
     }
 
     @Override
-    public void preAccess(Buffer b) {
+    public void preAccess(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).preAccess(b);
         }
     }
 
     @Override
-    public void postAccess(Buffer b) {
+    public void postAccess(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).postAccess(b);
         }

@@ -28,14 +28,8 @@ package hat.backend.jextracted;
 import hat.Config;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
-import hat.buffer.Buffer;
 
 import java.lang.foreign.Arena;
-import java.lang.invoke.MethodHandle;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 public abstract class JExtractedBackendDriver extends Backend {
 /*

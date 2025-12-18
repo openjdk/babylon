@@ -28,8 +28,8 @@ package hat.backend.java;
 import hat.ComputeContext;
 import hat.Config;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
@@ -41,7 +41,7 @@ public abstract class JavaBackend extends Backend {
     public final Arena arena = Arena.global();
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
+    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
         return segmentMapper.allocate(arena, boundSchema);
     }
     @Override

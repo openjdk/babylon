@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.Schema;
 
 public interface F32Array2D extends Buffer {

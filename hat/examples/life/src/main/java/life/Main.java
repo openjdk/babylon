@@ -29,7 +29,8 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
@@ -78,7 +79,7 @@ public class Main {
 
         default void copySliceTo(byte[] bytes, int to) {
             long offset = headerOffset + to * valueLayout.byteOffset();
-            MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
+            MemorySegment.copy(MappableIface.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
 
         }
 

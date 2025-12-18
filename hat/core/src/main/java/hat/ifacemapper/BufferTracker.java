@@ -22,16 +22,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.ifacemapper;
 
 public interface BufferTracker {
 
-     void preMutate(Buffer b);
+     void preMutate(MappableIface b);
 
-     void postMutate(Buffer b) ;
+     void postMutate(MappableIface b) ;
 
-     void preAccess(Buffer b);
+     void preAccess(MappableIface b);
 
-     void postAccess(Buffer b);
+     void postAccess(MappableIface b);
 
 }

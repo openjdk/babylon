@@ -25,6 +25,8 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.ifacemapper.Buffer;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 
@@ -56,11 +58,11 @@ public interface S32Array2D extends Buffer {
         return schema.allocate(accelerator, width,height);
     }
     default S32Array2D copyFrom(int[] ints) {
-        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
+        MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
         return this;
     }
     default S32Array2D copyTo(int[] ints) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(),  ints, 0, width()*height());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(),  ints, 0, width()*height());
         return this;
     }
 

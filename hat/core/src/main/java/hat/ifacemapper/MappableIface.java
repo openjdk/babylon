@@ -28,6 +28,14 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.reflect.InvocationTargetException;
+
+import static hat.ifacemapper.MapperUtil.SECRET_BOUND_SCHEMA_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
 public interface MappableIface  {
     @Retention(RetentionPolicy.RUNTIME)
@@ -39,4 +47,54 @@ public interface MappableIface  {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.PARAMETER)
     @interface WO {}
+
+    interface Union extends MappableIface {
+    }
+
+    interface Struct extends MappableIface {
+    }
+
+
+    default int getState(){
+        return BufferState.of(this).getState();
+    }
+    default void setState(int newState ){
+        BufferState.of(this).setState(newState);
+    }
+
+    default String getStateString(){
+        return BufferState.of(this).getStateString();
+    }
+
+    static <T extends MappableIface> MemorySegment getMemorySegment(T buffer) {
+        try {
+            return (MemorySegment) buffer.getClass().getDeclaredMethod(SECRET_SEGMENT_METHOD_NAME).invoke(buffer);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static <T extends Buffer> BoundSchema<?> getBoundSchema(T buffer) {
+        try {
+            return (BoundSchema<?>) buffer.getClass().getDeclaredMethod(SECRET_BOUND_SCHEMA_METHOD_NAME).invoke(buffer);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static <T extends Buffer> MemoryLayout getLayout(T buffer) {
+        try {
+            return (MemoryLayout) buffer.getClass().getDeclaredMethod(SECRET_LAYOUT_METHOD_NAME).invoke(buffer);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static <T extends Buffer> long getOffset(T buffer) {
+        try {
+            return (long) buffer.getClass().getDeclaredMethod(SECRET_OFFSET_METHOD_NAME).invoke(buffer);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

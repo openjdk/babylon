@@ -26,7 +26,6 @@
 package hat.ifacemapper;
 
 import hat.ifacemapper.accessor.Accessors;
-//import jdk.internal.vm.annotation.Stable;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.invoke.MethodHandle;

@@ -25,7 +25,7 @@
 package heal;
 
 import hat.Accelerator;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.Schema;
 
 public interface Box extends Buffer {

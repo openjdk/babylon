@@ -27,7 +27,10 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.BufferTagger;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.Buffer;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
+import hat.ifacemapper.SchemaBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
@@ -267,7 +270,7 @@ public interface ArgArray extends Buffer {
                 case Integer s32 -> "(?:s32)";
                 case Long s64 -> "(?:s64)";
                 case Double f64 -> "(?:f64)";
-                case Buffer buffer -> "(?:" +SchemaBuilder.schema(buffer)+")";
+                case Buffer buffer -> "(?:" + SchemaBuilder.schema(buffer)+")";
                 default -> throw new IllegalStateException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
             };
             if (i > 0) {
@@ -317,7 +320,7 @@ public interface ArgArray extends Buffer {
                     }else{
                         throw new IllegalArgumentException("Argument " + i + " has no access annotations");
                     }
-                    MemorySegment segment = Buffer.getMemorySegment(buffer);
+                    MemorySegment segment = MappableIface.getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();

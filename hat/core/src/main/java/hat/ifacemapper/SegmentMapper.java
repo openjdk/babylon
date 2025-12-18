@@ -24,7 +24,7 @@
  */
 package hat.ifacemapper;
 
-import hat.buffer.Buffer;
+
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -701,7 +701,7 @@ public interface SegmentMapper<T> {
         return SegmentInterfaceMapper.create(lookup, type, layout, null);
     }
 
-    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, BoundSchema<?> boundSchema) {
+    static <T extends MappableIface> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, BoundSchema<?> boundSchema) {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);

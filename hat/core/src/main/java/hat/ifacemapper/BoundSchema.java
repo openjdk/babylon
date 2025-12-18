@@ -24,8 +24,6 @@
  */
 package hat.ifacemapper;
 
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -37,7 +35,7 @@ import java.util.List;
 import static hat.ifacemapper.BoundSchema.BoundSchemaNode.getBoundGroupLayout;
 
 
-public class BoundSchema<T extends Buffer> {
+public class BoundSchema<T extends MappableIface> {
     final private List<BoundArrayFieldLayout> boundArrayFields = new ArrayList<>();
     final private int[] arrayLengths;
     final private Schema<T> schema;
@@ -108,7 +106,7 @@ public class BoundSchema<T extends Buffer> {
     public BoundSchema(Schema<T> schema, int... arrayLengths) {
         this.schema = schema;
         this.arrayLengths = arrayLengths;
-        this.rootBoundSchemaNode = new BoundSchemaNode<>((BoundSchema<Buffer>) this, null, this.schema.rootIfaceType);
+        this.rootBoundSchemaNode = new BoundSchemaNode<>((BoundSchema) this, null, this.schema.rootIfaceType);
         this.groupLayout = getBoundGroupLayout(rootBoundSchemaNode,schema.rootIfaceType);
         this.rootBoundSchemaNode.memoryLayouts.add(this.groupLayout);
     }
@@ -155,14 +153,14 @@ public class BoundSchema<T extends Buffer> {
     }
 
     public static class BoundSchemaNode<T extends MappableIface> {
-        final public  BoundSchema<Buffer> boundSchema;
+        final public  BoundSchema<T> boundSchema;
         final public  BoundSchemaNode<T> parent;
         final public List<BoundSchemaNode<?>> children = new ArrayList<>();
         final public List<MemoryLayout> memoryLayouts = new ArrayList<>();
         final public List<FieldLayout<?>> fieldLayouts = new ArrayList<>();
         final public Schema.IfaceType ifaceType;
 
-        BoundSchemaNode(BoundSchema<Buffer> boundSchema, BoundSchemaNode<T> parent, Schema.IfaceType ifaceType) {
+        BoundSchemaNode(BoundSchema<T> boundSchema, BoundSchemaNode<T> parent, Schema.IfaceType ifaceType) {
             this.boundSchema = boundSchema;
             this.parent = parent;
             this.ifaceType = ifaceType;

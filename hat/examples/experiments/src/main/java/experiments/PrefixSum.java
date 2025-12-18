@@ -33,7 +33,7 @@ import hat.KernelContext;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;

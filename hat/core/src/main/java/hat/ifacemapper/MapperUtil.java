@@ -25,7 +25,7 @@
 
 package hat.ifacemapper;
 
-import hat.buffer.Buffer;
+
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.Accessors;
 import hat.util.StreamMutable;
@@ -182,11 +182,11 @@ public final class MapperUtil {
         return  MappableIface.class.isAssignableFrom(clazz);
     }
     static boolean isBuffer(Class<?> clazz) {
-        return  Buffer.class.isAssignableFrom(clazz);
+        return  MappableIface.class.isAssignableFrom(clazz);
     }
 
     static boolean isStruct(Class<?> clazz) {
-        return  Buffer.Struct.class.isAssignableFrom(clazz);
+        return  MappableIface.Struct.class.isAssignableFrom(clazz);
     }
     public static boolean isMemorySegment(Class<?> clazz) {
         return  MemorySegment.class.isAssignableFrom(clazz);
@@ -197,7 +197,7 @@ public final class MapperUtil {
     }
 
     static boolean isUnion(Class<?> clazz) {
-        return  Buffer.Union.class.isAssignableFrom(clazz);
+        return  MappableIface.Union.class.isAssignableFrom(clazz);
     }
 
     static boolean isPrimitive(Class<?> clazz) {

@@ -32,6 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.*;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;

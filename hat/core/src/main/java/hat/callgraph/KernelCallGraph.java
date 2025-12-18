@@ -25,15 +25,13 @@
 package hat.callgraph;
 
 import hat.BufferTagger;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.optools.OpTk;
 import hat.phases.HATDialectifyTier;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Stream;

@@ -30,7 +30,6 @@ import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.Accessors;
 import hat.ifacemapper.accessor.ValueType;
 import hat.ifacemapper.component.Util;
-//import jdk.internal.vm.annotation.Stable;
 
 import java.io.IOException;
 import java.lang.classfile.ClassFile;

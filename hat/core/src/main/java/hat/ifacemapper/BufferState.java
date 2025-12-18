@@ -24,7 +24,7 @@
  */
 package hat.ifacemapper;
 
-import hat.buffer.Buffer;
+
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -117,8 +117,8 @@ public record BufferState(MemorySegment segment, long paddedSize) {
     }
 
     public static <T> BufferState of(T t) {
-        Buffer buffer = (Buffer) Objects.requireNonNull(t);
-        MemorySegment s = Buffer.getMemorySegment(buffer);
+        MappableIface buffer = (MappableIface) Objects.requireNonNull(t);
+        MemorySegment s = MappableIface.getMemorySegment(buffer);
         return new BufferState(s, s.byteSize() - BufferState.byteSize());
     }
     public BufferState setState(int newState) {

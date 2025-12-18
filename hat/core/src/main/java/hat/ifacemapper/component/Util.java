@@ -48,34 +48,35 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public final class Util {
-
-    static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-
-    public static final MethodType GET_TYPE = MethodType.methodType(Object.class,
-            MemorySegment.class, long.class);
     public static final MethodType SET_TYPE = MethodType.methodType(void.class,
             MemorySegment.class, long.class, Object.class);
 
+
+    static private final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+
+    static private final MethodType GET_TYPE = MethodType.methodType(Object.class,
+            MemorySegment.class, long.class);
+
     // A MethodHandle of type (long, long)long that adds the two terms
-    static final MethodHandle SUM_LONG;
+    static private final MethodHandle SUM_LONG;
     // A MethodHandle of type (MemorySegment, long, Object)void that does nothing
-    public static final MethodHandle SET_NO_OP = MethodHandles.empty(SET_TYPE);
+    static private final MethodHandle SET_NO_OP = MethodHandles.empty(SET_TYPE);
 
     // A MethodHandle of type (Object[])List that creates a new List from an Object array
     // (x[])List<X>
-    public static final MethodHandle LIST_OF;
+     static private final MethodHandle LIST_OF;
 
     // A MethodHandle of type (List)Set that creates a new Set from a List
     // (List<X>)Set<X>
-    public static final MethodHandle SET_AS_COPY_OF_LIST;
+    static public final MethodHandle SET_AS_COPY_OF_LIST;
 
     // A MethodHandle of type (Set)List that creates a new List from a Set
     // (Set<X>)List<X>
-    public static final MethodHandle LIST_AS_COPY_OF_SET;
+    static public final MethodHandle LIST_AS_COPY_OF_SET;
 
     // A MethodHandle of type (Object, int)Object that checks the
     // array length
-    public static final MethodHandle REQUIRE_ARRAY_LENGTH;
+    static public final MethodHandle REQUIRE_ARRAY_LENGTH;
 
     static {
         try {
@@ -131,8 +132,7 @@ public final class Util {
     }
 
     static int dimensionOf(Class<?> arrayClass) {
-        return (int) Stream.<Class<?>>iterate(arrayClass, Class::isArray, Class::componentType)
-                .count();
+        return (int) Stream.<Class<?>>iterate(arrayClass, Class::isArray, Class::componentType).count();
     }
 
     static MethodHandle findStaticToArray(MethodType methodType) throws NoSuchMethodException, IllegalAccessException {
@@ -210,18 +210,70 @@ public final class Util {
         }
     }
 
-    public static MethodHandle findStaticListToArray(MethodType methodType) throws NoSuchMethodException, IllegalAccessException {
+    static public MethodHandle findStaticListToArray(MethodType methodType) throws NoSuchMethodException, IllegalAccessException {
         return LOOKUP.findStatic(Util.class, "listToArray", methodType);
     }
 
-    public static MethodHandle findStaticArrayToList(MethodType methodType) throws NoSuchMethodException, IllegalAccessException {
+    static public MethodHandle findStaticArrayToList(MethodType methodType) throws NoSuchMethodException, IllegalAccessException {
         return LOOKUP.findStatic(Util.class, "arrayToList", methodType);
     }
 
-    // Below are `MemorySegment::toArray` wrapper methods that is also taking an offset
-    // Begin: Reflectively used methods
+    static private MemorySegment slice(MemorySegment segment,
+                                       MemoryLayout elementLayout,
+                                       long offset,
+                                       long count) {
 
-    // Get operations
+        return segment.asSlice(offset, elementLayout.byteSize() * count);
+    }
+
+    static public Class<?> firstGenericType(RecordComponent rc) {
+        Type genericType = rc.getGenericType();
+        if (genericType instanceof ParameterizedType parameterizedType) {
+            Type firstGenericParameter = parameterizedType.getActualTypeArguments()[0];
+            if (firstGenericParameter instanceof Class<?> c) {
+                return c;
+            }
+            throw new IllegalArgumentException("Type is not a Class " + firstGenericParameter);
+        }
+        throw new IllegalArgumentException("Unable to determine the generic type of " + rc);
+    }
+
+    static void assertSequenceLayoutValid(SequenceLayout sl) {
+        if (sl.elementLayout() instanceof SequenceLayout) {
+            // We only support single dimension arrays
+            throw new IllegalArgumentException("A sequence layout can not have an element layout that is" +
+                    "also a sequence layout " + sl);
+        }
+
+        if (sl.elementCount() > Integer.MAX_VALUE - 8) {
+            throw new IllegalArgumentException("Unable to map'" + sl +
+                    "' because the element count is too big " + sl.elementCount());
+        }
+
+        if (sl.elementLayout() instanceof ValueLayout.OfBoolean) {
+            throw new IllegalArgumentException("Arrays of booleans (" + sl.elementLayout() + ") are not supported");
+        }
+    }
+
+    static public Class<?> baseComponentType(Class<?> type) {
+        Class<?> componentType = type.componentType();
+        if (componentType == null) {
+            return type;
+        }
+        return baseComponentType(componentType);
+    }
+
+    static public Object requireArrayLength(Object array, int expected) {
+        int actual = Array.getLength(array);
+        if (actual != expected) {
+            throw new IllegalArgumentException(
+                    "Expected an array length of " + expected + " but it was actually " + actual);
+        }
+        return array;
+    }
+    // Below are `MemorySegment::toArray` wrapper methods that is also taking an offset
+
+    // BEWARE the methods below are accessed reflectively so if IDE indicates they are unused.  They are not!
 
     static byte[] toArray(MemorySegment segment,
                           ValueLayout.OfByte elementLayout,
@@ -292,7 +344,7 @@ public final class Util {
 
     // Extract an array from a list.
 
-    private static byte[] listToArray(ValueLayout.OfByte layout,
+    static private byte[] listToArray(ValueLayout.OfByte layout,
                                       List<Byte> list) {
         int size = list.size();
         byte[] result = new byte[size];
@@ -302,7 +354,7 @@ public final class Util {
         return result;
     }
 
-    private static short[] listToArray(ValueLayout.OfShort layout,
+    static private short[] listToArray(ValueLayout.OfShort layout,
                                        List<Short> list) {
         int size = list.size();
         short[] result = new short[size];
@@ -312,7 +364,7 @@ public final class Util {
         return result;
     }
 
-    private static char[] listToArray(ValueLayout.OfChar layout,
+    static private char[] listToArray(ValueLayout.OfChar layout,
                                       List<Character> list) {
         int size = list.size();
         char[] result = new char[size];
@@ -322,7 +374,7 @@ public final class Util {
         return result;
     }
 
-    private static int[] listToArray(ValueLayout.OfInt layout,
+    static private int[] listToArray(ValueLayout.OfInt layout,
                                      List<Integer> list) {
         int size = list.size();
         int[] result = new int[size];
@@ -332,7 +384,7 @@ public final class Util {
         return result;
     }
 
-    private static float[] listToArray(ValueLayout.OfFloat layout,
+    static private float[] listToArray(ValueLayout.OfFloat layout,
                                        List<Float> list) {
         int size = list.size();
         float[] result = new float[size];
@@ -342,7 +394,7 @@ public final class Util {
         return result;
     }
 
-    private static long[] listToArray(ValueLayout.OfLong layout,
+    static private long[] listToArray(ValueLayout.OfLong layout,
                                       List<Long> list) {
         int size = list.size();
         long[] result = new long[size];
@@ -352,7 +404,7 @@ public final class Util {
         return result;
     }
 
-    private static double[] listToArray(ValueLayout.OfDouble layout,
+    static private double[] listToArray(ValueLayout.OfDouble layout,
                                         List<Double> list) {
         int size = list.size();
         double[] result = new double[size];
@@ -362,9 +414,7 @@ public final class Util {
         return result;
     }
 
-    // Extract a List from an array.
-
-    private static List<Byte> arrayToList(ValueLayout.OfByte layout,
+    static private List<Byte> arrayToList(ValueLayout.OfByte layout,
                                           byte[] in) {
         int size = in.length;
         Byte[] arr = new Byte[size];
@@ -374,7 +424,7 @@ public final class Util {
         return List.of(arr);
     }
 
-    private static List<Short> arrayToList(ValueLayout.OfShort layout,
+    static private List<Short> arrayToList(ValueLayout.OfShort layout,
                                            short[] in) {
         int size = in.length;
         Short[] arr = new Short[size];
@@ -384,7 +434,7 @@ public final class Util {
         return List.of(arr);
     }
 
-    private static List<Character> arrayToList(ValueLayout.OfChar layout,
+    static private List<Character> arrayToList(ValueLayout.OfChar layout,
                                                char[] in) {
         int size = in.length;
         Character[] arr = new Character[size];
@@ -394,7 +444,7 @@ public final class Util {
         return List.of(arr);
     }
 
-    private static List<Integer> arrayToList(ValueLayout.OfInt layout,
+    static private List<Integer> arrayToList(ValueLayout.OfInt layout,
                                              int[] in) {
         int size = in.length;
         Integer[] arr = new Integer[size];
@@ -404,7 +454,7 @@ public final class Util {
         return List.of(arr);
     }
 
-    private static List<Float> arrayToList(ValueLayout.OfFloat layout,
+    static private List<Float> arrayToList(ValueLayout.OfFloat layout,
                                            float[] in) {
         int size = in.length;
         Float[] arr = new Float[size];
@@ -414,7 +464,7 @@ public final class Util {
         return List.of(arr);
     }
 
-    private static List<Long> arrayToList(ValueLayout.OfLong layout,
+    static private List<Long> arrayToList(ValueLayout.OfLong layout,
                                           long[] in) {
         int size = in.length;
         Long[] arr = new Long[size];
@@ -424,7 +474,7 @@ public final class Util {
         return List.of(arr);
     }
 
-    private static List<Double> arrayToList(ValueLayout.OfDouble layout,
+    static private List<Double> arrayToList(ValueLayout.OfDouble layout,
                                             double[] in) {
         int size = in.length;
         Double[] arr = new Double[size];
@@ -434,71 +484,18 @@ public final class Util {
         return List.of(arr);
     }
 
-    private static List<?> arrayToList(Object[] in) {
+    static private List<?> arrayToList(Object[] in) {
         return List.of(in);
     }
 
-    private static <T> Collection<T> listAsCollection(List<T> list) {
+    static private <T> Collection<T> listAsCollection(List<T> list) {
         return list;
     }
 
-    private static <T> Collection<T> setAsCollection(Set<T> set) {
+    static private <T> Collection<T> setAsCollection(Set<T> set) {
         return set;
     }
 
     // End: Reflectively used methods
 
-    private static MemorySegment slice(MemorySegment segment,
-                                       MemoryLayout elementLayout,
-                                       long offset,
-                                       long count) {
-
-        return segment.asSlice(offset, elementLayout.byteSize() * count);
-    }
-
-    public static Class<?> firstGenericType(RecordComponent rc) {
-        Type genericType = rc.getGenericType();
-        if (genericType instanceof ParameterizedType parameterizedType) {
-            Type firstGenericParameter = parameterizedType.getActualTypeArguments()[0];
-            if (firstGenericParameter instanceof Class<?> c) {
-                return c;
-            }
-            throw new IllegalArgumentException("Type is not a Class " + firstGenericParameter);
-        }
-        throw new IllegalArgumentException("Unable to determine the generic type of " + rc);
-    }
-
-    static void assertSequenceLayoutValid(SequenceLayout sl) {
-        if (sl.elementLayout() instanceof SequenceLayout) {
-            // We only support single dimension arrays
-            throw new IllegalArgumentException("A sequence layout can not have an element layout that is" +
-                    "also a sequence layout " + sl);
-        }
-
-        if (sl.elementCount() > Integer.MAX_VALUE - 8) {
-            throw new IllegalArgumentException("Unable to map'" + sl +
-                    "' because the element count is too big " + sl.elementCount());
-        }
-
-        if (sl.elementLayout() instanceof ValueLayout.OfBoolean) {
-            throw new IllegalArgumentException("Arrays of booleans (" + sl.elementLayout() + ") are not supported");
-        }
-    }
-
-    public static Class<?> baseComponentType(Class<?> type) {
-        Class<?> componentType = type.componentType();
-        if (componentType == null) {
-            return type;
-        }
-        return baseComponentType(componentType);
-    }
-
-    public static Object requireArrayLength(Object array, int expected) {
-        int actual = Array.getLength(array);
-        if (actual != expected) {
-            throw new IllegalArgumentException(
-                    "Expected an array length of " + expected + " but it was actually " + actual);
-        }
-        return array;
-    }
 }

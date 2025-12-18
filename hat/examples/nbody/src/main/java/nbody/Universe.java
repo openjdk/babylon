@@ -25,7 +25,7 @@
 package nbody;
 
 import hat.Accelerator;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.buffer.Float4;
 import hat.ifacemapper.Schema;
 
