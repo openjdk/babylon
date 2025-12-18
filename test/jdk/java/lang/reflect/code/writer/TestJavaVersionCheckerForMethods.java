@@ -11,18 +11,17 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.function.IntBinaryOperator;
 
 /*
  * @test
  * @summary Test that java version check we do in op building methods is working
- * @run main TestJavaVersionChecker
- * @run junit/othervm TestJavaVersionChecker
+ * @run main TestJavaVersionCheckerForMethods
+ * @run junit/othervm TestJavaVersionCheckerForMethods
  */
-public class TestJavaVersionChecker {
+public class TestJavaVersionCheckerForMethods {
 
     public static void main(String[] args) throws IOException { // transform $CM classfile
-        String testClassName = TestJavaVersionChecker.class.getName();
+        String testClassName = TestJavaVersionCheckerForMethods.class.getName();
         Path testClassesDir = Path.of(System.getProperty("test.classes"));
         Path innerClassPath = testClassesDir.resolve(testClassName + "$$CM.class");
         byte[] newInnerBytes = changeCompileTimeVersion(innerClassPath, Runtime.version().feature() - 1);
@@ -33,23 +32,10 @@ public class TestJavaVersionChecker {
     void test() throws ReflectiveOperationException, IOException {
         Method m = this.getClass().getDeclaredMethod("max", int.class, int.class);
         Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofMethod(m));
-
-        // in the lambda class initializer <clinit>, we invoke lambda op method
-        // after the changes we made to $CM classfile, the lambda op method throws UOE, causing <clinit> to fails
-        // UOE -> ExceptionInInitializerError -> InternalError
-        InternalError ie = null;
-        try {
-            IntBinaryOperator l = (@Reflect IntBinaryOperator) (a, b) -> Math.max(a, b);
-        } catch (InternalError e) {
-            Assertions.assertInstanceOf(ExceptionInInitializerError.class, e.getCause());
-            Assertions.assertInstanceOf(UnsupportedOperationException.class, e.getCause().getCause());
-            ie = e;
-        }
-        Assertions.assertNotNull(ie, "Reflectable lambda creation didn't fail as expected");
     }
 
     // change java compile time version that was embedded in the $checkJavaVersion method
-    private static byte[] changeCompileTimeVersion(Path innerClassPath, int newCompileTimeVersion) {
+    static byte[] changeCompileTimeVersion(Path innerClassPath, int newCompileTimeVersion) {
         ClassModel inner = null;
         try {
             inner = ClassFile.of().parse(innerClassPath);
