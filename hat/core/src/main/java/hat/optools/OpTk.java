@@ -831,4 +831,14 @@ public interface OpTk {
             throw new RuntimeException("given type cannot be converted to class");
         }
     }
+    static int dimIdx(String dim){
+        return switch (dim.substring(2)){
+            case "y"->1;
+            case "z"->2;
+            default -> 0;
+        };
+    }
+    static int dimIdx(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+        return dimIdx(fieldLoadOp.fieldDescriptor().name());
+    }
 }

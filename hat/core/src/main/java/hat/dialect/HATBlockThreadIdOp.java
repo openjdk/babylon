@@ -24,16 +24,18 @@
  */
 package hat.dialect;
 
+import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class HATBlockThreadIdOp extends HATThreadOp {
-
     private final TypeElement resultType;
     private static final String NAME = "BlockThreadId";
 
@@ -60,5 +62,12 @@ public class HATBlockThreadIdOp extends HATThreadOp {
     @Override
     public Map<String, Object> externalize() {
         return Map.of("hat.dialect." + NAME, this.getDimension());
+    }
+
+    public final static  Pattern pattern = Pattern.compile("bi[xyz]");
+
+
+    public static HATBlockThreadIdOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+        return new HATBlockThreadIdOp(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
     }
 }

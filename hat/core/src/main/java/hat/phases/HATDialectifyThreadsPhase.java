@@ -25,7 +25,6 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.KernelContext;
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
@@ -34,28 +33,21 @@ import hat.dialect.HATLocalThreadIdOp;
 import hat.dialect.HATThreadOp;
 import hat.optools.Trxfmr;
 import hat.optools.OpTk;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-public abstract class HATDialectifyThreadsPhase implements HATDialect  {
+public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPhase<T,C>,C extends HATThreadOp> implements HATDialect  {
     protected final Accelerator accelerator;
     @Override  public Accelerator accelerator(){
         return this.accelerator;
     }
+    final Class<C> clazz;
 
-    public HATDialectifyThreadsPhase(Accelerator accelerator) {
+    public HATDialectifyThreadsPhase(Accelerator accelerator, Class<C> clazz) {
         this.accelerator=accelerator;
+        this.clazz=clazz;
     }
 
     protected abstract  HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp);
@@ -63,144 +55,90 @@ public abstract class HATDialectifyThreadsPhase implements HATDialect  {
     protected abstract Pattern pattern();
 
     @Override
-
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(), "apply");
-        before(here, funcOp);
-        Set<Op> ops = new LinkedHashSet<>();
-        funcOp.elements()
-                .map(ce -> OpTk.asNamedKernelContextFieldAccessOrNull(accelerator.lookup,ce,pattern()))
-                .filter(Objects::nonNull)
-                .forEach(fieldLoadOp -> fieldLoadOp.operands().stream()
-                    .map(OpTk::asResultOrNull)
-                    .map(OpTk::opOfResultOrNull)
-                    .map(OpTk::asVarLoadOrNull)
-                    .filter(Objects::nonNull) // ((Result)operand).op()) instanceof VarLoad varload && varload is KernelContext.class
-                    .findFirst()
-                    .ifPresent(varLoadOp -> ops.addAll(Set.of(fieldLoadOp,varLoadOp)))
-                );
-
-        funcOp = OpTk.transform(here, funcOp, ops::contains, (bb, op) -> {
-            CodeContext ctx = bb.context();
-            switch (op){
-                case CoreOp.VarAccessOp.VarLoadOp  $->
-                        ctx.mapValue($.result(), ctx.getValue($.operands().getFirst()));
-                case JavaOp.FieldAccessOp.FieldLoadOp $->
-                        ctx.mapValue($.result(), bb.op(OpTk.copyLocation($,factory($))).op().result());
-                default -> throw new RuntimeException("We should never get here");
-            }
-            return bb;
-        });
-        after(here,funcOp);
-        return funcOp;
-    }
-    public CoreOp.FuncOp applyTxform(CoreOp.FuncOp funcOp) {
-        return new Trxfmr.Edge.Selector<JavaOp.FieldAccessOp.FieldLoadOp, CoreOp.VarAccessOp.VarLoadOp>()
-        .select(funcOp, ce->ce instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp
-                        && Trxfmr.Edge.kernelContextFieldVarLoad(accelerator.lookup,fieldLoadOp, fieldName->pattern().matcher(fieldName).matches())
-                        instanceof Trxfmr.Edge<JavaOp.FieldAccessOp.FieldLoadOp,CoreOp.VarAccessOp.VarLoadOp> e? e:null)
-        .transform(funcOp,c->{
-            switch (c.op()){
-                case JavaOp.FieldAccessOp.FieldLoadOp $  -> c.replace(factory($));
-                case CoreOp.VarAccessOp.VarLoadOp _ -> c.remove();
-                default -> {}
-            }
-        });
+        var txfmr = new Trxfmr(OpTk.CallSite.of(this.getClass()),funcOp);
+        return txfmr.select(
+                ce->OpTk.asNamedKernelContextFieldAccessOrNull(accelerator.lookup,ce,pattern())!=null,(s,o)->
+                   OpTk.operandsAsResults(o)
+                     .map(OpTk::opOfResultOrNull)
+                     .map(OpTk::asVarLoadOrNull)
+                     .filter(Objects::nonNull) // ((Result)operand).op()) instanceof VarLoad varload && varload is KernelContext.class
+                     .findFirst()
+                     .ifPresent(varLoadOp -> s.select(o,varLoadOp))
+                ).transform(txfmr.selected::contains, c->{
+                   switch (c.op()){
+                      case JavaOp.FieldAccessOp.FieldLoadOp $  -> c.replace(factory($));
+                      case CoreOp.VarAccessOp.VarLoadOp _ -> c.remove();
+                      default -> {}
+                }
+        }).funcOp();
     }
 
 
-    //private boolean isMethodFromHatKernelContext(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-     //   String kernelContextCanonicalName = hat.KernelContext.class.getName();
-      //  return varLoadOp.resultType().toString().equals(kernelContextCanonicalName);
-   // }
 
-
-    public static class BlockPhase extends HATDialectifyThreadsPhase  {
+    public static class BlockPhase extends HATDialectifyThreadsPhase<BlockPhase,HATBlockThreadIdOp> {
         public BlockPhase(Accelerator accelerator) {
-            super(accelerator);
+            super(accelerator, HATBlockThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
-            return Pattern.compile("bi[xyz]");
+            return HATBlockThreadIdOp.pattern;
         }
 
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return new HATBlockThreadIdOp(switch (fieldLoadOp.fieldDescriptor().name()){
-                    case "biy"->1;
-                    case "biz"->2;
-                    default -> 0;
-                }, fieldLoadOp.resultType());
+                return HATBlockThreadIdOp.of(fieldLoadOp);
         }
     }
 
-    public static class GlobalIdPhase extends HATDialectifyThreadsPhase  {
-
+    public static class GlobalIdPhase extends HATDialectifyThreadsPhase<GlobalIdPhase,HATGlobalThreadIdOp>  {
         public GlobalIdPhase(Accelerator accelerator) {
-            super(accelerator);
+            super(accelerator, HATGlobalThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
-            return Pattern.compile("(gi[xyz])");
+            return HATGlobalThreadIdOp.pattern;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return new HATGlobalThreadIdOp(switch (fieldLoadOp.fieldDescriptor().name()){
-                    case "y", "giy"->1;
-                    case "z", "giz"->2;
-                    default -> 0;
-                }, fieldLoadOp.resultType());
+                return new HATGlobalThreadIdOp(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
-    public static class GlobalSizePhase extends HATDialectifyThreadsPhase  {
+    public static class GlobalSizePhase extends HATDialectifyThreadsPhase<GlobalSizePhase,HATGlobalSizeOp>  {
         public GlobalSizePhase(Accelerator accelerator) {
-            super(accelerator);
+            super(accelerator, HATGlobalSizeOp.class);
         }
         @Override protected Pattern pattern(){
-            return Pattern.compile("(gs[xyz])");
+            return HATGlobalSizeOp.pattern;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return new HATGlobalSizeOp(switch (fieldLoadOp.fieldDescriptor().name()){
-                    case "gsy","maxY"->1;
-                    case "gsz","maxZ"->2;
-                    default -> 0;
-                }, fieldLoadOp.resultType());
+                return  HATGlobalSizeOp.of(fieldLoadOp);
         }
-
-
     }
 
-    public static class LocalIdPhase extends HATDialectifyThreadsPhase  {
+    public static class LocalIdPhase extends HATDialectifyThreadsPhase<LocalIdPhase,HATLocalThreadIdOp>  {
         public LocalIdPhase(Accelerator accelerator) {
-            super(accelerator);
+            super(accelerator,HATLocalThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
-            return  Pattern.compile("li([xyz])");
+            return HATLocalThreadIdOp.pattern;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return new HATLocalThreadIdOp(switch (fieldLoadOp.fieldDescriptor().name()){
-                    case "liy"->1;
-                    case "liz"->2;
-                    default -> 0;
-                }, fieldLoadOp.resultType());
+                return HATLocalThreadIdOp.of(fieldLoadOp);
         }
     }
 
-    public static class LocalSizePhase extends HATDialectifyThreadsPhase  {
+    public static class LocalSizePhase extends HATDialectifyThreadsPhase<LocalSizePhase,HATLocalSizeOp>  {
         public LocalSizePhase(Accelerator accelerator) {
-            super(accelerator);
+            super(accelerator,HATLocalSizeOp.class);
         }
-        @Override protected Pattern pattern(){
-            return  Pattern.compile("ls([xyz])");
+        @Override public Pattern pattern(){
+           return HATLocalSizeOp.pattern;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return new HATLocalSizeOp(switch (fieldLoadOp.fieldDescriptor().name()){
-                    case "lsy"->1;
-                    case "lsz"->2;
-                    default -> 0;
-                }, fieldLoadOp.resultType());
+            return HATLocalSizeOp.of(fieldLoadOp);
         }
     }
 }
