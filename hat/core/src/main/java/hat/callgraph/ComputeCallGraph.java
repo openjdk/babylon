@@ -29,9 +29,9 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.ifacemapper.Buffer;
 import hat.ifacemapper.MappableIface;
-import hat.optools.FuncOpParams;
+import optkl.FuncOpParams;
 import hat.optools.OpTk;
-import hat.util.StreamMutable;
+import optkl.StreamMutable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;

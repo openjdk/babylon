@@ -32,7 +32,7 @@ import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
-import hat.optools.FuncOpParams;
+import optkl.FuncOpParams;
 import hat.optools.OpTk;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;

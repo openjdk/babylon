@@ -22,9 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.optools;
+package optkl;
 
-import hat.util.BiMap;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -32,7 +31,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import java.lang.foreign.GroupLayout;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

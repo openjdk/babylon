@@ -23,11 +23,52 @@
  * questions.
  */
 package hat.codebuilders;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.function.Consumer;
 
 public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeBuilder<T> {
+    public final T varName(HATMemoryOp hatLocalVarOp) {
+        identifier(hatLocalVarOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorVarOp hatVectorVarOp) {
+        identifier(hatVectorVarOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorLoadOp vectorLoadOp) {
+        identifier(vectorLoadOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorStoreView hatVectorStoreView) {
+        identifier(hatVectorStoreView.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorBinaryOp hatVectorBinaryOp) {
+        identifier(hatVectorBinaryOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorVarLoadOp hatVectorVarLoadOp) {
+        identifier(hatVectorVarLoadOp.varName());
+        return self();
+    }
+
+    public final T varName(HATF16VarOp hatF16VarOp) {
+        identifier(hatF16VarOp.varName());
+        return self();
+    }
 
     public final T suffix_t(ClassType type){
         String name = type.toClassName();

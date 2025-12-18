@@ -22,18 +22,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package optkl.codebuilders;
 
-public interface CodeRenderer<T extends CodeBuilder<T>>{
-    T identifier(String text);
-    T symbol(String text);
-    T typeName(String text);
-    T label(String text);
-    T keyword(String text);
-    T constant(String text);
-    T literal(String text);
-    T reserved(String text);
-    T nl();
-    T space();
-    T comment(String text);
+import jdk.incubator.code.dialect.core.CoreOp;
+
+import java.lang.invoke.MethodHandles;
+
+public class CodeBuilderContext {
+    final public MethodHandles.Lookup lookup;
+    final public CoreOp.FuncOp funcOp;
+    public CodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        this.lookup = lookup;
+        this.funcOp = funcOp;
+    }
 }

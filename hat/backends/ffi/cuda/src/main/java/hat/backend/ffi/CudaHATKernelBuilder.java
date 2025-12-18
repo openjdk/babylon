@@ -25,7 +25,7 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codebuilders.CodeBuilder;
+import optkl.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.*;
 import jdk.incubator.code.Op;

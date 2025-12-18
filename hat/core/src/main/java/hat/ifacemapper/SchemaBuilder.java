@@ -25,7 +25,7 @@
 package hat.ifacemapper;
 
 import hat.buffer.ArgArray;
-import hat.codebuilders.CodeBuilder;
+import optkl.codebuilders.CodeBuilder;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.PaddingLayout;

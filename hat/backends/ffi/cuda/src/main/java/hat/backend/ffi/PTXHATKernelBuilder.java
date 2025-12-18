@@ -27,7 +27,9 @@ package hat.backend.ffi;
 import hat.dialect.HATOp;
 import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
-import hat.codebuilders.CodeBuilder;
+import optkl.FuncOpParams;
+import optkl.ParamVar;
+import optkl.codebuilders.CodeBuilder;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -215,7 +217,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case CoreOp.ConstantOp $ -> constant($);
             case CoreOp.YieldOp $ -> javaYield($);
             case JavaOp.InvokeOp $ -> methodCall($);
-            case CoreOp.VarOp $ when OpTk.paramVar($) != null -> varFuncDeclaration($);
+            case CoreOp.VarOp $ when ParamVar.of($) != null -> varFuncDeclaration($);
             case CoreOp.VarOp $ -> varDeclaration($);
             case CoreOp.ReturnOp $ -> ret($);
             case JavaOp.BreakOp $ -> javaBreak($);
@@ -283,8 +285,9 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         // TODO: fix
         st().global().u64().space().resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.operands().getFirst());
     }
-
-    PTXHATKernelBuilder symbol(Op op) {
+    // this might be duplication of CodeBuilder symbol....
+@Override public
+PTXHATKernelBuilder symbol(Op op) {
         return switch (op) {
             case JavaOp.ModOp _ -> rem();
             case JavaOp.MulOp _ -> mul();
