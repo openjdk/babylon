@@ -85,7 +85,8 @@ public final class Unreflect {
                                     for (int i = 0; i < mts.parameterCount(); i++) {
                                         cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
                                     }
-                                    cob.invokedynamic(DynamicCallSiteDesc.of(MethodHandleDesc.ofMethod(clm.flags().has(AccessFlag.INTERFACE)
+                                    cob.invokedynamic(DynamicCallSiteDesc.of(
+                                                    MethodHandleDesc.ofMethod(clm.flags().has(AccessFlag.INTERFACE)
                                                             ? DirectMethodHandleDesc.Kind.INTERFACE_STATIC
                                                             : DirectMethodHandleDesc.Kind.STATIC,
                                                     clm.thisClass().asSymbol(),
@@ -114,13 +115,15 @@ public final class Unreflect {
     }
 
     // BSM template
-    private static CallSite $unreflectBSM(MethodHandles.Lookup caller, String methodName, MethodType methodType) throws NoSuchMethodException {
+    private static CallSite $unreflectBSM(MethodHandles.Lookup caller, String methodName, MethodType methodType)
+            throws NoSuchMethodException {
         for (Method m : caller.lookupClass().getDeclaredMethods()) {
-            int firstParam;
+            int firstParam = (m.getModifiers() & Modifier.STATIC) == 0 ? 1 : 0;
             if (m.getName().equals(methodName)
                     && m.getReturnType() == methodType.returnType()
-                    && m.getParameterCount() == methodType.parameterCount() - (firstParam = (m.getModifiers() & Modifier.STATIC) == 0 ? 1 : 0)
-                    && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(), methodType.parameterArray(), firstParam, methodType.parameterCount())) {
+                    && m.getParameterCount() == methodType.parameterCount() - firstParam
+                    && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(),
+                                     methodType.parameterArray(), firstParam, methodType.parameterCount())) {
                 return new ConstantCallSite(BytecodeGenerator.generate(caller, Op.ofMethod(m).orElseThrow()));
             }
         }
