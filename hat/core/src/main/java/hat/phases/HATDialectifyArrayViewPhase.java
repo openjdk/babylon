@@ -26,17 +26,7 @@ package hat.phases;
 
 import hat.Accelerator;
 import hat.device.DeviceType;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATPhaseUtils;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorAddOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorDivOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorMulOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorSubOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import hat.types._V;
@@ -46,14 +36,10 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 
 import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HATDialect {
 
@@ -154,56 +140,19 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
                             vLoadOp.setLocation(arrayLoadOp.location());
                             Op.Result res = bb.op(vLoadOp);
                             bb.context().mapValue(arrayLoadOp.result(), res);
-                            // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
-                            //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
-                            //     List<Value> operands = new ArrayList<>();
-                            //     operands.add(info.buffer);
-                            //     operands.addAll(info.indices);
-                            //     HATPtrLoadOp ptrLoadOp = new HATPtrLoadOp(
-                            //             arrayLoadOp.resultType(),
-                            //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
-                            //             info.indices(),
-                            //             bb.context().getValues(operands)
-                            //     );
-                            //     ptrLoadOp.setLocation(arrayLoadOp.location());
-                            //     Op.Result res = bb.op(ptrLoadOp);
-                            //     bb.context().mapValue(arrayLoadOp.result(), res);
-                            // }
-                            return bb;
-                        }
-                        if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
-                            if (r.op() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp rowOp) {
-                                // idea: we want to calculate the idx for the buffer access
-                                // idx = (long) (((long) rowOp.idx * (long) buffer.width()) + alop.idx)
-                                Op.Result x = (Op.Result) getValue(bb, rowOp.operands().getLast());
-                                Op.Result y = (Op.Result) getValue(bb, arrayLoadOp.operands().getLast());
-                                Op.Result ogBufferLoad = replaced.get((Op.Result) firstOperand(rowOp));
-                                Op.Result ogBuffer = replaced.getOrDefault((Op.Result) firstOperand(ogBufferLoad.op()), (Op.Result) firstOperand(ogBufferLoad.op()));
-                                Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(getValue(bb, ogBuffer)));
-
-                                Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) ((VarType) ogBuffer.type()).valueType());
-                                MethodRef m = MethodRef.method(c, "width", int.class);
-                                Op.Result width = bb.op(JavaOp.invoke(m, getValue(bb, bufferLoad)));
-                                Op.Result longX = bb.op(JavaOp.conv(JavaType.LONG, x));
-                                Op.Result longY = bb.op(JavaOp.conv(JavaType.LONG, y));
-                                Op.Result longWidth = bb.op(JavaOp.conv(JavaType.LONG, getValue(bb, width)));
-                                Op.Result mul = bb.op(JavaOp.mul(getValue(bb, longY), getValue(bb, longWidth)));
-                                Op.Result idx = bb.op(JavaOp.add(getValue(bb, longX), getValue(bb, mul)));
-
-                                Class<?> storedClass = OpTk.typeElementToClass(accelerator.lookup,arrayLoadOp.result().type());
-                                MethodRef arrayMethod = MethodRef.method(c, "array", storedClass, long.class);
-                                Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, getValue(bb, ogBufferLoad), getValue(bb, idx)));
-                                bb.context().mapValue(arrayLoadOp.result(), invokeRes);
-                            } else {
-                                JavaOp.ConvOp conv = JavaOp.conv(JavaType.LONG, getValue(bb, arrayLoadOp.operands().get(1)));
-                                Op.Result convRes = bb.op(conv);
-
-                                Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) buffer.type());
-                                Class<?> storedClass = OpTk.typeElementToClass(accelerator.lookup,arrayLoadOp.result().type());
-                                MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
-                                Op.Result invokeRes = bb.op(JavaOp.invoke(m, getValue(bb, buffer), convRes));
-                                bb.context().mapValue(arrayLoadOp.result(), invokeRes);
-                            }
+                        } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
+                            ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                            List<Value> operands = new ArrayList<>();
+                            operands.add(info.buffer);
+                            operands.addAll(info.indices);
+                            HATPtrLoadOp ptrLoadOp = new HATPtrLoadOp(
+                                    arrayLoadOp.resultType(),
+                                    (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                    bb.context().getValues(operands)
+                            );
+                            ptrLoadOp.setLocation(arrayLoadOp.location());
+                            Op.Result res = bb.op(ptrLoadOp);
+                            bb.context().mapValue(arrayLoadOp.result(), res);
                         }
                     }
                     return bb;
@@ -229,103 +178,98 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
                             vStoreOp.setLocation(arrayStoreOp.location());
                             Op.Result res = bb.op(vStoreOp);
                             bb.context().mapValue(arrayStoreOp.result(), res);
-                            // } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
-                            //     ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
-                            //     List<Value> operands = new ArrayList<>();
-                            //     operands.add(info.buffer());
-                            //     // operands.add(arrayStoreOp.operands().getLast());
-                            //     operands.addAll(info.indices);
-                            //     HATPtrStoreOp ptrLoadOp = new HATPtrStoreOp(
-                            //             arrayStoreOp.resultType(),
-                            //             (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
-                            //             info.indices(),
-                            //             getValue(bb, arrayStoreOp.operands().getLast()),
-                            //             bb.context().getValues(operands)
-                            //             // bb.context().getValues(List.of(info.buffer(), arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)))
-                            //     );
-                            //     ptrLoadOp.setLocation(arrayStoreOp.location());
-                            //     Op.Result res = bb.op(ptrLoadOp);
-                            //     bb.context().mapValue(arrayStoreOp.result(), res);
-                            // }
-                            return bb;
-                        }
-                        if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
-                            if (r.op() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp rowOp) {
-                                Op.Result x = (Op.Result) rowOp.operands().getLast();
-                                Op.Result y = (Op.Result) arrayStoreOp.operands().get(1);
-                                Op.Result ogBufferLoad = replaced.get((Op.Result) firstOperand(rowOp));
-                                Op.Result ogBuffer = replaced.getOrDefault((Op.Result) firstOperand(ogBufferLoad.op()), (Op.Result) firstOperand(ogBufferLoad.op()));
-                                Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(getValue(bb, ogBuffer)));
-                                Op.Result computed = (Op.Result) arrayStoreOp.operands().getLast();
-
-                                Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) ((VarType) ogBuffer.type()).valueType());
-                                MethodRef m = MethodRef.method(c, "width", int.class);
-                                Op.Result width = bb.op(JavaOp.invoke(m, getValue(bb, bufferLoad)));
-                                Op.Result longX = bb.op(JavaOp.conv(JavaType.LONG, getValue(bb, x)));
-                                Op.Result longY = bb.op(JavaOp.conv(JavaType.LONG, getValue(bb, y)));
-                                Op.Result longWidth = bb.op(JavaOp.conv(JavaType.LONG, getValue(bb, width)));
-                                Op.Result mul = bb.op(JavaOp.mul(getValue(bb, longY), getValue(bb, longWidth)));
-                                Op.Result idx = bb.op(JavaOp.add(getValue(bb, longX), getValue(bb, mul)));
-
-                                MethodRef arrayMethod = MethodRef.method(c, "array", void.class, long.class, int.class);
-                                Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, getValue(bb, ogBufferLoad), getValue(bb, idx), getValue(bb, computed)));
-                                bb.context().mapValue(arrayStoreOp.result(), invokeRes);
-                            } else {
-                                Op.Result idx = bb.op(JavaOp.conv(JavaType.LONG, getValue(bb, arrayStoreOp.operands().get(1))));
-                                Value val = getValue(bb, arrayStoreOp.operands().getLast());
-
-                                boolean noRootVlop = (buffer.op() instanceof CoreOp.VarOp);
-                                ClassType classType = (noRootVlop) ?
-                                        (ClassType) ((CoreOp.VarOp) buffer.op()).varValueType() :
-                                        (ClassType) buffer.type();
-
-                                Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, classType);
-                                Class<?> storedClass = typeElementToClass(val.type());
-                                MethodRef m = MethodRef.method(c, "array", void.class, long.class, storedClass);
-                                Op.Result invokeRes = (noRootVlop) ?
-                                        bb.op(JavaOp.invoke(m, getValue(bb, r), idx, val)) :
-                                        bb.op(JavaOp.invoke(m, getValue(bb, buffer), idx, val));
-                                bb.context().mapValue(arrayStoreOp.result(), invokeRes);
-                            }
+                        } else if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // we only use the last array load
+                            ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                            List<Value> operands = new ArrayList<>();
+                            operands.add(info.buffer());
+                            operands.addAll(info.indices);
+                            operands.add(arrayStoreOp.operands().getLast());
+                            HATPtrStoreOp ptrLoadOp = new HATPtrStoreOp(
+                                    arrayStoreOp.resultType(),
+                                    (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                    bb.context().getValues(operands)
+                            );
+                            ptrLoadOp.setLocation(arrayStoreOp.location());
+                            Op.Result res = bb.op(ptrLoadOp);
+                            bb.context().mapValue(arrayStoreOp.result(), res);
                         }
                     }
                     return bb;
                 }
-                case JavaOp.ArrayLengthOp alen -> {
-                    if (isBufferArray(alen) &&
-                            firstOperand(alen) instanceof Op.Result r) {
-                        Op.Result buffer = replaced.get(r);
-                        Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) buffer.type());
-                        MethodRef m = MethodRef.method(c, "length", int.class);
-                        JavaOp.InvokeOp newInvokeOp = JavaOp.invoke(m, getValue(bb, buffer));
-                        newInvokeOp.setLocation(alen.location());
-                        Op.Result res = bb.op(newInvokeOp);
-                        bb.context().mapValue(alen.result(), res);
+                case JavaOp.ArrayLengthOp arrayLengthOp -> {
+                    if (isBufferArray(arrayLengthOp) &&
+                            firstOperand(arrayLengthOp) instanceof Op.Result r) {
+                        ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
+                        HATPtrLengthOp ptrLengthOp = new HATPtrLengthOp(
+                                arrayLengthOp.resultType(),
+                                (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                bb.context().getValues(List.of(info.buffer()))
+                        );
+                        ptrLengthOp.setLocation(arrayLengthOp.location());
+                        Op.Result res = bb.op(ptrLengthOp);
+                        bb.context().mapValue(arrayLengthOp.result(), res);
+                        return bb;
                     }
-                    return bb;
                 }
-                // case JavaOp.ArrayLengthOp arrayLengthOp -> {
-                //     if (isBufferArray(arrayLengthOp) &&
-                //             firstOperand(arrayLengthOp) instanceof Op.Result r) {
-                //         ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
-                //         HATPtrLengthOp ptrLengthOp = new HATPtrLengthOp(
-                //                 arrayLengthOp.resultType(),
-                //                 (Class<Buffer>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
-                //                 info.indices(),
-                //                 bb.context().getValues(List.of(info.buffer()))
-                //         );
-                //         ptrLengthOp.setLocation(arrayLengthOp.location());
-                //         Op.Result res = bb.op(ptrLengthOp);
-                //         bb.context().mapValue(arrayLengthOp.result(), res);
-                //         return bb;
-                //     }
-                // }
                 default -> {
                 }
             }
             bb.op(op);
             return bb;
         });
+    }
+
+    record ArrayAccessInfo(Op.Result buffer, List<Op.Result> indices) {};
+
+    record Node<T>(T value, List<Node<T>> edges) {
+        ArrayAccessInfo getInfo(Map<Op.Result, Op.Result> replaced) {
+            List<Node<T>> wl = new ArrayList<>();
+            Set<Node<T>> seen = new HashSet<>();
+            Op.Result buffer = null;
+            List<Op.Result> indices = new ArrayList<>();
+            wl.add(this);
+            while (!wl.isEmpty()) {
+                Node<T> cur = wl.removeFirst();
+                seen.add(cur);
+                if (cur.value instanceof Op.Result res) {
+                    if (res.op() instanceof JavaOp.ArrayAccessOp || res.op() instanceof JavaOp.ArrayLengthOp) {
+                        buffer = res;
+                        indices.addFirst(res.op() instanceof JavaOp.ArrayAccessOp ? ((Op.Result) res.op().operands().get(1)) : ((Op.Result) res.op().operands().get(0)));
+                    }
+                }
+                if (!cur.edges().isEmpty()) {
+                    Node<T> next = cur.edges().getFirst();
+                    if (!seen.contains(next)) wl.add(next);
+                }
+            }
+            buffer = replaced.get((Op.Result) firstOperand(buffer.op()));
+            return new ArrayAccessInfo(buffer, indices);
+        }
+    }
+
+    static ArrayAccessInfo arrayAccessInfo(Value value, Map<Op.Result, Op.Result> replaced) {
+        return expressionGraph(value).getInfo(replaced);
+    }
+
+    static Node<Value> expressionGraph(Value value) {
+        return expressionGraph(new HashMap<>(), value);
+    }
+
+    static Node<Value> expressionGraph(Map<Value, Node<Value>> visited, Value value) {
+        // If value has already been visited return its node
+        if (visited.containsKey(value)) {
+            return visited.get(value);
+        }
+
+        // Find the expression graphs for each operand
+        List<Node<Value>> edges = new ArrayList<>();
+        for (Value operand : value.dependsOn()) {
+            if (operand instanceof Op.Result res && res.op() instanceof JavaOp.InvokeOp iop && iop.invokeDescriptor().name().toLowerCase().contains("arrayview")) continue;
+            edges.add(expressionGraph(operand));
+        }
+        Node<Value> node = new Node<>(value, edges);
+        visited.put(value, node);
+        return node;
     }
 
     /*

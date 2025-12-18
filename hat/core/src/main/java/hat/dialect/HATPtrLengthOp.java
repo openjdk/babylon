@@ -22,31 +22,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.dialect;
 
-import hat.Accelerator;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.*;
 
-public interface BF16Array extends Buffer {
-    int length();
+import java.util.List;
+import java.util.Map;
 
-    BF16Impl array(long index);
+public class HATPtrLengthOp extends HATPtrOp {
 
-    interface BF16Impl extends Struct, BF16 {
-        String NAME = "F16Impl";
+    private static final String NAME = "HATPtrLengthOp";
 
-        char value();
-        void value(char value);
+    public HATPtrLengthOp(TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        super(resultType, bufferClass, operands);
     }
 
-    Schema<BF16Array> schema = Schema.of(BF16Array.class, bf16array ->
-            bf16array.arrayLen("length")
-                     .array("array", bfloat16 -> bfloat16.fields("value")));
-
-    static BF16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    public HATPtrLengthOp(HATPtrLengthOp op, CodeContext copyContext) {
+        super(op, copyContext);
     }
 
-    default BF16Impl[] arrayview() {return null;}
+    @Override
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+        return new HATPtrLengthOp(this, copyContext);
+    }
+
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect." + NAME, this.resultType());
+    }
 }

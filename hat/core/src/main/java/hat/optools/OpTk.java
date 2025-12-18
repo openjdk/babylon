@@ -359,6 +359,9 @@ public interface OpTk {
             case CoreOp.FuncCallOp o -> 0;
             case CoreOp.VarOp o -> 13;
             case CoreOp.VarAccessOp.VarStoreOp o -> 13;
+            case HATPtrStoreOp o -> 13;
+            case HATPtrLengthOp o -> 0;
+            case HATPtrLoadOp o -> 0;
             case JavaOp.FieldAccessOp o -> 0;
             case HATThreadOp o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
