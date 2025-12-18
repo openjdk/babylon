@@ -48,7 +48,7 @@ You will also need a Babylon JDK built (the one we built [here](hat-01-02-buildi
 
 To build HAT we will need `JAVA_HOME` to point to our prebuilt babylon jdk
 
-I suggest you also create a `JEXTRACT_HOME` var to point to the location where you placed `JEXTRACT`)
+I suggest you also create a `JEXTRACT_HOME` var to point to the location where you placed JEXTRACT. The jextract EA builds can be found at https://jdk.java.net/jextract/.
 
 In my case
 ```
@@ -120,7 +120,7 @@ To run a HAT example we can run from the artifacts in `build` dir
 ```bash
 ${JAVA_HOME}/bin/java \
    --add-modules jdk.incubator.code --enable-preview --enable-native-access=ALL-UNNAMED \
-   --class-path build/core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar:build/hat-example-mandel-1.0.jar \
+   --class-path build/hat-core-1.0.jar:build/hat-example-shared-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar:build/hat-example-mandel-1.0.jar \
    --add-exports=java.base/jdk.internal=ALL-UNNAMED \
    -Djava.library.path=build\
    mandel.Main
