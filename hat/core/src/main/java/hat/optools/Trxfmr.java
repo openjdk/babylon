@@ -102,7 +102,7 @@ public class Trxfmr {
         boolean handled();
         Op.Result replace(Op op, Consumer<Mapper<?>> mapperConsumer);
         default Op.Result replace(Op op){
-            return replace(op, (m)->{});
+            return replace(op, _->{});
         }
          default void remove(Consumer<Mapper<?>> mapperConsumer) {
             mapperConsumer.accept(Mapper.of(this));
@@ -139,9 +139,7 @@ public class Trxfmr {
                 @Override
                 public Op.Result replace(Op replacement, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
-
-                    Op.Result result = builder().op(OpTk.copyLocation(op(), replacement));
-                    trxfmr.opToOp(op(),result.op());
+                    var result = trxfmr.opToResultOp(op(),builder().op(OpTk.copyLocation(op(), replacement)));
                     mapperConsumer.accept(Mapper.of(this).map(op().result(),result));
                     return result;
                 }
@@ -240,8 +238,13 @@ public class Trxfmr {
 
 
 
-    private void opToOp(Op from, Op to){
+    private Op opToOp(Op from, Op to){
         opmap.put(from,to);
+        return to;
+    }
+    private Op.Result opToResultOp(Op from, Op.Result result){
+        opToOp(from, result.op());
+        return result;
     }
 
     private void update(){
@@ -253,17 +256,18 @@ public class Trxfmr {
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
-
-
         var newFuncOp = funcOp().transform((blockBuilder, op) -> {
             Cursor cursor = Cursor.of(this, funcOp, blockBuilder,op);
             cursor.builder(blockBuilder);
             cursor.op(op);
             cursor.handled(false);
-            if ((selected.isEmpty() || selected.contains(op)) &&  predicate.test(op)) {
+            boolean isEmpty = selected.isEmpty();
+            boolean isInSelected = selected.contains(op);
+            boolean isSelected = isEmpty|isInSelected;
+            boolean passesPredicate = predicate.test(op);
+            if (isSelected && passesPredicate) {
                 cursorConsumer.accept(cursor);
                 if (!cursor.handled()){
-
                     opToOp(op,cursor.builder().op(op).op());
                 }
             } else {

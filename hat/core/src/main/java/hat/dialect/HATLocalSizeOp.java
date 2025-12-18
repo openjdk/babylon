@@ -24,13 +24,16 @@
  */
 package hat.dialect;
 
+import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class HATLocalSizeOp extends HATThreadOp {
 
@@ -60,5 +63,12 @@ public class HATLocalSizeOp extends HATThreadOp {
     @Override
     public Map<String, Object> externalize() {
         return Map.of("hat.dialect." + NAME, this.getDimension());
+    }
+
+
+    public static Pattern  pattern= Pattern.compile("ls([xyz])");
+
+    public static HATThreadOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+        return new HATLocalSizeOp(OpTk.dimIdx(fieldLoadOp.fieldDescriptor().name()), fieldLoadOp.resultType());
     }
 }
