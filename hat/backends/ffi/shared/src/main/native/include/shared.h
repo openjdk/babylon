@@ -536,7 +536,7 @@ public:
         : config(config), queue(queue) {
     }
 
-    virtual Buffer *getOrCreateBuffer(BufferState *bufferState, u8_t accessor) = 0;
+    virtual Buffer *getOrCreateBuffer(BufferState *bufferState) = 0;
 
     virtual void showDeviceInfo() = 0;
 

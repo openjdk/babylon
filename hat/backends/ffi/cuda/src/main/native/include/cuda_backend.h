@@ -134,7 +134,7 @@ class CudaQueue final : public Backend::Queue {
     class CudaBuffer final : public Buffer {
     public:
         CUdeviceptr devicePtr;
-        CudaBuffer(Backend *backend, BufferState *bufferState, u8_t accessor);
+        CudaBuffer(Backend *backend, BufferState *bufferState);
         ~CudaBuffer() override;
     };
 
@@ -182,7 +182,7 @@ public:
     CompilationUnit * compile(int len, char *source) override;
     void computeStart() override;
     void computeEnd() override;
-    CudaBuffer * getOrCreateBuffer(BufferState *bufferState, u8_t accessor) override;
+    CudaBuffer * getOrCreateBuffer(BufferState *bufferState) override;
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
     explicit CudaBackend(int mode);
