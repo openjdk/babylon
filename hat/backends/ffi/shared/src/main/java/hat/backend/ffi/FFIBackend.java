@@ -27,7 +27,7 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
@@ -56,7 +56,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
     public final Arena arena = Arena.global();
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
         return segmentMapper.allocate(arena, boundSchema);
     }
 

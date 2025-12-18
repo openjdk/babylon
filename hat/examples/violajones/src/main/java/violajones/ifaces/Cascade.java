@@ -27,7 +27,7 @@ package violajones.ifaces;
 import hat.Accelerator;
 
 import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 
 public interface Cascade extends Buffer {
     interface Feature extends Struct {

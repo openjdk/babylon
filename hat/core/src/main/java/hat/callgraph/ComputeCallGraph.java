@@ -27,7 +27,7 @@ package hat.callgraph;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;

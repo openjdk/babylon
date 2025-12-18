@@ -26,13 +26,9 @@ package experiments;
 
 import hat.Accelerator;
 import hat.backend.DebugBackend;
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
+import hat.ifacemapper.Buffer;
 import hat.buffer.S08x3RGBImage;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
 public class S08x3ImageTest implements Buffer {

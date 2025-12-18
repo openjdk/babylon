@@ -27,7 +27,6 @@ package hat.ifacemapper;
 import hat.Accelerator;
 import hat.annotations.Order;
 import hat.annotations.ProvidesDimFor;
-import hat.buffer.Buffer;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ValueType;
 
@@ -44,7 +43,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
-public class Schema<T extends Buffer> {
+public class Schema<T extends MappableIface> {
     final public IfaceType rootIfaceType;
     public Class<T> iface;
 
@@ -98,7 +97,7 @@ public class Schema<T extends Buffer> {
     public T allocate(Accelerator accelerator, int... boundLengths) {
         BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
         T instance = (T) boundSchema.allocate(accelerator.lookup, accelerator);
-        MemorySegment memorySegment = Buffer.getMemorySegment(instance);
+        MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
         int[] count = new int[]{0};
 
         boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {

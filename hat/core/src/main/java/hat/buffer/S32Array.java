@@ -26,6 +26,8 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.annotations.ProvidesDimFor;
+import hat.ifacemapper.Buffer;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
@@ -51,11 +53,11 @@ public interface S32Array extends Buffer {
         return create( accelerator, arr.length).copyfrom(arr);
     }
     default S32Array copyfrom(int[] ints) {
-        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, HEADER_BYTES, length());
+        MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, length());
         return this;
     }
     default S32Array copyTo(int[] ints) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, HEADER_BYTES, ints, 0, length());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, ints, 0, length());
         return this;
     }
     default S32Array fill(Function<Integer, Integer> filler) {

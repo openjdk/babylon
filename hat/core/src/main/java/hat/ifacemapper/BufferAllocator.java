@@ -22,11 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
-
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.SegmentMapper;
+package hat.ifacemapper;
 
 public interface BufferAllocator {
-    <T extends Buffer>T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> buffer);
+    <T extends MappableIface>T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> buffer);
 }

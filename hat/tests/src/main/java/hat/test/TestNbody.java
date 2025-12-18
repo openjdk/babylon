@@ -29,7 +29,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.Schema;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATExpectedPrecisionError;

@@ -30,10 +30,11 @@ import hat.KernelContext;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
 
@@ -83,7 +84,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
-                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
+                    BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
                     boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
                         if (!already.contains(t)) {
                             builder.typedef(boundSchema, t);

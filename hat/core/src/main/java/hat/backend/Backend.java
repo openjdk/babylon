@@ -30,7 +30,7 @@ import hat.Config;
 import hat.KernelContext;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
-import hat.buffer.BufferAllocator;
+import hat.ifacemapper.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
 
 import java.util.ServiceLoader;

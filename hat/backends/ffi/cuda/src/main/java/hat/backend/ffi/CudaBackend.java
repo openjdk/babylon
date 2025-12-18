@@ -29,8 +29,9 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 
@@ -443,7 +444,7 @@ public class CudaBackend extends C99FFIBackend {
                     List<Value> inputOperands = invokeOp.operands();
                     List<Value> outputOperands = cc.getValues(inputOperands);
                     Op.Result inputResult = invokeOp.result();
-                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
+                    BoundSchema<?> boundSchema = MappableIface.getBoundSchema(buffer);
                     PTXHATKernelBuilder.PTXPtrOp ptxOp = new PTXHATKernelBuilder.PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
                     Op.Result outputResult = block.op(ptxOp);
                     cc.mapValue(inputResult, outputResult);

@@ -31,7 +31,7 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
-import hat.buffer.SchemaBuilder;
+import hat.ifacemapper.SchemaBuilder;
 
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.Reflect;

@@ -28,15 +28,10 @@ package hat.ifacemapper;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ArrayInfo;
 import hat.ifacemapper.accessor.ScalarInfo;
-//import jdk.internal.ValueBased;
-//import jdk.internal.ValueBased;
 
-
-import java.lang.classfile.Annotation;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
-import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicCallSiteDesc;
@@ -77,7 +72,6 @@ import static java.lang.constant.ConstantDescs.ofCallsiteBootstrap;
 
 //@ValueBased
 final class ByteCodeGenerator {
-
     static final String SEGMENT_FIELD_NAME = "segment";
     static final String LAYOUT_FIELD_NAME = "layout";
     static final String OFFSET_FIELD_NAME = "offset";
@@ -87,7 +81,6 @@ final class ByteCodeGenerator {
     private static final ClassDesc MEMORY_SEGMENT_CLASS_DESC = desc(MemorySegment.class);
     private static final ClassDesc LAYOUT_CLASS_DESC = desc(GroupLayout.class);
     private static final ClassDesc BOUND_SCHEMA_CLASS_DESC = desc(BoundSchema.class);
-
 
     private final Class<?> type;
     private final ClassBuilder cb;
@@ -102,9 +95,6 @@ final class ByteCodeGenerator {
     }
 
     void classDefinition() {
-        // @ValueBased
-       // Annotation valueBased = Annotation.of(desc(ValueBased.class));
-        //cb.with(RuntimeVisibleAnnotationsAttribute.of(valueBased));
         // public final
         cb.withFlags(ACC_PUBLIC | ACC_FINAL | ACC_SUPER);
         // extends Object
@@ -253,20 +243,6 @@ final class ByteCodeGenerator {
         );
 
         List<ClassDesc> parameterDesc = parameterDesc(info);
-
-        /*
-        Was
-        public ArgList.Arg args(long var1) {
-            return (ArgList.Arg)((MethodHandle)"_").invokeExact(this.segment, this.offset + 8L + Objects.checkIndex(var1, 4L) * 4L);
-        }
-        Now
-        public ArgList.Arg args(long var1) {
-            MethodHandle var10000 = (MethodHandle)"_";
-            return (ArgList.Arg)this.segment.invokeExact((MethodHandle)"_", this.layout, this.offset + 8L + Objects.checkIndex(var1, 4L) * 4L);
-        }
-
-         */
-
         cb.withMethodBody(name, MethodTypeDesc.of(returnDesc, parameterDesc), ACC_PUBLIC, cob -> {
                     cob
                             .ldc(desc)

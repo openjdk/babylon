@@ -26,7 +26,6 @@
 package hat.ifacemapper;
 
 import hat.ifacemapper.accessor.AccessorInfo;
-//import jdk.internal.ValueBased;
 
 
 import java.lang.foreign.GroupLayout;

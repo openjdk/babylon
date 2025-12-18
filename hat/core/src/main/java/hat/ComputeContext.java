@@ -24,12 +24,12 @@
  */
 package hat;
 
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.buffer.BufferTracker;
+import hat.ifacemapper.BufferAllocator;
+import hat.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
 import jdk.incubator.code.Reflect;
@@ -69,8 +69,8 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         final public MethodRef post;
 
         WRAPPER(String name) {
-            this.pre = MethodRef.method(ComputeContext.class, "pre" + name, void.class, Buffer.class);
-            this.post = MethodRef.method(ComputeContext.class, "post" + name, void.class, Buffer.class);
+            this.pre = MethodRef.method(ComputeContext.class, "pre" + name, void.class, MappableIface.class);
+            this.post = MethodRef.method(ComputeContext.class, "post" + name, void.class, MappableIface.class);
         }
     }
 
@@ -139,14 +139,14 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public void preMutate(Buffer b) {
+    public void preMutate(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.preMutate(b);
         }
     }
 
     @Override
-    public void postMutate(Buffer b) {
+    public void postMutate(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postMutate(b);
         }
@@ -154,7 +154,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public void preAccess(Buffer b) {
+    public void preAccess(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.preAccess(b);
         }
@@ -162,14 +162,14 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public void postAccess(Buffer b) {
+    public void postAccess(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postAccess(b);
         }
     }
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
         return accelerator.allocate(segmentMapper, boundSchema);
     }
 

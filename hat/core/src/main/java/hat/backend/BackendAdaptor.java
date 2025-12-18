@@ -27,10 +27,10 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
-import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
@@ -71,7 +71,7 @@ public abstract class BackendAdaptor extends Backend {
     }
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
         return segmentMapper.allocate(Arena.global(), boundSchema);
     }
 

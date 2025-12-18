@@ -22,8 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.ifacemapper;
 
+import hat.buffer.ArgArray;
 import hat.codebuilders.CodeBuilder;
 
 import java.lang.foreign.MemoryLayout;
@@ -62,7 +63,7 @@ public class SchemaBuilder extends CodeBuilder<SchemaBuilder> {
     }
 
     public static String schema(Buffer buffer) {
-            return new SchemaBuilder().literal(Buffer.getMemorySegment(buffer).byteSize())
-                    .hash().layout(Buffer.getLayout(buffer)).toString();
+            return new SchemaBuilder().literal(MappableIface.getMemorySegment(buffer).byteSize())
+                    .hash().layout(MappableIface.getLayout(buffer)).toString();
     }
 }

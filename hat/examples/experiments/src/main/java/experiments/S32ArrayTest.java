@@ -28,7 +28,8 @@ import hat.Accelerator;
 import hat.backend.DebugBackend;
 import hat.buffer.S32Array2D;
 import hat.ifacemapper.BoundSchema;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
+import hat.ifacemapper.MappableIface;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -40,9 +41,9 @@ public class S32ArrayTest implements Buffer {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
 
         hat.buffer.S32Array2D s32Array2D  = S32Array2D.create(accelerator, 100, 200);
-        GroupLayout groupLayout = (GroupLayout) Buffer.getLayout(s32Array2D);
+        GroupLayout groupLayout = (GroupLayout) MappableIface.getLayout(s32Array2D);
         System.out.println("Layout from buffer "+groupLayout);
-        BoundSchema<?> boundSchema = Buffer.getBoundSchema(s32Array2D);
+        BoundSchema<?> boundSchema = MappableIface.getBoundSchema(s32Array2D);
         System.out.println("BoundSchema from buffer  "+boundSchema);
 
         BoundSchema.FieldLayout<?> fieldLayout =  boundSchema.rootBoundSchemaNode().getName("array");

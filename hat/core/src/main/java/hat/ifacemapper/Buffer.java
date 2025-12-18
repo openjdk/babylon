@@ -22,34 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package heal;
+package hat.ifacemapper;
 
-import hat.Accelerator;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.Schema;
 
-public interface XYRGBList extends Buffer {
-    interface XYRGB extends Buffer.Struct{
-        int x();
-        int y();
-        void y(int y);
-        void x(int x);
-        int r();
-        int g();
-        int b();
-        void r(int r);
-        void g(int g);
-        void b(int b);
-    }
-    int length();
-    XYRGB xyrgb(long idx);
-    Schema<XYRGBList> schema= Schema.of(XYRGBList.class, s->s
-            .arrayLen("length")
-            .array("xyrgb", xy->xy
-                    .fields("x","y","r","g","b")
-            )
-    );
-    static XYRGBList create(Accelerator accelerator, Selection selection) {
-        return  schema.allocate(accelerator,selection.pointList.size());
-    }
+public interface Buffer extends MappableIface {
+
 }

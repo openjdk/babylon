@@ -38,7 +38,10 @@ import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
 import hat.dialect.HATMemoryOp;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.BufferState;
+import hat.ifacemapper.BufferTracker;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
 import hat.phases.HATFinalDetectionPhase;
@@ -46,7 +49,6 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -206,7 +208,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
-                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
+                    BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
                     boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
                         if (!already.contains(t)) {
                             builder.typedef(boundSchema, t);
@@ -327,7 +329,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     @Override
-    public void preMutate(Buffer b) {
+    public void preMutate(MappableIface b) {
         switch (b.getState()) {
             case BufferState.NO_STATE:
             case BufferState.NEW_STATE:
@@ -355,7 +357,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     @Override
-    public void postMutate(Buffer b) {
+    public void postMutate(MappableIface b) {
         if (config().showState()) {
             System.out.print("in postMutate state = " + b.getStateString() + " no action to take ");
         }
@@ -368,7 +370,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     @Override
-    public void preAccess(Buffer b) {
+    public void preAccess(MappableIface b) {
         switch (b.getState()) {
             case BufferState.NO_STATE:
             case BufferState.NEW_STATE:
@@ -398,7 +400,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
 
     @Override
-    public void postAccess(Buffer b) {
+    public void postAccess(MappableIface b) {
         if (config().showState()) {
             System.out.println("in postAccess state = " + b.getStateString());
         }

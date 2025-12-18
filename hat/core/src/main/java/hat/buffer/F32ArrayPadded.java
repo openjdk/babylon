@@ -25,6 +25,8 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.ifacemapper.Buffer;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
@@ -47,7 +49,7 @@ public interface F32ArrayPadded extends Buffer {
     }
 
     default F32ArrayPadded copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
+        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
         return this;
     }
 
@@ -56,7 +58,7 @@ public interface F32ArrayPadded extends Buffer {
     }
 
     default F32ArrayPadded copyTo(float[] floats) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
         return this;
     }
 

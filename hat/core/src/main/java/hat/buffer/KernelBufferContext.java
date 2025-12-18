@@ -26,6 +26,7 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.annotations.Order;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.Schema;
 
 public interface KernelBufferContext extends Buffer {

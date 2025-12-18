@@ -24,6 +24,9 @@
  */
 package hat.buffer;
 
+import hat.ifacemapper.Buffer;
+import hat.ifacemapper.MappableIface;
+
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
@@ -40,11 +43,11 @@ public interface ImageIfaceBuffer<T extends ImageIfaceBuffer<?>> extends Buffer 
     default T syncFromRasterDataBuffer(DataBuffer dataBuffer) { // int[], byte[], short[]
         switch (dataBuffer) {
             case DataBufferInt arr ->
-                    MemorySegment.copy(arr.getData(), 0, Buffer.getMemorySegment(this), JAVA_INT, 16L, arr.getData().length);
+                    MemorySegment.copy(arr.getData(), 0, MappableIface.getMemorySegment(this), JAVA_INT, 16L, arr.getData().length);
             case DataBufferByte arr ->
-                    MemorySegment.copy(arr.getData(), 0, Buffer.getMemorySegment(this), JAVA_BYTE, 16L, arr.getData().length);
+                    MemorySegment.copy(arr.getData(), 0, MappableIface.getMemorySegment(this), JAVA_BYTE, 16L, arr.getData().length);
             case DataBufferUShort arr ->
-                    MemorySegment.copy(arr.getData(), 0, Buffer.getMemorySegment(this), JAVA_SHORT, 16L, arr.getData().length);
+                    MemorySegment.copy(arr.getData(), 0, MappableIface.getMemorySegment(this), JAVA_SHORT, 16L, arr.getData().length);
             default -> throw new IllegalStateException("Unexpected value: " + dataBuffer);
         }
         return (T)this;
@@ -58,11 +61,11 @@ public interface ImageIfaceBuffer<T extends ImageIfaceBuffer<?>> extends Buffer 
     default T syncToRasterDataBuffer(DataBuffer dataBuffer) { // int[], byte[], short[]
         switch (dataBuffer) {
             case DataBufferUShort arr ->
-                    MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_SHORT, 16L, arr.getData(), 0, arr.getData().length);
+                    MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_SHORT, 16L, arr.getData(), 0, arr.getData().length);
             case DataBufferInt arr ->
-                    MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 16L, arr.getData(), 0, arr.getData().length);
+                    MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, 16L, arr.getData(), 0, arr.getData().length);
             case DataBufferByte arr ->
-                    MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_BYTE, 16L, arr.getData(), 0, arr.getData().length);
+                    MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_BYTE, 16L, arr.getData(), 0, arr.getData().length);
             default -> throw new IllegalStateException("Unexpected value: " + dataBuffer);
         }
         return (T) this;

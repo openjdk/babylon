@@ -26,7 +26,7 @@ package experiments;
 
 
 import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
+import hat.ifacemapper.Buffer;
 import hat.ifacemapper.MappableIface;
 
 import java.lang.constant.ClassDesc;
@@ -37,9 +37,7 @@ import java.lang.reflect.Method;
 
 import hat.optools.OpTk;
 import jdk.incubator.code.*;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
-import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreType;
