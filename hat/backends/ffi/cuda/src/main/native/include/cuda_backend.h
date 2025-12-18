@@ -134,7 +134,7 @@ class CudaQueue final : public Backend::Queue {
     class CudaBuffer final : public Buffer {
     public:
         CUdeviceptr devicePtr;
-        CudaBuffer(Backend *backend, BufferState *bufferState, u8_t accessor);
+        CudaBuffer(Backend *backend, BufferState *bufferState);
         ~CudaBuffer() override;
     };
 
