@@ -20,6 +20,9 @@ import java.util.stream.Stream;
  * @enablePreview
  * @modules jdk.incubator.code
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../
+ * @run junit TestVarArg
+ * @run main Unreflect TestVarArg
  * @run junit TestVarArg
  *
  */

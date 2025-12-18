@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestTraverse
+ * @run main Unreflect TestTraverse
+ * @run junit TestTraverse
  */
 
 import jdk.incubator.code.CodeElement;

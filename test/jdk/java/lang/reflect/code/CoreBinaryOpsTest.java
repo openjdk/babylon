@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit CoreBinaryOpsTest
+ * @run main Unreflect CoreBinaryOpsTest
+ * @run junit CoreBinaryOpsTest
  * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
 

@@ -41,6 +41,9 @@ import static java.lang.classfile.Opcode.*;
  * @modules java.base/jdk.internal.classfile.components
  * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
  * @enablePreview
+ * @library ../
+ * @run junit TestBranchCompactor
+ * @run main Unreflect TestBranchCompactor
  * @run junit TestBranchCompactor
  */
 public class TestBranchCompactor {

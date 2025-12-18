@@ -42,6 +42,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.dialect.java.impl
+ * @library ../
+ * @run junit TestJavaType
+ * @run main Unreflect TestJavaType
  * @run junit TestJavaType
  */
 

@@ -24,6 +24,9 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestInvokeSuper
+ * @run main Unreflect TestInvokeSuper
  * @run junit TestInvokeSuper
  */
 

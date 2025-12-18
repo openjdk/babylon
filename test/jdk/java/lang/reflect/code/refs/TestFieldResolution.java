@@ -40,6 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * @test
  * @modules jdk.incubator.code
  * @modules java.base/java.lang.invoke:open
+ * @library ../
+ * @run junit TestFieldResolution
+ * @run main Unreflect TestFieldResolution
  * @run junit TestFieldResolution
  */
 public class TestFieldResolution {

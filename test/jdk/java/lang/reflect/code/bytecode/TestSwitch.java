@@ -42,6 +42,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
+ * @library ../
+ * @run junit TestSwitch
+ * @run main Unreflect TestSwitch
  * @run junit TestSwitch
  */
 public class TestSwitch {

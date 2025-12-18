@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestUsesDependsOn
+ * @run main Unreflect TestUsesDependsOn
+ * @run junit TestUsesDependsOn
  */
 
 import jdk.incubator.code.Block;

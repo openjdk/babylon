@@ -35,6 +35,9 @@ import static jdk.incubator.code.extern.impl.Tokens.TokenKind.*;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.extern.impl
+ * @library ../
+ * @run junit TestScanner
+ * @run main Unreflect TestScanner
  * @run junit TestScanner
  */
 

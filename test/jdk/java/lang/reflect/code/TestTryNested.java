@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestTryNested
+ * @run main Unreflect TestTryNested
+ * @run junit TestTryNested
  */
 
 import jdk.incubator.code.Reflect;

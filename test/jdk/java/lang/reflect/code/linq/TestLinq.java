@@ -33,6 +33,9 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @enablePreview
+ * @library ../
+ * @run junit TestLinq
+ * @run main Unreflect TestLinq
  * @run junit TestLinq
  */
 

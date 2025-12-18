@@ -34,6 +34,9 @@ import java.lang.reflect.Method;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestThrowing
+ * @run main Unreflect TestThrowing
  * @run junit TestThrowing
  */
 

@@ -25,6 +25,9 @@
  * @test
  * @modules jdk.incubator.code
  * @enablePreview
+ * @library ../
+ * @run junit TestSynchronizedOp
+ * @run main Unreflect TestSynchronizedOp
  * @run junit TestSynchronizedOp
  */
 

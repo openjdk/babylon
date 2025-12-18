@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestTransitiveInvokeModule
+ * @run main Unreflect TestTransitiveInvokeModule
+ * @run junit TestTransitiveInvokeModule
  * @run junit/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
  */
 

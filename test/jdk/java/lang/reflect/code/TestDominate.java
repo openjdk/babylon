@@ -44,6 +44,8 @@ import static jdk.incubator.code.dialect.core.CoreOp.*;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestDominate
+ * @run main Unreflect TestDominate
+ * @run junit TestDominate
  */
 
 public class TestDominate {

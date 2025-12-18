@@ -37,6 +37,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestArrayCreation
+ * @run main Unreflect TestArrayCreation
+ * @run junit TestArrayCreation
  */
 
 public class TestArrayCreation {

@@ -24,6 +24,9 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestParse
+ * @run main Unreflect TestParse
  * @run junit TestParse
  */
 

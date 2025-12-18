@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestVarOp
+ * @run main Unreflect TestVarOp
+ * @run junit TestVarOp
  */
 
 import jdk.incubator.code.Reflect;

@@ -26,6 +26,9 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestErasure
+ * @run main Unreflect TestErasure
  * @run junit TestErasure
  */
 

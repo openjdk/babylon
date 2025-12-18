@@ -35,6 +35,9 @@ import java.util.function.Function;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.internal
+ * @library ../../
+ * @run junit TestLiftExample
+ * @run main Unreflect TestLiftExample
  * @run junit TestLiftExample
  */
 

@@ -16,6 +16,8 @@ import java.util.function.IntUnaryOperator;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestSealOp
+ * @run main Unreflect TestSealOp
+ * @run junit TestSealOp
  */
 public class TestSealOp {
 

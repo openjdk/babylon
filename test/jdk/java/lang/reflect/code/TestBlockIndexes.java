@@ -38,6 +38,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestBlockIndexes
+ * @run main Unreflect TestBlockIndexes
+ * @run junit TestBlockIndexes
  */
 
 public class TestBlockIndexes {

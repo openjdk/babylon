@@ -38,6 +38,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestSlots
+ * @run main Unreflect TestSlots
  * @run junit TestSlots
  */
 

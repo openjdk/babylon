@@ -17,6 +17,9 @@ import java.util.function.IntBinaryOperator;
  * @test
  * @modules jdk.incubator.code
  * @modules java.base/java.lang.invoke:open
+ * @library ../
+ * @run junit TestTransform
+ * @run main Unreflect TestTransform
  * @run junit TestTransform
  */
 public class TestTransform {

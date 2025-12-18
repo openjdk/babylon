@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestExpressionGraphs
+ * @run main Unreflect TestExpressionGraphs
+ * @run junit TestExpressionGraphs
  */
 
 import jdk.incubator.code.*;

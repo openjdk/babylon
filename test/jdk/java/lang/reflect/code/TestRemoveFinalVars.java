@@ -20,6 +20,8 @@ import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestRemoveFinalVars
+ * @run main Unreflect TestRemoveFinalVars
+ * @run junit TestRemoveFinalVars
  */
 
 public class TestRemoveFinalVars {

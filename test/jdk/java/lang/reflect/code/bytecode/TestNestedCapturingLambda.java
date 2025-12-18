@@ -24,6 +24,9 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestNestedCapturingLambda
+ * @run main Unreflect TestNestedCapturingLambda
  * @run junit TestNestedCapturingLambda
  */
 

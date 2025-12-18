@@ -43,6 +43,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestTryFinallyNested
+ * @run main Unreflect TestTryFinallyNested
  * @run junit TestTryFinallyNested
  */
 

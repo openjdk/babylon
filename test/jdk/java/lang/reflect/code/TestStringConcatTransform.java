@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestStringConcatTransform
+ * @run main Unreflect TestStringConcatTransform
+ * @run junit TestStringConcatTransform
  * @run junit/othervm -Dbabylon.ssa=cytron TestStringConcatTransform
  */
 

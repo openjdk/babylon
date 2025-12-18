@@ -23,7 +23,6 @@
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -38,6 +37,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestArrayCreation
+ * @run main Unreflect TestArrayCreation
  * @run junit TestArrayCreation
  */
 

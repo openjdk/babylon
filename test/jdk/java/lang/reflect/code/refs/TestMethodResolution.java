@@ -39,6 +39,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestMethodResolution
+ * @run main Unreflect TestMethodResolution
  * @run junit TestMethodResolution
  */
 public class TestMethodResolution {

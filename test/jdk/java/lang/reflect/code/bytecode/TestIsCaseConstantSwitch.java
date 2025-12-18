@@ -21,7 +21,10 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
  * @enablePreview
+ * @library ../
  * @compile TestIsCaseConstantSwitch.java
+ * @run junit TestIsCaseConstantSwitch
+ * @run main Unreflect TestIsCaseConstantSwitch
  * @run junit TestIsCaseConstantSwitch
  */
 public class TestIsCaseConstantSwitch {

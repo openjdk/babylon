@@ -16,6 +16,8 @@ import java.util.function.IntUnaryOperator;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestQuoteOp
+ * @run main Unreflect TestQuoteOp
+ * @run junit TestQuoteOp
  */
 public class TestQuoteOp {
 

@@ -45,6 +45,9 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @modules jdk.incubator.code/jdk.incubator.code.internal
+ * @library ../
+ * @run junit TestCodeBuilder
+ * @run main Unreflect TestCodeBuilder
  * @run junit TestCodeBuilder
  */
 
