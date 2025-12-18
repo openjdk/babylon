@@ -24,7 +24,7 @@
  */
 package hat.tools.text;
 
-import hat.codebuilders.BabylonCoreOpBuilder;
+import optkl.codebuilders.BabylonCoreOpBuilder;
 import hat.codebuilders.C99HATCodeBuilderContext;
 import hat.codebuilders.ScopedCodeBuilderContext;
 
@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonCoreOpBuilder<T> {
+public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
 
 
     @Override

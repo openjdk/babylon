@@ -28,7 +28,7 @@ package hat.ifacemapper;
 
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.Accessors;
-import hat.util.StreamMutable;
+import optkl.StreamMutable;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.GroupLayout;

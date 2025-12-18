@@ -34,21 +34,24 @@ import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorVarOp;
-import hat.ifacemapper.MappableIface;
-import hat.optools.FuncOpParams;
+import optkl.FuncOpParams;
 import hat.optools.OpTk;
-import hat.util.StreamMutable;
+import optkl.ParamVar;
+import optkl.StreamMutable;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.codebuilders.BabylonCoreOpBuilder;
+import optkl.codebuilders.CodeBuilder;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T> implements BabylonCoreOpBuilder<T> {
+public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T>
+        implements BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
 
   /*  public final  T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class)
@@ -118,7 +121,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
 
     @Override
-    public T varOp(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp, OpTk.ParamVar paramVar) {
+    public T varOp(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp, ParamVar paramVar) {
         return self();
     }
 

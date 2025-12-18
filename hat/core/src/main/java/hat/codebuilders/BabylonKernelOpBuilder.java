@@ -48,14 +48,14 @@ import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
-import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
+import optkl.ParamVar;
+import optkl.codebuilders.BabylonCoreOpBuilder;
 
 /* this should not be too C99 specific */
-public interface BabylonKernelOpBuilder<T extends C99HATCodeBuilder<?>> extends BabylonCoreOpBuilder<T> {
+public interface BabylonKernelOpBuilder<T extends HATCodeBuilder<?>> extends BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
 
     T hatBarrierOp(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp);
 
@@ -117,7 +117,7 @@ public interface BabylonKernelOpBuilder<T extends C99HATCodeBuilder<?>> extends 
             case CoreOp.FuncCallOp $ -> funcCallOp(buildContext, $);
             case JavaOp.InvokeOp $ -> invokeOp(buildContext, $);
             case JavaOp.ConditionalExpressionOp $ -> conditionalExpressionOp(buildContext, $);
-            case CoreOp.VarOp $ when OpTk.paramVar($) instanceof OpTk.ParamVar paramVar -> varOp(buildContext, $,paramVar);
+            case CoreOp.VarOp $ when ParamVar.of($) instanceof ParamVar paramVar -> varOp(buildContext, $,paramVar);
             case CoreOp.VarOp $ -> varOp(buildContext, $);
             case JavaOp.LambdaOp $ -> lambdaOp(buildContext, $);
             case CoreOp.TupleOp $ -> tupleOp(buildContext, $);

@@ -27,18 +27,20 @@ package hat.codebuilders;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATVectorVarOp;
-import hat.optools.FuncOpParams;
+import optkl.FuncOpParams;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.codebuilders.CodeBuilderContext;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ScopedCodeBuilderContext extends CodeBuilderContext {
+    final public FuncOpParams paramTable;
 
     public static class Scope<O extends Op> {
         final Scope<?> parent;
@@ -83,8 +85,8 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         @Override
         public Op resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
-                if (paramTable.parameterVarOpMap.containsKey(blockParameter)) {
-                    return paramTable.parameterVarOpMap.get(blockParameter);
+                if (paramTable.parameterVarOpMap.containsFrom(blockParameter)) {
+                    return paramTable.parameterVarOpMap.getTo(blockParameter);
                 } else {
                     throw new IllegalStateException("what ?");
                 }
@@ -237,6 +239,7 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
 
     public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         super(lookup,funcOp);
+        this.paramTable = new FuncOpParams(funcOp);
     }
 
     private Map<Op.Result, CoreOp.VarOp> finalVarOps = new HashMap<>();

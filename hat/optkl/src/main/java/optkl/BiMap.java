@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -22,11 +23,33 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package optkl;
 
-import optkl.codebuilders.CodeBuilder;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBuilder<T> {
+public class BiMap<From, To> {
+    public Map<From, To> fromTo = new LinkedHashMap<>();
+    public Map<To, From> toFrom = new LinkedHashMap<>();
 
+    public void add(From from, To to) {
+        fromTo.put(from, to);
+        toFrom.put(to, from);
+    }
 
+    public From getFrom(To to) {
+        return toFrom.get(to);
+    }
+
+    public To getTo(From from) {
+        return fromTo.get(from);
+    }
+
+    public boolean containsFrom(From from) {
+        return fromTo.containsKey(from);
+    }
+
+    public boolean containsTo(To to) {
+        return toFrom.containsKey(to);
+    }
 }

@@ -47,6 +47,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.ParamVar;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
@@ -70,8 +71,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public interface OpTk {
-
-
    static boolean isKernelContext(MethodHandles.Lookup lookup,TypeElement typeElement){
        return isAssignable(lookup,typeElement,KernelContext.class);
    }
@@ -304,7 +303,7 @@ public interface OpTk {
              || (op instanceof HATVectorVarOp)
              || (op instanceof HATF16VarOp)
         )
-        && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
+        && !(op instanceof CoreOp.VarOp varOp && ParamVar.of(varOp) != null)
         && !(op instanceof CoreOp.YieldOp));
     }
 
@@ -770,14 +769,6 @@ public interface OpTk {
 
 
 
-     record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
-    }
-
-    static ParamVar paramVar(CoreOp.VarOp varOp) {
-        return !varOp.isUninitialized()
-                && varOp.operands().getFirst() instanceof Block.Parameter parameter
-                && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp ? new ParamVar(varOp, parameter, funcOp) : null;
-    }
 
     static boolean returnIsVoid(JavaOp.InvokeOp invokeOp){
         return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();

@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package optkl.codebuilders;
 
 /**
  * The base abstract class for a slew of fluent style builders.
@@ -129,7 +129,7 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
         return emitText(buf.toString());
     }
 
-     T emitText(String text) {
+     protected T emitText(String text) {
         state.indentIfNeededAndAppend(text);
         return self();
     }
