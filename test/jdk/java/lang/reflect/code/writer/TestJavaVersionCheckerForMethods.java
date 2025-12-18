@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.Random;
 
 /*
  * @test
@@ -31,7 +32,10 @@ public class TestJavaVersionCheckerForMethods {
     @Test
     void test() throws ReflectiveOperationException, IOException {
         Method m = this.getClass().getDeclaredMethod("max", int.class, int.class);
-        Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofMethod(m));
+        int n = new Random().nextInt(2, 10);
+        for (int i = 0; i < n; i++) {
+            Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofMethod(m));
+        }
     }
 
     // change java compile time version that was embedded in the $checkJavaVersion method
