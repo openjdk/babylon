@@ -60,6 +60,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static hat.buffer.F16Array.F16Impl;
 
@@ -176,7 +177,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                 }
                             }
                         } else if (field instanceof Schema.SchemaNode.Padding padding) {
-                            emitText(padding.toC99());
+                            u08Type().space().identifierWithRandomSuffix("pad$",5).sbrace(_->intValue((int)(padding.len)));//; emitText(toC99(padding));
                         } else {
                             throw new IllegalStateException("hmm");
                         }
@@ -184,6 +185,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     });
                     semicolon();
                 }).suffix_t(ifaceType.iface).semicolon().nl().nl();
+        return self();
+    }
+
+    /**
+     * Generates a suffix from a set of n-random characters from a set of legal characters in C99.
+     */
+    final  T identifierWithRandomSuffix(String prefix, final int len) {
+        StringBuilder sb = new StringBuilder();
+        final String LEGAL_CHARS = "_$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        ThreadLocalRandom.current() //
+                .ints(len, 0, LEGAL_CHARS.length()) //
+                .mapToObj(LEGAL_CHARS::charAt) //
+                .forEach(sb::append);
+        identifier(prefix+sb.toString());
         return self();
     }
 

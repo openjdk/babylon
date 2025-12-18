@@ -49,39 +49,12 @@ public class Schema<T extends MappableIface> {
 
     public static abstract class SchemaNode {
         public static final class Padding extends FieldNode {
-            long len;
+            final public long len;
 
             Padding(IfaceType parent, long len) {
                 super(parent, AccessorInfo.Key.NONE, "pad" + len);
                 this.len = len;
             }
-
-            /**
-             * Generates a set of n-random characters from a set of legal characters in C99.
-             * @param numCharsToBuild
-             * @return {@link String}
-             */
-            private String generateRandomString(final int numCharsToBuild) {
-                StringBuilder sb = new StringBuilder();
-                String LEGAL_CHARS = "_$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-                ThreadLocalRandom.current() //
-                        .ints(numCharsToBuild, 0, LEGAL_CHARS.length()) //
-                        .mapToObj(LEGAL_CHARS::charAt) //
-                        .forEach(sb::append);
-                return sb.toString();
-            }
-
-            /**
-             * Returns a string in C99 to represent the padding. It generates
-             * the <code>pad$</code> name with a set of 5 characters in order to avoid
-             * collision of names in the same iFace schema.
-             * @return {@link String}
-             */
-            public String toC99() {
-                String randomPostfix = generateRandomString(5);
-                return "char pad$" + randomPostfix + "[" + len + "]";
-            }
-
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "padding " + len + " bytes");
