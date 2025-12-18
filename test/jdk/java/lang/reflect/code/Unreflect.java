@@ -64,7 +64,6 @@ public final class Unreflect {
                 if (cle instanceof MethodModel mm && isReflective(mm)) {
                     clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
                             .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
-                                System.out.print('.');
                                 MethodTypeDesc mts = mm.methodTypeSymbol();
                                 boolean hasReceiver = !mm.flags().has(AccessFlag.STATIC);
                                 if (hasReceiver) {
