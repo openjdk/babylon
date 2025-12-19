@@ -498,8 +498,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @param q the quotable reference.
      * @return the quoted code model or an empty optional if the
      *         quoted code model is unavailable.
-     * @throws UnsupportedOperationException If The Java version used at compile time to generate and store the code model
-     *                                       is not the same as the Java version used at runtime to load the code model.
      * @apiNote If the quotable reference is a proxy instance, then the
      *          quoted code model is unavailable and this method
      *          returns an empty optional.
@@ -569,6 +567,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             FuncOp funcOp = (FuncOp) opMethod.invoke(null);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
+            // op method may throw UOE in case java compile time version doesn't match runtime version
+            if (e.getCause() instanceof UnsupportedOperationException uoe) {
+                throw uoe;
+            }
             throw new RuntimeException(e);
         }
     }
