@@ -180,6 +180,8 @@ public class TestPrimitiveTypePatterns {
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
+        // because it's an identity conversion, we expect no check performed
+        Assertions.assertTrue(lf.elements().noneMatch(e -> e instanceof JavaOp.InvokeOp));
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Short.MAX_VALUE));
     }
