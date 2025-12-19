@@ -32,10 +32,9 @@ public class TestJavaVersionCheckerForMethods {
     @Test
     void test() throws ReflectiveOperationException, IOException {
         Method m = this.getClass().getDeclaredMethod("max", int.class, int.class);
-        int n = new Random().nextInt(2, 10);
-        for (int i = 0; i < n; i++) {
-            Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofMethod(m));
-        }
+        Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofMethod(m));
+        // invoke Op.ofMethod a second time to make sure its behavior is the same
+        Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofMethod(m));
     }
 
     // change java compile time version that was embedded in the $checkJavaVersion method
