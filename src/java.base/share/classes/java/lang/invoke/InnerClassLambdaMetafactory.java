@@ -521,6 +521,8 @@ import sun.invoke.util.Wrapper;
                     public void accept(CodeBuilder cob) {
                         cob.aload(0)
                                 .getfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
+                                .astore(1)
+                                .aload(1)
                                 .ifThen(Opcode.IFNULL, bcb -> {
                                     bcb.aload(0); // will be used by putfield
 
@@ -547,10 +549,12 @@ import sun.invoke.util.Wrapper;
 
                                     // invoke Quoted.extractOp
                                     bcb.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(reflectableLambdaInfo.extractOpHandle().type()))
-                                            .putfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass());
+                                            .dup_x1()
+                                            .putfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
+                                            .astore(1);
+
                                 })
-                                .aload(0)
-                                .getfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
+                                .aload(1)
                                 .areturn();
                     }
                 }));
@@ -570,6 +574,8 @@ import sun.invoke.util.Wrapper;
                     public void accept(CodeBuilder cob) {
                         ClassDesc funcOpClassDesc = reflectableLambdaInfo.funcOpClass();
                         cob.getstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc)
+                                .astore(0)
+                                .aload(0)
                                 .ifThen(Opcode.IFNULL, bcb -> {
                                     // load class data: MH to op building method
                                     ConstantPoolBuilder cp = pool;
@@ -579,9 +585,11 @@ import sun.invoke.util.Wrapper;
                                     MethodType mtype = quotableOpGetterInfo.getMethodType();
                                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get())
                                             .checkcast(funcOpClassDesc)
-                                            .putstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc);
+                                            .dup()
+                                            .putstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc)
+                                            .astore(0);
                                 })
-                                .getstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc)
+                                .aload(0)
                                 .areturn();
                     }
                 }));
