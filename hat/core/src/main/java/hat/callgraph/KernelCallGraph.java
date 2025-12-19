@@ -25,7 +25,7 @@
 package hat.callgraph;
 
 import hat.BufferTagger;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.optools.OpTk;
 import hat.phases.HATDialectifyTier;
 import jdk.incubator.code.*;

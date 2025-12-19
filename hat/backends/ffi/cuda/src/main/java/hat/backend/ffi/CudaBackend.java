@@ -29,9 +29,9 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
 import hat.optools.OpTk;
 

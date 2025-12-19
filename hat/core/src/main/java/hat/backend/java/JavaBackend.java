@@ -28,9 +28,6 @@ package hat.backend.java;
 import hat.ComputeContext;
 import hat.Config;
 import hat.backend.Backend;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;

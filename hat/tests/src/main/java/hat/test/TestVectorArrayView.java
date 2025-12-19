@@ -31,8 +31,8 @@ import jdk.incubator.code.Reflect;
 import hat.*;
 import hat.backend.Backend;
 import hat.buffer.*;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 

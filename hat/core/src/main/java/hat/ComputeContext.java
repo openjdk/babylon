@@ -24,13 +24,11 @@
  */
 package hat;
 
-import hat.ifacemapper.BufferAllocator;
-import hat.ifacemapper.BufferTracker;
+import optkl.ifacemapper.BufferAllocator;
+import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;

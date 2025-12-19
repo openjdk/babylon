@@ -27,7 +27,7 @@ package hat.phases;
 import hat.Accelerator;
 import hat.buffer.BF16;
 import hat.buffer.F16;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;

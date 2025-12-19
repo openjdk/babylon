@@ -27,7 +27,7 @@ package hat.phases;
 import hat.Accelerator;
 import hat.device.DeviceType;
 import hat.dialect.*;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import hat.types._V;
 import jdk.incubator.code.Block;

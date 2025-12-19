@@ -25,9 +25,9 @@
 package hat.buffer;
 
 import hat.Accelerator;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 
 import java.lang.foreign.MemorySegment;

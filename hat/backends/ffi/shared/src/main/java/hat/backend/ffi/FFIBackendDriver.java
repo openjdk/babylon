@@ -28,7 +28,7 @@ package hat.backend.ffi;
 import hat.Config;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;

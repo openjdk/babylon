@@ -30,14 +30,14 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RO;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RW;
 
 public class TestParenthesis {
 

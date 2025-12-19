@@ -25,8 +25,8 @@
 
 package hat;
 
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
