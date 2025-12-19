@@ -27,8 +27,8 @@ package hat.callgraph;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
 import hat.optools.OpTk;
 import optkl.StreamMutable;
@@ -122,7 +122,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp funcOp) {
         super(computeContext, new ComputeEntrypoint(null, method, funcOp));
         entrypoint.callGraph = this;
-        setModuleOp(OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this));
+        setModuleOp(OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup(), entrypoint.funcOp(), this));
         //close(entrypoint);
     }
 
@@ -145,7 +145,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
      *    a) We must also have the code models for these and must extend the dag to include these.
      */
     public void oldUpdateDag(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
-        MethodHandles.Lookup lookup =  computeReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup;
+        MethodHandles.Lookup lookup =  computeReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup();
         var here = OpTk.CallSite.of(ComputeCallGraph.class,"updateDag");
         OpTk.transform(here, computeReachableResolvedMethodCall.funcOp(),(map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -217,8 +217,8 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        if (entrypoint.method.getDeclaringClass().equals(OpTk.javaRefClassOrThrow(computeContext.accelerator.lookup,invokeOp))
-                && isKernelDispatch(computeContext.accelerator.lookup,method, f)) {
+        if (entrypoint.method.getDeclaringClass().equals(OpTk.javaRefClassOrThrow(computeContext.accelerator.lookup(),invokeOp))
+                && isKernelDispatch(computeContext.accelerator.lookup(),method, f)) {
             // TODO this side effect is not good.  we should do this when we construct !
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
                     new KernelCallGraph(this, methodRef, method, f)

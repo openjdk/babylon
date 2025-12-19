@@ -37,7 +37,9 @@ import java.awt.Color;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.Reflect;
-import static hat.ifacemapper.MappableIface.*;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.RW;
 
 public class Main {
     @Reflect

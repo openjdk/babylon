@@ -25,10 +25,10 @@
 package hat.buffer;
 
 import hat.Accelerator;
-import hat.annotations.ProvidesDimFor;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
+import optkl.annotations.ProvidesDimFor;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 

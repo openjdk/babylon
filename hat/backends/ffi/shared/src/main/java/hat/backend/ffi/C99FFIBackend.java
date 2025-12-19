@@ -28,26 +28,28 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
-import hat.annotations.TypeDef;
+import optkl.annotations.Kernel;
+import optkl.annotations.Preformatted;
+import optkl.annotations.TypeDef;
 import hat.buffer.*;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
 import hat.dialect.HATMemoryOp;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.BufferState;
-import hat.ifacemapper.BufferTracker;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.BufferState;
+import optkl.ifacemapper.BufferTracker;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 import hat.optools.OpTk;
-import hat.phases.HATFinalDetectionPhase;
+import hat.phases.HATFinalDetector;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,8 +62,8 @@ import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-    public C99FFIBackend(String libName, Config config) {
-        super(libName, config);
+    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
+        super(arena,lookup,libName, config);
     }
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
@@ -260,7 +262,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             for (TypeElement typeElement : localIFaceList) {
                 try {
-                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
+                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup());
                     Field schemaField = clazz.getDeclaredField("schema");
                     schemaField.setAccessible(true);
                     var schema = (DeviceSchema<?>)schemaField.get(schemaField);
@@ -279,28 +281,25 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
 
             ScopedCodeBuilderContext buildContext =
-                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
+                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup(),
                             kernelCallGraph.entrypoint.funcOp());
 
             // Sorting by rank ensures we don't need forward declarations
             kernelCallGraph.getModuleOp().functionTable()
                     .forEach((_, funcOp) -> {
                         // TODO: did we just trash the callgraph sidetables?
-
                         //  Why are we transforming the callgraph here
-                        HATFinalDetectionPhase finals = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
-                        finals.apply(funcOp);
-
+                        HATFinalDetector finals = new HATFinalDetector(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
                         // Update the build context for this method to use the right constants-map
-                        buildContext.setFinals(finals.getFinalVars());
+                        buildContext.setFinals(finals.applied(funcOp));
                         builder.nl().kernelMethod(buildContext, funcOp).nl();
                     });
 
             // Update the constants-map for the main kernel
             // Why are we doing this here we should not be mutating the kernel callgraph at this point
-            HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
-            hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
-            buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
+            HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
+           // hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
+            buildContext.setFinals(hatFinalDetector.applied(kernelCallGraph.entrypoint.funcOp()));
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {

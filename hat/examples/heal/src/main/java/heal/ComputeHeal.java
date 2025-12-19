@@ -55,11 +55,13 @@ import hat.buffer.S32Array2D;
 
 import java.awt.Point;
 
-import static hat.ifacemapper.MappableIface.*;
-
 import hat.util.ui.SevenSegmentDisplay;
 import jdk.incubator.code.Reflect;
 import java.util.stream.IntStream;
+
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
 
 public class ComputeHeal {
     /*

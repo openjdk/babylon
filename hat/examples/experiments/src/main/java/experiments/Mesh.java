@@ -30,10 +30,10 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -142,7 +142,7 @@ public class Mesh {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
 
         var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
-        var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
+        var meshDataNew = boundSchema.allocate(accelerator.lookup(),accelerator);
         var meshDataOld = MeshData.create(accelerator);
 
         String layoutNew = MappableIface.getLayout(meshDataNew).toString();

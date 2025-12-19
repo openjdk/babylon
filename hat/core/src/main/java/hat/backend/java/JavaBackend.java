@@ -28,22 +28,15 @@ package hat.backend.java;
 import hat.ComputeContext;
 import hat.Config;
 import hat.backend.Backend;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 
 
 public abstract class JavaBackend extends Backend {
 
-    public final Arena arena = Arena.global();
 
-    @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
-        return segmentMapper.allocate(arena, boundSchema);
-    }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Java backend received computeContext ");
@@ -59,7 +52,7 @@ public abstract class JavaBackend extends Backend {
     }
 
     JavaBackend(Config config){
-        super(config);
+        super(Arena.global(), MethodHandles.lookup(),config);
     }
 
     JavaBackend(){

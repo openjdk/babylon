@@ -30,9 +30,12 @@ import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
+
 public class OpenCLBackend extends C99FFIBackend {
     public OpenCLBackend(Config config) {
-        super("opencl_backend", config);
+        super(Arena.global(), MethodHandles.lookup(),"opencl_backend", config);
     }
     public OpenCLBackend() {
         this(Config.fromEnvOrProperty());

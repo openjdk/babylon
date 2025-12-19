@@ -25,8 +25,8 @@
 
 package hat;
 
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
@@ -44,14 +44,14 @@ public class BufferTagger {
     static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
 
     public enum AccessType {
-        NA(1),
-        RO(2),
-        WO(4),
-        RW(6),
-        NOT_BUFFER(0);
+        NOT_BUFFER((byte)0),
+        NA((byte)1),
+        RO((byte)(1<<1)),
+        WO((byte)(1<<2)),
+        RW((byte) (RO.value|WO.value));
 
-        public final int value;
-        AccessType(int i) {
+        public final byte value;
+        AccessType(byte i) {
             value = i;
         }
     }

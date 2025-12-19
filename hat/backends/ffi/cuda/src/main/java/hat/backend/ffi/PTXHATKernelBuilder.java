@@ -25,7 +25,7 @@
 package hat.backend.ffi;
 
 import hat.dialect.HATOp;
-import hat.ifacemapper.BoundSchema;
+import optkl.ifacemapper.BoundSchema;
 import hat.optools.*;
 import optkl.FuncOpParams;
 import optkl.ParamVar;

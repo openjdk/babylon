@@ -25,8 +25,8 @@
 package hat.buffer;
 
 import hat.Accelerator;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface BF16Array extends Buffer {
     int length();
@@ -47,4 +47,6 @@ public interface BF16Array extends Buffer {
     static BF16Array create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
+
+    default BF16Impl[] arrayview() {return null;}
 }

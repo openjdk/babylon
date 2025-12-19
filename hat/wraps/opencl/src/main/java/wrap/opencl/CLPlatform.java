@@ -24,10 +24,11 @@
  */
 package wrap.opencl;
 
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.BufferState;
-import hat.ifacemapper.MappableIface;
+
 import opencl.opencl_h;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.BufferState;
+import optkl.ifacemapper.MappableIface;
 import wrap.ArenaHolder;
 import wrap.Wrap;
 

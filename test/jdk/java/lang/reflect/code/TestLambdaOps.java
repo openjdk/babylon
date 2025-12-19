@@ -42,10 +42,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.IntSupplier;
-import java.util.function.IntUnaryOperator;
+import java.util.function.*;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -215,5 +212,16 @@ public class TestLambdaOps {
 
         Method m = om.get();
         return Op.ofMethod(m).get();
+    }
+
+    @Test
+    public void testToFuncOp() {
+        int a = 4, b = 3, c = 6;
+        IntUnaryOperator lambda = (@Reflect IntUnaryOperator) (d) -> {d += 2 * a + (b % 2) + (int) Math.exp(c); return d;};
+        LambdaOp qop = (LambdaOp) Op.ofQuotable(lambda).get().op();
+        FuncOp funcOp = qop.toFuncOp(null);
+        int funcOpRes = (int) Interpreter.invoke(MethodHandles.lookup(), funcOp, 1, 4, 3, 6);
+        int lambdaRes = lambda.applyAsInt(1);
+        Assertions.assertEquals(funcOpRes, lambdaRes);
     }
 }

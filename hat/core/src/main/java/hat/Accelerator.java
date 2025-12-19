@@ -27,13 +27,13 @@ package hat;
 
 import hat.backend.Backend;
 
-import hat.ifacemapper.BufferAllocator;
-import hat.ifacemapper.BufferTracker;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
+import optkl.CommonCarrier;
+import optkl.ifacemapper.BufferAllocator;
+import optkl.ifacemapper.BufferTracker;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
@@ -41,6 +41,7 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.LookupCarrier;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -75,9 +76,12 @@ import static hat.backend.Backend.FIRST;
  *
  * @author Gary Frost
  */
-public class Accelerator implements BufferAllocator, BufferTracker {
-    public MethodHandles.Lookup lookup;
+public class Accelerator implements CommonCarrier,  BufferTracker {
+
+    private MethodHandles.Lookup lookup;
+    @Override public MethodHandles.Lookup lookup(){return lookup;}
     public final Backend backend;
+
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
@@ -110,11 +114,6 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundShema) {
-        return backend.allocate(segmentMapper, boundShema);
-    }
-
-    @Override
     public void preMutate(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).preMutate(b);
@@ -140,6 +139,11 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).postAccess(b);
         }
+    }
+
+    @Override
+    public Arena arena() {
+        return backend.arena();
     }
 
     /**
@@ -189,8 +193,8 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     public void compute(Compute compute) {
         Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = OpTk.methodOrThrow(lookup, OpTk.getTargetInvokeOp(lambda));
-        // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
+        Method method = OpTk.methodOrThrow(lookup,OpTk.getTargetInvokeOp(lambda));
+        // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.

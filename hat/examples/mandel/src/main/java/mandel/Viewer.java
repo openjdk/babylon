@@ -25,7 +25,7 @@
 package mandel;
 
 import hat.buffer.S32Array2D;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface;
 import hat.util.ui.SevenSegmentDisplay;
 
 import javax.swing.Box;

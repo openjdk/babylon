@@ -30,20 +30,34 @@ import hat.Config;
 import hat.KernelContext;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
-import hat.ifacemapper.BufferAllocator;
+import optkl.ifacemapper.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
+import optkl.LookupCarrier;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 
-public  abstract class Backend implements BufferAllocator {
+public  abstract class Backend implements BufferAllocator, LookupCarrier {
     private final Config config;
 
     public Config config(){
         return config;
     }
 
-    protected Backend(Config config){
+    private final Arena arena;
+    @Override public Arena arena(){
+        return arena;
+    }
+    private final MethodHandles.Lookup lookup;
+    @Override public MethodHandles.Lookup lookup(){
+        return lookup;
+    }
+
+    protected Backend(Arena arena, MethodHandles.Lookup lookup,Config config){
+        this.lookup = lookup;
+        this.arena =arena;
         this.config = config;
     }
 

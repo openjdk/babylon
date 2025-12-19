@@ -40,7 +40,7 @@ public record HATDialectifyBarrierPhase(Accelerator accelerator) implements HATD
 
         OpTk.OpMap opMap = OpTk.simpleOpMappingTransform(
                 /* for debugging we will remove */ here, fromFuncOp,
-                /* filter op                    */ ce -> OpTk.isKernelContextInvokeOp(accelerator.lookup, ce,
+                /* filter op                    */ ce -> OpTk.isKernelContextInvokeOp(accelerator.lookup(), ce,
                                                     invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.INTRINSIC_NAME)),
                 /* replace op                   */ HATBarrierOp::new
         );

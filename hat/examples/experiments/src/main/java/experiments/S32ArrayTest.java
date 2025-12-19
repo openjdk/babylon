@@ -27,10 +27,11 @@ package experiments;
 import hat.Accelerator;
 import hat.backend.DebugBackend;
 import hat.buffer.S32Array2D;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
@@ -38,7 +39,8 @@ import java.lang.invoke.MethodHandles;
 public class S32ArrayTest implements Buffer {
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+        var lookup = MethodHandles.lookup();
+        Accelerator accelerator = new Accelerator(lookup,new DebugBackend(Arena.global(),MethodHandles.lookup()));
 
         hat.buffer.S32Array2D s32Array2D  = S32Array2D.create(accelerator, 100, 200);
         GroupLayout groupLayout = (GroupLayout) MappableIface.getLayout(s32Array2D);

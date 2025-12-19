@@ -24,7 +24,7 @@
  */
 package life;
 
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface;
 import hat.util.ui.SevenSegmentDisplay;
 
 import javax.swing.Box;

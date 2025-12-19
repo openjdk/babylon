@@ -30,7 +30,8 @@ import hat.buffer.HAType;
 import hat.callgraph.CallGraph;
 import hat.device.DeviceType;
 import hat.dialect.*;
-import hat.ifacemapper.MappableIface;
+import optkl.LookupCarrier;
+import optkl.ifacemapper.MappableIface;
 import hat.types._V;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeContext;
@@ -70,10 +71,21 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-public interface OpTk {
+public interface OpTk extends LookupCarrier  {
+    Predicate<JavaOp.FieldAccessOp> AnyFieldAccess = _->true;
+
+    static OpTk impl(LookupCarrier lookupCarrier){
+        record Impl(MethodHandles.Lookup lookup) implements LookupCarrier,OpTk{}
+        return new Impl(lookupCarrier.lookup());
+    }
+
+
    static boolean isKernelContext(MethodHandles.Lookup lookup,TypeElement typeElement){
        return isAssignable(lookup,typeElement,KernelContext.class);
    }
+    default boolean isKernelContext(TypeElement typeElement){
+        return isAssignable(lookup(),typeElement,KernelContext.class);
+    }
 
     Predicate<JavaOp.InvokeOp> AnyInvoke = _->true;
     static JavaOp.InvokeOp asKernelContextInvokeOpOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Predicate<JavaOp.InvokeOp> predicate) {
@@ -93,7 +105,7 @@ public interface OpTk {
         return Objects.nonNull(asKernelContextInvokeOpOrNull(lookup,ce, predicate));
     }
 
-    Predicate<JavaOp.FieldAccessOp> AnyFieldAccess = _->true;
+
     static boolean isVarAccessFromKernelContextFieldOp(MethodHandles.Lookup lookup,CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isKernelContextFieldAccessOp(lookup, varLoadOp, AnyFieldAccess);//varLoadOp.resultType());
     }
@@ -108,6 +120,9 @@ public interface OpTk {
     }
     static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Pattern pattern) {
         return asKernelContextFieldAccessOrNull(lookup,ce,fieldAccessOp->pattern.matcher(fieldAccessOp.fieldDescriptor().name()).matches());
+    }
+    default JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull( CodeElement<?,?> ce, Pattern pattern) {
+        return asKernelContextFieldAccessOrNull(lookup(),ce,fieldAccessOp->pattern.matcher(fieldAccessOp.fieldDescriptor().name()).matches());
     }
     static boolean isKernelContextFieldAccessOp(MethodHandles.Lookup lookup,CodeElement<?, ?> ce, Predicate<JavaOp.FieldAccessOp> predicate) {
         return Objects.nonNull(asKernelContextFieldAccessOrNull(lookup,ce, predicate));
@@ -177,7 +192,7 @@ public interface OpTk {
         var here = CallSite.of(OpTk.class, "createTransitiveInvokeModule");
         elements(here, entry).forEach(codeElement -> {
             if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
+                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup(), invokeOp);
                 try {
                     var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
@@ -359,6 +374,9 @@ public interface OpTk {
             case CoreOp.FuncCallOp o -> 0;
             case CoreOp.VarOp o -> 13;
             case CoreOp.VarAccessOp.VarStoreOp o -> 13;
+            case HATPtrStoreOp o -> 13;
+            case HATPtrLengthOp o -> 0;
+            case HATPtrLoadOp o -> 0;
             case JavaOp.FieldAccessOp o -> 0;
             case HATThreadOp o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;

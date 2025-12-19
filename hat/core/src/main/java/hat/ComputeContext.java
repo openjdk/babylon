@@ -24,13 +24,11 @@
  */
 package hat;
 
-import hat.ifacemapper.BufferAllocator;
-import hat.ifacemapper.BufferTracker;
+import optkl.ifacemapper.BufferAllocator;
+import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
@@ -38,6 +36,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
+import java.lang.foreign.Arena;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
@@ -48,7 +47,7 @@ import java.util.function.Consumer;
  * The Compute closure is created first, by walking the code model of the entrypoint, then transitively
  * visiting all conventional code reachable from this entrypoint.
  * <p/>
- * Generally all user defined methods reachable from the entrypoint (and the entrypoint intself) must be static methods of the same
+ * Generally all user defined methods reachable from the entrypoint (and the entrypoint itself) must be static methods of the same
  * enclosing classes.
  * <p/>
  * We do allow calls on the ComputeContext itself, and on the mapped interface buffers holding non uniform kernel data.
@@ -62,6 +61,11 @@ import java.util.function.Consumer;
  */
 public class ComputeContext implements BufferAllocator, BufferTracker {
 
+
+    @Override
+    public Arena arena() {
+        return accelerator.arena();
+    }
 
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");//, ESCAPE("Escape");
@@ -166,11 +170,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postAccess(b);
         }
-    }
-
-    @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-        return accelerator.allocate(segmentMapper, boundSchema);
     }
 
     @Reflect

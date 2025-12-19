@@ -30,14 +30,16 @@ import hat.KernelContext;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 import hat.optools.OpTk;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -45,8 +47,8 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class C99JExtractedBackend extends JExtractedBackend {
-    public C99JExtractedBackend(Config config,String libName) {
-        super(config,libName);
+    public C99JExtractedBackend(Arena arena, MethodHandles.Lookup lookup,Config config, String libName) {
+        super(arena,lookup,config,libName);
     }
     public static class CompiledKernel {
         public final C99JExtractedBackend c99NativeBackend;
@@ -92,7 +94,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
                         }
                     });
                 });
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.computeContext.accelerator.lookup
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.computeContext.accelerator.lookup()
                 ,kernelCallGraph.entrypoint.funcOp());
         // Sorting by rank ensures we don't need forward declarations
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)

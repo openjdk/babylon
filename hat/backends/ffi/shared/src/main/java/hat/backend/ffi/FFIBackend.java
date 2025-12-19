@@ -27,11 +27,9 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
+import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
 import hat.optools.OpTk;
 import jdk.incubator.code.Value;
@@ -53,15 +51,9 @@ import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class FFIBackend extends FFIBackendDriver {
-    public final Arena arena = Arena.global();
 
-    @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-        return segmentMapper.allocate(arena, boundSchema);
-    }
-
-    public FFIBackend(String libName, Config config) {
-        super(libName, config);
+    public FFIBackend(Arena arena,MethodHandles.Lookup lookup,String libName, Config config) {
+        super(arena, lookup,libName, config);
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
@@ -73,11 +65,11 @@ public abstract class FFIBackend extends FFIBackendDriver {
 
         backendBridge.computeStart();
         if (config().interpret()) {
-            Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
+            Interpreter.invoke(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered, args);
         } else {
             try {
                 if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered);
+                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered);
                 }
                 computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
             } catch (Throwable e) {
@@ -136,7 +128,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
-            var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
+            var lookup = computeMethod.callGraph.computeContext.accelerator.lookup();
             var paramTable = new FuncOpParams(computeMethod.funcOp());
 
             transformedFuncOp = OpTk.transform(here, computeMethod.funcOp(),(bldr, op) -> {

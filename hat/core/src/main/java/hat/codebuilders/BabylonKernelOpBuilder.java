@@ -24,30 +24,8 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HATBarrierOp;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorMakeOfOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
+import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -105,6 +83,12 @@ public interface BabylonKernelOpBuilder<T extends HATCodeBuilder<?>> extends Bab
 
     T hatMemoryLoadOp(ScopedCodeBuilderContext buildContext, HATMemoryLoadOp hatMemoryLoadOp);
 
+    T hatPtrLoadOp(ScopedCodeBuilderContext builderContext, HATPtrLoadOp hatPtrLoadOp);
+
+    T hatPtrStoreOp(ScopedCodeBuilderContext builderContext, HATPtrStoreOp hatPtrStoreOp);
+
+    T hatPtrLengthOp(ScopedCodeBuilderContext builderContext, HATPtrLengthOp hatPtrLengthOp);
+
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -154,6 +138,9 @@ public interface BabylonKernelOpBuilder<T extends HATCodeBuilder<?>> extends Bab
             case HATF16VarLoadOp $ -> hatF16VarLoadOp(buildContext, $);
             case HATF16ConvOp $ -> hatF16ConvOp(buildContext, $);
             case HATVectorMakeOfOp $ -> hatVectorMakeOf(buildContext, $);
+            case HATPtrLoadOp $ -> hatPtrLoadOp(buildContext, $);
+            case HATPtrStoreOp $ -> hatPtrStoreOp(buildContext, $);
+            case HATPtrLengthOp $ -> hatPtrLengthOp(buildContext, $);
             case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp(buildContext, $);
             case HATMemoryLoadOp $ -> hatMemoryLoadOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);

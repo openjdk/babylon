@@ -34,7 +34,10 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.*;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
+
 import jdk.incubator.code.Reflect;
 
 public class Main {
