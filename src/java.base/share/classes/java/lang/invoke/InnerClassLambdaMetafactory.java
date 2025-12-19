@@ -506,6 +506,14 @@ import sun.invoke.util.Wrapper;
             }
         }));
         // generate helper methods
+        /*
+        synchronized Quoted getQuoted() {
+            if (quoted == null) {
+                quoted = Quoted.extractOp(getModel(), captures);
+            }
+            return quoted;
+        }
+        * */
         clb.withMethod("getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()),
                 ACC_PRIVATE + ACC_SYNCHRONIZED,
                 new MethodBody(new Consumer<CodeBuilder>() {
@@ -549,6 +557,14 @@ import sun.invoke.util.Wrapper;
                     }
                 }));
 
+        /*
+        private static synchronized CoreOp.FuncOp getModel() {
+            if(model == null) {
+                model = ...invoke lambda op building method...
+            }
+            return model;
+        }
+        * */
         clb.withMethod("getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()),
                 ACC_PRIVATE + ACC_STATIC + ACC_SYNCHRONIZED,
                 new MethodBody(new Consumer<CodeBuilder>() {
