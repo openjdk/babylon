@@ -189,8 +189,8 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     public void compute(Compute compute) {
         Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = OpTk.methodOrThrow(lookup, OpTk.getTargetInvokeOp(lambda));
-        // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
+        Method method = OpTk.methodOrThrow(lookup,OpTk.getTargetInvokeOp(lambda));
+        // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.

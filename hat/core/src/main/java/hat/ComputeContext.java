@@ -48,7 +48,7 @@ import java.util.function.Consumer;
  * The Compute closure is created first, by walking the code model of the entrypoint, then transitively
  * visiting all conventional code reachable from this entrypoint.
  * <p/>
- * Generally all user defined methods reachable from the entrypoint (and the entrypoint intself) must be static methods of the same
+ * Generally all user defined methods reachable from the entrypoint (and the entrypoint itself) must be static methods of the same
  * enclosing classes.
  * <p/>
  * We do allow calls on the ComputeContext itself, and on the mapped interface buffers holding non uniform kernel data.
