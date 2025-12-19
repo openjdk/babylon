@@ -41,20 +41,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class HATFinalDetectionPhase implements HATDialect {
-
-    protected final Accelerator accelerator;
-    @Override  public Accelerator accelerator(){
-        return this.accelerator;
-    }
-    private final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
-
-    public HATFinalDetectionPhase(Accelerator accelerator) {
-       this.accelerator = accelerator;
-    }
-
-    @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+public record HATFinalDetector(Accelerator accelerator){
+    public Map<Op.Result, CoreOp.VarOp> applied(CoreOp.FuncOp funcOp) {
+        final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
         Stream<CodeElement<?, ?>> elements = funcOp.elements();
         elements.forEach(codeElement -> {
             if (codeElement instanceof CoreOp.VarOp varOp) {
@@ -102,10 +91,6 @@ public class HATFinalDetectionPhase implements HATDialect {
                 }
             }
         });
-        return funcOp;
-    }
-
-    public Map<Op.Result, CoreOp.VarOp> getFinalVars() {
         return finalVars;
     }
 }

@@ -31,27 +31,10 @@ import jdk.incubator.code.Value;
 import java.util.List;
 
 public abstract class HATVectorBinaryOp extends HATVectorOp {
-    public enum OpType {
-        ADD("+"),
-        SUB("-"),
-        MUL("*"),
-        DIV("/");
-
-        String symbol;
-
-        OpType(String symbol) {
-            this.symbol = symbol;
-        }
-
-        public String symbol() {
-            return symbol;
-        }
-    }
-
     private final TypeElement elementType;
-    private final OpType operationType;
+    private final BinaryOpEnum operationType;
 
-    public HATVectorBinaryOp(String varName, TypeElement typeElement, OpType operationType, TypeElement vectorElementType, int width, List<Value> operands) {
+    public HATVectorBinaryOp(String varName, TypeElement typeElement, BinaryOpEnum operationType, TypeElement vectorElementType, int width, List<Value> operands) {
         super(varName, typeElement, vectorElementType, width, operands);
         this.elementType = typeElement;
         this.operationType = operationType;
@@ -69,7 +52,7 @@ public abstract class HATVectorBinaryOp extends HATVectorOp {
         return this.elementType;
     }
 
-    public OpType operationType() {
+    public BinaryOpEnum operationType() {
         return operationType;
     }
 

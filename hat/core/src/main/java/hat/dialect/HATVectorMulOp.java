@@ -35,7 +35,7 @@ import java.util.List;
 public class HATVectorMulOp extends HATVectorBinaryOp {
 
     public HATVectorMulOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
-        super(varName, typeElement, OpType.MUL, vectorElementType, width, operands);
+        super(varName, typeElement, BinaryOpEnum.MUL, vectorElementType, width, operands);
     }
 
     public HATVectorMulOp(HATVectorMulOp op, CodeContext copyContext) {

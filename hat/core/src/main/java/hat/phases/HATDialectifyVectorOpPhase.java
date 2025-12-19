@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorAddOp;
@@ -81,15 +82,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         this.vectorOperation = vectorOperation;
     }
 
-    private HATVectorBinaryOp.OpType getBinaryOpType(JavaOp.InvokeOp invokeOp) {
-        return switch (invokeOp.invokeDescriptor().name()) {
-            case "add" -> HATVectorBinaryOp.OpType.ADD;
-            case "sub" -> HATVectorBinaryOp.OpType.SUB;
-            case "mul" -> HATVectorBinaryOp.OpType.MUL;
-            case "div" -> HATVectorBinaryOp.OpType.DIV;
-            default -> throw new RuntimeException("Unknown binary op " + invokeOp.invokeDescriptor().name());
-        };
-    }
+
 
     public enum OpView {
         FLOAT4_LOAD("float4View"),
@@ -108,22 +101,10 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     }
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
-       // boolean letsUseOpTk=false;
-      // if (letsUseOpTk) {
            return (invokeOp.resultType() instanceof JavaType jt
                    && OpTk.isAssignable(accelerator.lookup(), jt, _V.class)
                    && OpTk.isMethod(invokeOp, n->n.equals(vectorOperation.methodName))
            );
-      // }else {
-        //   TypeElement typeElement = invokeOp.resultType();
-        //   Set<Class<?>> interfaces = Set.of();
-        //   try {
-        //       Class<?> aClass = Class.forName(typeElement.toString());
-        //       interfaces = OpTk.inspectAllInterfaces(aClass);
-        //   } catch (ClassNotFoundException _) {
-        //   }
-        //   return interfaces.contains(_V.class) && OpTk.isMethod(invokeOp, vectorOperation.methodName);
-      // }
     }
 
     private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -141,7 +122,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         }
     }
 
-    private HATVectorBinaryOp buildVectorBinaryOp(HATVectorBinaryOp.OpType opType, String varName, TypeElement resultType, TypeElement vectorElementType, int witdh, List<Value> outputOperands) {
+    private HATVectorBinaryOp buildVectorBinaryOp(BinaryOpEnum opType, String varName, TypeElement resultType, TypeElement vectorElementType, int witdh, List<Value> outputOperands) {
         return switch (opType) {
             case ADD -> new HATVectorAddOp(varName, resultType, vectorElementType, witdh, outputOperands);
             case SUB -> new HATVectorSubOp(varName, resultType, vectorElementType, witdh, outputOperands);
@@ -170,10 +151,10 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         blockBuilder.context().mapValue(varOp.result(), hatLocalResult);
     }
 
-    public void insertBinaryOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp, Map<Op, VectorMetaData> vectorMetaData, Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation) {
+    public void insertBinaryOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp, Map<Op, VectorMetaData> vectorMetaData, Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation) {
         List<Value> inputOperands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(inputOperands);
-        HATVectorBinaryOp.OpType binaryOpType = binaryOperation.get(invokeOp);
+        BinaryOpEnum binaryOpType = binaryOperation.get(invokeOp);
         VectorMetaData vmd = vectorMetaData.get(invokeOp);
         HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOpType, varOp.varName(), invokeOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperands);
         Op.Result hatVectorOpResult = blockBuilder.op(memoryViewOp);
@@ -193,7 +174,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         blockBuilder.context().mapValue(varLoadOp.result(), hatVectorResult);
     }
 
-    public void insertVectorBinaryOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation) {
+    public void insertVectorBinaryOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation) {
         List<Value> inputOperands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(inputOperands);
         VectorMetaData vectorMetaData = getVectorTypeInfo(invokeOp);
@@ -316,7 +297,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     private CoreOp.FuncOp dialectifyVectorBinaryOps(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyVectorBinaryOps");
         before(here, funcOp);
-        Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
+        Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation = new HashMap<>();
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
 
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
@@ -327,7 +308,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                             if (inputOperand instanceof Op.Result result) {
                                 if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
                                     if (isVectorOperation(invokeOp)) {
-                                        HATVectorBinaryOp.OpType binaryOpType = getBinaryOpType(invokeOp);
+                                        BinaryOpEnum binaryOpType = BinaryOpEnum.of(invokeOp);
                                         binaryOperation.put(invokeOp, binaryOpType);
                                         VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
                                         vectorMetaData.put(invokeOp, vectorTypeInfo);
@@ -403,7 +384,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyBinaryWithConcatenation");
         before(here, funcOp);
-        Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
+        Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation = new HashMap<>();
         Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
@@ -411,7 +392,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                             List<Value> inputOperandsInvoke = invokeOp.operands();
                             for (Value inputOperand : inputOperandsInvoke) {
                                 if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                                    HATVectorBinaryOp.OpType binaryOpType = getBinaryOpType(invokeOp);
+                                    BinaryOpEnum binaryOpType = BinaryOpEnum.of(invokeOp);
                                     binaryOperation.put(invokeOp, binaryOpType);
                                     consumer.accept(varLoadOp);
                                     consumer.accept(invokeOp);

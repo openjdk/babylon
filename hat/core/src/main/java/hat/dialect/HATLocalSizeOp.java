@@ -24,6 +24,7 @@
  */
 package hat.dialect;
 
+import hat.NDRange;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -66,7 +67,7 @@ public class HATLocalSizeOp extends HATThreadOp {
     }
 
 
-    public static Pattern  pattern= Pattern.compile("ls([xyz])");
+    public static Pattern  pattern= NDRange.Local.szPattern;
 
     public static HATThreadOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
         return new HATLocalSizeOp(OpTk.dimIdx(fieldLoadOp.fieldDescriptor().name()), fieldLoadOp.resultType());

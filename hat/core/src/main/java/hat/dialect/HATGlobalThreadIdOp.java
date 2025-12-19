@@ -24,6 +24,7 @@
  */
 package hat.dialect;
 
+import hat.NDRange;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -64,7 +65,7 @@ public class HATGlobalThreadIdOp extends HATThreadOp {
         return Map.of("hat.dialect." + NAME, this.getDimension());
     }
 
-    public static final Pattern pattern=  Pattern.compile("(gi[xyz])");
+    public static final Pattern pattern= NDRange.Global.idxPattern;
 
 
     public static  HATGlobalThreadIdOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
