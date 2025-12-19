@@ -28,6 +28,7 @@ package hat.ifacemapper;
 import hat.ifacemapper.accessor.AccessorInfo;
 
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -42,10 +43,12 @@ import java.util.function.Consumer;
 //@ValueBased
 final class MapperCache {
 
+    private final Arena arena;
     private final MethodHandles.Lookup lookup;
     private final Map<CacheKey, SegmentMapper<?>> subMappers;
 
-    private MapperCache(MethodHandles.Lookup lookup) {
+    private MapperCache(Arena arena,MethodHandles.Lookup lookup) {
+        this.arena = arena;
         this.lookup = lookup;
         this.subMappers = new HashMap<>();
     }
@@ -61,7 +64,7 @@ final class MapperCache {
 
     private SegmentMapper<?> cachedInterfaceMapper(AccessorInfo accessorInfo) {
         return subMappers.computeIfAbsent(CacheKey.of(accessorInfo), k ->
-                SegmentMapper.of(lookup, k.type(), k.layout()));
+                SegmentMapper.of(arena,lookup, k.type(), k.layout()));
     }
 
     record CacheKey(Class<?> type,
@@ -77,8 +80,8 @@ final class MapperCache {
 
     }
 
-    static MapperCache of(MethodHandles.Lookup lookup) {
-        return new MapperCache(lookup);
+    static MapperCache of(Arena arena,MethodHandles.Lookup lookup) {
+        return new MapperCache(arena,lookup);
     }
 
 }

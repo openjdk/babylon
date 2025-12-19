@@ -142,7 +142,7 @@ public class Mesh {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
 
         var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
-        var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
+        var meshDataNew = boundSchema.allocate(accelerator.lookup(),accelerator);
         var meshDataOld = MeshData.create(accelerator);
 
         String layoutNew = MappableIface.getLayout(meshDataNew).toString();

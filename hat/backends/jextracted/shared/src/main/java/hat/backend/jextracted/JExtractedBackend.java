@@ -43,20 +43,15 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class JExtractedBackend extends JExtractedBackendDriver {
-    public final Arena arena = Arena.global();
 
-    @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-        return segmentMapper.allocate(arena, boundSchema);
-    }
-
-    public JExtractedBackend(Config config, String libName) {
-        super(config,libName);
+    public JExtractedBackend(Arena arena, MethodHandles.Lookup lookup,Config config, String libName) {
+        super(arena,lookup,config,libName);
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
@@ -67,11 +62,11 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         }
         boolean interpret = false;
         if (interpret) {
-            Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
+            Interpreter.invoke(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered, args);
         } else {
             try {
                 if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered);
+                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered);
                 }
                 computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
             } catch (Throwable e) {
@@ -85,7 +80,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
       //  System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
        // System.out.println(computeMethod.funcOp().toText());
-        var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
+        var lookup = computeMethod.callGraph.computeContext.accelerator.lookup();
         // TODO : can't we get this from somewhere maybe it should be capturein the compute method?
         var paramTable = new FuncOpParams(computeMethod.funcOp());
         var here = OpTk.CallSite.of(JExtractedBackend.class, "injectBufferTracking");

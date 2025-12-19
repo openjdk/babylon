@@ -26,6 +26,9 @@ package hat.ifacemapper;
 
 
 
+import optkl.ArenaCarrier;
+import optkl.LookupCarrier;
+
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -242,10 +245,11 @@ import java.util.stream.Stream;
  *
  * public static void main(String[] args) {
  *
- *     SegmentMapper<PointAccessor> mapper =
- *             SegmentMapper.of(MethodHandles.lookup(), PointAccessor.class, POINT);
+ *
  *
  *     try (Arena arena = Arena.ofConfined()){
+ *      SegmentMapper<PointAccessor> mapper =
+ *  *             SegmentMapper.of(arena,MethodHandles.lookup(), PointAccessor.class, POINT);
  *         // Creates an interface mapper backed by an internal segment
  *         PointAccessor point = mapper.get(arena);
  *         point.x(3);
@@ -300,7 +304,7 @@ import java.util.stream.Stream;
 //       This can be fixed using double-buffering. Maybe provide a scratch segment somehow that tracks where writes
 //       has been made (via a separate class BufferedMapper?)
 //       -> Fixed via TestInterfaceMapper::doubleBuffered
-public interface SegmentMapper<T> {
+public interface SegmentMapper<T>  extends ArenaCarrier, LookupCarrier {
 
     /**
      * {@return the type that this mapper is mapping to and from}
@@ -329,8 +333,7 @@ public interface SegmentMapper<T> {
      *    get(arena.allocate(layout()));
      * }
      *
-     * @param arena from which to {@linkplain Arena#allocate(MemoryLayout) allocate} an
-     *              internal memory segment.
+
      * @throws IllegalStateException     if the {@linkplain MemorySegment#scope() scope}
      * associated with the provided segment is not
      * {@linkplain MemorySegment.Scope#isAlive() alive}
@@ -343,12 +346,12 @@ public interface SegmentMapper<T> {
      * {@code layout().byteSize() > segment.byteSize()}
      */
 
-    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
+    default T allocate(BoundSchema<?> boundSchema) {
         if (boundSchema == null) {
             throw new IllegalStateException("No bound Schema provided");
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
-        var segment = arena.allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
+        var segment = arena().allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
         new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout()))
                 .setMagic()
                 .setPtr(segment)
@@ -692,30 +695,30 @@ public interface SegmentMapper<T> {
      * occur. For example, in a future release, synchronization may fail.
      * @implNote The returned class can be a {@linkplain Class#isHidden() hidden} class.
      */
-    static <T> SegmentMapper<T> of(MethodHandles.Lookup lookup,
+    static <T> SegmentMapper<T> of(Arena arena,MethodHandles.Lookup lookup,
                                    Class<T> type,
                                    GroupLayout layout) {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);
-        return SegmentInterfaceMapper.create(lookup, type, layout, null);
+        return SegmentInterfaceMapper.create(arena,lookup, type, layout, null);
     }
 
-    static <T extends MappableIface> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, BoundSchema<?> boundSchema) {
+    static <T extends MappableIface> SegmentMapper<T> of(Arena arena,MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, BoundSchema<?> boundSchema) {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);
-        return SegmentInterfaceMapper.create(lookup, type, layout, boundSchema);
+        return SegmentInterfaceMapper.create(arena,lookup, type, layout, boundSchema);
 
     }
 
 
-    static <T> SegmentMapper<T> of(MethodHandles.Lookup lookup,
+    static <T> SegmentMapper<T> of(Arena arena,MethodHandles.Lookup lookup,
                                    Class<T> type,
                                    MemoryLayout... elements) {
 
         StructLayout structlayout = MemoryLayout.structLayout(elements).withName(type.getSimpleName());
-        return of(lookup, type, structlayout);
+        return of(arena,lookup, type, structlayout);
     }
 
 

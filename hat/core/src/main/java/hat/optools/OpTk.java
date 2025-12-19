@@ -177,7 +177,7 @@ public interface OpTk {
         var here = CallSite.of(OpTk.class, "createTransitiveInvokeModule");
         elements(here, entry).forEach(codeElement -> {
             if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
+                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup(), invokeOp);
                 try {
                     var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);

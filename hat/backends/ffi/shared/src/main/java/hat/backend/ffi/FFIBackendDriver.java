@@ -32,6 +32,7 @@ import hat.ifacemapper.MappableIface;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -163,8 +164,8 @@ public abstract class FFIBackendDriver extends Backend {
     public final FFILib ffiLib;
     public final BackendBridge backendBridge;
 
-    public FFIBackendDriver(String libName, Config config) {
-        super(config);
+    public FFIBackendDriver(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
+        super(arena,lookup,config);
         this.ffiLib = new FFILib(libName);
         this.backendBridge = new BackendBridge(ffiLib, config);
     }

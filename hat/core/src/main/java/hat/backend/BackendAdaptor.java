@@ -34,11 +34,13 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 
 public abstract class BackendAdaptor extends Backend {
-    BackendAdaptor(Config config) {
-        super(config);
+
+    BackendAdaptor(Arena arena, MethodHandles.Lookup lookup,Config config) {
+        super(arena,lookup,config);
     }
 
     @Override
@@ -70,9 +72,5 @@ public abstract class BackendAdaptor extends Backend {
         }
     }
 
-    @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-        return segmentMapper.allocate(Arena.global(), boundSchema);
-    }
 
 }

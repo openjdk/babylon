@@ -24,6 +24,12 @@
  */
 package hat.ifacemapper;
 
-public interface BufferAllocator {
-    <T extends MappableIface>T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> buffer);
+import optkl.ArenaCarrier;
+
+import java.lang.foreign.Arena;
+
+public interface BufferAllocator extends ArenaCarrier {
+    default  <T extends MappableIface> T allocates(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+            return segmentMapper.allocate(boundSchema);
+    }
 }

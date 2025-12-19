@@ -29,13 +29,14 @@ import hat.backend.DebugBackend;
 import hat.ifacemapper.Buffer;
 import hat.buffer.S08x3RGBImage;
 
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
 public class S08x3ImageTest implements Buffer {
 
     public static void main(String[] args) {
-
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+        var lookup =MethodHandles.lookup();
+        Accelerator accelerator = new Accelerator(lookup,new DebugBackend(Arena.global(),lookup));
 
         var rgbS08x3Image = S08x3RGBImage.create(accelerator,100,100);
     }

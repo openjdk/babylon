@@ -30,6 +30,8 @@ import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 
 import hat.optools.OpTk;
@@ -39,17 +41,20 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 
 public class DebugBackend extends BackendAdaptor {
+
+
     public enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}
     public HowToRunCompute howToRunCompute=HowToRunCompute.REFLECT;
     public enum HowToRunKernel{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE, LOWER_TO_SSA,LOWER_TO_SSA_AND_MAP_PTRS}
     HowToRunKernel howToRunKernel = HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS;
 
-    public DebugBackend(){
-       this(HowToRunCompute.REFLECT, HowToRunKernel.REFLECT);
+    public DebugBackend(Arena arena, MethodHandles.Lookup lookup){
+       this(arena,lookup,HowToRunCompute.REFLECT, HowToRunKernel.REFLECT);
     }
 
-    public DebugBackend(HowToRunCompute howToRunCompute, HowToRunKernel howToRunKernel){
-        super(Config.fromEnvOrProperty());
+    public DebugBackend(Arena arena,MethodHandles.Lookup lookup,HowToRunCompute howToRunCompute, HowToRunKernel howToRunKernel){
+
+        super(arena,lookup,Config.fromEnvOrProperty());
         this.howToRunCompute = howToRunCompute;
         this.howToRunKernel = howToRunKernel;
     }
@@ -71,7 +76,7 @@ public class DebugBackend extends BackendAdaptor {
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
                     computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(here, computeContext.computeCallGraph.entrypoint.funcOp());
                 }
-                Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
+                Interpreter.invoke(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
@@ -80,7 +85,7 @@ public class DebugBackend extends BackendAdaptor {
                 }
                 try {
                     if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                        computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered);
+                        computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered);
                     }
                     computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
                 } catch (Throwable e) {
@@ -113,12 +118,12 @@ public class DebugBackend extends BackendAdaptor {
             }
             case BABYLON_INTERPRETER:{
                 var lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
-                Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup, lowered, args);
+                Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup(), lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
                 var lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
-                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, lowered);
+                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup(), lowered);
                 try {
                     mh.invokeWithArguments(args);
                 } catch (Throwable e) {

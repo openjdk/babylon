@@ -111,7 +111,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
        // boolean letsUseOpTk=false;
       // if (letsUseOpTk) {
            return (invokeOp.resultType() instanceof JavaType jt
-                   && OpTk.isAssignable(accelerator.lookup, jt, _V.class)
+                   && OpTk.isAssignable(accelerator.lookup(), jt, _V.class)
                    && OpTk.isMethod(invokeOp, n->n.equals(vectorOperation.methodName))
            );
       // }else {

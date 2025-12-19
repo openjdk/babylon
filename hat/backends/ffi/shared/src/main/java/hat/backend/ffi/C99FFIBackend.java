@@ -48,6 +48,8 @@ import hat.phases.HATFinalDetectionPhase;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,8 +62,8 @@ import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-    public C99FFIBackend(String libName, Config config) {
-        super(libName, config);
+    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
+        super(arena,lookup,libName, config);
     }
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
@@ -260,7 +262,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             for (TypeElement typeElement : localIFaceList) {
                 try {
-                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
+                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup());
                     Field schemaField = clazz.getDeclaredField("schema");
                     schemaField.setAccessible(true);
                     var schema = (DeviceSchema<?>)schemaField.get(schemaField);
@@ -279,7 +281,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
 
             ScopedCodeBuilderContext buildContext =
-                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
+                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup(),
                             kernelCallGraph.entrypoint.funcOp());
 
             // Sorting by rank ensures we don't need forward declarations

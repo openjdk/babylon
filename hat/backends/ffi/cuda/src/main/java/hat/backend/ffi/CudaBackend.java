@@ -41,6 +41,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -357,7 +358,7 @@ public class CudaBackend extends C99FFIBackend {
     final Set<String> usedMathFns = new HashSet<>();
 
     public CudaBackend(Config config) {
-        super("cuda_backend", config);
+        super(Arena.global(), MethodHandles.lookup(),"cuda_backend", config);
     }
 
     public CudaBackend() {
@@ -410,12 +411,12 @@ public class CudaBackend extends C99FFIBackend {
         kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
             // TODO did we just trash any sidetables?
             CoreOp.FuncOp loweredFunc = OpTk.lower(here, funcOp);
-            loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
+            loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup(),loweredFunc, argsMap, usedMathFns);
             invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
         });
 
         CoreOp.FuncOp lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
-        CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,lowered, argsMap, usedMathFns);
+        CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup(),lowered, argsMap, usedMathFns);
         for (String s : usedMathFns) {
             out.append("\n").append(mathFns.get(s)).append("\n");
         }

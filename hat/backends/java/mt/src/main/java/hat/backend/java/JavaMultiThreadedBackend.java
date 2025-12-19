@@ -33,8 +33,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 public class JavaMultiThreadedBackend extends JavaBackend {
-
-
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         if (kernelCallGraph.usesArrayView) {

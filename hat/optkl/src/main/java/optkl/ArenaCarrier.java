@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,15 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.ffi;
+package optkl;
 
 import java.lang.foreign.Arena;
-import java.lang.invoke.MethodHandles;
 
-public class MockDeviceInfo {
-
-    public static void main(String[] args) {
-        MockBackend mockBackend = new MockBackend(Arena.global(), MethodHandles.lookup());
-        mockBackend.backendBridge.showDeviceInfo();
-    }
+public interface ArenaCarrier {
+    Arena arena();
 }

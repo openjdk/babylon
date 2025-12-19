@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassHierarchyResolver;
 import java.lang.constant.ClassDesc;
+import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
@@ -76,13 +77,14 @@ public final class SegmentInterfaceMapper<T>
     private final MethodHandle offsetGetHandle;
     private final List<AffectedMemory> affectedMemories;
 
-    private SegmentInterfaceMapper(MethodHandles.Lookup lookup,
+    private SegmentInterfaceMapper(Arena arena,
+                                   MethodHandles.Lookup lookup,
                                    Class<T> type,
                                    GroupLayout layout,
                                    BoundSchema<?> boundSchema,
                                    boolean leaf,
                                    List<AffectedMemory> affectedMemories) {
-        super(lookup, type, layout, boundSchema,leaf,
+        super(arena,lookup, type, layout, boundSchema,leaf,
                 MapperUtil::requireImplementableInterfaceType, Accessors::ofInterface);
         this.affectedMemories = affectedMemories;
 
@@ -142,7 +144,7 @@ public final class SegmentInterfaceMapper<T>
 
     @Override
     public <R> SegmentMapper<R> map(Class<R> newType, Function<? super T, ? extends R> toMapper) {
-        return new Mapped<>(lookup(), newType ,layout(),boundSchema(), getHandle(), toMapper);
+        return new Mapped<>(arena(),lookup(), newType ,layout(),boundSchema(), getHandle(), toMapper);
     }
 
     // @Override
@@ -417,11 +419,11 @@ public final class SegmentInterfaceMapper<T>
 
     }
 
-    public static <T> SegmentInterfaceMapper<T> create(MethodHandles.Lookup lookup,
+    public static <T> SegmentInterfaceMapper<T> create(Arena arena,MethodHandles.Lookup lookup,
                                                        Class<T> type,
                                                        GroupLayout layout,
                                                        BoundSchema<?> boundSchema) {
-        return new SegmentInterfaceMapper<>(lookup, type,  layout, boundSchema, false, new ArrayList<>());
+        return new SegmentInterfaceMapper<>(arena,lookup, type,  layout, boundSchema, false, new ArrayList<>());
     }
 
     // Mapping
@@ -438,6 +440,7 @@ public final class SegmentInterfaceMapper<T>
      * @param <R>       composed mapper type
      */
     record Mapped<T, R>(
+            Arena arena,
             MethodHandles.Lookup lookup,
             @Override Class<R> type,
             @Override GroupLayout layout,
@@ -457,13 +460,14 @@ public final class SegmentInterfaceMapper<T>
             }
         }
 
-        Mapped(MethodHandles.Lookup lookup,
+        Mapped(Arena arena,MethodHandles.Lookup lookup,
                Class<R> type,
                GroupLayout layout,
                BoundSchema<?> boundSchema,
                MethodHandle getHandle,
                Function<? super T, ? extends R> toMapper
         ) {
+            this.arena =arena;
             this.lookup = lookup;
             this.type = type;
             this.boundSchema =boundSchema;
@@ -481,7 +485,7 @@ public final class SegmentInterfaceMapper<T>
         @Override
         public <R1> SegmentMapper<R1> map(Class<R1> newType,
                                           Function<? super R, ? extends R1> toMapper) {
-            return new Mapped<>(lookup, newType,  layout(), boundSchema(), getHandle(), toMapper);
+            return new Mapped<>(arena(),lookup, newType,  layout(), boundSchema(), getHandle(), toMapper);
         }
 
         // Used reflective when obtaining a MethodHandle
