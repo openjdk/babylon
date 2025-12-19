@@ -80,9 +80,9 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         super(computeCallGraph.computeContext, new KernelEntrypoint(null, methodRef, method, funcOp));
         entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        bufferAccessList = BufferTagger.getAccessList(computeContext.accelerator.lookup, entrypoint.funcOp());
+        bufferAccessList = BufferTagger.getAccessList(computeContext.accelerator.lookup(), entrypoint.funcOp());
         usesArrayView = false;
-        CoreOp.ModuleOp initialModuleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this);
+        CoreOp.ModuleOp initialModuleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup(), entrypoint.funcOp(), this);
         HATDialectifyTier tier = new HATDialectifyTier(computeContext.accelerator);
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
         entrypoint.funcOp(initialEntrypointFuncOp);
@@ -108,8 +108,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         OpTk.elements(here, kernelReachableResolvedMethodCall.funcOp()).forEach(codeElement -> {
             if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
               //  MethodRef methodRef = invokeOp.invokeDescriptor();
-                Class<?> javaRefTypeClass = OpTk.javaRefClassOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
-                Method invokeOpCalledMethod = OpTk.methodOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
+                Class<?> javaRefTypeClass = OpTk.javaRefClassOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup(),invokeOp);
+                Method invokeOpCalledMethod = OpTk.methodOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup(),invokeOp);
                 if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
                         kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
                             new KernelReachableUnresolvedIfaceMappedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod)

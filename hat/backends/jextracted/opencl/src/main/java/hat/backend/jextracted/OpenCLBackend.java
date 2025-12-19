@@ -31,9 +31,12 @@ import hat.KernelContext;
 //import hat.backend.ffi.C99FFIBackend;
 import hat.callgraph.KernelCallGraph;
 
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 
 public class OpenCLBackend extends C99JExtractedBackend {
+
 
     final MethodHandle getBackend_MH;
     public long getBackend(int mode, int platform, int device) {
@@ -46,7 +49,7 @@ public class OpenCLBackend extends C99JExtractedBackend {
     }
 
     public OpenCLBackend(Config config) {
-        super(config,"opencl_backend");
+        super(Arena.global(), MethodHandles.lookup(),config,"opencl_backend");
         getBackend_MH  = null;// nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
         getBackend(0,0,0);
         info();

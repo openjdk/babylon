@@ -25,6 +25,7 @@
 package hat.ifacemapper;
 
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
@@ -116,7 +117,7 @@ public class BoundSchema<T extends MappableIface> {
     }
 
     public T allocate(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator) {
-        return bufferAllocator.allocate(SegmentMapper.of(lookup, schema.iface, groupLayout, this), this);
+        return bufferAllocator.allocates(SegmentMapper.of(bufferAllocator.arena(),lookup, schema.iface, groupLayout, this), this);
     }
 
     public Schema<T> schema() {

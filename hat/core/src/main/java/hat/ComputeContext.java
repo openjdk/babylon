@@ -38,6 +38,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
+import java.lang.foreign.Arena;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
@@ -62,6 +63,11 @@ import java.util.function.Consumer;
  */
 public class ComputeContext implements BufferAllocator, BufferTracker {
 
+
+    @Override
+    public Arena arena() {
+        return accelerator.arena();
+    }
 
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");//, ESCAPE("Escape");
@@ -166,11 +172,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postAccess(b);
         }
-    }
-
-    @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-        return accelerator.allocate(segmentMapper, boundSchema);
     }
 
     @Reflect

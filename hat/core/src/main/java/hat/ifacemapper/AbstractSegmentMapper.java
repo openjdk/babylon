@@ -27,6 +27,7 @@ package hat.ifacemapper;
 
 import hat.ifacemapper.accessor.Accessors;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -34,9 +35,16 @@ import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
 abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
-
+     private final Arena arena;
+    @Override public Arena arena(){
+        return arena;
+    }
    // @Stable
     private final MethodHandles.Lookup lookup;
+
+    @Override public MethodHandles.Lookup lookup() {
+        return lookup;
+    }
   //  @Stable
     private final Class<T> type;
   //  @Stable
@@ -46,7 +54,7 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
     private final MapperCache mapperCache;
     protected Accessors accessors;
 
-    protected AbstractSegmentMapper(MethodHandles.Lookup lookup,
+    protected AbstractSegmentMapper(Arena arena,MethodHandles.Lookup lookup,
                                     Class<T> type,
 
                                     GroupLayout layout,
@@ -55,21 +63,14 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
 
                                     UnaryOperator<Class<T>> typeInvariantChecker,
                                     BiFunction<Class<?>, GroupLayout, Accessors> accessorFactory) {
+        this.arena = arena;
         this.lookup = lookup;
         this.type = typeInvariantChecker.apply(type);
         this.boundSchema = boundSchema;
         this.layout = layout;
         this.leaf = leaf;
-        this.mapperCache = MapperCache.of(lookup);
+        this.mapperCache = MapperCache.of(arena,lookup);
         this.accessors = accessorFactory.apply(type, layout);
-
-     /*   List<Method> unsupportedAccessors = accessors.stream(k -> !k.isSupportedFor(valueType))
-                .map(AccessorInfo::method)
-                .toList();
-        if (!unsupportedAccessors.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "The following accessors are not supported for " + valueType + ": " + unsupportedAccessors);
-        } */
         MapperUtil.assertMappingsCorrectAndTotal(type, layout, accessors);
     }
 
@@ -99,9 +100,6 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
 
     // Protected methods
 
-    protected final MethodHandles.Lookup lookup() {
-        return lookup;
-    }
 
     protected final Accessors accessors() {
         return accessors;

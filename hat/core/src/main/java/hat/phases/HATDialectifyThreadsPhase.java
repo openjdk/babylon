@@ -58,7 +58,7 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         var txfmr = new Trxfmr(OpTk.CallSite.of(this.getClass()),funcOp);
         return txfmr.select(
-                ce->OpTk.asNamedKernelContextFieldAccessOrNull(accelerator.lookup,ce,pattern())!=null,(s,o)->
+                ce->OpTk.asNamedKernelContextFieldAccessOrNull(accelerator.lookup(),ce,pattern())!=null,(s,o)->
                    OpTk.operandsAsResults(o)
                      .map(OpTk::opOfResultOrNull)
                      .map(OpTk::asVarLoadOrNull)

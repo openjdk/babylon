@@ -13,10 +13,12 @@
     <orderEntry type="module" module-name="wrap_shared" />
     <orderEntry type="module" module-name="wrap_opencl" />
     <orderEntry type="module" module-name="wrap_opengl" />
+    <orderEntry type="module" module-name="backend_ffi_shared" />
+    <orderEntry type="module" module-name="optkl" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/hat-extracted-opengl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-backend-jextracted-opencl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -25,7 +27,16 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/hat-extracted-opencl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-backend-jextracted-shared-1.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../build/hat-extracted-opengl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

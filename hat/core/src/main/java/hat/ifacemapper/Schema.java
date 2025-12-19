@@ -69,7 +69,7 @@ public class Schema<T extends MappableIface> {
 
     public T allocate(Accelerator accelerator, int... boundLengths) {
         BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        T instance = (T) boundSchema.allocate(accelerator.lookup, accelerator);
+        T instance = (T) boundSchema.allocate(accelerator.lookup(), accelerator);
         MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
         int[] count = new int[]{0};
 

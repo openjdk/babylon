@@ -45,7 +45,7 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp entry) {
-        MethodHandles.Lookup l = accelerator.lookup;
+        MethodHandles.Lookup l = accelerator.lookup();
         if (!isArrayView(entry)) return entry;
 
         Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
@@ -307,7 +307,7 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
         if (type instanceof ArrayType at) type = at.componentType();
         if (type instanceof ClassType ct) {
             try {
-                return _V.class.isAssignableFrom((Class<?>) ct.resolve(accelerator.lookup));
+                return _V.class.isAssignableFrom((Class<?>) ct.resolve(accelerator.lookup()));
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
@@ -367,8 +367,8 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
                 element instanceof JavaOp.InvokeOp iop &&
                         iop.resultType() instanceof ArrayType &&
                         iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        (OpTk.isAssignable(accelerator.lookup, javaType, MappableIface.class)
-                                || OpTk.isAssignable(accelerator.lookup, javaType, DeviceType.class))));
+                        (OpTk.isAssignable(accelerator.lookup(), javaType, MappableIface.class)
+                                || OpTk.isAssignable(accelerator.lookup(), javaType, DeviceType.class))));
     }
 
     public Class<?> typeElementToClass(TypeElement type) {
@@ -388,7 +388,7 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
             if (type instanceof PrimitiveType primitiveType) {
                 return PrimitiveHolder.primitiveToClass.get(primitiveType);
             } else if (type instanceof ClassType classType) {
-                return ((Class<?>) classType.resolve(accelerator.lookup));
+                return ((Class<?>) classType.resolve(accelerator.lookup()));
             } else {
                 throw new IllegalArgumentException("given type cannot be converted to class");
             }
