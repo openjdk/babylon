@@ -24,6 +24,8 @@
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
+import java.lang.classfile.ClassTransform;
+import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.MethodTransform;
@@ -42,6 +44,7 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
@@ -61,27 +64,27 @@ public final class Unreflect {
     static byte[] transform(byte[] classBytes) {
         ClassModel clm = ClassFile.of().parse(classBytes);
         return ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(clm, (clb, cle) -> {
-                if (cle instanceof MethodModel mm && isReflective(mm)) {
-                    clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
-                            .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
-                                MethodTypeDesc mts = mm.methodTypeSymbol();
-                                boolean hasReceiver = !mm.flags().has(AccessFlag.STATIC);
-                                if (hasReceiver) {
-                                    cob.loadLocal(TypeKind.REFERENCE, cob.receiverSlot());
-                                }
-                                for (int i = 0; i < mts.parameterCount(); i++) {
-                                    cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
-                                }
-                                cob.invokedynamic(DynamicCallSiteDesc.of(
-                                        ConstantDescs.ofCallsiteBootstrap(CD_Unreflect, "unreflect", ConstantDescs.CD_CallSite),
-                                        mm.methodName().stringValue(),
-                                        hasReceiver ? mts.insertParameterTypes(0, clm.thisClass().asSymbol()): mts));
-                                cob.return_(TypeKind.from(mts.returnType()));
-                            }))));
-                } else {
-                    clb.with(cle);
-                }
-            });
+            if (cle instanceof MethodModel mm && isReflective(mm)) {
+                clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
+                        .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
+                            MethodTypeDesc mts = mm.methodTypeSymbol();
+                            boolean hasReceiver = !mm.flags().has(AccessFlag.STATIC);
+                            if (hasReceiver) {
+                                cob.aload(cob.receiverSlot());
+                            }
+                            for (int i = 0; i < mts.parameterCount(); i++) {
+                                cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
+                            }
+                            cob.invokedynamic(DynamicCallSiteDesc.of(
+                                    ConstantDescs.ofCallsiteBootstrap(CD_Unreflect, "unreflect", ConstantDescs.CD_CallSite),
+                                    mm.methodName().stringValue(),
+                                    hasReceiver ? mts.insertParameterTypes(0, clm.thisClass().asSymbol()) : mts));
+                            cob.return_(TypeKind.from(mts.returnType()));
+                        }))));
+            } else {
+                clb.with(cle);
+            }
+        });
     }
 
     public static CallSite unreflect(MethodHandles.Lookup caller, String methodName, MethodType methodType)
