@@ -169,12 +169,12 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Reflect
-    static boolean identityPrimitive(short s) {
-        return s instanceof short _;
+    static boolean identityPrimitive(short s, int i, float f) {
+        return s instanceof short _ && i instanceof int _ && f instanceof float _;
     }
 
     @Test
-    void testIdentityPrimitive() {
+    void testIdentityPrimitive() { // TODO test with int and float when other PR is merged
         FuncOp f = getFuncOp("identityPrimitive");
         System.out.println(f.toText());
 
@@ -183,7 +183,8 @@ public class TestPrimitiveTypePatterns {
         // because it's an identity conversion, we expect no check performed
         Assertions.assertTrue(lf.elements().noneMatch(e -> e instanceof JavaOp.InvokeOp));
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Short.MAX_VALUE));
+        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf,
+                Short.MAX_VALUE, Integer.MAX_VALUE, Float.MAX_VALUE));
     }
 
     @Reflect
