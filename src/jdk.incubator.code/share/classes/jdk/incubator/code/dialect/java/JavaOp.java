@@ -4934,7 +4934,7 @@ public sealed abstract class JavaOp extends Op {
                     DOUBLE, 6
             );
             private static boolean isNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
-                return narrowingOrder.get(t) <= narrowingOrder.get(s);
+                return narrowingOrder.get(t) <= narrowingOrder.get(s) && !s.equals(t); // need to be strict, to not consider int -> int as narrowing
             }
 
             private static MethodRef convMethodRef(TypeElement s, TypeElement t) {
