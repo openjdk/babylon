@@ -12,9 +12,9 @@ import java.util.stream.IntStream;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run junit TestMethodModelUnique
+ * @run junit TestOpOfMethod
  */
-public class TestMethodModelUnique {
+public class TestOpOfMethod {
 
     @Reflect
     static void f() {
