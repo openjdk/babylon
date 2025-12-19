@@ -25,9 +25,9 @@
 package experiments;
 
 
-import hat.ifacemapper.Schema;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.*;

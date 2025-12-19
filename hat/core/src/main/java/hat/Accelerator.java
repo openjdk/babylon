@@ -27,11 +27,10 @@ package hat;
 
 import hat.backend.Backend;
 
-import hat.ifacemapper.BufferAllocator;
-import hat.ifacemapper.BufferTracker;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
+import optkl.CommonCarrier;
+import optkl.ifacemapper.BufferAllocator;
+import optkl.ifacemapper.BufferTracker;
+import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 
 import java.lang.foreign.Arena;
@@ -77,7 +76,7 @@ import static hat.backend.Backend.FIRST;
  *
  * @author Gary Frost
  */
-public class Accelerator implements BufferAllocator, BufferTracker, LookupCarrier {
+public class Accelerator implements CommonCarrier,  BufferTracker {
 
     private MethodHandles.Lookup lookup;
     @Override public MethodHandles.Lookup lookup(){return lookup;}

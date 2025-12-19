@@ -27,11 +27,9 @@ package hat.backend.jextracted;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
+import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
 import hat.optools.OpTk;
 import jdk.incubator.code.Value;

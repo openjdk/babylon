@@ -27,15 +27,13 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.BufferTagger;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
-import hat.ifacemapper.SchemaBuilder;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import optkl.ifacemapper.SchemaBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.nio.ByteOrder;
 import java.util.List;
 
 import static hat.buffer.ArgArray.Arg.Value.Buf.UNKNOWN_BYTE;
@@ -239,21 +237,7 @@ public interface ArgArray extends Buffer {
             .arrayLen("schemaLen").array("schemaBytes")
     );
 
-    static String valueLayoutToSchemaString(ValueLayout valueLayout) {
-        String descriptor = valueLayout.carrier().descriptorString();
-        String schema = switch (descriptor) {
-            case "Z" -> "Z";
-            case "B" -> "S";
-            case "C" -> "U";
-            case "S" -> "S";
-            case "I" -> "S";
-            case "F" -> "F";
-            case "D" -> "D";
-            case "J" -> "S";
-            default -> throw new IllegalStateException("Unexpected value: " + descriptor);
-        } + valueLayout.byteSize() * 8;
-        return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
-    }
+
 
     static ArgArray create(Accelerator accelerator, KernelCallGraph kernelCallGraph, Object... args) {
         String[] schemas = new String[args.length];

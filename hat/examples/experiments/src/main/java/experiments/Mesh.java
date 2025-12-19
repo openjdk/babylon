@@ -30,10 +30,10 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;

@@ -29,8 +29,8 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
@@ -40,8 +40,8 @@ import hat.test.exceptions.HATAsserts;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RO;
+import static optkl.ifacemapper.MappableIface.RW;
 import static hat.test.TestNbody.Universe.*;
 
 public class TestNbody {

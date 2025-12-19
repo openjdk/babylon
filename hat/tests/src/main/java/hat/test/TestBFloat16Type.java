@@ -36,14 +36,14 @@ import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
-import hat.test.exceptions.HATExpectedFailureException;
 import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
-
-import static hat.ifacemapper.MappableIface.*;
 
 public class TestBFloat16Type {
 

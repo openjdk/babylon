@@ -27,9 +27,9 @@ package experiments;
 import hat.Accelerator;
 import hat.backend.DebugBackend;
 import hat.buffer.S32Array2D;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;

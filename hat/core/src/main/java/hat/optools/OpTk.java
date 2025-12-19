@@ -30,7 +30,7 @@ import hat.buffer.HAType;
 import hat.callgraph.CallGraph;
 import hat.device.DeviceType;
 import hat.dialect.*;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface;
 import hat.types._V;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeContext;

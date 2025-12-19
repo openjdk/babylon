@@ -25,7 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Schema;
 
 public interface S08x3RGBImage extends ImageIfaceBuffer<S08x3RGBImage> {
 

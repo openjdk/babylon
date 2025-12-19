@@ -46,8 +46,8 @@ import jdk.incubator.code.Reflect;
 
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RO;
+import static optkl.ifacemapper.MappableIface.RW;
 
 public class TestMatMul {
 

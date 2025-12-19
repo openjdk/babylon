@@ -26,7 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.backend.DebugBackend;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.buffer.S08x3RGBImage;
 
 import java.lang.foreign.Arena;

@@ -25,7 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Schema;
 
 public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
     int width();

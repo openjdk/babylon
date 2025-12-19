@@ -25,7 +25,7 @@
 package hat.dialect;
 
 import hat.device.DeviceSchema;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Schema;
 import jdk.incubator.code.*;
 
 import java.lang.reflect.Modifier;

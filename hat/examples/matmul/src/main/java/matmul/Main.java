@@ -38,8 +38,7 @@ import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.MappableIface.WO;
+import optkl.ifacemapper.MappableIface.WO;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
@@ -49,8 +48,7 @@ import java.util.stream.IntStream;
 import static hat.NDRange.NDRange2D;
 import static hat.NDRange.of1D;
 import static hat.NDRange.of2D;
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RO;
 
 /**
  * Canonical example for Matrix Multiply.

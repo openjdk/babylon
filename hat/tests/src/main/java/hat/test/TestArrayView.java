@@ -32,12 +32,14 @@ import hat.backend.Backend;
 import hat.buffer.*;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface.*;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
