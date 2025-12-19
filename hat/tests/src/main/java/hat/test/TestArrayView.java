@@ -183,13 +183,8 @@ public class TestArrayView {
 
         ValueLayout valueLayout = JAVA_BYTE;
 
-        default byte[] arrayView() {
-            int size = this.width() * this.height();
-            byte[] arr = new byte[size];
-            for (int i = 0; i < size; i++) {
-                arr[i] = this.array(i);
-            }
-            return arr;
+        default byte[][] arrayView() {
+            return null;
         }
     }
 
@@ -250,7 +245,8 @@ public class TestArrayView {
 
     public static class Compute {
         @Reflect
-        public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
+        // TODO: switch cellGridRes to WO
+        public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
             int w = cellGrid.width();
             int h = cellGrid.height();
            // int from = control.from();
@@ -276,33 +272,33 @@ public class TestArrayView {
             //     bytes[idx + to] = lookup[lookupIdx];
             // }
 
-            byte[] bytes = cellGrid.arrayView();
-            byte cell = bytes[idx];
+            byte[][] bytes = cellGrid.arrayView();
+            byte cell = bytes[x][y];
             if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
                 int count =
-                        (bytes[(y - 1) * w + (x - 1)] & 1)
-                                + (bytes[(y + 0) * w + (x - 1)] & 1)
-                                + (bytes[(y + 1) * w + (x - 1)] & 1)
-                                + (bytes[(y - 1) * w + (x + 0)] & 1)
-                                + (bytes[(y + 1) * w + (x + 0)] & 1)
-                                + (bytes[(y - 1) * w + (x + 1)] & 1)
-                                + (bytes[(y + 0) * w + (x + 1)] & 1)
-                                + (bytes[(y + 1) * w + (x + 1)] & 1);
+                        (bytes[x - 1][y - 1] & 1)
+                                + (bytes[x - 1][y + 0] & 1)
+                                + (bytes[x - 1][y + 1] & 1)
+                                + (bytes[x + 0][y - 1] & 1)
+                                + (bytes[x + 0][y + 1] & 1)
+                                + (bytes[x + 1][y - 1] & 1)
+                                + (bytes[x + 1][y + 0] & 1)
+                                + (bytes[x + 1][y + 1] & 1);
                 cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
             }
-            byte[] res = cellGridRes.arrayView();
-            res[idx] = cell;
+            byte[][] res = cellGridRes.arrayView();
+            res[x][y] = cell;
         }
 
         @Reflect
-        public static void life(@RO KernelContext kc, @RO Control control, @RO CellGrid cellGrid, @WO CellGrid cellGridRes) {
+        public static void life(@RO KernelContext kc, @RO Control control, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
             if (kc.gix < kc.gsx) {
                 Compute.lifePerIdx(kc.gix, control, cellGrid, cellGridRes);
             }
         }
 
         @Reflect
-        static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RO CellGrid grid, @WO CellGrid gridRes) {
+        static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RO CellGrid grid, @RW CellGrid gridRes) {
             int range = grid.width() * grid.height();
             cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, ctrl, grid, gridRes));
         }

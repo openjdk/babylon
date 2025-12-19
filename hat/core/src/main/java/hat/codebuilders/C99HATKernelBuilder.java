@@ -24,32 +24,13 @@
  */
 package hat.codebuilders;
 
-import hat.buffer.BF16;
-import hat.buffer.BF16Array;
+import hat.buffer.*;
 import hat.KernelContext;
-import hat.buffer.F16;
-import hat.buffer.F16Array;
-import hat.dialect.HATBarrierOp;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATMemoryOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorMakeOfOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.ReducedFloatType;
+import hat.dialect.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
+import jdk.incubator.code.Op;
 import optkl.FuncOpParams;
 import hat.optools.OpTk;
 import optkl.StreamMutable;
@@ -58,6 +39,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.codebuilders.CodeBuilder;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -531,6 +513,65 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .when(hatMemoryLoadOp.operands().size() > 1,_->// If the hatMemoryLoadOp has more than 1 operand, the second is the index
                    sbrace(_-> recurse(builderContext, OpTk.asResultOrThrow(hatMemoryLoadOp.operands().get(1)).op()))
                 );
+    }
+
+    public T hatPtrLoadOp(ScopedCodeBuilderContext builderContext, HATPtrLoadOp hatPtrLoadOp) {
+        ptrAccess(builderContext, hatPtrLoadOp);
+        return self();
+    }
+
+    @Override
+    public T hatPtrStoreOp(ScopedCodeBuilderContext builderContext, HATPtrStoreOp hatPtrStoreOp) {
+        ptrAccess(builderContext, hatPtrStoreOp).equals().recurse(builderContext, ((Op.Result) hatPtrStoreOp.operands().getLast()).op());
+        return self();
+    }
+
+    @Override
+    public T hatPtrLengthOp(ScopedCodeBuilderContext builderContext, HATPtrLengthOp hatPtrLengthOp) {
+        ptrAccess(builderContext, hatPtrLengthOp);
+        return self();
+    }
+
+    T ptrAccess(ScopedCodeBuilderContext builderContext, HATPtrOp hatPtrOp) {
+        boolean isLocalOrPrivateDS = false;
+        if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            Op resolve = builderContext.scope.resolve(varLoadOp.operands().getFirst());
+            if (resolve instanceof HATMemoryOp) {
+                isLocalOrPrivateDS = true;
+            }
+        }
+        identifier(hatPtrName(hatPtrOp));
+        either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
+
+        if (hatPtrOp instanceof HATPtrLengthOp) {
+            identifier("length");
+        } else {
+            boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;
+            identifier("array").sbrace(_ -> {
+                paren(_ -> identifier("long"));
+                paren(_ -> {
+                    if (hatPtrOp.strides().size() > 1) {
+                        paren(_ -> recurse(builderContext, ((Op.Result) hatPtrOp.operands().get(2)).op()));
+                        asterisk().identifier(hatPtrName(hatPtrOp));
+                        either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).identifier(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
+                        add().paren(_ -> recurse(builderContext, ((Op.Result) hatPtrOp.operands().get(1)).op()));
+                    } else {
+                        recurse(builderContext, ((Op.Result) hatPtrOp.operands().get(1)).op());
+                    }
+                });
+            });
+        }
+        return self();
+    }
+
+    public String hatPtrName(HATPtrOp hatPtrOp) {
+        Op op = ((Op.Result) ((Op.Result) (hatPtrOp.operands().getFirst())).op().operands().getFirst()).op();
+        return switch (op) {
+            case CoreOp.VarOp varOp -> varOp.varName();
+            case HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
+            case HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
+            case null, default -> "";
+        };
     }
 
     /**
