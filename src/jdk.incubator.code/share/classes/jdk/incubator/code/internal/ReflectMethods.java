@@ -1336,12 +1336,19 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Create pattern var ops for pattern variables using the
             // builder associated with the nearest statement tree
-            for (JCVariableDecl jcVar : variables) {
-                // @@@ use uninitialized variable
-                Value defaultValue = variablesStack.block.op(defaultValue(jcVar.type));
-                Value init = convert(defaultValue, jcVar.type);
-                Op.Result op = variablesStack.block.op(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
-                variablesStack.localToOp.put(jcVar.sym, op);
+            BodyStack previous = stack;
+            // Temporarily position the stack to where the pattern variables are to be declared
+            stack = variablesStack;
+            try {
+                for (JCVariableDecl jcVar : variables) {
+                    // @@@ use uninitialized variable
+                    Value defaultValue = append(defaultValue(jcVar.type));
+                    Value init = convert(defaultValue, jcVar.type);
+                    Op.Result op = append(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
+                    stack.localToOp.put(jcVar.sym, op);
+                }
+            } finally {
+                stack = previous;
             }
 
             // Create pattern descriptor
