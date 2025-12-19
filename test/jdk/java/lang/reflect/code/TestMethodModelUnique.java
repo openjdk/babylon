@@ -1,18 +1,20 @@
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.IntStream;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run junit MethodModelUniquenessTest
+ * @run junit TestMethodModelUnique
  */
-
-public class MethodModelUniquenessTest {
+public class TestMethodModelUnique {
 
     @Reflect
     static void f() {
@@ -39,5 +41,12 @@ public class MethodModelUniquenessTest {
         CoreOp.FuncOp gm = Op.ofMethod(g).orElseThrow();
 
         Assertions.assertNotSame(gm, fm);
+    }
+
+    @Test
+    public void testOpOfMethodIsThreadSafe() throws NoSuchMethodException {
+        Method f = this.getClass().getDeclaredMethod("f");
+        List<Optional<CoreOp.FuncOp>> fops = IntStream.range(1, 3).parallel().mapToObj(_ -> Op.ofMethod(f)).toList();
+        Assertions.assertSame(fops.getFirst(), fops.getLast());
     }
 }
