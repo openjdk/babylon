@@ -519,38 +519,36 @@ import sun.invoke.util.Wrapper;
                 new MethodBody(new Consumer<CodeBuilder>() {
                     @Override
                     public void accept(CodeBuilder cob) {
-                        Label nonNull = cob.newLabel();
                         cob.aload(0)
                                 .getfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
-                                .ifnonnull(nonNull)
-                                .aload(0);// will be used by putfield to store the quoted instance
+                                .ifThen(Opcode.IFNULL, bcb -> {
+                                    bcb.aload(0); // will be used by putfield
 
-                        // load class data: MH to Quoted.extractOp
-                        ConstantPoolBuilder cp = cob.constantPool();
-                        MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
-                        NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
-                        cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH));
+                                    // load class data: MH to Quoted.extractOp
+                                    ConstantPoolBuilder cp = bcb.constantPool();
+                                    MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
+                                    NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
+                                    bcb.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH));
 
-                        cob.invokestatic(lambdaClassEntry.asSymbol(), "getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()));
+                                    bcb.invokestatic(lambdaClassEntry.asSymbol(), "getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()));
 
-                        // load captured args in array
-                        int capturedArity = factoryType.parameterCount();
-                        cob.loadConstant(capturedArity)
-                                .anewarray(CD_Object);
-                        for (int i = 0; i < capturedArity; i++) {
-                            cob.dup()
-                                    .loadConstant(i)
-                                    .aload(0)
-                                    .getfield(lambdaClassEntry.asSymbol(), argName(i), argDescs[i]);
-                            TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[i]));
-                            cob.aastore();
-                        }
+                                    // load captured args in array
+                                    int capturedArity = factoryType.parameterCount();
+                                    bcb.loadConstant(capturedArity)
+                                            .anewarray(CD_Object);
+                                    for (int i = 0; i < capturedArity; i++) {
+                                        bcb.dup()
+                                                .loadConstant(i)
+                                                .aload(0)
+                                                .getfield(lambdaClassEntry.asSymbol(), argName(i), argDescs[i]);
+                                        TypeConvertingMethodAdapter.boxIfTypePrimitive(bcb, TypeKind.from(argDescs[i]));
+                                        bcb.aastore();
+                                    }
 
-                        // Create a Quoted from FuncOp and captured args Object[]
-                        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(reflectableLambdaInfo.extractOpHandle().type()))
-                                .putfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass());
-
-                        cob.labelBinding(nonNull)
+                                    // invoke Quoted.extractOp
+                                    bcb.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(reflectableLambdaInfo.extractOpHandle().type()))
+                                            .putfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass());
+                                })
                                 .aload(0)
                                 .getfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
                                 .areturn();
@@ -570,22 +568,19 @@ import sun.invoke.util.Wrapper;
                 new MethodBody(new Consumer<CodeBuilder>() {
                     @Override
                     public void accept(CodeBuilder cob) {
-                        Label nonNull = cob.newLabel();
-                        cob.getstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, reflectableLambdaInfo.funcOpClass())
-                                .ifnonnull(nonNull);
-
-                        // load class data: MH to op building method
                         ClassDesc funcOpClassDesc = reflectableLambdaInfo.funcOpClass();
-                        ConstantPoolBuilder cp = pool;
-                        MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
-                        NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
-                        cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(1))), natMH));
-                        MethodType mtype = quotableOpGetterInfo.getMethodType();
-                        cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get())
-                                .checkcast(funcOpClassDesc)
-                                .putstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc);
-
-                        cob.labelBinding(nonNull)
+                        cob.getstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc)
+                                .ifThen(Opcode.IFNULL, bcb -> {
+                                    // load class data: MH to op building method
+                                    ConstantPoolBuilder cp = pool;
+                                    MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
+                                    NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
+                                    cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(1))), natMH));
+                                    MethodType mtype = quotableOpGetterInfo.getMethodType();
+                                    cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get())
+                                            .checkcast(funcOpClassDesc)
+                                            .putstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc);
+                                })
                                 .getstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc)
                                 .areturn();
                     }
