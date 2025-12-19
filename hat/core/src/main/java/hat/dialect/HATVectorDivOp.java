@@ -35,7 +35,7 @@ import java.util.List;
 public class HATVectorDivOp extends HATVectorBinaryOp {
 
     public HATVectorDivOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
-        super(varName, typeElement, OpType.DIV, vectorElementType, width, operands);
+        super(varName, typeElement, BinaryOpEnum.DIV, vectorElementType, width, operands);
     }
 
     public HATVectorDivOp(HATVectorDivOp op, CodeContext copyContext) {

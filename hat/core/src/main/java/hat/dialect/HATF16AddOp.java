@@ -35,7 +35,7 @@ import java.util.List;
 public class HATF16AddOp extends HATF16BinaryOp {
 
     public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-        super(typeElement, reducedFloatType, BinaryOpType.ADD, references, f32, operands);
+        super(typeElement, reducedFloatType, BinaryOpEnum.ADD, references, f32, operands);
     }
 
     public HATF16AddOp(HATF16AddOp op, CodeContext copyContext) {

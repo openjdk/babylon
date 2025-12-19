@@ -34,7 +34,7 @@ import java.util.Map;
 public abstract class HATF16BinaryOp extends HATF16Op {
 
     protected final TypeElement elementType;
-    protected final BinaryOpType operationType;
+    protected final BinaryOpEnum operationType;
     protected final List<Boolean> references;
     private final ReducedFloatType reducedFloatType;
     protected final byte f32;
@@ -42,24 +42,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
     public static final byte FIRST_OP = 0x01;
     public static final byte LAST_OP = 0x10;
 
-    public enum BinaryOpType {
-        ADD("+"),
-        SUB("-"),
-        MUL("*"),
-        DIV("/");
-
-        String symbol;
-
-        BinaryOpType(String symbol) {
-            this.symbol = symbol;
-        }
-
-        public String symbol() {
-            return symbol;
-        }
-    }
-
-    public HATF16BinaryOp(TypeElement typeElement, ReducedFloatType reducedFloatType, BinaryOpType operationType, List<Boolean> references, byte f32, List<Value> operands) {
+    public HATF16BinaryOp(TypeElement typeElement, ReducedFloatType reducedFloatType, BinaryOpEnum operationType, List<Boolean> references, byte f32, List<Value> operands) {
         super("", operands);
         this.elementType = typeElement;
         this.operationType = operationType;
@@ -87,7 +70,7 @@ public abstract class HATF16BinaryOp extends HATF16Op {
         return Map.of("hat.dialect.fp16." + varName(), operationType.symbol());
     }
 
-    public BinaryOpType binaryOperationType() {
+    public BinaryOpEnum binaryOperationType() {
         return operationType;
     }
 

@@ -24,6 +24,8 @@
  */
 package hat;
 
+import java.util.regex.Pattern;
+
 /**
  * An NDRange specifies the number of threads to deploy on an hardware accelerator.
  * An NDRange has two main properties:
@@ -36,7 +38,6 @@ package hat;
  * </ul>
  */
 public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
-   // int dimension();
     Local local();
     Global global();
     boolean hasLocal();
@@ -82,7 +83,10 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         int z();
     }
 
-    interface Global {}
+    interface Global {
+        Pattern idxPattern = Pattern.compile("(gi[xyz])");
+        Pattern szPattern = Pattern.compile("(gs[xyz])");
+    }
 
     interface Global1D extends  _1DX, Global {
         static Global1D of(int x) {
@@ -105,7 +109,11 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         }
     }
 
-    interface Local{}
+    interface Local{
+        Pattern szPattern= Pattern.compile("ls([xyz])");
+        Pattern idxPattern= Pattern.compile("li([xyz])");
+    }
+
 
     interface Local1D extends  _1DX, Local {
         static Local1D of(int x) {

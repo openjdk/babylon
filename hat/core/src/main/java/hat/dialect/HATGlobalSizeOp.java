@@ -24,6 +24,7 @@
  */
 package hat.dialect;
 
+import hat.NDRange;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -65,7 +66,7 @@ public class HATGlobalSizeOp extends HATThreadOp {
         return Map.of("hat.dialect." + NAME, this.getDimension());
     }
 
-    static final public  Pattern pattern=  Pattern.compile("(gs[xyz])");
+    static final public  Pattern pattern= NDRange.Global.szPattern;
 
     static public HATGlobalSizeOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
         return new HATGlobalSizeOp(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
