@@ -1,3 +1,4 @@
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -25,17 +26,7 @@ public class TestJavaVersionCheckerForLambdas {
 
     @Test
     void test() throws ReflectiveOperationException, IOException {
-        // in the lambda class initializer <clinit>, we invoke lambda op method
-        // after the changes we made to $CM classfile, the lambda op method throws UOE, causing <clinit> to fails
-        // UOE -> ExceptionInInitializerError -> InternalError
-        InternalError ie = null;
-        try {
-            IntBinaryOperator l = (@Reflect IntBinaryOperator) (a, b) -> Math.max(a, b);
-        } catch (InternalError e) {
-            Assertions.assertInstanceOf(ExceptionInInitializerError.class, e.getCause());
-            Assertions.assertInstanceOf(UnsupportedOperationException.class, e.getCause().getCause());
-            ie = e;
-        }
-        Assertions.assertNotNull(ie, "Reflectable lambda creation didn't fail as expected");
+        IntBinaryOperator l = (@Reflect IntBinaryOperator) (a, b) -> Math.max(a, b);
+        Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofQuotable(l));
     }
 }
