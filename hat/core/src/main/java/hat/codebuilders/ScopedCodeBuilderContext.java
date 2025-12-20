@@ -224,11 +224,13 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         r.run();
         popScope();
     }
+
     public  void funcScope(CoreOp.FuncOp funcOp, Runnable r) {
        scope = new FuncScope(scope,funcOp);
         r.run();
         popScope();
     }
+    
     public  void forScope(JavaOp.ForOp forOp, Runnable r) {
         scope = new ForScope(scope,forOp);
         r.run();

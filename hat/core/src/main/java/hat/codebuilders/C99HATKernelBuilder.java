@@ -57,12 +57,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T HAT_GLOBAL_MEM() {
         return keyword("HAT_GLOBAL_MEM").space();
     }
+
     public T HAT_LOCAL_MEM() {
         return keyword("HAT_LOCAL_MEM").space();
     }
+
     public T HAT_BARRIER() {
         return keyword("HAT_BARRIER").space();
     }
+
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return HAT_KERNEL().voidType().space().funcName(funcOp);
     }
@@ -184,7 +187,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-     public record LocalArrayDeclaration(ClassType classType, HATMemoryOp varOp) {}
+    public record LocalArrayDeclaration(ClassType classType, HATMemoryOp varOp) {}
 
 
     public final T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
@@ -203,7 +206,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_BARRIER();
     }
 
-
     @Override
     public final T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp hatLocalVarOp) {
         return   localDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
@@ -213,6 +215,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp) {
         return privateDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
     }
+
     public abstract T defines();
 
     public T types() {
@@ -221,6 +224,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .typedefKeyword().space().s08Type("boolean").semicolonNl()
                 .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl();
     }
+
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
@@ -250,6 +254,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
     public T kernelMethod(ScopedCodeBuilderContext buildContext,CoreOp.FuncOp funcOp) {
           buildContext.funcScope(funcOp, () -> {
               nl();
@@ -287,7 +292,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         );
         return self();
     }
-
 
     @Override
     public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
@@ -365,6 +369,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         return varName(hatVectorVarLoadOp);
     }
+
     public final T f16Type() {
         return suffix_t(F16.class);
     }
@@ -372,6 +377,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T bf16Type() {
         return suffix_t(BF16.class);
     }
+
     @Override
     public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
         ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
@@ -398,10 +404,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T builtin_bfloat16ToFloat() {
         return identifier("bfloat16Tofloat");
     }
+
     private T binaryOperationsForBfloat16(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatf16BinaryOp) {
-
         byte f32Mixed = hatf16BinaryOp.getF32();
-
         paren(_-> bf16Type());
         brace(_-> {
             paren(_-> {
@@ -533,7 +538,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     T ptrAccess(ScopedCodeBuilderContext builderContext, HATPtrOp hatPtrOp) {
-
         identifier(hatPtrName(hatPtrOp));
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

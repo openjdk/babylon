@@ -240,6 +240,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         recurse(buildContext,forLoopOp);
         return self();
     }
+
     @Override
     public T breakOp(ScopedCodeBuilderContext buildContext, JavaOp.BreakOp breakOp) {
         breakKeyword();
@@ -251,6 +252,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         }
         return self();
     }
+
     @Override
     public T continueOp(ScopedCodeBuilderContext buildContext, JavaOp.ContinueOp continueOp) {
         if (!continueOp.operands().isEmpty()
@@ -472,7 +474,6 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         return self();
     }
 
-
     @Override
     public T conditionalExpressionOp(ScopedCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
         OpTk.condBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
@@ -520,11 +521,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         return self();
     }
 
-
-
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
         return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
-
-
 }
