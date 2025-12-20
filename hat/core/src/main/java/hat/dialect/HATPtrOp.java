@@ -40,12 +40,30 @@ public abstract class HATPtrOp extends HATOp {
 
     private static final String NAME = "HATPtrOp";
 
+    public static List<String> getFieldsOfBuffer(Class<?> clazz) {
+        List<String> retValue = List.of();
+        if (Modifier.isPublic(clazz.getModifiers())) {
+            try {
+                if (clazz.getField("schema").get(null/* we expect static */) instanceof Schema<?> schema) {
+                    retValue = schema.rootIfaceType.fields
+                            .stream()
+                            .map(fieldNode -> fieldNode.name)
+                            .toList();
+                    retValue = retValue.isEmpty()
+                            ?retValue
+                            :retValue.subList(0, retValue.size() - 1); // is this intended to drop the last one?
+                }
+            } catch (IllegalAccessException | NoSuchFieldException e) {
+                throw new RuntimeException("No schema field ",e);
+            }
+        }
+        return retValue;
+    }
     public HATPtrOp(TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
         super(operands);
         this.resultType = resultType;
         this.bufferClass = bufferClass;
-        List<String> fields = getFieldsOfBuffer(bufferClass);
-        this.strides = (fields == null) ? List.of() : fields.subList(0, fields.size() - 1);
+        this.strides = getFieldsOfBuffer(bufferClass);
     }
 
     public HATPtrOp(HATPtrOp op, CodeContext copyContext) {
@@ -60,11 +78,6 @@ public abstract class HATPtrOp extends HATOp {
         return resultType;
     }
 
-    public Class<?> bufferClass() {
-        return bufferClass;
-    }
-
-
     public List<String> strides() {
         return strides;
     }
@@ -74,19 +87,4 @@ public abstract class HATPtrOp extends HATOp {
         return Map.of("hat.dialect." + NAME, this.resultType());
     }
 
-    public static List<String> getFieldsOfBuffer(Class<?> clazz) {
-        try {
-            if (!Modifier.isPublic(clazz.getModifiers())) return null;
-            Object obj = clazz.getField("schema").get(null);
-            if (obj instanceof DeviceSchema<?> deviceSchema) {
-                return null;
-            } else if (obj instanceof Schema<?> schema) {
-                return schema.rootIfaceType.fields.stream().map(fieldNode -> fieldNode.name).toList();
-            }
-            return null;
-        } catch (IllegalAccessException | NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-        // return Schema.of(clazz).rootIfaceType.fields;
-    }
 }
