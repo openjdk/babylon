@@ -533,6 +533,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     T ptrAccess(ScopedCodeBuilderContext builderContext, HATPtrOp hatPtrOp) {
+
+        identifier(hatPtrName(hatPtrOp));
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             Op resolve = builderContext.scope.resolve(varLoadOp.operands().getFirst());
@@ -540,7 +542,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 isLocalOrPrivateDS = true;
             }
         }
-        identifier(hatPtrName(hatPtrOp));
         either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
         if (hatPtrOp instanceof HATPtrLengthOp) {
