@@ -24,6 +24,7 @@
  */
 package hat.dialect;
 
+import hat.NDRange;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -32,21 +33,15 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 public class HATBlockThreadIdOp extends HATThreadOp {
-    private final TypeElement resultType;
-    private static final String NAME = "BlockThreadId";
-
     public HATBlockThreadIdOp(int dimension, TypeElement resultType) {
-        super(dimension, List.of());
-        this.resultType = resultType;
+        super("BlockThreadId", resultType,dimension, List.of());
     }
 
     public HATBlockThreadIdOp(HATBlockThreadIdOp op, CodeContext copyContext) {
         super(op, copyContext);
-        this.resultType = op.resultType;
     }
 
     @Override
@@ -54,20 +49,9 @@ public class HATBlockThreadIdOp extends HATThreadOp {
         return new HATBlockThreadIdOp(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return resultType;
-    }
+    public final static  Pattern pattern = NDRange.Block.idxPattern;
 
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of("hat.dialect." + NAME, this.getDimension());
-    }
-
-    public final static  Pattern pattern = Pattern.compile("bi[xyz]");
-
-
-    public static HATBlockThreadIdOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-        return new HATBlockThreadIdOp(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+    public static HATBlockThreadIdOp of(int dimension, TypeElement resultType){
+        return new HATBlockThreadIdOp(dimension,resultType);
     }
 }

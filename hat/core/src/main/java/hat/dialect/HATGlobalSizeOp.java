@@ -37,18 +37,12 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class HATGlobalSizeOp extends HATThreadOp {
-
-    private final TypeElement resultType;
-    private static final String NAME = "GlobalThreadSize";
-
     public HATGlobalSizeOp(int dimension, TypeElement resultType) {
-        super(dimension, List.of());
-        this.resultType = resultType;
+        super("GlobalThreadSize",resultType,dimension, List.of());
     }
 
     public HATGlobalSizeOp(HATGlobalSizeOp op, CodeContext copyContext) {
         super(op, copyContext);
-        this.resultType = op.resultType;
     }
 
     @Override
@@ -56,19 +50,9 @@ public class HATGlobalSizeOp extends HATThreadOp {
         return new HATGlobalSizeOp(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return resultType;
-    }
-
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of("hat.dialect." + NAME, this.getDimension());
-    }
-
     static final public  Pattern pattern= NDRange.Global.szPattern;
 
-    static public HATGlobalSizeOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-        return new HATGlobalSizeOp(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+    static public HATGlobalSizeOp of(int dimension, TypeElement resultType){
+        return new HATGlobalSizeOp(dimension,resultType);
     }
 }
