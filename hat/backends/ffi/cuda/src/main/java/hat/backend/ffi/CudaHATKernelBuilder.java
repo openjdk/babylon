@@ -36,15 +36,6 @@ import java.util.List;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    private CudaHATKernelBuilder threadDimId(int id) {
-        return keyword(switch(id){
-            case 0->"x";
-            case 1->"y";
-            case 2->"z";
-            default -> throw new RuntimeException("Thread Dimension not supported");
-        });
-    }
-
     private CudaHATKernelBuilder half2float() {
         return identifier("__half2float");
     }
@@ -60,7 +51,26 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder reinterpret_cast() {
         return keyword("reinterpret_cast");
     }
-
+    private CudaHATKernelBuilder threadIdx() {
+        return keyword("threadIdx");
+    }
+    private CudaHATKernelBuilder threadIdxX() {return threadIdx().dot().identifier("x");}
+    private CudaHATKernelBuilder threadIdxY() {return threadIdx().dot().identifier("y");}
+    private CudaHATKernelBuilder threadIdxZ() {return threadIdx().dot().identifier("z");}
+    private CudaHATKernelBuilder gridDim() {
+        return keyword("gridDim");
+    }
+    private CudaHATKernelBuilder gridDimX() {return gridDim().dot().identifier("x");}
+    private CudaHATKernelBuilder gridDimY() {return gridDim().dot().identifier("y");}
+    private CudaHATKernelBuilder gridDimZ() {return gridDim().dot().identifier("z");}
+    private CudaHATKernelBuilder blockDim() {return keyword("blockDim");}
+    private CudaHATKernelBuilder blockDimX() {return blockDim().dot().identifier("x");}
+    private CudaHATKernelBuilder blockDimY() {return blockDim().dot().identifier("y");}
+    private CudaHATKernelBuilder blockDimZ() {return blockDim().dot().identifier("z");}
+    private CudaHATKernelBuilder blockId() {return keyword("blockId");}
+    private CudaHATKernelBuilder blockIdX() {return blockId().dot().identifier("x");}
+    private CudaHATKernelBuilder blockIdY() {return blockId().dot().identifier("y");}
+    private CudaHATKernelBuilder blockIdZ() {return blockId().dot().identifier("z");}
     @Override
     public CudaHATKernelBuilder defines() {
         return self()
@@ -69,26 +79,26 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
                 .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space())//.keyword("inline"))
                 .hashDefine("HAT_KERNEL", _->externC().space().keyword("__global__"))
-                .hashDefine("HAT_GIX", _ -> paren(_->blockId(0).asterisk().localSize(0).plus().localId(0)))
-                .hashDefine("HAT_GIY", _ -> paren(_->blockId(1).asterisk().localSize(1).plus().localId(1)))
-                .hashDefine("HAT_GIZ", _ -> paren(_->blockId(2).asterisk().localSize(2).plus().localId(2)))
-                .hashDefine("HAT_LIX", _ -> keyword("threadIdx").dot().threadDimId(0))
-                .hashDefine("HAT_LIY", _ -> keyword("threadIdx").dot().threadDimId(1))
-                .hashDefine("HAT_LIZ", _ -> keyword("threadIdx").dot().threadDimId(2))
-                .hashDefine("HAT_GSX", _ -> keyword("gridDim").dot().threadDimId(0).asterisk().localSize(0))
-                .hashDefine("HAT_GSY", _ -> keyword("gridDim").dot().threadDimId(1).asterisk().localSize(1))
-                .hashDefine("HAT_GSZ", _ -> keyword("gridDim").dot().threadDimId(2).asterisk().localSize(2))
-                .hashDefine("HAT_LSX", _ -> keyword("blockDim").dot().threadDimId(0))
-                .hashDefine("HAT_LSY", _ -> keyword("blockDim").dot().threadDimId(1))
-                .hashDefine("HAT_LSZ", _ -> keyword("blockDim").dot().threadDimId(2))
-                .hashDefine("HAT_BIX", _ -> keyword("blockIdx").dot().threadDimId(0))
-                .hashDefine("HAT_BIY", _ -> keyword("blockIdx").dot().threadDimId(1))
-                .hashDefine("HAT_BIZ", _ -> keyword("blockIdx").dot().threadDimId(2))
+                .hashDefine("HAT_GIX", _ -> paren(_-> HAT_BIX().asterisk().HAT_LSX().plus().HAT_LIX())
+                .hashDefine("HAT_GIY", _ -> paren(_-> HAT_BIY().asterisk().HAT_LSY().plus().HAT_LIY()))
+                .hashDefine("HAT_GIZ", _ -> paren(_-> HAT_BIZ().asterisk().HAT_LSZ().plus().HAT_LIZ()))
+                .hashDefine("HAT_LIX", _ -> threadIdxX())
+                .hashDefine("HAT_LIY", _ -> threadIdxY())
+                .hashDefine("HAT_LIZ", _ -> threadIdxZ())
+                .hashDefine("HAT_GSX", _ -> gridDimX().asterisk().HAT_LSX())
+                .hashDefine("HAT_GSY", _ -> gridDimY().asterisk().HAT_LSY())
+                .hashDefine("HAT_GSZ", _ -> gridDimZ().asterisk().HAT_LSZ())
+                .hashDefine("HAT_LSX", _ -> blockDimX())
+                .hashDefine("HAT_LSY", _ -> blockDimY())
+                .hashDefine("HAT_LSZ", _ -> blockDimZ())
+                .hashDefine("HAT_BIX", _ -> blockIdX())
+                .hashDefine("HAT_BIY", _ -> blockIdY())
+                .hashDefine("HAT_BIZ", _ -> blockIdZ())
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
-                .typedefSingleValueStruct("BF16",  "BFLOAT16");
+                .typedefSingleValueStruct("BF16",  "BFLOAT16"));
     }
 
     @Override

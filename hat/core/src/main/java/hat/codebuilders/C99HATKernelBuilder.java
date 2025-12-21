@@ -66,6 +66,100 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return keyword("HAT_BARRIER").space();
     }
 
+    public T HAT_GIX(){
+        return identifier("HAT_GIX");
+    }
+    public T HAT_GIY(){
+        return identifier("HAT_GIY");
+    }
+    public T HAT_GIZ(){
+        return identifier("HAT_GIZ");
+    }
+    public T HAT_GSX(){
+        return identifier("HAT_GSX");
+    }
+    public T HAT_GSY(){
+        return identifier("HAT_GSY");
+    }
+    public T HAT_GSZ(){
+        return identifier("HAT_GSZ");
+    }
+    public T HAT_GS(int id) {
+        return (switch (id) {
+            case 0 -> HAT_GSX();
+            case 1 -> HAT_GSY();
+            case 2 -> HAT_GSZ();
+            default -> throw new RuntimeException("globalSize id = " + id);
+        });
+    }
+    public T HAT_GI(int id) {
+        switch (id) {
+            case 0 -> HAT_GIX();
+            case 1 -> HAT_GIY();
+            case 2 -> HAT_GIZ();
+            default -> throw new RuntimeException("globalId id = " + id);
+        }
+        return self();
+    }
+    public T HAT_LIX(){
+        return identifier("HAT_LIX");
+    }
+    public T HAT_LIY(){
+        return identifier("HAT_LIY");
+    }
+    public T HAT_LIZ(){
+        return identifier("HAT_LIZ");
+    }
+    public T HAT_LSX(){
+        return identifier("HAT_LSX");
+    }
+    public T HAT_LSY(){
+        return identifier("HAT_LSY");
+    }
+    public T HAT_LSZ(){
+        return identifier("HAT_LSZ");
+    }
+    public T HAT_LI(int id) {
+        return (switch (id) {
+            case 0 -> HAT_LIX();
+            case 1 -> HAT_LIY();
+            case 2 -> HAT_LIZ();
+            default -> throw new RuntimeException("localId id = " + id);
+        });
+    }
+
+
+
+    public T HAT_LS(int id) {
+        return (switch (id) {
+            case 0 -> HAT_LSX();
+            case 1 -> HAT_LSY();
+            case 2 -> HAT_LSZ();
+            default -> throw new RuntimeException("localSize id = " + id);
+        });
+    }
+    public T HAT_BIX(){
+        return identifier("HAT_BIX");
+    }
+    public T HAT_BIY(){
+        return identifier("HAT_BIY");
+    }
+    public T HAT_BIZ(){
+        return identifier("HAT_BIZ");
+    }
+
+    public T HAT_BI(int id) {
+        return (switch (id) {
+            case 0 -> HAT_BIX();
+            case 1 -> HAT_BIY();
+            case 2 -> HAT_BIZ();
+            default -> throw new RuntimeException("blockId id = " + id);
+        });
+    }
+
+
+
+
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return HAT_KERNEL().voidType().space().funcName(funcOp);
     }
@@ -295,75 +389,29 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
-        return globalId(globalThreadIdOp.getDimension());
+        return HAT_GI(globalThreadIdOp.getDimension());
     }
 
     @Override
     public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp globalSizeOp) {
-        return globalSize(globalSizeOp.getDimension());
+        return HAT_GS(globalSizeOp.getDimension());
     }
 
     @Override
     public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp localThreadIdOp) {
-        return localId(localThreadIdOp.getDimension());
+        return HAT_LI(localThreadIdOp.getDimension());
     }
 
     @Override
     public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
-        return localSize(hatLocalSizeOp.getDimension());
+        return HAT_LS(hatLocalSizeOp.getDimension());
     }
 
     @Override
     public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
-        return blockId(hatBlockThreadIdOp.getDimension());
+        return HAT_BI(hatBlockThreadIdOp.getDimension());
     }
 
-    public T globalId(int id) {
-        switch (id) {
-            case 0 -> identifier("HAT_GIX");
-            case 1 -> identifier("HAT_GIY");
-            case 2 -> identifier("HAT_GIZ");
-            default -> throw new RuntimeException("globalId id = " + id);
-        }
-        return self();
-    }
-
-    public T localId(int id) {
-        return (switch (id) {
-            case 0 -> identifier("HAT_LIX");
-            case 1 -> identifier("HAT_LIY");
-            case 2 -> identifier("HAT_LIZ");
-            default -> throw new RuntimeException("localId id = " + id);
-        });
-    }
-
-    public T globalSize(int id) {
-        return (switch (id) {
-            case 0 -> identifier("HAT_GSX");
-            case 1 -> identifier("HAT_GSY");
-            case 2 -> identifier("HAT_GSZ");
-            default -> throw new RuntimeException("globalSize id = " + id);
-        });
-    }
-
-    public T localSize(int id) {
-        return (switch (id) {
-            case 0 -> identifier("HAT_LSX");
-            case 1 -> identifier("HAT_LSY");
-            case 2 -> identifier("HAT_LSZ");
-            default -> throw new RuntimeException("localSize id = " + id);
-        });
-    }
-
-
-    public T blockId(int id) {
-        return (switch (id) {
-            case 0 -> identifier("HAT_BIX");
-            case 1 -> identifier("HAT_BIY");
-            case 2 -> identifier("HAT_BIZ");
-            default -> throw new RuntimeException("blockId id = " + id);
-        });
-    }
 
     @Override
     public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
