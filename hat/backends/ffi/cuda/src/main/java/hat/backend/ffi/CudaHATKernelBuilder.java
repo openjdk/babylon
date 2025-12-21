@@ -67,10 +67,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder blockDimX() {return blockDim().dot().identifier("x");}
     private CudaHATKernelBuilder blockDimY() {return blockDim().dot().identifier("y");}
     private CudaHATKernelBuilder blockDimZ() {return blockDim().dot().identifier("z");}
-    private CudaHATKernelBuilder blockId() {return keyword("blockId");}
-    private CudaHATKernelBuilder blockIdX() {return blockId().dot().identifier("x");}
-    private CudaHATKernelBuilder blockIdY() {return blockId().dot().identifier("y");}
-    private CudaHATKernelBuilder blockIdZ() {return blockId().dot().identifier("z");}
+    private CudaHATKernelBuilder blockIdx() {return keyword("blockIdx");}
+    private CudaHATKernelBuilder blockIdxX() {return blockIdx().dot().identifier("x");}
+    private CudaHATKernelBuilder blockIdxY() {return blockIdx().dot().identifier("y");}
+    private CudaHATKernelBuilder blockIdxZ() {return blockIdx().dot().identifier("z");}
     @Override
     public CudaHATKernelBuilder defines() {
         return self()
@@ -79,7 +79,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
                 .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space())//.keyword("inline"))
                 .hashDefine("HAT_KERNEL", _->externC().space().keyword("__global__"))
-                .hashDefine("HAT_GIX", _ -> paren(_-> HAT_BIX().asterisk().HAT_LSX().plus().HAT_LIX())
+                .hashDefine("HAT_GIX", _ -> paren(_-> HAT_BIX().asterisk().HAT_LSX().plus().HAT_LIX()))
                 .hashDefine("HAT_GIY", _ -> paren(_-> HAT_BIY().asterisk().HAT_LSY().plus().HAT_LIY()))
                 .hashDefine("HAT_GIZ", _ -> paren(_-> HAT_BIZ().asterisk().HAT_LSZ().plus().HAT_LIZ()))
                 .hashDefine("HAT_LIX", _ -> threadIdxX())
@@ -91,14 +91,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_LSX", _ -> blockDimX())
                 .hashDefine("HAT_LSY", _ -> blockDimY())
                 .hashDefine("HAT_LSZ", _ -> blockDimZ())
-                .hashDefine("HAT_BIX", _ -> blockIdX())
-                .hashDefine("HAT_BIY", _ -> blockIdY())
-                .hashDefine("HAT_BIZ", _ -> blockIdZ())
+                .hashDefine("HAT_BIX", _ -> blockIdxX())
+                .hashDefine("HAT_BIY", _ -> blockIdxY())
+                .hashDefine("HAT_BIZ", _ -> blockIdxZ())
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
-                .typedefSingleValueStruct("BF16",  "BFLOAT16"));
+                .typedefSingleValueStruct("BF16",  "BFLOAT16");
     }
 
     @Override
