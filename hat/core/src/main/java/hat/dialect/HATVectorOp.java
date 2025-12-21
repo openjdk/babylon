@@ -33,7 +33,6 @@ import java.util.List;
 
 
 public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp permits HATVectorBinaryOp, HATVectorLoadOp, HATVectorMakeOfOp, HATVectorOfOp, HATVectorSelectLoadOp, HATVectorSelectStoreOp, HATVectorStoreView, HATVectorVarLoadOp, HATVectorVarOp {
-    
     // TODO all these fields should be final
     private  String varName;
     private final TypeElement resultType;
