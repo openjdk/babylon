@@ -22,9 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.types;
 
-import hat.types._V2;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;

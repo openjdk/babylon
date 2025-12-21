@@ -24,7 +24,8 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
+
+import optkl.CommonCarrier;
 import optkl.ifacemapper.Schema;
 
 public interface S08x3RGBImage extends ImageIfaceBuffer<S08x3RGBImage> {
@@ -38,7 +39,7 @@ public interface S08x3RGBImage extends ImageIfaceBuffer<S08x3RGBImage> {
             .arrayLen("width", "height").stride(3).array("data")
     );
 
-    static S08x3RGBImage create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator,width,height);
+    static S08x3RGBImage create(CommonCarrier cc, int width, int height){
+        return schema.allocate(cc,width,height);
     }
 }

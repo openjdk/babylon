@@ -24,7 +24,7 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
+import optkl.CommonCarrier;
 import optkl.annotations.Order;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
@@ -92,8 +92,8 @@ public interface KernelBufferContext extends Buffer {
             "lsx", "lsy", "lsz",   // block size
             "bix", "biy", "biz"}  ) Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
 
-    static KernelBufferContext createDefault(Accelerator accelerator) {
-        KernelBufferContext kernelBufferContext = schema.allocate(accelerator);
+    static KernelBufferContext createDefault(CommonCarrier cc) {
+        KernelBufferContext kernelBufferContext = schema.allocate(cc);
         kernelBufferContext.dimensions(3);
         kernelBufferContext.gix(0);
         kernelBufferContext.giy(0);

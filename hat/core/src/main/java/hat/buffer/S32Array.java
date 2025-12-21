@@ -24,7 +24,7 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
+import optkl.CommonCarrier;
 import optkl.annotations.ProvidesDimFor;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -43,14 +43,14 @@ public interface S32Array extends Buffer {
     long HEADER_BYTES = JAVA_INT.byteSize();
     Schema<S32Array> schema = Schema.of(S32Array.class);
 
-    static S32Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    static S32Array create(CommonCarrier cc, int length){
+        return schema.allocate(cc, length);
     }
-    static S32Array create(Accelerator accelerator, int length, Function<Integer,Integer> filler){
-        return schema.allocate(accelerator, length).fill(filler);
+    static S32Array create(CommonCarrier cc, int length, Function<Integer,Integer> filler){
+        return schema.allocate(cc, length).fill(filler);
     }
-    static S32Array createFrom(Accelerator accelerator, int[] arr){
-        return create( accelerator, arr.length).copyfrom(arr);
+    static S32Array createFrom(CommonCarrier cc, int[] arr){
+        return create( cc, arr.length).copyfrom(arr);
     }
     default S32Array copyfrom(int[] ints) {
         MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, length());

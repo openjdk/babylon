@@ -42,7 +42,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeEntrypoint());
     }
 
     @Override

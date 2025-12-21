@@ -24,7 +24,7 @@
  */
 package hat.codebuilders;
 
-import hat.buffer.HAType;
+import hat.types.HAType;
 import hat.device.DeviceType;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATLocalVarOp;

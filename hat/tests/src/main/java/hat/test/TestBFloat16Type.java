@@ -29,7 +29,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.Backend;
-import hat.buffer.BF16;
+import hat.types.BF16;
 import hat.buffer.BF16Array;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;

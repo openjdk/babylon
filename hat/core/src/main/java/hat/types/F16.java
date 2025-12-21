@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.types;
 
 // Interface for Floating Point numbers of 16-bits
 // Values are stored in a short format.

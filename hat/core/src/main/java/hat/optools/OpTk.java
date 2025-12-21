@@ -26,7 +26,7 @@ package hat.optools;
 
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.buffer.HAType;
+import hat.types.HAType;
 import hat.callgraph.CallGraph;
 import hat.device.DeviceType;
 import hat.dialect.*;
@@ -192,7 +192,7 @@ public interface OpTk extends LookupCarrier  {
         var here = CallSite.of(OpTk.class, "createTransitiveInvokeModule");
         elements(here, entry).forEach(codeElement -> {
             if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup(), invokeOp);
+                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.lookup(), invokeOp);
                 try {
                     var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);

@@ -27,6 +27,8 @@ package hat.codebuilders;
 import hat.buffer.*;
 import hat.KernelContext;
 import hat.dialect.*;
+import hat.types.BF16;
+import hat.types.F16;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;

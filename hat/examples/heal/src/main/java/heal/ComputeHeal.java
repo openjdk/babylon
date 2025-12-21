@@ -250,7 +250,7 @@ public class ComputeHeal {
                                        @RO Box selectionBox,
                                        @RO XYRGBList xyrgbList){
 
-        F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchArea.area());
+        F32Array sumArrayF32 = F32Array.create(cc.accelerator(), searchArea.area());
 
         cc.dispatchKernel(NDRange.of1D(searchArea.area()),
                 kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
