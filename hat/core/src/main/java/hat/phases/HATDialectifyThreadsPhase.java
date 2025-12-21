@@ -74,8 +74,6 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }).funcOp();
     }
 
-
-
     public static class BlockPhase extends HATDialectifyThreadsPhase<BlockPhase,HATBlockThreadIdOp> {
         public BlockPhase(Accelerator accelerator) {
             super(accelerator, HATBlockThreadIdOp.class);
@@ -86,7 +84,7 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
 
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return HATBlockThreadIdOp.of(fieldLoadOp);
+                return HATBlockThreadIdOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -99,7 +97,7 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return new HATGlobalThreadIdOp(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+                return HATGlobalThreadIdOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -112,7 +110,7 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return  HATGlobalSizeOp.of(fieldLoadOp);
+                return  HATGlobalSizeOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -125,7 +123,7 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return HATLocalThreadIdOp.of(fieldLoadOp);
+                return HATLocalThreadIdOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -138,7 +136,7 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-            return HATLocalSizeOp.of(fieldLoadOp);
+            return HATLocalSizeOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 }

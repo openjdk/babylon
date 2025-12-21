@@ -849,12 +849,12 @@ public interface OpTk extends LookupCarrier  {
             throw new RuntimeException("given type cannot be converted to class");
         }
     }
-    static int dimIdx(String dim){
-        return switch (dim.substring(2)){
-            case "y"->1;
-            case "z"->2;
-            default -> 0;
-        };
+    static int dimIdx(String name){
+            int dim = name.length()==3?name.charAt(2)-'x':-1;
+            if (dim <0||dim>3){
+                throw new IllegalStateException();//'x'=1,'y'=2....
+            }
+            return dim;
     }
     static int dimIdx(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
         return dimIdx(fieldLoadOp.fieldDescriptor().name());
