@@ -27,14 +27,15 @@ package hat.phases;
 import hat.Accelerator;
 import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.LookupCarrier;
 
 import java.util.function.Function;
 
 public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
-    Accelerator accelerator();
+    LookupCarrier lookupCarrier();
 
     default boolean tracing(){
-        return accelerator().backend.config().showCompilationPhases();
+        return ((Accelerator)lookupCarrier()).backend.config().showCompilationPhases();
     }
 
     default void before(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {

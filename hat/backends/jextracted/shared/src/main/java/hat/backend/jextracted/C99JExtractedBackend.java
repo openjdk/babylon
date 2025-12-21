@@ -63,9 +63,9 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph,  ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(), kernelCallGraph,  ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
@@ -94,7 +94,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
                         }
                     });
                 });
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.computeContext.accelerator.lookup()
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.computeContext.lookup()
                 ,kernelCallGraph.entrypoint.funcOp());
         // Sorting by rank ensures we don't need forward declarations
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)

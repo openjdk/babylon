@@ -26,7 +26,7 @@ package nbody;
 
 import hat.Accelerator;
 import optkl.ifacemapper.Buffer;
-import hat.buffer.Float4;
+import hat.types.Float4;
 import optkl.ifacemapper.Schema;
 
 public interface Universe extends Buffer {

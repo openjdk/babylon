@@ -24,7 +24,8 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
+
+import optkl.CommonCarrier;
 import optkl.ifacemapper.Schema;
 
 public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
@@ -37,7 +38,7 @@ public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
             .arrayLen("width", "height").array("data")
     );
 
-    static U16GreyImage create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator,width,height);
+    static U16GreyImage create(CommonCarrier cc, int width, int height){
+        return schema.allocate(cc,width,height);
     }
 }

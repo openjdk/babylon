@@ -85,7 +85,7 @@ public class Accelerator implements CommonCarrier,  BufferTracker {
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public KernelContext range(NDRange ndRange) {
+    public KernelContext range(NDRange<?,?> ndRange) {
         return new KernelContext(ndRange);
     }
 

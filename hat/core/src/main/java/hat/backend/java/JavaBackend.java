@@ -45,7 +45,7 @@ public abstract class JavaBackend extends Backend {
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         try {
-            computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
+            computeContext.computeEntrypoint().method.invoke(null, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }

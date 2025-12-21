@@ -366,7 +366,7 @@ public class CudaBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeEntrypoint());
     }
 
     @Override
@@ -411,12 +411,12 @@ public class CudaBackend extends C99FFIBackend {
         kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
             // TODO did we just trash any sidetables?
             CoreOp.FuncOp loweredFunc = OpTk.lower(here, funcOp);
-            loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup(),loweredFunc, argsMap, usedMathFns);
+            loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.lookup(),loweredFunc, argsMap, usedMathFns);
             invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
         });
 
         CoreOp.FuncOp lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
-        CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup(),lowered, argsMap, usedMathFns);
+        CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.computeContext.lookup(),lowered, argsMap, usedMathFns);
         for (String s : usedMathFns) {
             out.append("\n").append(mathFns.get(s)).append("\n");
         }

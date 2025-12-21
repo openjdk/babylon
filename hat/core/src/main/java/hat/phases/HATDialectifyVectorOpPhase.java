@@ -50,6 +50,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.LookupCarrier;
 
 import java.util.HashMap;
 import java.util.List;
@@ -68,17 +69,17 @@ import static hat.dialect.HATPhaseUtils.getWitdh;
 
 public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
-    protected final Accelerator accelerator;
+    protected final LookupCarrier lookupCarrier;
 
     @Override
-    public Accelerator accelerator() {
-        return this.accelerator;
+    public LookupCarrier lookupCarrier() {
+        return this.lookupCarrier;
     }
 
     private final OpView vectorOperation;
 
-    public HATDialectifyVectorOpPhase(Accelerator accelerator, OpView vectorOperation) {
-        this.accelerator = accelerator;
+    public HATDialectifyVectorOpPhase(LookupCarrier lookupCarrier, OpView vectorOperation) {
+        this.lookupCarrier = lookupCarrier;
         this.vectorOperation = vectorOperation;
     }
 
@@ -102,7 +103,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
            return (invokeOp.resultType() instanceof JavaType jt
-                   && OpTk.isAssignable(accelerator.lookup(), jt, _V.class)
+                   && OpTk.isAssignable(lookupCarrier.lookup(), jt, _V.class)
                    && OpTk.isMethod(invokeOp, n->n.equals(vectorOperation.methodName))
            );
     }
@@ -445,57 +446,57 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
     public static class AddPhase extends HATDialectifyVectorOpPhase {
 
-        public AddPhase(Accelerator accelerator) {
-            super(accelerator, OpView.ADD);
+        public AddPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.ADD);
         }
     }
 
     public static class DivPhase extends HATDialectifyVectorOpPhase {
 
-        public DivPhase(Accelerator accelerator) {
-            super(accelerator, OpView.DIV);
+        public DivPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.DIV);
         }
     }
 
     public static class MakeMutable extends HATDialectifyVectorOpPhase {
 
-        public MakeMutable(Accelerator accelerator) {
-            super(accelerator, OpView.MAKE_MUTABLE);
+        public MakeMutable(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.MAKE_MUTABLE);
         }
     }
 
     public static class Float4LoadPhase extends HATDialectifyVectorOpPhase {
 
-        public Float4LoadPhase(Accelerator accelerator) {
-            super(accelerator, OpView.FLOAT4_LOAD);
+        public Float4LoadPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.FLOAT4_LOAD);
         }
     }
 
     public static class Float2LoadPhase extends HATDialectifyVectorOpPhase {
 
-        public Float2LoadPhase(Accelerator accelerator) {
-            super(accelerator, OpView.FLOAT2_LOAD);
+        public Float2LoadPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.FLOAT2_LOAD);
         }
     }
 
     public static class Float4OfPhase extends HATDialectifyVectorOpPhase {
 
-        public Float4OfPhase(Accelerator accelerator) {
-            super(accelerator, OpView.OF);
+        public Float4OfPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.OF);
         }
     }
 
     public static class MulPhase extends HATDialectifyVectorOpPhase {
 
-        public MulPhase(Accelerator accelerator) {
-            super(accelerator, OpView.MUL);
+        public MulPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.MUL);
         }
     }
 
     public static class SubPhase extends HATDialectifyVectorOpPhase {
 
-        public SubPhase(Accelerator accelerator) {
-            super(accelerator, OpView.SUB);
+        public SubPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, OpView.SUB);
         }
     }
 }

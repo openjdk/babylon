@@ -30,7 +30,7 @@ import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32ArrayPadded;
-import hat.buffer.Float2;
+import hat.types.Float2;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import optkl.ifacemapper.MappableIface.RO;

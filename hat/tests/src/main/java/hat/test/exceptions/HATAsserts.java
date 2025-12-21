@@ -24,8 +24,8 @@
  */
 package hat.test.exceptions;
 
-import hat.buffer.Float2;
-import hat.buffer.Float4;
+import hat.types.Float2;
+import hat.types.Float4;
 
 public class HATAsserts {
 

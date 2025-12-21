@@ -24,6 +24,9 @@
  */
 package hat;
 
+import hat.callgraph.ComputeEntrypoint;
+import optkl.CommonCarrier;
+import optkl.LookupCarrier;
 import optkl.ifacemapper.BufferAllocator;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
@@ -37,6 +40,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
@@ -59,12 +63,21 @@ import java.util.function.Consumer;
  *
  * @author Gary Frost
  */
-public class ComputeContext implements BufferAllocator, BufferTracker {
+public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTracker {
 
 
     @Override
     public Arena arena() {
         return accelerator.arena();
+    }
+
+    @Override
+    public MethodHandles.Lookup lookup() {
+        return accelerator.lookup();
+    }
+
+    public ComputeEntrypoint computeEntrypoint() {
+        return computeCallGraph.entrypoint;
     }
 
     public enum WRAPPER {
@@ -78,10 +91,17 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         }
     }
 
-    public final Accelerator accelerator;
+    private  final Accelerator accelerator;
+    final  public  Accelerator accelerator(){
+        return accelerator;
+    }
+
+    private  final ComputeCallGraph computeCallGraph;
+    final  public  ComputeCallGraph computeCallGraph(){
+        return computeCallGraph;
+    }
 
 
-    public final ComputeCallGraph computeCallGraph;
 
     /**
      * Called by the Accelerator when the accelerator is passed a compute entrypoint.

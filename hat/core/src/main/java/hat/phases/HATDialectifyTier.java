@@ -26,6 +26,7 @@ package hat.phases;
 
 import hat.Accelerator;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.LookupCarrier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,42 +38,42 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp, CoreOp.FuncOp>
 
     private List<HATDialect> hatPhases = new ArrayList<>();
 
-    public HATDialectifyTier(Accelerator accelerator) {
+    public HATDialectifyTier(LookupCarrier lc) {
         // barriers
-        hatPhases.add(new HATDialectifyBarrierPhase(accelerator));
+        hatPhases.add(new HATDialectifyBarrierPhase(lc));
 
         // array views
-        hatPhases.add(new HATDialectifyArrayViewPhase(accelerator));
+        hatPhases.add(new HATDialectifyArrayViewPhase(lc));
 
         // Memory
-        hatPhases.add(new HATDialectifyMemoryPhase.LocalMemoryPhase(accelerator));
-        hatPhases.add(new HATDialectifyMemoryPhase.PrivateMemoryPhase(accelerator));
-        hatPhases.add(new HATDialectifyMemoryPhase.DeviceTypePhase(accelerator));
+        hatPhases.add(new HATDialectifyMemoryPhase.LocalMemoryPhase(lc));
+        hatPhases.add(new HATDialectifyMemoryPhase.PrivateMemoryPhase(lc));
+        hatPhases.add(new HATDialectifyMemoryPhase.DeviceTypePhase(lc));
 
         // ID's /thread access
-        hatPhases.add(new HATDialectifyThreadsPhase.GlobalIdPhase(accelerator));
-        hatPhases.add(new HATDialectifyThreadsPhase.GlobalSizePhase(accelerator));
-        hatPhases.add(new HATDialectifyThreadsPhase.LocalIdPhase(accelerator));
-        hatPhases.add(new HATDialectifyThreadsPhase.LocalSizePhase(accelerator));
-        hatPhases.add(new HATDialectifyThreadsPhase.BlockPhase(accelerator));
+        hatPhases.add(new HATDialectifyThreadsPhase.GlobalIdPhase(lc));
+        hatPhases.add(new HATDialectifyThreadsPhase.GlobalSizePhase(lc));
+        hatPhases.add(new HATDialectifyThreadsPhase.LocalIdPhase(lc));
+        hatPhases.add(new HATDialectifyThreadsPhase.LocalSizePhase(lc));
+        hatPhases.add(new HATDialectifyThreadsPhase.BlockPhase(lc));
 
         // views for vector types
-        hatPhases.add(new HATDialectifyVectorOpPhase.Float4LoadPhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorOpPhase.Float2LoadPhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorOpPhase.Float4OfPhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorOpPhase.AddPhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorOpPhase.SubPhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorOpPhase.MulPhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorOpPhase.DivPhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorOpPhase.MakeMutable(accelerator));
-        hatPhases.add(new HATDialectifyVectorStorePhase.Float4StorePhase(accelerator));
-        hatPhases.add(new HATDialectifyVectorStorePhase.Float2StorePhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorOpPhase.Float4LoadPhase(lc));
+        hatPhases.add(new HATDialectifyVectorOpPhase.Float2LoadPhase(lc));
+        hatPhases.add(new HATDialectifyVectorOpPhase.Float4OfPhase(lc));
+        hatPhases.add(new HATDialectifyVectorOpPhase.AddPhase(lc));
+        hatPhases.add(new HATDialectifyVectorOpPhase.SubPhase(lc));
+        hatPhases.add(new HATDialectifyVectorOpPhase.MulPhase(lc));
+        hatPhases.add(new HATDialectifyVectorOpPhase.DivPhase(lc));
+        hatPhases.add(new HATDialectifyVectorOpPhase.MakeMutable(lc));
+        hatPhases.add(new HATDialectifyVectorStorePhase.Float4StorePhase(lc));
+        hatPhases.add(new HATDialectifyVectorStorePhase.Float2StorePhase(lc));
 
         // Vector Select individual lines
-        hatPhases.add(new HATDialectifyVectorSelectPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorSelectPhase(lc));
 
         // F16 type
-        hatPhases.add(new HATDialectifyFP16Phase(accelerator));
+        hatPhases.add(new HATDialectifyFP16Phase(lc));
 
     }
 

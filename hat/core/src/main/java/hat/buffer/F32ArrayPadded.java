@@ -24,7 +24,9 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
+import hat.types.Float2;
+import hat.types.Float4;
+import optkl.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
@@ -44,8 +46,8 @@ public interface F32ArrayPadded extends Buffer {
     Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, $ -> $
             .arrayLen("length").pad(PAD_SIZE).array("array"));
 
-    static F32ArrayPadded create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    static F32ArrayPadded create(CommonCarrier cc, int length){
+        return schema.allocate(cc, length);
     }
 
     default F32ArrayPadded copyFrom(float[] floats) {
@@ -53,8 +55,8 @@ public interface F32ArrayPadded extends Buffer {
         return this;
     }
 
-    static F32ArrayPadded createFrom(Accelerator accelerator, float[] arr){
-        return create( accelerator, arr.length).copyFrom(arr);
+    static F32ArrayPadded createFrom(CommonCarrier cc, float[] arr){
+        return create( cc, arr.length).copyFrom(arr);
     }
 
     default F32ArrayPadded copyTo(float[] floats) {

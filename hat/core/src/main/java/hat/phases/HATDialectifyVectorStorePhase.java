@@ -39,6 +39,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.LookupCarrier;
 
 import java.util.List;
 import java.util.Set;
@@ -48,14 +49,14 @@ import java.util.stream.Stream;
 
 public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
 
-    protected final Accelerator accelerator;
-    @Override  public Accelerator accelerator(){
-        return this.accelerator;
+    protected final LookupCarrier lookupCarrier;
+    @Override  public LookupCarrier lookupCarrier(){
+        return this.lookupCarrier;
     }
     private final StoreView vectorOperation;
 
-    public HATDialectifyVectorStorePhase(Accelerator accelerator, StoreView vectorOperation) {
-        this.accelerator= accelerator;
+    public HATDialectifyVectorStorePhase(LookupCarrier lookupCarrier, StoreView vectorOperation) {
+        this.lookupCarrier= lookupCarrier;
         this.vectorOperation = vectorOperation;
     }
 
@@ -129,14 +130,14 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     }
 
     public static class Float4StorePhase extends HATDialectifyVectorStorePhase{
-        public Float4StorePhase(Accelerator accelerator) {
-            super(accelerator, StoreView.FLOAT4_STORE);
+        public Float4StorePhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, StoreView.FLOAT4_STORE);
         }
     }
 
     public static class Float2StorePhase extends HATDialectifyVectorStorePhase{
-        public Float2StorePhase(Accelerator accelerator) {
-            super(accelerator, StoreView.FLOAT2_STORE);
+        public Float2StorePhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, StoreView.FLOAT2_STORE);
         }
     }
 }

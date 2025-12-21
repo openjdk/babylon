@@ -29,6 +29,7 @@ import hat.Config;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.LookupCarrier;
 
 import java.lang.reflect.Method;
 import java.util.HashSet;
@@ -37,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public abstract class CallGraph<E extends Entrypoint> {
+public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public final ComputeContext computeContext;
     public final E entrypoint;
     public final Set<MethodCall> calls = new HashSet<>();
@@ -51,9 +52,6 @@ public abstract class CallGraph<E extends Entrypoint> {
         this.moduleOp = moduleOp;
     }
 
-    public Stream<MethodCall> callStream() {
-        return methodRefToMethodCallMap.values().stream();
-    }
 
     public abstract boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);
 
@@ -70,9 +68,8 @@ public abstract class CallGraph<E extends Entrypoint> {
         public final Method method;
         public final Class<?> declaringClass;
         public final Set<MethodCall> calls = new HashSet<>();
-        public final Set<MethodCall> callers = new HashSet<>();
+    //    public final Set<MethodCall> callers = new HashSet<>();
         public final MethodRef targetMethodRef;
-        public boolean closed = false;
         public int rank = 0;
 
         MethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method) {
@@ -83,28 +80,16 @@ public abstract class CallGraph<E extends Entrypoint> {
         }
 
 
-        public void dump(String indent) {
-            System.out.println(indent + ((targetMethodRef == null ? "EntryPoint" : targetMethodRef)));
-            calls.forEach(call -> call.dump(indent + " -> "));
-        }
+       // protected void rankRecurse(int value) {
+       //     calls.forEach(c -> c.rankRecurse(value + 1));
+       //     if (value > this.rank) {
+       //         this.rank = value;
+       //     }
+       // }
 
-
-        public void addCall(MethodCall methodCall) {
-            callGraph.calls.add(methodCall);
-            methodCall.callers.add(this);
-            this.calls.add(methodCall);
-        }
-
-        protected void rankRecurse(int value) {
-            calls.forEach(c -> c.rankRecurse(value + 1));
-            if (value > this.rank) {
-                this.rank = value;
-            }
-        }
-
-        public void rankRecurse() {
-            rankRecurse(0);
-        }
+     //   public void rankRecurse() {
+       //     rankRecurse(0);
+        //}
     }
 
     public abstract static class ResolvedMethodCall extends MethodCall implements Resolved {

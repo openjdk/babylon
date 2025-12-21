@@ -41,8 +41,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 
 public class DebugBackend extends BackendAdaptor {
-
-
     public enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}
     public HowToRunCompute howToRunCompute=HowToRunCompute.REFLECT;
     public enum HowToRunKernel{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE, LOWER_TO_SSA,LOWER_TO_SSA_AND_MAP_PTRS}
@@ -66,30 +64,30 @@ public class DebugBackend extends BackendAdaptor {
 
             case REFLECT: {
                 try {
-                    computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
+                    computeContext.computeCallGraph().entrypoint.method.invoke(null, args);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     throw new RuntimeException(e);
                 }
                 break;
             }
             case BABYLON_INTERPRETER:{
-                if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(here, computeContext.computeCallGraph.entrypoint.funcOp());
+                if (computeContext.computeCallGraph().entrypoint.lowered == null) {
+                    computeContext.computeCallGraph().entrypoint.lowered = OpTk.lower(here, computeContext.computeEntrypoint().funcOp());
                 }
-                Interpreter.invoke(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered, args);
+                Interpreter.invoke(computeContext.lookup(), computeContext.computeEntrypoint().lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
-                if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(here, computeContext.computeCallGraph.entrypoint.funcOp());
+                if (computeContext.computeEntrypoint().lowered == null) {
+                    computeContext.computeEntrypoint().lowered = OpTk.lower(here, computeContext.computeEntrypoint().funcOp());
                 }
                 try {
-                    if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                        computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup(), computeContext.computeCallGraph.entrypoint.lowered);
+                    if (computeContext.computeEntrypoint().mh == null) {
+                        computeContext.computeEntrypoint().mh = BytecodeGenerator.generate(computeContext.lookup(), computeContext.computeEntrypoint().lowered);
                     }
-                    computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
+                    computeContext.computeEntrypoint().mh.invokeWithArguments(args);
                 } catch (Throwable e) {
-                    System.out.println(computeContext.computeCallGraph.entrypoint.lowered.toText());
+                    System.out.println(computeContext.computeEntrypoint().lowered.toText());
                     throw new RuntimeException(e);
                 }
                 break;
@@ -118,12 +116,12 @@ public class DebugBackend extends BackendAdaptor {
             }
             case BABYLON_INTERPRETER:{
                 var lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
-                Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup(), lowered, args);
+                Interpreter.invoke(kernelCallGraph.computeContext.lookup(), lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
                 var lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
-                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup(), lowered);
+                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.lookup(), lowered);
                 try {
                     mh.invokeWithArguments(args);
                 } catch (Throwable e) {
