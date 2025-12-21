@@ -36,8 +36,7 @@ public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> ex
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
-     public T compute(ScopedCodeBuilderContext buildContext) {
-
+    public T compute(ScopedCodeBuilderContext buildContext) {
         computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
         parenNlIndented(_ ->
                 commaSpaceSeparated(
