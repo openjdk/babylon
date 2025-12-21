@@ -34,22 +34,22 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorSelectStoreOp extends HATVectorOp {
+public final class HATVectorSelectStoreOp extends HATVectorOp {
 
-    private final TypeElement elementType;
+  //  private final TypeElement elementType;
     private final int lane;
     private final CoreOp.VarOp resultVarOp;
 
-    public HATVectorSelectStoreOp(String varName, TypeElement typeElement, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
-        super(varName, typeElement, typeElement, -1, operands);
-        this.elementType = typeElement;
+    public HATVectorSelectStoreOp(String varName, TypeElement resultType, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
+        super(varName, resultType, resultType, -1, operands);
+      //  this.elementType = typeElement;
         this.lane = lane;
         this.resultVarOp = resultVarOp;
     }
 
     public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CodeContext cc) {
         super(that, cc);
-        this.elementType = that.elementType;
+     //   this.elementType = that.elementType;
         this.lane = that.lane;
         this.resultVarOp = that.resultVarOp;
     }
@@ -59,14 +59,14 @@ public class HATVectorSelectStoreOp extends HATVectorOp {
         return new HATVectorSelectStoreOp(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return elementType;
-    }
+  //  @Override
+    //public TypeElement resultType() {
+      //  return elementType;
+   // }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vselect.store." + lane, elementType);
+        return Map.of("hat.dialect.vselect.store." + lane, resultType());
     }
 
     public String mapLane() {

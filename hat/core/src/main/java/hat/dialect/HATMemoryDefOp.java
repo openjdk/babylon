@@ -31,7 +31,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.List;
 
-public abstract class HATMemoryDefOp extends HATOp {
+public abstract sealed class HATMemoryDefOp extends HATOp permits HATMemoryLoadOp {
     private final String varName;
 
     public HATMemoryDefOp(String varName, List<Value> operands) {

@@ -31,7 +31,7 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public abstract class HATF16BinaryOp extends HATF16Op {
+public abstract sealed class HATF16BinaryOp extends HATF16Op permits HATF16AddOp, HATF16DivOp, HATF16MulOp, HATF16SubOp {
 
     protected final TypeElement elementType;
     protected final BinaryOpEnum operationType;

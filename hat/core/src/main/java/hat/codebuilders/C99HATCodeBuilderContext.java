@@ -28,7 +28,7 @@ import hat.buffer.HAType;
 import hat.device.DeviceType;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATMemoryOp;
+import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorBinaryOp;
@@ -68,7 +68,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
-            case HATMemoryOp $ -> varName($);
+            case HATMemoryVarOp $ -> varName($);
             case HATVectorVarOp $ -> varName($);
             case HATVectorLoadOp $ -> varName($);
             case HATVectorBinaryOp $ -> varName($);
@@ -416,7 +416,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                     if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
                         //if (localDataStructures.contains(resolve)) {
-                        if (resolve instanceof HATMemoryOp) {
+                        if (resolve instanceof HATMemoryVarOp) {
                             isLocalOrPrivateDS = true;
                         }
                     }

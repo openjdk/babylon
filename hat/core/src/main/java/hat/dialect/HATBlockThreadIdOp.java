@@ -35,7 +35,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class HATBlockThreadIdOp extends HATThreadOp {
+public final class HATBlockThreadIdOp extends HATThreadOp {
     public HATBlockThreadIdOp(int dimension, TypeElement resultType) {
         super("BlockThreadId", resultType,dimension, List.of());
     }
