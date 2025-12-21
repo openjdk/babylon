@@ -54,7 +54,6 @@ import java.util.regex.Pattern;
 public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T>
         implements BabylonCoreOpBuilder<T, ScopedCodeBuilderContext> {
 
-
     @Override
     public final T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
@@ -94,7 +93,6 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         return self();
     }
 
-
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (buildContext.isVarOpFinal(varOp)) {
             constKeyword().space();
@@ -112,8 +110,6 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         }
         return self();
     }
-
-
 
     @Override
     public T varOp(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp, ParamVar paramVar) {

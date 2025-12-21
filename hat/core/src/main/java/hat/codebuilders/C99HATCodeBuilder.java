@@ -35,6 +35,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import java.util.function.Consumer;
 
 public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeBuilder<T> {
+    
     public final T varName(HATMemoryVarOp hatLocalVarOp) {
         identifier(hatLocalVarOp.varName());
         return self();
@@ -108,7 +109,6 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
     public final T structOrUnion(boolean isStruct) {
         return (isStruct ? structKeyword() : union());
     }
-
 
     public final T typedefKeyword() {
         return keyword("typedef");

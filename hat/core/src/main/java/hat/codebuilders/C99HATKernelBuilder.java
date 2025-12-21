@@ -49,10 +49,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static hat.buffer.F16Array.F16Impl;
 
-public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T>implements BabylonKernelOpBuilder<T>  {
+public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonKernelOpBuilder<T>  {
+   
     public T HAT_KERNEL() {
         return keyword("HAT_KERNEL").space();
     }
+
     public T HAT_FUNC() {
         return keyword("HAT_FUNC").space();
     }
@@ -75,18 +77,23 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T HAT_GIY(){
         return identifier("HAT_GIY");
     }
+
     public T HAT_GIZ(){
         return identifier("HAT_GIZ");
     }
+
     public T HAT_GSX(){
         return identifier("HAT_GSX");
     }
+
     public T HAT_GSY(){
         return identifier("HAT_GSY");
     }
+
     public T HAT_GSZ(){
         return identifier("HAT_GSZ");
     }
+
     public T HAT_GS(int id) {
         return (switch (id) {
             case 0 -> HAT_GSX();
@@ -95,6 +102,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             default -> throw new RuntimeException("globalSize id = " + id);
         });
     }
+
     public T HAT_GI(int id) {
         switch (id) {
             case 0 -> HAT_GIX();
@@ -104,24 +112,31 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
     public T HAT_LIX(){
         return identifier("HAT_LIX");
     }
+
     public T HAT_LIY(){
         return identifier("HAT_LIY");
     }
+
     public T HAT_LIZ(){
         return identifier("HAT_LIZ");
     }
+
     public T HAT_LSX(){
         return identifier("HAT_LSX");
     }
+
     public T HAT_LSY(){
         return identifier("HAT_LSY");
     }
+
     public T HAT_LSZ(){
         return identifier("HAT_LSZ");
     }
+
     public T HAT_LI(int id) {
         return (switch (id) {
             case 0 -> HAT_LIX();
@@ -131,8 +146,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         });
     }
 
-
-
     public T HAT_LS(int id) {
         return (switch (id) {
             case 0 -> HAT_LSX();
@@ -141,12 +154,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             default -> throw new RuntimeException("localSize id = " + id);
         });
     }
+
     public T HAT_BIX(){
         return identifier("HAT_BIX");
     }
+
     public T HAT_BIY(){
         return identifier("HAT_BIY");
     }
+
     public T HAT_BIZ(){
         return identifier("HAT_BIZ");
     }
@@ -159,9 +175,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             default -> throw new RuntimeException("blockId id = " + id);
         });
     }
-
-
-
 
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return HAT_KERNEL().voidType().space().funcName(funcOp);
@@ -415,7 +428,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_BI(hatBlockThreadIdOp.getDimension());
     }
 
-
     @Override
     public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         return varName(hatVectorVarLoadOp);
@@ -448,6 +460,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     private boolean isMixedSecondOperand(byte f32Mixed) {
         return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.LAST_OP;
     }
+
     public final T builtin_float2bfloat16() {
         return identifier("floatTobfloat16");
     }
@@ -673,5 +686,4 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         _ ->  brace( _ -> identifier(parameterName)).semicolonNl()
                                 .returnKeyword(_ ->identifier("b").dot().identifier("s").sbrace(_ -> intConstOne()))));
     }
-
 }
