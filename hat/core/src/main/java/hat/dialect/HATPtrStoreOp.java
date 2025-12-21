@@ -29,7 +29,7 @@ import jdk.incubator.code.*;
 import java.util.List;
 import java.util.Map;
 
-public class HATPtrStoreOp extends HATPtrOp {
+public final class HATPtrStoreOp extends HATPtrOp {
 
     private static final String NAME = "HATPtrStoreOp";
 

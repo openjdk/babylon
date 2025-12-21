@@ -33,10 +33,10 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorVarLoadOp extends HATVectorOp {
+public final class HATVectorVarLoadOp extends HATVectorOp {
 
-    public HATVectorVarLoadOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
-        super(varName, typeElement, vectorElementType, width, operands);
+    public HATVectorVarLoadOp(String varName, TypeElement resultType, TypeElement vectorElementType, int width, List<Value> operands) {
+        super(varName, resultType, vectorElementType, width, operands);
     }
 
     public HATVectorVarLoadOp(HATVectorVarLoadOp op, CodeContext copyContext) {
@@ -49,13 +49,8 @@ public class HATVectorVarLoadOp extends HATVectorOp {
     }
 
     @Override
-    public TypeElement resultType() {
-        return typeElement;
-    }
-
-    @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vectorVarLoadOp." + varName(), typeElement);
+        return Map.of("hat.dialect.vectorVarLoadOp." + varName(), resultType());
     }
 
 }

@@ -31,15 +31,15 @@ import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.List;
 
-public abstract class HATMemoryOp extends HATOp implements HATVarOp {
+public abstract sealed class HATMemoryVarOp extends HATOp implements HATVarOp permits HATLocalVarOp, HATPrivateVarOp, HATPrivateInitVarOp  {
     private final String varName;
 
-    public HATMemoryOp(String varName, List<Value> operands) {
+    public HATMemoryVarOp(String varName, List<Value> operands) {
         super(operands);
         this.varName = varName;
     }
 
-    protected HATMemoryOp(HATMemoryOp that, CodeContext cc) {
+    protected HATMemoryVarOp(HATMemoryVarOp that, CodeContext cc) {
         super(that, cc);
         this.varName = that.varName;
     }

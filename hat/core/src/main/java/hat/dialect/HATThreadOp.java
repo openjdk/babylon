@@ -31,7 +31,7 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public abstract class HATThreadOp extends HATOp {
+public abstract sealed class HATThreadOp extends HATOp permits HATBlockThreadIdOp, HATGlobalSizeOp, HATGlobalThreadIdOp, HATLocalSizeOp, HATLocalThreadIdOp {
    final  private String name;
    final  private TypeElement resultType;
    final  private int dimension;

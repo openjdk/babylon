@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.device.DeviceType;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryLoadOp;
-import hat.dialect.HATMemoryOp;
+import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.optools.OpTk;
@@ -68,7 +68,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
         return this.accelerator;
     }
 
-    protected abstract HATMemoryOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
+    protected abstract HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
 
     protected abstract boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp);
 
@@ -136,7 +136,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
         }
 
         @Override
-        protected HATMemoryOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+        protected HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
             var op = new HATPrivateVarOp(
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
@@ -167,7 +167,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
         }
 
         @Override
-        protected HATMemoryOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+        protected HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
             var op = new HATLocalVarOp(
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
@@ -255,7 +255,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
         }
 
         @Override
-        protected HATMemoryOp factory(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+        protected HATMemoryVarOp factory(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
             HATPrivateInitVarOp privateVarOp = new HATPrivateInitVarOp(varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),

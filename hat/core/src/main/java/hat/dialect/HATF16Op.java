@@ -29,7 +29,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATF16Op extends HATOp implements HATVarOp{
+public abstract sealed class  HATF16Op extends HATOp implements HATVarOp permits HATF16BinaryOp, HATF16ConvOp, HATF16ToFloatConvOp, HATF16VarLoadOp, HATF16VarOp {
 
     private String varName;
 

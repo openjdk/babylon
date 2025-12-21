@@ -24,7 +24,7 @@
  */
 package hat.codebuilders;
 import hat.dialect.HATF16VarOp;
-import hat.dialect.HATMemoryOp;
+import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
@@ -35,7 +35,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import java.util.function.Consumer;
 
 public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeBuilder<T> {
-    public final T varName(HATMemoryOp hatLocalVarOp) {
+    public final T varName(HATMemoryVarOp hatLocalVarOp) {
         identifier(hatLocalVarOp.varName());
         return self();
     }

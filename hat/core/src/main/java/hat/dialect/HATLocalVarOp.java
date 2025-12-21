@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import java.util.List;
 import java.util.Map;
 
-public class HATLocalVarOp extends HATMemoryOp {
+public final  class HATLocalVarOp extends HATMemoryVarOp {
 
     public static final String INTRINSIC_NAME = "createLocal";
 

@@ -33,20 +33,20 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorOfOp extends HATVectorOp {
+public final class HATVectorOfOp extends HATVectorOp {
 
-    private final TypeElement typeElement;
+   // private final TypeElement typeElement;
     private final int loadN;
 
-    public HATVectorOfOp(TypeElement typeElement, TypeElement vectorTypeElement, int loadN, List<Value> operands) {
-        super("", typeElement, vectorTypeElement, loadN, operands);
-        this.typeElement = typeElement;
+    public HATVectorOfOp(TypeElement resultType, TypeElement vectorTypeElement, int loadN, List<Value> operands) {
+        super("", resultType, vectorTypeElement, loadN, operands);
+       // this.typeElement = typeElement;
         this.loadN = loadN;
     }
 
     public HATVectorOfOp(HATVectorOfOp op, CodeContext copyContext) {
         super(op, copyContext);
-        this.typeElement = op.typeElement;
+       // this.typeElement = op.typeElement;
         this.loadN = op.loadN;
     }
 
@@ -55,14 +55,14 @@ public class HATVectorOfOp extends HATVectorOp {
         return new HATVectorOfOp(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return typeElement;
-    }
+   // @Override
+   // public TypeElement resultType() {
+     //   return typeElement;
+   // }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vectorOf." + varName(), typeElement);
+        return Map.of("hat.dialect.vectorOf." + varName(), resultType());
     }
 
 

@@ -32,7 +32,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public class HATVectorAddOp extends HATVectorBinaryOp {
+public final class HATVectorAddOp extends HATVectorBinaryOp {
 
     public HATVectorAddOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
         super(varName, typeElement, BinaryOpEnum.ADD, vectorElementType, width, operands);

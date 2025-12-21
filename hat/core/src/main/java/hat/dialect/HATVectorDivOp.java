@@ -32,7 +32,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public class HATVectorDivOp extends HATVectorBinaryOp {
+public final class HATVectorDivOp extends HATVectorBinaryOp {
 
     public HATVectorDivOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
         super(varName, typeElement, BinaryOpEnum.DIV, vectorElementType, width, operands);

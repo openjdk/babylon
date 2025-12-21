@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,28 +22,49 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.backend.ffi;
 
 import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.ifacemapper.BoundSchema;
 
 import java.util.List;
 
-public final class HATF16SubOp extends HATF16BinaryOp {
+public class PTXPtrOp extends Op {
+    public String fieldName;
+    public static final String NAME = "ptxPtr";
+    final TypeElement resultType;
+    public BoundSchema<?> boundSchema;
 
-    public HATF16SubOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-        super(typeElement, reducedFloatType, BinaryOpEnum.SUB, references, f32, operands);
+    PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
+        super(operands);
+        this.resultType = resultType;
+        this.fieldName = fieldName;
+        this.boundSchema = boundSchema;
     }
 
-    public HATF16SubOp(HATF16SubOp op, CodeContext copyContext) {
-        super(op, copyContext);
+    PTXPtrOp(PTXPtrOp that, CodeContext cc) {
+        super(that, cc);
+        this.resultType = that.resultType;
+        this.fieldName = that.fieldName;
+        this.boundSchema = that.boundSchema;
     }
 
     @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATF16SubOp(this, copyContext);
+    public PTXPtrOp transform(CodeContext cc, CodeTransformer ot) {
+        return new PTXPtrOp(this, cc);
+    }
+
+    @Override
+    public TypeElement resultType() {
+        return resultType;
+    }
+
+    @Override
+    public String externalizeOpName() {
+        return NAME;
     }
 }

@@ -30,17 +30,18 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATVectorOp extends HATOp implements HATVarOp  {
+public abstract sealed class HATVectorOp extends HATOp implements HATVarOp permits HATVectorBinaryOp, HATVectorLoadOp, HATVectorMakeOfOp, HATVectorOfOp, HATVectorSelectLoadOp, HATVectorSelectStoreOp, HATVectorStoreView, HATVectorVarLoadOp, HATVectorVarOp {
 
-    protected String varName;
-    protected final TypeElement typeElement;
-    protected final int vectorN;
-    protected final TypeElement vectorElementType;
+    // TODO all these fields should be final
+    private  String varName;
+    private final TypeElement resultType;
+    private final int vectorN;
+    private final TypeElement vectorElementType;
 
-    public HATVectorOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int vectorN, List<Value> operands) {
+    public HATVectorOp(String varName, TypeElement resultType, TypeElement vectorElementType, int vectorN, List<Value> operands) {
         super(operands);
         this.varName = varName;
-        this.typeElement = typeElement;
+        this.resultType = resultType;
         this.vectorN = vectorN;
         this.vectorElementType = vectorElementType;
     }
@@ -48,16 +49,18 @@ public abstract class HATVectorOp extends HATOp implements HATVarOp  {
     protected HATVectorOp(HATVectorOp that, CodeContext cc) {
         super(that, cc);
         this.varName = that.varName;
-        this.typeElement = that.typeElement;
+        this.resultType = that.resultType;
         this.vectorN = that.vectorN;
         this.vectorElementType = that.vectorElementType;
     }
-
-    public String varName() {
+   // @Override
+    final public String varName() {
         return varName;
     }
+    final public TypeElement vectorElementType(){return vectorElementType;}
 
-    public void  varName(String varName) {
+    //TODO all these fields should be final why do we allow this to be mutated.
+    public void varName(String varName) {
         this.varName = varName;
     }
 
@@ -70,7 +73,10 @@ public abstract class HATVectorOp extends HATOp implements HATVarOp  {
             default -> throw new InternalError("Invalid lane: " + lane);
         };
     }
-
+    @Override
+    final public TypeElement resultType() {
+        return resultType;
+    }
     public String buildType() {
         return vectorElementType.toString() + vectorN;
     }

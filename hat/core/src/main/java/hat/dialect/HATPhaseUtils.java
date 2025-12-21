@@ -144,7 +144,7 @@ public class HATPhaseUtils {
         } else {
             // Leaf of tree -
             if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.vectorElementType;
+                return hatVectorOp.vectorElementType();
             }
             return null;
         }

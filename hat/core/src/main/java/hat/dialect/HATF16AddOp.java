@@ -32,7 +32,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public class HATF16AddOp extends HATF16BinaryOp {
+public final class HATF16AddOp extends HATF16BinaryOp {
 
     public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
         super(typeElement, reducedFloatType, BinaryOpEnum.ADD, references, f32, operands);

@@ -33,7 +33,7 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATF16ToFloatConvOp extends HATF16Op {
+public final class HATF16ToFloatConvOp extends HATF16Op {
 
     private final TypeElement typeElement;
     private final boolean isLocal;
