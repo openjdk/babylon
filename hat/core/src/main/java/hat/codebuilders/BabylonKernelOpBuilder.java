@@ -25,15 +25,15 @@
 package hat.codebuilders;
 
 import hat.dialect.*;
-import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.ParamVar;
 import optkl.codebuilders.BabylonCoreOpBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
 /* this should not be too C99 specific */
-public interface BabylonKernelOpBuilder<T extends HATCodeBuilder<?>> extends BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
+public interface BabylonKernelOpBuilder<T extends HATCodeBuilder<?>> extends BabylonCoreOpBuilder<T, ScopedCodeBuilderContext> {
 
     T hatBarrierOp(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp);
 

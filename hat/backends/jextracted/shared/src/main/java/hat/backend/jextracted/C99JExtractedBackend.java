@@ -32,7 +32,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.KernelCallGraph;
-import hat.codebuilders.ScopedCodeBuilderContext;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;

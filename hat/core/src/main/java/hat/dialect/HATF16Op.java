@@ -26,10 +26,11 @@ package hat.dialect;
 
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Value;
+import optkl.VarLikeOp;
 
 import java.util.List;
 
-public abstract class HATF16Op extends HATOp implements HATVarOp{
+public abstract class HATF16Op extends HATOp implements VarLikeOp {
 
     private String varName;
 

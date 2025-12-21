@@ -34,7 +34,7 @@ import optkl.annotations.TypeDef;
 import hat.buffer.*;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.callgraph.KernelCallGraph;
-import hat.codebuilders.ScopedCodeBuilderContext;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
 import hat.dialect.HATMemoryOp;
 import optkl.ifacemapper.BoundSchema;

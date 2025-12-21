@@ -28,10 +28,11 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
+import optkl.VarLikeOp;
 
 import java.util.List;
 
-public abstract class HATMemoryOp extends HATOp implements HATVarOp {
+public abstract class HATMemoryOp extends HATOp implements VarLikeOp {
     private final String varName;
 
     public HATMemoryOp(String varName, List<Value> operands) {
