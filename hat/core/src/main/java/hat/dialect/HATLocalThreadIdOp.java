@@ -38,17 +38,12 @@ import java.util.regex.Pattern;
 
 public class HATLocalThreadIdOp extends HATThreadOp {
 
-    private final TypeElement resultType;
-    private static final String NAME = "LocalThreadId";
-
     public HATLocalThreadIdOp(int dimension, TypeElement resultType) {
-        super(dimension, List.of());
-        this.resultType = resultType;
+        super("LocalThreadId",resultType,dimension, List.of());
     }
 
     public HATLocalThreadIdOp(HATLocalThreadIdOp op, CodeContext copyContext) {
         super(op, copyContext);
-        this.resultType = op.resultType;
     }
 
     @Override
@@ -56,19 +51,9 @@ public class HATLocalThreadIdOp extends HATThreadOp {
         return new HATLocalThreadIdOp(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return resultType;
-    }
-
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of("hat.dialect." + NAME, this.getDimension());
-    }
-
     static public  final Pattern pattern= NDRange.Local.idxPattern;
 
-   public static  HATLocalThreadIdOp of(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-        return new HATLocalThreadIdOp(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+    public static  HATLocalThreadIdOp of(int dimension, TypeElement resultType){
+        return new HATLocalThreadIdOp(dimension,resultType);
     }
 }
