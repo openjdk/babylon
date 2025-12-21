@@ -34,12 +34,12 @@ import jdk.incubator.code.dialect.core.VarType;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorVarOp extends HATVectorOp {
+public final class HATVectorVarOp extends HATVectorOp {
 
     private final int loadN;
 
-    public HATVectorVarOp(String varName, VarType typeElement, TypeElement vectorElementType, int loadN, List<Value> operands) {
-        super(varName, typeElement, vectorElementType, loadN, operands);
+    public HATVectorVarOp(String varName, VarType resultType, TypeElement vectorElementType, int loadN, List<Value> operands) {
+        super(varName, resultType, vectorElementType, loadN, operands);
         this.loadN = loadN;
     }
 
@@ -54,13 +54,8 @@ public class HATVectorVarOp extends HATVectorOp {
     }
 
     @Override
-    public TypeElement resultType() {
-        return typeElement;
-    }
-
-    @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vectorVarOp." + varName(), typeElement);
+        return Map.of("hat.dialect.vectorVarOp." + varName(), resultType());
     }
 
 }

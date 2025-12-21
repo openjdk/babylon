@@ -33,26 +33,26 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorLoadOp extends HATVectorOp {
+public final class HATVectorLoadOp extends HATVectorOp {
 
-    private final TypeElement typeElement;
-    private final TypeElement vectorType;
+ //   private final TypeElement typeElement;
+   // private final TypeElement vectorType;
     private final int loadN;
     private final boolean isSharedOrPrivate;
 
     public HATVectorLoadOp(String varName, TypeElement typeElement, TypeElement vectorType, int loadN, boolean isShared, List<Value> operands) {
         super(varName, typeElement, vectorType, loadN, operands);
-        this.typeElement = typeElement;
+        //this.typeElement = typeElement;
         this.loadN = loadN;
-        this.vectorType = vectorType;
+       // this.vectorType = vectorType;
         this.isSharedOrPrivate = isShared;
     }
 
     public HATVectorLoadOp(HATVectorLoadOp op, CodeContext copyContext) {
         super(op, copyContext);
-        this.typeElement = op.typeElement;
+        //this.typeElement = op.typeElement;
         this.loadN = op.loadN;
-        this.vectorType = op.vectorType;
+       // this.vectorType = op.vectorType;
         this.isSharedOrPrivate = op.isSharedOrPrivate;
     }
 
@@ -61,14 +61,14 @@ public class HATVectorLoadOp extends HATVectorOp {
         return new HATVectorLoadOp(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return typeElement;
-    }
+   // @Override
+  //  public TypeElement resultType() {
+    //    return typeElement;
+   // }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vectorLoadView." + varName(), typeElement);
+        return Map.of("hat.dialect.vectorLoadView." + varName(), resultType());
     }
 
     public boolean isSharedOrPrivate() {

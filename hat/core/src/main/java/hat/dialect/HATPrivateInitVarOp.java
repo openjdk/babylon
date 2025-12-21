@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import java.util.List;
 import java.util.Map;
 
-public class HATPrivateInitVarOp extends HATMemoryOp {
+public final class HATPrivateInitVarOp extends HATMemoryVarOp {
 
     private final TypeElement typeElement;
     private final ClassType klassType;

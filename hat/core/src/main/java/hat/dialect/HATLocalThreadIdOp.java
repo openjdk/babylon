@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class HATLocalThreadIdOp extends HATThreadOp {
+public final class HATLocalThreadIdOp extends HATThreadOp {
 
     public HATLocalThreadIdOp(int dimension, TypeElement resultType) {
         super("LocalThreadId",resultType,dimension, List.of());

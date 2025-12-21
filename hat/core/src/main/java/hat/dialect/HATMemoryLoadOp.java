@@ -35,7 +35,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.util.List;
 import java.util.Map;
 
-public class HATMemoryLoadOp extends HATMemoryDefOp {
+public final class HATMemoryLoadOp extends HATMemoryDefOp {
 
     private final TypeElement typeElement;
     private final TypeElement invokeResultType;

@@ -37,8 +37,8 @@ public final class HATVectorStoreView extends HATVectorOp {
 
     private final boolean isSharedOrPrivate;
 
-    public HATVectorStoreView(String varName, TypeElement elementType, int storeN, TypeElement vectorElementType, boolean isSharedOrPrivate, List<Value> operands) {
-        super(varName, elementType, vectorElementType, storeN, operands);
+    public HATVectorStoreView(String varName, TypeElement resultType, int storeN, TypeElement vectorElementType, boolean isSharedOrPrivate, List<Value> operands) {
+        super(varName, resultType, vectorElementType, storeN, operands);
         this.isSharedOrPrivate = isSharedOrPrivate;
     }
 
@@ -52,14 +52,14 @@ public final class HATVectorStoreView extends HATVectorOp {
         return new HATVectorStoreView(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return super.typeElement;
-    }
+   // @Override
+   // public TypeElement resultType() {
+     //   return super.typeElement;
+   // }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect." + vectorElementType.toString() + vectorN() + "StoreView." + varName(), typeElement);
+        return Map.of("hat.dialect." + vectorElementType().toString() + vectorN() + "StoreView." + varName(), resultType());
     }
 
     public boolean isSharedOrPrivate() {

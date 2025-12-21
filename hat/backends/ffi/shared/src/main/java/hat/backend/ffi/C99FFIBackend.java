@@ -36,7 +36,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
-import hat.dialect.HATMemoryOp;
+import hat.dialect.HATMemoryVarOp;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BufferState;
@@ -240,14 +240,14 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             kernelCallGraph.getModuleOp()
                     .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
-                    .map(c -> ((HATMemoryOp) c).invokeType())
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> ((HATMemoryVarOp) c).invokeType())
                     .forEach(localIFaceList::add);
 
             kernelCallGraph.entrypoint.funcOp()
                     .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
-                    .map(c -> ((HATMemoryOp) c).invokeType())
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> ((HATMemoryVarOp) c).invokeType())
                     .forEach(localIFaceList::add);
 
             // Dynamically build the schema for the user data type we are creating within the kernel.
