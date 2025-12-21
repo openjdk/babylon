@@ -46,22 +46,14 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.BabylonCoreOpBuilder;
 import optkl.codebuilders.CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T>
-        implements BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
+        implements BabylonCoreOpBuilder<T, ScopedCodeBuilderContext> {
 
-  /*  public final  T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
-        if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class)
-                        && javaType instanceof ClassType classType) {
-            suffix_t(classType).asterisk();
-        } else {
-            typeName(javaType.toBasicType().toString());
-        }
-        return self();
-    } */
 
     @Override
     public final T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -82,6 +74,9 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     @Override
     public final T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
         Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
+
+        //TODO see if VarLikeOp marker interface fixes this
+
         // When the op is intended to operate as VarOp, then we need to include it in the following switch.
         // This is because HAT has its own dialect, and some of the Ops operate on HAT Types (not included in the Java
         // dialect). For instance, private data structures, local data structures, vector types, etc.

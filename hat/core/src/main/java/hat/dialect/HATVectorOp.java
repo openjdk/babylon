@@ -27,11 +27,12 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.VarLikeOp;
 
 import java.util.List;
 
-public abstract sealed class HATVectorOp extends HATOp implements HATVarOp permits HATVectorBinaryOp, HATVectorLoadOp, HATVectorMakeOfOp, HATVectorOfOp, HATVectorSelectLoadOp, HATVectorSelectStoreOp, HATVectorStoreView, HATVectorVarLoadOp, HATVectorVarOp {
 
+public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp permits HATVectorBinaryOp, HATVectorLoadOp, HATVectorMakeOfOp, HATVectorOfOp, HATVectorSelectLoadOp, HATVectorSelectStoreOp, HATVectorStoreView, HATVectorVarLoadOp, HATVectorVarOp {
     // TODO all these fields should be final
     private  String varName;
     private final TypeElement resultType;

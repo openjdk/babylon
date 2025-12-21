@@ -26,7 +26,7 @@ package hat.tools.text;
 
 import optkl.codebuilders.BabylonCoreOpBuilder;
 import hat.codebuilders.C99HATCodeBuilderContext;
-import hat.codebuilders.ScopedCodeBuilderContext;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;

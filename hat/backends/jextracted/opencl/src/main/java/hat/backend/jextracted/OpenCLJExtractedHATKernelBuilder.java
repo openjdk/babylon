@@ -26,7 +26,7 @@ package hat.backend.jextracted;
 
 import hat.codebuilders.C99HATKernelBuilder;
 import optkl.codebuilders.CodeBuilder;
-import hat.codebuilders.ScopedCodeBuilderContext;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATVectorBinaryOp;
