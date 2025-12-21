@@ -22,18 +22,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package optkl.codebuilders;
 
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATMemoryVarOp;
-import hat.dialect.HATVectorVarOp;
+
+import optkl.VarLikeOp;
+
 import optkl.FuncOpParams;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.codebuilders.CodeBuilderContext;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
@@ -43,7 +42,7 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
     final public FuncOpParams paramTable;
 
     public static class Scope<O extends Op> {
-        final Scope<?> parent;
+        public final Scope<?> parent;
         final O op;
 
         public Scope(Scope<?> parent, O op) {
@@ -56,18 +55,10 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
                 return varOp;
             }
 
-            if (value instanceof Op.Result result && result.op() instanceof HATMemoryVarOp hatMemoryVarOp) {
-                return hatMemoryVarOp;
-            }
 
-            if (value instanceof Op.Result result && result.op() instanceof HATVectorVarOp hatVectorVarOp) {
-                return hatVectorVarOp;
+            if (value instanceof Op.Result result && result.op() instanceof VarLikeOp varOp) {
+                return (Op) varOp;
             }
-
-            if (value instanceof Op.Result result && result.op() instanceof HATF16VarOp hatf16VarOp) {
-                return hatf16VarOp;
-            }
-
             if (parent != null) {
                 return parent.resolve(value);
             }

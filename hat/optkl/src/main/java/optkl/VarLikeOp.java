@@ -22,8 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package optkl;
 
-public interface HATVarOp {
+public interface VarLikeOp {
     String varName();
 }

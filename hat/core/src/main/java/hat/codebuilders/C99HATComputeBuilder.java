@@ -27,6 +27,7 @@ package hat.codebuilders;
 import hat.optools.OpTk;
 
 import jdk.incubator.code.TypeElement;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
 
 public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilderContext<T> {
