@@ -32,7 +32,7 @@ import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 
-public abstract class HATPtrOp extends HATOp {
+public abstract sealed class HATPtrOp extends HATOp permits HATPtrLengthOp, HATPtrLoadOp, HATPtrStoreOp {
 
     private final TypeElement resultType;
     private final Class<?> bufferClass;

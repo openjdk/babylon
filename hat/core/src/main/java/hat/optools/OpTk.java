@@ -314,7 +314,7 @@ public interface OpTk extends LookupCarrier  {
         (
                 (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
              || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
-             || (op instanceof HATMemoryOp)
+             || (op instanceof HATMemoryVarOp)
              || (op instanceof HATVectorVarOp)
              || (op instanceof HATF16VarOp)
         )

@@ -280,7 +280,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-     public record LocalArrayDeclaration(ClassType classType, HATMemoryOp varOp) {}
+     public record LocalArrayDeclaration(ClassType classType, HATMemoryVarOp varOp) {}
 
 
     public final T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
@@ -588,7 +588,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             Op resolve = builderContext.scope.resolve(varLoadOp.operands().getFirst());
-            if (resolve instanceof HATMemoryOp) {
+            if (resolve instanceof HATMemoryVarOp) {
                 isLocalOrPrivateDS = true;
             }
         }

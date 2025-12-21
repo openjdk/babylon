@@ -30,7 +30,9 @@ import optkl.VarLikeOp;
 
 import java.util.List;
 
-public abstract class HATF16Op extends HATOp implements VarLikeOp {
+
+public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp permits HATF16BinaryOp, HATF16ConvOp, HATF16ToFloatConvOp, HATF16VarLoadOp, HATF16VarOp {
+
 
     private String varName;
 

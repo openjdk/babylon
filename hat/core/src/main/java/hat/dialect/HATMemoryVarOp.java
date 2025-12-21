@@ -32,15 +32,17 @@ import optkl.VarLikeOp;
 
 import java.util.List;
 
-public abstract class HATMemoryOp extends HATOp implements VarLikeOp {
+
+public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp permits HATLocalVarOp, HATPrivateVarOp, HATPrivateInitVarOp  {
+
     private final String varName;
 
-    public HATMemoryOp(String varName, List<Value> operands) {
+    public HATMemoryVarOp(String varName, List<Value> operands) {
         super(operands);
         this.varName = varName;
     }
 
-    protected HATMemoryOp(HATMemoryOp that, CodeContext cc) {
+    protected HATMemoryVarOp(HATMemoryVarOp that, CodeContext cc) {
         super(that, cc);
         this.varName = that.varName;
     }

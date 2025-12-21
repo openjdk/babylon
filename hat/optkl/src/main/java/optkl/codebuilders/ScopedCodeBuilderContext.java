@@ -24,7 +24,9 @@
  */
 package optkl.codebuilders;
 
+
 import optkl.VarLikeOp;
+
 import optkl.FuncOpParams;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -52,6 +54,7 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
             if (value instanceof Op.Result result && result.op() instanceof CoreOp.VarOp varOp) {
                 return varOp;
             }
+
 
             if (value instanceof Op.Result result && result.op() instanceof VarLikeOp varOp) {
                 return (Op) varOp;

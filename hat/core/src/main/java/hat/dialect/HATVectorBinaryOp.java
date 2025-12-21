@@ -30,27 +30,27 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATVectorBinaryOp extends HATVectorOp {
-    private final TypeElement elementType;
+public abstract sealed class HATVectorBinaryOp extends HATVectorOp permits HATVectorAddOp, HATVectorDivOp, HATVectorMulOp, HATVectorSubOp {
+   // private final TypeElement elementType;
     private final BinaryOpEnum operationType;
 
-    public HATVectorBinaryOp(String varName, TypeElement typeElement, BinaryOpEnum operationType, TypeElement vectorElementType, int width, List<Value> operands) {
-        super(varName, typeElement, vectorElementType, width, operands);
-        this.elementType = typeElement;
+    public HATVectorBinaryOp(String varName, TypeElement resultType, BinaryOpEnum operationType, TypeElement vectorElementType, int width, List<Value> operands) {
+        super(varName, resultType, vectorElementType, width, operands);
+        //this.elementType = typeElement;
         this.operationType = operationType;
 
     }
 
     public HATVectorBinaryOp(HATVectorBinaryOp op, CodeContext copyContext) {
         super(op, copyContext);
-        this.elementType = op.elementType;
+       // this.elementType = op.elementType;
         this.operationType = op.operationType;
     }
 
-    @Override
-    public TypeElement resultType() {
-        return this.elementType;
-    }
+  //  @Override
+    //public TypeElement resultType() {
+      //  return this.elementType;
+   // }
 
     public BinaryOpEnum operationType() {
         return operationType;

@@ -446,7 +446,7 @@ public class CudaBackend extends C99FFIBackend {
                     List<Value> outputOperands = cc.getValues(inputOperands);
                     Op.Result inputResult = invokeOp.result();
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(buffer);
-                    PTXHATKernelBuilder.PTXPtrOp ptxOp = new PTXHATKernelBuilder.PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
+                    PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
                     Op.Result outputResult = block.op(ptxOp);
                     cc.mapValue(inputResult, outputResult);
                 } else if (invokeOp.invokeDescriptor().refType().toString().equals("java.lang.Math")

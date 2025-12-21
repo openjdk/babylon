@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.core.VarType;
 import java.util.List;
 import java.util.Map;
 
-public class HATF16VarOp extends HATF16Op {
+public final class HATF16VarOp extends HATF16Op {
 
     private final VarType typeElement;
     private final ReducedFloatType reducedFloatType;

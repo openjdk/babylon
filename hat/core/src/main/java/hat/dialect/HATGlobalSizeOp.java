@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class HATGlobalSizeOp extends HATThreadOp {
+public final class HATGlobalSizeOp extends HATThreadOp {
     public HATGlobalSizeOp(int dimension, TypeElement resultType) {
         super("GlobalThreadSize",resultType,dimension, List.of());
     }

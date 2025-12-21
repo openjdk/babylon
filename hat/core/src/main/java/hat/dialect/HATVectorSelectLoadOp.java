@@ -33,20 +33,20 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorSelectLoadOp extends HATVectorOp {
+public final class HATVectorSelectLoadOp extends HATVectorOp {
 
-    private final TypeElement elementType;
+  //  private final TypeElement elementType;
     private final int lane;
 
-    public HATVectorSelectLoadOp(String varName, TypeElement typeElement, int lane, List<Value> operands) {
-        super(varName, typeElement, typeElement, -1, operands);
-        this.elementType = typeElement;
+    public HATVectorSelectLoadOp(String varName, TypeElement resultType, int lane, List<Value> operands) {
+        super(varName, resultType, resultType, -1, operands);
+    //    this.elementType = typeElement;
         this.lane = lane;
     }
 
     public HATVectorSelectLoadOp(HATVectorSelectLoadOp that, CodeContext cc) {
         super(that, cc);
-        this.elementType = that.elementType;
+      //  this.elementType = that.elementType;
         this.lane = that.lane;
     }
 
@@ -55,14 +55,14 @@ public class HATVectorSelectLoadOp extends HATVectorOp {
         return new HATVectorSelectLoadOp(this, copyContext);
     }
 
-    @Override
-    public TypeElement resultType() {
-        return elementType;
-    }
+   // @Override
+    //public TypeElement resultType() {
+      //  return elementType;
+   // }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vselect." + lane, elementType);
+        return Map.of("hat.dialect.vselect." + lane, resultType());
     }
 
     public String mapLane() {
