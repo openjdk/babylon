@@ -30,6 +30,7 @@ import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
@@ -39,6 +40,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.foreign.Arena;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
+import java.util.Optional;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
@@ -107,7 +109,11 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
-        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, Op.ofMethod(computeMethod).orElseThrow());
+        Optional<FuncOp> funcOp =  Op.ofMethod(computeMethod);
+        if (funcOp.isEmpty()) {
+            throw new RuntimeException("Failed to create ComputeCallGraph (did you miss @Reflect annotation?).");
+        }
+        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp.get());
         this.accelerator.backend.computeContextHandoff(this);
     }
 
@@ -123,7 +129,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         MethodRef methodRef = OpTk.getTargetInvokeOp( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         if (kernelCallGraph == null){
-            throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?) ");
+            throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
         }
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
