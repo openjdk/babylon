@@ -27,6 +27,7 @@ package hat.phases;
 import hat.Accelerator;
 import hat.device.DeviceType;
 import hat.dialect.*;
+import optkl.LookupCarrier;
 import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import hat.types._V;
@@ -41,11 +42,11 @@ import jdk.incubator.code.dialect.java.*;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HATDialect {
+public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp entry) {
-        MethodHandles.Lookup l = accelerator.lookup();
+        MethodHandles.Lookup l = lookupCarrier.lookup();
         if (!isArrayView(entry)) return entry;
 
         Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
@@ -307,7 +308,7 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
         if (type instanceof ArrayType at) type = at.componentType();
         if (type instanceof ClassType ct) {
             try {
-                return _V.class.isAssignableFrom((Class<?>) ct.resolve(accelerator.lookup()));
+                return _V.class.isAssignableFrom((Class<?>) ct.resolve(lookupCarrier.lookup()));
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
@@ -367,8 +368,8 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
                 element instanceof JavaOp.InvokeOp iop &&
                         iop.resultType() instanceof ArrayType &&
                         iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        (OpTk.isAssignable(accelerator.lookup(), javaType, MappableIface.class)
-                                || OpTk.isAssignable(accelerator.lookup(), javaType, DeviceType.class))));
+                        (OpTk.isAssignable(lookupCarrier.lookup(), javaType, MappableIface.class)
+                                || OpTk.isAssignable(lookupCarrier.lookup(), javaType, DeviceType.class))));
     }
 
     public Class<?> typeElementToClass(TypeElement type) {
@@ -388,7 +389,7 @@ public record HATDialectifyArrayViewPhase(Accelerator accelerator) implements HA
             if (type instanceof PrimitiveType primitiveType) {
                 return PrimitiveHolder.primitiveToClass.get(primitiveType);
             } else if (type instanceof ClassType classType) {
-                return ((Class<?>) classType.resolve(accelerator.lookup()));
+                return ((Class<?>) classType.resolve(lookupCarrier.lookup()));
             } else {
                 throw new IllegalArgumentException("given type cannot be converted to class");
             }

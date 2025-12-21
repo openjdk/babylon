@@ -24,9 +24,8 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
-import hat.buffer.BF16;
-import hat.buffer.F16;
+import hat.types.BF16;
+import hat.types.F16;
 import hat.dialect.ReducedFloatType;
 import hat.dialect.HATF16AddOp;
 import hat.dialect.HATF16BinaryOp;
@@ -47,6 +46,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.LookupCarrier;
 
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +57,7 @@ import java.util.stream.Stream;
 
 import static hat.dialect.HATPhaseUtils.findF16IsLocal;
 
-public record HATDialectifyFP16Phase(Accelerator accelerator) implements HATDialect {
+public record HATDialectifyFP16Phase(LookupCarrier lookupCarrier) implements HATDialect {
 
     private enum BinaryOpMethod {
         ADD("add"),

@@ -28,8 +28,10 @@ import hat.Accelerator;
 import hat.dialect.HATBarrierOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.CommonCarrier;
+import optkl.LookupCarrier;
 
-public record HATDialectifyBarrierPhase(Accelerator accelerator) implements HATDialect {
+public record HATDialectifyBarrierPhase(LookupCarrier lookupCarrier) implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
@@ -40,7 +42,7 @@ public record HATDialectifyBarrierPhase(Accelerator accelerator) implements HATD
 
         OpTk.OpMap opMap = OpTk.simpleOpMappingTransform(
                 /* for debugging we will remove */ here, fromFuncOp,
-                /* filter op                    */ ce -> OpTk.isKernelContextInvokeOp(accelerator.lookup(), ce,
+                /* filter op                    */ ce -> OpTk.isKernelContextInvokeOp(lookupCarrier.lookup(), ce,
                                                     invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.NAME)),
                 /* replace op                   */ HATBarrierOp::new
         );

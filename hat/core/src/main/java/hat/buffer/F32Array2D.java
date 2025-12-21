@@ -24,7 +24,7 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
+import optkl.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
@@ -49,8 +49,8 @@ public interface F32Array2D extends Buffer {
     Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
             .arrayLen("width","height").stride(1).array("array"));
 
-    static F32Array2D create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator, width,height);
+    static F32Array2D create(CommonCarrier cc, int width, int height){
+        return schema.allocate(cc, width,height);
     }
 
     default float[][] arrayView() {

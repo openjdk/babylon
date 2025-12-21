@@ -29,7 +29,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.buffer.Float4;
+import hat.types.Float4;
 import optkl.ifacemapper.BufferState;
 import hat.NDRange;
 import jdk.incubator.code.Reflect;

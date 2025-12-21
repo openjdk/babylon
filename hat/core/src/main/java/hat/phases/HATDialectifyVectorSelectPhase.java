@@ -36,6 +36,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.LookupCarrier;
 
 import java.util.List;
 import java.util.Set;
@@ -43,7 +44,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public record HATDialectifyVectorSelectPhase(Accelerator accelerator) implements HATDialect {
+public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implements HATDialect {
     static Pattern xyzw = Pattern.compile("[xyzw]");
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
@@ -84,8 +85,8 @@ public record HATDialectifyVectorSelectPhase(Accelerator accelerator) implements
     }
 
     // Code Model Pattern:
-    //  %16 : java.type:"hat.buffer.Float4" = var.load %15 @loc="63:28";
-    //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.buffer.Float4::x():float";
+    //  %16 : java.type:"hat.types.Float4" = var.load %15 @loc="63:28";
+    //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.types.Float4::x():float";
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "vloadSelectPhase");
         before(here, funcOp);
@@ -137,9 +138,9 @@ public record HATDialectifyVectorSelectPhase(Accelerator accelerator) implements
     }
 
     // Pattern from the code mode:
-    // %20 : java.type:"hat.buffer.Float4" = var.load %15 @loc="64:13";
+    // %20 : java.type:"hat.types.Float4" = var.load %15 @loc="64:13";
     // %21 : java.type:"float" = var.load %19 @loc="64:18";
-    // invoke %20 %21 @loc="64:13" @java.ref:"hat.buffer.Float4::x(float):void";
+    // invoke %20 %21 @loc="64:13" @java.ref:"hat.types.Float4::x(float):void";
     private CoreOp.FuncOp vstoreSelectPhase(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "vstoreSelectPhase");
         before(here, funcOp);

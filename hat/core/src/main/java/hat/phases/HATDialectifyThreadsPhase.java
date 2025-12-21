@@ -24,7 +24,7 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
+
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
@@ -35,18 +35,20 @@ import hat.optools.Trxfmr;
 import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.LookupCarrier;
+
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPhase<T,C>,C extends HATThreadOp> implements HATDialect  {
-    protected final Accelerator accelerator;
-    @Override  public Accelerator accelerator(){
-        return this.accelerator;
+    protected final LookupCarrier lookupCarrier;
+    @Override  public LookupCarrier lookupCarrier(){
+        return this.lookupCarrier;
     }
     final Class<C> clazz;
 
-    public HATDialectifyThreadsPhase(Accelerator accelerator, Class<C> clazz) {
-        this.accelerator=accelerator;
+    public HATDialectifyThreadsPhase(LookupCarrier lookupCarrier, Class<C> clazz) {
+        this.lookupCarrier=lookupCarrier;
         this.clazz=clazz;
     }
 
@@ -58,7 +60,7 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         var txfmr = new Trxfmr(OpTk.CallSite.of(this.getClass()),funcOp);
         return txfmr.select(
-                ce->OpTk.asNamedKernelContextFieldAccessOrNull(accelerator.lookup(),ce,pattern())!=null,(s,o)->
+                ce->OpTk.asNamedKernelContextFieldAccessOrNull(lookupCarrier.lookup(),ce,pattern())!=null,(s,o)->
                    OpTk.operandsAsResults(o)
                      .map(OpTk::opOfResultOrNull)
                      .map(OpTk::asVarLoadOrNull)
@@ -75,8 +77,8 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
     }
 
     public static class BlockPhase extends HATDialectifyThreadsPhase<BlockPhase,HATBlockThreadIdOp> {
-        public BlockPhase(Accelerator accelerator) {
-            super(accelerator, HATBlockThreadIdOp.class);
+        public BlockPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, HATBlockThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
             return HATBlockThreadIdOp.pattern;
@@ -89,8 +91,8 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
     }
 
     public static class GlobalIdPhase extends HATDialectifyThreadsPhase<GlobalIdPhase,HATGlobalThreadIdOp>  {
-        public GlobalIdPhase(Accelerator accelerator) {
-            super(accelerator, HATGlobalThreadIdOp.class);
+        public GlobalIdPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, HATGlobalThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
             return HATGlobalThreadIdOp.pattern;
@@ -102,8 +104,8 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
     }
 
     public static class GlobalSizePhase extends HATDialectifyThreadsPhase<GlobalSizePhase,HATGlobalSizeOp>  {
-        public GlobalSizePhase(Accelerator accelerator) {
-            super(accelerator, HATGlobalSizeOp.class);
+        public GlobalSizePhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier, HATGlobalSizeOp.class);
         }
         @Override protected Pattern pattern(){
             return HATGlobalSizeOp.pattern;
@@ -115,8 +117,8 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
     }
 
     public static class LocalIdPhase extends HATDialectifyThreadsPhase<LocalIdPhase,HATLocalThreadIdOp>  {
-        public LocalIdPhase(Accelerator accelerator) {
-            super(accelerator,HATLocalThreadIdOp.class);
+        public LocalIdPhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier,HATLocalThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
             return HATLocalThreadIdOp.pattern;
@@ -128,8 +130,8 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
     }
 
     public static class LocalSizePhase extends HATDialectifyThreadsPhase<LocalSizePhase,HATLocalSizeOp>  {
-        public LocalSizePhase(Accelerator accelerator) {
-            super(accelerator,HATLocalSizeOp.class);
+        public LocalSizePhase(LookupCarrier lookupCarrier) {
+            super(lookupCarrier,HATLocalSizeOp.class);
         }
         @Override public Pattern pattern(){
            return HATLocalSizeOp.pattern;

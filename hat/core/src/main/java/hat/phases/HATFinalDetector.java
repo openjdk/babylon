@@ -25,8 +25,9 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.buffer.BF16;
-import hat.buffer.F16;
+import hat.types.BF16;
+import hat.types.F16;
+import optkl.LookupCarrier;
 import optkl.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
@@ -41,7 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public record HATFinalDetector(Accelerator accelerator){
+public record HATFinalDetector(LookupCarrier lookupCarrier){
     public Map<Op.Result, CoreOp.VarOp> applied(CoreOp.FuncOp funcOp) {
         final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
         Stream<CodeElement<?, ?>> elements = funcOp.elements();

@@ -1,0 +1,1 @@
+--add-modules=jdk.incubator.code -cp build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-tools-1.0.jar

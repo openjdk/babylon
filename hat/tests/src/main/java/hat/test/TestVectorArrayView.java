@@ -26,6 +26,7 @@ package hat.test;
 
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
+import hat.types.Float4;
 import jdk.incubator.code.Reflect;
 
 import hat.*;

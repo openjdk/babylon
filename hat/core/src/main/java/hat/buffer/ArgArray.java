@@ -24,9 +24,9 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
 import hat.BufferTagger;
 import hat.callgraph.KernelCallGraph;
+import optkl.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
@@ -233,13 +233,12 @@ public interface ArgArray extends Buffer {
                                                     )
                             )
                     )
-         //   .field("vendorPtr")
             .arrayLen("schemaLen").array("schemaBytes")
     );
 
 
 
-    static ArgArray create(Accelerator accelerator, KernelCallGraph kernelCallGraph, Object... args) {
+    static ArgArray create(CommonCarrier cc, KernelCallGraph kernelCallGraph, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -263,7 +262,7 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = schema.allocate(accelerator,args.length,schemaStr.length() + 1);
+        ArgArray argArray = schema.allocate(cc,args.length,schemaStr.length() + 1);
         byte[] schemaStrBytes = schemaStr.getBytes();
         for (int i = 0; i < schemaStrBytes.length; i++) {
             argArray.schemaBytes(i, schemaStrBytes[i]);

@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.types.F16;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 

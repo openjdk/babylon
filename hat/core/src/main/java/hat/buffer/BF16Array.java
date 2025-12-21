@@ -24,7 +24,8 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
+import hat.types.BF16;
+import optkl.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
@@ -34,8 +35,6 @@ public interface BF16Array extends Buffer {
     BF16Impl array(long index);
 
     interface BF16Impl extends Struct, BF16 {
-        String NAME = "F16Impl";
-
         char value();
         void value(char value);
     }
@@ -44,8 +43,8 @@ public interface BF16Array extends Buffer {
             bf16array.arrayLen("length")
                      .array("array", bfloat16 -> bfloat16.fields("value")));
 
-    static BF16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    static BF16Array create(CommonCarrier cc, int length){
+        return schema.allocate(cc, length);
     }
 
     default BF16Impl[] arrayview() {return null;}
