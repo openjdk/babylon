@@ -221,7 +221,7 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         r.run();
         popScope();
     }
-    
+
     public  void forScope(JavaOp.ForOp forOp, Runnable r) {
         scope = new ForScope(scope,forOp);
         r.run();

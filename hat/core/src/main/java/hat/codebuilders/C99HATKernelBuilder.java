@@ -50,7 +50,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static hat.buffer.F16Array.F16Impl;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonKernelOpBuilder<T>  {
-   
+
     public T HAT_KERNEL() {
         return keyword("HAT_KERNEL").space();
     }
@@ -74,6 +74,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T HAT_GIX(){
         return identifier("HAT_GIX");
     }
+
     public T HAT_GIY(){
         return identifier("HAT_GIY");
     }
