@@ -24,12 +24,11 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
 import hat.device.DeviceType;
 import hat.dialect.*;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
 import optkl.ifacemapper.MappableIface;
-import hat.optools.OpTk;
 import hat.types._V;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -41,6 +40,10 @@ import jdk.incubator.code.dialect.java.*;
 
 import java.lang.invoke.MethodHandles;
 import java.util.*;
+
+import static optkl.OpTkl.classTypeToTypeOrThrow;
+import static optkl.OpTkl.elements;
+import static optkl.OpTkl.isAssignable;
 
 public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implements HATDialect {
 
@@ -148,7 +151,7 @@ public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implement
                             operands.addAll(info.indices);
                             HATPtrLoadOp ptrLoadOp = new HATPtrLoadOp(
                                     arrayLoadOp.resultType(),
-                                    (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                    (Class<?>) classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
                                     bb.context().getValues(operands)
                             );
                             ptrLoadOp.setLocation(arrayLoadOp.location());
@@ -187,7 +190,7 @@ public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implement
                             operands.add(arrayStoreOp.operands().getLast());
                             HATPtrStoreOp ptrLoadOp = new HATPtrStoreOp(
                                     arrayStoreOp.resultType(),
-                                    (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                    (Class<?>) classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
                                     bb.context().getValues(operands)
                             );
                             ptrLoadOp.setLocation(arrayStoreOp.location());
@@ -203,7 +206,7 @@ public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implement
                         ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
                         HATPtrLengthOp ptrLengthOp = new HATPtrLengthOp(
                                 arrayLengthOp.resultType(),
-                                (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                (Class<?>) classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
                                 bb.context().getValues(List.of(info.buffer()))
                         );
                         ptrLengthOp.setLocation(arrayLengthOp.location());
@@ -363,13 +366,13 @@ public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implement
     }
 
     public boolean isArrayView(CoreOp.FuncOp entry) {
-        var here = OpTk.CallSite.of(HATDialectifyArrayViewPhase.class, "isArrayView");
-        return OpTk.elements(here, entry).anyMatch((element) -> (
+        var here = OpTkl.CallSite.of(HATDialectifyArrayViewPhase.class, "isArrayView");
+        return elements(here, entry).anyMatch((element) -> (
                 element instanceof JavaOp.InvokeOp iop &&
                         iop.resultType() instanceof ArrayType &&
                         iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        (OpTk.isAssignable(lookupCarrier.lookup(), javaType, MappableIface.class)
-                                || OpTk.isAssignable(lookupCarrier.lookup(), javaType, DeviceType.class))));
+                        (isAssignable(lookupCarrier.lookup(), javaType, MappableIface.class)
+                                || isAssignable(lookupCarrier.lookup(), javaType, DeviceType.class))));
     }
 
     public Class<?> typeElementToClass(TypeElement type) {

@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import jdk.incubator.code.Reflect;
 import optkl.CommonCarrier;
 import optkl.annotations.ProvidesDimFor;
 import optkl.ifacemapper.Buffer;
@@ -36,40 +37,40 @@ import java.util.function.Function;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Buffer {
-    @ProvidesDimFor("array") int length();
+    //@Reflect default void schema(Class<S32Array> iface){array(length());}
+    @ProvidesDimFor("array")
+    int length();
     int array(long idx);
     void array(long idx, int i);
 
     long HEADER_BYTES = JAVA_INT.byteSize();
     Schema<S32Array> schema = Schema.of(S32Array.class);
 
-    static S32Array create(CommonCarrier cc, int length){
+    @Reflect static S32Array create(CommonCarrier cc, int length){
         return schema.allocate(cc, length);
     }
-    static S32Array create(CommonCarrier cc, int length, Function<Integer,Integer> filler){
-        return schema.allocate(cc, length).fill(filler);
-    }
-    static S32Array createFrom(CommonCarrier cc, int[] arr){
-        return create( cc, arr.length).copyfrom(arr);
-    }
-    default S32Array copyfrom(int[] ints) {
-        MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, length());
-        return this;
-    }
-    default S32Array copyTo(int[] ints) {
-        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, ints, 0, length());
-        return this;
-    }
-    default S32Array fill(Function<Integer, Integer> filler) {
+    @Reflect default S32Array fill(Function<Integer, Integer> filler) {
         for (int i = 0; i < length(); i++) {
             array(i, filler.apply(i));
         }
         return this;
     }
+    @Reflect static S32Array create(CommonCarrier cc, int length, Function<Integer,Integer> filler){
+        return create(cc,length).fill(filler);
+    }
+    static S32Array createFrom(CommonCarrier cc, int[] arr){
+        return create( cc, arr.length).copyfrom(arr);
+    }
+    @Reflect default S32Array copyfrom(int[] ints) {
+        MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, length());
+        return this;
+    }
+    @Reflect default int[] copyTo(int[] ints) {
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, ints, 0, length());
+        return ints;
+    }
 
-    default int[] arrayView() {
-        int[] arr = new int[this.length()];
-        this.copyTo(arr);
-        return arr;
+    @Reflect default int[] arrayView() {
+        return this.copyTo(new int[this.length()]);
     }
 }

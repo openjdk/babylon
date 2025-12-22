@@ -26,6 +26,7 @@ package hat.backend.ffi;
 
 import hat.optools.*;
 import optkl.FuncOpParams;
+import optkl.OpTkl;
 import optkl.ParamVar;
 import optkl.codebuilders.CodeBuilder;
 
@@ -41,6 +42,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import static optkl.OpTkl.methodOrThrow;
 
 public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
@@ -215,13 +218,13 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public void fieldLoad(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (OpTk.fieldName(fieldLoadOp).equals(Field.KC_X.toString())) {
+        if (OpTkl.fieldName(fieldLoadOp).equals(Field.KC_X.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
                 loadKcX(fieldLoadOp.result());
             } else {
                 mov().u32().space().resultReg(fieldLoadOp, PTXRegister.Type.U32).commaSpace().fieldReg(Field.KC_X);
             }
-        } else if (OpTk.fieldName(fieldLoadOp).equals(Field.KC_MAXX.toString())) {
+        } else if (OpTkl.fieldName(fieldLoadOp).equals(Field.KC_MAXX.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
                 loadKcX(fieldLoadOp.operands().getFirst());
             }
@@ -480,7 +483,7 @@ PTXHATKernelBuilder symbol(Op op) {
                     st().dot().param().paramType(op.operands().get(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.operands().get(i)).ptxNl();
                 }
                 dot().param().space().paramType(op.resultType()).space().retVal().ptxNl();
-                call().uni().space().oparen().retVal().cparen().commaSpace().identifier(OpTk.methodOrThrow(MethodHandles.lookup(),op).getName()).commaSpace();
+                call().uni().space().oparen().retVal().cparen().commaSpace().identifier(methodOrThrow(MethodHandles.lookup(),op).getName()).commaSpace();
                 final int[] counter = {0};
                 paren(_ ->
                         commaSpaceSeparated(

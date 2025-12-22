@@ -25,11 +25,12 @@
 package hat.dialect;
 
 import jdk.incubator.code.*;
+import optkl.Precedence;
 
 import java.util.List;
 import java.util.Map;
 
-public final class HATPtrLoadOp extends HATPtrOp {
+public final class HATPtrLoadOp extends HATPtrOp implements Precedence.LoadOrConv {
 
     private static final String NAME = "HATPtrLoadOp";
 

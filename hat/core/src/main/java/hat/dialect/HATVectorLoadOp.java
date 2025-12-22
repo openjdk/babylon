@@ -29,14 +29,12 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.Precedence;
 
 import java.util.List;
 import java.util.Map;
 
-public final class HATVectorLoadOp extends HATVectorOp {
-
- //   private final TypeElement typeElement;
-   // private final TypeElement vectorType;
+public final class HATVectorLoadOp extends HATVectorOp implements Precedence.LoadOrConv {
     private final int loadN;
     private final boolean isSharedOrPrivate;
 

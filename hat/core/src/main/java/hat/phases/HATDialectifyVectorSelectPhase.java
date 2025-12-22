@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
@@ -37,6 +36,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
 
 import java.util.List;
 import java.util.Set;
@@ -44,11 +44,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static optkl.OpTkl.isMethod;
+import static optkl.OpTkl.transform;
+
 public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implements HATDialect {
     static Pattern xyzw = Pattern.compile("[xyzw]");
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
-        return OpTk.isMethod(invokeOp, n->xyzw.matcher(n).matches());
+        return isMethod(invokeOp, n->xyzw.matcher(n).matches());
     }
 
     int getLane(String fieldName) {
@@ -88,7 +91,7 @@ public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implem
     //  %16 : java.type:"hat.types.Float4" = var.load %15 @loc="63:28";
     //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.types.Float4::x():float";
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(), "vloadSelectPhase");
+        var here = OpTkl.CallSite.of(this.getClass(), "vloadSelectPhase");
         before(here, funcOp);
         Stream<CodeElement<?, ?>> vectorSelectOps = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -104,7 +107,7 @@ public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implem
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorSelectOps.collect(Collectors.toSet());
-        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
@@ -142,10 +145,10 @@ public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implem
     // %21 : java.type:"float" = var.load %19 @loc="64:18";
     // invoke %20 %21 @loc="64:13" @java.ref:"hat.types.Float4::x(float):void";
     private CoreOp.FuncOp vstoreSelectPhase(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(), "vstoreSelectPhase");
+        var here = OpTkl.CallSite.of(this.getClass(), "vstoreSelectPhase");
         before(here, funcOp);
         //TODO is this side table safe?
-        Stream<CodeElement<?, ?>> float4NodesInvolved = OpTk.elements(here, funcOp)
+        Stream<CodeElement<?, ?>> float4NodesInvolved = OpTkl.elements(here, funcOp)
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
                         if (OpTk.isVectorOperation(invokeOp, isVectorLane(invokeOp))) {
@@ -160,7 +163,7 @@ public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implem
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);

@@ -29,24 +29,22 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.Precedence;
 
 import java.util.List;
 import java.util.Map;
 
-public final class HATVectorSelectLoadOp extends HATVectorOp {
+public final class HATVectorSelectLoadOp extends HATVectorOp implements Precedence.LoadOrConv {
 
-  //  private final TypeElement elementType;
     private final int lane;
 
     public HATVectorSelectLoadOp(String varName, TypeElement resultType, int lane, List<Value> operands) {
         super(varName, resultType, resultType, -1, operands);
-    //    this.elementType = typeElement;
         this.lane = lane;
     }
 
     public HATVectorSelectLoadOp(HATVectorSelectLoadOp that, CodeContext cc) {
         super(that, cc);
-      //  this.elementType = that.elementType;
         this.lane = that.lane;
     }
 
@@ -54,11 +52,6 @@ public final class HATVectorSelectLoadOp extends HATVectorOp {
     public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATVectorSelectLoadOp(this, copyContext);
     }
-
-   // @Override
-    //public TypeElement resultType() {
-      //  return elementType;
-   // }
 
     @Override
     public Map<String, Object> externalize() {

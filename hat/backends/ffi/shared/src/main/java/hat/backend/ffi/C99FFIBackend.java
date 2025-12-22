@@ -30,6 +30,7 @@ import hat.Config;
 import hat.KernelContext;
 import hat.types.BF16;
 import hat.types.F16;
+import optkl.OpTkl;
 import optkl.annotations.Kernel;
 import optkl.annotations.Preformatted;
 import optkl.annotations.TypeDef;
@@ -205,7 +206,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
-        var here = OpTk.CallSite.of(C99FFIBackend.class, "createCode");
+        var here = OpTkl.CallSite.of(C99FFIBackend.class, "createCode");
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -310,7 +311,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
+                IO.println(OpTkl.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
             }
         }
         return builder.toString();

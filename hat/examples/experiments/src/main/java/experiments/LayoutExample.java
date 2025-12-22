@@ -25,6 +25,7 @@
 package experiments;
 
 
+import optkl.OpTkl;
 import optkl.ifacemapper.Schema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -35,7 +36,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import hat.optools.OpTk;
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -48,6 +48,8 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.*;
 import java.util.stream.Stream;
+
+import static optkl.OpTkl.SSATransform;
 
 public class LayoutExample {
 
@@ -111,8 +113,8 @@ public class LayoutExample {
 
         Method m = om.orElseThrow();
         CoreOp.FuncOp f= Op.ofMethod(m).orElseThrow();
-        var here = OpTk.CallSite.of(LayoutExample.class, "main");
-        f = OpTk.SSATransform(here, f);
+        var here = OpTkl.CallSite.of(LayoutExample.class, "main");
+        f = SSATransform(here, f);
         System.out.println(f.toText());
         FunctionType functionType = transformStructClassToPtr(lookup, f);
         System.out.println(f.toText());

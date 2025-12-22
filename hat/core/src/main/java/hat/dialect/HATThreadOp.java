@@ -27,11 +27,12 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.Precedence;
 
 import java.util.List;
 import java.util.Map;
 
-public abstract sealed class HATThreadOp extends HATOp permits HATBlockThreadIdOp, HATGlobalSizeOp, HATGlobalThreadIdOp, HATLocalSizeOp, HATLocalThreadIdOp {
+public abstract sealed class HATThreadOp extends HATOp implements Precedence.LoadOrConv permits HATBlockThreadIdOp, HATGlobalSizeOp, HATGlobalThreadIdOp, HATLocalSizeOp, HATLocalThreadIdOp  {
    final  private String name;
    final  private TypeElement resultType;
    final  private int dimension;

@@ -44,6 +44,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
+import static optkl.OpTkl.getQuotedCapturedValues;
+import static optkl.OpTkl.getTargetInvokeOp;
+
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
  * callgraphs for the work to be performed by the backend.
@@ -140,7 +143,7 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
     private CallGraph getKernelCallGraph(Kernel kernel) {
         Quoted quoted = Op.ofQuotable(kernel).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef = OpTk.getTargetInvokeOp( lambdaOp).invokeDescriptor();
+        MethodRef methodRef = getTargetInvokeOp( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         if (kernelCallGraph == null){
             throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?) ");
@@ -151,7 +154,7 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
     private void dispatchKernelWithComputeRange(NDRange<?, ?> ndRange, Kernel kernel) {
         CallGraph cg = getKernelCallGraph(kernel);
         try {
-            Object[] args = OpTk.getQuotedCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
+            Object[] args = getQuotedCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
             KernelContext kernelContext = accelerator.range(ndRange);
             args[0] = kernelContext;
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, kernelContext, args);

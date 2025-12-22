@@ -24,6 +24,7 @@
  */
 package hat.tools.text;
 
+import optkl.OpTkl;
 import optkl.codebuilders.BabylonCoreOpBuilder;
 import hat.codebuilders.C99HATCodeBuilderContext;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -33,6 +34,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+
+import static optkl.OpTkl.getStaticFinalPrimitiveValue;
 
 public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
 
@@ -47,7 +50,7 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
         if (OpTk.isKernelContextFieldAccessOp(buildContext.lookup,fieldLoadOp,_->true)) {
             identifier("kc").dot().fieldName(fieldLoadOp);
         } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) { // only primitve fields
-            var value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
+            var value = getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());
         } else {
             throw new IllegalStateException("An instance field? I guess - we dont get those in HAT " +fieldLoadOp);

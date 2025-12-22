@@ -31,6 +31,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.OpTkl;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
@@ -39,11 +40,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
+
+import static hat.optools.OpTk.isVarAccessFromKernelContextFieldOp;
+import static optkl.OpTkl.copyLocation;
+import static optkl.OpTkl.fieldAccessOpNameMatches;
+import static optkl.OpTkl.opFromOperandAsResult;
+import static optkl.OpTkl.opstream;
 
 public class Trxfmr {
     interface HATTransformerCarrier{
@@ -139,7 +144,7 @@ public class Trxfmr {
                 @Override
                 public Op.Result replace(Op replacement, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
-                    var result = trxfmr.opToResultOp(op(),builder().op(OpTk.copyLocation(op(), replacement)));
+                    var result = trxfmr.opToResultOp(op(),builder().op(copyLocation(op(), replacement)));
                     mapperConsumer.accept(Mapper.of(this).map(op().result(),result));
                     return result;
                 }
@@ -202,7 +207,7 @@ public class Trxfmr {
 
     public final Set<Op> selected = new LinkedHashSet<>();
     public final Map<Op, Op> opmap = new HashMap<>();
-    public final OpTk.CallSite callSite;
+    public final OpTkl.CallSite callSite;
     public CoreOp.FuncOp funcOp;
 
     public CoreOp.FuncOp funcOp(){
@@ -212,7 +217,7 @@ public class Trxfmr {
         return this.funcOp=funcOp;
     }
 
-    public Trxfmr(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {
+    public Trxfmr(OpTkl.CallSite callSite, CoreOp.FuncOp funcOp) {
         this.callSite = callSite;
         this.funcOp =  funcOp;
         if (callSite!=null && callSite.tracing()) {
@@ -330,9 +335,9 @@ public class Trxfmr {
                     T extends CoreOp.VarAccessOp.VarLoadOp>(F f, T t, Set<Op> ops) implements Edge<F, T> {
             }
             return (
-                    OpTk.fieldAccessOpNameMatches(fieldLoadOp, fieldNamePredicate) instanceof JavaOp.FieldAccessOp.FieldLoadOp
-                            && OpTk.opFromOperandAsResult(fieldLoadOp, 0) instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && OpTk.isVarAccessFromKernelContextFieldOp(lookup,varLoadOp))
+                    fieldAccessOpNameMatches(fieldLoadOp, fieldNamePredicate) instanceof JavaOp.FieldAccessOp.FieldLoadOp
+                            && opFromOperandAsResult(fieldLoadOp, 0) instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                            && isVarAccessFromKernelContextFieldOp(lookup,varLoadOp))
                     ? new FieldVarLoadEdge<>(fieldLoadOp, varLoadOp, Set.of(fieldLoadOp, varLoadOp)) : null;
         }
 
@@ -362,12 +367,12 @@ public class Trxfmr {
             }
 
              public Selector<F, T> select(CoreOp.FuncOp funcOp, Function<CodeElement<?,?>,Edge<F,T>> mapper) {
-                 OpTk.opstream(funcOp,mapper).forEach(e->this.add((Edge<F, T>) e));
+                 opstream(funcOp,mapper).forEach(e->this.add((Edge<F, T>) e));
                  return this;
              }
 
              public CoreOp.FuncOp transform(CoreOp.FuncOp funcOp, Consumer<Cursor> c) {
-                 return new Trxfmr(OpTk.CallSite.of(this.getClass()), funcOp)
+                 return new Trxfmr(OpTkl.CallSite.of(this.getClass()), funcOp)
                          .transform(this.predicate,c).done().funcOp();
              }
          }
