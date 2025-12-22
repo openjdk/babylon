@@ -45,10 +45,12 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
-import jdk.incubator.code.extern.OpFactory;
+import optkl.OpTkl;
 
 import java.util.*;
 import java.util.stream.Stream;
+
+import static optkl.OpTkl.SSATransform;
 
 public class RawLayout {
 
@@ -124,8 +126,8 @@ public class RawLayout {
     public static void main(String[] args) {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         CoreOp.FuncOp m = getFuncOp("m");
-        var here = OpTk.CallSite.of(RawLayout.class, "main");
-        m = OpTk.SSATransform(here, m);
+        var here = OpTkl.CallSite.of(RawLayout.class, "main");
+        m = SSATransform(here, m);
         System.out.println(m.toText());
 
         CoreOp.FuncOp pm = transformInvokesToPtrs(lookup, m);

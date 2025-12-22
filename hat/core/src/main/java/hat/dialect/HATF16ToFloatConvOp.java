@@ -29,11 +29,12 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.Precedence;
 
 import java.util.List;
 import java.util.Map;
 
-public final class HATF16ToFloatConvOp extends HATF16Op {
+public final class HATF16ToFloatConvOp extends HATF16Op implements Precedence.LoadOrConv {
 
     private final TypeElement typeElement;
     private final boolean isLocal;

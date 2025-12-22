@@ -50,6 +50,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
+import static optkl.OpTkl.getQuotedCapturedValues;
+import static optkl.OpTkl.getTargetInvokeOp;
+import static optkl.OpTkl.methodOrThrow;
 
 
 /**
@@ -193,14 +196,14 @@ public class Accelerator implements CommonCarrier,  BufferTracker {
     public void compute(Compute compute) {
         Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = OpTk.methodOrThrow(lookup,OpTk.getTargetInvokeOp(lambda));
+        Method method = methodOrThrow(lookup,getTargetInvokeOp(lambda));
         // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
         ComputeContext computeContext = cache.computeIfAbsent(method, (_) -> new ComputeContext(this, method));
         // Here we get the captured values from the lambda
-        Object[] args = OpTk.getQuotedCapturedValues(lambda, quoted, method);
+        Object[] args = getQuotedCapturedValues(lambda, quoted, method);
         args[0] = computeContext;
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

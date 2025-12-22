@@ -47,6 +47,7 @@ import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
 
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +57,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static hat.dialect.HATPhaseUtils.findF16IsLocal;
+import static optkl.OpTkl.isMethod;
 
 public record HATDialectifyFP16Phase(LookupCarrier lookupCarrier) implements HATDialect {
 
@@ -203,7 +205,7 @@ public record HATDialectifyFP16Phase(LookupCarrier lookupCarrier) implements HAT
     }
 
     private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, BinaryOpMethod method) {
-        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Ops");
+        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyF16Ops");
         before(here, funcOp);
 
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
@@ -244,7 +246,7 @@ public record HATDialectifyFP16Phase(LookupCarrier lookupCarrier) implements HAT
     }
 
     private CoreOp.FuncOp dialectifyF16Stores(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Stores");
+        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyF16Stores");
         before(here, funcOp);
 
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
@@ -292,7 +294,7 @@ public record HATDialectifyFP16Phase(LookupCarrier lookupCarrier) implements HAT
     }
 
     private CoreOp.FuncOp dialectifyF16Init(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Init");
+        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyF16Init");
         before(here, funcOp);
 
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
@@ -331,7 +333,7 @@ public record HATDialectifyFP16Phase(LookupCarrier lookupCarrier) implements HAT
     }
 
     private CoreOp.FuncOp dialectifyF16ToFloat(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16ToFloat");
+        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyF16ToFloat");
         before(here, funcOp);
 
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
@@ -339,7 +341,7 @@ public record HATDialectifyFP16Phase(LookupCarrier lookupCarrier) implements HAT
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if ((OpTk.isMethod(invokeOp, n->n.equals("f16ToFloat")||n.equals("bfloat162float")))
+                        if ((isMethod(invokeOp, n->n.equals("f16ToFloat")||n.equals("bfloat162float")))
                                 && invokeOp.resultType() == JavaType.FLOAT) {
                             consumer.accept(invokeOp);
                             reducedFloatsType.put(invokeOp, categorizeReducedFloat(invokeOp));

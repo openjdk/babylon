@@ -41,6 +41,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static hat.optools.OpTk.isIfaceBufferInvokeOpWithName;
+import static optkl.OpTkl.isAssignable;
+import static optkl.OpTkl.isMethod;
+import static optkl.OpTkl.transform;
 
 public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
@@ -79,7 +85,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase");
+        var here = OpTkl.CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase");
         before(here,funcOp);
         Set<CoreOp.VarOp> removeMe = new LinkedHashSet<>();
         Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
@@ -100,7 +106,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
                     })
                 );
 
-        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp && mapMe.contains(invokeOp)) {
                 invokeOp.result()
                         .uses()
@@ -128,11 +134,11 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp) {
-            if (OpTk.isIfaceBufferInvokeOpWithName(lookupCarrier.lookup(), invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))) {
+            if (isIfaceBufferInvokeOpWithName(lookupCarrier.lookup(), invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
-                return OpTk.isMethod(invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))
-                        && OpTk.isAssignable(lookupCarrier.lookup(),invokeOp.invokeDescriptor().refType(),DeviceType.class);
+                return isMethod(invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))
+                        && isAssignable(lookupCarrier.lookup(),invokeOp.invokeDescriptor().refType(),DeviceType.class);
             }
         }
 
@@ -158,12 +164,12 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            if (OpTk.isIfaceBufferInvokeOpWithName(lookupCarrier.lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))) {
+            if (isIfaceBufferInvokeOpWithName(lookupCarrier.lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
-                return (OpTk.isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
+                return (isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
                         && invokeOp.resultType() instanceof JavaType javaType &&
-                        OpTk.isAssignable(lookupCarrier.lookup(),javaType,DeviceType.class));
+                        isAssignable(lookupCarrier.lookup(),javaType,DeviceType.class));
             }
         }
 
@@ -189,10 +195,10 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            return OpTk.isIfaceBufferInvokeOpWithName(lookupCarrier.lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
-               || (OpTk.isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
+            return isIfaceBufferInvokeOpWithName(lookupCarrier.lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
+               || (isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
                     && invokeOp.resultType() instanceof JavaType javaType &&
-                    OpTk.isAssignable(lookupCarrier.lookup(),javaType,DeviceType.class));
+                    isAssignable(lookupCarrier.lookup(),javaType,DeviceType.class));
         }
 
          private boolean isDeviceTypeReservedMethod(JavaOp.InvokeOp invokeOp){
@@ -208,7 +214,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
         @Override
         public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-            var here = OpTk.CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase - memoryLoadOp");
+            var here = OpTkl.CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase - memoryLoadOp");
             before(here, funcOp);
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Stream<CodeElement<?, ?>> memoryLoadOps = funcOp.elements()
@@ -229,7 +235,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
                     });
 
             Set<CodeElement<?, ?>> nodesInvolved = memoryLoadOps.collect(Collectors.toSet());
-            funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+            funcOp = transform(here, funcOp, (blockBuilder, op) -> {
                 if (!nodesInvolved.contains(op)) {
                     blockBuilder.op(op);
                 } else if (op instanceof JavaOp.InvokeOp invokeOp) {

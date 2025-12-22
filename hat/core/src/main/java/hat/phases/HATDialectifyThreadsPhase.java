@@ -36,9 +36,12 @@ import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
+
+import static optkl.OpTkl.operandsAsResults;
 
 public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPhase<T,C>,C extends HATThreadOp> implements HATDialect  {
     protected final LookupCarrier lookupCarrier;
@@ -58,12 +61,12 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var txfmr = new Trxfmr(OpTk.CallSite.of(this.getClass()),funcOp);
+        var txfmr = new Trxfmr(OpTkl.CallSite.of(this.getClass()),funcOp);
         return txfmr.select(
                 ce->OpTk.asNamedKernelContextFieldAccessOrNull(lookupCarrier.lookup(),ce,pattern())!=null,(s,o)->
-                   OpTk.operandsAsResults(o)
-                     .map(OpTk::opOfResultOrNull)
-                     .map(OpTk::asVarLoadOrNull)
+                   operandsAsResults(o)
+                     .map(OpTkl::opOfResultOrNull)
+                     .map(OpTkl::asVarLoadOrNull)
                      .filter(Objects::nonNull) // ((Result)operand).op()) instanceof VarLoad varload && varload is KernelContext.class
                      .findFirst()
                      .ifPresent(varLoadOp -> s.select(o,varLoadOp))

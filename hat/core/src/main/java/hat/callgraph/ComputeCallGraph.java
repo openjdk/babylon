@@ -43,6 +43,9 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
 
+import static optkl.OpTkl.isAssignable;
+import static optkl.OpTkl.javaRefClassOrThrow;
+
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
@@ -109,7 +112,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
-                        } else if (OpTk.isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
+                        } else if (isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
                             atLeastOneIfaceBufferParam.set(true);
                         } else {
                             hasOnlyPrimitiveAndIfaceBufferParams.set(false);
@@ -134,7 +137,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        if (entrypoint.method.getDeclaringClass().equals(OpTk.javaRefClassOrThrow(computeContext.lookup(),invokeOp))
+        if (entrypoint.method.getDeclaringClass().equals(javaRefClassOrThrow(computeContext.lookup(),invokeOp))
                 && isKernelDispatch(computeContext.lookup(),method, f)) {
             // TODO this side effect is not good.  we should do this when we construct !
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->

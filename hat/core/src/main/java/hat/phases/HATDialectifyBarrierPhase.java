@@ -24,23 +24,24 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
 import hat.dialect.HATBarrierOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.CommonCarrier;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
+
+import static optkl.OpTkl.simpleOpMappingTransform;
 
 public record HATDialectifyBarrierPhase(LookupCarrier lookupCarrier) implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
-        var here = OpTk.CallSite.of(HATDialectifyBarrierPhase.class, "apply");
+        var here = OpTkl.CallSite.of(HATDialectifyBarrierPhase.class, "apply");
         before(here, fromFuncOp);
         // The resulting op map also includes all op mappings (so op -> op') and the to and from funcOp
         // I expect this to be useful for tracking state...
 
-        OpTk.OpMap opMap = OpTk.simpleOpMappingTransform(
+        OpTkl.OpMap opMap = simpleOpMappingTransform(
                 /* for debugging we will remove */ here, fromFuncOp,
                 /* filter op                    */ ce -> OpTk.isKernelContextInvokeOp(lookupCarrier.lookup(), ce,
                                                     invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.NAME)),

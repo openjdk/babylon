@@ -29,10 +29,11 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.Precedence;
 
 import java.util.List;
 
-public final class HATVectorMulOp extends HATVectorBinaryOp {
+public final class HATVectorMulOp extends HATVectorBinaryOp implements Precedence.Multiplicative {
 
     public HATVectorMulOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
         super(varName, typeElement, BinaryOpEnum.MUL, vectorElementType, width, operands);

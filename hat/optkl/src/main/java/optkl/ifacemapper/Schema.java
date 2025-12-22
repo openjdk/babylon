@@ -25,9 +25,11 @@
 package optkl.ifacemapper;
 
 
-import optkl.ArenaCarrier;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.CommonCarrier;
-import optkl.LookupCarrier;
 import optkl.annotations.Order;
 import optkl.annotations.ProvidesDimFor;
 import optkl.ifacemapper.accessor.AccessorInfo;
@@ -36,10 +38,12 @@ import optkl.ifacemapper.accessor.ValueType;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -69,11 +73,12 @@ public class Schema<T extends MappableIface> {
         this.rootIfaceType = rootIfaceType;
     }
 
-    public T allocate(CommonCarrier accelerator, int... boundLengths) {
+    public T allocate(CommonCarrier commonCarrier, int... boundLengths) {
         BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        T instance = (T) boundSchema.allocate(accelerator.lookup(), accelerator);
+        T instance = (T) boundSchema.allocate(commonCarrier.lookup(), commonCarrier);
         MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
         int[] count = new int[]{0};
+
 
         boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {
             boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
@@ -104,46 +109,147 @@ public class Schema<T extends MappableIface> {
         return new Schema<>(iface, struct);
     }
 
-    public static <T extends Buffer> Schema<T> of(Class<T> iface) {
-        // first lets try to find the Schema field
+    interface SchemaConstructor<T extends Buffer>{
+        Class<T> iface();
+        Schema<T> create();
 
-        Field schema = null;
-        try{
-            schema = iface.getDeclaredField("schema");
-        }catch (NoSuchFieldException nsfe){
-            throw new RuntimeException(nsfe);
+    }
+
+    record SchemaFromDSLMethod<T extends Buffer>(Class<T> iface, Method method, CoreOp.FuncOp funcOp) implements SchemaConstructor<T>{
+        static <T extends Buffer> SchemaFromDSLMethod<T> of(Class<T> iface){
+            try {
+                Method schemaMethod = iface.getDeclaredMethod("schema", Class.class);
+                var possibleFuncOp = Op.ofMethod(schemaMethod);
+                if (possibleFuncOp.isPresent()) {
+                    return new SchemaFromDSLMethod<>(iface, schemaMethod,possibleFuncOp.get());
+                }else{
+                    System.out.println("Schema DSL method found for "+iface.getSimpleName()+" but no code model\n     Did you forget to annotate with @"+Reflect.class.getSimpleName()+"?");
+                }
+            }catch (NoSuchMethodException nsme){
+                // throw new RuntimeException(nsme);
+            }
+            return null;
         }
-        if (!Modifier.isStatic(schema.getModifiers())){
-            throw new RuntimeException("no static field called schema");
+        static <T extends Buffer>Method methodOrNull(Class<T> iface, String name, Class<?> ...types){
+            try {
+                return iface.getDeclaredMethod(name, types);
+            }catch (NoSuchMethodException noSuchMethodException){
+                return null;
+            }
         }
-        String[] order = (schema.getAnnotation(Order.class) instanceof Order orderAnnotation)?orderAnnotation.value():null;
 
-
-        Set<String> handled = new HashSet<>();
-        return of(iface, (schemaBuilder)-> {
-                    Arrays.stream(iface.getDeclaredMethods()).filter(m -> Modifier.isAbstract(m.getModifiers())).forEach(m -> {
-                                if (m.getAnnotation(ProvidesDimFor.class) instanceof ProvidesDimFor providesDimFor) {
-
-                                    schemaBuilder.arrayLen(m.getName()).array(providesDimFor.value());
-                                    if (!handled.contains(m.getName())) {
-                                        handled.add(m.getName());
-                                    }
-                                    //if (!handled.contains(providesDimFor.value())) {
-                                        handled.add(providesDimFor.value());
-                                   // }
-                                } else if (order == null && !handled.contains(m.getName())) {
-                                    System.out.println(m.getName());
-                                    schemaBuilder.fields(m.getName());
-                                    handled.add(m.getName());
-                                }
-                            }
-                    );
-                    if (order != null) {
-                        schemaBuilder.fields(order);
+        @Override
+        public Schema<T> create() {
+            interface DSLMethod{
+                int idx();
+                JavaOp.InvokeOp invokeOp();
+                        String name();
+            }
+            record FieldDSLMethod(int idx, JavaOp.InvokeOp invokeOp, String name) implements DSLMethod{}
+            record PadDSLMethod(int idx, JavaOp.InvokeOp invokeOp, String name) implements DSLMethod{}
+            record BindDSLMethod(int idx, JavaOp.InvokeOp invokeOp, String name, DSLMethod dslMethod) implements DSLMethod{}
+            record UnboundDSLMethod(int idx, JavaOp.InvokeOp invokeOp, String name) implements DSLMethod{}
+           // record DSLMethodImpl(int idx, JavaOp.InvokeOp invokeOp, String name) implements DSLMethod{}
+            var nameToDslMap = new LinkedHashMap<String,DSLMethod>();
+            int [] idx=new int[]{0};
+            funcOp.elements().forEach(codeElement-> {
+                if (codeElement instanceof JavaOp.InvokeOp invokeOp
+                        && invokeOp.invokeDescriptor().name() instanceof String name) {
+                    if (name.equals("pad")){
+                        var pad = new PadDSLMethod(idx[0]++, invokeOp,name);
+                        nameToDslMap.put("pad"+pad.idx,pad);
+                    }else {
+                        nameToDslMap.put(name, new UnboundDSLMethod(idx[0]++,invokeOp,name));
+                       // if (methodOrNull(iface,name) instanceof Method method && !method.isDefault()){
+                         //   nameToDslMap.put(name, new FieldDSLMethod(idx[0]++, invokeOp, name));
+                        //}else if (methodOrNull(iface,name, int.class) instanceof Method method && !method.isDefault()){
+                          //  nameToDslMap.put(name, new UnboundBindDSLMethod(idx[0]++, invokeOp, name));
+                       // }  else if (methodOrNull(iface,name, long.class) instanceof Method method && !method.isDefault()) {
+                        //    nameToDslMap.put(name, new UnboundBindDSLMethod(idx[0]++, invokeOp, name));
+                       // }
                     }
                 }
-        );
-}
+            });
+            nameToDslMap.values().stream()
+                    .filter(ce->ce instanceof UnboundDSLMethod)
+                    .map(unbound->(UnboundDSLMethod)unbound)
+                    .forEach(unbound->{
+                        var operand = unbound.invokeOp().operands().get(1);
+                        if (operand instanceof Op.Result result) {
+                            if (result.op() instanceof JavaOp.ConvOp convOp && convOp.operands().get(0) instanceof Op.Result r2){
+                                if (r2.op() instanceof JavaOp.InvokeOp i2){
+                                    System.out.println(i2.invokeDescriptor().name());
+                                }else{
+                                    System.out.println("Nope");
+                                }
+                            }else if (result.op() instanceof JavaOp.InvokeOp from) {
+                                var fromName = from.invokeDescriptor().name();
+                                nameToDslMap.put(unbound.name, new BindDSLMethod(unbound.idx, unbound.invokeOp, unbound.name, null));
+                            }
+                        }
+                    });
+
+            var calls = funcOp.elements()
+                    .filter(op -> op instanceof JavaOp.InvokeOp)
+                    .map(op -> ((JavaOp.InvokeOp) op).invokeDescriptor().name()).toList();
+            return Schema.of(iface, (schemaBuilder) -> {
+                calls.forEach(call -> {
+                    System.out.println("from schema() ..." + call);
+                    Arrays.stream(iface.getDeclaredMethods()).filter(m -> calls.contains(m.getName())).findFirst().ifPresent(m -> {
+                        System.out.println(m.getName());
+                        schemaBuilder.fields(m.getName());
+                    });
+                });
+            });
+        }
+    }
+    record SchemaFromAnnotatedFields<T extends Buffer>(Class<T> iface, Field field) implements SchemaConstructor<T> {
+        static <T extends Buffer> SchemaFromAnnotatedFields<T> of(Class<T> iface) {
+            try {
+                Field schemaField = iface.getDeclaredField("schema");
+                if (!Modifier.isStatic(schemaField.getModifiers())) {
+                    throw new RuntimeException("no static field called schema");
+                }
+                return new SchemaFromAnnotatedFields<>(iface, schemaField);
+            } catch (NoSuchFieldException nsme) {
+                // throw new RuntimeException(nsme);
+            }
+            return null;
+        }
+
+        @Override
+        public Schema<T> create() {
+            String[] order = (field().getAnnotation(Order.class) instanceof Order orderAnnotation) ? orderAnnotation.value() : null;
+            Set<String> handled = new HashSet<>();
+            return Schema.of(iface, (schemaBuilder) -> {
+                Arrays.stream(iface.getDeclaredMethods()).filter(m -> Modifier.isAbstract(m.getModifiers())).forEach(m -> {
+                    if (m.getAnnotation(ProvidesDimFor.class) instanceof ProvidesDimFor providesDimFor) {
+                        schemaBuilder.arrayLen(m.getName()).array(providesDimFor.value());
+                        if (!handled.contains(m.getName())) {
+                            handled.add(m.getName());
+                        }
+                        handled.add(providesDimFor.value());
+                    } else if (order == null && !handled.contains(m.getName())) {
+                        System.out.println(m.getName());
+                        schemaBuilder.fields(m.getName());
+                        handled.add(m.getName());
+                    }
+                });
+                if (order != null) {
+                    schemaBuilder.fields(order);
+                }
+            });
+        }
+    }
+
+    public static <T extends Buffer> Schema<T> of(Class<T> iface) {
+        if (SchemaFromDSLMethod.of(iface) instanceof Schema.SchemaFromDSLMethod<T> schemaFromDSLMethod) {
+            return schemaFromDSLMethod.create();
+        } else if (SchemaFromAnnotatedFields.of(iface) instanceof Schema.SchemaFromAnnotatedFields<T> schemaFromAnnotatedFields) {
+            return schemaFromAnnotatedFields.create();
+        }
+        throw new RuntimeException("No schemaDSL or annotated fields, you will need to pass a builder for "+iface.getCanonicalName());
+    }
 
     public void toText(Consumer<String> stringConsumer) {
         rootIfaceType.toText("", stringConsumer);

@@ -27,6 +27,7 @@ package hat.backend.jextracted;
 
 import hat.ComputeContext;
 import hat.Config;
+import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
 import optkl.ifacemapper.MappableIface;
@@ -45,6 +46,13 @@ import java.lang.invoke.MethodHandles;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
+import static hat.optools.OpTk.isComputeContextMethod;
+import static hat.optools.OpTk.isIfaceBufferMethod;
+import static optkl.OpTkl.classTypeToTypeOrThrow;
+import static optkl.OpTkl.isAssignable;
+import static optkl.OpTkl.javaReturnType;
+import static optkl.OpTkl.lower;
+import static optkl.OpTkl.transform;
 
 public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
@@ -53,10 +61,10 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        var here = OpTk.CallSite.of(JExtractedBackend.class, "dispatchCompuet");
+        var here = OpTkl.CallSite.of(JExtractedBackend.class, "dispatchCompuet");
         if (computeContext.computeEntrypoint().lowered == null) {
             computeContext.computeEntrypoint().lowered =
-                    OpTk.lower(here, computeContext.computeEntrypoint().funcOp());
+                    lower(here, computeContext.computeEntrypoint().funcOp());
         }
         boolean interpret = false;
         if (interpret) {
@@ -81,34 +89,34 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         var lookup = computeMethod.callGraph.computeContext.lookup();
         // TODO : can't we get this from somewhere maybe it should be capturein the compute method?
         var paramTable = new FuncOpParams(computeMethod.funcOp());
-        var here = OpTk.CallSite.of(JExtractedBackend.class, "injectBufferTracking");
-        var transformedFuncOp = OpTk.transform(here,computeMethod.funcOp(),(bldr, op) -> {
+        var here = OpTkl.CallSite.of(JExtractedBackend.class, "injectBufferTracking");
+        var transformedFuncOp = transform(here,computeMethod.funcOp(),(bldr, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Value computeContext = bldr.context().getValue(paramTable.list().getFirst().parameter);
-                if (OpTk.isIfaceBufferMethod(lookup, invokeOp) && OpTk.javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
+                if (isIfaceBufferMethod(lookup, invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
                     Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
                     bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, iface));  // cc->preMutate(iface);
                     bldr.op(invokeOp);                                          // iface.v(newV);
                     bldr.op(JavaOp.invoke(MUTATE.post, computeContext, iface)); // cc->postMutate(iface)
-                } else if (OpTk.isIfaceBufferMethod(lookup, invokeOp)
+                } else if (isIfaceBufferMethod(lookup, invokeOp)
                         //&& !OpTk.javaReturnType(invokeOp).equals(JavaType.VOID) not sure we need this
-                        && OpTk.javaReturnType(invokeOp) instanceof ClassType returnClassType
-                        && OpTk.classTypeToTypeOrThrow(lookup, returnClassType) instanceof Class<?> type
+                        && javaReturnType(invokeOp) instanceof ClassType returnClassType
+                        && classTypeToTypeOrThrow(lookup, returnClassType) instanceof Class<?> type
                         && Buffer.class.isAssignableFrom(type)
                 ) {            // iface.v()
                     Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
                     bldr.op(JavaOp.invoke(ACCESS.pre, computeContext, iface));  // cc->preAccess(iface);
                     bldr.op(invokeOp);                                          // iface.v();
                     bldr.op(JavaOp.invoke(ACCESS.post, computeContext, iface)); // cc->postAccess(iface) } else {
-                } else if (OpTk.isComputeContextMethod(lookup, invokeOp) || OpTk.isKernelContextInvokeOp(lookup, invokeOp,OpTk.AnyInvoke)) { //dispatchKernel
+                } else if (isComputeContextMethod(lookup, invokeOp) || OpTk.isKernelContextInvokeOp(lookup, invokeOp,OpTkl.AnyInvoke)) { //dispatchKernel
                     bldr.op(invokeOp);
                 } else {
                     invokeOp.operands().stream()
-                            .filter(val -> val.type() instanceof JavaType javaType && OpTk.isAssignable(lookup, javaType, MappableIface.class))
+                            .filter(val -> val.type() instanceof JavaType javaType && isAssignable(lookup, javaType, MappableIface.class))
                             .forEach(val -> bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, bldr.context().getValue(val))));
                     bldr.op(invokeOp);
                     invokeOp.operands().stream()
-                            .filter(val -> val.type() instanceof JavaType javaType && OpTk.isAssignable(lookup, javaType, MappableIface.class))
+                            .filter(val -> val.type() instanceof JavaType javaType && isAssignable(lookup, javaType, MappableIface.class))
                             .forEach(val -> bldr.op(JavaOp.invoke(MUTATE.post, computeContext, bldr.context().getValue(val))));
                 }
                 return bldr;

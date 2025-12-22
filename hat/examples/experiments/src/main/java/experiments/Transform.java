@@ -38,11 +38,13 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.OpTkl;
 
 import java.util.List;
 import java.util.Map;
 
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
+import static optkl.OpTkl.transform;
 
 public class Transform {
         @Reflect
@@ -135,8 +137,8 @@ public class Transform {
 
             CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
-            var here = OpTk.CallSite.of(Transform.class, "main");
-            CoreOp.FuncOp transformed = OpTk.transform(here, javaFunc,(builder, op) -> {
+            var here = OpTkl.CallSite.of(Transform.class, "main");
+            CoreOp.FuncOp transformed = transform(here, javaFunc,(builder, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     //  CodeContext cc = builder.context();
                     //  Block.Builder bb = builder;

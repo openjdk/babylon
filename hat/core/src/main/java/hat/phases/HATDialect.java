@@ -25,9 +25,9 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
 
 import java.util.function.Function;
 
@@ -38,13 +38,13 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
         return ((Accelerator)lookupCarrier()).backend.config().showCompilationPhases();
     }
 
-    default void before(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {
+    default void before(OpTkl.CallSite callSite, CoreOp.FuncOp funcOp) {
         if (tracing()) {
             IO.println("[INFO] Code model before [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: "  + System.lineSeparator() + funcOp.toText());
         }
     }
 
-    default void after(OpTk.CallSite callSite, CoreOp.FuncOp funcOp) {
+    default void after(OpTkl.CallSite callSite, CoreOp.FuncOp funcOp) {
         if (tracing()) {
             IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: " + System.lineSeparator() + funcOp.toText());
         }

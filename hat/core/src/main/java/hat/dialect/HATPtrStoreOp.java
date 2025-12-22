@@ -25,11 +25,12 @@
 package hat.dialect;
 
 import jdk.incubator.code.*;
+import optkl.Precedence;
 
 import java.util.List;
 import java.util.Map;
 
-public final class HATPtrStoreOp extends HATPtrOp {
+public final class HATPtrStoreOp extends HATPtrOp implements Precedence.Store {
 
     private static final String NAME = "HATPtrStoreOp";
 

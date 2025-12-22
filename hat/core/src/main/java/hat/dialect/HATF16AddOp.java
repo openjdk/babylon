@@ -29,10 +29,11 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import optkl.Precedence;
 
 import java.util.List;
 
-public final class HATF16AddOp extends HATF16BinaryOp {
+public final class HATF16AddOp extends HATF16BinaryOp implements Precedence.Additive {
 
     public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
         super(typeElement, reducedFloatType, BinaryOpEnum.ADD, references, f32, operands);

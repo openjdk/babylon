@@ -40,12 +40,14 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.LookupCarrier;
+import optkl.OpTkl;
 
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static optkl.OpTkl.transform;
 
 public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
 
@@ -90,7 +92,7 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var here = OpTk.CallSite.of(this.getClass(), "apply");
+        var here = OpTkl.CallSite.of(this.getClass(), "apply");
         before(here,funcOp);
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -102,7 +104,7 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
-           funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+           funcOp = transform(here, funcOp, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);

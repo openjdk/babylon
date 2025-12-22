@@ -42,6 +42,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static optkl.OpTkl.isAssignable;
+
 public record HATFinalDetector(LookupCarrier lookupCarrier){
     public Map<Op.Result, CoreOp.VarOp> applied(CoreOp.FuncOp funcOp) {
         final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
@@ -59,11 +61,11 @@ public record HATFinalDetector(LookupCarrier lookupCarrier){
                 TypeElement typeElement = varOp.resultType().valueType();
                 boolean isMappableType = false;
                 if (typeElement instanceof JavaType javaType) {
-                    isMappableType = OpTk.isAssignable(MethodHandles.lookup(), javaType, MappableIface.class);
+                    isMappableType = isAssignable(MethodHandles.lookup(), javaType, MappableIface.class);
                     if (!isMappableType) {
                         // Special types?
-                        isMappableType = OpTk.isAssignable(MethodHandles.lookup(), javaType, F16.class);
-                        isMappableType |= OpTk.isAssignable(MethodHandles.lookup(), javaType, BF16.class);
+                        isMappableType = isAssignable(MethodHandles.lookup(), javaType, F16.class);
+                        isMappableType |= isAssignable(MethodHandles.lookup(), javaType, BF16.class);
                     }
                 }
 
