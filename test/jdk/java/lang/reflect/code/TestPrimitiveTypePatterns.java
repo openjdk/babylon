@@ -174,7 +174,7 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testIdentityPrimitive() { // TODO test with int and float when other PR is merged
+    void testIdentityPrimitive() {
         FuncOp f = getFuncOp("identityPrimitive");
         System.out.println(f.toText());
 
