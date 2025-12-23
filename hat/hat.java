@@ -199,7 +199,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     final var textSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
                     final var sourceSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
 
-                    Stream.of("hat", "optkl", "core", "tools", "examples", "backends", "docs", "wraps")
+                    Stream.of("hat", "tests", "optkl", "core", "tools", "examples", "backends", "docs", "wraps")
                             .map(hat.rootPath()::resolve)
                             .forEach(dir -> {
                                 System.out.println("Checking " + dir);

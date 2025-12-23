@@ -83,7 +83,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 computeContext.computeEntrypoint().mh.invokeWithArguments(args);
             } catch (Throwable e) {
-                System.out.println(computeContext.computeEntrypoint().lowered.toText());
+              //  System.out.println(computeContext.computeEntrypoint().lowered.toText());
                 throw new RuntimeException(e);
             }
         }

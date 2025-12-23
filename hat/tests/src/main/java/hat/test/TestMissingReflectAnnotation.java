@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
+import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.Reflect;
