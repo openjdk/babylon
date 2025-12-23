@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static hat.optools.OpTk.isIfaceBufferMethod;
 import static optkl.OpTkl.methodOrThrow;
 
 public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
@@ -140,7 +141,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         block(block);
         colon().nl();
         ops.forEach(op -> {
-            if (op instanceof JavaOp.InvokeOp invoke && !OpTk.isIfaceBufferMethod(MethodHandles.lookup(),invoke)) {  // We should pass lookup down
+            if (op instanceof JavaOp.InvokeOp invoke && !isIfaceBufferMethod(MethodHandles.lookup(),invoke)) {  // We should pass lookup down
                 ptxIndent().convert(op).nl();
             } else {
                 ptxIndent().convert(op).semicolon().nl();

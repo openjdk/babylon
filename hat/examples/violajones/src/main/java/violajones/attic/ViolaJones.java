@@ -47,7 +47,6 @@ import java.util.Objects;
 public class ViolaJones {
 
     public static void main(String[] _args) throws IOException, ParserConfigurationException, SAXException {
-        //  Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend::isJava);
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());
 
 

@@ -25,10 +25,11 @@
 package optkl;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 public record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
-       public static ParamVar of(CoreOp.VarOp varOp) {
+    public static ParamVar of(CoreOp.VarOp varOp) {
         return !varOp.isUninitialized()
                 && varOp.operands().getFirst() instanceof Block.Parameter parameter
                 && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp ? new ParamVar(varOp, parameter, funcOp) : null;

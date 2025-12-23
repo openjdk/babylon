@@ -66,7 +66,7 @@ public class PrefixSum {
         }
 
         static SharedS32x256Array createLocal() {
-            return null;//schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST)); /// This is crazy? why
+            return null;
         }
     }
 

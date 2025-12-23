@@ -40,13 +40,15 @@ import java.util.stream.Stream;
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
-    public final List<BufferTagger.AccessType> bufferAccessList;
-    public boolean usesArrayView;
-
-    @Override
-    public MethodHandles.Lookup lookup() {
-        return computeContext.lookup();
+    public static class Traits{
+        public final List<BufferTagger.AccessType> bufferAccessList;
+        public boolean usesArrayView;
+        Traits(List<BufferTagger.AccessType> bufferAccessList){
+            this.bufferAccessList=bufferAccessList;
+        }
     }
+    final public Traits traits;
+
 
     public interface KernelReachable {
     }
@@ -79,18 +81,22 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, MethodRef methodRef, Method method, CoreOp.FuncOp funcOp) {
         super(computeCallGraph.computeContext, new KernelEntrypoint(null, methodRef, method, funcOp));
-        entrypoint.callGraph = this;
+        this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        bufferAccessList = BufferTagger.getAccessList(computeContext.lookup(), entrypoint.funcOp());
-        usesArrayView = false;
-        CoreOp.ModuleOp initialModuleOp = OpTk.createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp(), this);
-        HATDialectifyTier tier = new HATDialectifyTier(computeContext.accelerator());
+        this.traits = new Traits(BufferTagger.getAccessList(computeContext.lookup(), entrypoint.funcOp()));
+
+        HATDialectifyTier tier = new HATDialectifyTier(this);
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
+
         entrypoint.funcOp(initialEntrypointFuncOp);
         List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
+
+        CoreOp.ModuleOp initialModuleOp = createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp());
+
         initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
                 initialFuncOps.add( tier.apply(accessableFuncOp))
         );
+
         setModuleOp(CoreOp.module(initialFuncOps));
     }
 

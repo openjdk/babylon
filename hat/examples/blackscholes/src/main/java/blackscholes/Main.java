@@ -32,6 +32,8 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
+
+import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import optkl.ifacemapper.MappableIface.RO;
@@ -112,7 +114,7 @@ public class Main {
     public static void main(String[] args) {
         int size = 1024;
         rand = new Random();
-        var accelerator = new Accelerator(java.lang.invoke.MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var call = F32Array.create(accelerator, size);
         for (int i = 0; i < call.length(); i++) {
             call.array(i, i);

@@ -44,6 +44,7 @@ import hat.test.exceptions.HATAsserts;
 import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static optkl.ifacemapper.MappableIface.RO;
@@ -290,7 +291,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatrixMultiply1D() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -325,7 +326,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatrixMultiply1DWithFunctionCalls() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -361,7 +362,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatrixMultiply2D() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -396,7 +397,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatrixMultiply2DLI() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -431,7 +432,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatrixMultiply2DLIF16() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -473,7 +474,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatrixMultiply2DTiling() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -766,7 +767,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatMul2DRegisterTiling() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;
@@ -801,7 +802,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void testMatMul2DRegisterTilingVectorized() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;
@@ -1125,7 +1126,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void matrixMultiply2DRegisterTilingHalf() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;
@@ -1165,7 +1166,7 @@ public class TestMatMul {
     @HatTest
     @Reflect
     public void matrixMultiply2DRegisterTilingBFloat16() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;

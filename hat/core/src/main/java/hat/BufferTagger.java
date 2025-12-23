@@ -25,6 +25,7 @@
 
 package hat;
 
+import optkl.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -89,12 +90,12 @@ public class BufferTagger {
     // inlines functions found in FuncOp f until no more inline-able functions are present
     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup l, CoreOp.FuncOp f) {
 
-        var here = OpTkl.CallSite.of(BufferTagger.class, "inlineLoop");
+        var here = CallSite.of(BufferTagger.class, "inlineLoop");
         CoreOp.FuncOp ssaFunc = OpTkl.SSATransformLower(here, f); // do we need this nesting?
         AtomicBoolean changed = new AtomicBoolean(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
-            ssaFunc = OpTkl.transform(OpTkl.CallSite.of(BufferTagger.class, "inlineLoop"),ssaFunc,(bb, op) -> {
+            ssaFunc = OpTkl.transform(CallSite.of(BufferTagger.class, "inlineLoop"),ssaFunc,(bb, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
                     MethodRef methodRef = iop.invokeDescriptor();
                     Method invokeOpCalledMethod;
@@ -128,7 +129,7 @@ public class BufferTagger {
     // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup l, CoreOp.FuncOp f) {
         // build blockParams so that we can map params to "root" params later
-        var here = OpTkl.CallSite.of(BufferTagger.class, "buildAccessMap");
+        var here = CallSite.of(BufferTagger.class, "buildAccessMap");
         OpTkl.elements(here, f).filter(elem -> elem instanceof Block)
                 .forEach(b -> blockParams.put((Block) b, ((Block) b).parameters()));
 

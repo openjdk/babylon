@@ -24,18 +24,16 @@
  */
 package hat.callgraph;
 
-import hat.Accelerator;
 import hat.ComputeContext;
+import hat.Config;
 import hat.KernelContext;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
 import hat.optools.OpTk;
-import optkl.StreamMutable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -52,9 +50,8 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     ComputeContextMethodCall computeContextMethodCall;
 
-    @Override
-    public MethodHandles.Lookup lookup() {
-        return computeContext.lookup();
+    public Config config() {
+        return computeContext.config();
     }
 
     public interface ComputeReachable {
@@ -96,32 +93,37 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
         }
     }
 
-    static boolean isKernelDispatch(MethodHandles.Lookup lookup,Method calledMethod, CoreOp.FuncOp fow) {
+    static boolean isValidKernelDispatch(MethodHandles.Lookup lookup, Method calledMethod, CoreOp.FuncOp fow) {
+        // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
+        // We also check that other args are primitive or ifacebuffers  (or atomics?)...
+        class Traits{
+            boolean firstArgKernelContext = false;
+            boolean atLeastOneIfaceBufferParam=false;
+            boolean hasOnlyPrimitiveAndIfaceBufferParams=true;
+            boolean ok(){
+                return firstArgKernelContext &&atLeastOneIfaceBufferParam&&hasOnlyPrimitiveAndIfaceBufferParams;
+            }
+        }
+        var traits = new Traits();
         if (fow.body().yieldType().equals(JavaType.VOID)
                 && calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes
                 && parameterTypes.length > 1) {
-                // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
-                // We also check that other args are primitive or ifacebuffers  (or atomics?)...
-                var firstArgIsKid = StreamMutable.of(false);
-                var atLeastOneIfaceBufferParam = StreamMutable.of(false);
-                var hasOnlyPrimitiveAndIfaceBufferParams = StreamMutable.of(true);
                 FuncOpParams paramTable = new FuncOpParams(fow);
                 paramTable.stream().forEach(paramInfo -> {
                     if (paramInfo.idx == 0) {
-                        firstArgIsKid.set(parameterTypes[0].isAssignableFrom(KernelContext.class));
+                        traits.firstArgKernelContext = parameterTypes[0].isAssignableFrom(KernelContext.class);
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
                         } else if (isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
-                            atLeastOneIfaceBufferParam.set(true);
+                            traits.atLeastOneIfaceBufferParam= true;
                         } else {
-                            hasOnlyPrimitiveAndIfaceBufferParams.set(false);
+                            traits.hasOnlyPrimitiveAndIfaceBufferParams=false;
                         }
                     }
                 });
-                return true;
             }
-            return false;
+            return traits.ok();
     }
 
     public final Map<MethodRef, KernelCallGraph> kernelCallGraphMap = new HashMap<>();
@@ -130,15 +132,14 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp funcOp) {
         super(computeContext, new ComputeEntrypoint(null, method, funcOp));
         entrypoint.callGraph = this;
-        setModuleOp(OpTk.createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp(), this));
-        //close(entrypoint);
+        setModuleOp(createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp()));
     }
 
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
         if (entrypoint.method.getDeclaringClass().equals(javaRefClassOrThrow(computeContext.lookup(),invokeOp))
-                && isKernelDispatch(computeContext.lookup(),method, f)) {
+                && isValidKernelDispatch(computeContext.lookup(),method, f)) {
             // TODO this side effect is not good.  we should do this when we construct !
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
                     new KernelCallGraph(this, methodRef, method, f)

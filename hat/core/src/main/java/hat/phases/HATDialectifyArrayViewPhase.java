@@ -24,10 +24,10 @@
  */
 package hat.phases;
 
+import hat.callgraph.KernelCallGraph;
 import hat.device.DeviceType;
 import hat.dialect.*;
-import optkl.LookupCarrier;
-import optkl.OpTkl;
+import optkl.CallSite;
 import optkl.ifacemapper.MappableIface;
 import hat.types._V;
 import jdk.incubator.code.Block;
@@ -45,11 +45,11 @@ import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.elements;
 import static optkl.OpTkl.isAssignable;
 
-public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implements HATDialect {
+public record HATDialectifyArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATDialectPhase {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp entry) {
-        MethodHandles.Lookup l = lookupCarrier.lookup();
+        MethodHandles.Lookup l = lookup();
         if (!isArrayView(entry)) return entry;
 
         Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
@@ -311,7 +311,7 @@ public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implement
         if (type instanceof ArrayType at) type = at.componentType();
         if (type instanceof ClassType ct) {
             try {
-                return _V.class.isAssignableFrom((Class<?>) ct.resolve(lookupCarrier.lookup()));
+                return _V.class.isAssignableFrom((Class<?>) ct.resolve(lookup()));
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
@@ -366,13 +366,13 @@ public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implement
     }
 
     public boolean isArrayView(CoreOp.FuncOp entry) {
-        var here = OpTkl.CallSite.of(HATDialectifyArrayViewPhase.class, "isArrayView");
+        var here = CallSite.of(HATDialectifyArrayViewPhase.class, "isArrayView");
         return elements(here, entry).anyMatch((element) -> (
                 element instanceof JavaOp.InvokeOp iop &&
                         iop.resultType() instanceof ArrayType &&
                         iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        (isAssignable(lookupCarrier.lookup(), javaType, MappableIface.class)
-                                || isAssignable(lookupCarrier.lookup(), javaType, DeviceType.class))));
+                        (isAssignable(lookup(), javaType, MappableIface.class)
+                                || isAssignable(lookup(), javaType, DeviceType.class))));
     }
 
     public Class<?> typeElementToClass(TypeElement type) {
@@ -392,7 +392,7 @@ public record HATDialectifyArrayViewPhase(LookupCarrier lookupCarrier) implement
             if (type instanceof PrimitiveType primitiveType) {
                 return PrimitiveHolder.primitiveToClass.get(primitiveType);
             } else if (type instanceof ClassType classType) {
-                return ((Class<?>) classType.resolve(lookupCarrier.lookup()));
+                return ((Class<?>) classType.resolve(lookup()));
             } else {
                 throw new IllegalArgumentException("given type cannot be converted to class");
             }

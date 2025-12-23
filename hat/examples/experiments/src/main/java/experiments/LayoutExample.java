@@ -25,7 +25,7 @@
 package experiments;
 
 
-import optkl.OpTkl;
+import optkl.CallSite;
 import optkl.ifacemapper.Schema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -113,7 +113,7 @@ public class LayoutExample {
 
         Method m = om.orElseThrow();
         CoreOp.FuncOp f= Op.ofMethod(m).orElseThrow();
-        var here = OpTkl.CallSite.of(LayoutExample.class, "main");
+        var here = CallSite.of(LayoutExample.class, "main");
         f = SSATransform(here, f);
         System.out.println(f.toText());
         FunctionType functionType = transformStructClassToPtr(lookup, f);

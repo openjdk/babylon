@@ -28,12 +28,13 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
+import optkl.StatementLikeOp;
 import optkl.VarLikeOp;
 
 import java.util.List;
 
 
-public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp permits HATLocalVarOp, HATPrivateVarOp, HATPrivateInitVarOp  {
+public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp permits HATLocalVarOp, HATPrivateVarOp, HATPrivateInitVarOp  {
 
     private final String varName;
 

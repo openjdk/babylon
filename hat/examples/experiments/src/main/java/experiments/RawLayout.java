@@ -34,9 +34,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
-import hat.optools.OpTk;
 import jdk.incubator.code.*;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Reflect;
@@ -45,7 +43,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
-import optkl.OpTkl;
+import optkl.CallSite;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -126,7 +124,7 @@ public class RawLayout {
     public static void main(String[] args) {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         CoreOp.FuncOp m = getFuncOp("m");
-        var here = OpTkl.CallSite.of(RawLayout.class, "main");
+        var here = CallSite.of(RawLayout.class, "main");
         m = SSATransform(here, m);
         System.out.println(m.toText());
 

@@ -36,7 +36,6 @@ import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
 import optkl.FuncOpParams;
-import hat.optools.OpTk;
 import optkl.StreamMutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -384,7 +383,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
               braceNlIndented(_ ->
                 nlSeparated(
-                        OpTk.statements(funcOp.bodies().getFirst().entryBlock()),
+                        OpTkl.statements(funcOp.bodies().getFirst().entryBlock()),
                         statement->statement(buildContext,statement)
                 )
               );
@@ -401,7 +400,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     param -> declareParam(buildContext,param))
                 )
                 .braceNlIndented(_ -> nlSeparated(
-                    OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                    OpTkl.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
                     statement ->statement(buildContext,statement)
                 )
             )

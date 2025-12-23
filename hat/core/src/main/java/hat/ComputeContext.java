@@ -85,6 +85,10 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
         return computeCallGraph.entrypoint;
     }
 
+    public Config config() {
+        return accelerator().config();
+    }
+
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");//, ESCAPE("Escape");
         final public MethodRef pre;

@@ -30,11 +30,12 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
+import optkl.StatementLikeOp;
 
 import java.util.List;
 import java.util.Map;
 
-public final class HATF16VarOp extends HATF16Op {
+public final class HATF16VarOp extends HATF16Op implements StatementLikeOp {
 
     private final VarType typeElement;
     private final ReducedFloatType reducedFloatType;

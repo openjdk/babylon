@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
@@ -35,7 +36,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.LookupCarrier;
+import optkl.CallSite;
 import optkl.OpTkl;
 
 import java.util.List;
@@ -47,7 +48,7 @@ import java.util.stream.Stream;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
-public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implements HATDialect {
+public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATDialectPhase {
     static Pattern xyzw = Pattern.compile("[xyzw]");
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
@@ -91,7 +92,7 @@ public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implem
     //  %16 : java.type:"hat.types.Float4" = var.load %15 @loc="63:28";
     //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.types.Float4::x():float";
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "vloadSelectPhase");
+        var here = CallSite.of(this.getClass(), "vloadSelectPhase");
         before(here, funcOp);
         Stream<CodeElement<?, ?>> vectorSelectOps = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -145,7 +146,7 @@ public record HATDialectifyVectorSelectPhase(LookupCarrier lookupCarrier) implem
     // %21 : java.type:"float" = var.load %19 @loc="64:18";
     // invoke %20 %21 @loc="64:13" @java.ref:"hat.types.Float4::x(float):void";
     private CoreOp.FuncOp vstoreSelectPhase(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "vstoreSelectPhase");
+        var here = CallSite.of(this.getClass(), "vstoreSelectPhase");
         before(here, funcOp);
         //TODO is this side table safe?
         Stream<CodeElement<?, ?>> float4NodesInvolved = OpTkl.elements(here, funcOp)

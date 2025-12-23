@@ -71,7 +71,7 @@ public class TestArrayView {
     @Reflect
     public static void testSquare() {
 
-        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
@@ -104,7 +104,7 @@ public class TestArrayView {
     @HatTest
     @Reflect
     public static void testSquareNoVarOp() {
-        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
@@ -309,7 +309,7 @@ public class TestArrayView {
     @HatTest
     @Reflect
     public static void testLife() {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup());
 
         // int w = 20;
         // int h = 20;

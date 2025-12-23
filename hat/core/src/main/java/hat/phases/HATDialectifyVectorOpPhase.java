@@ -24,7 +24,7 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
+import hat.callgraph.KernelCallGraph;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
@@ -39,7 +39,6 @@ import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATVectorBinaryOp;
-import hat.optools.OpTk;
 import hat.types._V;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeContext;
@@ -50,8 +49,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.LookupCarrier;
-import optkl.OpTkl;
+import optkl.CallSite;
 
 import java.util.HashMap;
 import java.util.List;
@@ -70,23 +68,19 @@ import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
-public abstract class HATDialectifyVectorOpPhase implements HATDialect {
+public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPhase {
+    private final KernelCallGraph kernelCallGraph;
+@Override public KernelCallGraph kernelCallGraph(){
+    return kernelCallGraph;
+}
 
-    protected final LookupCarrier lookupCarrier;
-
-    @Override
-    public LookupCarrier lookupCarrier() {
-        return this.lookupCarrier;
-    }
 
     private final OpView vectorOperation;
 
-    public HATDialectifyVectorOpPhase(LookupCarrier lookupCarrier, OpView vectorOperation) {
-        this.lookupCarrier = lookupCarrier;
+    public HATDialectifyVectorOpPhase(KernelCallGraph kernelCallGraph, OpView vectorOperation) {
+        this.kernelCallGraph = kernelCallGraph;
         this.vectorOperation = vectorOperation;
     }
-
-
 
     public enum OpView {
         FLOAT4_LOAD("float4View"),
@@ -106,7 +100,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
            return (invokeOp.resultType() instanceof JavaType jt
-                   && isAssignable(lookupCarrier.lookup(), jt, _V.class)
+                   && isAssignable(lookup(), jt, _V.class)
                    && isMethod(invokeOp, n->n.equals(vectorOperation.methodName))
            );
     }
@@ -210,7 +204,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     }
 
     private CoreOp.FuncOp dialectifyVectorLoad(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyVectorLoad");
+        var here = CallSite.of(this.getClass(), "dialectifyVectorLoad");
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
         before(here, funcOp);
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
@@ -261,7 +255,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     }
 
     private CoreOp.FuncOp dialectifyVectorOf(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyVectorOf");
+        var here = CallSite.of(this.getClass(), "dialectifyVectorOf");
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
         before(here, funcOp);
         Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
@@ -299,7 +293,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     }
 
     private CoreOp.FuncOp dialectifyVectorBinaryOps(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyVectorBinaryOps");
+        var here = CallSite.of(this.getClass(), "dialectifyVectorBinaryOps");
         before(here, funcOp);
         Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation = new HashMap<>();
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
@@ -348,7 +342,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     }
 
     private CoreOp.FuncOp dialectifyMutableOf(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyMutableOf");
+        var here = CallSite.of(this.getClass(), "dialectifyMutableOf");
         before(here, funcOp);
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
@@ -386,7 +380,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     }
 
     private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "dialectifyBinaryWithConcatenation");
+        var here = CallSite.of(this.getClass(), "dialectifyBinaryWithConcatenation");
         before(here, funcOp);
         Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation = new HashMap<>();
         Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
@@ -447,59 +441,59 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         return funcOp;
     }
 
-    public static class AddPhase extends HATDialectifyVectorOpPhase {
+    public static final class AddPhase extends HATDialectifyVectorOpPhase {
 
-        public AddPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.ADD);
+        public AddPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.ADD);
         }
     }
 
-    public static class DivPhase extends HATDialectifyVectorOpPhase {
+    public static final class DivPhase extends HATDialectifyVectorOpPhase {
 
-        public DivPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.DIV);
+        public DivPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.DIV);
         }
     }
 
-    public static class MakeMutable extends HATDialectifyVectorOpPhase {
+    public static final class MakeMutable extends HATDialectifyVectorOpPhase {
 
-        public MakeMutable(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.MAKE_MUTABLE);
+        public MakeMutable(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.MAKE_MUTABLE);
         }
     }
 
-    public static class Float4LoadPhase extends HATDialectifyVectorOpPhase {
+    public static final class Float4LoadPhase extends HATDialectifyVectorOpPhase {
 
-        public Float4LoadPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.FLOAT4_LOAD);
+        public Float4LoadPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.FLOAT4_LOAD);
         }
     }
 
-    public static class Float2LoadPhase extends HATDialectifyVectorOpPhase {
+    public static final class Float2LoadPhase extends HATDialectifyVectorOpPhase {
 
-        public Float2LoadPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.FLOAT2_LOAD);
+        public Float2LoadPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.FLOAT2_LOAD);
         }
     }
 
-    public static class Float4OfPhase extends HATDialectifyVectorOpPhase {
+    public static final class Float4OfPhase extends HATDialectifyVectorOpPhase {
 
-        public Float4OfPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.OF);
+        public Float4OfPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.OF);
         }
     }
 
-    public static class MulPhase extends HATDialectifyVectorOpPhase {
+    public static final class MulPhase extends HATDialectifyVectorOpPhase {
 
-        public MulPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.MUL);
+        public MulPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.MUL);
         }
     }
 
-    public static class SubPhase extends HATDialectifyVectorOpPhase {
+    public static final class SubPhase extends HATDialectifyVectorOpPhase {
 
-        public SubPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, OpView.SUB);
+        public SubPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, OpView.SUB);
         }
     }
 }
