@@ -67,12 +67,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        var here = CallSite.of(FFIBackend.class, "dispatchCompute");
         if (computeContext.computeEntrypoint().lowered == null) {
             computeContext.computeEntrypoint().lowered =
-                    lower(here, computeContext.computeEntrypoint().funcOp());
+                    lower(CallSite.of(FFIBackend.class), computeContext.computeEntrypoint().funcOp());
         }
-
         backendBridge.computeStart();
         if (config().interpret()) {
             Interpreter.invoke(computeContext.lookup(), computeContext.computeEntrypoint().lowered, args);
@@ -83,7 +81,6 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 computeContext.computeEntrypoint().mh.invokeWithArguments(args);
             } catch (Throwable e) {
-              //  System.out.println(computeContext.computeEntrypoint().lowered.toText());
                 throw new RuntimeException(e);
             }
         }
@@ -138,21 +135,20 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
-            var lookup = computeMethod.callGraph.lookup();
             var paramTable = new FuncOpParams(computeMethod.funcOp());
 
             transformedFuncOp = transform(here, computeMethod.funcOp(),(bldr, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
-                    if (isIfaceBufferMethod(lookup, invokeOp)&& javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
+                    if (isIfaceBufferMethod(lookup(), invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
                         Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));                  // cc->preMutate(iface);
                         bldr.op(invokeOp);                                              // iface.v(newV);
                         bldr.op(JavaOp.invoke(MUTATE.post, cc, iface));                 // cc->postMutate(iface)
-                    } else if (isIfaceBufferMethod(lookup, invokeOp)
+                    } else if (isIfaceBufferMethod(lookup(), invokeOp)
                             && (
                                     (javaReturnType(invokeOp) instanceof ClassType returnClassType)
-                                            && classTypeToTypeOrThrow(lookup, returnClassType) instanceof Class<?> type
+                                            && classTypeToTypeOrThrow(lookup(), returnClassType) instanceof Class<?> type
                                             && Buffer.class.isAssignableFrom(type)
                                 ||
                                             (javaReturnType(invokeOp) instanceof PrimitiveType primitiveType)
@@ -163,14 +159,16 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));                 // cc->preAccess(iface);
                         bldr.op(invokeOp);                                             // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface));                // cc->postAccess(iface)
-                    } else if (isComputeContextMethod(lookup,invokeOp) || OpTk.isKernelContextInvokeOp(lookup,invokeOp,OpTkl.AnyInvoke)) { //dispatchKernel
+                    } else if (isComputeContextMethod(lookup(),invokeOp) || OpTk.isKernelContextInvokeOp(lookup(),invokeOp,OpTkl.AnyInvoke)) { //dispatchKernel
                         bldr.op(invokeOp);
                     } else {
                         List<Value> list = invokeOp.operands();
                         if (!list.isEmpty()) {
-                            System.out.println("Escape! with args " +invokeOp.toText());
+                          //  System.out.println("Escape! with args " +invokeOp.toText());
                             // We need to check
-                            Annotation[][] parameterAnnotations = methodOrThrow(lookup, invokeOp).getParameterAnnotations();
+                            var m = methodOrThrow(lookup(), invokeOp);
+
+                            Annotation[][] parameterAnnotations = m.getParameterAnnotations();
                             boolean isVirtual = list.size() > parameterAnnotations.length;
                             List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
                             for (int i = isVirtual ? 1 : 0; i < list.size(); i++) {
@@ -179,7 +177,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                         list.get(i)));
                             }
                             typeAndAccesses.stream()
-                                    .filter(typeAndAccess -> typeAndAccess.isIface(lookup))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
+                                    .filter(typeAndAccess -> typeAndAccess.isIface(lookup()))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
                                     .forEach(typeAndAccess -> {
                                         if (typeAndAccess.ro()) {
                                             bldr.op(JavaOp.invoke(ACCESS.pre, cc, bldr.context().getValue(typeAndAccess.value)));
@@ -189,7 +187,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                     });
                             bldr.op(invokeOp);
                             typeAndAccesses.stream()
-                                    .filter(typeAndAccess -> isAssignable(lookup, typeAndAccess.javaType, MappableIface.class))
+                                    .filter(typeAndAccess -> isAssignable(lookup(), typeAndAccess.javaType, MappableIface.class))
                                     .forEach(typeAndAccess -> {
                                         if (typeAndAccess.ro()) {
                                             bldr.op(JavaOp.invoke(ACCESS.post, cc, bldr.context().getValue(typeAndAccess.value)));
