@@ -41,6 +41,12 @@ public class HATAsserts {
         }
     }
 
+    public static void assertEquals(String expected, String actual) {
+        if (!expected.equals(actual)) {
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
+        }
+    }
+
     public static void assertEquals(long expected, long actual) {
         if (expected != actual) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);

@@ -83,5 +83,4 @@ public  class C99HATConfigBuilder extends C99HATCodeBuilder<C99HATConfigBuilder>
         System.out.println(c);
         System.exit(1);
     }
-
 }

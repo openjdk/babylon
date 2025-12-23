@@ -54,10 +54,12 @@ import static optkl.OpTkl.getStaticFinalPrimitiveValue;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isPrimitiveResult;
 
-public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T>implements BabylonKernelOpBuilder<T>  {
+public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonKernelOpBuilder<T>  {
+
     public T HAT_KERNEL() {
         return keyword("HAT_KERNEL").space();
     }
+
     public T HAT_FUNC() {
         return keyword("HAT_FUNC").space();
     }
@@ -65,9 +67,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T HAT_GLOBAL_MEM() {
         return keyword("HAT_GLOBAL_MEM").space();
     }
+
     public T HAT_LOCAL_MEM() {
         return keyword("HAT_LOCAL_MEM").space();
     }
+
     public T HAT_BARRIER() {
         return keyword("HAT_BARRIER").space();
     }
@@ -75,21 +79,27 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T HAT_GIX(){
         return identifier("HAT_GIX");
     }
+
     public T HAT_GIY(){
         return identifier("HAT_GIY");
     }
+
     public T HAT_GIZ(){
         return identifier("HAT_GIZ");
     }
+
     public T HAT_GSX(){
         return identifier("HAT_GSX");
     }
+
     public T HAT_GSY(){
         return identifier("HAT_GSY");
     }
+
     public T HAT_GSZ(){
         return identifier("HAT_GSZ");
     }
+
     public T HAT_GS(int id) {
         return (switch (id) {
             case 0 -> HAT_GSX();
@@ -98,6 +108,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             default -> throw new RuntimeException("globalSize id = " + id);
         });
     }
+
     public T HAT_GI(int id) {
         switch (id) {
             case 0 -> HAT_GIX();
@@ -107,24 +118,31 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
     public T HAT_LIX(){
         return identifier("HAT_LIX");
     }
+
     public T HAT_LIY(){
         return identifier("HAT_LIY");
     }
+
     public T HAT_LIZ(){
         return identifier("HAT_LIZ");
     }
+
     public T HAT_LSX(){
         return identifier("HAT_LSX");
     }
+
     public T HAT_LSY(){
         return identifier("HAT_LSY");
     }
+
     public T HAT_LSZ(){
         return identifier("HAT_LSZ");
     }
+
     public T HAT_LI(int id) {
         return (switch (id) {
             case 0 -> HAT_LIX();
@@ -134,8 +152,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         });
     }
 
-
-
     public T HAT_LS(int id) {
         return (switch (id) {
             case 0 -> HAT_LSX();
@@ -144,12 +160,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             default -> throw new RuntimeException("localSize id = " + id);
         });
     }
+
     public T HAT_BIX(){
         return identifier("HAT_BIX");
     }
+
     public T HAT_BIY(){
         return identifier("HAT_BIY");
     }
+
     public T HAT_BIZ(){
         return identifier("HAT_BIZ");
     }
@@ -162,9 +181,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             default -> throw new RuntimeException("blockId id = " + id);
         });
     }
-
-
-
 
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return HAT_KERNEL().voidType().space().funcName(funcOp);
@@ -287,7 +303,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-     public record LocalArrayDeclaration(ClassType classType, HATMemoryVarOp varOp) {}
+    public record LocalArrayDeclaration(ClassType classType, HATMemoryVarOp varOp) {}
 
 
     public final T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
@@ -306,7 +322,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_BARRIER();
     }
 
-
     @Override
     public final T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp hatLocalVarOp) {
         return   localDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
@@ -316,6 +331,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp) {
         return privateDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
     }
+
     public abstract T defines();
 
     public T types() {
@@ -324,6 +340,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .typedefKeyword().space().s08Type("boolean").semicolonNl()
                 .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl();
     }
+
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
@@ -353,6 +370,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
     public T kernelMethod(ScopedCodeBuilderContext buildContext,CoreOp.FuncOp funcOp) {
           buildContext.funcScope(funcOp, () -> {
               nl();
@@ -391,7 +409,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-
     @Override
     public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
         return HAT_GI(globalThreadIdOp.getDimension());
@@ -417,11 +434,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_BI(hatBlockThreadIdOp.getDimension());
     }
 
-
     @Override
     public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         return varName(hatVectorVarLoadOp);
     }
+
     public final T f16Type() {
         return suffix_t(F16.class);
     }
@@ -429,6 +446,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T bf16Type() {
         return suffix_t(BF16.class);
     }
+
     @Override
     public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
         ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
@@ -448,6 +466,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     private boolean isMixedSecondOperand(byte f32Mixed) {
         return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.LAST_OP;
     }
+
     public final T builtin_float2bfloat16() {
         return identifier("floatTobfloat16");
     }
@@ -455,10 +474,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T builtin_bfloat16ToFloat() {
         return identifier("bfloat16Tofloat");
     }
+
     private T binaryOperationsForBfloat16(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatf16BinaryOp) {
-
         byte f32Mixed = hatf16BinaryOp.getF32();
-
         paren(_-> bf16Type());
         brace(_-> {
             paren(_-> {
@@ -590,7 +608,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     T ptrAccess(ScopedCodeBuilderContext builderContext, HATPtrOp hatPtrOp) {
-
         identifier(hatPtrName(hatPtrOp));
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -675,5 +692,4 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         _ ->  brace( _ -> identifier(parameterName)).semicolonNl()
                                 .returnKeyword(_ ->identifier("b").dot().identifier("s").sbrace(_ -> intConstOne()))));
     }
-
 }
