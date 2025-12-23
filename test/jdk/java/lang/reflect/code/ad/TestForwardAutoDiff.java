@@ -42,9 +42,6 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @enablePreview
- * @library ../
- * @run junit TestForwardAutoDiff
- * @run main Unreflect TestForwardAutoDiff
  * @run junit TestForwardAutoDiff
  * @run junit/othervm -Dbabylon.ssa=cytron TestForwardAutoDiff
  */

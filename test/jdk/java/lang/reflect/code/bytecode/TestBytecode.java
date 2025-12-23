@@ -55,6 +55,9 @@ import java.util.stream.Stream;
  * @modules jdk.incubator.code
  * @modules java.base/jdk.internal.classfile.components
  * @enablePreview
+ * @library ../
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
+ * @run main Unreflect TestBytecode
  * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
  */
 
