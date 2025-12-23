@@ -24,18 +24,22 @@
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
-import java.lang.classfile.ClassTransform;
-import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.MethodTransform;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.instruction.InvokeDynamicInstruction;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
+import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicCallSiteDesc;
+import java.lang.constant.MethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.ConstantCallSite;
+import java.lang.invoke.LambdaConversionException;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.AccessFlag;
@@ -43,17 +47,23 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.*;
+import java.util.stream.Stream;
+import jdk.incubator.code.CodeTransformer;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 public final class Unreflect {
 
     static final ClassDesc CD_Reflect = Reflect.class.describeConstable().get();
     static final ClassDesc CD_Unreflect = Unreflect.class.describeConstable().get();
+    static final ClassDesc CD_ReflectableLambdaMetafactory = ReflectableLambdaMetafactory.class.describeConstable().get();
 
     static boolean isReflective(MethodModel mm) {
         return mm.findAttribute(Attributes.runtimeVisibleAnnotations())
@@ -64,31 +74,52 @@ public final class Unreflect {
     static byte[] transform(byte[] classBytes) {
         ClassModel clm = ClassFile.of().parse(classBytes);
         return ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(clm, (clb, cle) -> {
-            if (cle instanceof MethodModel mm && isReflective(mm)) {
-                clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
-                        .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
-                            MethodTypeDesc mts = mm.methodTypeSymbol();
-                            boolean hasReceiver = !mm.flags().has(AccessFlag.STATIC);
-                            if (hasReceiver) {
-                                cob.aload(cob.receiverSlot());
-                            }
-                            for (int i = 0; i < mts.parameterCount(); i++) {
-                                cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
-                            }
+            if (cle instanceof MethodModel mm) {
+                if (isReflective(mm)) {
+                    clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
+                            .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
+                                MethodTypeDesc mts = mm.methodTypeSymbol();
+                                boolean hasReceiver = !mm.flags().has(AccessFlag.STATIC);
+                                if (hasReceiver) {
+                                    cob.aload(cob.receiverSlot());
+                                }
+                                for (int i = 0; i < mts.parameterCount(); i++) {
+                                    cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
+                                }
+                                cob.invokedynamic(DynamicCallSiteDesc.of(
+                                        ConstantDescs.ofCallsiteBootstrap(CD_Unreflect, "unreflect", ConstantDescs.CD_CallSite),
+                                        mm.methodName().stringValue(),
+                                        hasReceiver ? mts.insertParameterTypes(0, clm.thisClass().asSymbol()) : mts));
+                                cob.return_(TypeKind.from(mts.returnType()));
+                            }))));
+                } else {
+                    clb.transformMethod(mm, MethodTransform.transformingCode((cob, coe) -> {
+                        DirectMethodHandleDesc bsm;
+                        if (coe instanceof InvokeDynamicInstruction i
+                                && (bsm = i.bootstrapMethod()).owner().equals(CD_ReflectableLambdaMetafactory)) {
+                            // redirect metafactory and altMetafactory
                             cob.invokedynamic(DynamicCallSiteDesc.of(
-                                    ConstantDescs.ofCallsiteBootstrap(CD_Unreflect, "unreflect", ConstantDescs.CD_CallSite),
-                                    mm.methodName().stringValue(),
-                                    hasReceiver ? mts.insertParameterTypes(0, clm.thisClass().asSymbol()) : mts));
-                            cob.return_(TypeKind.from(mts.returnType()));
-                        }))));
+                                    MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                                              CD_Unreflect,
+                                                              bsm.methodName(),
+                                                              bsm.invocationType()),
+                                    i.name().stringValue(),
+                                    MethodTypeDesc.ofDescriptor(i.type().stringValue()),
+                                    i.bootstrapArgs().toArray(ConstantDesc[]::new)));
+                        } else {
+                            cob.with(coe);
+                        }
+                    }));
+                }
             } else {
                 clb.with(cle);
             }
         });
     }
 
-    public static CallSite unreflect(MethodHandles.Lookup caller, String methodName, MethodType methodType)
-            throws NoSuchMethodException {
+    public static CallSite unreflect(MethodHandles.Lookup caller,
+                                     String methodName,
+                                     MethodType methodType) throws NoSuchMethodException {
         for (Method m : caller.lookupClass().getDeclaredMethods()) {
             int firstParam = (m.getModifiers() & Modifier.STATIC) == 0 ? 1 : 0;
             if (m.getName().equals(methodName)
@@ -100,6 +131,65 @@ public final class Unreflect {
             }
         }
         throw new NoSuchMethodException(caller.lookupClass().getName() + "." + methodName + methodType);
+    }
+
+    public static CallSite metafactory(MethodHandles.Lookup caller,
+                                       String interfaceMethodName,
+                                       MethodType factoryType,
+                                       MethodType interfaceMethodType,
+                                       MethodHandle implementation,
+                                       MethodType dynamicMethodType) throws LambdaConversionException {
+        return ReflectableLambdaMetafactory.metafactory(caller,
+                                                        interfaceMethodName,
+                                                        factoryType,
+                                                        interfaceMethodType,
+                                                        unreflectImplementation(caller, interfaceMethodName),
+                                                        dynamicMethodType);
+    }
+
+    public static CallSite altMetafactory(MethodHandles.Lookup caller,
+                                          String interfaceMethodName,
+                                          MethodType factoryType,
+                                          Object... args) throws LambdaConversionException {
+        args[1] = unreflectImplementation(caller, interfaceMethodName);
+        return ReflectableLambdaMetafactory.altMetafactory(caller,
+                                                           interfaceMethodName,
+                                                           factoryType,
+                                                           args);
+    }
+
+    static MethodHandle unreflectImplementation(MethodHandles.Lookup caller, String interfaceMethodName)
+            throws LambdaConversionException {
+        try {
+            MethodHandle opHandle = caller.findStatic(caller.lookupClass(),
+                                                      interfaceMethodName.split("=")[1],
+                                                      MethodType.methodType(Op.class));
+            return BytecodeGenerator.generate(caller, unquote((CoreOp.FuncOp)opHandle.invoke()));
+        } catch (Throwable t) {
+            throw new LambdaConversionException(t);
+        }
+    }
+
+    // flat QuotedOp and LambdaOp
+    static CoreOp.FuncOp unquote(CoreOp.FuncOp funcOp) {
+        int capturedValues = funcOp.parameters().size();
+        List<Op> ops = funcOp.body().entryBlock().ops();
+        JavaOp.LambdaOp lambda = (JavaOp.LambdaOp)((CoreOp.QuotedOp)ops.get(ops.size() - 2)).quotedOp();
+        return CoreOp.func(funcOp.funcName(), CoreType.functionType(
+                lambda.body().yieldType(),
+                Stream.of(funcOp.invokableType().parameterTypes(),
+                          lambda.invokableType().parameterTypes()).flatMap(List::stream).toList())).body(bb -> {
+            bb.context().mapBlock(funcOp.body().entryBlock(), bb.entryBlock());
+            bb.context().mapValues(funcOp.parameters(), bb.parameters().subList(0, capturedValues));
+            for (int i = 0; i < ops.size() - 2; i++) {
+                Op o = ops.get(i);
+                bb.context().mapValue(o.result(), bb.op(o));
+            }
+            bb.body(lambda.body(),
+                    bb.parameters().subList(capturedValues, bb.parameters().size()),
+                    bb.context(),
+                    CodeTransformer.COPYING_TRANSFORMER);
+        });
     }
 
     public static void main(String[] args) throws Exception {
