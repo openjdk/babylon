@@ -30,6 +30,7 @@ import hat.Config;
 import hat.KernelContext;
 import hat.types.BF16;
 import hat.types.F16;
+import optkl.CallSite;
 import optkl.OpTkl;
 import optkl.annotations.Kernel;
 import optkl.annotations.Preformatted;
@@ -46,7 +47,6 @@ import optkl.ifacemapper.BufferState;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
-import hat.optools.OpTk;
 import hat.phases.HATFinalDetector;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -206,7 +206,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
-        var here = OpTkl.CallSite.of(C99FFIBackend.class, "createCode");
+        var here = CallSite.of(C99FFIBackend.class, "createCode");
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -265,7 +265,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             for (TypeElement typeElement : localIFaceList) {
                 try {
-                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.lookup());
+                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.lookup());
                     Field schemaField = clazz.getDeclaredField("schema");
                     schemaField.setAccessible(true);
                     var schema = (DeviceSchema<?>)schemaField.get(schemaField);
@@ -284,7 +284,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
 
             ScopedCodeBuilderContext buildContext =
-                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.lookup(),
+                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.lookup(),
                             kernelCallGraph.entrypoint.funcOp());
 
             // Sorting by rank ensures we don't need forward declarations

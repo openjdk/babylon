@@ -31,7 +31,4 @@ import java.util.List;
 
 public interface Entrypoint {
      Method getMethod();
-     //default Annotation[][] getParamaterAnnotations(){
-        // return getMethod().getParameterAnnotations();
-    // }
 }

@@ -88,7 +88,7 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
                     )
             );
             braceNlIndented(_ -> nlSeparated(
-                    OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                    OpTkl.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
                     statement -> statement(buildContext, statement)
                     )
             );

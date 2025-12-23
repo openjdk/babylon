@@ -31,7 +31,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.OpTkl;
+import optkl.CallSite;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
@@ -207,7 +207,7 @@ public class Trxfmr {
 
     public final Set<Op> selected = new LinkedHashSet<>();
     public final Map<Op, Op> opmap = new HashMap<>();
-    public final OpTkl.CallSite callSite;
+    public final CallSite callSite;
     public CoreOp.FuncOp funcOp;
 
     public CoreOp.FuncOp funcOp(){
@@ -217,7 +217,7 @@ public class Trxfmr {
         return this.funcOp=funcOp;
     }
 
-    public Trxfmr(OpTkl.CallSite callSite, CoreOp.FuncOp funcOp) {
+    public Trxfmr(CallSite callSite, CoreOp.FuncOp funcOp) {
         this.callSite = callSite;
         this.funcOp =  funcOp;
         if (callSite!=null && callSite.tracing()) {
@@ -372,7 +372,7 @@ public class Trxfmr {
              }
 
              public CoreOp.FuncOp transform(CoreOp.FuncOp funcOp, Consumer<Cursor> c) {
-                 return new Trxfmr(OpTkl.CallSite.of(this.getClass()), funcOp)
+                 return new Trxfmr(CallSite.of(this.getClass()), funcOp)
                          .transform(this.predicate,c).done().funcOp();
              }
          }

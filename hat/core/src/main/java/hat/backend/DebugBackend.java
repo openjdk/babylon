@@ -38,7 +38,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
-import optkl.OpTkl;
+import optkl.CallSite;
 
 import static optkl.OpTkl.SSATransform;
 import static optkl.OpTkl.SSATransformLower;
@@ -63,7 +63,7 @@ public class DebugBackend extends BackendAdaptor {
 
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        var here = OpTkl.CallSite.of(DebugBackend.class,"dispatchCompute");
+        var here = CallSite.of(DebugBackend.class,"dispatchCompute");
         switch (howToRunCompute){
 
             case REFLECT: {
@@ -102,7 +102,7 @@ public class DebugBackend extends BackendAdaptor {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
 
-        var here = OpTkl.CallSite.of(DebugBackend.class, "dispatchKernel");
+        var here = CallSite.of(DebugBackend.class, "dispatchKernel");
         switch (howToRunKernel){
             case REFLECT: {
                 KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
@@ -120,12 +120,12 @@ public class DebugBackend extends BackendAdaptor {
             }
             case BABYLON_INTERPRETER:{
                 var lowered = lower(here, kernelCallGraph.entrypoint.funcOp());
-                Interpreter.invoke(kernelCallGraph.computeContext.lookup(), lowered, args);
+                Interpreter.invoke(kernelCallGraph.lookup(), lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
                 var lowered = lower(here, kernelCallGraph.entrypoint.funcOp());
-                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.lookup(), lowered);
+                var mh = BytecodeGenerator.generate(kernelCallGraph.lookup(), lowered);
                 try {
                     mh.invokeWithArguments(args);
                 } catch (Throwable e) {

@@ -30,6 +30,7 @@ import hat.KernelContext;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
+import optkl.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.KernelCallGraph;
@@ -79,7 +80,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
-        var here = OpTkl.CallSite.of(C99JExtractedBackend.class, "createCode");
+        var here = CallSite.of(C99JExtractedBackend.class, "createCode");
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -94,7 +95,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
                         }
                     });
                 });
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.computeContext.lookup()
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup()
                 ,kernelCallGraph.entrypoint.funcOp());
         // Sorting by rank ensures we don't need forward declarations
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)

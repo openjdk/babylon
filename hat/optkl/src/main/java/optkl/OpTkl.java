@@ -43,6 +43,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -170,6 +171,9 @@ static Method methodOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
       throw new RuntimeException(e);
    }
 }
+   static boolean isMethod(JavaOp.InvokeOp invokeOp, Predicate<String> namePredicate) {
+      return namePredicate.test(invokeOp.invokeDescriptor().name());
+   }
 
 
 static Class<?> javaRefClassOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
@@ -346,31 +350,48 @@ static boolean resultType(MethodHandles.Lookup lookup, CoreOp.VarAccessOp.VarLoa
    return isAssignable(lookup, varLoadOp.resultType(), classes);
 }
 
-record CallSite(Class<?> clazz,String methodName, boolean tracing){
-   public static CallSite of(Class<?> clazz, String methodName) {
-      return new CallSite(clazz,methodName, Boolean.getBoolean("TRACE_CALLSITES"));
-   }
-   public static CallSite of(Class<?> clazz) {
-      for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
-         if (ste.getClassName().equals(clazz.getName())) {
-            new CallSite(ste.getClass(),ste.getMethodName(), Boolean.getBoolean("TRACE_CALLSITES"));
-         }
-      }
-      return new CallSite(clazz,"???", Boolean.getBoolean("TRACE_CALLSITES"));
+   static Stream<Op> loopBodyStatements(Op.Loop op) {
+       var list = new ArrayList<>(statements( op.loopBody().entryBlock()).toList());
+       if (list.getLast() instanceof JavaOp.ContinueOp) {
+           list.removeLast();
+       }
+       return list.stream();
    }
 
-   @Override public  String toString(){
-      return clazz.toString()+":"+methodName;
+   static  Op asStatementOpOrNull(CodeElement<?,?> ce){
+       if (ce instanceof Op op){
+              return (
+                      (
+                              (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
+                               || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
+                               || (op instanceof StatementLikeOp)
+                      )
+                      && !(op instanceof CoreOp.VarOp varOp && isParamVar(varOp))//..ParamVar.of(varOp) != null)
+                      && !(op instanceof CoreOp.YieldOp)
+              )
+                      ?op
+                      :null;
+       }else{
+          return null;
+       }
+
    }
-}
-static CoreOp.FuncOp lower(CallSite callSite, CoreOp.FuncOp funcOp) {
-   if (callSite.tracing){
+   static  boolean isStatementOp(CodeElement<?,?> ce){
+       return Objects.nonNull(asStatementOpOrNull(ce));
+   }
+
+   static Stream<Op> statements(Block block) {
+       return block.ops().stream().filter(OpTkl::isStatementOp);
+   }
+
+   static CoreOp.FuncOp lower(CallSite callSite, CoreOp.FuncOp funcOp) {
+   if (callSite.tracing()){
       System.out.println(callSite);
    }
    return funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
 }
 static Stream<jdk.incubator.code.CodeElement<?,?>> elements(CallSite callSite, CoreOp.FuncOp funcOp) {
-   if (callSite.tracing){
+   if (callSite.tracing()){
       System.out.println(callSite);
    }
    return funcOp.elements();
@@ -379,7 +400,7 @@ static <T extends Op> Stream<T> ops(CallSite callSite, CoreOp.FuncOp funcOp,
                                     Predicate<jdk.incubator.code.CodeElement<?,?>> predicate,
                                     Function<CodeElement<?,?>,T> mapper
 ) {
-   if (callSite.tracing){
+   if (callSite.tracing()){
       System.out.println(callSite);
    }
    return funcOp.elements().filter(predicate).map(mapper);
@@ -390,20 +411,20 @@ static <T> Stream<T> opstream(CoreOp.FuncOp funcOp, Function<CodeElement<?,?>,T>
 
 
 static CoreOp.FuncOp SSATransformLower(CallSite callSite, CoreOp.FuncOp funcOp){
-   if (callSite.tracing){
+   if (callSite.tracing()){
       System.out.println(callSite);
    }
    return  SSA.transform(lower(callSite,funcOp));
 }
 static CoreOp.FuncOp SSATransform(CallSite callSite, CoreOp.FuncOp funcOp){
-   if (callSite.tracing){
+   if (callSite.tracing()){
       System.out.println(callSite);
    }
    return  SSA.transform(funcOp);
 }
 
 static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, CodeTransformer CodeTransformer) {
-   if (callSite.tracing){
+   if (callSite.tracing()){
       System.out.println(callSite);
    }
    return funcOp.transform((blockBuilder, op) -> {
@@ -420,7 +441,7 @@ static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicat
 }
 
 static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, CodeTransformer CodeTransformer) {
-   if (callSite.tracing){
+   if (callSite.tracing()){
       System.out.println(callSite);
    }
    return funcOp.transform(CodeTransformer);
@@ -485,9 +506,7 @@ static boolean needExtraParenthesis(JavaOp.InvokeOp invokeOp) {
 }
 
 
-static boolean isMethod(JavaOp.InvokeOp invokeOp, Predicate<String> namePredicate) {
-   return namePredicate.test(invokeOp.invokeDescriptor().name());
-}
+
 static  Class<?> typeElementToClass(MethodHandles.Lookup lookup,TypeElement type) {
    class PrimitiveHolder {
       static final Map<PrimitiveType, Class<?>> primitiveToClass = Map.of(
@@ -513,7 +532,11 @@ static  Class<?> typeElementToClass(MethodHandles.Lookup lookup,TypeElement type
       throw new RuntimeException("given type cannot be converted to class");
    }
 }
-
+   static boolean isParamVar(CoreOp.VarOp varOp) {
+      return !varOp.isUninitialized()
+              && varOp.operands().getFirst() instanceof Block.Parameter parameter
+              && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp;
+   }
 }
 
 

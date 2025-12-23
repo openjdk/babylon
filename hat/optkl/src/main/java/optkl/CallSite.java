@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,32 +22,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package optkl;
 
-package hat.backend.java;
+public record CallSite(Class<?> clazz, String methodName, boolean tracing) {
+    public static CallSite of(Class<?> clazz, String methodName) {
+        return new CallSite(clazz, methodName, Boolean.getBoolean("TRACE_CALLSITES"));
+    }
 
-import hat.KernelContext;
-import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
-
-import java.lang.reflect.InvocationTargetException;
-
-public class JavaSequentialBackend extends JavaBackend {
-    @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        if (kernelCallGraph.traits.usesArrayView) {
-            throw new RuntimeException("Java support for ArrayView not implemented");
-        }
-        KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
-            try {
-                args[0] = kernelContext;
-                kernelEntrypoint.method.invoke(null, args);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException(e);
+    public static CallSite of(Class<?> clazz) {
+        for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+            if (ste.getClassName().equals(clazz.getName())) {
+                new CallSite(ste.getClass(), ste.getMethodName(), Boolean.getBoolean("TRACE_CALLSITES"));
             }
-
         }
+        return new CallSite(clazz, "???", Boolean.getBoolean("TRACE_CALLSITES"));
+    }
+
+    @Override
+    public String toString() {
+        return clazz.toString() + ":" + methodName;
     }
 }

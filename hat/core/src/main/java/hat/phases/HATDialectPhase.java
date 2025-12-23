@@ -24,27 +24,36 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
+import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.CallSite;
 import optkl.LookupCarrier;
-import optkl.OpTkl;
 
+import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
-public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
-    LookupCarrier lookupCarrier();
+public sealed interface HATDialectPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
+        permits HATDialectifyArrayViewPhase, HATDialectifyBarrierPhase, HATDialectifyFP16Phase,
+        HATDialectifyMemoryPhase, HATDialectifyThreadsPhase, HATDialectifyVectorOpPhase, HATDialectifyVectorSelectPhase, HATDialectifyVectorStorePhase {
 
-    default boolean tracing(){
-        return ((Accelerator)lookupCarrier()).backend.config().showCompilationPhases();
+
+    KernelCallGraph kernelCallGraph();
+
+    @Override default MethodHandles.Lookup lookup(){
+        return kernelCallGraph().lookup();
     }
 
-    default void before(OpTkl.CallSite callSite, CoreOp.FuncOp funcOp) {
+    default boolean tracing(){
+            return kernelCallGraph().config().showCompilationPhases();
+    }
+
+    default void before(CallSite callSite, CoreOp.FuncOp funcOp) {
         if (tracing()) {
             IO.println("[INFO] Code model before [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: "  + System.lineSeparator() + funcOp.toText());
         }
     }
 
-    default void after(OpTkl.CallSite callSite, CoreOp.FuncOp funcOp) {
+    default void after(CallSite callSite, CoreOp.FuncOp funcOp) {
         if (tracing()) {
             IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: " + System.lineSeparator() + funcOp.toText());
         }

@@ -27,6 +27,7 @@ package hat.backend.jextracted;
 
 import hat.ComputeContext;
 import hat.Config;
+import optkl.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
@@ -61,7 +62,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        var here = OpTkl.CallSite.of(JExtractedBackend.class, "dispatchCompuet");
+        var here = CallSite.of(JExtractedBackend.class, "dispatchCompuet");
         if (computeContext.computeEntrypoint().lowered == null) {
             computeContext.computeEntrypoint().lowered =
                     lower(here, computeContext.computeEntrypoint().funcOp());
@@ -86,10 +87,10 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
       //  System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
        // System.out.println(computeMethod.funcOp().toText());
-        var lookup = computeMethod.callGraph.computeContext.lookup();
+        var lookup = computeMethod.callGraph.lookup();
         // TODO : can't we get this from somewhere maybe it should be capturein the compute method?
         var paramTable = new FuncOpParams(computeMethod.funcOp());
-        var here = OpTkl.CallSite.of(JExtractedBackend.class, "injectBufferTracking");
+        var here = CallSite.of(JExtractedBackend.class, "injectBufferTracking");
         var transformedFuncOp = transform(here,computeMethod.funcOp(),(bldr, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Value computeContext = bldr.context().getValue(paramTable.list().getFirst().parameter);

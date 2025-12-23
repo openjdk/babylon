@@ -28,7 +28,6 @@ package experiments;
 
 import java.lang.reflect.Method;
 
-import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
@@ -38,7 +37,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.OpTkl;
+import optkl.CallSite;
 
 import java.util.List;
 import java.util.Map;
@@ -137,7 +136,7 @@ public class Transform {
 
             CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
-            var here = OpTkl.CallSite.of(Transform.class, "main");
+            var here = CallSite.of(Transform.class, "main");
             CoreOp.FuncOp transformed = transform(here, javaFunc,(builder, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     //  CodeContext cc = builder.context();

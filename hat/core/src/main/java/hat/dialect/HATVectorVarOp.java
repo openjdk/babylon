@@ -30,11 +30,12 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
+import optkl.StatementLikeOp;
 
 import java.util.List;
 import java.util.Map;
 
-public final class HATVectorVarOp extends HATVectorOp {
+public final class HATVectorVarOp extends HATVectorOp implements StatementLikeOp {
 
     private final int loadN;
 

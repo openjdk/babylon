@@ -27,6 +27,7 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
+import optkl.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
@@ -66,7 +67,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        var here = OpTkl.CallSite.of(FFIBackend.class, "dispatchCompute");
+        var here = CallSite.of(FFIBackend.class, "dispatchCompute");
         if (computeContext.computeEntrypoint().lowered == null) {
             computeContext.computeEntrypoint().lowered =
                     lower(here, computeContext.computeEntrypoint().funcOp());
@@ -131,13 +132,13 @@ public abstract class FFIBackend extends FFIBackendDriver {
     // This code should be common with jextracted-shared probably should be pushed down into another lib?
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
-        var here = OpTkl.CallSite.of(FFIBackend.class,"injectBufferTracking");
+        var here = CallSite.of(FFIBackend.class,"injectBufferTracking");
         if (config().minimizeCopies()) {
             if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
-            var lookup = computeMethod.callGraph.computeContext.lookup();
+            var lookup = computeMethod.callGraph.lookup();
             var paramTable = new FuncOpParams(computeMethod.funcOp());
 
             transformedFuncOp = transform(here, computeMethod.funcOp(),(bldr, op) -> {

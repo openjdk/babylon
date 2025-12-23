@@ -294,7 +294,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                        nlSeparated(OpTk.statements(ifOp.bodies().get(idx).entryBlock()),
+                                        nlSeparated(OpTkl.statements(ifOp.bodies().get(idx).entryBlock()),
                                         root-> statement(buildContext,root)
                                         ));
                     }
@@ -323,7 +323,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                         .forEach(o -> recurse(buildContext, o))
         );
         braceNlIndented(_ ->
-                        nlSeparated(OpTk.statements(whileOp),
+                        nlSeparated(OpTkl.loopBodyStatements(whileOp),
                         statement->statement(buildContext,statement)
                 )
         );
@@ -339,11 +339,11 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                     condBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
                     commaSpaceSeparated(
-                            OpTk.statements(mutateBlock(forOp)),
+                            OpTkl.statements(mutateBlock(forOp)),
                             op -> recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->
-                            nlSeparated(OpTk.statements(forOp),
+                            nlSeparated(OpTkl.loopBodyStatements(forOp),
                                     statement ->statement(buildContext,statement)
                         )
                 )

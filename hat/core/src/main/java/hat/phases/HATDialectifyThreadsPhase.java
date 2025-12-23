@@ -25,6 +25,7 @@
 package hat.phases;
 
 
+import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
@@ -35,7 +36,7 @@ import hat.optools.Trxfmr;
 import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.LookupCarrier;
+import optkl.CallSite;
 import optkl.OpTkl;
 
 import java.util.Objects;
@@ -43,15 +44,15 @@ import java.util.regex.Pattern;
 
 import static optkl.OpTkl.operandsAsResults;
 
-public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPhase<T,C>,C extends HATThreadOp> implements HATDialect  {
-    protected final LookupCarrier lookupCarrier;
-    @Override  public LookupCarrier lookupCarrier(){
-        return this.lookupCarrier;
+public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPhase<T,C>,C extends HATThreadOp> implements HATDialectPhase {
+    private final KernelCallGraph kernelCallGraph;
+    @Override public KernelCallGraph kernelCallGraph(){
+        return kernelCallGraph;
     }
     final Class<C> clazz;
 
-    public HATDialectifyThreadsPhase(LookupCarrier lookupCarrier, Class<C> clazz) {
-        this.lookupCarrier=lookupCarrier;
+    public HATDialectifyThreadsPhase(KernelCallGraph kernelCallGraph, Class<C> clazz) {
+        this.kernelCallGraph=kernelCallGraph;
         this.clazz=clazz;
     }
 
@@ -61,9 +62,9 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var txfmr = new Trxfmr(OpTkl.CallSite.of(this.getClass()),funcOp);
+        var txfmr = new Trxfmr(CallSite.of(this.getClass()),funcOp);
         return txfmr.select(
-                ce->OpTk.asNamedKernelContextFieldAccessOrNull(lookupCarrier.lookup(),ce,pattern())!=null,(s,o)->
+                ce->OpTk.asNamedKernelContextFieldAccessOrNull(lookup(),ce,pattern())!=null,(s,o)->
                    operandsAsResults(o)
                      .map(OpTkl::opOfResultOrNull)
                      .map(OpTkl::asVarLoadOrNull)
@@ -79,9 +80,9 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }).funcOp();
     }
 
-    public static class BlockPhase extends HATDialectifyThreadsPhase<BlockPhase,HATBlockThreadIdOp> {
-        public BlockPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, HATBlockThreadIdOp.class);
+    public static final class BlockPhase extends HATDialectifyThreadsPhase<BlockPhase,HATBlockThreadIdOp> {
+        public BlockPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, HATBlockThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
             return HATBlockThreadIdOp.pattern;
@@ -93,9 +94,9 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
     }
 
-    public static class GlobalIdPhase extends HATDialectifyThreadsPhase<GlobalIdPhase,HATGlobalThreadIdOp>  {
-        public GlobalIdPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, HATGlobalThreadIdOp.class);
+    public static final class GlobalIdPhase extends HATDialectifyThreadsPhase<GlobalIdPhase,HATGlobalThreadIdOp>  {
+        public GlobalIdPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, HATGlobalThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
             return HATGlobalThreadIdOp.pattern;
@@ -106,9 +107,9 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
     }
 
-    public static class GlobalSizePhase extends HATDialectifyThreadsPhase<GlobalSizePhase,HATGlobalSizeOp>  {
-        public GlobalSizePhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, HATGlobalSizeOp.class);
+    public static final class GlobalSizePhase extends HATDialectifyThreadsPhase<GlobalSizePhase,HATGlobalSizeOp>  {
+        public GlobalSizePhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, HATGlobalSizeOp.class);
         }
         @Override protected Pattern pattern(){
             return HATGlobalSizeOp.pattern;
@@ -119,9 +120,9 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
     }
 
-    public static class LocalIdPhase extends HATDialectifyThreadsPhase<LocalIdPhase,HATLocalThreadIdOp>  {
-        public LocalIdPhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier,HATLocalThreadIdOp.class);
+    public static final class LocalIdPhase extends HATDialectifyThreadsPhase<LocalIdPhase,HATLocalThreadIdOp>  {
+        public LocalIdPhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph,HATLocalThreadIdOp.class);
         }
         @Override protected Pattern pattern(){
             return HATLocalThreadIdOp.pattern;
@@ -132,9 +133,9 @@ public abstract class HATDialectifyThreadsPhase<T extends HATDialectifyThreadsPh
         }
     }
 
-    public static class LocalSizePhase extends HATDialectifyThreadsPhase<LocalSizePhase,HATLocalSizeOp>  {
-        public LocalSizePhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier,HATLocalSizeOp.class);
+    public static final class LocalSizePhase extends HATDialectifyThreadsPhase<LocalSizePhase,HATLocalSizeOp>  {
+        public LocalSizePhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph,HATLocalSizeOp.class);
         }
         @Override public Pattern pattern(){
            return HATLocalSizeOp.pattern;

@@ -55,10 +55,7 @@ Which we dispatch by creating the appropriate data buffer and then asking an `Ac
 ```java
   // Create an accelerator bound to a particular backend
 
-  var accelerator = new Accelerator(
-      java.lang.invoke.MethodHandles.lookup(),
-      Backend.FIRST  // Predicate<Backend>
-  );
+  var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
   // Ask the accelerator/backend to allocate an S32Array
   var s32Array = S32Array.create(accelerator, 32);

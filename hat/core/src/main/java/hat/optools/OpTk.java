@@ -27,14 +27,11 @@ package hat.optools;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.types.HAType;
-import hat.callgraph.CallGraph;
 import hat.device.DeviceType;
-import hat.dialect.*;
 import optkl.LookupCarrier;
 import optkl.OpTkl;
 import optkl.ifacemapper.MappableIface;
 import hat.types._V;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
@@ -42,30 +39,19 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.ParamVar;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static optkl.OpTkl.AnyFieldAccess;
-import static optkl.OpTkl.elements;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isAssignableTo;
 import static optkl.OpTkl.isMethod;
-import static optkl.OpTkl.javaRefClassOrThrow;
 import static optkl.OpTkl.javaRefType;
 
 public interface OpTk extends LookupCarrier  {
@@ -75,12 +61,11 @@ public interface OpTk extends LookupCarrier  {
         return new Impl(lookupCarrier.lookup());
     }
 
+    /* KernelContext */
+
    static boolean isKernelContext(MethodHandles.Lookup lookup,TypeElement typeElement){
        return isAssignable(lookup,typeElement,KernelContext.class);
    }
-    default boolean isKernelContext(TypeElement typeElement){
-        return isAssignable(lookup(),typeElement,KernelContext.class);
-    }
 
 
     static JavaOp.InvokeOp asKernelContextInvokeOpOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Predicate<JavaOp.InvokeOp> predicate) {
@@ -122,105 +107,26 @@ public interface OpTk extends LookupCarrier  {
         return Objects.nonNull(asKernelContextFieldAccessOrNull(lookup,ce, predicate));
     }
 
-    static boolean isKernelContextFieldAccessOp(MethodHandles.Lookup lookup,CodeElement<?, ?> ce) {
-        return isKernelContextFieldAccessOp(lookup,ce, AnyFieldAccess);
-    }
-
+    /* ComputeContext */
 
     static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class));
     }
 
+    static boolean isIfaceBufferInvokeOpWithName(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, Predicate<String> namePredicate) {
+        return isIfaceBufferMethod(lookup, invokeOp) && isMethod(invokeOp, namePredicate)
+                || isAssignableTo(lookup, javaRefType(invokeOp), DeviceType.class, MappableIface.class, HAType.class)
+                && isMethod(invokeOp, namePredicate);
+    }
 
 
-
+    /* ComputeContext */
 
     static boolean isComputeContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return isAssignable(lookup, javaRefType(invokeOp), ComputeContext.class);
     }
 
-    static Stream<Op> statements(Op.Loop op) {
-        var list = new ArrayList<>(statements( op.loopBody().entryBlock()).toList());
-        if (list.getLast() instanceof JavaOp.ContinueOp) {
-            list.removeLast();
-        }
-        return list.stream();
-    }
-
-    static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,
-                                                               CoreOp.FuncOp entry, CallGraph<?> callGraph) {
-        LinkedHashSet<MethodRef> funcsVisited = new LinkedHashSet<>();
-        List<CoreOp.FuncOp> funcs = new ArrayList<>();
-        record RefAndFunc(MethodRef r, CoreOp.FuncOp f) {}
-
-        Deque<RefAndFunc> work = new ArrayDeque<>();
-        var here = OpTkl.CallSite.of(OpTkl.class, "createTransitiveInvokeModule");
-        elements(here, entry).forEach(codeElement -> {
-            if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.lookup(), invokeOp);
-                try {
-                    var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
-                    CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-                    // TODO filter calls has side effects we may need another call. We might just check the map.
-
-                    if (f != null && !callGraph.filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
-                        work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
-                    }
-                } catch (ReflectiveOperationException _) {
-                    throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                }
-            }
-        });
-
-        while (!work.isEmpty()) {
-            RefAndFunc rf = work.pop();
-            if (funcsVisited.add(rf.r)) {
-                // TODO:is this really transforming? it seems to be creating a new funcop.. Oh I guess for the new ModuleOp?
-                CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
-                    if (op instanceof JavaOp.InvokeOp iop) {
-                        try {
-                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(lookup);
-                            if (invokeOpCalledMethod instanceof Method m) {
-                                CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
-                                if (f != null) {
-                                    RefAndFunc call = new RefAndFunc(iop.invokeDescriptor(), f);
-                                    work.push(call);
-                                    Op.Result result = blockBuilder.op(CoreOp.funcCall(
-                                            call.r.name(),
-                                            call.f.invokableType(),
-                                            blockBuilder.context().getValues(iop.operands())));
-                                    blockBuilder.context().mapValue(op.result(), result);
-                                    return blockBuilder;
-                                }
-                            }
-                        } catch (ReflectiveOperationException _) {
-                            throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                        }
-                    }
-                    blockBuilder.op(op);
-                    return blockBuilder;
-                });
-
-                funcs.addFirst(tf);
-            }
-        }
-
-        return CoreOp.module(funcs);
-    }
-    static Stream<Op> statements(Block block) {
-        return block.ops().stream().filter(op->
-        (
-                (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
-             || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
-             || (op instanceof HATMemoryVarOp)
-             || (op instanceof HATVectorVarOp)
-             || (op instanceof HATF16VarOp)
-        )
-        && !(op instanceof CoreOp.VarOp varOp && ParamVar.of(varOp) != null)
-        && !(op instanceof CoreOp.YieldOp));
-    }
-
-
+    /* these seem to be just replacements for isAssignable */
 
     static void inspectNewLevelWhy(Class<?> interfaceClass, Set<Class<?>> interfaceSet) {
         if (interfaceClass != null && interfaceSet.add(interfaceClass)) {
@@ -230,13 +136,12 @@ public interface OpTk extends LookupCarrier  {
         }
     }
     static boolean  isVectorOperation(JavaOp.InvokeOp invokeOp, Value varValue, Predicate<String> namePredicate) {
-        // is Assignble
-        if (varValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        if (OpTkl.asResultOrNull(varValue) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             TypeElement typeElement = varLoadOp.resultType();
             Set<Class<?>> interfaces = Set.of();
             try {
                 Class<?> aClass = Class.forName(typeElement.toString());
-                interfaces = OpTk.inspectAllInterfacesWhy(aClass);
+                interfaces = inspectAllInterfacesWhy(aClass);
             } catch (ClassNotFoundException _) {
             }
             return interfaces.contains(_V.class) && isMethod(invokeOp, namePredicate);
@@ -248,7 +153,7 @@ public interface OpTk extends LookupCarrier  {
         Set<Class<?>> interfaces;
         try {
             Class<?> aClass = Class.forName(typeElement);
-            interfaces = OpTk.inspectAllInterfacesWhy(aClass);
+            interfaces = inspectAllInterfacesWhy(aClass);
         } catch (ClassNotFoundException _) {
             return false;
         }
@@ -305,12 +210,6 @@ public interface OpTk extends LookupCarrier  {
          //   System.out.print("isInvokeDescriptorSubtypeOfAnyMatch");
         }
         return butReturns;
-    }
-
-    static boolean isIfaceBufferInvokeOpWithName(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, Predicate<String> namePredicate) {
-        return isIfaceBufferMethod(lookup, invokeOp) && isMethod(invokeOp, namePredicate)
-                || isAssignableTo(lookup, javaRefType(invokeOp), DeviceType.class, MappableIface.class, HAType.class)
-                && isMethod(invokeOp, namePredicate);
     }
 
 

@@ -24,14 +24,13 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
+import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATPhaseUtils;
 import hat.optools.OpTk;
-import hat.types._V;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -39,8 +38,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.LookupCarrier;
-import optkl.OpTkl;
+import optkl.CallSite;
 
 import java.util.List;
 import java.util.Set;
@@ -49,16 +47,16 @@ import java.util.stream.Stream;
 
 import static optkl.OpTkl.transform;
 
-public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
+public abstract sealed class HATDialectifyVectorStorePhase implements HATDialectPhase {
 
-    protected final LookupCarrier lookupCarrier;
-    @Override  public LookupCarrier lookupCarrier(){
-        return this.lookupCarrier;
+    protected final KernelCallGraph kernelCallGraph;
+    @Override  public KernelCallGraph kernelCallGraph(){
+        return this.kernelCallGraph;
     }
     private final StoreView vectorOperation;
 
-    public HATDialectifyVectorStorePhase(LookupCarrier lookupCarrier, StoreView vectorOperation) {
-        this.lookupCarrier= lookupCarrier;
+    public HATDialectifyVectorStorePhase(KernelCallGraph kernelCallGraph, StoreView vectorOperation) {
+        this.kernelCallGraph= kernelCallGraph;
         this.vectorOperation = vectorOperation;
     }
 
@@ -92,7 +90,7 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var here = OpTkl.CallSite.of(this.getClass(), "apply");
+        var here = CallSite.of(this.getClass(), "apply");
         before(here,funcOp);
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -131,15 +129,15 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
         return funcOp;
     }
 
-    public static class Float4StorePhase extends HATDialectifyVectorStorePhase{
-        public Float4StorePhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, StoreView.FLOAT4_STORE);
+    public static final class Float4StorePhase extends HATDialectifyVectorStorePhase{
+        public Float4StorePhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, StoreView.FLOAT4_STORE);
         }
     }
 
-    public static class Float2StorePhase extends HATDialectifyVectorStorePhase{
-        public Float2StorePhase(LookupCarrier lookupCarrier) {
-            super(lookupCarrier, StoreView.FLOAT2_STORE);
+    public static final class Float2StorePhase extends HATDialectifyVectorStorePhase{
+        public Float2StorePhase(KernelCallGraph kernelCallGraph) {
+            super(kernelCallGraph, StoreView.FLOAT2_STORE);
         }
     }
 }
