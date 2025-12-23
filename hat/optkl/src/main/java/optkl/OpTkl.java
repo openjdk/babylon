@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.annotations.Kernel;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
@@ -118,7 +119,12 @@ static JavaOp.InvokeOp getTargetInvokeOp(JavaOp.LambdaOp lambdaOp) {
    return lambdaOp.body().entryBlock().ops().stream()
            .filter(op -> op instanceof JavaOp.InvokeOp)
            .map(op -> (JavaOp.InvokeOp) op)
-           .findFirst().orElseThrow();
+           .filter(invokeOp -> invokeOp.invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC))
+           .filter(invokeOp -> invokeOp.operands().get(0).type() instanceof ClassType classType
+                   && classType.toClassName() instanceof String name
+                   && (name.equals("hat.ComputeContext")||name.equals("hat.KernelContext")))
+           .findFirst()
+           .orElseThrow();
 }
 
 static Object[] getQuotedCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {

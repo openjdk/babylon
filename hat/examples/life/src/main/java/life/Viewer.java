@@ -69,7 +69,7 @@ public class Viewer extends JFrame {
         state.generationsSinceLastChange++;
     }
 
-     void update(long now, @MappableIface.RO Main.CellGrid cellGrid, int from) {
+     public void update(long now, @MappableIface.RO Main.CellGrid cellGrid, int from) {
 
         if (state.deviceOrModeModified) {
             state.generationsSinceLastChange = 0;
