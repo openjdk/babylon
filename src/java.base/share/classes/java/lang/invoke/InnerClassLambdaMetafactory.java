@@ -508,10 +508,11 @@ import sun.invoke.util.Wrapper;
         // generate helper methods
         /*
         synchronized Quoted getQuoted() {
-            if (quoted == null) {
-                quoted = Quoted.extractOp(getModel(), captures);
+            Quoted v = quoted;
+            if (v == null) {
+                v = quoted = Quoted.extractOp(getModel(), captures);
             }
-            return quoted;
+            return v;
         }
         * */
         clb.withMethod("getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()),
@@ -561,10 +562,11 @@ import sun.invoke.util.Wrapper;
 
         /*
         private static synchronized CoreOp.FuncOp getModel() {
-            if(model == null) {
-                model = ...invoke lambda op building method...
+            FuncOp v = model;
+            if (v == null) {
+                v = model = ...invoke lambda op building method...
             }
-            return model;
+            return v;
         }
         * */
         clb.withMethod("getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()),
