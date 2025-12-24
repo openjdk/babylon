@@ -49,7 +49,7 @@ public record HATDialectifyArrayViewPhase(KernelCallGraph kernelCallGraph) imple
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp entry) {
-        MethodHandles.Lookup l = lookup();
+
         if (!isArrayView(entry)) return entry;
 
         Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
@@ -151,7 +151,7 @@ public record HATDialectifyArrayViewPhase(KernelCallGraph kernelCallGraph) imple
                             operands.addAll(info.indices);
                             HATPtrLoadOp ptrLoadOp = new HATPtrLoadOp(
                                     arrayLoadOp.resultType(),
-                                    (Class<?>) classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                    (Class<?>) classTypeToTypeOrThrow(lookup(), (ClassType) info.buffer().type()),
                                     bb.context().getValues(operands)
                             );
                             ptrLoadOp.setLocation(arrayLoadOp.location());
@@ -190,7 +190,7 @@ public record HATDialectifyArrayViewPhase(KernelCallGraph kernelCallGraph) imple
                             operands.add(arrayStoreOp.operands().getLast());
                             HATPtrStoreOp ptrLoadOp = new HATPtrStoreOp(
                                     arrayStoreOp.resultType(),
-                                    (Class<?>) classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                    (Class<?>) classTypeToTypeOrThrow(lookup(), (ClassType) info.buffer().type()),
                                     bb.context().getValues(operands)
                             );
                             ptrLoadOp.setLocation(arrayStoreOp.location());
@@ -206,7 +206,7 @@ public record HATDialectifyArrayViewPhase(KernelCallGraph kernelCallGraph) imple
                         ArrayAccessInfo info = arrayAccessInfo(op.result(), replaced);
                         HATPtrLengthOp ptrLengthOp = new HATPtrLengthOp(
                                 arrayLengthOp.resultType(),
-                                (Class<?>) classTypeToTypeOrThrow(l, (ClassType) info.buffer().type()),
+                                (Class<?>) classTypeToTypeOrThrow(lookup(), (ClassType) info.buffer().type()),
                                 bb.context().getValues(List.of(info.buffer()))
                         );
                         ptrLengthOp.setLocation(arrayLengthOp.location());

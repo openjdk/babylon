@@ -38,7 +38,6 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-import optkl.annotations.Kernel;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
@@ -337,6 +336,9 @@ static Op opFromOperandAsResult(jdk.incubator.code.CodeElement<?,?> codeElement,
 static Op.Result asResultOrNull(Value operand) {
    return operand instanceof Op.Result result?result:null;
 }
+   static Op asOpFromResultOrNull(Value operand) {
+      return asResultOrNull(operand) instanceof Op.Result r && r.op() instanceof Op op?op:null;
+   }
 static boolean isResult(Value operand) {
    return Objects.nonNull(asResultOrNull(operand));
 }

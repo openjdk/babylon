@@ -24,7 +24,7 @@
  */
 package hat;
 
-import java.util.regex.Pattern;
+import optkl.Regex;
 
 /**
  * An NDRange specifies the number of threads to deploy on an hardware accelerator.
@@ -79,20 +79,20 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
     sealed interface Range permits Local, Global, Block {
     }
     sealed interface Local extends Range {
-        Pattern szPattern = Pattern.compile("ls([xyz])");
-        Pattern idxPattern = Pattern.compile("li([xyz])");
+        Regex szRegex = Regex.of("ls([xyz])");
+        Regex idxRegex = Regex.of("li([xyz])");
     }
 
     sealed interface Block extends Range{
         // We need this to seal the interface hierarchy
         record Impl() implements Block {
         }
-        Pattern idxPattern = Pattern.compile("bi([xyz])");
+        Regex idxRegex = Regex.of("bi([xyz])");
     }
 
     sealed interface Global extends Range {
-        Pattern idxPattern = Pattern.compile("(gi[xyz])");
-        Pattern szPattern = Pattern.compile("(gs[xyz])");
+        Regex idxRegex = Regex.of("(gi[xyz])");
+        Regex szRegex = Regex.of("(gs[xyz])");
     }
 
     sealed interface Global1D extends _1DX, Global {

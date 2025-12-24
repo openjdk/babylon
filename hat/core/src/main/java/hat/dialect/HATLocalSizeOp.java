@@ -31,10 +31,9 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.Regex;
 
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 
 public final class HATLocalSizeOp extends HATThreadOp {
 
@@ -51,7 +50,7 @@ public final class HATLocalSizeOp extends HATThreadOp {
         return new HATLocalSizeOp(this, copyContext);
     }
 
-    public static Pattern  pattern= NDRange.Local.szPattern;
+    public static Regex regex= NDRange.Local.szRegex;
 
     public static HATThreadOp of(int dimension, TypeElement resultType){
         return new HATLocalSizeOp(dimension, resultType);

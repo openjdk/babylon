@@ -39,6 +39,7 @@ import hat.optools.OpTk;
 import optkl.OpTkl;
 import optkl.ParamVar;
 import optkl.Precedence;
+import optkl.Regex;
 import optkl.StreamMutable;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -49,9 +50,6 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.BabylonCoreOpBuilder;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static optkl.OpTkl.condBlock;
 import static optkl.OpTkl.elseBlock;
@@ -351,7 +349,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     public abstract  T atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name);
 
-    static Pattern atomicInc = Pattern.compile("(atomic.*)Inc");
+    static Regex atomicInc = Regex.of("(atomic.*)Inc");
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
@@ -359,10 +357,10 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                 || OpTk.isInvokeDescriptorSubtypeOfAnyMatch(buildContext.lookup,invokeOp, HAType.class, DeviceType.class)) {
             if (invokeOp.operands().size() == 1
                    // && OpTk.funcName(invokeOp) instanceof String funcName
-                    && atomicInc.matcher(OpTkl.funcName(invokeOp)) instanceof Matcher matcher && matcher.matches()
+                    && atomicInc.is(OpTkl.funcName(invokeOp)) instanceof Regex.Match matcher
                     && javaReturnType(invokeOp).equals(JavaType.INT)) {
                 if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
-                    atomicInc(buildContext, instanceResult, matcher.group(1));
+                    atomicInc(buildContext, instanceResult, matcher.stringOf(1));
                 } else {
                     throw new IllegalStateException("bad atomic");
                 }

@@ -31,9 +31,9 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.Regex;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 public final class HATBlockThreadIdOp extends HATThreadOp {
     public HATBlockThreadIdOp(int dimension, TypeElement resultType) {
@@ -49,7 +49,7 @@ public final class HATBlockThreadIdOp extends HATThreadOp {
         return new HATBlockThreadIdOp(this, copyContext);
     }
 
-    public final static  Pattern pattern = NDRange.Block.idxPattern;
+    public final static Regex regex = NDRange.Block.idxRegex;
 
     public static HATBlockThreadIdOp of(int dimension, TypeElement resultType){
         return new HATBlockThreadIdOp(dimension,resultType);

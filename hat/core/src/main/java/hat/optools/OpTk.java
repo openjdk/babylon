@@ -30,6 +30,7 @@ import hat.types.HAType;
 import hat.device.DeviceType;
 import optkl.LookupCarrier;
 import optkl.OpTkl;
+import optkl.Regex;
 import optkl.ifacemapper.MappableIface;
 import hat.types._V;
 import jdk.incubator.code.CodeElement;
@@ -46,7 +47,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 import static optkl.OpTkl.AnyFieldAccess;
 import static optkl.OpTkl.isAssignable;
@@ -97,11 +97,11 @@ public interface OpTk extends LookupCarrier  {
     static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, String name) {
         return asKernelContextFieldAccessOrNull(lookup,ce,fieldAccessOp->name.equals(fieldAccessOp.fieldDescriptor().name()));
     }
-    static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Pattern pattern) {
-        return asKernelContextFieldAccessOrNull(lookup,ce,fieldAccessOp->pattern.matcher(fieldAccessOp.fieldDescriptor().name()).matches());
+    static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?,?> ce, Regex regex) {
+        return asKernelContextFieldAccessOrNull(lookup,ce,fieldAccessOp->regex.matches(fieldAccessOp.fieldDescriptor().name()));
     }
-    default JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull( CodeElement<?,?> ce, Pattern pattern) {
-        return asKernelContextFieldAccessOrNull(lookup(),ce,fieldAccessOp->pattern.matcher(fieldAccessOp.fieldDescriptor().name()).matches());
+    default JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull( CodeElement<?,?> ce, Regex regex) {
+        return asKernelContextFieldAccessOrNull(lookup(),ce,fieldAccessOp->regex.matches(fieldAccessOp.fieldDescriptor().name()));
     }
     static boolean isKernelContextFieldAccessOp(MethodHandles.Lookup lookup,CodeElement<?, ?> ce, Predicate<JavaOp.FieldAccessOp> predicate) {
         return Objects.nonNull(asKernelContextFieldAccessOrNull(lookup,ce, predicate));
