@@ -150,30 +150,13 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public abstract static class MethodCall {
         public CallGraph<?> callGraph;
         public final Method method;
-        public final Class<?> declaringClass;
-        public final Set<MethodCall> calls = new HashSet<>();
-    //    public final Set<MethodCall> callers = new HashSet<>();
         public final MethodRef targetMethodRef;
-        public int rank = 0;
 
         MethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method) {
             this.callGraph = callGraph;
             this.targetMethodRef = targetMethodRef;
             this.method = method;
-            this.declaringClass = method.getDeclaringClass();
         }
-
-
-       // protected void rankRecurse(int value) {
-       //     calls.forEach(c -> c.rankRecurse(value + 1));
-       //     if (value > this.rank) {
-       //         this.rank = value;
-       //     }
-       // }
-
-     //   public void rankRecurse() {
-       //     rankRecurse(0);
-        //}
     }
 
     public abstract static class ResolvedMethodCall extends MethodCall implements Resolved {

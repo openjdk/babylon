@@ -196,7 +196,7 @@ public class Accelerator implements CommonCarrier,  BufferTracker {
     public void compute(Compute compute) {
         Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = methodOrThrow(lookup,getTargetInvokeOp(lambda));
+        Method method = methodOrThrow(lookup,getTargetInvokeOp(this.lookup,lambda, ComputeContext.class));
         // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.

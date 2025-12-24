@@ -98,8 +98,8 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup()
                 ,kernelCallGraph.entrypoint.funcOp());
         // Sorting by rank ensures we don't need forward declarations
-        kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp()).nl());
+     //   kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
+       //         .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp()).nl());
 
         builder.nl().kernelEntrypoint(buildContext).nl();
 
