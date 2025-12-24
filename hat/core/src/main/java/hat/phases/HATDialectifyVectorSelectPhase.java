@@ -38,21 +38,22 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.CallSite;
 import optkl.OpTkl;
+import optkl.Regex;
 
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static optkl.OpTkl.asOpFromResultOrNull;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
 public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATDialectPhase {
-    static Pattern xyzw = Pattern.compile("[xyzw]");
+    static Regex xyzw = Regex.of("[xyzw]");
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
-        return isMethod(invokeOp, n->xyzw.matcher(n).matches());
+        return isMethod(invokeOp, n->xyzw.matches(n));
     }
 
     int getLane(String fieldName) {
@@ -67,9 +68,9 @@ public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) im
 
     // recursive
     private String findNameVector(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        if (OpTkl.asOpFromResultOrNull(v) instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp.operands().getFirst());
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp vectorViewOp) {
+        } else if (OpTkl.asOpFromResultOrNull(v)  instanceof HATVectorOp vectorViewOp) {
             return vectorViewOp.varName();
         }
         throw new IllegalStateException("recurse fail findNameVector");
@@ -79,12 +80,12 @@ public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) im
 
     //recursive
     private CoreOp.VarOp findVarOp(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        if (asOpFromResultOrNull(v) instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findVarOp(varLoadOp.operands().getFirst());
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+        } else if (asOpFromResultOrNull(v) instanceof CoreOp.VarOp varOp) {
             return varOp;
         }
-        return null;//throw new IllegalStateException("recurse fail findVarOp");
+        return null;
 
     }
 

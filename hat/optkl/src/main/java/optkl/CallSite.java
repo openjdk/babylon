@@ -32,6 +32,7 @@ public record CallSite(Class<?> clazz, String methodName, boolean tracing) {
     public static CallSite of(Class<?> clazz) {
         for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
             if (ste.getClassName().equals(clazz.getName())) {
+
                 new CallSite(ste.getClass(), ste.getMethodName(), Boolean.getBoolean("TRACE_CALLSITES"));
             }
         }

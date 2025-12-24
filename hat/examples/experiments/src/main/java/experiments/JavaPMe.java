@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,36 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
 
-import hat.NDRange;
-import hat.optools.OpTk;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.Regex;
+package experiments;
 
-import java.util.List;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.MethodRef;
 
-public final class HATBlockThreadIdOp extends HATThreadOp {
-    public HATBlockThreadIdOp(int dimension, TypeElement resultType) {
-        super("BlockThreadId", resultType,dimension, List.of());
-    }
+import java.lang.classfile.ClassFile;
+import java.lang.invoke.MethodHandles;
 
-    public HATBlockThreadIdOp(HATBlockThreadIdOp op, CodeContext copyContext) {
-        super(op, copyContext);
-    }
+public class JavaPMe {
+    @Reflect
+    public static void main(String[] args) throws ReflectiveOperationException {
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        CoreOp.FuncOp.ofMethod(
+                MethodRef.method(JavaPMe.class, "main", void.class, String[].class)
+                        .resolveToMethod(lookup)).ifPresent(mainFuncOp -> {
+            System.out.print(mainFuncOp.toText());
+            System.out.println(ClassFile.of().parse(BytecodeGenerator.generateClassData(lookup, "Mine", mainFuncOp)).toDebugString());
 
-    @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATBlockThreadIdOp(this, copyContext);
-    }
-
-    public final static Regex regex = NDRange.Block.idxRegex;
-
-    public static HATBlockThreadIdOp of(int dimension, TypeElement resultType){
-        return new HATBlockThreadIdOp(dimension,resultType);
+        });
     }
 }
+

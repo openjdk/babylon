@@ -38,9 +38,9 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.CallSite;
 import optkl.OpTkl;
+import optkl.Regex;
 
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 import static optkl.OpTkl.operandsAsResults;
 
@@ -58,13 +58,13 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
 
     protected abstract  HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp);
 
-    protected abstract Pattern pattern();
+    protected abstract Regex regex();
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         var txfmr = new Trxfmr(CallSite.of(this.getClass()),funcOp);
         return txfmr.select(
-                ce->OpTk.asNamedKernelContextFieldAccessOrNull(lookup(),ce,pattern())!=null,(s,o)->
+                ce->OpTk.asNamedKernelContextFieldAccessOrNull(lookup(),ce,regex())!=null,(s,o)->
                    operandsAsResults(o)
                      .map(OpTkl::opOfResultOrNull)
                      .map(OpTkl::asVarLoadOrNull)
@@ -84,8 +84,8 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         public BlockPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, HATBlockThreadIdOp.class);
         }
-        @Override protected Pattern pattern(){
-            return HATBlockThreadIdOp.pattern;
+        @Override protected Regex regex(){
+            return HATBlockThreadIdOp.regex;
         }
 
         @Override
@@ -98,8 +98,8 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         public GlobalIdPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, HATGlobalThreadIdOp.class);
         }
-        @Override protected Pattern pattern(){
-            return HATGlobalThreadIdOp.pattern;
+        @Override protected Regex regex(){
+            return HATGlobalThreadIdOp.regex;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
@@ -111,8 +111,8 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         public GlobalSizePhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, HATGlobalSizeOp.class);
         }
-        @Override protected Pattern pattern(){
-            return HATGlobalSizeOp.pattern;
+        @Override protected Regex regex(){
+            return HATGlobalSizeOp.regex;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
@@ -124,8 +124,8 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         public LocalIdPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph,HATLocalThreadIdOp.class);
         }
-        @Override protected Pattern pattern(){
-            return HATLocalThreadIdOp.pattern;
+        @Override protected Regex regex(){
+            return HATLocalThreadIdOp.regex;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
@@ -137,8 +137,8 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         public LocalSizePhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph,HATLocalSizeOp.class);
         }
-        @Override public Pattern pattern(){
-           return HATLocalSizeOp.pattern;
+        @Override public Regex regex(){
+           return HATLocalSizeOp.regex;
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){

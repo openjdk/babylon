@@ -143,6 +143,8 @@ public class Transform {
                     //  Block.Builder bb = builder;
                     // var invokePre = CoreOp.invoke(PRE);
                     RootOp rootOp = new RootOp();
+                   // builder.body(op.bodies().getFirst(),List.of(), this);
+                    builder.op(op);
                     // builder.op(rootOp);
                     //  builder.op(invokeOp);
                     //  builder.op(CoreOp.invoke(POST));
