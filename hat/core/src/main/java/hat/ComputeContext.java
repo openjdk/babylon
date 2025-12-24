@@ -25,14 +25,13 @@
 package hat;
 
 import hat.callgraph.ComputeEntrypoint;
-import optkl.CommonCarrier;
+import jdk.incubator.code.Location;
 import optkl.LookupCarrier;
 import optkl.ifacemapper.BufferAllocator;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.MappableIface;
-import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
@@ -43,6 +42,8 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.Optional;
 
@@ -143,37 +144,35 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp.get());
         this.accelerator.backend.computeContextHandoff(this);
     }
+    record KernelCallSite(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
+    private Map<Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+
+    /** Creating the kernel callsite involves
+         walking the code model of the lambda
+         analysing the callgraph and trsnsforming to HATDielect
+     So we cache the callsite against the location from the lambdaop.
+     */
     public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
-        dispatchKernelWithComputeRange(ndRange, kernel);
-    }
-
-    record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
-
-    private CallGraph getKernelCallGraph(Kernel kernel) {
         Quoted quoted = Op.ofQuotable(kernel).orElseThrow();
-        JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef = getTargetInvokeOp( lambdaOp).invokeDescriptor();
-        KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-        if (kernelCallGraph == null){
-            throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
-        }
-        return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
+
+        var location = quoted.op().location();
+
+        var kernelCallSite =  kernelCallSiteCache.computeIfAbsent(location, _-> {
+            JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
+            MethodRef methodRef = getTargetInvokeOp(this.lookup(), lambdaOp, KernelContext.class).invokeDescriptor();
+            KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+            if (kernelCallGraph == null) {
+                throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+            }
+            return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
+        });
+        Object[] args = getQuotedCapturedValues(kernelCallSite.lambdaOp,kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method);
+        KernelContext kernelContext = accelerator.range(ndRange);
+        args[0] = kernelContext;
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);
     }
 
-    private void dispatchKernelWithComputeRange(NDRange<?, ?> ndRange, Kernel kernel) {
-        CallGraph cg = getKernelCallGraph(kernel);
-        try {
-            Object[] args = getQuotedCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
-            KernelContext kernelContext = accelerator.range(ndRange);
-            args[0] = kernelContext;
-            accelerator.backend.dispatchKernel(cg.kernelCallGraph, kernelContext, args);
-        } catch (Throwable t) {
-            System.out.print("what?" + cg.methodRef + " " + t);
-            t.printStackTrace();
-            throw t;
-        }
-    }
 
     @Override
     public void preMutate(MappableIface b) {

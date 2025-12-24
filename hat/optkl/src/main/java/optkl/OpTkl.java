@@ -115,14 +115,15 @@ static boolean isAssignableTo(MethodHandles.Lookup lookup, JavaType javaType, Cl
 
 }
 
-static JavaOp.InvokeOp getTargetInvokeOp(JavaOp.LambdaOp lambdaOp) {
+static JavaOp.InvokeOp getTargetInvokeOp(MethodHandles.Lookup lookup,JavaOp.LambdaOp lambdaOp, Class<?> ...classes) {
    return lambdaOp.body().entryBlock().ops().stream()
            .filter(op -> op instanceof JavaOp.InvokeOp)
            .map(op -> (JavaOp.InvokeOp) op)
            .filter(invokeOp -> invokeOp.invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC))
-           .filter(invokeOp -> invokeOp.operands().get(0).type() instanceof ClassType classType
-                   && classType.toClassName() instanceof String name
-                   && (name.equals("hat.ComputeContext")||name.equals("hat.KernelContext")))
+           .filter(invokeOp ->  OpTkl.isAssignable(lookup,invokeOp.operands().get(0).type(), classes))
+           //.filter(invokeOp -> invokeOp.operands().get(0).type() instanceof ClassType classType
+             //      && classType.toClassName() instanceof String name
+               //    && (name.equals("hat.ComputeContext")||name.equals("hat.KernelContext")))
            .findFirst()
            .orElseThrow();
 }

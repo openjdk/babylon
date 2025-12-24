@@ -225,7 +225,7 @@ public class Main {
     static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
-        Arena arena = Arena.global();
+       // Arena arena = Arena.global();
         PatternData patternData = RleParser.readPatternData(
                 Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );
