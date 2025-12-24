@@ -24,12 +24,11 @@
  */
 package hat.phases;
 
-import hat.Accelerator;
+import hat.callgraph.KernelCallGraph;
 import hat.types.BF16;
 import hat.types.F16;
 import optkl.LookupCarrier;
 import optkl.ifacemapper.MappableIface;
-import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
@@ -44,7 +43,7 @@ import java.util.stream.Stream;
 
 import static optkl.OpTkl.isAssignable;
 
-public record HATFinalDetector(LookupCarrier lookupCarrier){
+public record HATFinalDetector(KernelCallGraph kernelCallGraph){
     public Map<Op.Result, CoreOp.VarOp> applied(CoreOp.FuncOp funcOp) {
         final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
         Stream<CodeElement<?, ?>> elements = funcOp.elements();
@@ -58,32 +57,17 @@ public record HATFinalDetector(LookupCarrier lookupCarrier){
                 // generate the constant, because at this point of the analysis
                 // after the dialectify, the only accesses left are accesses
                 // to global memory.
-                TypeElement typeElement = varOp.resultType().valueType();
-                boolean isMappableType = false;
-                if (typeElement instanceof JavaType javaType) {
-                    isMappableType = isAssignable(MethodHandles.lookup(), javaType, MappableIface.class);
-                    if (!isMappableType) {
-                        // Special types?
-                        isMappableType = isAssignable(MethodHandles.lookup(), javaType, F16.class);
-                        isMappableType |= isAssignable(MethodHandles.lookup(), javaType, BF16.class);
-                    }
-                }
-
-                if (!isMappableType) {
+                if (!isAssignable(kernelCallGraph.lookup(), varOp.resultType().valueType(),
+                        MappableIface.class, F16.class, BF16.class)) {
                     boolean isFinalVarOp = true;
                     for (Op.Result use : uses) {
-                        Op op = use.op();
-                        switch (op) {
-                            case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
-                                if (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                        switch (use.op()) {
+                            case CoreOp.VarAccessOp.VarStoreOp storeOp when
+                                (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) ->
                                     isFinalVarOp = false;
-                                }
-                            }
-                            case CoreOp.YieldOp yieldOp -> {
-                                if (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                            case CoreOp.YieldOp yieldOp when
+                                 (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) ->
                                     isFinalVarOp = false;
-                                }
-                            }
                             case null, default -> {
                             }
                         }

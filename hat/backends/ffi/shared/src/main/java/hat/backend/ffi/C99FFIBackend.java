@@ -287,12 +287,11 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.lookup(),
                             kernelCallGraph.entrypoint.funcOp());
 
-            // Sorting by rank ensures we don't need forward declarations
             kernelCallGraph.getModuleOp().functionTable()
                     .forEach((_, funcOp) -> {
                         // TODO: did we just trash the callgraph sidetables?
                         //  Why are we transforming the callgraph here
-                        HATFinalDetector finals = new HATFinalDetector(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator());
+                        HATFinalDetector finals = new HATFinalDetector(kernelCallGraph);
                         // Update the build context for this method to use the right constants-map
                         buildContext.setFinals(finals.applied(funcOp));
                         builder.nl().kernelMethod(buildContext, funcOp).nl();
@@ -300,8 +299,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             // Update the constants-map for the main kernel
             // Why are we doing this here we should not be mutating the kernel callgraph at this point
-            HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator());
-           // hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
+            HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph);
             buildContext.setFinals(hatFinalDetector.applied(kernelCallGraph.entrypoint.funcOp()));
             builder.nl().kernelEntrypoint(buildContext).nl();
 
