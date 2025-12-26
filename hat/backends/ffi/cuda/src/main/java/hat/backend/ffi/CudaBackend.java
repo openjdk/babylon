@@ -29,12 +29,13 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.optools.IfaceBufferPattern;
 import optkl.CallSite;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
-import hat.optools.OpTk;
+
 
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -442,7 +443,7 @@ public class CudaBackend extends C99FFIBackend {
             CodeContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp){
-                if (OpTk.isIfaceBufferMethod(lookup,invokeOp)
+                if (IfaceBufferPattern.isInvokeOp(lookup,invokeOp)
                         && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
                         && varLoadResult.op() instanceof CoreOp.VarOp varOp

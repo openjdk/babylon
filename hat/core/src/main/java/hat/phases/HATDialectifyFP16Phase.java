@@ -92,11 +92,11 @@ public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements
                 // && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
                 && invokeOp.invokeDescriptor().name().equals(methodName);
     }
-
+//recursive
     private boolean findReference(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findReference(varLoadOp.operands().get(0));
     }
-
+//recursive
     private boolean findReference(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findReference(varLoadOp);

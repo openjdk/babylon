@@ -44,7 +44,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static hat.optools.OpTk.isVarAccessFromKernelContextFieldOp;
 import static optkl.OpTkl.copyLocation;
 import static optkl.OpTkl.fieldAccessOpNameMatches;
 import static optkl.OpTkl.opFromOperandAsResult;
@@ -337,7 +336,7 @@ public class Trxfmr {
             return (
                     fieldAccessOpNameMatches(fieldLoadOp, fieldNamePredicate) instanceof JavaOp.FieldAccessOp.FieldLoadOp
                             && opFromOperandAsResult(fieldLoadOp, 0) instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && isVarAccessFromKernelContextFieldOp(lookup,varLoadOp))
+                            && KernelContextPattern.KernelContextFieldAccessPattern.isVarAccessFromKernelContextFieldOp(lookup,varLoadOp))
                     ? new FieldVarLoadEdge<>(fieldLoadOp, varLoadOp, Set.of(fieldLoadOp, varLoadOp)) : null;
         }
 

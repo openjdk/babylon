@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,34 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.optools;
 
-import hat.NDRange;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
-import optkl.Regex;
+import jdk.incubator.code.CodeElement;
 
-import java.util.List;
+import java.util.Set;
 
-public final class HATGlobalSizeOp extends HATThreadOp {
-    public HATGlobalSizeOp(int dimension, TypeElement resultType) {
-        super("GlobalThreadSize",resultType,dimension, List.of());
-    }
-
-    public HATGlobalSizeOp(HATGlobalSizeOp op, CodeContext copyContext) {
-        super(op, copyContext);
-    }
-
-    @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATGlobalSizeOp(this, copyContext);
-    }
-
-    static final public Regex regex= NDRange.Global.szRegex;
-
-    static public HATGlobalSizeOp of(int dimension, TypeElement resultType){
-        return new HATGlobalSizeOp(dimension,resultType);
-    }
+public interface CodeModelPattern {
+    Set<CodeElement<?, ?>> codeElements();
 }
