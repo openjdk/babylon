@@ -31,7 +31,8 @@ import hat.dialect.HATMemoryLoadOp;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPrivateInitVarOp;
 import hat.dialect.HATPrivateVarOp;
-import hat.optools.OpTk;
+import hat.optools.IfaceBufferPattern;
+import hat.optools.RefactorMe;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -50,7 +51,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static hat.optools.OpTk.isIfaceBufferInvokeOpWithName;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
@@ -133,7 +133,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp) {
-            if (isIfaceBufferInvokeOpWithName(lookup(), invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))) {
+            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(), invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
                 return isMethod(invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))
@@ -163,7 +163,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            if (isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))) {
+            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
                 return (isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
@@ -194,7 +194,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            return isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
+            return IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
                || (isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
                     && invokeOp.resultType() instanceof JavaType javaType &&
                     isAssignable(lookup(),javaType,DeviceType.class));
@@ -205,7 +205,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
         }
 
         private boolean meetConditionsForMemoryLoadOp(JavaOp.InvokeOp invokeOp) {
-            return OpTk.isInvokeDescriptorSubtypeOf(lookup(),invokeOp, DeviceType.class)
+            return RefactorMe.isInvokeDescriptorSubtypeOf(lookup(),invokeOp, DeviceType.class)
                     && (invokeOp.resultType() != JavaType.VOID)
                     && (!(invokeOp.resultType() instanceof PrimitiveType))
                     && (!isDeviceTypeReservedMethod(invokeOp));

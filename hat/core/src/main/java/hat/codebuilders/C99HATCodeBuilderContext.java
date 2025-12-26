@@ -24,6 +24,8 @@
  */
 package hat.codebuilders;
 
+import hat.optools.IfaceBufferPattern;
+import hat.optools.RefactorMe;
 import hat.types.HAType;
 import hat.device.DeviceType;
 import hat.dialect.HATF16VarOp;
@@ -35,7 +37,6 @@ import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorVarOp;
 import optkl.FuncOpParams;
-import hat.optools.OpTk;
 import optkl.OpTkl;
 import optkl.ParamVar;
 import optkl.Precedence;
@@ -353,8 +354,8 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
-                || OpTk.isInvokeDescriptorSubtypeOfAnyMatch(buildContext.lookup,invokeOp, HAType.class, DeviceType.class)) {
+        if (IfaceBufferPattern.isInvokeOp(buildContext.lookup, invokeOp)
+                || RefactorMe.isInvokeDescriptorSubtypeOfAnyMatch(buildContext.lookup,invokeOp, HAType.class, DeviceType.class)) {
             if (invokeOp.operands().size() == 1
                    // && OpTk.funcName(invokeOp) instanceof String funcName
                     && atomicInc.is(OpTkl.funcName(invokeOp)) instanceof Regex.Match matcher

@@ -41,7 +41,6 @@ import hat.dialect.HATVectorOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.types._V;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
@@ -74,15 +73,7 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
     return kernelCallGraph;
 }
 
-
-    private final OpView vectorOperation;
-
-    public HATDialectifyVectorOpPhase(KernelCallGraph kernelCallGraph, OpView vectorOperation) {
-        this.kernelCallGraph = kernelCallGraph;
-        this.vectorOperation = vectorOperation;
-    }
-
-    public enum OpView {
+    public enum VectorOperation {
         FLOAT4_LOAD("float4View"),
         FLOAT2_LOAD("float2View"),
         OF("of"),
@@ -93,10 +84,18 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         MAKE_MUTABLE("makeMutable");
         final String methodName;
 
-        OpView(String methodName) {
+        VectorOperation(String methodName) {
             this.methodName = methodName;
         }
     }
+
+    private final VectorOperation vectorOperation;
+
+    public HATDialectifyVectorOpPhase(KernelCallGraph kernelCallGraph, VectorOperation vectorOperation) {
+        this.kernelCallGraph = kernelCallGraph;
+        this.vectorOperation = vectorOperation;
+    }
+
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
            return (invokeOp.resultType() instanceof JavaType jt
@@ -104,11 +103,12 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
                    && isMethod(invokeOp, n->n.equals(vectorOperation.methodName))
            );
     }
-
+    //recursive
     private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findIsSharedOrPrivate(varLoadOp.operands().get(0));
     }
 
+    //recursive
     private boolean findIsSharedOrPrivate(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findIsSharedOrPrivate(varLoadOp);
@@ -120,7 +120,8 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         }
     }
 
-    private HATVectorBinaryOp buildVectorBinaryOp(BinaryOpEnum opType, String varName, TypeElement resultType, TypeElement vectorElementType, int witdh, List<Value> outputOperands) {
+    private HATVectorBinaryOp buildVectorBinaryOp(BinaryOpEnum opType, String varName, TypeElement resultType,
+                                                  TypeElement vectorElementType, int witdh, List<Value> outputOperands) {
         return switch (opType) {
             case ADD -> new HATVectorAddOp(varName, resultType, vectorElementType, witdh, outputOperands);
             case SUB -> new HATVectorSubOp(varName, resultType, vectorElementType, witdh, outputOperands);
@@ -149,12 +150,14 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         blockBuilder.context().mapValue(varOp.result(), hatLocalResult);
     }
 
-    public void insertBinaryOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp, Map<Op, VectorMetaData> vectorMetaData, Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation) {
+    public void insertBinaryOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp,
+                               Map<Op, VectorMetaData> vectorMetaData, Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation) {
         List<Value> inputOperands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(inputOperands);
         BinaryOpEnum binaryOpType = binaryOperation.get(invokeOp);
         VectorMetaData vmd = vectorMetaData.get(invokeOp);
-        HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOpType, varOp.varName(), invokeOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperands);
+        HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOpType, varOp.varName(),
+                invokeOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperands);
         Op.Result hatVectorOpResult = blockBuilder.op(memoryViewOp);
         memoryViewOp.setLocation(varOp.location());
         blockBuilder.context().mapValue(invokeOp.result(), hatVectorOpResult);
@@ -172,7 +175,8 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         blockBuilder.context().mapValue(varLoadOp.result(), hatVectorResult);
     }
 
-    public void insertVectorBinaryOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation) {
+    public void insertVectorBinaryOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp,
+                                     Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation) {
         List<Value> inputOperands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(inputOperands);
         VectorMetaData vectorMetaData = getVectorTypeInfo(invokeOp);
@@ -182,7 +186,8 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         blockBuilder.context().mapValue(invokeOp.result(), hatVectorOpResult);
     }
 
-    public void insertVectorOfOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, Map<Op, VectorMetaData> vectorMetaData) {
+    public void insertVectorOfOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp,
+                                 Map<Op, VectorMetaData> vectorMetaData) {
         List<Value> inputOperandsVarOp = invokeOp.operands();
         List<Value> outputOperandsVarOp = blockBuilder.context().getValues(inputOperandsVarOp);
         VectorMetaData vmd = vectorMetaData.get(invokeOp);
@@ -192,7 +197,8 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         blockBuilder.context().mapValue(invokeOp.result(), hatLocalResult);
     }
 
-    public void insertVectorMakeOfOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, Map<Op, VectorMetaData> vectorMetaData) {
+    public void insertVectorMakeOfOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp,
+                                     Map<Op, VectorMetaData> vectorMetaData) {
         List<Value> inputOperandsVarOp = invokeOp.operands();
         List<Value> outputOperandsVarOp = blockBuilder.context().getValues(inputOperandsVarOp);
         String varName = findNameVector(invokeOp.operands().getFirst());
@@ -232,7 +238,6 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
 
         funcOp = transform(here, funcOp, (blockBuilder, op) -> {
-            CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -442,58 +447,57 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
     }
 
     public static final class AddPhase extends HATDialectifyVectorOpPhase {
-
         public AddPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.ADD);
+            super(kernelCallGraph, VectorOperation.ADD);
         }
     }
 
     public static final class DivPhase extends HATDialectifyVectorOpPhase {
 
         public DivPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.DIV);
+            super(kernelCallGraph, VectorOperation.DIV);
         }
     }
 
     public static final class MakeMutable extends HATDialectifyVectorOpPhase {
 
         public MakeMutable(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.MAKE_MUTABLE);
+            super(kernelCallGraph, VectorOperation.MAKE_MUTABLE);
         }
     }
 
     public static final class Float4LoadPhase extends HATDialectifyVectorOpPhase {
 
         public Float4LoadPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.FLOAT4_LOAD);
+            super(kernelCallGraph, VectorOperation.FLOAT4_LOAD);
         }
     }
 
     public static final class Float2LoadPhase extends HATDialectifyVectorOpPhase {
 
         public Float2LoadPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.FLOAT2_LOAD);
+            super(kernelCallGraph, VectorOperation.FLOAT2_LOAD);
         }
     }
 
     public static final class Float4OfPhase extends HATDialectifyVectorOpPhase {
 
         public Float4OfPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.OF);
+            super(kernelCallGraph, VectorOperation.OF);
         }
     }
 
     public static final class MulPhase extends HATDialectifyVectorOpPhase {
 
         public MulPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.MUL);
+            super(kernelCallGraph, VectorOperation.MUL);
         }
     }
 
     public static final class SubPhase extends HATDialectifyVectorOpPhase {
 
         public SubPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, OpView.SUB);
+            super(kernelCallGraph, VectorOperation.SUB);
         }
     }
 }

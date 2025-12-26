@@ -30,7 +30,8 @@ import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATPhaseUtils;
-import hat.optools.OpTk;
+import hat.optools.RefactorMe;
+import hat.types._V;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -44,30 +45,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static optkl.OpTkl.transform;
 
-public abstract sealed class HATDialectifyVectorStorePhase implements HATDialectPhase {
+public abstract sealed class HATDialectifyVectorStorePhase implements HATDialectPhase
+        permits HATDialectifyVectorStorePhase.Float2StorePhase,HATDialectifyVectorStorePhase.Float4StorePhase{
 
     protected final KernelCallGraph kernelCallGraph;
     @Override  public KernelCallGraph kernelCallGraph(){
         return this.kernelCallGraph;
     }
-    private final StoreView vectorOperation;
-
-    public HATDialectifyVectorStorePhase(KernelCallGraph kernelCallGraph, StoreView vectorOperation) {
+    public HATDialectifyVectorStorePhase(KernelCallGraph kernelCallGraph/*, StoreView vectorOperation*/) {
         this.kernelCallGraph= kernelCallGraph;
-        this.vectorOperation = vectorOperation;
     }
 
-    public enum StoreView {
-        FLOAT4_STORE("storeFloat4View"),
-        FLOAT2_STORE("storeFloat2View");
-        final String methodName;
-        StoreView(String methodName) {
-            this.methodName = methodName;
-        }
-    }
     //recursive
     private String findNameVector(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -88,15 +78,21 @@ public abstract sealed class HATDialectifyVectorStorePhase implements HATDialect
         }
     }
 
+
+
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         var here = CallSite.of(this.getClass(), "apply");
+        String vectorOperation = switch (this) {
+            case Float2StorePhase _ -> "storeFloat2View";
+            case Float4StorePhase _ -> "storeFloat4View";
+        };
         before(here,funcOp);
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp
                         && (invokeOp.operands().size() >= 3) &&
-                            (OpTk.isVectorOperation(invokeOp, invokeOp.operands().get(1),n->n.equals(vectorOperation.methodName)))) {
+                            (RefactorMe.isVectorOperation(invokeOp, invokeOp.operands().get(1), n->n.equals(vectorOperation)))) {
                             consumer.accept(invokeOp);
                         }
                 });
@@ -131,13 +127,13 @@ public abstract sealed class HATDialectifyVectorStorePhase implements HATDialect
 
     public static final class Float4StorePhase extends HATDialectifyVectorStorePhase{
         public Float4StorePhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, StoreView.FLOAT4_STORE);
+            super(kernelCallGraph);
         }
     }
 
     public static final class Float2StorePhase extends HATDialectifyVectorStorePhase{
         public Float2StorePhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, StoreView.FLOAT2_STORE);
+            super(kernelCallGraph);
         }
     }
 }

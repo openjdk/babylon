@@ -26,10 +26,12 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
-import hat.optools.OpTk;
+import hat.optools.KernelContextPattern;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.CallSite;
 import optkl.OpTkl;
+
+import java.util.Objects;
 
 import static optkl.OpTkl.simpleOpMappingTransform;
 
@@ -44,8 +46,7 @@ public record HATDialectifyBarrierPhase(KernelCallGraph kernelCallGraph) impleme
 
         OpTkl.OpMap opMap = simpleOpMappingTransform(
                 /* for debugging we will remove */ here, fromFuncOp,
-                /* filter op                    */ ce -> OpTk.isKernelContextInvokeOp(lookup(), ce,
-                                                    invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.NAME)),
+                /* filter op                    */ ce -> Objects.nonNull(KernelContextPattern.KernelContextInvokePattern.matches(lookup(), ce, invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.NAME))),
                 /* replace op                   */ HATBarrierOp::new
         );
         after(here, opMap.toFuncOp());

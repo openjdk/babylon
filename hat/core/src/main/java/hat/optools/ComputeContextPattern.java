@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,34 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.optools;
 
-import hat.NDRange;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
+import hat.ComputeContext;
+import hat.KernelContext;
+import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Regex;
 
-import java.util.List;
+import java.lang.invoke.MethodHandles;
+import java.util.Objects;
+import java.util.function.Predicate;
 
-public final class HATGlobalSizeOp extends HATThreadOp {
-    public HATGlobalSizeOp(int dimension, TypeElement resultType) {
-        super("GlobalThreadSize",resultType,dimension, List.of());
+import static optkl.OpTkl.AnyFieldAccess;
+import static optkl.OpTkl.isAssignable;
+import static optkl.OpTkl.javaRefType;
+
+public interface ComputeContextPattern extends CodeModelPattern {
+
+    static boolean isComputeContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+        return isAssignable(lookup, javaRefType(invokeOp), ComputeContext.class);
     }
 
-    public HATGlobalSizeOp(HATGlobalSizeOp op, CodeContext copyContext) {
-        super(op, copyContext);
-    }
-
-    @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATGlobalSizeOp(this, copyContext);
-    }
-
-    static final public Regex regex= NDRange.Global.szRegex;
-
-    static public HATGlobalSizeOp of(int dimension, TypeElement resultType){
-        return new HATGlobalSizeOp(dimension,resultType);
-    }
 }

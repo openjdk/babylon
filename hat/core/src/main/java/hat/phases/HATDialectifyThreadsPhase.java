@@ -32,8 +32,9 @@ import hat.dialect.HATGlobalThreadIdOp;
 import hat.dialect.HATLocalSizeOp;
 import hat.dialect.HATLocalThreadIdOp;
 import hat.dialect.HATThreadOp;
+import hat.optools.KernelContextPattern;
 import hat.optools.Trxfmr;
-import hat.optools.OpTk;
+
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.CallSite;
@@ -50,7 +51,16 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         return kernelCallGraph;
     }
     final Class<C> clazz;
-
+    static int dimIdx(String name){
+        int dim = name.length()==3?name.charAt(2)-'x':-1;
+        if (dim <0||dim>3){
+            throw new IllegalStateException();//'x'=1,'y'=2....
+        }
+        return dim;
+    }
+    static int dimIdx(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+        return dimIdx(fieldLoadOp.fieldDescriptor().name());
+    }
     public HATDialectifyThreadsPhase(KernelCallGraph kernelCallGraph, Class<C> clazz) {
         this.kernelCallGraph=kernelCallGraph;
         this.clazz=clazz;
@@ -63,8 +73,12 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         var txfmr = new Trxfmr(CallSite.of(this.getClass()),funcOp);
+       // var collect =  funcOp.elements().map(ce-> KernelContextFieldAccessPattern.matches(lookup(),ce, _->true)).filter(Objects::nonNull).toList();
+        //System.out.println("@@@@@@@@@@@@@@@@Found "+collect.size());
+
+
         return txfmr.select(
-                ce->OpTk.asNamedKernelContextFieldAccessOrNull(lookup(),ce,regex())!=null,(s,o)->
+                ce-> KernelContextPattern.KernelContextFieldAccessPattern.asNamedKernelContextFieldAccessOrNull(lookup(),ce,regex())!=null,(s, o)->
                    operandsAsResults(o)
                      .map(OpTkl::opOfResultOrNull)
                      .map(OpTkl::asVarLoadOrNull)
@@ -90,7 +104,7 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
 
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return HATBlockThreadIdOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+                return HATBlockThreadIdOp.of(dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -103,7 +117,7 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return HATGlobalThreadIdOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+                return HATGlobalThreadIdOp.of(dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -116,7 +130,7 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return  HATGlobalSizeOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+                return  HATGlobalSizeOp.of(dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -129,7 +143,7 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-                return HATLocalThreadIdOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+                return HATLocalThreadIdOp.of(dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 
@@ -142,7 +156,7 @@ public sealed abstract class HATDialectifyThreadsPhase<T extends HATDialectifyTh
         }
         @Override
         public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
-            return HATLocalSizeOp.of(OpTk.dimIdx(fieldLoadOp), fieldLoadOp.resultType());
+            return HATLocalSizeOp.of(dimIdx(fieldLoadOp), fieldLoadOp.resultType());
         }
     }
 }

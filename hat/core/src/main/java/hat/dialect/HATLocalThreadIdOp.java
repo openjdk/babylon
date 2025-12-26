@@ -25,12 +25,11 @@
 package hat.dialect;
 
 import hat.NDRange;
-import hat.optools.OpTk;
+
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Regex;
 
 import java.util.List;

@@ -52,6 +52,7 @@ import static optkl.OpTkl.asResultOrThrow;
 import static optkl.OpTkl.getStaticFinalPrimitiveValue;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isPrimitiveResult;
+import static optkl.OpTkl.statements;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonKernelOpBuilder<T>  {
 
@@ -99,25 +100,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return identifier("HAT_GSZ");
     }
 
-    public T HAT_GS(int id) {
-        return (switch (id) {
-            case 0 -> HAT_GSX();
-            case 1 -> HAT_GSY();
-            case 2 -> HAT_GSZ();
-            default -> throw new RuntimeException("globalSize id = " + id);
-        });
-    }
-
-    public T HAT_GI(int id) {
-        switch (id) {
-            case 0 -> HAT_GIX();
-            case 1 -> HAT_GIY();
-            case 2 -> HAT_GIZ();
-            default -> throw new RuntimeException("globalId id = " + id);
-        }
-        return self();
-    }
-
     public T HAT_LIX(){
         return identifier("HAT_LIX");
     }
@@ -142,23 +124,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return identifier("HAT_LSZ");
     }
 
-    public T HAT_LI(int id) {
-        return (switch (id) {
-            case 0 -> HAT_LIX();
-            case 1 -> HAT_LIY();
-            case 2 -> HAT_LIZ();
-            default -> throw new RuntimeException("localId id = " + id);
-        });
-    }
-
-    public T HAT_LS(int id) {
-        return (switch (id) {
-            case 0 -> HAT_LSX();
-            case 1 -> HAT_LSY();
-            case 2 -> HAT_LSZ();
-            default -> throw new RuntimeException("localSize id = " + id);
-        });
-    }
 
     public T HAT_BIX(){
         return identifier("HAT_BIX");
@@ -172,12 +137,57 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return identifier("HAT_BIZ");
     }
 
-    public T HAT_BI(int id) {
-        return (switch (id) {
+
+    @Override
+    public T hatGlobalThreadIdOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
+        switch (globalThreadIdOp.getDimension()) {
+            case 0 -> HAT_GIX();
+            case 1 -> HAT_GIY();
+            case 2 -> HAT_GIZ();
+            default -> throw new RuntimeException("globalId id = " + globalThreadIdOp.getDimension());
+        }
+        return self();
+    }
+
+    @Override
+    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp globalSizeOp) {
+        return (switch (globalSizeOp.getDimension()) {
+            case 0 -> HAT_GSX();
+            case 1 -> HAT_GSY();
+            case 2 -> HAT_GSZ();
+            default -> throw new RuntimeException("globalSize id = " + globalSizeOp.getDimension());
+        });
+
+    }
+
+    @Override
+    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp localThreadIdOp) {
+        return (switch (localThreadIdOp.getDimension()) {
+            case 0 -> HAT_LIX();
+            case 1 -> HAT_LIY();
+            case 2 -> HAT_LIZ();
+            default -> throw new RuntimeException("localId id = " + localThreadIdOp.getDimension());
+        });
+
+    }
+
+    @Override
+    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
+        return (switch (hatLocalSizeOp.getDimension()) {
+            case 0 -> HAT_LSX();
+            case 1 -> HAT_LSY();
+            case 2 -> HAT_LSZ();
+            default -> throw new RuntimeException("localSize id = " + hatLocalSizeOp.getDimension());
+        });
+    }
+
+    @Override
+    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
+        return (switch (hatBlockThreadIdOp.getDimension()) {
             case 0 -> HAT_BIX();
             case 1 -> HAT_BIY();
             case 2 -> HAT_BIZ();
-            default -> throw new RuntimeException("blockId id = " + id);
+            default -> throw new RuntimeException("blockId id = " + hatBlockThreadIdOp.getDimension());
         });
     }
 
@@ -255,20 +265,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                     if (isLast && ifaceType.parent == null) {
                                         sbrace(_ -> literal(1));
                                     } else {
-                                        if (boundSchema != null) {
-                                            boolean[] done = new boolean[]{false};
-                                            boundSchema.boundArrayFields().forEach(a -> {
-                                                if (a.field.equals(ifaceField)) {
-                                                    sbrace(_ -> literal(a.len));
-                                                    done[0] = true;
-                                                }
-                                            });
-                                            if (!done[0]) {
-                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
-                                            }
-                                        } else {
-                                            throw new IllegalStateException("bound schema is null  !");
-                                        }
+                                      //  if (boundSchema != null) {
+                                          //  var done = StreamMutable.of(false);
+                                            boundSchema.boundArrayFields().stream()
+                                                    .filter(a->a.field.equals(ifaceField))
+                                                    .findFirst()
+                                                    .ifPresentOrElse(
+                                                            a-> sbrace(_ -> literal(a.len)),
+                                                            ()->{
+                                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                                            });
+                                        //} else {
+                                          //  throw new IllegalStateException("bound schema is null  !");
+                                      //  }
                                     }
                                 } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
                                     sbrace(_ -> literal(Math.max(1, fixed.len)));
@@ -352,17 +361,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
-        if (isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
+        if (javaType instanceof ClassType classType && isAssignable(buildContext.lookup, javaType, MappableIface.class)) {
             HAT_GLOBAL_MEM().suffix_t(classType).asterisk();
-        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(KernelContext.class.getName())) {
+        } else if (OpTkl.isAssignable(buildContext.lookup, javaType,KernelContext.class)) {
             HAT_GLOBAL_MEM().suffix_t(KernelContext.class).asterisk();
-        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
-            // Check for special types (e.g., FP16)
-            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
+        } else if (OpTkl.isAssignable(buildContext.lookup, javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().suffix_t(F16Impl.class).asterisk();
-        } else if (javaType instanceof ClassType classType && classType.toClassName().equals(BF16.class.getCanonicalName())) {
-            // Special type: BFLOAT16
-            // TODO: We need to update this with a custom op, so we avoid direct use of Impls
+        } else if (OpTkl.isAssignable(buildContext.lookup, javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             typeName(javaType.toString());
@@ -383,7 +388,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
               braceNlIndented(_ ->
                 nlSeparated(
-                        OpTkl.statements(funcOp.bodies().getFirst().entryBlock()),
+                        statements(funcOp.bodies().getFirst().entryBlock()),
                         statement->statement(buildContext,statement)
                 )
               );
@@ -400,7 +405,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     param -> declareParam(buildContext,param))
                 )
                 .braceNlIndented(_ -> nlSeparated(
-                    OpTkl.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                    statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
                     statement ->statement(buildContext,statement)
                 )
             )
@@ -408,30 +413,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    @Override
-    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
-        return HAT_GI(globalThreadIdOp.getDimension());
-    }
-
-    @Override
-    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp globalSizeOp) {
-        return HAT_GS(globalSizeOp.getDimension());
-    }
-
-    @Override
-    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp localThreadIdOp) {
-        return HAT_LI(localThreadIdOp.getDimension());
-    }
-
-    @Override
-    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
-        return HAT_LS(hatLocalSizeOp.getDimension());
-    }
-
-    @Override
-    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
-        return HAT_BI(hatBlockThreadIdOp.getDimension());
-    }
 
     @Override
     public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
@@ -662,14 +643,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      * @return
      */
     public final T build_builtin_bfloat16ToFloat(String parameterName) {
-        String identifier = "b";
+        String b16 = "b16";
+        String s = "s";
+        String f = "f";
         return funcDef(_ -> f32Type(),
                        _ -> builtin_bfloat16ToFloat(),
                        _ -> u16Type(parameterName),
-                       _ -> bfloat16Type(identifier).semicolonNl()
-                               .identifier(identifier).dot().identifier("s").sbrace( _ -> intConstZero()).equals().intConstZero().semicolonNl()
-                               .identifier(identifier).dot().identifier("s").sbrace( _ -> intConstOne()).equals().constant(parameterName).semicolonNl()
-                               .returnKeyword(_-> identifier("b").dot().identifier("f")));
+                       _ -> bfloat16Type(b16).semicolonNl()
+                               .identifier(b16).dot().identifier(s).sbrace( _ -> intConstZero()).equals().intConstZero().semicolonNl()
+                               .identifier(b16).dot().identifier(s).sbrace( _ -> intConstOne()).equals().constant(parameterName).semicolonNl()
+                               .returnKeyword(_-> identifier(b16).dot().identifier(f)));
     }
 
     /**
@@ -683,12 +666,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      * @return
      */
     public final T build_builtin_float2bfloat16(String parameterName) {
+        String b16 = "b16";
+        String s = "s";
         return funcDef(
                 _ -> u16Type(),
                 _ -> builtin_float2bfloat16(),
                 _ -> f32Type(parameterName),
-                _ -> assign(_ -> bfloat16Type("b"),
+                _ -> assign(_ -> bfloat16Type(b16),
                         _ ->  brace( _ -> identifier(parameterName)).semicolonNl()
-                                .returnKeyword(_ ->identifier("b").dot().identifier("s").sbrace(_ -> intConstOne()))));
+                                .returnKeyword(_ ->identifier(b16).dot().identifier(s).sbrace(_ -> intConstOne()))));
     }
 }
