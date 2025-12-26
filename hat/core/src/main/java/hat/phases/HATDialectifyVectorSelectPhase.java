@@ -28,7 +28,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
-import hat.optools.OpTk;
+import hat.types._V;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static hat.optools.RefactorMe.inspectAllInterfaces;
 import static optkl.OpTkl.asOpFromResultOrNull;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
@@ -55,7 +56,17 @@ public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) im
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
         return isMethod(invokeOp, n->xyzw.matches(n));
     }
-
+    static boolean isVectorOperation(JavaOp.InvokeOp invokeOp, boolean laneOk) {
+        String typeElement = invokeOp.invokeDescriptor().refType().toString();
+        Set<Class<?>> interfaces;
+        try {
+            Class<?> aClass = Class.forName(typeElement);
+            interfaces = inspectAllInterfaces(aClass);
+        } catch (ClassNotFoundException _) {
+            return false;
+        }
+        return interfaces.contains(_V.class) && laneOk;
+    }
     int getLane(String fieldName) {
         return switch (fieldName) {
             case "x" -> 0;
@@ -98,7 +109,7 @@ public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) im
         Stream<CodeElement<?, ?>> vectorSelectOps = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (OpTk.isVectorOperation(invokeOp, isVectorLane(invokeOp)) && (invokeOp.resultType() != JavaType.VOID)) {
+                        if (isVectorOperation(invokeOp, isVectorLane(invokeOp)) && (invokeOp.resultType() != JavaType.VOID)) {
                             Value inputOperand = invokeOp.operands().getFirst();
                             if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                                 consumer.accept(invokeOp);
@@ -153,7 +164,7 @@ public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) im
         Stream<CodeElement<?, ?>> float4NodesInvolved = OpTkl.elements(here, funcOp)
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (OpTk.isVectorOperation(invokeOp, isVectorLane(invokeOp))) {
+                        if (isVectorOperation(invokeOp, isVectorLane(invokeOp))) {
                             List<Value> inputOperandsInvoke = invokeOp.operands();
                             Value inputOperand = inputOperandsInvoke.getFirst();
                             if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

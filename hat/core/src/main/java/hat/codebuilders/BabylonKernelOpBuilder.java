@@ -41,7 +41,7 @@ public interface BabylonKernelOpBuilder<T extends HATCodeBuilder<?>> extends Bab
 
     T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp);
 
-    T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp hatGlobalThreadIdOp);
+    T hatGlobalThreadIdOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp hatGlobalThreadIdOp);
 
     T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp hatGlobalSizeOp);
 
@@ -120,7 +120,7 @@ public interface BabylonKernelOpBuilder<T extends HATCodeBuilder<?>> extends Bab
             case HATLocalVarOp $ -> hatLocalVarOp(buildContext, $);
             case HATPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
             case HATPrivateInitVarOp $ -> hatPrivateVarInitOp(buildContext, $);
-            case HATGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
+            case HATGlobalThreadIdOp $ -> hatGlobalThreadIdOp(buildContext, $);
             case HATGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
             case HATLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
             case HATLocalSizeOp $ -> hatLocalSizeOp(buildContext, $);

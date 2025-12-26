@@ -27,13 +27,15 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
+import hat.optools.ComputeContextPattern;
+import hat.optools.IfaceBufferPattern;
+import hat.optools.KernelContextPattern;
 import optkl.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
 import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
-import hat.optools.OpTk;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -51,8 +53,6 @@ import java.util.List;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
-import static hat.optools.OpTk.isComputeContextMethod;
-import static hat.optools.OpTk.isIfaceBufferMethod;
 import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.javaReturnType;
@@ -140,12 +140,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
             transformedFuncOp = transform(here, computeMethod.funcOp(),(bldr, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
-                    if (isIfaceBufferMethod(lookup(), invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
+                    if (IfaceBufferPattern.isInvokeOp(lookup(), invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
                         Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));                  // cc->preMutate(iface);
                         bldr.op(invokeOp);                                              // iface.v(newV);
                         bldr.op(JavaOp.invoke(MUTATE.post, cc, iface));                 // cc->postMutate(iface)
-                    } else if (isIfaceBufferMethod(lookup(), invokeOp)
+                    } else if (IfaceBufferPattern.isInvokeOp(lookup(), invokeOp)
                             && (
                                     (javaReturnType(invokeOp) instanceof ClassType returnClassType)
                                             && classTypeToTypeOrThrow(lookup(), returnClassType) instanceof Class<?> type
@@ -159,7 +159,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));                 // cc->preAccess(iface);
                         bldr.op(invokeOp);                                             // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface));                // cc->postAccess(iface)
-                    } else if (isComputeContextMethod(lookup(),invokeOp) || OpTk.isKernelContextInvokeOp(lookup(),invokeOp,OpTkl.AnyInvoke)) { //dispatchKernel
+                    } else if (ComputeContextPattern.isComputeContextMethod(lookup(),invokeOp) || KernelContextPattern.KernelContextInvokePattern.isKernelContextInvokeOp(lookup(),invokeOp,OpTkl.AnyInvoke)) { //dispatchKernel
                         bldr.op(invokeOp);
                     } else {
                         List<Value> list = invokeOp.operands();
