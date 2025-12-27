@@ -35,7 +35,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Function;
 
-public class HATDialectifyTier implements  LookupCarrier {
+public class HATDTier implements  LookupCarrier {
     KernelCallGraph kernelCallGraph;
     @Override
     public MethodHandles.Lookup lookup(){
@@ -43,7 +43,7 @@ public class HATDialectifyTier implements  LookupCarrier {
     }
     private List<HATPhase> hatPhases = new ArrayList<>();
 
-    public HATDialectifyTier(KernelCallGraph kernelCallGraph) {
+    public HATDTier(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
         // barriers
         hatPhases.add(new HATBarrierPhase(kernelCallGraph));
