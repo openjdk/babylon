@@ -25,32 +25,37 @@
 package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
-import hat.dialect.HATBarrierOp;
-import hat.optools.KernelContextPattern;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.util.CallSite;
-import optkl.OpTkl;
+import optkl.util.carriers.LookupCarrier;
 
-import java.util.Objects;
+import java.lang.invoke.MethodHandles;
+import java.util.function.Function;
 
-import static optkl.OpTkl.simpleOpMappingTransform;
+public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
+        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase,
+        HATDMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
 
-public record HATDialectifyBarrierPhase(KernelCallGraph kernelCallGraph) implements HATDialectPhase {
 
-    @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
-        var here = CallSite.of(HATDialectifyBarrierPhase.class, "apply");
-        before(here, fromFuncOp);
-        // The resulting op map also includes all op mappings (so op -> op') and the to and from funcOp
-        // I expect this to be useful for tracking state...
+    KernelCallGraph kernelCallGraph();
 
-        OpTkl.OpMap opMap = simpleOpMappingTransform(
-                /* for debugging we will remove */ here, fromFuncOp,
-                /* filter op                    */ ce -> Objects.nonNull(KernelContextPattern.KernelContextInvokePattern.matches(lookup(), ce, invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.NAME))),
-                /* replace op                   */ HATBarrierOp::new
-        );
-        after(here, opMap.toFuncOp());
-        return opMap.toFuncOp();
+    @Override default MethodHandles.Lookup lookup(){
+        return kernelCallGraph().lookup();
     }
 
+    default boolean tracing(){
+            return kernelCallGraph().config().showCompilationPhases();
+    }
+
+    default void before(CallSite callSite, CoreOp.FuncOp funcOp) {
+        if (tracing()) {
+            IO.println("[INFO] Code model before [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: "  + System.lineSeparator() + funcOp.toText());
+        }
+    }
+
+    default void after(CallSite callSite, CoreOp.FuncOp funcOp) {
+        if (tracing()) {
+            IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: " + System.lineSeparator() + funcOp.toText());
+        }
+    }
 }

@@ -46,14 +46,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import static optkl.OpTkl.transform;
 
-public abstract sealed class HATDialectifyVectorStorePhase implements HATDialectPhase
-        permits HATDialectifyVectorStorePhase.Float2StorePhase,HATDialectifyVectorStorePhase.Float4StorePhase{
+public abstract sealed class HATVectorStorePhase implements HATPhase
+        permits HATVectorStorePhase.Float2StorePhase, HATVectorStorePhase.Float4StorePhase{
 
     protected final KernelCallGraph kernelCallGraph;
     @Override  public KernelCallGraph kernelCallGraph(){
         return this.kernelCallGraph;
     }
-    public HATDialectifyVectorStorePhase(KernelCallGraph kernelCallGraph/*, StoreView vectorOperation*/) {
+    public HATVectorStorePhase(KernelCallGraph kernelCallGraph/*, StoreView vectorOperation*/) {
         this.kernelCallGraph= kernelCallGraph;
     }
 
@@ -124,13 +124,13 @@ public abstract sealed class HATDialectifyVectorStorePhase implements HATDialect
         return funcOp;
     }
 
-    public static final class Float4StorePhase extends HATDialectifyVectorStorePhase{
+    public static final class Float4StorePhase extends HATVectorStorePhase {
         public Float4StorePhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
         }
     }
 
-    public static final class Float2StorePhase extends HATDialectifyVectorStorePhase{
+    public static final class Float2StorePhase extends HATVectorStorePhase {
         public Float2StorePhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
         }

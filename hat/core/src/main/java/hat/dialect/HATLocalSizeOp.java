@@ -48,8 +48,6 @@ public final class HATLocalSizeOp extends HATThreadOp {
         return new HATLocalSizeOp(this, copyContext);
     }
 
-    public static Regex regex= NDRange.Local.szRegex;
-
     public static HATThreadOp of(int dimension, TypeElement resultType){
         return new HATLocalSizeOp(dimension, resultType);
     }

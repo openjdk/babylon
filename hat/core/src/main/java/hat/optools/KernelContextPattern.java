@@ -49,27 +49,13 @@ public interface KernelContextPattern extends CodeModelPattern {
 
 
     interface KernelContextFieldAccessPattern extends KernelContextPattern {
-        static boolean isVarAccessFromKernelContextFieldOp(MethodHandles.Lookup lookup, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return isKernelContextFieldAccessOp(lookup, varLoadOp, AnyFieldAccess);//varLoadOp.resultType());
-        }
 
         static JavaOp.FieldAccessOp asKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?, ?> ce, Predicate<JavaOp.FieldAccessOp> predicate) {
-            if (ce instanceof JavaOp.FieldAccessOp fieldAccessOp && KernelContextPattern.isKernelContext(lookup, fieldAccessOp.fieldDescriptor().refType())) {
+            if (ce instanceof JavaOp.FieldAccessOp fieldAccessOp
+                    && KernelContextPattern.isKernelContext(lookup, fieldAccessOp.fieldDescriptor().refType())) {
                 return predicate.test(fieldAccessOp) ? fieldAccessOp : null;
             }
             return null;
-        }
-
-        static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?, ?> ce, String name) {
-            return asKernelContextFieldAccessOrNull(lookup, ce, fieldAccessOp -> name.equals(fieldAccessOp.fieldDescriptor().name()));
-        }
-
-        static JavaOp.FieldAccessOp asNamedKernelContextFieldAccessOrNull(MethodHandles.Lookup lookup, CodeElement<?, ?> ce, Regex regex) {
-            return asKernelContextFieldAccessOrNull(lookup, ce, fieldAccessOp -> regex.matches(fieldAccessOp.fieldDescriptor().name()));
-        }
-
-        static boolean isKernelContextFieldAccessOp(MethodHandles.Lookup lookup, CodeElement<?, ?> ce, Predicate<JavaOp.FieldAccessOp> predicate) {
-            return Objects.nonNull(asKernelContextFieldAccessOrNull(lookup, ce, predicate));
         }
 
         static KernelContextFieldAccessPattern matches(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement, Predicate<JavaOp.FieldAccessOp> fieldAccessOpPredicate) {

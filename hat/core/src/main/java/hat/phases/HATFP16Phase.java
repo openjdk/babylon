@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
+import hat.dialect.BinaryOpEnum;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.dialect.ReducedFloatType;
@@ -58,19 +59,7 @@ import java.util.stream.Stream;
 import static hat.dialect.HATPhaseUtils.findF16IsLocal;
 import static optkl.OpTkl.isMethod;
 
-public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements HATDialectPhase {
-
-    private enum BinaryOpMethod {
-        ADD("add"),
-        SUB("sub"),
-        MUL("mul"),
-        DIV("div");
-
-        final String methodName;
-        BinaryOpMethod(String name) {
-            this.methodName = name;
-        }
-    }
+public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
     private ReducedFloatType categorizeReducedFloat(JavaOp.InvokeOp invokeOp) {
         String invokeClassName = invokeOp.invokeDescriptor().refType().toString();
@@ -171,7 +160,7 @@ public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements
         blockBuilder.context().mapValue(varLoadOp.result(), op1);
     }
 
-    private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpMethod method, ReducedFloatType reducedFloatType) {
+    private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpEnum binaryOpEnum, ReducedFloatType reducedFloatType) {
         List<Value> operands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
 
@@ -191,7 +180,7 @@ public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements
         TypeElement typeElement = invokeOp.resultType();
         List<Boolean> refList = List.of(isFirstOperandReference, isSecondOperandReference);
 
-        HATF16BinaryOp binaryOp = switch (method) {
+        HATF16BinaryOp binaryOp = switch (binaryOpEnum) {
             case ADD -> new HATF16AddOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
             case SUB -> new HATF16SubOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
             case MUL -> new HATF16MulOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
@@ -203,7 +192,7 @@ public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements
         blockBuilder.context().mapValue(invokeOp.result(), op1);
     }
 
-    private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, BinaryOpMethod method) {
+    private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, BinaryOpEnum binaryOpEnum) {
         var here = CallSite.of(this.getClass(), "dialectifyF16Ops");
         before(here, funcOp);
 
@@ -212,7 +201,7 @@ public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (is16BitFloatOperation(invokeOp, method.methodName) && invokeOp.resultType() != JavaType.VOID) {
+                        if (is16BitFloatOperation(invokeOp, binaryOpEnum.name().toLowerCase()) && invokeOp.resultType() != JavaType.VOID) {
                             Set<Op.Result> uses = invokeOp.result().uses();
                             consumer.accept(invokeOp);
                             ReducedFloatType category = categorizeReducedFloat(invokeOp);
@@ -234,7 +223,7 @@ public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                createF16BinaryOp(invokeOp, blockBuilder, method, reducedFloatsType.get(invokeOp));
+                createF16BinaryOp(invokeOp, blockBuilder, binaryOpEnum, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 createF16VarOp(varOp, blockBuilder, reducedFloatsType.get(varOp));
             }
@@ -378,9 +367,9 @@ public record HATDialectifyFP16Phase(KernelCallGraph kernelCallGraph) implements
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        for (BinaryOpMethod method : BinaryOpMethod.values())
+        for (BinaryOpEnum binaryOpEnum : BinaryOpEnum.values())
             // F16 Operations
-            funcOp = dialectifyF16Ops(funcOp, method);
+            funcOp = dialectifyF16Ops(funcOp, binaryOpEnum);
 
         // Init analysis before the store
         funcOp = dialectifyF16Init(funcOp);

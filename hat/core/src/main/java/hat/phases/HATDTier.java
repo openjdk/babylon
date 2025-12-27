@@ -35,56 +35,55 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Function;
 
-public class HATDialectifyTier implements Function<CoreOp.FuncOp, CoreOp.FuncOp>, LookupCarrier {
+public class HATDTier implements  LookupCarrier {
     KernelCallGraph kernelCallGraph;
     @Override
     public MethodHandles.Lookup lookup(){
         return kernelCallGraph.lookup();
     }
-    private List<HATDialectPhase> hatPhases = new ArrayList<>();
+    private List<HATPhase> hatPhases = new ArrayList<>();
 
-    public HATDialectifyTier(KernelCallGraph kernelCallGraph) {
+    public HATDTier(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
         // barriers
-        hatPhases.add(new HATDialectifyBarrierPhase(kernelCallGraph));
+        hatPhases.add(new HATBarrierPhase(kernelCallGraph));
 
         // array views
-        hatPhases.add(new HATDialectifyArrayViewPhase(kernelCallGraph));
+        hatPhases.add(new HATArrayViewPhase(kernelCallGraph));
 
         // Memory
-        hatPhases.add(new HATDialectifyMemoryPhase.LocalMemoryPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyMemoryPhase.PrivateMemoryPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyMemoryPhase.DeviceTypePhase(kernelCallGraph));
+        hatPhases.add(new HATDMemoryPhase.LocalMemoryPhase(kernelCallGraph));
+        hatPhases.add(new HATDMemoryPhase.PrivateMemoryPhase(kernelCallGraph));
+        hatPhases.add(new HATDMemoryPhase.DeviceTypePhase(kernelCallGraph));
 
         // ID's /thread access
-        hatPhases.add(new HATDialectifyThreadsPhase.GlobalIdPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyThreadsPhase.GlobalSizePhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyThreadsPhase.LocalIdPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyThreadsPhase.LocalSizePhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyThreadsPhase.BlockPhase(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.GlobalIdPhase(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.GlobalSizePhase(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LocalIdPhase(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LocalSizePhase(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.BlockPhase(kernelCallGraph));
 
         // views for vector types
-        hatPhases.add(new HATDialectifyVectorOpPhase.Float4LoadPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorOpPhase.Float2LoadPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorOpPhase.Float4OfPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorOpPhase.AddPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorOpPhase.SubPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorOpPhase.MulPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorOpPhase.DivPhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorOpPhase.MakeMutable(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorStorePhase.Float4StorePhase(kernelCallGraph));
-        hatPhases.add(new HATDialectifyVectorStorePhase.Float2StorePhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.Float4LoadPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.Float2LoadPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.Float4OfPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.AddPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.SubPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.MulPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.DivPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorPhase.MakeMutable(kernelCallGraph));
+        hatPhases.add(new HATVectorStorePhase.Float4StorePhase(kernelCallGraph));
+        hatPhases.add(new HATVectorStorePhase.Float2StorePhase(kernelCallGraph));
 
         // Vector Select individual lines
-        hatPhases.add(new HATDialectifyVectorSelectPhase(kernelCallGraph));
+        hatPhases.add(new HATVectorSelectPhase(kernelCallGraph));
 
         // F16 type
-        hatPhases.add(new HATDialectifyFP16Phase(kernelCallGraph));
+        hatPhases.add(new HATFP16Phase(kernelCallGraph));
 
     }
 
     // It computes a set of function code model transformations from FuncOp to FuncOp'.
-    @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         BlockingQueue<Function<CoreOp.FuncOp,CoreOp.FuncOp>> queue = new ArrayBlockingQueue<>(hatPhases.size());
         queue.addAll(hatPhases);

@@ -47,7 +47,6 @@ public final class HATGlobalSizeOp extends HATThreadOp {
         return new HATGlobalSizeOp(this, copyContext);
     }
 
-    static final public Regex regex= NDRange.Global.szRegex;
 
     static public HATGlobalSizeOp of(int dimension, TypeElement resultType){
         return new HATGlobalSizeOp(dimension,resultType);

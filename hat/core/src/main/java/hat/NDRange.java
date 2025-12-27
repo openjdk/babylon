@@ -79,20 +79,18 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
     sealed interface Range permits Local, Global, Block {
     }
     sealed interface Local extends Range {
-        Regex szRegex = Regex.of("ls([xyz])");
-        Regex idxRegex = Regex.of("li([xyz])");
+
     }
 
     sealed interface Block extends Range{
         // We need this to seal the interface hierarchy
         record Impl() implements Block {
         }
-        Regex idxRegex = Regex.of("bi([xyz])");
+
     }
 
     sealed interface Global extends Range {
-        Regex idxRegex = Regex.of("(gi[xyz])");
-        Regex szRegex = Regex.of("(gs[xyz])");
+
     }
 
     sealed interface Global1D extends _1DX, Global {
