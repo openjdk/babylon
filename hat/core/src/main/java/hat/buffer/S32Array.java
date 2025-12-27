@@ -37,13 +37,12 @@ import java.util.function.Function;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Buffer {
-    //@Reflect default void schema(Class<S32Array> iface){array(length());}
-    @ProvidesDimFor("array")
+    @Reflect default void  schema(){array(length());}
     int length();
     int array(long idx);
     void array(long idx, int i);
 
-    long HEADER_BYTES = JAVA_INT.byteSize();
+    long ARRAY_OFFSET = JAVA_INT.byteSize();
     Schema<S32Array> schema = Schema.of(S32Array.class);
 
     @Reflect static S32Array create(CommonCarrier cc, int length){
@@ -62,11 +61,11 @@ public interface S32Array extends Buffer {
         return create( cc, arr.length).copyfrom(arr);
     }
     @Reflect default S32Array copyfrom(int[] ints) {
-        MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, length());
+        MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, ARRAY_OFFSET, length());
         return this;
     }
     @Reflect default int[] copyTo(int[] ints) {
-        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, HEADER_BYTES, ints, 0, length());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, ARRAY_OFFSET, ints, 0, length());
         return ints;
     }
 
