@@ -35,7 +35,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import static hat.optools.KernelContextPattern.KernelContextFieldAccessPattern.isKernelContextFieldAccessOp;
+import static hat.optools.KernelContextPattern.KernelContextFieldAccessPattern.asKernelContextFieldAccessOrNull;
 import static optkl.OpTkl.getStaticFinalPrimitiveValue;
 
 public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
@@ -48,7 +48,7 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (isKernelContextFieldAccessOp(buildContext.lookup,fieldLoadOp, _->true)) {
+        if (asKernelContextFieldAccessOrNull(buildContext.lookup,fieldLoadOp, _->true)!=null) {
             identifier("kc").dot().fieldName(fieldLoadOp);
         } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) { // only primitve fields
             var value = getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);

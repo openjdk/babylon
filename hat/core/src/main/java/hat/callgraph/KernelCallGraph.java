@@ -27,12 +27,10 @@ package hat.callgraph;
 import hat.BufferTagger;
 import optkl.ifacemapper.Buffer;
 
-import hat.phases.HATDialectifyTier;
-import jdk.incubator.code.*;
+import hat.phases.HATDTier;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Stream;
@@ -85,7 +83,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         this.computeCallGraph = computeCallGraph;
         this.traits = new Traits(BufferTagger.getAccessList(computeContext.lookup(), entrypoint.funcOp()));
 
-        HATDialectifyTier tier = new HATDialectifyTier(this);
+        HATDTier tier = new HATDTier(this);
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
 
         entrypoint.funcOp(initialEntrypointFuncOp);

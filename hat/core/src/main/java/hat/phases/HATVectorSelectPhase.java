@@ -50,8 +50,8 @@ import static optkl.OpTkl.asOpFromResultOrNull;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
-public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATDialectPhase {
-    static Regex xyzw = Regex.of("[xyzw]");
+public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
+    private static final Regex xyzw = Regex.of("[xyzw]");
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
         return isMethod(invokeOp, n->xyzw.matches(n));
@@ -60,7 +60,7 @@ public record HATDialectifyVectorSelectPhase(KernelCallGraph kernelCallGraph) im
         String typeElement = invokeOp.invokeDescriptor().refType().toString();
         Set<Class<?>> interfaces;
         try {
-            Class<?> aClass = Class.forName(typeElement);
+            Class<?> aClass = Class.forName(typeElement); // WHY?
             interfaces = inspectAllInterfaces(aClass);
         } catch (ClassNotFoundException _) {
             return false;

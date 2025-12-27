@@ -327,18 +327,6 @@ public class Trxfmr {
 
         Set<Op> ops();
 
-        static Edge<JavaOp.FieldAccessOp.FieldLoadOp, CoreOp.VarAccessOp.VarLoadOp> kernelContextFieldVarLoad(
-                MethodHandles.Lookup lookup,JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp, Predicate<String> fieldNamePredicate) {
-            record FieldVarLoadEdge<
-                    F extends JavaOp.FieldAccessOp.FieldLoadOp,
-                    T extends CoreOp.VarAccessOp.VarLoadOp>(F f, T t, Set<Op> ops) implements Edge<F, T> {
-            }
-            return (
-                    fieldAccessOpNameMatches(fieldLoadOp, fieldNamePredicate) instanceof JavaOp.FieldAccessOp.FieldLoadOp
-                            && opFromOperandAsResult(fieldLoadOp, 0) instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && KernelContextPattern.KernelContextFieldAccessPattern.isVarAccessFromKernelContextFieldOp(lookup,varLoadOp))
-                    ? new FieldVarLoadEdge<>(fieldLoadOp, varLoadOp, Set.of(fieldLoadOp, varLoadOp)) : null;
-        }
 
 
          class Selector<F extends Op, T extends Op> {

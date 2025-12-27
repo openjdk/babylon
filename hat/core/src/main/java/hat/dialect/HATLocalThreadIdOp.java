@@ -49,8 +49,6 @@ public final class HATLocalThreadIdOp extends HATThreadOp {
         return new HATLocalThreadIdOp(this, copyContext);
     }
 
-    static public  final Regex regex = NDRange.Local.idxRegex;
-
     public static  HATLocalThreadIdOp of(int dimension, TypeElement resultType){
         return new HATLocalThreadIdOp(dimension,resultType);
     }

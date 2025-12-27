@@ -52,11 +52,6 @@ public final class HATVectorStoreView extends HATVectorOp {
         return new HATVectorStoreView(this, copyContext);
     }
 
-   // @Override
-   // public TypeElement resultType() {
-     //   return super.typeElement;
-   // }
-
     @Override
     public Map<String, Object> externalize() {
         return Map.of("hat.dialect." + vectorElementType().toString() + vectorN() + "StoreView." + varName(), resultType());

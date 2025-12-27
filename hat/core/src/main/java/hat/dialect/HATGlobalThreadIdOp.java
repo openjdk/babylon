@@ -48,8 +48,6 @@ public final class HATGlobalThreadIdOp extends HATThreadOp {
         return new HATGlobalThreadIdOp(this, copyContext);
     }
 
-    public static final Regex regex= NDRange.Global.idxRegex;
-
     public static  HATGlobalThreadIdOp of(int dimension, TypeElement resultType){
         return new HATGlobalThreadIdOp(dimension, resultType);
     }

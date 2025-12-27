@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,33 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.optools;
 
-import hat.NDRange;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
-import optkl.util.Regex;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
-import java.util.List;
-
-public final class HATBlockThreadIdOp extends HATThreadOp {
-    public HATBlockThreadIdOp(int dimension, TypeElement resultType) {
-        super("BlockThreadId", resultType,dimension, List.of());
-    }
-
-    public HATBlockThreadIdOp(HATBlockThreadIdOp op, CodeContext copyContext) {
-        super(op, copyContext);
-    }
-
-    @Override
-    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-        return new HATBlockThreadIdOp(this, copyContext);
-    }
-
-
-    public static HATBlockThreadIdOp of(int dimension, TypeElement resultType){
-        return new HATBlockThreadIdOp(dimension,resultType);
+public class PatternSelector {
+    Set<CodeModelPattern> codeModelPatterns = new LinkedHashSet<>();
+    public PatternSelector add(CodeModelPattern codeModelPattern){
+        codeModelPatterns.add(codeModelPattern);
+        return this;
     }
 }
