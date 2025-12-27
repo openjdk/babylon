@@ -30,7 +30,7 @@ import hat.Config;
 import hat.optools.ComputeContextPattern;
 import hat.optools.IfaceBufferPattern;
 import hat.optools.KernelContextPattern;
-import optkl.CallSite;
+import optkl.util.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;

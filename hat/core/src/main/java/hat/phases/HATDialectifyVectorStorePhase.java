@@ -31,7 +31,6 @@ import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATPhaseUtils;
 import hat.optools.RefactorMe;
-import hat.types._V;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -39,7 +38,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.CallSite;
+import optkl.util.CallSite;
 
 import java.util.List;
 import java.util.Set;

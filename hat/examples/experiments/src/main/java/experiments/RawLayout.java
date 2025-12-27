@@ -43,7 +43,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
-import optkl.CallSite;
+import optkl.util.CallSite;
 
 import java.util.*;
 import java.util.stream.Stream;

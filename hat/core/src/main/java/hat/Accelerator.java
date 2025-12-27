@@ -27,8 +27,7 @@ package hat;
 
 import hat.backend.Backend;
 
-import optkl.CommonCarrier;
-import optkl.ifacemapper.BufferAllocator;
+import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 
@@ -41,7 +40,6 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.LookupCarrier;
 
 import java.util.HashMap;
 import java.util.Map;

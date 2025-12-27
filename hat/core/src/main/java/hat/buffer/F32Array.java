@@ -25,8 +25,7 @@
 package hat.buffer;
 
 import jdk.incubator.code.Reflect;
-import optkl.CommonCarrier;
-import optkl.annotations.ProvidesDimFor;
+import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
@@ -38,7 +37,6 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
     @Reflect default void  schema(){array(length());}
-   // @ProvidesDimFor("array")
     int length();
     float array(long idx);
     void array(long idx, float f);
@@ -70,5 +68,4 @@ public interface F32Array extends Buffer {
         this.copyTo(arr);
         return arr;
     }
-
 }

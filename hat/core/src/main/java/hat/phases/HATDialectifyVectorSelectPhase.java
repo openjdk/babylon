@@ -36,9 +36,9 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.CallSite;
+import optkl.util.CallSite;
 import optkl.OpTkl;
-import optkl.Regex;
+import optkl.util.Regex;
 
 import java.util.List;
 import java.util.Set;

@@ -30,6 +30,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.util.BiMap;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

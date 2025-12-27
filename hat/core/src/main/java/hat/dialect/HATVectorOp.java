@@ -27,7 +27,7 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import optkl.VarLikeOp;
+import optkl.util.ops.VarLikeOp;
 
 import java.util.List;
 

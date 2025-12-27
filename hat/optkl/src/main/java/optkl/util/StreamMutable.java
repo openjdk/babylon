@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl;
+package optkl.util;
 
 public class StreamMutable<R> {
     private R value;

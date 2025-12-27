@@ -22,14 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl.annotations;
+package hat.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Kernel {
+public @interface Preformatted {
     String value();
 }

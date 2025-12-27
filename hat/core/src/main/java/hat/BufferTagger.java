@@ -25,7 +25,7 @@
 
 package hat;
 
-import optkl.CallSite;
+import optkl.util.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;

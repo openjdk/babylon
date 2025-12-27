@@ -26,7 +26,7 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.LookupCarrier;
+import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;

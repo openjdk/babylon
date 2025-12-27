@@ -32,7 +32,7 @@ import hat.KernelContext;
 //import hat.backend.java.JavaSequentialBackend;
 import optkl.ifacemapper.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
-import optkl.LookupCarrier;
+import optkl.util.carriers.LookupCarrier;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;

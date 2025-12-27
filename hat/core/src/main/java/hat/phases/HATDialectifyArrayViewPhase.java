@@ -27,7 +27,7 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.device.DeviceType;
 import hat.dialect.*;
-import optkl.CallSite;
+import optkl.util.CallSite;
 import optkl.ifacemapper.MappableIface;
 import hat.types._V;
 import jdk.incubator.code.Block;
@@ -38,7 +38,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
 
-import java.lang.invoke.MethodHandles;
 import java.util.*;
 
 import static optkl.OpTkl.classTypeToTypeOrThrow;

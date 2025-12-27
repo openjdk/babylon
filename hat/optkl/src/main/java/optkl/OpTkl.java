@@ -38,6 +38,9 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.util.CallSite;
+import optkl.util.carriers.LookupCarrier;
+import optkl.util.ops.StatementLikeOp;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;

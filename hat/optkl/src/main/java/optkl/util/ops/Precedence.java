@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl;
+package optkl.util.ops;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;

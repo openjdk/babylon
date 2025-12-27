@@ -23,7 +23,7 @@
  * questions.
  */
 
-package optkl;
+package optkl.util;
 
 import java.io.*;
 

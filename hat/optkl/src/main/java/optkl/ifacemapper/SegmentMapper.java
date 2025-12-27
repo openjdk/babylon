@@ -26,8 +26,8 @@ package optkl.ifacemapper;
 
 
 
-import optkl.ArenaCarrier;
-import optkl.LookupCarrier;
+import optkl.util.carriers.ArenaCarrier;
+import optkl.util.carriers.LookupCarrier;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;

@@ -25,7 +25,7 @@
 package hat.buffer;
 
 import jdk.incubator.code.Reflect;
-import optkl.CommonCarrier;
+import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
