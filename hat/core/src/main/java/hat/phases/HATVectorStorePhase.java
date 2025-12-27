@@ -25,9 +25,7 @@
 package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATPhaseUtils;
 import hat.optools.RefactorMe;
@@ -73,7 +71,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst());
         } else{
-            return (v instanceof CoreOp.Result r && (r.op() instanceof HATLocalVarOp || r.op() instanceof HATPrivateVarOp));
+            return (v instanceof CoreOp.Result r && (r.op() instanceof HATMemoryVarOp.HATLocalVarOp || r.op() instanceof HATMemoryVarOp.HATPrivateVarOp));
         }
     }
 
@@ -109,7 +107,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
 
                 HATPhaseUtils.VectorMetaData vectorMetaData  = HATPhaseUtils.getVectorTypeInfo(invokeOp, 1);
                 TypeElement vectorElementType = vectorMetaData.vectorTypeElement();
-                HATVectorOp storeView = new HATVectorStoreView(findNameVector(invokeOp.operands().get(1)), invokeOp.resultType(), vectorMetaData.lanes(),
+                HATVectorOp storeView = new HATVectorOp.HATVectorStoreView(findNameVector(invokeOp.operands().get(1)), invokeOp.resultType(), vectorMetaData.lanes(),
                         vectorElementType, isSharedOrPrivate,  outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(storeView);
                 storeView.setLocation(invokeOp.location());

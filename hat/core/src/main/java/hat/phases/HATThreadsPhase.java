@@ -26,11 +26,7 @@ package hat.phases;
 
 
 import hat.callgraph.KernelCallGraph;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATThreadOp;
 import hat.optools.KernelContextPattern;
 import hat.optools.Trxfmr;
 
@@ -87,11 +83,11 @@ permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPha
                               throw new IllegalStateException();//'x'=1,'y'=2....
                           }
                           c.replace(switch (HATThreadsPhase.this){
-                              case BlockPhase _->HATBlockThreadIdOp.of(dimIdx, $.resultType());
-                              case GlobalIdPhase _->HATGlobalThreadIdOp.of(dimIdx, $.resultType());
-                              case GlobalSizePhase _-> HATGlobalSizeOp.of(dimIdx, $.resultType());
-                              case LocalIdPhase _-> HATLocalThreadIdOp.of(dimIdx, $.resultType());
-                              case LocalSizePhase _-> HATLocalSizeOp.of(dimIdx,$.resultType());
+                              case BlockPhase _-> HATThreadOp.HATBlockThreadIdOp.of(dimIdx, $.resultType());
+                              case GlobalIdPhase _-> HATThreadOp.HATGlobalThreadIdOp.of(dimIdx, $.resultType());
+                              case GlobalSizePhase _-> HATThreadOp.HATGlobalSizeOp.of(dimIdx, $.resultType());
+                              case LocalIdPhase _-> HATThreadOp.HATLocalThreadIdOp.of(dimIdx, $.resultType());
+                              case LocalSizePhase _-> HATThreadOp.HATLocalSizeOp.of(dimIdx,$.resultType());
                           });
                       }
                       case CoreOp.VarAccessOp.VarLoadOp _ -> c.remove();

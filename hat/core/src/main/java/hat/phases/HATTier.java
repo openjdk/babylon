@@ -35,7 +35,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Function;
 
-public class HATDTier implements  LookupCarrier {
+public class HATTier implements  LookupCarrier {
     KernelCallGraph kernelCallGraph;
     @Override
     public MethodHandles.Lookup lookup(){
@@ -43,7 +43,7 @@ public class HATDTier implements  LookupCarrier {
     }
     private List<HATPhase> hatPhases = new ArrayList<>();
 
-    public HATDTier(KernelCallGraph kernelCallGraph) {
+    public HATTier(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
         // barriers
         hatPhases.add(new HATBarrierPhase(kernelCallGraph));
@@ -52,9 +52,9 @@ public class HATDTier implements  LookupCarrier {
         hatPhases.add(new HATArrayViewPhase(kernelCallGraph));
 
         // Memory
-        hatPhases.add(new HATDMemoryPhase.LocalMemoryPhase(kernelCallGraph));
-        hatPhases.add(new HATDMemoryPhase.PrivateMemoryPhase(kernelCallGraph));
-        hatPhases.add(new HATDMemoryPhase.DeviceTypePhase(kernelCallGraph));
+        hatPhases.add(new HATMemoryPhase.LocalMemoryPhase(kernelCallGraph));
+        hatPhases.add(new HATMemoryPhase.PrivateMemoryPhase(kernelCallGraph));
+        hatPhases.add(new HATMemoryPhase.DeviceTypePhase(kernelCallGraph));
 
         // ID's /thread access
         hatPhases.add(new HATThreadsPhase.GlobalIdPhase(kernelCallGraph));
