@@ -139,7 +139,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
 
     @Override
-    public T hatGlobalThreadIdOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
+    public T hatGlobalThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATGlobalThreadIdOp globalThreadIdOp) {
         switch (globalThreadIdOp.getDimension()) {
             case 0 -> HAT_GIX();
             case 1 -> HAT_GIY();
@@ -150,7 +150,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp globalSizeOp) {
+    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATGlobalSizeOp globalSizeOp) {
         return (switch (globalSizeOp.getDimension()) {
             case 0 -> HAT_GSX();
             case 1 -> HAT_GSY();
@@ -161,7 +161,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp localThreadIdOp) {
+    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATLocalThreadIdOp localThreadIdOp) {
         return (switch (localThreadIdOp.getDimension()) {
             case 0 -> HAT_LIX();
             case 1 -> HAT_LIY();
@@ -172,7 +172,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
+    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATLocalSizeOp hatLocalSizeOp) {
         return (switch (hatLocalSizeOp.getDimension()) {
             case 0 -> HAT_LSX();
             case 1 -> HAT_LSY();
@@ -182,7 +182,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
+    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATBlockThreadIdOp hatBlockThreadIdOp) {
         return (switch (hatBlockThreadIdOp.getDimension()) {
             case 0 -> HAT_BIX();
             case 1 -> HAT_BIY();
@@ -331,12 +331,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public final T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp hatLocalVarOp) {
+    public final T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATMemoryVarOp.HATLocalVarOp hatLocalVarOp) {
         return   localDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
     }
 
     @Override
-    public final T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp) {
+    public final T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp) {
         return privateDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
     }
 
@@ -415,7 +415,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
 
     @Override
-    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
+    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
         return varName(hatVectorVarLoadOp);
     }
 
@@ -428,7 +428,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
+    public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16VarOp hatF16VarOp) {
         ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
         return (switch (reducedFloatType) {
             case ReducedFloatType.HalfFloat _ -> f16Type();
@@ -440,11 +440,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     private boolean isMixedFirstOperand(byte f32Mixed) {
-        return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.FIRST_OP;
+        return f32Mixed != 0 && f32Mixed != HATF16Op.HATF16BinaryOp.FIRST_OP;
     }
 
     private boolean isMixedSecondOperand(byte f32Mixed) {
-        return f32Mixed != 0 && f32Mixed != HATF16BinaryOp.LAST_OP;
+        return f32Mixed != 0 && f32Mixed != HATF16Op.HATF16BinaryOp.LAST_OP;
     }
 
     public final T builtin_float2bfloat16() {
@@ -455,8 +455,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return identifier("bfloat16Tofloat");
     }
 
-    private T binaryOperationsForBfloat16(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatf16BinaryOp) {
-        byte f32Mixed = hatf16BinaryOp.getF32();
+    private T binaryOperationsForBfloat16(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+        byte f32Mixed = hatf16BinaryOp.getByteFloatRepresentation();
         paren(_-> bf16Type());
         brace(_-> {
             paren(_-> {
@@ -503,7 +503,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
         ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
         if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
             return binaryOperationsForBfloat16(buildContext, hatF16BinaryOp);
@@ -533,19 +533,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
+    public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
         return identifier(hatF16VarLoadOp.varName()).dot().identifier("value");
     }
 
     @Override
-    public T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp) {
+    public T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorOp.HATVectorMakeOfOp hatVectorMakeOfOp) {
         return identifier(hatVectorMakeOfOp.varName());
     }
 
-    public abstract T genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp);
+    public abstract T genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOp.HATVectorOfOp hatVectorOfOp);
 
     @Override
-    public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
+    public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorOfOp hatVectorOp) {
         return genVectorIdentifier(buildContext, hatVectorOp)
                 .paren(_->commaSpaceSeparated(
                         hatVectorOp.operands(),
@@ -554,7 +554,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATPrivateInitVarOp hatPrivateInitVarOp) {
+    public T hatPrivateVarInitOp(ScopedCodeBuilderContext builderContext, HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp) {
         return suffix_t(hatPrivateInitVarOp.classType()).space()
                 .assign(
                         _-> identifier(hatPrivateInitVarOp.varName()),
@@ -562,7 +562,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryLoadOp hatMemoryLoadOp) {
+    public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp) {
         return recurse(builderContext, asResultOrThrow(hatMemoryLoadOp.operands().getFirst()).op())
                 .dot().identifier(hatMemoryLoadOp.memberName())
                 .when(hatMemoryLoadOp.operands().size() > 1,_->// If the hatMemoryLoadOp has more than 1 operand, the second is the index
@@ -570,19 +570,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 );
     }
 
-    public T hatPtrLoadOp(ScopedCodeBuilderContext builderContext, HATPtrLoadOp hatPtrLoadOp) {
+    public T hatPtrLoadOp(ScopedCodeBuilderContext builderContext, HATPtrOp.HATPtrLoadOp hatPtrLoadOp) {
         ptrAccess(builderContext, hatPtrLoadOp);
         return self();
     }
 
     @Override
-    public T hatPtrStoreOp(ScopedCodeBuilderContext builderContext, HATPtrStoreOp hatPtrStoreOp) {
+    public T hatPtrStoreOp(ScopedCodeBuilderContext builderContext, HATPtrOp.HATPtrStoreOp hatPtrStoreOp) {
         ptrAccess(builderContext, hatPtrStoreOp).equals().recurse(builderContext, ((Op.Result) hatPtrStoreOp.operands().getLast()).op());
         return self();
     }
 
     @Override
-    public T hatPtrLengthOp(ScopedCodeBuilderContext builderContext, HATPtrLengthOp hatPtrLengthOp) {
+    public T hatPtrLengthOp(ScopedCodeBuilderContext builderContext, HATPtrOp.HATPtrLengthOp hatPtrLengthOp) {
         ptrAccess(builderContext, hatPtrLengthOp);
         return self();
     }
@@ -598,7 +598,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
-        if (hatPtrOp instanceof HATPtrLengthOp) {
+        if (hatPtrOp instanceof HATPtrOp.HATPtrLengthOp) {
             identifier("length");
         } else {
             boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;
@@ -623,8 +623,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         Op op = ((Op.Result) ((Op.Result) (hatPtrOp.operands().getFirst())).op().operands().getFirst()).op();
         return switch (op) {
             case CoreOp.VarOp varOp -> varOp.varName();
-            case HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
-            case HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
+            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
+            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
             case null, default -> "";
         };
     }

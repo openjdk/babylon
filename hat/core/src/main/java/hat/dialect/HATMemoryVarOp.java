@@ -25,6 +25,8 @@
 package hat.dialect;
 
 import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -32,9 +34,11 @@ import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
 import java.util.List;
+import java.util.Map;
 
 
-public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp permits HATLocalVarOp, HATPrivateVarOp, HATPrivateInitVarOp  {
+public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp
+        permits HATMemoryVarOp.HATLocalVarOp, HATMemoryVarOp.HATPrivateVarOp, HATMemoryVarOp.HATPrivateInitVarOp {
 
     private final String varName;
 
@@ -56,4 +60,152 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
     public abstract ClassType classType();
 
     public abstract TypeElement invokeType();
+
+    public static final  class HATLocalVarOp extends HATMemoryVarOp {
+
+        public static final String INTRINSIC_NAME = "createLocal";
+
+        private final TypeElement typeElement;
+        private final ClassType klassType;
+        private final TypeElement invokeResultType;
+
+        public HATLocalVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+            super(varName, operands);
+            this.typeElement = typeElement;
+            this.klassType = javaType;
+            this.invokeResultType = invokeResultType;
+        }
+
+        public HATLocalVarOp(HATLocalVarOp op, CodeContext copyContext) {
+            super(op, copyContext);
+            this.typeElement = op.resultType();
+            this.klassType = op.klassType;
+            this.invokeResultType = op.invokeResultType;
+        }
+
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATLocalVarOp(this, copyContext);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return typeElement;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("hat.dialect.hatSharedVarOp." + varName(), typeElement);
+        }
+
+        @Override
+        public ClassType classType() {
+            return klassType;
+        }
+
+        @Override
+        public TypeElement invokeType() {
+            return invokeResultType;
+        }
+    }
+
+    public static final class HATPrivateVarOp extends HATMemoryVarOp {
+
+        public static final String INTRINSIC_NAME = "createPrivate";
+
+        private final TypeElement typeElement;
+        private final ClassType klassType;
+        private final TypeElement invokeResultType;
+        private final String varName;
+
+        public HATPrivateVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+            super(varName, operands);
+            this.varName = varName;
+            this.typeElement = typeElement;
+            this.klassType = javaType;
+            this.invokeResultType = invokeResultType;
+        }
+
+        public HATPrivateVarOp(HATPrivateVarOp op, CodeContext copyContext) {
+            super(op, copyContext);
+            this.varName = op.varName;
+            this.typeElement = op.resultType();
+            this.klassType = op.klassType;
+            this.invokeResultType = op.invokeResultType;
+        }
+
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATPrivateVarOp(this, copyContext);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return typeElement;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("hat.dialect.hatPrivateVarOp." + varName, typeElement);
+        }
+
+        @Override
+        public ClassType classType() {
+            return klassType;
+        }
+
+        @Override
+        public TypeElement invokeType() {
+            return invokeResultType;
+        }
+    }
+
+    public static final class HATPrivateInitVarOp extends HATMemoryVarOp {
+
+        private final TypeElement typeElement;
+        private final ClassType klassType;
+        private final TypeElement invokeResultType;
+        private final String varName;
+
+        public HATPrivateInitVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+            super(varName, operands);
+            this.varName = varName;
+            this.typeElement = typeElement;
+            this.klassType = javaType;
+            this.invokeResultType = invokeResultType;
+        }
+
+        public HATPrivateInitVarOp(HATPrivateInitVarOp op, CodeContext copyContext) {
+            super(op, copyContext);
+            this.varName = op.varName;
+            this.typeElement = op.resultType();
+            this.klassType = op.klassType;
+            this.invokeResultType = op.invokeResultType;
+        }
+
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATPrivateInitVarOp(this, copyContext);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return typeElement;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("hat.dialect.hatPrivateVarInitOp." + varName, typeElement);
+        }
+
+        @Override
+        public ClassType classType() {
+            return klassType;
+        }
+
+        @Override
+        public TypeElement invokeType() {
+            return invokeResultType;
+        }
+    }
 }

@@ -23,13 +23,9 @@
  * questions.
  */
 package hat.codebuilders;
-import hat.dialect.HATF16VarOp;
+import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.HATVectorOp;
 import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.function.Consumer;
@@ -41,32 +37,32 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
         return self();
     }
 
-    public final T varName(HATVectorVarOp hatVectorVarOp) {
+    public final T varName(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
         identifier(hatVectorVarOp.varName());
         return self();
     }
 
-    public final T varName(HATVectorLoadOp vectorLoadOp) {
+    public final T varName(HATVectorOp.HATVectorLoadOp vectorLoadOp) {
         identifier(vectorLoadOp.varName());
         return self();
     }
 
-    public final T varName(HATVectorStoreView hatVectorStoreView) {
+    public final T varName(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         identifier(hatVectorStoreView.varName());
         return self();
     }
 
-    public final T varName(HATVectorBinaryOp hatVectorBinaryOp) {
+    public final T varName(HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
         identifier(hatVectorBinaryOp.varName());
         return self();
     }
 
-    public final T varName(HATVectorVarLoadOp hatVectorVarLoadOp) {
+    public final T varName(HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
         identifier(hatVectorVarLoadOp.varName());
         return self();
     }
 
-    public final T varName(HATF16VarOp hatF16VarOp) {
+    public final T varName(HATF16Op.HATF16VarOp hatF16VarOp) {
         identifier(hatF16VarOp.varName());
         return self();
     }
