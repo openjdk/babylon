@@ -29,7 +29,7 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.Regex;
+import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;

@@ -37,9 +37,9 @@ import hat.optools.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.CallSite;
+import optkl.util.CallSite;
 import optkl.OpTkl;
-import optkl.Regex;
+import optkl.util.Regex;
 
 import java.util.Objects;
 

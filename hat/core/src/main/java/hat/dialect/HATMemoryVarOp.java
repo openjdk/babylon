@@ -28,8 +28,8 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
-import optkl.StatementLikeOp;
-import optkl.VarLikeOp;
+import optkl.util.ops.StatementLikeOp;
+import optkl.util.ops.VarLikeOp;
 
 import java.util.List;
 

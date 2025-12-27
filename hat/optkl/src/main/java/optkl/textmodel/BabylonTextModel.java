@@ -24,7 +24,7 @@
  */
 package optkl.textmodel;
 
-import optkl.Regex;
+import optkl.util.Regex;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.textmodel.tokens.Arrow;
 import optkl.textmodel.tokens.At;

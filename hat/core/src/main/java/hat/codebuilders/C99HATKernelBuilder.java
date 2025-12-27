@@ -36,7 +36,7 @@ import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
 import optkl.FuncOpParams;
-import optkl.StreamMutable;
+import optkl.util.StreamMutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;

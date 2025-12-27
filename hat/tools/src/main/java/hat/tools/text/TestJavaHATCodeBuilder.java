@@ -34,7 +34,7 @@ import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.OpCodeBuilder;
+import optkl.util.OpCodeBuilder;
 
 import java.lang.invoke.MethodHandles;
 

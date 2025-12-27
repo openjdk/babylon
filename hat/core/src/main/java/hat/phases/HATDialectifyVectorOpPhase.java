@@ -48,7 +48,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.CallSite;
+import optkl.util.CallSite;
 
 import java.util.HashMap;
 import java.util.List;

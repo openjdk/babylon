@@ -26,44 +26,24 @@
 package experiments;
 
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.CallSite;
 
-import java.lang.classfile.CodeBuilder;
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Map;
-
-import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 import static optkl.OpTkl.transform;
 
 
-       import jdk.incubator.code.Block;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
-import java.util.List;
 
-    /**
+/**
      * Demonstrates how to dynamically build a new function using the code reflection API.
      * <p>
      * This example creates an <code>rsqrt</code> function, which computes the inverse of a square root.

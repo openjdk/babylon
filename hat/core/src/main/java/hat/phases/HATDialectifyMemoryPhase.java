@@ -41,7 +41,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-import optkl.CallSite;
+import optkl.util.CallSite;
 
 import java.util.HashMap;
 import java.util.HashSet;

@@ -31,7 +31,7 @@ import optkl.json.JsonNumber;
 import optkl.json.JsonObject;
 import optkl.json.JsonString;
 import optkl.json.JsonValue;
-import optkl.Regex;
+import optkl.util.Regex;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;

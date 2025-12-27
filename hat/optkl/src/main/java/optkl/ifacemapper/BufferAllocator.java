@@ -24,7 +24,7 @@
  */
 package optkl.ifacemapper;
 
-import optkl.ArenaCarrier;
+import optkl.util.carriers.ArenaCarrier;
 
 public interface BufferAllocator extends ArenaCarrier {
     default  <T extends MappableIface> T allocates(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {

@@ -26,7 +26,7 @@ package hat.buffer;
 
 import hat.types.Float2;
 import hat.types.Float4;
-import optkl.CommonCarrier;
+import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;

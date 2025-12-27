@@ -27,15 +27,11 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.types.BF16;
 import hat.types.F16;
-import optkl.LookupCarrier;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
 
-import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;

@@ -28,7 +28,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import hat.optools.KernelContextPattern;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.CallSite;
+import optkl.util.CallSite;
 import optkl.OpTkl;
 
 import java.util.Objects;

@@ -28,7 +28,7 @@ package optkl.ifacemapper;
 
 import optkl.ifacemapper.accessor.AccessorInfo;
 import optkl.ifacemapper.accessor.Accessors;
-import optkl.StreamMutable;
+import optkl.util.StreamMutable;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.GroupLayout;

@@ -24,7 +24,7 @@
  */
 package hat;
 
-import optkl.Regex;
+import optkl.util.Regex;
 
 /**
  * An NDRange specifies the number of threads to deploy on an hardware accelerator.

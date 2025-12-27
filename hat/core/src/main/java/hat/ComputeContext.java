@@ -26,7 +26,7 @@ package hat;
 
 import hat.callgraph.ComputeEntrypoint;
 import jdk.incubator.code.Location;
-import optkl.LookupCarrier;
+import optkl.util.carriers.LookupCarrier;
 import optkl.ifacemapper.BufferAllocator;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;

@@ -30,7 +30,7 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
-import optkl.Regex;
+import optkl.util.Regex;
 
 import java.util.List;
 

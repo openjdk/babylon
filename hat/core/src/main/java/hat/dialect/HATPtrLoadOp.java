@@ -25,7 +25,7 @@
 package hat.dialect;
 
 import jdk.incubator.code.*;
-import optkl.Precedence;
+import optkl.util.ops.Precedence;
 
 import java.util.List;
 import java.util.Map;

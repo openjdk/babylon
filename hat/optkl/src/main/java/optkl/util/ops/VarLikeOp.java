@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl;
+package optkl.util.ops;
 
 public interface VarLikeOp {
     String varName();
