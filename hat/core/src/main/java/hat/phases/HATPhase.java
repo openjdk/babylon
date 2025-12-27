@@ -34,7 +34,7 @@ import java.util.function.Function;
 
 public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
         permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase,
-        HATDMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
+        HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
 
 
     KernelCallGraph kernelCallGraph();

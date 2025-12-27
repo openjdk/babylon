@@ -25,8 +25,6 @@
 package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
 import hat.types._V;
 import jdk.incubator.code.CodeElement;
@@ -133,7 +131,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                         HATVectorOp vSelectOp;
                         String name = findNameVector(varLoadOp.operands().getFirst());
                         if (invokeOp.resultType() != JavaType.VOID) {
-                            vSelectOp = new HATVectorSelectLoadOp(name, invokeOp.resultType(), lane, outputOperandsInvokeOp);
+                            vSelectOp = new HATVectorOp.HATVectorSelectLoadOp(name, invokeOp.resultType(), lane, outputOperandsInvokeOp);
                         } else {
                             throw new RuntimeException("VSelect Load Op must return a value!");
                         }
@@ -193,7 +191,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                         // The operand 1 in the store is the address (lane)
                         // The operand 1 in the store is the storeValue
                         CoreOp.VarOp resultOp = findVarOp(outputOperandsInvokeOp.get(1));
-                        vSelectOp = new HATVectorSelectStoreOp(name, invokeOp.resultType(), lane, resultOp, outputOperandsInvokeOp);
+                        vSelectOp = new HATVectorOp.HATVectorSelectStoreOp(name, invokeOp.resultType(), lane, resultOp, outputOperandsInvokeOp);
                     } else {
                         throw new RuntimeException("VSelect Store Op must return a value!");
                     }

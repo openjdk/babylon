@@ -24,18 +24,13 @@
  */
 package hat.codebuilders;
 
+import hat.dialect.HATF16Op;
+import hat.dialect.HATVectorOp;
 import hat.optools.IfaceBufferPattern;
 import hat.optools.RefactorMe;
 import hat.types.HAType;
 import hat.device.DeviceType;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryVarOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorVarOp;
 import optkl.FuncOpParams;
 import optkl.OpTkl;
 import optkl.ParamVar;
@@ -77,10 +72,10 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
             case HATMemoryVarOp $ -> varName($);
-            case HATVectorVarOp $ -> varName($);
-            case HATVectorLoadOp $ -> varName($);
-            case HATVectorBinaryOp $ -> varName($);
-            case HATF16VarOp $ -> varName($);
+            case HATVectorOp.HATVectorVarOp $ -> varName($);
+            case HATVectorOp.HATVectorLoadOp $ -> varName($);
+            case HATVectorOp.HATVectorBinaryOp $ -> varName($);
+            case HATF16Op.HATF16VarOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -98,11 +93,11 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
             case CoreOp.VarOp varOp -> varName(varOp).equals();
-            case HATF16VarOp hatf16VarOp -> varName(hatf16VarOp).equals();
-            case HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp).equals();
-            case HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp).equals();
-            case HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp).equals();
-            case HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp).equals();
+            case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp).equals();
+            case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp).equals();
+            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp).equals();
+            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp).equals();
+            case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp).equals();
             case null, default -> {
             }
         }

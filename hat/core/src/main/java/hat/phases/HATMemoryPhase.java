@@ -26,11 +26,8 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.device.DeviceType;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATMemoryLoadOp;
+import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATPrivateVarOp;
 import hat.optools.IfaceBufferPattern;
 import hat.optools.RefactorMe;
 import jdk.incubator.code.Block;
@@ -55,7 +52,7 @@ import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
-public abstract sealed class HATDMemoryPhase implements HATPhase {
+public abstract sealed class HATMemoryPhase implements HATPhase {
 
     protected final KernelCallGraph kernelCallGraph;
 
@@ -78,7 +75,7 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
 
     protected abstract boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp);
 
-    public HATDMemoryPhase(KernelCallGraph kernelCallGraph) {
+    public HATMemoryPhase(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
     }
 
@@ -126,24 +123,24 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
     }
 
 
-    public static final class PrivateMemoryPhase extends HATDMemoryPhase {
+    public static final class PrivateMemoryPhase extends HATMemoryPhase {
         public PrivateMemoryPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
         }
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp) {
-            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(), invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))) {
+            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(), invokeOp, n->n.equals(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
-                return isMethod(invokeOp, n->n.equals(HATPrivateVarOp.INTRINSIC_NAME))
+                return isMethod(invokeOp, n->n.equals(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME))
                         && isAssignable(lookup(),invokeOp.invokeDescriptor().refType(),DeviceType.class);
             }
         }
 
         @Override
         protected HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            var op = new HATPrivateVarOp(
+            var op = new HATMemoryVarOp.HATPrivateVarOp(
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
@@ -155,7 +152,7 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
         }
     }
 
-    public static final  class LocalMemoryPhase extends HATDMemoryPhase {
+    public static final  class LocalMemoryPhase extends HATMemoryPhase {
 
         public LocalMemoryPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
@@ -163,10 +160,10 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))) {
+            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
-                return (isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
+                return (isMethod(invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
                         && invokeOp.resultType() instanceof JavaType javaType &&
                         isAssignable(lookup(),javaType,DeviceType.class));
             }
@@ -174,7 +171,7 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
 
         @Override
         protected HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            var op = new HATLocalVarOp(
+            var op = new HATMemoryVarOp.HATLocalVarOp(
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
@@ -186,7 +183,7 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
         }
     }
 
-    public static final class DeviceTypePhase extends HATDMemoryPhase {
+    public static final class DeviceTypePhase extends HATMemoryPhase {
 
         public DeviceTypePhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
@@ -194,8 +191,8 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
 
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            return IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
-               || (isMethod(invokeOp, n->n.equals(HATLocalVarOp.INTRINSIC_NAME))
+            return IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
+               || (isMethod(invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
                     && invokeOp.resultType() instanceof JavaType javaType &&
                     isAssignable(lookup(),javaType,DeviceType.class));
         }
@@ -251,7 +248,7 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
         }
 
         private void insertHatMemoryLoadOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp) {
-            HATMemoryLoadOp loadOp = new HATMemoryLoadOp(invokeOp.resultType(),
+            HATMemoryDefOp.HATMemoryLoadOp loadOp = new HATMemoryDefOp.HATMemoryLoadOp(invokeOp.resultType(),
                     invokeOp.invokeDescriptor().refType(),
                     invokeOp.invokeDescriptor().name(),
                     blockBuilder.context().getValues(invokeOp.operands()));
@@ -262,7 +259,7 @@ public abstract sealed class HATDMemoryPhase implements HATPhase {
 
         @Override
         protected HATMemoryVarOp factory(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            HATPrivateInitVarOp privateVarOp = new HATPrivateInitVarOp(varOp.varName(),
+            HATMemoryVarOp.HATPrivateInitVarOp privateVarOp = new HATMemoryVarOp.HATPrivateInitVarOp(varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
                     invokeOp.invokeDescriptor().refType(),

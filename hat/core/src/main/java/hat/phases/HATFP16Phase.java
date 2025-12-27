@@ -26,18 +26,10 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.BinaryOpEnum;
+import hat.dialect.HATF16Op;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.dialect.ReducedFloatType;
-import hat.dialect.HATF16AddOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16DivOp;
-import hat.dialect.HATF16MulOp;
-import hat.dialect.HATF16SubOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -56,11 +48,26 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static hat.dialect.HATPhaseUtils.findF16IsLocal;
+//import static hat.dialect.HATPhaseUtils.findF16IsLocal;
 import static optkl.OpTkl.isMethod;
 
 public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
+    public static boolean findF16IsLocal(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findF16IsLocal(varLoadOp.operands().getFirst());
+    }
+
+    public static boolean findF16IsLocal(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findF16IsLocal(varLoadOp);
+        } else {
+            // Leaf of tree -
+            if (v instanceof CoreOp.Result r && r.op() instanceof HATF16Op.HATF16VarOp hatf16VarOp) {
+                return true;
+            }
+            return false;
+        }
+    }
     private ReducedFloatType categorizeReducedFloat(JavaOp.InvokeOp invokeOp) {
         String invokeClassName = invokeOp.invokeDescriptor().refType().toString();
         invokeClassName = invokeClassName.replace("$", ".");
@@ -118,7 +125,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
     private void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
         List<Value> operands = varOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
-        HATF16VarOp hatf16VarOp = new HATF16VarOp(varOp.varName(), reducedFloatType, varOp.resultType(), outputOperands);
+        HATF16Op.HATF16VarOp hatf16VarOp = new HATF16Op.HATF16VarOp(varOp.varName(), reducedFloatType, varOp.resultType(), outputOperands);
         Op.Result op1 = blockBuilder.op(hatf16VarOp);
         hatf16VarOp.setLocation(varOp.location());
         blockBuilder.context().mapValue(varOp.result(), op1);
@@ -127,7 +134,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
     private void createF16ConvOP(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
         List<Value> operands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
-        HATF16ConvOp convOp1 = new HATF16ConvOp(JavaType.VOID, reducedFloatType, outputOperands);
+        HATF16Op.HATF16ConvOp convOp1 = new HATF16Op.HATF16ConvOp(JavaType.VOID, reducedFloatType, outputOperands);
         Op.Result op1 = blockBuilder.op(convOp1);
         convOp1.setLocation(invokeOp.location());
         blockBuilder.context().mapValue(invokeOp.result(), op1);
@@ -144,7 +151,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                 wasFloat = true;
             }
         }
-        HATF16ToFloatConvOp convOp1 = new HATF16ToFloatConvOp(JavaType.FLOAT, reducedFloatType, isLocal, wasFloat, outputOperands);
+        HATF16Op.HATF16ToFloatConvOp convOp1 = new HATF16Op.HATF16ToFloatConvOp(JavaType.FLOAT, reducedFloatType, isLocal, wasFloat, outputOperands);
         Op.Result op1 = blockBuilder.op(convOp1);
         convOp1.setLocation(invokeOp.location());
         blockBuilder.context().mapValue(invokeOp.result(), op1);
@@ -154,7 +161,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         List<Value> operands = varLoadOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
         String nameVar = findName(varLoadOp);
-        HATF16VarLoadOp hatf16VarLoadOp = new HATF16VarLoadOp(nameVar, varLoadOp.varType(), outputOperands);
+        HATF16Op.HATF16VarLoadOp hatf16VarLoadOp = new HATF16Op.HATF16VarLoadOp(nameVar, varLoadOp.varType(), outputOperands);
         Op.Result op1 = blockBuilder.op(hatf16VarLoadOp);
         hatf16VarLoadOp.setLocation(varLoadOp.location());
         blockBuilder.context().mapValue(varLoadOp.result(), op1);
@@ -172,19 +179,19 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
 
         byte valF32Conversion = 0x00;
         if (!isFirstOperandReference && isOperandF32(invokeOp.operands().getFirst())) {
-            valF32Conversion = HATF16BinaryOp.FIRST_OP;
+            valF32Conversion = HATF16Op.HATF16BinaryOp.FIRST_OP;
         } else if (!isSecondOperandReference && isOperandF32(invokeOp.operands().get(1))) {
-            valF32Conversion = HATF16BinaryOp.LAST_OP;
+            valF32Conversion = HATF16Op.HATF16BinaryOp.LAST_OP;
         }
 
         TypeElement typeElement = invokeOp.resultType();
         List<Boolean> refList = List.of(isFirstOperandReference, isSecondOperandReference);
 
-        HATF16BinaryOp binaryOp = switch (binaryOpEnum) {
-            case ADD -> new HATF16AddOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
-            case SUB -> new HATF16SubOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
-            case MUL -> new HATF16MulOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
-            case DIV -> new HATF16DivOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
+        HATF16Op.HATF16BinaryOp binaryOp = switch (binaryOpEnum) {
+            case ADD -> new HATF16Op.HATF16BinaryOp.HATF16AddOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
+            case SUB -> new HATF16Op.HATF16BinaryOp.HATF16SubOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
+            case MUL -> new HATF16Op.HATF16BinaryOp.HATF16MulOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
+            case DIV -> new HATF16Op.HATF16BinaryOp.HATF16DivOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
         };
 
         Op.Result op1 = blockBuilder.op(binaryOp);
@@ -246,7 +253,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                             Value value = invokeOp.operands().getFirst();
                             if (value instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                                 Value valLoad = varLoadOp.operands().getFirst();
-                                if (valLoad instanceof Op.Result r1 && r1.op() instanceof HATF16VarOp) {
+                                if (valLoad instanceof Op.Result r1 && r1.op() instanceof HATF16Op.HATF16VarOp) {
                                     consumer.accept(invokeOp);
                                     consumer.accept(varLoadOp);
                                 }
@@ -358,7 +365,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findName(varLoadOp);
         } else {
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATF16VarOp hatf16VarOp) {
+            if (v instanceof CoreOp.Result r && r.op() instanceof HATF16Op.HATF16VarOp hatf16VarOp) {
                 return hatf16VarOp.varName();
             }
             return null;

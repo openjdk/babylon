@@ -24,15 +24,16 @@
  */
 package hat.dialect;
 
-import hat.device.DeviceSchema;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.*;
+import optkl.util.ops.Precedence;
 
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 
-public abstract sealed class HATPtrOp extends HATOp permits HATPtrLengthOp, HATPtrLoadOp, HATPtrStoreOp {
+public abstract sealed class HATPtrOp extends HATOp
+        permits HATPtrOp.HATPtrLengthOp, HATPtrOp.HATPtrLoadOp, HATPtrOp.HATPtrStoreOp {
 
     private final TypeElement resultType;
     private final Class<?> bufferClass;
@@ -87,4 +88,73 @@ public abstract sealed class HATPtrOp extends HATOp permits HATPtrLengthOp, HATP
         return Map.of("hat.dialect." + NAME, this.resultType());
     }
 
+    public static final class HATPtrStoreOp extends HATPtrOp implements Precedence.Store {
+
+        private static final String NAME = "HATPtrStoreOp";
+
+        public HATPtrStoreOp(TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+            super(resultType, bufferClass, operands);
+        }
+
+        public HATPtrStoreOp(HATPtrStoreOp op, CodeContext copyContext) {
+            super(op, copyContext);
+        }
+
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATPtrStoreOp(this, copyContext);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("hat.dialect." + NAME, this.resultType());
+        }
+
+    }
+
+    public static final class HATPtrLoadOp extends HATPtrOp implements Precedence.LoadOrConv {
+
+        private static final String NAME = "HATPtrLoadOp";
+
+        public HATPtrLoadOp(TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+            super(resultType, bufferClass, operands);
+        }
+
+        public HATPtrLoadOp(HATPtrLoadOp op, CodeContext copyContext) {
+            super(op, copyContext);
+        }
+
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATPtrLoadOp(this, copyContext);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("hat.dialect." + NAME, this.resultType());
+        }
+    }
+
+    public static final class HATPtrLengthOp extends HATPtrOp implements Precedence.LoadOrConv {
+
+        private static final String NAME = "HATPtrLengthOp";
+
+        public HATPtrLengthOp(TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+            super(resultType, bufferClass, operands);
+        }
+
+        public HATPtrLengthOp(HATPtrLengthOp op, CodeContext copyContext) {
+            super(op, copyContext);
+        }
+
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATPtrLengthOp(this, copyContext);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("hat.dialect." + NAME, this.resultType());
+        }
+    }
 }
