@@ -24,12 +24,23 @@
  */
 package hat.buffer;
 
+import jdk.incubator.code.Reflect;
 import optkl.CommonCarrier;
-import optkl.annotations.Order;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
 public interface KernelBufferContext extends Buffer {
+    @Reflect
+    default void  schema(){
+        dimensions();          // Dimension (1D, 2D or 3D)
+        gix(); giy(); giz();   // global thread-id accesses
+        gsx(); gsy(); gsz();   // global sizes
+        lix(); liy(); liz();   // local (thread-ids)
+        lsx(); lsy(); lsz();   // block size
+        bix(); biy(); biz();
+    }
+    Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
+
 
     // ----------------------------------------------------------------------|
     //| OpenCL            | CUDA                                  | HAT      |
@@ -85,12 +96,7 @@ public interface KernelBufferContext extends Buffer {
     int biz();
     void biz(int biz);
 
-    @Order({"dimensions",  // Dimension (1D, 2D or 3D)
-            "gix", "giy", "giz",   // global thread-id accesses
-            "gsx", "gsy", "gsz",   // global sizes
-            "lix", "liy", "liz",   // local (thread-ids)
-            "lsx", "lsy", "lsz",   // block size
-            "bix", "biy", "biz"}  ) Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
+
 
     static KernelBufferContext createDefault(CommonCarrier cc) {
         KernelBufferContext kernelBufferContext = schema.allocate(cc);

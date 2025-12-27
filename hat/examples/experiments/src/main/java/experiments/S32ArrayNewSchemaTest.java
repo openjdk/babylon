@@ -27,13 +27,11 @@ package experiments;
 import hat.Accelerator;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import hat.buffer.S32Array2D;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 
 import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
 
 public class S32ArrayNewSchemaTest implements Buffer {
@@ -59,7 +57,7 @@ public class S32ArrayNewSchemaTest implements Buffer {
                 });
             }
         }
-        S32Array2D.schema.toText(t->System.out.print(t));
+        S32Array.schema.toText(t->System.out.print(t));
     }
 
 }
