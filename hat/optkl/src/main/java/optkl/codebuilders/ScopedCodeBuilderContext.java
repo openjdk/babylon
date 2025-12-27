@@ -25,7 +25,7 @@
 package optkl.codebuilders;
 
 
-import optkl.VarLikeOp;
+import optkl.util.ops.VarLikeOp;
 
 import optkl.FuncOpParams;
 import jdk.incubator.code.Block;

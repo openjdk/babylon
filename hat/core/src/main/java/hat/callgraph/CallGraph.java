@@ -30,8 +30,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.CallSite;
-import optkl.LookupCarrier;
+import optkl.util.CallSite;
+import optkl.util.carriers.LookupCarrier;
 import optkl.OpTkl;
 
 import java.lang.invoke.MethodHandles;

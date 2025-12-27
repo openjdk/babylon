@@ -33,7 +33,7 @@ import optkl.textmodel.tokens.LeafReplacementToken;
 import optkl.textmodel.tokens.ReservedWord;
 import optkl.textmodel.tokens.Seq;
 import optkl.textmodel.tokens.Token;
-import optkl.Regex;
+import optkl.util.Regex;
 
 public class JavaTextModel extends TextModel {
 

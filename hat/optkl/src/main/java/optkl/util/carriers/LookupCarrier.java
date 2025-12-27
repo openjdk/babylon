@@ -22,11 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl;
+package optkl.util.carriers;
 
-import optkl.ifacemapper.BufferAllocator;
+import java.lang.invoke.MethodHandles;
 
-import java.lang.foreign.Arena;
-
-public interface CommonCarrier extends BufferAllocator,LookupCarrier {
+public interface LookupCarrier {
+    MethodHandles.Lookup lookup();
 }

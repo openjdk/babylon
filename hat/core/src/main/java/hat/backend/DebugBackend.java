@@ -38,7 +38,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
-import optkl.CallSite;
+import optkl.util.CallSite;
 
 import static optkl.OpTkl.SSATransform;
 import static optkl.OpTkl.SSATransformLower;

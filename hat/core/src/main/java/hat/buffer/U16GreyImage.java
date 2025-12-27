@@ -25,7 +25,7 @@
 package hat.buffer;
 
 
-import optkl.CommonCarrier;
+import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Schema;
 
 public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {

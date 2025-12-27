@@ -25,7 +25,7 @@
 package view.f32;
 
 
-import optkl.StreamMutable;
+import optkl.util.StreamMutable;
 
 import java.util.ArrayList;
 import java.util.List;

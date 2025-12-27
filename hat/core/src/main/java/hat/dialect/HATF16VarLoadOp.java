@@ -30,7 +30,7 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
-import optkl.Precedence;
+import optkl.util.ops.Precedence;
 
 import java.util.List;
 import java.util.Map;

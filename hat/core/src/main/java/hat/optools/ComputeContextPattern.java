@@ -25,18 +25,10 @@
 package hat.optools;
 
 import hat.ComputeContext;
-import hat.KernelContext;
-import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.Regex;
 
 import java.lang.invoke.MethodHandles;
-import java.util.Objects;
-import java.util.function.Predicate;
 
-import static optkl.OpTkl.AnyFieldAccess;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.javaRefType;
 
