@@ -55,7 +55,7 @@ import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
-public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase {
+public abstract sealed class HATDMemoryPhase implements HATPhase {
 
     protected final KernelCallGraph kernelCallGraph;
 
@@ -78,7 +78,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
 
     protected abstract boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp);
 
-    public HATDialectifyMemoryPhase(KernelCallGraph kernelCallGraph) {
+    public HATDMemoryPhase(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
     }
 
@@ -126,7 +126,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
     }
 
 
-    public static final class PrivateMemoryPhase extends HATDialectifyMemoryPhase {
+    public static final class PrivateMemoryPhase extends HATDMemoryPhase {
         public PrivateMemoryPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
         }
@@ -155,7 +155,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
         }
     }
 
-    public static final  class LocalMemoryPhase extends HATDialectifyMemoryPhase {
+    public static final  class LocalMemoryPhase extends HATDMemoryPhase {
 
         public LocalMemoryPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
@@ -186,7 +186,7 @@ public abstract sealed class HATDialectifyMemoryPhase implements HATDialectPhase
         }
     }
 
-    public static final class DeviceTypePhase extends HATDialectifyMemoryPhase {
+    public static final class DeviceTypePhase extends HATDMemoryPhase {
 
         public DeviceTypePhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);

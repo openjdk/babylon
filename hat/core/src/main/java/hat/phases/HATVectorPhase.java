@@ -67,7 +67,9 @@ import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
-public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPhase {
+public abstract sealed class HATVectorPhase implements HATPhase
+        permits HATVectorPhase.AddPhase, HATVectorPhase.DivPhase, HATVectorPhase.Float2LoadPhase, HATVectorPhase.Float4LoadPhase
+      , HATVectorPhase.MulPhase, HATVectorPhase.MakeMutable, HATVectorPhase.SubPhase, HATVectorPhase.Float4OfPhase{
     private final KernelCallGraph kernelCallGraph;
 @Override public KernelCallGraph kernelCallGraph(){
     return kernelCallGraph;
@@ -91,7 +93,7 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
 
     private final VectorOperation vectorOperation;
 
-    public HATDialectifyVectorOpPhase(KernelCallGraph kernelCallGraph, VectorOperation vectorOperation) {
+    public HATVectorPhase(KernelCallGraph kernelCallGraph, VectorOperation vectorOperation) {
         this.kernelCallGraph = kernelCallGraph;
         this.vectorOperation = vectorOperation;
     }
@@ -446,55 +448,55 @@ public abstract sealed class HATDialectifyVectorOpPhase implements HATDialectPha
         return funcOp;
     }
 
-    public static final class AddPhase extends HATDialectifyVectorOpPhase {
+    public static final class AddPhase extends HATVectorPhase {
         public AddPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.ADD);
         }
     }
 
-    public static final class DivPhase extends HATDialectifyVectorOpPhase {
+    public static final class DivPhase extends HATVectorPhase {
 
         public DivPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.DIV);
         }
     }
 
-    public static final class MakeMutable extends HATDialectifyVectorOpPhase {
+    public static final class MakeMutable extends HATVectorPhase {
 
         public MakeMutable(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.MAKE_MUTABLE);
         }
     }
 
-    public static final class Float4LoadPhase extends HATDialectifyVectorOpPhase {
+    public static final class Float4LoadPhase extends HATVectorPhase {
 
         public Float4LoadPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.FLOAT4_LOAD);
         }
     }
 
-    public static final class Float2LoadPhase extends HATDialectifyVectorOpPhase {
+    public static final class Float2LoadPhase extends HATVectorPhase {
 
         public Float2LoadPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.FLOAT2_LOAD);
         }
     }
 
-    public static final class Float4OfPhase extends HATDialectifyVectorOpPhase {
+    public static final class Float4OfPhase extends HATVectorPhase {
 
         public Float4OfPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.OF);
         }
     }
 
-    public static final class MulPhase extends HATDialectifyVectorOpPhase {
+    public static final class MulPhase extends HATVectorPhase {
 
         public MulPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.MUL);
         }
     }
 
-    public static final class SubPhase extends HATDialectifyVectorOpPhase {
+    public static final class SubPhase extends HATVectorPhase {
 
         public SubPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph, VectorOperation.SUB);

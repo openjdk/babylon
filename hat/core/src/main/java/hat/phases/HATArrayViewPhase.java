@@ -44,7 +44,7 @@ import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.elements;
 import static optkl.OpTkl.isAssignable;
 
-public record HATDialectifyArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATDialectPhase {
+public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp entry) {
@@ -365,7 +365,7 @@ public record HATDialectifyArrayViewPhase(KernelCallGraph kernelCallGraph) imple
     }
 
     public boolean isArrayView(CoreOp.FuncOp entry) {
-        var here = CallSite.of(HATDialectifyArrayViewPhase.class, "isArrayView");
+        var here = CallSite.of(HATArrayViewPhase.class, "isArrayView");
         return elements(here, entry).anyMatch((element) -> (
                 element instanceof JavaOp.InvokeOp iop &&
                         iop.resultType() instanceof ArrayType &&
