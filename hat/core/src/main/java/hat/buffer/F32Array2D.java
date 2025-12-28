@@ -24,11 +24,14 @@
  */
 package hat.buffer;
 
+import jdk.incubator.code.Reflect;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
 public interface F32Array2D extends Buffer {
+    @Reflect default void schema(){array(width()*height());};
+    Schema<F32Array2D> schema = Schema.of(F32Array2D.class);
 
     int width();
 
@@ -45,9 +48,6 @@ public interface F32Array2D extends Buffer {
     default void set(int x, int y, float v) {
         array((long) y * width() + x, v);
     }
-
-    Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").stride(1).array("array"));
 
     static F32Array2D create(CommonCarrier cc, int width, int height){
         return schema.allocate(cc, width,height);
