@@ -35,6 +35,8 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array2D extends Buffer {
+    @Reflect default void schema(){array(width()*height());};
+    Schema<S32Array2D> schema = Schema.of(S32Array2D.class);
 
     int width();
     int height();
@@ -50,9 +52,6 @@ public interface S32Array2D extends Buffer {
     default void set(int x, int y, int v) {
         array((long) y * width() + x, v);
     }
-
-    Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").array("array"));
 
     static S32Array2D create(CommonCarrier cc, int width, int height){
         return schema.allocate(cc, width,height);
