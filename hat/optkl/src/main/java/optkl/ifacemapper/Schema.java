@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -138,9 +137,53 @@ public class Schema<T extends MappableIface> {
             }
         }
 
+        record Receiver(JavaOp.InvokeOp array, List<JavaOp.InvokeOp> args){
+            public String arrayName() {
+                return array.invokeDescriptor().name();
+            }
+
+        }
+
+        //recurses
+        private static Receiver consumedInvoke(JavaOp.InvokeOp firstArg, Op.Result result){// we have a call which is possibly being passed to another method  " array(length)"
+            if (result.op() instanceof JavaOp.InvokeOp invokeOp){
+                return new Receiver(invokeOp, List.of(firstArg));
+            }else if (result.op() instanceof JavaOp.ConvOp convOp) {
+                return ( consumedInvoke(firstArg, convOp.result().uses().iterator().next()));
+            }else if (result.op() instanceof JavaOp.MulOp mul) {
+                //So this works for single mul say array(width()*height);
+                var maybeInvoke = mul.result().uses().iterator().next();
+                var invoke = (JavaOp.InvokeOp)(maybeInvoke.op() instanceof JavaOp.ConvOp invokeOp?maybeInvoke.uses().iterator().next().op():maybeInvoke.op());
+                var lhs = (JavaOp.InvokeOp)(((Op.Result)mul.operands().get(0)).op());
+                var rhs = (JavaOp.InvokeOp)(((Op.Result)mul.operands().get(1)).op());
+                var list = List.of(lhs,rhs );
+                return new Receiver(invoke, list);
+            }else{
+                return null;
+            }
+        }
+        /*
+        Consider this strawman iface
+        public interface S32Array2D extends Buffer {
+          @Reflect default void schema(){array(width()*height());};
+          Schema<S32Array2D> schema = Schema.of(S32Array2D.class);
+          int width();
+          int height();
+          int array(long idx);
+          void array(long idx, int i);
+         }
+
+         We are trying to replicate the manual
+
+         Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
+              .arrayLen("width","height").array("array"));
+         */
+
         @Override
         public Schema<T> create() {
+            // Just collect the unique names of all declared methods. In our straw man case we expect ("width","height","array" ..... a bunch of others )
             var declared = Arrays.stream(iface.getDeclaredMethods()).map(m -> m.getName()).collect(Collectors.toSet());
+            // We need to track ones we have handled
             var handled = new HashSet<>();
             return Schema.of(iface, (schemaBuilder) -> {
                 funcOp.elements()
@@ -149,7 +192,7 @@ public class Schema<T extends MappableIface> {
                         .forEach(invokeOp -> {
                             String name = invokeOp.invokeDescriptor().name();
                             if (name.equals("schema")){
-                                System.out.println("Hmm");
+                               //System.out.println("This could get recursive very quickly");
                             }else if (name.equals("pad")) {
                                 if (invokeOp.operands().get(1) instanceof Op.Result result && result.op() instanceof CoreOp.ConstantOp constOp) {
                                     int padLength = switch (constOp.value()) {
@@ -157,7 +200,7 @@ public class Schema<T extends MappableIface> {
                                         case Long l -> l.intValue();
                                         default -> throw new RuntimeException("long or int const expected in pad()");
                                     };
-                                    System.out.println("...pad("+padLength+")");
+                                   // System.out.println("...pad("+padLength+")");
                                     schemaBuilder.pad(padLength);
                                 } else {
                                     throw new RuntimeException("pad(x) long or int const expected as operand 1");
@@ -169,78 +212,40 @@ public class Schema<T extends MappableIface> {
                                     schemaBuilder.field(name);
                                     handled.add(name);
                                 }else if (uses.size()==1){
-                                    if (uses.stream().findFirst().get() instanceof Op.Result result) {// is might it a constant like we have only one, so probably a constant like length
-                                        var possibleConsumedInvoke = result.op(); // we have a call which is possibly being passed to another method  " array(length)"
-                                        var consumedInvoke = (possibleConsumedInvoke instanceof JavaOp.ConvOp convOp
-                                                && convOp.result().uses() instanceof Set<Op.Result> usesofConvOp
-                                                && usesofConvOp.stream().findFirst().get().op() instanceof JavaOp.InvokeOp iop)
-                                                ? iop : (JavaOp.InvokeOp) possibleConsumedInvoke;
-                                        if (declared.contains(consumedInvoke.invokeDescriptor().name())) {
-                                            //System.out.println("..."+consumedInvoke.invokeDescriptor().name()  + "("+name+")");
-                                            schemaBuilder.arrayLen(name).array(consumedInvoke.invokeDescriptor().name());
-                                            handled.add(name);
-                                            handled.add(consumedInvoke.invokeDescriptor().name());
+                                    // assuming   @Reflect default void schema(){array(width()*height());};
+                                    // The nature of the model is that we will find  methods 'width' and 'height' first and which are used to bind the dimensions of 'array'
+                                    // So given that invokeOp -> width() and name == "width" we are interested in finding a method that consumes this (in our case  array(width()....))
+                                    if (uses.iterator().next() instanceof Op.Result result) {// is might it a constant like we have only one, so probably a constant like length
+                                        // we have a call which is possibly being passed to another method say we have width and we want to find invokeOp -> "array(width())"
+                                        if (consumedInvoke(invokeOp, result) instanceof Receiver  receiver
+                                              && receiver.args.stream().map(i->i.invokeDescriptor().name()).filter(declared::contains).toList() instanceof List<String> containedConsumers
+                                               && receiver.args.size() == containedConsumers.size()){
+                                            // in our case we expect Reciever (array,[width, height])
+                                            schemaBuilder.arrayLen(containedConsumers).array(receiver.arrayName());
+                                            handled.add(receiver.arrayName());
+                                            containedConsumers.forEach(c->handled.add(c));
+                                            //handled.add(consumerMethodName);
                                         } else {
                                             throw new IllegalStateException("Wait  a minute! the schema order is corrupt ");
                                         }
                                     } else {
                                         throw new IllegalStateException("how did we get here?");
                                     }
+                                }else {
+                                    throw new IllegalStateException("Schema order seems to use "+name+" in more than one binding!?");
                                 }
                             }else{
-                                //System.out.println("skipping "+name);
+                               // System.out.println("skipping "+name);
                             }
 
                         });
             });
         }
     }
-    /*
 
-    record SchemaFromAnnotatedFields<T extends Buffer>(Class<T> iface, Field field) implements SchemaConstructor<T> {
-        static <T extends Buffer> SchemaFromAnnotatedFields<T> of(Class<T> iface) {
-            try {
-                Field schemaField = iface.getDeclaredField("schema");
-                if (!Modifier.isStatic(schemaField.getModifiers())) {
-                    throw new RuntimeException("no static field called schema");
-                }
-                return new SchemaFromAnnotatedFields<>(iface, schemaField);
-            } catch (NoSuchFieldException nsme) {
-                // throw new RuntimeException(nsme);
-            }
-            return null;
-        }
-
-        @Override
-        public Schema<T> create() {
-            String[] order = (field().getAnnotation(Order.class) instanceof Order orderAnnotation) ? orderAnnotation.value() : null;
-            Set<String> handled = new HashSet<>();
-            return Schema.of(iface, (schemaBuilder) -> {
-                Arrays.stream(iface.getDeclaredMethods()).filter(m -> Modifier.isAbstract(m.getModifiers())).forEach(m -> {
-                    if (m.getAnnotation(ProvidesDimFor.class) instanceof ProvidesDimFor providesDimFor) {
-                        schemaBuilder.arrayLen(m.getName()).array(providesDimFor.value());
-                        if (!handled.contains(m.getName())) {
-                            handled.add(m.getName());
-                        }
-                        handled.add(providesDimFor.value());
-                    } else if (order == null && !handled.contains(m.getName())) {
-                        System.out.println(m.getName());
-                        schemaBuilder.fields(m.getName());
-                        handled.add(m.getName());
-                    }
-                });
-                if (order != null) {
-                    schemaBuilder.fields(order);
-                }
-            });
-        }
-    }
-*/
     public static <T extends Buffer> Schema<T> of(Class<T> iface) {
         if (SchemaFromDSLMethod.of(iface) instanceof Schema.SchemaFromDSLMethod<T> schemaFromDSLMethod) {
             return schemaFromDSLMethod.create();
-     /*   } else if (SchemaFromAnnotatedFields.of(iface) instanceof Schema.SchemaFromAnnotatedFields<T> schemaFromAnnotatedFields) {
-            return schemaFromAnnotatedFields.create(); */
         }
         throw new RuntimeException("No schemaDSL or annotated fields, you will need to pass a builder for " + iface.getCanonicalName());
     }
@@ -434,14 +439,18 @@ public class Schema<T extends MappableIface> {
             return new ArrayBuildState(this, null);
         }
 
-        public ArrayBuildState arrayLen(String... arrayLenFieldNames) {
+        public ArrayBuildState arrayLen(List<String> arrayLenFieldNames) {
             List<FieldNode.ArrayLen> arrayLenFields = new ArrayList<>();
-            Arrays.stream(arrayLenFieldNames).forEach(arrayLenFieldName -> {
+            arrayLenFieldNames.forEach(arrayLenFieldName -> {
                 var arrayLenField = new FieldNode.ArrayLen(this, AccessorInfo.Key.of(iface, arrayLenFieldName), MapperUtil.typeOf(iface, arrayLenFieldName), arrayLenFieldName);
                 addField(arrayLenField);
                 arrayLenFields.add(arrayLenField);
             });
             return new ArrayBuildState(this, arrayLenFields);
+        }
+
+        public ArrayBuildState arrayLen(String... arrayLenFieldNames) {
+            return arrayLen(List.of(arrayLenFieldNames));
         }
 
 
