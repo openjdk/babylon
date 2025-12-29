@@ -22,18 +22,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.tools.text;
+package hat.codebuilders;
 
-import hat.optools.KernelContextPattern;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.OpTkl;
 import optkl.codebuilders.BabylonCoreOpBuilder;
-import hat.codebuilders.C99HATCodeBuilderContext;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+
+import java.lang.invoke.MethodHandles;
 
 import static hat.optools.KernelContextPattern.KernelContextFieldAccessPattern.asKernelContextFieldAccessOrNull;
 import static optkl.OpTkl.getStaticFinalPrimitiveValue;
@@ -65,16 +67,26 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
     }
 
     @Override
-    public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        if (!invokeOp.operands().isEmpty() && invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
-            recurse(buildContext, instanceResult.op());
+     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
+        if (invokeOp.invokeKind()== JavaOp.InvokeOp.InvokeKind.STATIC) {
+            identifier(invokeOp.invokeDescriptor().refType().toString());
+     //   }else if (!invokeOp.operands().isEmpty() && invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
+       //     recurse(buildContext, instanceResult.op());
+        }else{
+            throw new IllegalStateException("Unexpected invokeOp ... in code builder");
         }
         dot().identifier(invokeOp.invokeDescriptor().name());
         paren(_ ->
-                // why the sublist? is this static vs instance?
-            commaSpaceSeparated(  invokeOp.operands().subList(0,invokeOp.operands().size()-1), o->
-                    recurse(buildContext,  ((Op.Result) o).op())
-            )
+                // why did we have a sublist before? is this static vs instance?
+            commaSpaceSeparated(  invokeOp.operands()/*.subList(0,invokeOp.operands().size()-1)*/, o-> {
+                if (o instanceof Op.Result result) {
+                    recurse(buildContext, result.op());
+                } else if (o instanceof Block.Parameter parameter) {
+                    identifier("param$"+parameter.index());
+                }else {
+                    throw new IllegalStateException("What have we here ");
+                }
+            })
         );
         return self();
     }
@@ -95,5 +107,10 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
             );
         });
         return nl();
+    }
+
+    public String toText(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        var scopedCodeBuilderContext = new ScopedCodeBuilderContext(lookup,funcOp);
+        return createJava(scopedCodeBuilderContext).getText();
     }
 }

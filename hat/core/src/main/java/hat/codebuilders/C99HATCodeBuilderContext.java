@@ -125,6 +125,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     @Override
     public T varOp(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp, ParamVar paramVar) {
+        varName(varOp);
         return self();
     }
 
