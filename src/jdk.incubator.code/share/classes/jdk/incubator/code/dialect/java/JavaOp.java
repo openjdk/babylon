@@ -2858,6 +2858,11 @@ public sealed abstract class JavaOp extends Op {
                     break;
                 }
             }
+            if (defLabelIndex == -1 && this instanceof SwitchExpressionOp) {
+                // if it's a switch expression, it must have a default
+                // if not explicit, it's an unconditional pattern which is the last label
+                defLabelIndex = bodies().size() - 2;
+            }
 
             List<Block.Builder> blocks = new ArrayList<>();
             for (int i = 0; i < bodies().size(); i++) {
