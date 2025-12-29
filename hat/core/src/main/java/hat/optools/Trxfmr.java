@@ -30,10 +30,11 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.util.CallSite;
 
-import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -43,10 +44,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static optkl.OpTkl.copyLocation;
-import static optkl.OpTkl.fieldAccessOpNameMatches;
-import static optkl.OpTkl.opFromOperandAsResult;
+import static optkl.OpTkl.operandOrNull;
 import static optkl.OpTkl.opstream;
 
 public class Trxfmr {
@@ -100,13 +101,57 @@ public class Trxfmr {
     }
 
     public interface  Cursor extends HATTransformerCarrier, Walker {
+        enum Action{NONE,REMOVED,REPLACE,ADDED };
+        void action(Action action);
+        Action action();
         void builder(Block.Builder builder);
         Block.Builder builder();
         void handled(boolean handled);
         boolean handled();
         Op.Result replace(Op op, Consumer<Mapper<?>> mapperConsumer);
+        Op.Result add(Op op, Consumer<Mapper<?>> mapperConsumer);
         default Op.Result replace(Op op){
             return replace(op, _->{});
+        }
+         static  <T extends Op> Constructor<T> getConstructorOrNull(Class<T> clazz, Class<?> ... classes){
+            try {
+                return clazz.getDeclaredConstructor(classes);
+            }catch (NoSuchMethodException nsm){
+                return null;
+            }
+         }
+        static  <T extends Op> T createOrNull(Constructor<T> constructor, Object ... args){
+            try {
+                return constructor.newInstance(args);
+            }catch (InstantiationException | IllegalAccessException | InvocationTargetException e){
+                throw new IllegalStateException(e);
+            }
+        }
+        default <T extends Op> Op.Result add(Function<List<Value>,T> factory, Value...operands){
+            T instance = factory.apply(Stream.of(operands).map(operand -> builder().context().getValue(operand)).toList());
+            return add(instance);
+        }
+        /*
+        default <T extends Op> Op.Result add(Class<T> clazz, Value ...operands){
+                    if (getConstructorOrNull(clazz,List.class) instanceof Constructor<T> constructor) {
+                        Op instance = createOrNull(constructor, Stream.of(operands).map(operand -> builder().context().getValue(operand)).toList());
+                        return add(instance);
+                    } else if (getConstructorOrNull(clazz,Value.class,Value.class) instanceof Constructor<T> constructor){
+                      //  Op instance = createOrNull(constructor, builder().context().getValue(operands[0]),builder().context().getValue(operands[1]));
+                       // if (constructor.trySetAccessible()) {
+                       // constructor.setAccessible(true);
+                            Op instance = createOrNull(constructor, operands[0], operands[1]);
+                            return add(instance);
+                       // }else{
+                         //   throw new RuntimeException("can't construct "+clazz.getSimpleName());
+                       // }
+                    } else{
+                        throw new RuntimeException("can't handle this arity");
+                    }
+        } */
+
+        default Op.Result add(Op op){
+            return add(op, _->{});
         }
          default void remove(Consumer<Mapper<?>> mapperConsumer) {
             mapperConsumer.accept(Mapper.of(this));
@@ -119,6 +164,7 @@ public class Trxfmr {
         }
         static Cursor of(Trxfmr trxfmr, CoreOp.FuncOp funcOp, Block.Builder builder, Op op){
             class Impl extends Walker.Impl implements Cursor {
+                private Action action;
                 private Block.Builder builder;
                 private boolean handled;
                 @Override
@@ -129,6 +175,16 @@ public class Trxfmr {
                 @Override
                 public boolean  handled() {
                     return this.handled;
+                }
+
+                @Override
+                public void action(Action action) {
+                    this.action=action;
+                }
+
+                @Override
+                public Action action() {
+                    return action;
                 }
 
                 @Override
@@ -143,14 +199,28 @@ public class Trxfmr {
                 @Override
                 public Op.Result replace(Op replacement, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
+                    action(Action.REPLACE);
                     var result = trxfmr.opToResultOp(op(),builder().op(copyLocation(op(), replacement)));
-                    mapperConsumer.accept(Mapper.of(this).map(op().result(),result));
+                    if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
+                    }else {
+                        mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
+                    }
+                    return result;
+                }
+                public Op.Result add(Op newOne, Consumer<Mapper<?>> mapperConsumer) {
+                    handled(true);
+                    action(Action.ADDED);
+                    var result = trxfmr.opToResultOp(op(),builder().op(copyLocation(op(), newOne)));
+                    if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
+                    }else{
+                        mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
+                    }
                     return result;
                 }
                 @Override
                 public void remove( Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
-                    mapperConsumer.accept(Mapper.of(this));
+                    action(Action.REMOVED);
                 }
                 Impl(Trxfmr hatTransformer, CoreOp.FuncOp funcOp, Block.Builder builder, Op op) {
                     super(hatTransformer,funcOp);
@@ -159,6 +229,14 @@ public class Trxfmr {
                 }
             }
             return new Impl(trxfmr,funcOp, builder,op);
+        }
+
+        default Value getValue(Value value){
+            return builder().context().getValue(value);
+        }
+
+        default Value operandNValue(int idx){
+            return getValue(operandOrNull(op(),idx));
         }
     }
 
@@ -223,6 +301,11 @@ public class Trxfmr {
             IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() + "]: " + System.lineSeparator() + funcOp.toText());
         }
     }
+
+    public Trxfmr(CoreOp.FuncOp funcOp) {
+        this (null,funcOp);
+
+    }
     public Trxfmr select(Predicate<Op> codeElementPredicate, BiConsumer<Selector<?>,Op> selectorConsumer) {
         Selector<?> selector = Selector.of(this);
         funcOp().elements().filter(ce->ce instanceof Op).map(ce->(Op)ce).filter(codeElementPredicate).forEach(op->
@@ -251,9 +334,9 @@ public class Trxfmr {
         return result;
     }
 
-    private void update(){
-        opmap.forEach((from, to) -> { selected.remove(from);selected.add(to);});
-    }
+  //  private void update(){
+    //    opmap.forEach((from, to) -> { selected.remove(from);selected.add(to);});
+   // }
 
 
     public Trxfmr transform(Predicate<Op> predicate, Consumer<Cursor> cursorConsumer) {
@@ -265,6 +348,7 @@ public class Trxfmr {
             cursor.builder(blockBuilder);
             cursor.op(op);
             cursor.handled(false);
+            cursor.action(Cursor.Action.NONE);
             boolean isEmpty = selected.isEmpty();
             boolean isInSelected = selected.contains(op);
             boolean isSelected = isEmpty|isInSelected;
@@ -280,7 +364,7 @@ public class Trxfmr {
             return blockBuilder;
         });
         funcOp(newFuncOp);
-        update();
+     //   update();
         return this;
     }
     public Trxfmr transform(Edge.Selector<?,?> selector,Consumer<Cursor> transformer) {
@@ -297,7 +381,6 @@ public class Trxfmr {
         var currentFuncOp = funcOp();
         var newFuncOp = currentFuncOp.transform((blockBuilder, op) -> {
             Cursor cursor = Cursor.of(this,funcOp,blockBuilder,op);
-
             if ((selected.isEmpty() || selected.contains(op)) &&  predicate.test(op)) {
                 codeTransformer.acceptOp(cursor.builder(),op);
             } else {
