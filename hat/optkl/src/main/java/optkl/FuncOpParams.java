@@ -107,6 +107,8 @@ public class FuncOpParams {
                     add(Map.entry(parameter, varOp));
                 } else if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
                     parameterInvokeOpMap.add(parameter, invokeOp);
+                } else {
+                    throw new IllegalStateException("What kind of parameter is this?");
                 }
             }, () -> {
                 throw new IllegalStateException("FuncOp has unused params ");
