@@ -108,9 +108,13 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
         });
         return nl();
     }
+    private final ScopedCodeBuilderContext scopedCodeBuilderContext;
+    public JavaHATCodeBuilder(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp){
+        super();
+        scopedCodeBuilderContext= new ScopedCodeBuilderContext(lookup,funcOp);
+    }
 
-    public String toText(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        var scopedCodeBuilderContext = new ScopedCodeBuilderContext(lookup,funcOp);
+    public String toText() {
         return createJava(scopedCodeBuilderContext).getText();
     }
 }

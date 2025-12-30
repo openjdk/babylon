@@ -273,7 +273,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
 
-        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -319,7 +319,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
 
-        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -406,7 +406,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
 
-        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -452,7 +452,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
         if (nodesInvolved.isEmpty()) {
             return funcOp;
         }
-        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {

@@ -22,21 +22,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package experiments;
+package optkl;
 
-import hat.Accelerator;
-import optkl.ifacemapper.Buffer;
-import hat.buffer.S08x3RGBImage;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.util.Regex;
+import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
 
-public class S08x3ImageTest implements Buffer {
-
-    public static void main(String[] args) {
-        var lookup =MethodHandles.lookup();
-        Accelerator accelerator = new Accelerator(lookup);
-
-        var rgbS08x3Image = S08x3RGBImage.create(accelerator,100,100);
+public record FieldAccessOpHelper(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements LookupCarrier,OpHelper<JavaOp.FieldAccessOp> {
+    @Override
+    public boolean isStatic(){
+        return true;//fieldAccessOp.invokeKind().equals(JavaOp.FieldAccessOp.InvokeKind.STATIC);
+    }
+    @Override
+    public boolean isInstance(){
+        return true;//fieldAccessOp.invokeKind().equals(JavaOp.FieldAccessOp.InvokeKind.INSTANCE);
+    }
+    @Override
+    public String name(){
+        return op.fieldDescriptor().name();
     }
 
+    public <T>boolean of(Class<T> clazz){
+        return isAssignable(clazz,(JavaType) op.resultType());
+    }
+
+    public static FieldAccessOpHelper fieldAccessOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
+        return codeElement instanceof JavaOp.FieldAccessOp fieldAccessOp? new FieldAccessOpHelper(lookup,fieldAccessOp): null;
+
+    }
 }

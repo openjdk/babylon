@@ -26,31 +26,21 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
-import hat.optools.KernelContextPattern;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.CallSite;
-import optkl.OpTkl;
+import optkl.InvokeOpHelper;
+import optkl.Trxfmr;
+import java.util.List;
 
-import java.util.Objects;
-
-import static optkl.OpTkl.simpleOpMappingTransform;
+import static optkl.InvokeOpHelper.invokeOpHelper;
 
 public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
-
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
-        var here = CallSite.of(HATBarrierPhase.class, "apply");
-        before(here, fromFuncOp);
-        OpTkl.OpMap opMap = simpleOpMappingTransform(
-                /* for debugging we will remove */ here,
-                                                   fromFuncOp,
-                /* filter op                    */ ce -> Objects.nonNull(
-                                                         KernelContextPattern.KernelContextInvokePattern.matches(lookup(), ce,
-                                                         invokeOp->invokeOp.invokeDescriptor().name().equals(HATBarrierOp.NAME))),
-                /* replace op                   */ HATBarrierOp::new
-        );
-        after(here, opMap.toFuncOp());
-        return opMap.toFuncOp();
+        return Trxfmr.of(fromFuncOp)
+                .transform(
+                        /* predicate */     ce-> invokeOpHelper(lookup(),ce) instanceof InvokeOpHelper $&&$ .named(HATBarrierOp.NAME),
+                        /* transformation */c-> c.replace(new HATBarrierOp(List.of())
+                        ))
+                .funcOp();
     }
-
 }

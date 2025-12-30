@@ -43,7 +43,7 @@ import static optkl.OpTkl.isAssignable;
 
 public interface KernelContextPattern extends CodeModelPattern {
 
-    static boolean isKernelContext(MethodHandles.Lookup lookup, TypeElement typeElement) {
+    private static boolean isKernelContext(MethodHandles.Lookup lookup, TypeElement typeElement) {
         return isAssignable(lookup, typeElement, KernelContext.class);
     }
 

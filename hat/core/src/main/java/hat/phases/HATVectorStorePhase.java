@@ -95,7 +95,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
-           funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+           funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
