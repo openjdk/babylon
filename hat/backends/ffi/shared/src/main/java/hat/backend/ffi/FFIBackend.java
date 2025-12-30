@@ -30,6 +30,7 @@ import hat.Config;
 import hat.optools.ComputeContextPattern;
 import hat.optools.IfaceBufferPattern;
 import hat.optools.KernelContextPattern;
+import jdk.incubator.code.CodeTransformer;
 import optkl.util.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
@@ -56,7 +57,6 @@ import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.javaReturnType;
-import static optkl.OpTkl.lower;
 import static optkl.OpTkl.methodOrThrow;
 import static optkl.OpTkl.transform;
 
@@ -69,7 +69,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeEntrypoint().lowered == null) {
             computeContext.computeEntrypoint().lowered =
-                    lower(CallSite.of(FFIBackend.class), computeContext.computeEntrypoint().funcOp());
+                    computeContext.computeEntrypoint().funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
         }
         backendBridge.computeStart();
         if (config().interpret()) {
@@ -137,7 +137,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
             }
             var paramTable = new FuncOpParams(computeMethod.funcOp());
 
-            transformedFuncOp = transform(here, computeMethod.funcOp(),(bldr, op) -> {
+            transformedFuncOp = transform(here, computeMethod.funcOp(),_->true,(bldr, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
                     if (IfaceBufferPattern.isInvokeOp(lookup(), invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)

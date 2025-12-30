@@ -27,7 +27,7 @@ package experiments;
 
 
 import hat.codebuilders.JavaHATCodeBuilder;
-import hat.optools.Trxfmr;
+import optkl.Trxfmr;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -42,11 +42,11 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.util.OpCodeBuilder;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static optkl.InvokeOpHelper.invokeOpHelper;
 
 /**
  * Demonstrates how to dynamically build a new function using the code reflection API.
@@ -187,14 +187,16 @@ public class CreateFuncOp {
                 b.op(CoreOp.core_yield());
             }));
              c.add(new Pre(List.of()));
-             c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.operandNValue(0)));
+             c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand(0)));
              c.add(new Post(List.of()));
         });
         System.out.println( OpCodeBuilder.toText(trxfmr.funcOp));
 
+        // We need to remove our injected ops from the model to execute
         trxfmr.transform(ce -> ce instanceof Inject, c -> c.remove()).funcOp();
-        var javaCodeBuilder = new JavaHATCodeBuilder<>();
-        System.out.println(javaCodeBuilder.toText(lookup,trxfmr.funcOp()));
+
+        var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,trxfmr.funcOp());
+        System.out.println(javaCodeBuilder.toText());
         System.out.println( OpCodeBuilder.toText(trxfmr.funcOp()));
         System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp).invoke(100));
     }

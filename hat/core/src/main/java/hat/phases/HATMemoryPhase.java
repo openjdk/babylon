@@ -102,7 +102,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     })
                 );
 
-        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp && mapMe.contains(invokeOp)) {
                 invokeOp.result()
                         .uses()
@@ -231,7 +231,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     });
 
             Set<CodeElement<?, ?>> nodesInvolved = memoryLoadOps.collect(Collectors.toSet());
-            funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+            funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
                 if (!nodesInvolved.contains(op)) {
                     blockBuilder.op(op);
                 } else if (op instanceof JavaOp.InvokeOp invokeOp) {

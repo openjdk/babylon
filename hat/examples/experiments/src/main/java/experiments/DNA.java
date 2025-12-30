@@ -80,7 +80,7 @@ public class DNA {
         Method method = DNA.class.getDeclaredMethod("addMul", int.class, int.class);
         var funcOp = Op.ofMethod(method).get();
         var here = CallSite.of(DNA.class, "main");
-        var transformed = transform(here, funcOp,(builder, op) -> {
+        var transformed = transform(here, funcOp,_->true,(builder, op) -> {
             CodeContext cc = builder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                // List<Value> operands = new ArrayList<>();
