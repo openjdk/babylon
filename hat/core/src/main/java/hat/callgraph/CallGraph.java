@@ -86,9 +86,6 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
                 try {
                     var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-                    if ((f == null) && !isMissingReflectAnnotationALoowed(invokeOp, method)) {
-                        throw new RuntimeException("Did you @Reflect annotation on " +invokeOp.invokeDescriptor() + "?");
-                    }
                     // TODO filter calls has side effects we may need another call. We might just check the map.
                     
                     if (f != null && !filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
@@ -133,10 +130,6 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
             }
         }
         return CoreOp.module(funcs);
-    }
-
-    private boolean isMissingReflectAnnotationALoowed(JavaOp.InvokeOp invokeOp, Method method,) {
-        // TODO() : Add the logic here.
     }
 
     public abstract boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);

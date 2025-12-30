@@ -142,10 +142,16 @@ public class TestMissingReflectAnnotation {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var array = S32Array.create(accelerator, size);
 
-        // Initialize array
         for (int i = 0; i < array.length(); i++) {
             array.array(i, i);
         }
-        accelerator.compute(cc -> TestMissingReflectAnnotation.squareComputeCallsSquareItWithoutReflectAnnotation(cc, array));
+
+        try {
+            accelerator.compute(cc -> TestMissingReflectAnnotation.squareComputeCallsSquareItWithoutReflectAnnotation(cc, array));
+        } catch (RuntimeException e) {
+            HATAsserts.assertTrue(e.getMessage().contains("OpenCL program failed to compile"));
+            return;
+        }
+        throw new HATExpectedFailureException("OpenCL program failed to compile");
     }
 }

@@ -203,7 +203,7 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
 
     cl_int buildStatus = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
     if (buildStatus != CL_SUCCESS) {
-        std::cerr << "buildStatus =failed" << std::endl;
+        std::cerr << "buildStatus = failed" << std::endl;
     }
     size_t logLen = 0;
     OpenCLProgram *openclProgram = nullptr;
@@ -219,13 +219,15 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
             if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
                                                 nullptr)) != CL_SUCCESS) {
                 std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
-                delete[] log;
-                log = nullptr;
             } else {
                 log[logLen] = '\0';
                 if (logLen > 2) {
                     std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
                 }
+                bool hasImplicitDeclError = (strstr(log, "error: implicit declaration of function") != nullptr);
+                if (hasImplicitDeclError) {
+                    std::cerr << "Did you miss @Reflect annotation on the above function?"  << std::endl;  
+                }    
             }
             openclProgram = new OpenCLProgram(this, src, log, buildStatus == CL_SUCCESS, program);
         } else {
