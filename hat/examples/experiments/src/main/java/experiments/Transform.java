@@ -137,7 +137,7 @@ public class Transform {
             CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
             var here = CallSite.of(Transform.class, "main");
-            CoreOp.FuncOp transformed = transform(here, javaFunc,(builder, op) -> {
+            CoreOp.FuncOp transformed = transform(here, javaFunc,_->true,(builder, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     //  CodeContext cc = builder.context();
                     //  Block.Builder bb = builder;

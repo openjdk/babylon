@@ -27,6 +27,9 @@ package experiments;
 
 
 import hat.codebuilders.JavaHATCodeBuilder;
+import optkl.InvokeOpHelper;
+import optkl.Trxfmr;
+import static optkl.InvokeOpHelper.invokeOpHelper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -35,9 +38,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.codebuilders.ScopedCodeBuilderContext;
+import optkl.util.Regex;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
 public class SwapMath {
@@ -62,19 +64,22 @@ public class SwapMath {
                     );
                     builder.op(CoreOp.return_(divResult));
                 });
-        var javaCodeBuilder = new JavaHATCodeBuilder<>();
+        var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,rsqrt);
         System.out.println(rsqrt.toText());
-        System.out.println(javaCodeBuilder.toText(lookup,rsqrt));
+        System.out.println(javaCodeBuilder.toText());
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrt).invoke(100));
+
+
 
         System.out.println("--------------------------");
         var abs = rsqrt.transform((builder,op)->{
-            if (op instanceof CoreOp.FuncOp f){
-                var replaceMe =CoreOp.func("invAbs",builder.parentBody());
-                builder.op(replaceMe);
-            }else if (op instanceof JavaOp.InvokeOp invokeOp){
-                var result= builder.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, builder.context().getValue(op.operands().get(0))));
-                builder.context().mapValue(op.result(), result);
+            if (invokeOpHelper(lookup,op) instanceof InvokeOpHelper ih
+                    && ih.named(Regex.of("sqrt")) && ih.isStatic() && ih.returns(double.class) && ih.receives(double.class)){
+                var absStaticMethod = MethodRef.method(Math.class, "abs", double.class, double.class);
+                var absInvoke =  JavaOp.invoke(InvokeKind.STATIC, false, absStaticMethod.type().returnType(), absStaticMethod,
+                        builder.context().getValue(op.operands().get(0)));
+                var absResult= builder.op(absInvoke);
+                builder.context().mapValue(op.result(), absResult);
             }else{
                 builder.op(op);
             }
@@ -82,8 +87,30 @@ public class SwapMath {
         });
 
         System.out.println(abs.toText());
-        System.out.println(javaCodeBuilder.toText(lookup,abs));
+        javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,abs);
         System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(MethodHandles.lookup(), abs).invoke(100));
+
+
+        System.out.println("Now using txfmr--------------------------");
+        var newAbs =Trxfmr.of(rsqrt)
+                .transform(ce-> InvokeOpHelper.invokeOpHelper(lookup,ce) instanceof InvokeOpHelper $
+                                && $.named(Regex.of("sqrt"))
+                                && $.isStatic()
+                                && $.returns(double.class)
+                                && $.receives(double.class), c->
+                        c.replace(
+                                JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand( 0))
+                        )
+                )
+                .funcOp();
+
+
+        System.out.println(newAbs.toText());
+        javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,newAbs);
+        System.out.println(javaCodeBuilder.toText());
+        System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(MethodHandles.lookup(), newAbs).invoke(100));
+
+
     }
 }
 

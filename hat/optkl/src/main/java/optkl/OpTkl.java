@@ -417,23 +417,7 @@ static <T extends Op> Stream<T> ops(CallSite callSite, CoreOp.FuncOp funcOp,
    }
    return funcOp.elements().filter(predicate).map(mapper);
 }
-static <T> Stream<T> opstream(CoreOp.FuncOp funcOp, Function<CodeElement<?,?>,T> mapper) {
-   return funcOp.elements().map(mapper).filter(Objects::nonNull);
-}
 
-
-static CoreOp.FuncOp SSATransformLower(CallSite callSite, CoreOp.FuncOp funcOp){
-   if (callSite.tracing()){
-      System.out.println(callSite);
-   }
-   return  SSA.transform(lower(callSite,funcOp));
-}
-static CoreOp.FuncOp SSATransform(CallSite callSite, CoreOp.FuncOp funcOp){
-   if (callSite.tracing()){
-      System.out.println(callSite);
-   }
-   return  SSA.transform(funcOp);
-}
 
 static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, CodeTransformer CodeTransformer) {
    if (callSite.tracing()){
@@ -459,40 +443,7 @@ static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, CodeTran
    return funcOp.transform(CodeTransformer);
 }
 
-record  OpMap(CoreOp.FuncOp fromFuncOp, CoreOp.FuncOp toFuncOp,  Map<Op,Op> fromToOpMap){}
 
-static <InOp extends Op, OutOp extends Op> OutOp replaceOp(Block.Builder blockBuilder, InOp inOp,java.util.function.Function<List<Value>, OutOp> factory) {
-   List<Value> inputOperands = inOp.operands();
-   CodeContext context = blockBuilder.context();
-   List<Value> outputOperands = context.getValues(inputOperands);
-   OutOp outOp = factory.apply(outputOperands);
-   Op.Result outputResult = blockBuilder.op(outOp);
-   Op.Result inputResult = inOp.result();
-   outOp.setLocation(inOp.location());
-   context.mapValue(inputResult, outputResult);
-   return outOp;
-}
-static < OutOp extends Op> OpMap simpleOpMappingTransform(CallSite here, CoreOp.FuncOp fromFuncOp, Predicate<Op> opPredicate,
-                                                          java.util.function.Function<List<Value>, OutOp> opFactory){
-   Map<Op,Op> fromToOpMap = new LinkedHashMap<>();
-   CoreOp.FuncOp toFuncOp =  transform(here, fromFuncOp, (blockBuilder, inOp) -> {
-      if (opPredicate.test(inOp)) {
-         fromToOpMap.put(inOp, replaceOp(blockBuilder, inOp, opFactory));
-      }else {
-         var r = blockBuilder.op(inOp);
-         fromToOpMap.put(inOp,r.op());
-      }
-      return blockBuilder;
-   });
-   return new OpMap(fromFuncOp, toFuncOp, fromToOpMap);
-}
-
-
-
-
-static boolean returnIsVoid(JavaOp.InvokeOp invokeOp){
-   return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();
-}
 
 // IMPORTANT:
 // When we have patterns like:

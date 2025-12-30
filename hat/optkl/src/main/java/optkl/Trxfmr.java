@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.optools;
+package optkl;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -33,8 +33,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.util.CallSite;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -42,30 +40,34 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static optkl.OpTkl.copyLocation;
 import static optkl.OpTkl.operandOrNull;
-import static optkl.OpTkl.opstream;
 
 public class Trxfmr {
-    interface HATTransformerCarrier{
-        Trxfmr hatTransformer();
+    public static Trxfmr of(CoreOp.FuncOp funcOp) {
+        return new Trxfmr(funcOp);
+    }
+    public static Trxfmr of(CallSite callSite,CoreOp.FuncOp funcOp) {
+        return new Trxfmr(callSite,funcOp);
+    }
+
+    interface TransformerCarrier {
+        Trxfmr trxfmr();
     }
     interface CursorCarrier<T extends Cursor>{
         T cursor();
     }
 
-    public interface  Walker extends HATTransformerCarrier {
+    public interface  Walker extends TransformerCarrier {
         void op(Op op);
         Op op();
         void funcOp(CoreOp.FuncOp funcOp);
         CoreOp.FuncOp funcOp();
-              class Impl implements  HATTransformerCarrier,Walker {
+              class Impl implements TransformerCarrier,Walker {
                 private final Trxfmr trxfmr;
-                public Trxfmr hatTransformer() {
+                public Trxfmr trxfmr() {
                     return trxfmr;
                 }
                 private Op op;
@@ -100,7 +102,7 @@ public class Trxfmr {
         }
     }
 
-    public interface  Cursor extends HATTransformerCarrier, Walker {
+    public interface  Cursor extends TransformerCarrier, Walker {
         enum Action{NONE,REMOVED,REPLACE,ADDED };
         void action(Action action);
         Action action();
@@ -113,42 +115,6 @@ public class Trxfmr {
         default Op.Result replace(Op op){
             return replace(op, _->{});
         }
-         static  <T extends Op> Constructor<T> getConstructorOrNull(Class<T> clazz, Class<?> ... classes){
-            try {
-                return clazz.getDeclaredConstructor(classes);
-            }catch (NoSuchMethodException nsm){
-                return null;
-            }
-         }
-        static  <T extends Op> T createOrNull(Constructor<T> constructor, Object ... args){
-            try {
-                return constructor.newInstance(args);
-            }catch (InstantiationException | IllegalAccessException | InvocationTargetException e){
-                throw new IllegalStateException(e);
-            }
-        }
-        default <T extends Op> Op.Result add(Function<List<Value>,T> factory, Value...operands){
-            T instance = factory.apply(Stream.of(operands).map(operand -> builder().context().getValue(operand)).toList());
-            return add(instance);
-        }
-        /*
-        default <T extends Op> Op.Result add(Class<T> clazz, Value ...operands){
-                    if (getConstructorOrNull(clazz,List.class) instanceof Constructor<T> constructor) {
-                        Op instance = createOrNull(constructor, Stream.of(operands).map(operand -> builder().context().getValue(operand)).toList());
-                        return add(instance);
-                    } else if (getConstructorOrNull(clazz,Value.class,Value.class) instanceof Constructor<T> constructor){
-                      //  Op instance = createOrNull(constructor, builder().context().getValue(operands[0]),builder().context().getValue(operands[1]));
-                       // if (constructor.trySetAccessible()) {
-                       // constructor.setAccessible(true);
-                            Op instance = createOrNull(constructor, operands[0], operands[1]);
-                            return add(instance);
-                       // }else{
-                         //   throw new RuntimeException("can't construct "+clazz.getSimpleName());
-                       // }
-                    } else{
-                        throw new RuntimeException("can't handle this arity");
-                    }
-        } */
 
         default Op.Result add(Op op){
             return add(op, _->{});
@@ -235,18 +201,18 @@ public class Trxfmr {
             return builder().context().getValue(value);
         }
 
-        default Value operandNValue(int idx){
+        default Value mappedOperand(int idx){
             return getValue(operandOrNull(op(),idx));
         }
     }
 
-    public interface Selector<T extends Selector<T>> extends HATTransformerCarrier{
+    public interface Selector<T extends Selector<T>> extends TransformerCarrier {
         default T  select(Op...ops){
-            hatTransformer().selected.addAll(List.of(ops));
+            trxfmr().selected.addAll(List.of(ops));
             return (T)this;
         }
        static Selector<?> of(Trxfmr trxfmr){
-            record SelectorImpl(Trxfmr hatTransformer) implements Selector<SelectorImpl>{}
+            record SelectorImpl(Trxfmr trxfmr) implements Selector<SelectorImpl>{}
             return  new SelectorImpl(trxfmr);
         }
     }
@@ -334,12 +300,7 @@ public class Trxfmr {
         return result;
     }
 
-  //  private void update(){
-    //    opmap.forEach((from, to) -> { selected.remove(from);selected.add(to);});
-   // }
-
-
-    public Trxfmr transform(Predicate<Op> predicate, Consumer<Cursor> cursorConsumer) {
+    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer) {
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
@@ -364,11 +325,7 @@ public class Trxfmr {
             return blockBuilder;
         });
         funcOp(newFuncOp);
-     //   update();
         return this;
-    }
-    public Trxfmr transform(Edge.Selector<?,?> selector,Consumer<Cursor> transformer) {
-        return transform(selector::contains,transformer);
     }
     public Trxfmr transform(Consumer<Cursor> transformer) {
         return transform(_->true,transformer);
@@ -403,16 +360,11 @@ public class Trxfmr {
     }
 
 
-    public interface Edge<F extends Op, T extends Op> {
+    public interface Edge<F extends CodeElement<?,?>, T extends CodeElement<?,?>> {
         F f();
-
         T t();
-
         Set<Op> ops();
-
-
-
-         class Selector<F extends Op, T extends Op> {
+         class Selector<F extends CodeElement<?,?>, T extends CodeElement<?,?>> {
             Map<F, Edge<F, T>> fromMap = new HashMap<>();
             Map<T, Edge<F, T>> toMap = new HashMap<>();
 
@@ -430,16 +382,11 @@ public class Trxfmr {
                 return toMap.get(t);
             }
 
-            Predicate<Op> predicate =op->fromMap.containsKey((F) op) || toMap.containsKey((T) op);
+            Predicate<CodeElement<?,?>> predicate =ce->fromMap.containsKey((F) ce) || toMap.containsKey((T) ce);
 
             public boolean contains(Op op) {
                 return predicate.test(op);
             }
-
-             public Selector<F, T> select(CoreOp.FuncOp funcOp, Function<CodeElement<?,?>,Edge<F,T>> mapper) {
-                 opstream(funcOp,mapper).forEach(e->this.add((Edge<F, T>) e));
-                 return this;
-             }
 
              public CoreOp.FuncOp transform(CoreOp.FuncOp funcOp, Consumer<Cursor> c) {
                  return new Trxfmr(CallSite.of(this.getClass()), funcOp)

@@ -28,7 +28,7 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
 import hat.optools.KernelContextPattern;
-import hat.optools.Trxfmr;
+import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;

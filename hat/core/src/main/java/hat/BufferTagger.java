@@ -25,6 +25,7 @@
 
 package hat;
 
+import jdk.incubator.code.analysis.SSA;
 import optkl.util.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
@@ -40,6 +41,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static optkl.OpTkl.isAssignable;
+import static optkl.OpTkl.lower;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
@@ -91,10 +93,11 @@ public class BufferTagger {
     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup l, CoreOp.FuncOp f) {
 
         var here = CallSite.of(BufferTagger.class, "inlineLoop");
-        CoreOp.FuncOp ssaFunc = OpTkl.SSATransformLower(here, f); // do we need this nesting?
+        CoreOp.FuncOp ssaFunc =  SSA.transform(lower(here,f)) ;// OpTkl.SSATransformLower(here, f); // do we need this nesting?
         AtomicBoolean changed = new AtomicBoolean(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
+
             ssaFunc = OpTkl.transform(CallSite.of(BufferTagger.class, "inlineLoop"),ssaFunc,(bb, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
                     MethodRef methodRef = iop.invokeDescriptor();
@@ -107,7 +110,7 @@ public class BufferTagger {
                     if (invokeOpCalledMethod instanceof Method method) { // if method isn't a buffer access (is code reflected)
                         if (Op.ofMethod(method).isPresent()) {
                             CoreOp.FuncOp inline = Op.ofMethod(method).get(); // method to be inlined
-                            CoreOp.FuncOp ssaInline = OpTkl.SSATransformLower(here, inline);
+                            CoreOp.FuncOp ssaInline =SSA.transform(lower(here,inline));//OpTkl.SSATransformLower(here, inline);
                             Block.Builder exit = Inliner.inline(bb, ssaInline, bb.context().getValues(iop.operands()), (_, v) -> {
                                 if (v != null) bb.context().mapValue(iop.result(), v);
                             });

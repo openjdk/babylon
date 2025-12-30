@@ -118,7 +118,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorSelectOps.collect(Collectors.toSet());
-        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
@@ -174,7 +174,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-        funcOp = transform(here, funcOp, (blockBuilder, op) -> {
+        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);

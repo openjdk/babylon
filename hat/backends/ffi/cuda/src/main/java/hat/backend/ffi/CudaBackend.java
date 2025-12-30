@@ -30,6 +30,8 @@ import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.optools.IfaceBufferPattern;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.analysis.SSA;
 import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BoundSchema;
@@ -50,8 +52,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static optkl.OpTkl.SSATransform;
-import static optkl.OpTkl.lower;
 import static optkl.OpTkl.transform;
 
 public class CudaBackend extends C99FFIBackend {
@@ -416,12 +416,12 @@ public class CudaBackend extends C99FFIBackend {
 
         kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
             // TODO did we just trash any sidetables?
-            CoreOp.FuncOp loweredFunc = lower(here, funcOp);
+            CoreOp.FuncOp loweredFunc = funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
             loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
             invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
         });
 
-        CoreOp.FuncOp lowered = lower(here, kernelCallGraph.entrypoint.funcOp());
+        CoreOp.FuncOp lowered = kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
         CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.lookup(),lowered, argsMap, usedMathFns);
         for (String s : usedMathFns) {
             out.append("\n").append(mathFns.get(s)).append("\n");
@@ -439,7 +439,7 @@ public class CudaBackend extends C99FFIBackend {
 
       static  public CoreOp.FuncOp transformPTXPtrs(MethodHandles.Lookup lookup,CoreOp.FuncOp func, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
         var here = CallSite.of(CudaBackend.class, "transformPTXPtrs");
-        return transform(here, func,(block, op) -> {
+        return transform(here, func,_->true,(block, op) -> {
             CodeContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp){
@@ -470,8 +470,7 @@ public class CudaBackend extends C99FFIBackend {
     }
 
     static public String createFunction(PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
-        var here = CallSite.of(CudaBackend.class, "createFucntion" );
-        CoreOp.FuncOp ssa = SSATransform(here, lowered);
+         CoreOp.FuncOp ssa =SSA.transform(lowered);
 
 
         // building fn info (name, params)
