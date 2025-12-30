@@ -190,7 +190,7 @@ public class CreateFuncOp {
              c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand(0)));
              c.add(new Post(List.of()));
         });
-        System.out.println( OpCodeBuilder.toText(trxfmr.funcOp));
+        System.out.println( OpCodeBuilder.toText(trxfmr.funcOp()));
 
         // We need to remove our injected ops from the model to execute
         trxfmr.transform(ce -> ce instanceof Inject, c -> c.remove()).funcOp();
@@ -198,7 +198,7 @@ public class CreateFuncOp {
         var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,trxfmr.funcOp());
         System.out.println(javaCodeBuilder.toText());
         System.out.println( OpCodeBuilder.toText(trxfmr.funcOp()));
-        System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp).invoke(100));
+        System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp()).invoke(100));
     }
 }
 
