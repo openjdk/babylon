@@ -26,21 +26,37 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.InvokeOpHelper;
 import optkl.Trxfmr;
+
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static optkl.InvokeOpHelper.invokeOpHelper;
 
 public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
-        return Trxfmr.of(fromFuncOp)
-                .transform(
-                        /* predicate */     ce-> invokeOpHelper(lookup(),ce) instanceof InvokeOpHelper $&&$ .named(HATBarrierOp.NAME),
-                        /* transformation */c-> c.replace(new HATBarrierOp(List.of())
-                        ))
-                .funcOp();
+         Set<CoreOp.VarAccessOp.VarLoadOp> varLoadOpSet = new HashSet<>();
+         var trxfmr = Trxfmr.of(fromFuncOp);
+         trxfmr.transform(
+                 /* predicate */     ce-> invokeOpHelper(lookup(),ce) instanceof InvokeOpHelper $&&$ .named(HATBarrierOp.NAME),
+                 /* transformation */c-> {
+                     varLoadOpSet.add((CoreOp.VarAccessOp.VarLoadOp) ((Op.Result)c.op().operands().getFirst()).op());
+                     c.replace(new HATBarrierOp(List.of()));
+                 });
+         var newSet=     varLoadOpSet.stream().map(varLoadOp ->trxfmr.biMap.getTo(varLoadOp)).collect(Collectors.toSet());
+         trxfmr.transform(
+                /* predicate */   ce-> ce instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                         //&& trxfmr.biMap.containsFrom(varLoadOp),
+                         && newSet.contains(varLoadOp),
+                /* transformation */c-> c.remove()
+        );
+
+         return trxfmr.funcOp();
     }
 }

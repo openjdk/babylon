@@ -57,23 +57,23 @@ import static optkl.OpTkl.statements;
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonKernelOpBuilder<T>  {
 
     public T HAT_KERNEL() {
-        return keyword("HAT_KERNEL").space();
+        return keyword("HAT_KERNEL");
     }
 
     public T HAT_FUNC() {
-        return keyword("HAT_FUNC").space();
+        return keyword("HAT_FUNC");
     }
 
     public T HAT_GLOBAL_MEM() {
-        return keyword("HAT_GLOBAL_MEM").space();
+        return keyword("HAT_GLOBAL_MEM");
     }
 
     public T HAT_LOCAL_MEM() {
-        return keyword("HAT_LOCAL_MEM").space();
+        return keyword("HAT_LOCAL_MEM");
     }
 
     public T HAT_BARRIER() {
-        return keyword("HAT_BARRIER").space();
+        return keyword("HAT_BARRIER");
     }
 
     public T HAT_GIX(){
@@ -192,11 +192,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return HAT_KERNEL().voidType().space().funcName(funcOp);
+        return HAT_KERNEL().space().voidType().space().funcName(funcOp);
     }
 
     public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
-        return HAT_FUNC().type(codeBuilderContext,javaType).space().funcName(funcOp);
+        return HAT_FUNC().space().type(codeBuilderContext,javaType).space().funcName(funcOp);
     }
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
@@ -319,7 +319,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        return HAT_LOCAL_MEM() // we should be able to compose-call to privateDeclaration?
+        return HAT_LOCAL_MEM()
+                .space() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType())
                 .space()
                 .varName(localArrayDeclaration.varOp());
@@ -362,13 +363,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (javaType instanceof ClassType classType && isAssignable(buildContext.lookup, javaType, MappableIface.class)) {
-            HAT_GLOBAL_MEM().suffix_t(classType).asterisk();
+            HAT_GLOBAL_MEM().space().suffix_t(classType).asterisk();
         } else if (OpTkl.isAssignable(buildContext.lookup, javaType,KernelContext.class)) {
-            HAT_GLOBAL_MEM().suffix_t(KernelContext.class).asterisk();
+            HAT_GLOBAL_MEM().space().suffix_t(KernelContext.class).asterisk();
         } else if (OpTkl.isAssignable(buildContext.lookup, javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
-            HAT_GLOBAL_MEM().suffix_t(F16Impl.class).asterisk();
+            HAT_GLOBAL_MEM().space().suffix_t(F16Impl.class).asterisk();
         } else if (OpTkl.isAssignable(buildContext.lookup, javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
-            HAT_GLOBAL_MEM().suffix_t(BF16Array.BF16Impl.class).asterisk();
+            HAT_GLOBAL_MEM().space().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             typeName(javaType.toString());
         }

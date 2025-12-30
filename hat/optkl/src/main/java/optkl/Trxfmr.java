@@ -31,6 +31,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.util.BiMap;
 import optkl.util.CallSite;
 
 import java.util.HashMap;
@@ -119,7 +120,7 @@ public class Trxfmr {
         default Op.Result add(Op op){
             return add(op, _->{});
         }
-         default void remove(Consumer<Mapper<?>> mapperConsumer) {
+        default void remove(Consumer<Mapper<?>> mapperConsumer) {
             mapperConsumer.accept(Mapper.of(this));
         }
         default void remove() {
@@ -249,9 +250,10 @@ public class Trxfmr {
     }
 
     public final Set<Op> selected = new LinkedHashSet<>();
-    public final Map<Op, Op> opmap = new HashMap<>();
+   // public final Map<Op, Op> opmap = new HashMap<>();
     public final CallSite callSite;
-    public CoreOp.FuncOp funcOp;
+    private CoreOp.FuncOp funcOp;
+    public BiMap<Op,Op> biMap = new BiMap<>();
 
     public CoreOp.FuncOp funcOp(){
         return funcOp;
@@ -291,12 +293,13 @@ public class Trxfmr {
 
 
 
-    private Op opToOp(Op from, Op to){
-        opmap.put(from,to);
-        return to;
-    }
+    //private Op opToOp(Op from, Op to){
+
+      //  return to;
+    //}
     private Op.Result opToResultOp(Op from, Op.Result result){
-        opToOp(from, result.op());
+        biMap.add(from,result.op());
+        //opToOp(from, result.op());
         return result;
     }
 
@@ -317,14 +320,17 @@ public class Trxfmr {
             if (isSelected && passesPredicate) {
                 cursorConsumer.accept(cursor);
                 if (!cursor.handled()){
-                    opToOp(op,cursor.builder().op(op).op());
+                    biMap.add(op,cursor.builder().op(op).op());
+                   // opToOp(op,cursor.builder().op(op).op());
                 }
             } else {
-                opToOp(op,cursor.builder().op(op).op());
+                biMap.add(op,cursor.builder().op(op).op());
             }
             return blockBuilder;
         });
         funcOp(newFuncOp);
+        biMap.add(funcOp,newFuncOp);
+       // opToOp(funcOp,newFuncOp);
         return this;
     }
     public Trxfmr transform(Consumer<Cursor> transformer) {
@@ -341,13 +347,13 @@ public class Trxfmr {
             if ((selected.isEmpty() || selected.contains(op)) &&  predicate.test(op)) {
                 codeTransformer.acceptOp(cursor.builder(),op);
             } else {
-                opToOp(op,cursor.builder().op(op).op());
+                biMap.add(op,cursor.builder().op(op).op());
             }
             return cursor.builder();
         });
-        opmap.put(currentFuncOp, newFuncOp);
+    //    opmap.put(currentFuncOp, newFuncOp);
         funcOp(newFuncOp);
-        opmap.forEach((from, to) -> { selected.remove(from);selected.add(to);});
+      //  opmap.forEach((from, to) -> { selected.remove(from);selected.add(to);});
         return this;
     }
 
