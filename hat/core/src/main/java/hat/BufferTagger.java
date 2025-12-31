@@ -26,6 +26,7 @@
 package hat;
 
 import jdk.incubator.code.analysis.SSA;
+import optkl.ifacemapper.AccessType;
 import optkl.util.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
@@ -47,30 +48,6 @@ public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
     static HashMap<Value, Value> remappedVals = new HashMap<>(); // maps values to their "root" parameter/value
     static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
-
-    public enum AccessType {
-        NOT_BUFFER((byte)0),
-        NA((byte)1),
-        RO((byte)(1<<1)),
-        WO((byte)(1<<2)),
-        RW((byte) (RO.value|WO.value));
-
-        public final byte value;
-        AccessType(byte i) {
-            value = i;
-        }
-    }
-
-    public static String convertAccessType(int i) {
-        switch (i) {
-            case 0 -> {return "NOT_BUFFER";}
-            case 1 -> {return "NA";}
-            case 2 -> {return "RO";}
-            case 4 -> {return "WO";}
-            case 6 -> {return "RW";}
-            default -> {return "";}
-        }
-    }
 
     // generates a list of AccessTypes matching the given FuncOp's parameter order
     public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup l, CoreOp.FuncOp f) {
