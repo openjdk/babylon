@@ -34,10 +34,8 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
 
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -61,7 +59,7 @@ public class Trxfmr {
         T cursor();
     }
 
-    public interface  Walker extends TransformerCarrier {
+  /*  public interface  Walker extends TransformerCarrier {
         void op(Op op);
         Op op();
         void funcOp(CoreOp.FuncOp funcOp);
@@ -98,17 +96,24 @@ public class Trxfmr {
                     this.funcOp = funcOp;
                 }
             }
-        static Walker of(Trxfmr trxfmr, CoreOp.FuncOp funcOp){
-            return new Impl(trxfmr,funcOp);
-        }
-    }
+      //  static Walker of(Trxfmr trxfmr, CoreOp.FuncOp funcOp){
+        //    return new Impl(trxfmr,funcOp);
+       // }
+    } */
 
-    public interface  Cursor extends TransformerCarrier, Walker {
+    public interface  Cursor extends TransformerCarrier {
         enum Action{NONE,REMOVED,REPLACE,ADDED };
+        void op(Op op);
+        Op op();
+       void funcOp(CoreOp.FuncOp funcOp);
+        CoreOp.FuncOp funcOp();
         void action(Action action);
         Action action();
         void builder(Block.Builder builder);
         Block.Builder builder();
+
+        void trxfmr(Trxfmr trxfmr);
+
         void handled(boolean handled);
         boolean handled();
         Op.Result replace(Op op, Consumer<Mapper<?>> mapperConsumer);
@@ -130,10 +135,35 @@ public class Trxfmr {
             return replace(op, (m)->{});
         }
         static Cursor of(Trxfmr trxfmr, CoreOp.FuncOp funcOp, Block.Builder builder, Op op){
-            class Impl extends Walker.Impl implements Cursor {
-                private Action action;
+
+            // This could be a record if we did ot have to mutate action and handled. Maybe a Set?
+            class Impl  implements Cursor {
+                private CoreOp.FuncOp funcOp;
+                private Op op;
+                private Trxfmr trxfmr;
+                private Action action=Action.NONE;
                 private Block.Builder builder;
                 private boolean handled;
+                @Override public Op op(){
+                    return op;
+                }
+                @Override public void op(Op op){
+                    this.op = op;
+                }
+                @Override public void funcOp(CoreOp.FuncOp funcOp){
+                    this.funcOp = funcOp;
+                }
+                @Override public CoreOp.FuncOp funcOp(){
+                    return funcOp;
+                }
+             @Override
+                public Trxfmr trxfmr() {
+                    return trxfmr;
+                }
+                @Override
+                public void trxfmr(Trxfmr trxfmr) {
+                    this.trxfmr=trxfmr;
+                }
                 @Override
                 public void handled(boolean handled) {
                     this.handled = handled;
@@ -189,8 +219,9 @@ public class Trxfmr {
                     handled(true);
                     action(Action.REMOVED);
                 }
-                Impl(Trxfmr hatTransformer, CoreOp.FuncOp funcOp, Block.Builder builder, Op op) {
-                    super(hatTransformer,funcOp);
+                Impl(Trxfmr trxfmr, CoreOp.FuncOp funcOp, Block.Builder builder, Op op) {
+                    trxfmr(trxfmr);
+                    funcOp(funcOp);
                     builder(builder);
                     op(op);
                 }
@@ -250,10 +281,9 @@ public class Trxfmr {
     }
 
     public final Set<Op> selected = new LinkedHashSet<>();
-   // public final Map<Op, Op> opmap = new HashMap<>();
     public final CallSite callSite;
     private CoreOp.FuncOp funcOp;
-    public BiMap<Op,Op> biMap = new BiMap<>();
+    public final BiMap<Op,Op> biMap = new BiMap<>();
 
     public CoreOp.FuncOp funcOp(){
         return funcOp;
@@ -291,16 +321,17 @@ public class Trxfmr {
         return this;
     }
 
-
-
-    //private Op opToOp(Op from, Op to){
-
-      //  return to;
-    //}
     private Op.Result opToResultOp(Op from, Op.Result result){
         biMap.add(from,result.op());
-        //opToOp(from, result.op());
         return result;
+    }
+
+    private boolean shouldTransform(Predicate<CodeElement<?,?>> predicate, Op op){
+        boolean isEmpty = selected.isEmpty();
+        boolean isInSelected = selected.contains(op);
+        boolean isSelected = isEmpty|isInSelected;
+        boolean passesPredicate = predicate.test(op);
+        return isSelected && passesPredicate;
     }
 
     public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer) {
@@ -308,52 +339,38 @@ public class Trxfmr {
             System.out.println(callSite);
         }
         var newFuncOp = funcOp().transform((blockBuilder, op) -> {
-            Cursor cursor = Cursor.of(this, funcOp, blockBuilder,op);
-            cursor.builder(blockBuilder);
-            cursor.op(op);
-            cursor.handled(false);
-            cursor.action(Cursor.Action.NONE);
-            boolean isEmpty = selected.isEmpty();
-            boolean isInSelected = selected.contains(op);
-            boolean isSelected = isEmpty|isInSelected;
-            boolean passesPredicate = predicate.test(op);
-            if (isSelected && passesPredicate) {
+            if (shouldTransform(predicate,op)){
+                Cursor cursor = Cursor.of(this, funcOp, blockBuilder,op);
                 cursorConsumer.accept(cursor);
                 if (!cursor.handled()){
-                    biMap.add(op,cursor.builder().op(op).op());
-                   // opToOp(op,cursor.builder().op(op).op());
+                    biMap.add(op,blockBuilder.op(op).op());
                 }
             } else {
-                biMap.add(op,cursor.builder().op(op).op());
+                biMap.add(op,blockBuilder.op(op).op());
             }
             return blockBuilder;
         });
         funcOp(newFuncOp);
         biMap.add(funcOp,newFuncOp);
-       // opToOp(funcOp,newFuncOp);
         return this;
     }
     public Trxfmr transform(Consumer<Cursor> transformer) {
         return transform(_->true,transformer);
     }
 
-    public Trxfmr transform(Predicate<Op> predicate, CodeTransformer codeTransformer) {
+    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, CodeTransformer codeTransformer) {
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
-        var currentFuncOp = funcOp();
-        var newFuncOp = currentFuncOp.transform((blockBuilder, op) -> {
-            Cursor cursor = Cursor.of(this,funcOp,blockBuilder,op);
-            if ((selected.isEmpty() || selected.contains(op)) &&  predicate.test(op)) {
-                codeTransformer.acceptOp(cursor.builder(),op);
+        var newFuncOp = funcOp().transform((blockBuilder, op) -> {
+            if (shouldTransform(predicate,op)){
+                codeTransformer.acceptOp(blockBuilder,op);
             } else {
-                biMap.add(op,cursor.builder().op(op).op());
+                biMap.add(op,blockBuilder.op(op).op());
             }
-            return cursor.builder();
+            return blockBuilder;
         });
-    //    opmap.put(currentFuncOp, newFuncOp);
-        funcOp(newFuncOp);
-      //  opmap.forEach((from, to) -> { selected.remove(from);selected.add(to);});
+        funcOp(newFuncOp); //swap the funcop for the next transform,
         return this;
     }
 
@@ -363,42 +380,6 @@ public class Trxfmr {
         }
         funcOp(funcOp().transform(codeTransformer));
         return this;
-    }
-
-
-    public interface Edge<F extends CodeElement<?,?>, T extends CodeElement<?,?>> {
-        F f();
-        T t();
-        Set<Op> ops();
-         class Selector<F extends CodeElement<?,?>, T extends CodeElement<?,?>> {
-            Map<F, Edge<F, T>> fromMap = new HashMap<>();
-            Map<T, Edge<F, T>> toMap = new HashMap<>();
-
-            public Selector<F, T> add(Edge<F, T> edge) {
-                fromMap.put(edge.f(), edge);
-                toMap.put(edge.t(), edge);
-                return this;
-            }
-
-            Edge<F, T> from(F f) {
-                return fromMap.get(f);
-            }
-
-            Edge<F, T> to(T t) {
-                return toMap.get(t);
-            }
-
-            Predicate<CodeElement<?,?>> predicate =ce->fromMap.containsKey((F) ce) || toMap.containsKey((T) ce);
-
-            public boolean contains(Op op) {
-                return predicate.test(op);
-            }
-
-             public CoreOp.FuncOp transform(CoreOp.FuncOp funcOp, Consumer<Cursor> c) {
-                 return new Trxfmr(CallSite.of(this.getClass()), funcOp)
-                         .transform(this.predicate,c).done().funcOp();
-             }
-         }
     }
 
 
