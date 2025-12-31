@@ -24,6 +24,7 @@
  */
 package hat.callgraph;
 
+import optkl.ifacemapper.AccessType;
 import hat.BufferTagger;
 import optkl.ifacemapper.Buffer;
 
@@ -39,9 +40,9 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
     public static class Traits{
-        public final List<BufferTagger.AccessType> bufferAccessList;
+        public final List<AccessType> bufferAccessList;
         public boolean usesArrayView;
-        Traits(List<BufferTagger.AccessType> bufferAccessList){
+        Traits(List<AccessType> bufferAccessList){
             this.bufferAccessList=bufferAccessList;
         }
     }
