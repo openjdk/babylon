@@ -27,12 +27,13 @@ package optkl;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.util.Regex;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 
 public record InvokeOpHelper(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements LookupCarrier,OpHelper<JavaOp.InvokeOp>{
     @Override public boolean isStatic(){
@@ -57,7 +58,28 @@ public record InvokeOpHelper(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) im
         return assignable;
     }
 
+    public Method resolvedMethodOrNull(){
+        try {
+            return op.invokeDescriptor().resolveToMethod(lookup) instanceof Method method ? method : null;
+        }catch (ReflectiveOperationException rope){
+            return null;
+        }
+    }
+
+
     public static InvokeOpHelper invokeOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
         return codeElement instanceof JavaOp.InvokeOp invokeOp? new InvokeOpHelper(lookup,invokeOp): null;
+    }
+
+    public boolean refIs(Class<?> clazz) {
+        return OpTkl.isAssignable(lookup, op.invokeDescriptor().refType(), clazz);
+    }
+
+    public boolean returnsArray() {
+        return op.resultType() instanceof ArrayType;
+    }
+
+    public boolean returnsVoid() {
+        return op.invokeDescriptor().type().returnType().equals(JavaType.VOID);
     }
 }
