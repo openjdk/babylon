@@ -227,7 +227,7 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
                     if (hasImplicitFunctionDeclError) {
                         std::cerr << "Did you miss @Reflect annotation on the above function?" << std::endl;
                     }
-                }    
+                }
             }
             openclProgram = new OpenCLProgram(this, src, log, buildStatus == CL_SUCCESS, program);
         } else {
