@@ -46,8 +46,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
 
-import static optkl.InvokeOpHelper.invokeOpHelper;
-
 /**
  * Demonstrates how to dynamically build a new function using the code reflection API.
  * <p>

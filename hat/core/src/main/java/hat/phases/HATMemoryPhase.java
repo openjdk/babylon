@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.Invoke;
 import optkl.util.CallSite;
 
 import java.util.HashMap;
@@ -48,8 +49,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
 public abstract sealed class HATMemoryPhase implements HATPhase {
@@ -133,8 +134,10 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(), invokeOp, n->n.equals(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
-                return isMethod(invokeOp, n->n.equals(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME))
-                        && isAssignable(lookup(),invokeOp.invokeDescriptor().refType(),DeviceType.class);
+
+                return invokeOpHelper(lookup(),invokeOp) instanceof  Invoke invoke
+                        && invoke.named(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME)
+                        && invoke.refIs(DeviceType.class);
             }
         }
 
@@ -163,9 +166,11 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))) {
                 return true;
             } else {
-                return (isMethod(invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
-                        && invokeOp.resultType() instanceof JavaType javaType &&
-                        isAssignable(lookup(),javaType,DeviceType.class));
+                return invokeOpHelper(lookup(),invokeOp) instanceof  Invoke invoke
+                      && invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME)
+                        && invoke.refIs(DeviceType.class);
+                     //   && invokeOp.resultType() instanceof JavaType javaType &&
+                       // isAssignable(lookup(),javaType,DeviceType.class));
             }
         }
 
@@ -192,9 +197,11 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         @Override
         protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
             return IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
-               || (isMethod(invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
-                    && invokeOp.resultType() instanceof JavaType javaType &&
-                    isAssignable(lookup(),javaType,DeviceType.class));
+               || (
+                    invokeOpHelper(lookup(),invokeOp) instanceof  Invoke invoke
+                    && invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
+                    && invoke.returnType() instanceof JavaType javaType
+                    && invoke.returns(DeviceType.class);
         }
 
          private boolean isDeviceTypeReservedMethod(JavaOp.InvokeOp invokeOp){
