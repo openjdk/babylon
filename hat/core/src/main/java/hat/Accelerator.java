@@ -48,9 +48,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
+import static optkl.Invoke.methodOrThrow;
 import static optkl.OpTkl.getQuotedCapturedValues;
 import static optkl.OpTkl.getTargetInvokeOp;
-import static optkl.OpTkl.methodOrThrow;
 
 
 /**

@@ -26,34 +26,35 @@ package optkl;
 
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.util.Regex;
-import optkl.util.carriers.LookupCarrier;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
 
-public record FieldAccessOpHelper(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements LookupCarrier,OpHelper<JavaOp.FieldAccessOp> {
+import static optkl.OpTkl.classTypeToTypeOrThrow;
+
+public interface VarAccess extends OpHelper<CoreOp.VarAccessOp>{
+
     @Override
-    public boolean isStatic(){
-        return true;//fieldAccessOp.invokeKind().equals(JavaOp.FieldAccessOp.InvokeKind.STATIC);
-    }
-    @Override
-    public boolean isInstance(){
-        return true;//fieldAccessOp.invokeKind().equals(JavaOp.FieldAccessOp.InvokeKind.INSTANCE);
-    }
-    @Override
-    public String name(){
-        return op.fieldDescriptor().name();
+    default  String name(){
+        return op().varOp().varName();
     }
 
-    public <T>boolean of(Class<T> clazz){
-        return isAssignable(clazz,(JavaType) op.resultType());
+    default boolean isPrimitive(){
+        return op().result().type() instanceof PrimitiveType;
     }
 
-    public static FieldAccessOpHelper fieldAccessOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
-        return codeElement instanceof JavaOp.FieldAccessOp fieldAccessOp? new FieldAccessOpHelper(lookup,fieldAccessOp): null;
 
+    default  <T>boolean of(Class<T> clazz){
+        return isAssignable((JavaType) op().resultType(),clazz);
+    }
+
+    static VarAccess varAccessOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
+        record Impl(MethodHandles.Lookup lookup, CoreOp.VarAccessOp op) implements VarAccess {}
+        return codeElement instanceof CoreOp.VarAccessOp varAccessOp? new Impl(lookup,varAccessOp): null;
     }
 }

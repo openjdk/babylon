@@ -27,25 +27,24 @@ package hat.optools;
 import hat.device.DeviceType;
 import hat.types.HAType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.Invoke;
 import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 import java.util.function.Predicate;
 
-import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.isAssignableTo;
-import static optkl.OpTkl.isMethod;
-import static optkl.OpTkl.javaRefType;
+import static optkl.Invoke.invokeOpHelper;
 
 public interface IfaceBufferPattern extends CodeModelPattern {
 
     static boolean isInvokeOp(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return (isAssignable(lookup, javaRefType(invokeOp), MappableIface.class));
+        return invokeOpHelper(lookup,invokeOp) instanceof Invoke invoke && invoke.refIs(MappableIface.class);//;isAssignable(lookup, javaRefType(invokeOp), MappableIface.class));
     }
 
     static boolean isIfaceBufferInvokeOpWithName(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, Predicate<String> namePredicate) {
-        return isInvokeOp(lookup, invokeOp) && isMethod(invokeOp, namePredicate)
-                || isAssignableTo(lookup, javaRefType(invokeOp), DeviceType.class, MappableIface.class, HAType.class)
-                && isMethod(invokeOp, namePredicate);
+
+        return invokeOpHelper(lookup,invokeOp) instanceof Invoke  invoke
+                && invoke.refIs( DeviceType.class, MappableIface.class, HAType.class)
+                && namePredicate.test(invoke.name());
     }
 }

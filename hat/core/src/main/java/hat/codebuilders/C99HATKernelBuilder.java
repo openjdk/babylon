@@ -48,8 +48,8 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static hat.buffer.F16Array.F16Impl;
+import static optkl.FieldAccess.fieldAccessOpHelper;
 import static optkl.OpTkl.asResultOrThrow;
-import static optkl.OpTkl.getStaticFinalPrimitiveValue;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.isPrimitiveResult;
 import static optkl.OpTkl.statements;
@@ -352,8 +352,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
-            literal(getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp).toString());
+        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldLoadOp);
+        if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive()) {
+            literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOp);
         }
