@@ -26,7 +26,7 @@
 package hat;
 
 import jdk.incubator.code.analysis.SSA;
-import optkl.InvokeOpHelper;
+import optkl.Invoke;
 import optkl.ifacemapper.AccessType;
 import optkl.util.CallSite;
 import optkl.OpTkl;
@@ -42,7 +42,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static optkl.InvokeOpHelper.invokeOpHelper;
+import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.isAssignable;
 
 public class BufferTagger {
@@ -75,8 +75,8 @@ public class BufferTagger {
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
             ssaFunc = OpTkl.transform(here, ssaFunc,(blockbuilder, op) -> {
-                if (invokeOpHelper(lookup, op) instanceof InvokeOpHelper invokeOpHelper          // always but pattern friendly
-                        && invokeOpHelper.resolvedMethodOrNull() instanceof Method method
+                if (invokeOpHelper(lookup, op) instanceof Invoke invoke          // always but pattern friendly
+                        && invoke.resolvedMethodOrNull() instanceof Method method
                         && Op.ofMethod(method) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
                         && optionalFuncOp.isPresent()
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
@@ -84,18 +84,18 @@ public class BufferTagger {
                     CoreOp.FuncOp ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
                     Block.Builder exit = Inliner.inline(
                             blockbuilder, ssaInline,
-                            blockbuilder.context().getValues(invokeOpHelper.op().operands()), (_, _value) -> {
+                            blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
                                 // intellij doesnt like value as var name so we use _value
                             if (_value == null) {
                                //   What is special about TestArrayView.Compute.lifePerIdx? it reaches here
                                 // I think its because it is void ? no return type.
                                     //   throw new IllegalStateException("inliner returned  null processing "+method);
                             }else{
-                                blockbuilder.context().mapValue(invokeOpHelper.op().result(), _value);
+                                blockbuilder.context().mapValue(invoke.op().result(), _value);
                             }
                     });
                     if (!exit.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invokeOpHelper.op().result(), exit.parameters().getFirst());
+                        blockbuilder.context().mapValue(invoke.op().result(), exit.parameters().getFirst());
                     }
                     changed.set(true);
                     return exit.rebind(blockbuilder.context(), blockbuilder.transformer());

@@ -52,7 +52,6 @@ import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.javaReturnType;
 import static optkl.OpTkl.transform;
 
 public abstract class JExtractedBackend extends JExtractedBackendDriver {
@@ -87,48 +86,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
       //  System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
        // System.out.println(computeMethod.funcOp().toText());
-        var lookup = computeMethod.callGraph.lookup();
-        // TODO : can't we get this from somewhere maybe it should be capturein the compute method?
-        var paramTable = new FuncOpParams(computeMethod.funcOp());
-        var here = CallSite.of(JExtractedBackend.class, "injectBufferTracking");
-        var transformedFuncOp = transform(here,computeMethod.funcOp(),_->true, (bldr, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                Value computeContext = bldr.context().getValue(paramTable.list().getFirst().parameter);
-                if (IfaceBufferPattern.isInvokeOp(lookup, invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
-                    Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
-                    bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, iface));  // cc->preMutate(iface);
-                    bldr.op(invokeOp);                                          // iface.v(newV);
-                    bldr.op(JavaOp.invoke(MUTATE.post, computeContext, iface)); // cc->postMutate(iface)
-                } else if (IfaceBufferPattern.isInvokeOp(lookup, invokeOp)
-                        //&& !OpTk.javaReturnType(invokeOp).equals(JavaType.VOID) not sure we need this
-                        && javaReturnType(invokeOp) instanceof ClassType returnClassType
-                        && classTypeToTypeOrThrow(lookup, returnClassType) instanceof Class<?> type
-                        && Buffer.class.isAssignableFrom(type)
-                ) {            // iface.v()
-                    Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
-                    bldr.op(JavaOp.invoke(ACCESS.pre, computeContext, iface));  // cc->preAccess(iface);
-                    bldr.op(invokeOp);                                          // iface.v();
-                    bldr.op(JavaOp.invoke(ACCESS.post, computeContext, iface)); // cc->postAccess(iface) } else {
-                } else if (ComputeContextPattern.isComputeContextMethod(lookup, invokeOp) || KernelContextPattern.KernelContextInvokePattern.isKernelContextInvokeOp(lookup, invokeOp,OpTkl.AnyInvoke)) { //dispatchKernel
-                    bldr.op(invokeOp);
-                } else {
-                    invokeOp.operands().stream()
-                            .filter(val -> val.type() instanceof JavaType javaType && isAssignable(lookup, javaType, MappableIface.class))
-                            .forEach(val -> bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, bldr.context().getValue(val))));
-                    bldr.op(invokeOp);
-                    invokeOp.operands().stream()
-                            .filter(val -> val.type() instanceof JavaType javaType && isAssignable(lookup, javaType, MappableIface.class))
-                            .forEach(val -> bldr.op(JavaOp.invoke(MUTATE.post, computeContext, bldr.context().getValue(val))));
-                }
-                return bldr;
-            } else {
-                bldr.op(op);
-            }
-            return bldr;
-        });
-        System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-        System.out.println(transformedFuncOp.toText());
-        computeMethod.funcOp(transformedFuncOp);
-        return transformedFuncOp;
+        throw new RuntimeException("implement inject buffer tracking ");
+        //return transformedFuncOp;
     }
 }

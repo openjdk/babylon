@@ -25,22 +25,33 @@
 package optkl;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.Regex;
 import optkl.util.carriers.LookupCarrier;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
+import java.util.function.Predicate;
+
+import static optkl.Invoke.invokeOpHelper;
+
 public interface OpHelper<T extends Op> extends LookupCarrier {
     T op();
-    boolean isStatic();
-    boolean isInstance();
+
     String name();
+
     default boolean named(Regex regex){
         return regex.matches(name());
     }
     default boolean named(String name){
         return name().equals(name);
     }
-    default <C>boolean isAssignable( Class<C> clazz, JavaType javaType){
+    default boolean named(Predicate<String> predicate){
+        return predicate.test(name());
+    }
+    default <C>boolean isAssignable(JavaType javaType, Class<C> clazz){
         try {
             boolean isit1=  OpTkl.isAssignable(lookup(),javaType,clazz);
             var basicType = javaType.toBasicType();
@@ -57,4 +68,33 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
             throw new RuntimeException(e);
         }
     }
+    default  int operandCount(){
+        return op().operands().size();
+    }
+    default Op.Result operandNAsResultOrNull(int i){
+        return OpTkl.operandAsResult(op(),i) instanceof Op.Result result?result:null;
+    }
+    default Op.Result  operandNAsResultOrThrow(int i){
+        if (operandNAsResultOrNull(i) instanceof Op.Result result){
+            return result;
+        }else {
+            throw new IllegalStateException("Expecting operand "+i+" to be a result");
+        }
+    }
+
+    default Op opFromOperandNAsResultOrNull(int i){
+        return operandNAsResultOrNull(i) instanceof Op.Result result && result.op() instanceof Op op ?op:null;
+    }
+    default Op opFromOperandNAsResultOrThrow(int i){
+        if ( opFromOperandNAsResultOrNull(i)  instanceof Op op){
+            return op;
+        }else {
+            throw new IllegalStateException("Expecting operand "+i+" to be a result which yields an Op ");
+        }
+    }
+
+
+
+
+
 }

@@ -31,6 +31,7 @@ import hat.optools.ComputeContextPattern;
 import hat.optools.IfaceBufferPattern;
 import hat.optools.KernelContextPattern;
 import jdk.incubator.code.CodeTransformer;
+import optkl.Invoke;
 import optkl.util.CallSite;
 import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
@@ -54,10 +55,10 @@ import java.util.List;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
+import static optkl.Invoke.invokeOpHelper;
+import static optkl.Invoke.methodOrThrow;
 import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.javaReturnType;
-import static optkl.OpTkl.methodOrThrow;
 import static optkl.OpTkl.transform;
 
 public abstract class FFIBackend extends FFIBackendDriver {
@@ -138,35 +139,36 @@ public abstract class FFIBackend extends FFIBackendDriver {
             var paramTable = new FuncOpParams(computeMethod.funcOp());
 
             transformedFuncOp = transform(here, computeMethod.funcOp(),_->true,(bldr, op) -> {
-                if (op instanceof JavaOp.InvokeOp invokeOp) {
+                if (invokeOpHelper(lookup(),op) instanceof Invoke invoke ) {
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
-                    if (IfaceBufferPattern.isInvokeOp(lookup(), invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
-                        Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
+                    if (IfaceBufferPattern.isInvokeOp(lookup(), invoke.op()) && invoke.returnsVoid()) {                    // iface.v(newV)
+                        Value iface = bldr.context().getValue(invoke.op().operands().getFirst());
                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));                  // cc->preMutate(iface);
-                        bldr.op(invokeOp);                                              // iface.v(newV);
+                        bldr.op(invoke.op());                                              // iface.v(newV);
                         bldr.op(JavaOp.invoke(MUTATE.post, cc, iface));                 // cc->postMutate(iface)
-                    } else if (IfaceBufferPattern.isInvokeOp(lookup(), invokeOp)
+                    } else if (IfaceBufferPattern.isInvokeOp(lookup(), invoke.op())
                             && (
-                                    (javaReturnType(invokeOp) instanceof ClassType returnClassType)
-                                            && classTypeToTypeOrThrow(lookup(), returnClassType) instanceof Class<?> type
+                                    invoke.returnsClassType()
+                                            && classTypeToTypeOrThrow(lookup(), (ClassType)invoke.returnType()) instanceof Class<?> type
                                             && Buffer.class.isAssignableFrom(type)
                                 ||
-                                            (javaReturnType(invokeOp) instanceof PrimitiveType primitiveType)
+                                            invoke.returnsPrimitive()
                                )
                     ) {
                         // if this is accessing a width if an array we don't want to force the buffer back from the GPU.
-                        Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
+                        Value iface = bldr.context().getValue(invoke.op().operands().getFirst());
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));                 // cc->preAccess(iface);
-                        bldr.op(invokeOp);                                             // iface.v();
+                        bldr.op(invoke.op());                                             // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface));                // cc->postAccess(iface)
-                    } else if (ComputeContextPattern.isComputeContextMethod(lookup(),invokeOp) || KernelContextPattern.KernelContextInvokePattern.isKernelContextInvokeOp(lookup(),invokeOp,OpTkl.AnyInvoke)) { //dispatchKernel
-                        bldr.op(invokeOp);
+                    } else if (ComputeContextPattern.isComputeContextMethod(lookup(),invoke.op())
+                            || KernelContextPattern.KernelContextInvokePattern.isKernelContextInvokeOp(lookup(),invoke.op(),OpTkl.AnyInvoke)) { //dispatchKernel
+                        bldr.op(invoke.op());
                     } else {
-                        List<Value> list = invokeOp.operands();
+                        List<Value> list = invoke.op().operands();
                         if (!list.isEmpty()) {
                           //  System.out.println("Escape! with args " +invokeOp.toText());
                             // We need to check
-                            var m = methodOrThrow(lookup(), invokeOp);
+                            var m = methodOrThrow(lookup(), invoke);
 
                             Annotation[][] parameterAnnotations = m.getParameterAnnotations();
                             boolean isVirtual = list.size() > parameterAnnotations.length;
@@ -185,7 +187,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                             bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldr.context().getValue(typeAndAccess.value)));
                                         }
                                     });
-                            bldr.op(invokeOp);
+                            bldr.op(invoke.op());
                             typeAndAccesses.stream()
                                     .filter(typeAndAccess -> isAssignable(lookup(), typeAndAccess.javaType, MappableIface.class))
                                     .forEach(typeAndAccess -> {
@@ -196,7 +198,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                         }
                                     });
                         } else {
-                            bldr.op(invokeOp);
+                            bldr.op(invoke.op());
                         }
                     }
                     return bldr;

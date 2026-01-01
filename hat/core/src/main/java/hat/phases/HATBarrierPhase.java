@@ -28,7 +28,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.InvokeOpHelper;
+import optkl.Invoke;
 import optkl.Trxfmr;
 
 import java.util.HashSet;
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static optkl.InvokeOpHelper.invokeOpHelper;
+import static optkl.Invoke.invokeOpHelper;
 
 public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
     @Override
@@ -44,7 +44,7 @@ public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPha
          Set<CoreOp.VarAccessOp.VarLoadOp> varLoadOpSet = new HashSet<>();
          var trxfmr = Trxfmr.of(fromFuncOp);
          trxfmr.transform(
-                 /* predicate */     ce-> invokeOpHelper(lookup(),ce) instanceof InvokeOpHelper $&&$ .named(HATBarrierOp.NAME),
+                 /* predicate */     ce-> invokeOpHelper(lookup(),ce) instanceof Invoke $&&$ .named(HATBarrierOp.NAME),
                  /* transformation */c-> {
                      varLoadOpSet.add((CoreOp.VarAccessOp.VarLoadOp) ((Op.Result)c.op().operands().getFirst()).op());
                      c.replace(new HATBarrierOp(List.of()));

@@ -418,7 +418,7 @@ public class CudaBackend extends C99FFIBackend {
             // TODO did we just trash any sidetables?
             CoreOp.FuncOp loweredFunc = funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
             loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
-            invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+            invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
         });
 
         CoreOp.FuncOp lowered = kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
@@ -429,7 +429,7 @@ public class CudaBackend extends C99FFIBackend {
 
         out.append(invokedMethods);
 
-        out.append(createFunction(builder.nl().nl(), loweredPtx, true));
+        out.append(createFunction(kernelCallGraph.lookup(),builder.nl().nl(), loweredPtx, true));
         if (config().showKernelModel()){
             System.out.println("ptx follows\n"+out);
         }
@@ -469,7 +469,7 @@ public class CudaBackend extends C99FFIBackend {
         });
     }
 
-    static public String createFunction(PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
+    static public String createFunction(MethodHandles.Lookup lookup,PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
          CoreOp.FuncOp ssa =SSA.transform(lowered);
 
 
@@ -485,7 +485,7 @@ public class CudaBackend extends C99FFIBackend {
         String out = builder.getText();
         builder.clear();
         ssa.bodies().getFirst().blocks().forEach(block ->
-                builder.blockBody(block, block.ops().stream()));
+                builder.blockBody(lookup,block, block.ops().stream()));
 
         builder.functionEpilogue();
         String body = builder.getText();

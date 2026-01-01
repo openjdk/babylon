@@ -41,7 +41,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static optkl.OpTkl.copyLocation;
 import static optkl.OpTkl.operandOrNull;
 
 public class Trxfmr {
@@ -51,7 +50,10 @@ public class Trxfmr {
     public static Trxfmr of(CallSite callSite,CoreOp.FuncOp funcOp) {
         return new Trxfmr(callSite,funcOp);
     }
-
+    public static <F extends Op, T extends Op> T copyLocation(F from, T to) {
+        to.setLocation(from.location());
+        return to;
+    }
     interface TransformerCarrier {
         Trxfmr trxfmr();
     }

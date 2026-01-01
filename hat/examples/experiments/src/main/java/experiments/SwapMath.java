@@ -27,9 +27,9 @@ package experiments;
 
 
 import hat.codebuilders.JavaHATCodeBuilder;
-import optkl.InvokeOpHelper;
+import optkl.Invoke;
 import optkl.Trxfmr;
-import static optkl.InvokeOpHelper.invokeOpHelper;
+import static optkl.Invoke.invokeOpHelper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -73,7 +73,7 @@ public class SwapMath {
 
         System.out.println("--------------------------");
         var abs = rsqrt.transform((builder,op)->{
-            if (invokeOpHelper(lookup,op) instanceof InvokeOpHelper ih
+            if (invokeOpHelper(lookup,op) instanceof Invoke ih
                     && ih.named(Regex.of("sqrt")) && ih.isStatic() && ih.returns(double.class) && ih.receives(double.class)){
                 var absStaticMethod = MethodRef.method(Math.class, "abs", double.class, double.class);
                 var absInvoke =  JavaOp.invoke(InvokeKind.STATIC, false, absStaticMethod.type().returnType(), absStaticMethod,
@@ -93,7 +93,7 @@ public class SwapMath {
 
         System.out.println("Now using txfmr--------------------------");
         var newAbs =Trxfmr.of(rsqrt)
-                .transform(ce-> InvokeOpHelper.invokeOpHelper(lookup,ce) instanceof InvokeOpHelper $
+                .transform(ce-> Invoke.invokeOpHelper(lookup,ce) instanceof Invoke $
                                 && $.named(Regex.of("sqrt"))
                                 && $.isStatic()
                                 && $.returns(double.class)

@@ -44,15 +44,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static hat.optools.RefactorMe.inspectAllInterfaces;
+import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.asOpFromResultOrNull;
-import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
 public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
     private static final Regex xyzw = Regex.of("[xyzw]");
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
-        return isMethod(invokeOp, n->xyzw.matches(n));
+        return invokeOpHelper(lookup(),invokeOp).named(xyzw);
     }
     static boolean isVectorOperation(JavaOp.InvokeOp invokeOp, boolean laneOk) {
         String typeElement = invokeOp.invokeDescriptor().refType().toString();

@@ -30,6 +30,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.Invoke;
 import optkl.util.CallSite;
 import optkl.util.carriers.LookupCarrier;
 import optkl.OpTkl;
@@ -46,8 +47,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static optkl.Invoke.invokeOpHelper;
+import static optkl.Invoke.javaRefClassOrThrow;
 import static optkl.OpTkl.elements;
-import static optkl.OpTkl.javaRefClassOrThrow;
 
 public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
@@ -80,15 +82,15 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
         Deque<RefAndFunc> work = new ArrayDeque<>();
         var here = CallSite.of(OpTkl.class, "createTransitiveInvokeModule");
         elements(here, entry).forEach(codeElement -> {
-            if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                Class<?> javaRefTypeClass = javaRefClassOrThrow(lookup(), invokeOp);
+            if (invokeOpHelper(lookup,codeElement) instanceof Invoke invoke) {
+                Class<?> javaRefTypeClass = javaRefClassOrThrow(lookup(), invoke.op());
                 try {
-                    var method = invokeOp.invokeDescriptor().resolveToMethod(lookup);
+                    var method = invoke.op().invokeDescriptor().resolveToMethod(lookup);
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
                     // TODO filter calls has side effects we may need another call. We might just check the map.
 
-                    if (f != null && !filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
-                        work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
+                    if (f != null && !filterCalls(f, invoke.op(), method, invoke.op().invokeDescriptor(), javaRefTypeClass)) {
+                        work.push(new RefAndFunc(invoke.op().invokeDescriptor(),  f));
                     }
                 } catch (ReflectiveOperationException _) {
                     throw new IllegalStateException("Could not resolve invokeWrapper to method");

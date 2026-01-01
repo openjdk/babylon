@@ -41,8 +41,8 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
 
+import static optkl.Invoke.javaRefClassOrThrow;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.javaRefClassOrThrow;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
