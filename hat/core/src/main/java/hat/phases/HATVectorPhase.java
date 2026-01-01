@@ -37,6 +37,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.Invoke;
 import optkl.util.CallSite;
 
 import java.util.HashMap;
@@ -48,10 +49,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static hat.dialect.HATPhaseUtils.VectorMetaData;
-//import static hat.dialect.HATPhaseUtils.findVectorTypeElement;
 import static hat.dialect.HATPhaseUtils.getVectorTypeInfo;
+import static hat.optools.RefactorMe.isAMethod;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.isMethod;
 import static optkl.OpTkl.transform;
 
 public abstract sealed class HATVectorPhase implements HATPhase
@@ -136,24 +136,21 @@ public abstract sealed class HATVectorPhase implements HATPhase
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
            return (invokeOp.resultType() instanceof JavaType jt
                    && isAssignable(lookup(), jt, _V.class)
-                   && isMethod(invokeOp, n->n.equals(vectorOperation.methodName))
+                   && isAMethod(invokeOp, n->n.equals(vectorOperation.methodName))
            );
     }
     //recursive
     private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findIsSharedOrPrivate(varLoadOp.operands().get(0));
+        return findIsSharedOrPrivate(varLoadOp.operands().getFirst());
     }
 
     //recursive
     private boolean findIsSharedOrPrivate(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findIsSharedOrPrivate(varLoadOp);
-        } else {
-            if (v instanceof CoreOp.Result r && (r.op() instanceof HATMemoryVarOp.HATLocalVarOp || r.op() instanceof HATMemoryVarOp.HATPrivateVarOp)) {
-                return true;
-            }
-            return false;
-        }
+        return v instanceof Op.Result result && switch (result.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findIsSharedOrPrivate(varLoadOp); //recurse
+            case HATMemoryVarOp.HATLocalVarOp _, HATMemoryVarOp.HATPrivateVarOp _ -> true;
+            default -> false;
+        };
     }
 
     private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(BinaryOpEnum opType, String varName, TypeElement resultType,

@@ -26,16 +26,16 @@ package hat.optools;
 
 import hat.ComputeContext;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.Invoke;
 
 import java.lang.invoke.MethodHandles;
 
-import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.javaRefType;
+import static optkl.Invoke.invokeOpHelper;
 
 public interface ComputeContextPattern extends CodeModelPattern {
 
     static boolean isComputeContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return isAssignable(lookup, javaRefType(invokeOp), ComputeContext.class);
+        return invokeOpHelper(lookup,invokeOp) instanceof Invoke invoke && invoke.refIs( ComputeContext.class);
     }
 
 }

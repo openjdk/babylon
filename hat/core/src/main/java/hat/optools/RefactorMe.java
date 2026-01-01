@@ -39,8 +39,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.isMethod;
 
 /**
  * This class needs refactoring
@@ -68,7 +68,7 @@ public class RefactorMe {
     }
 
 
-    public static boolean  isVectorOperation(JavaOp.InvokeOp invokeOp, Value varValue, Predicate<String> namePredicate) {
+    public  static boolean  isVectorOperation(MethodHandles.Lookup lookup,JavaOp.InvokeOp invokeOp, Value varValue, Predicate<String> namePredicate) {
         if (OpTkl.asResultOrNull(varValue) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             TypeElement typeElement = varLoadOp.resultType();
             Set<Class<?>> interfaces = Set.of();
@@ -77,7 +77,23 @@ public class RefactorMe {
                 interfaces = inspectAllInterfaces(aClass);
             } catch (ClassNotFoundException _) {
             }
-            return interfaces.contains(_V.class) && isMethod(invokeOp, namePredicate);
+            return interfaces.contains(_V.class) && invokeOpHelper(lookup, invokeOp).named( namePredicate);
+        }
+        return false;
+    }
+    public static boolean isAMethod(JavaOp.InvokeOp invokeOp, Predicate<String> namePredicate) {
+        return namePredicate.test(invokeOp.invokeDescriptor().name());
+    }
+    public  static boolean  isVectorOperation(JavaOp.InvokeOp invokeOp, Value varValue, Predicate<String> namePredicate) {
+        if (OpTkl.asResultOrNull(varValue) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            TypeElement typeElement = varLoadOp.resultType();
+            Set<Class<?>> interfaces = Set.of();
+            try {
+                Class<?> aClass = Class.forName(typeElement.toString());
+                interfaces = inspectAllInterfaces(aClass);
+            } catch (ClassNotFoundException _) {
+            }
+            return interfaces.contains(_V.class) && isAMethod(invokeOp, namePredicate);
         }
         return false;
     }
