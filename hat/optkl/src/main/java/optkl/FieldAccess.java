@@ -50,7 +50,9 @@ public interface FieldAccess extends OpHelper<JavaOp.FieldAccessOp>{
     default TypeElement refType(){
         return op().fieldDescriptor().refType();
     }
-
+    default boolean refType(Class<?> ... classes){
+        return OpTkl.isAssignable(lookup(),refType(),classes);
+    }
     default  Object getStaticFinalPrimitiveValue() {
         if (refType() instanceof ClassType classType) {
             Class<?> clazz = (Class<?>) classTypeToTypeOrThrow(lookup(), classType);
@@ -65,16 +67,8 @@ public interface FieldAccess extends OpHelper<JavaOp.FieldAccessOp>{
         throw new RuntimeException("Could not find field value" + op());
     }
 
-    default  <T>boolean of(Class<T> clazz){
-        return isAssignable((JavaType) op().resultType(),clazz);
-    }
-
     static FieldAccess fieldAccessOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
         record Impl(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements FieldAccess {}
         return codeElement instanceof JavaOp.FieldAccessOp fieldAccessOp? new Impl(lookup,fieldAccessOp): null;
-
     }
-
-
-
 }
