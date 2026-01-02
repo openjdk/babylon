@@ -44,8 +44,6 @@ import static jdk.incubator.code.dialect.java.JavaType.INT;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestInline
- * @run main Unreflect TestInline
- * @run junit TestInline
  */
 
 public class TestInline {

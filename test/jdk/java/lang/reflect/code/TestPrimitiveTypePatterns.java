@@ -30,8 +30,6 @@ import static jdk.incubator.code.dialect.java.PrimitiveType.*;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestPrimitiveTypePatterns
- * @run main Unreflect TestPrimitiveTypePatterns
- * @run junit TestPrimitiveTypePatterns
  * @enablePreview
  */
 

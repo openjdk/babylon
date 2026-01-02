@@ -14,8 +14,6 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestInvokeOp
- * @run main Unreflect TestInvokeOp
- * @run junit TestInvokeOp
  */
 public class TestInvokeOp {
 

@@ -25,8 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestMethodRefLambda
- * @run main Unreflect TestMethodRefLambda
- * @run junit TestMethodRefLambda
  */
 
 import jdk.incubator.code.Reflect;

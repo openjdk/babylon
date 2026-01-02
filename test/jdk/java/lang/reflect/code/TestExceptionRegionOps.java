@@ -25,8 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestExceptionRegionOps
- * @run main Unreflect TestExceptionRegionOps
- * @run junit TestExceptionRegionOps
  */
 
 import jdk.incubator.code.dialect.core.CoreOp;

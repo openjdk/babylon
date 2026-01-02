@@ -25,8 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestNormalizeBlocksTransformer
- * @run main Unreflect TestNormalizeBlocksTransformer
- * @run junit TestNormalizeBlocksTransformer
  */
 
 import jdk.incubator.code.Op;

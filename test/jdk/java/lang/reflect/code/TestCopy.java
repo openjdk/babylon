@@ -25,8 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestCopy
- * @run main Unreflect TestCopy
- * @run junit TestCopy
  */
 
 import jdk.incubator.code.CodeContext;

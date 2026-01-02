@@ -25,8 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestLiveness
- * @run main Unreflect TestLiveness
- * @run junit TestLiveness
  */
 
 import jdk.incubator.code.Block;

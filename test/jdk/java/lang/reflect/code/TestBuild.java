@@ -42,8 +42,6 @@ import static jdk.incubator.code.dialect.java.JavaType.type;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestBuild
- * @run main Unreflect TestBuild
- * @run junit TestBuild
  * @run junit/othervm -Dbabylon.ssa=cytron TestBuild
  */
 

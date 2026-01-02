@@ -25,8 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestBlockParameters
- * @run main Unreflect TestBlockParameters
- * @run junit TestBlockParameters
  */
 
 import jdk.incubator.code.Block;

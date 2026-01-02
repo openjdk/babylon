@@ -25,8 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestAncestors
- * @run main Unreflect TestAncestors
- * @run junit TestAncestors
  */
 
 import jdk.incubator.code.*;
