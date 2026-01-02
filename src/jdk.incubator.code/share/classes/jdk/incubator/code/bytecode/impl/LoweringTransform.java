@@ -288,7 +288,12 @@ public final class LoweringTransform {
                 if (!(capturedValue instanceof Op.Result r) || !(r.op() instanceof CoreOp.VarOp vop)) {
                     continue;
                 }
-                block.op(((Op.Result) vop.initOperand()).op());
+                Op cop = ((Op.Result) vop.initOperand()).op();
+                if (cop instanceof JavaOp.ConvOp) {
+                    // converted constant
+                    block.op(((Op.Result)cop.operands().getFirst()).op());
+                }
+                block.op(cop);
                 block.op(vop);
             }
             Op.Result last = null;

@@ -15,10 +15,13 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /*
-* @test
-* @modules jdk.incubator.code
-* @run junit TestSwitchStatementOp
-* */
+ * @test
+ * @modules jdk.incubator.code
+ * @run junit TestSwitchStatementOp
+ * @run main Unreflect TestSwitchStatementOp
+ * @run junit TestSwitchStatementOp
+ *
+ */
 public class TestSwitchStatementOp {
 
     @Test
