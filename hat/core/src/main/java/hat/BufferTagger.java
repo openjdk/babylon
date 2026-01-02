@@ -109,6 +109,8 @@ public class BufferTagger {
                         
                         }
                     }
+                    changed.set(true);
+                    return exit.rebind(blockbuilder.context(), blockbuilder.transformer());
                 }
                 blockbuilder.op(op);
                 return blockbuilder;
