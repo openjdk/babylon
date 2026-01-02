@@ -41,10 +41,41 @@ import java.lang.invoke.MethodHandles;
 
 public class TestMissingReflectAnnotation {
 
+    public static int squareitWithoutReflectAnnotation(int v) {
+        return  v * v;
+    }
+
+    public static void squareKernelWithoutReflectAnnotation(@RO KernelContext kc, @RW S32Array array) {
+        if (kc.gix < kc.gsx){
+            int value = array.array(kc.gix);
+            array.array(kc.gix, squareit(value));
+        }
+    }
+
+    public static void squareComputeWithoutReflectAnnotation(@RO ComputeContext cc, @RW S32Array array) {
+        cc.dispatchKernel(NDRange.of1D(array.length()),
+                kc -> squareKernel(kc, array)
+        );
+    }
+
+    @Reflect
+    public static void squareKernelCallsSquareItWithoutReflectAnnotation(@RO KernelContext kc, @RW S32Array array) {
+        if (kc.gix < kc.gsx){
+            int value = array.array(kc.gix);
+            array.array(kc.gix, squareitWithoutReflectAnnotation(value));
+        }
+    }
+
+    @Reflect
+    public static void squareComputeCallsSquareItWithoutReflectAnnotation(@RO ComputeContext cc, @RW S32Array array) {
+        cc.dispatchKernel(NDRange.of1D(array.length()),
+                kc -> squareKernelCallsSquareItWithoutReflectAnnotation(kc, array)
+        );
+    }
+
     @Reflect
     public static int squareit(int v) {
         return  v * v;
-
     }
 
     @Reflect
@@ -55,23 +86,10 @@ public class TestMissingReflectAnnotation {
         }
     }
 
-    public static void squareKernelWithoutReflectAnnotation(@RO KernelContext kc, @RW S32Array array) {
-        if (kc.gix < kc.gsx){
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
-        }
-    }
-
     @Reflect
     public static void square(@RO ComputeContext cc, @RW S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
                 kc -> squareKernelWithoutReflectAnnotation(kc, array)
-        );
-    }
-
-    public static void squareWithoutReflectAnnotation(@RO ComputeContext cc, @RW S32Array array) {
-        cc.dispatchKernel(NDRange.of1D(array.length()),
-                kc -> squareKernel(kc, array)
         );
     }
 
@@ -88,7 +106,7 @@ public class TestMissingReflectAnnotation {
         }
 
         try {
-            accelerator.compute(cc -> TestMissingReflectAnnotation.squareWithoutReflectAnnotation(cc, array));
+            accelerator.compute(cc -> TestMissingReflectAnnotation.squareComputeWithoutReflectAnnotation(cc, array));
         } catch (RuntimeException e) {
             HATAsserts.assertEquals("Failed to create ComputeCallGraph (did you miss @Reflect annotation?).", e.getMessage());
             return;
@@ -115,5 +133,25 @@ public class TestMissingReflectAnnotation {
             return;
         }
         throw new HATExpectedFailureException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+    }
+
+    @HatTest
+    @Reflect
+    public static void testTransitiveMethodFromKernelWithoutReflectAnnotation() {
+        final int size = 64;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var array = S32Array.create(accelerator, size);
+
+        for (int i = 0; i < array.length(); i++) {
+            array.array(i, i);
+        }
+
+        try {
+            accelerator.compute(cc -> TestMissingReflectAnnotation.squareComputeCallsSquareItWithoutReflectAnnotation(cc, array));
+        } catch (RuntimeException e) {
+            HATAsserts.assertTrue(e.getMessage().contains("Failed to inline squareitWithoutReflectAnnotation. Did you miss @Reflect annotation?"));
+            return;
+        }
+        throw new HATExpectedFailureException("Failed to inline squareitWithoutReflectAnnotation. Did you miss @Reflect annotation?");
     }
 }
