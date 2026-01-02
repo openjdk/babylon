@@ -11,6 +11,7 @@ import java.util.function.IntBinaryOperator;
 /*
  * @test
  * @summary Test that java version check we do in op building methods is working
+ * @modules jdk.incubator.code
  * @run main TestJavaVersionCheckerForLambdas
  * @run junit/othervm TestJavaVersionCheckerForLambdas
  */
