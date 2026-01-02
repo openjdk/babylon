@@ -74,6 +74,9 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
     default Op.Result operandNAsResultOrNull(int i){
         return OpTkl.operandAsResult(op(),i) instanceof Op.Result result?result:null;
     }
+    default Op.Result firstOperandAsResultOrNull(int i){
+        return operandNAsResultOrNull(0);
+    }
     default Op.Result  operandNAsResultOrThrow(int i){
         if (operandNAsResultOrNull(i) instanceof Op.Result result){
             return result;
@@ -81,9 +84,15 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
             throw new IllegalStateException("Expecting operand "+i+" to be a result");
         }
     }
+    default Op.Result firstOperandAsResultOrThrow(){
+        return operandNAsResultOrThrow(0);
+    }
 
     default Op opFromOperandNAsResultOrNull(int i){
         return operandNAsResultOrNull(i) instanceof Op.Result result && result.op() instanceof Op op ?op:null;
+    }
+    default Op opFromFirstOperandAsResultOrNull(){
+        return opFromOperandNAsResultOrNull(0);
     }
     default Op opFromOperandNAsResultOrThrow(int i){
         if ( opFromOperandNAsResultOrNull(i)  instanceof Op op){
@@ -92,7 +101,9 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
             throw new IllegalStateException("Expecting operand "+i+" to be a result which yields an Op ");
         }
     }
-
+    default Op opFromFirstOperandAsResultOrThrow(){
+        return opFromOperandNAsResultOrThrow(0);
+    }
 
 
 
