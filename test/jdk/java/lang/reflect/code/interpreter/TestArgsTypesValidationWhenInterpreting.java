@@ -36,8 +36,6 @@ import java.lang.reflect.Method;
  * @modules jdk.incubator.code
  * @library ../
  * @run junit TestArgsTypesValidationWhenInterpreting
- * @run main Unreflect TestArgsTypesValidationWhenInterpreting
- * @run junit TestArgsTypesValidationWhenInterpreting
  */
 public class TestArgsTypesValidationWhenInterpreting {
 

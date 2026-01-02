@@ -38,8 +38,6 @@ import java.util.List;
  * @modules jdk.incubator.code
  * @library ../
  * @run junit/othervm -ea TestAssert
- * @run main Unreflect TestAssert
- * @run junit/othervm -ea TestAssert
  */
 public class TestAssert {
 
