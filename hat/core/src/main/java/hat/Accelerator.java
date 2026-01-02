@@ -48,9 +48,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
-import static optkl.Invoke.methodOrThrow;
+import static optkl.Invoke.getTargetInvoke;
 import static optkl.OpTkl.getQuotedCapturedValues;
-import static optkl.OpTkl.getTargetInvokeOp;
 
 
 /**
@@ -194,7 +193,7 @@ public class Accelerator implements CommonCarrier,  BufferTracker {
     public void compute(Compute compute) {
         Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = methodOrThrow(lookup,getTargetInvokeOp(this.lookup,lambda, ComputeContext.class));
+        Method method = getTargetInvoke(this.lookup,lambda, ComputeContext.class).resolveMethodOrThrow();
         // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.

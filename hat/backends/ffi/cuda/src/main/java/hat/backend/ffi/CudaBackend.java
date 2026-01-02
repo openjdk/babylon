@@ -29,9 +29,9 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
-import hat.optools.IfaceBufferPattern;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
+import optkl.Invoke;
 import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BoundSchema;
@@ -43,7 +43,6 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -52,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.transform;
 
 public class CudaBackend extends C99FFIBackend {
@@ -442,22 +442,22 @@ public class CudaBackend extends C99FFIBackend {
         return transform(here, func,_->true,(block, op) -> {
             CodeContext cc = block.context();
             // use first operand of invoke to figure out schema
-            if (op instanceof JavaOp.InvokeOp invokeOp){
-                if (IfaceBufferPattern.isInvokeOp(lookup,invokeOp)
-                        && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
+            if (invokeOpHelper(lookup,op) instanceof Invoke invoke){
+                if (invoke.isMappableIface()
+                        && invoke.op().operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
                         && varLoadResult.op() instanceof CoreOp.VarOp varOp
                         && argsMap.get(varOp.varName()) instanceof Buffer buffer) {
-                    List<Value> inputOperands = invokeOp.operands();
+                    List<Value> inputOperands = invoke.op().operands();
                     List<Value> outputOperands = cc.getValues(inputOperands);
-                    Op.Result inputResult = invokeOp.result();
+                   // Op.Result inputResult = invokeOp.result();
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(buffer);
-                    PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
+                    PTXPtrOp ptxOp = new PTXPtrOp(invoke.returnType(), invoke.name(), outputOperands, boundSchema);
                     Op.Result outputResult = block.op(ptxOp);
-                    cc.mapValue(inputResult, outputResult);
-                } else if (invokeOp.invokeDescriptor().refType().toString().equals("java.lang.Math")
-                        && mathFns.containsKey(invokeOp.invokeDescriptor().name() + "_" + invokeOp.resultType().toString())){
-                    usedMathFns.add(invokeOp.invokeDescriptor().name() + "_" + invokeOp.resultType().toString());
+                    cc.mapValue(invoke.op().result(), outputResult);
+                } else if (invoke.refIs(Math.class)
+                        && mathFns.containsKey(invoke.name() + "_" + invoke.returnType().toString())){
+                    usedMathFns.add(invoke.name() + "_" + invoke.returnType().toString());
                     block.op(op);
                 } else {
                     block.op(op);

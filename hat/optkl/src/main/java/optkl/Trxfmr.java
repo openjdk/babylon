@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static optkl.OpTkl.operandOrNull;
 
@@ -54,6 +55,18 @@ public class Trxfmr {
         to.setLocation(from.location());
         return to;
     }
+
+    public Trxfmr remove(Predicate<CodeElement<?,?>> codeElementPredicate) {
+        return transform(codeElementPredicate, c-> c.remove());
+    }
+
+    public Trxfmr remap(Set<CodeElement<?,?>> set) {
+        var newSet =  set.stream().map(biMap::getTo).collect(Collectors.toSet());
+        set.clear();
+        set.addAll(newSet);
+        return this;
+    }
+
     interface TransformerCarrier {
         Trxfmr trxfmr();
     }
@@ -285,7 +298,7 @@ public class Trxfmr {
     public final Set<Op> selected = new LinkedHashSet<>();
     public final CallSite callSite;
     private CoreOp.FuncOp funcOp;
-    public final BiMap<Op,Op> biMap = new BiMap<>();
+    public final BiMap<CodeElement<?,?>,CodeElement<?,?>> biMap = new BiMap<>();
 
     public CoreOp.FuncOp funcOp(){
         return funcOp;

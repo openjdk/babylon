@@ -41,6 +41,9 @@ public final class HATBarrierOp extends HATOp {
     public HATBarrierOp(List<Value> operands) {
         super(operands);
     }
+    public HATBarrierOp() {
+        super(List.of());
+    }
 
     public HATBarrierOp(HATBarrierOp hatBarrierOp, CodeContext copyContext) {
         super(hatBarrierOp, copyContext);

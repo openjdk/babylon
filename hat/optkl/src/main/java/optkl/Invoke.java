@@ -33,9 +33,11 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 
@@ -127,20 +129,40 @@ public interface Invoke extends OpHelper<JavaOp.InvokeOp>{
     default boolean returns16BitValue(){
         return returnsChar()||returnsShort();
     }
-    static Method methodOrThrow(MethodHandles.Lookup lookup, Invoke invoke) {
+    default Method resolveMethodOrNull() {
         try {
-            return invoke.op().invokeDescriptor().resolveToMethod(lookup);
+            return op().invokeDescriptor().resolveToMethod(lookup());
+        } catch (ReflectiveOperationException e) {
+           return null;
+        }
+    }
+    default Method resolveMethodOrThrow() {
+        try {
+            return op().invokeDescriptor().resolveToMethod(lookup());
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static Class<?> javaRefClassOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
-        if (invokeOpHelper(lookup,op) instanceof Invoke invoke && invoke.refType() instanceof ClassType classType) {
-            return (Class<?>) OpTkl.classTypeToTypeOrThrow(lookup, classType);
+    default Class<?> classOrThrow() {
+        if (refType() instanceof ClassType classType) {
+            return (Class<?>) OpTkl.classTypeToTypeOrThrow(lookup(), classType);
         } else {
             throw new IllegalStateException(" javaRef class is null");
         }
+    }
+
+    default boolean isMappableIface() {
+        return refIs(MappableIface.class);
+    }
+    static Invoke getTargetInvoke(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp, Class<?>... classes) {
+        return lambdaOp.body().entryBlock().ops().stream()
+                .filter(ce -> ce instanceof JavaOp.InvokeOp)
+                .map(ce -> invokeOpHelper(lookup,ce))
+                .filter(Invoke::isStatic)
+                .filter(invoke -> OpTkl.isAssignable(lookup, invoke.op().operands().getFirst().type(), classes))
+                .findFirst()
+                .orElseThrow();
     }
 
 
