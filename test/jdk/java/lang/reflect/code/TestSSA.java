@@ -40,6 +40,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestSSA
+ * @run main Unreflect TestSSA
+ * @run junit TestSSA
  * @run junit/othervm -Dbabylon.ssa=cytron TestSSA
  */
 

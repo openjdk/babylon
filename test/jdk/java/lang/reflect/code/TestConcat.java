@@ -41,6 +41,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestConcat
+ * @run main Unreflect TestConcat
+ * @run junit TestConcat
  */
 
 public class TestConcat {

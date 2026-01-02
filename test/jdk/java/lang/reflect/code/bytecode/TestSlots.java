@@ -22,7 +22,6 @@
  */
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -38,6 +37,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestSlots
+ * @run main Unreflect TestSlots
  * @run junit TestSlots
  */
 

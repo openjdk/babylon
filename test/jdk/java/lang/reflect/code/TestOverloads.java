@@ -38,6 +38,8 @@ import java.util.List;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestOverloads
+ * @run main Unreflect TestOverloads
+ * @run junit TestOverloads
  */
 
 public class TestOverloads {

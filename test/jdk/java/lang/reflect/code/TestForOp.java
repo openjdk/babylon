@@ -38,6 +38,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestForOp
+ * @run main Unreflect TestForOp
+ * @run junit TestForOp
  */
 
 public class TestForOp {
