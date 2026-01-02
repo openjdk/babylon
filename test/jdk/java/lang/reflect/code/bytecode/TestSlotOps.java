@@ -35,9 +35,6 @@ import org.junit.jupiter.api.Test;
 /*
  * @test
  * @modules jdk.incubator.code
- * @library ../
- * @run junit TestSlots
- * @run main Unreflect TestSlots
  * @run junit TestSlots
  */
 public class TestSlotOps {
