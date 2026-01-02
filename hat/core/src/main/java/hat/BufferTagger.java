@@ -104,7 +104,7 @@ public class BufferTagger {
                         } else if (method.getDeclaringClass().equals(methodOfFuncOp.getDeclaringClass())) {
                             // Expect @Reflect annotation to be present on all methods called from the kernel function
                             // that are defined in the same class as the kernel function.
-                            throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");                        
+                            throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");
                         }
                     }
                     changed.set(true);
