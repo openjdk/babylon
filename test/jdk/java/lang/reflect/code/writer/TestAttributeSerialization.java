@@ -24,9 +24,6 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @library ../
- * @run junit TestAttributeSerialization
- * @run main Unreflect TestAttributeSerialization
  * @run junit TestAttributeSerialization
  */
 

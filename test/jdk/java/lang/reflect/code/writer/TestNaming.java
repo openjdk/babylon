@@ -24,9 +24,6 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @library ../
- * @run junit TestNaming
- * @run main Unreflect TestNaming
  * @run junit TestNaming
  */
 

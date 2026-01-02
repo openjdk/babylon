@@ -31,9 +31,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.dialect.java.impl
- * @library ../
- * @run junit TestReferences
- * @run main Unreflect TestReferences
  * @run junit TestReferences
  */
 

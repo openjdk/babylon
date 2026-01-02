@@ -36,9 +36,6 @@ import java.util.function.DoubleUnaryOperator;
 /*
  * @test
  * @modules jdk.incubator.code
- * @library ../
- * @run junit TestExpressionElimination
- * @run main Unreflect TestExpressionElimination
  * @run junit TestExpressionElimination
  */
 

@@ -24,9 +24,6 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @library ../
- * @run junit TestOptions
- * @run main Unreflect TestOptions
  * @run junit TestOptions
  */
 
