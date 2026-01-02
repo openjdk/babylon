@@ -16,6 +16,7 @@ import java.util.Random;
 /*
  * @test
  * @summary Test that java version check we do in op building methods is working
+ * @modules jdk.incubator.code
  * @run main TestJavaVersionCheckerForMethods
  * @run junit/othervm TestJavaVersionCheckerForMethods
  */
