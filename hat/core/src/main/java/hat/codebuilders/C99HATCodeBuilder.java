@@ -23,11 +23,49 @@
  * questions.
  */
 package hat.codebuilders;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATMemoryVarOp;
+import hat.dialect.HATVectorOp;
 import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.function.Consumer;
 
 public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeBuilder<T> {
+
+    public final T varName(HATMemoryVarOp hatLocalVarOp) {
+        identifier(hatLocalVarOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
+        identifier(hatVectorVarOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorOp.HATVectorLoadOp vectorLoadOp) {
+        identifier(vectorLoadOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
+        identifier(hatVectorStoreView.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
+        identifier(hatVectorBinaryOp.varName());
+        return self();
+    }
+
+    public final T varName(HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
+        identifier(hatVectorVarLoadOp.varName());
+        return self();
+    }
+
+    public final T varName(HATF16Op.HATF16VarOp hatF16VarOp) {
+        identifier(hatF16VarOp.varName());
+        return self();
+    }
 
     public final T suffix_t(ClassType type){
         String name = type.toClassName();
@@ -68,11 +106,9 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
         return (isStruct ? structKeyword() : union());
     }
 
-
     public final T typedefKeyword() {
         return keyword("typedef");
     }
-
 
     public final T structKeyword() {
         return keyword("struct");
@@ -81,7 +117,6 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
     public final T union() {
         return keyword("union");
     }
-
 
     public final T externC() {
         return externKeyword().space().dquote("C");
@@ -149,12 +184,14 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
         }
         return nl();
     }
+
     public final T includeSys(String... values) {
         for (String value : values) {
             hash().includeKeyword().space().lt().identifier(value).gt().nl();
         }
         return self();
     }
+
     public final T include(String... values) {
         for (String value : values) {
             hash().includeKeyword().space().dquote().identifier(value).dquote().nl();
@@ -169,17 +206,18 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
     public final T u08Type() {
         return typeName("unsigned").space().s08Type();
     }
+
     public final T u08Type(String identifier) {
         return u08Type().space().identifier(identifier);
     }
+
     public final T u08PtrType() {
         return u08Type().space().asterisk();
     }
+
     public final T u08PtrType(String identifier) {
         return u08PtrType().identifier(identifier);
     }
-
-
 
     public final T u32Type() {
         return typeName("unsigned").space().s32Type();
@@ -196,6 +234,7 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
     public final T u16Type() {
         return typeName("unsigned").space().s16Type();
     }
+
     public final T u16Type(String identifier) {
         return u16Type().space().identifier(identifier);
     }
@@ -310,12 +349,15 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
     public final T voidPtrType() {
         return voidType().space().asterisk();
     }
+
     public final T voidPtrType(String identifier) {
         return voidPtrType().identifier(identifier);
     }
+
     public final T sizeType() {
         return typeName("size_t");
     }
+
     public final T sizeType(String identifier) {
         return sizeType().space().identifier(identifier);
     }

@@ -25,8 +25,8 @@
 package heal;
 
 import hat.Accelerator;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface XYRGBList extends Buffer {
     interface XYRGB extends Buffer.Struct{

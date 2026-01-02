@@ -29,11 +29,15 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.optools.FuncOpParams;
-import hat.optools.OpTk;
+import hat.optools.IfaceBufferPattern;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.analysis.SSA;
+import optkl.util.CallSite;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
+import optkl.FuncOpParams;
+
 
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
@@ -41,11 +45,14 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static optkl.OpTkl.transform;
 
 public class CudaBackend extends C99FFIBackend {
     final int major = 7;
@@ -357,7 +364,7 @@ public class CudaBackend extends C99FFIBackend {
     final Set<String> usedMathFns = new HashSet<>();
 
     public CudaBackend(Config config) {
-        super("cuda_backend", config);
+        super(Arena.global(), MethodHandles.lookup(),"cuda_backend", config);
     }
 
     public CudaBackend() {
@@ -365,7 +372,7 @@ public class CudaBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeEntrypoint());
     }
 
     @Override
@@ -405,24 +412,24 @@ public class CudaBackend extends C99FFIBackend {
         out.append(builder.getText());
         builder.clear();
 
-        var here = OpTk.CallSite.of(CudaBackend.class, "createPTX");
+        var here = CallSite.of(CudaBackend.class, "createPTX");
 
         kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
             // TODO did we just trash any sidetables?
-            CoreOp.FuncOp loweredFunc = OpTk.lower(here, funcOp);
-            loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
-            invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+            CoreOp.FuncOp loweredFunc = funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
+            loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
+            invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
         });
 
-        CoreOp.FuncOp lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
-        CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,lowered, argsMap, usedMathFns);
+        CoreOp.FuncOp lowered = kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.lookup(),lowered, argsMap, usedMathFns);
         for (String s : usedMathFns) {
             out.append("\n").append(mathFns.get(s)).append("\n");
         }
 
         out.append(invokedMethods);
 
-        out.append(createFunction(builder.nl().nl(), loweredPtx, true));
+        out.append(createFunction(kernelCallGraph.lookup(),builder.nl().nl(), loweredPtx, true));
         if (config().showKernelModel()){
             System.out.println("ptx follows\n"+out);
         }
@@ -431,12 +438,12 @@ public class CudaBackend extends C99FFIBackend {
     }
 
       static  public CoreOp.FuncOp transformPTXPtrs(MethodHandles.Lookup lookup,CoreOp.FuncOp func, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
-        var here = OpTk.CallSite.of(CudaBackend.class, "transformPTXPtrs");
-        return OpTk.transform(here, func,(block, op) -> {
+        var here = CallSite.of(CudaBackend.class, "transformPTXPtrs");
+        return transform(here, func,_->true,(block, op) -> {
             CodeContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp){
-                if (OpTk.isIfaceBufferMethod(lookup,invokeOp)
+                if (IfaceBufferPattern.isInvokeOp(lookup,invokeOp)
                         && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
                         && varLoadResult.op() instanceof CoreOp.VarOp varOp
@@ -445,7 +452,7 @@ public class CudaBackend extends C99FFIBackend {
                     List<Value> outputOperands = cc.getValues(inputOperands);
                     Op.Result inputResult = invokeOp.result();
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(buffer);
-                    PTXHATKernelBuilder.PTXPtrOp ptxOp = new PTXHATKernelBuilder.PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
+                    PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
                     Op.Result outputResult = block.op(ptxOp);
                     cc.mapValue(inputResult, outputResult);
                 } else if (invokeOp.invokeDescriptor().refType().toString().equals("java.lang.Math")
@@ -462,9 +469,8 @@ public class CudaBackend extends C99FFIBackend {
         });
     }
 
-    static public String createFunction(PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
-        var here = OpTk.CallSite.of(CudaBackend.class, "createFucntion" );
-        CoreOp.FuncOp ssa = OpTk.SSATransform(here, lowered);
+    static public String createFunction(MethodHandles.Lookup lookup,PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
+         CoreOp.FuncOp ssa =SSA.transform(lowered);
 
 
         // building fn info (name, params)
@@ -479,7 +485,7 @@ public class CudaBackend extends C99FFIBackend {
         String out = builder.getText();
         builder.clear();
         ssa.bodies().getFirst().blocks().forEach(block ->
-                builder.blockBody(block, block.ops().stream()));
+                builder.blockBody(lookup,block, block.ops().stream()));
 
         builder.functionEpilogue();
         String body = builder.getText();

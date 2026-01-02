@@ -24,11 +24,11 @@
  */
 package hat.callgraph;
 
+import optkl.ifacemapper.AccessType;
 import hat.BufferTagger;
-import hat.ifacemapper.Buffer;
-import hat.optools.OpTk;
-import hat.phases.HATDialectifyTier;
-import jdk.incubator.code.*;
+import optkl.ifacemapper.Buffer;
+
+import hat.phases.HATTier;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
 
@@ -39,8 +39,15 @@ import java.util.stream.Stream;
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
-    public final List<BufferTagger.AccessType> bufferAccessList;
-    public boolean usesArrayView;
+    public static class Traits{
+        public final List<AccessType> bufferAccessList;
+        public boolean usesArrayView;
+        Traits(List<AccessType> bufferAccessList){
+            this.bufferAccessList=bufferAccessList;
+        }
+    }
+    final public Traits traits;
+
 
     public interface KernelReachable {
     }
@@ -64,11 +71,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
     }
 
-    public static class KidAccessor extends MethodCall {
-        KidAccessor(CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method) {
-            super(callGraph, targetMethodRef, method);
-        }
-    }
 
     public Stream<KernelReachableResolvedMethodCall> kernelReachableResolvedStream() {
         return methodRefToMethodCallMap.values().stream()
@@ -78,78 +80,24 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, MethodRef methodRef, Method method, CoreOp.FuncOp funcOp) {
         super(computeCallGraph.computeContext, new KernelEntrypoint(null, methodRef, method, funcOp));
-        entrypoint.callGraph = this;
+        this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        bufferAccessList = BufferTagger.getAccessList(computeContext.accelerator.lookup, entrypoint.funcOp());
-        usesArrayView = false;
-        CoreOp.ModuleOp initialModuleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this);
-        HATDialectifyTier tier = new HATDialectifyTier(computeContext.accelerator);
+        this.traits = new Traits(BufferTagger.getAccessList(computeContext.lookup(), entrypoint.funcOp()));
+
+        HATTier tier = new HATTier(this);
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
+
         entrypoint.funcOp(initialEntrypointFuncOp);
         List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
+
+        CoreOp.ModuleOp initialModuleOp = createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp());
+
         initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
                 initialFuncOps.add( tier.apply(accessableFuncOp))
         );
+
         setModuleOp(CoreOp.module(initialFuncOps));
     }
-    /*
-     * A ResolvedKernelMethodCall (entrypoint or java  method reachable from a compute entrypojnt)  has the following calls
-     * <p>
-     * 1) java calls to compute class static functions provided they follow the kernel restrictions
-     *    a) we must have the code model available for these and must extend the dag
-     * 2) calls to buffer based interface mappings
-     *    a) getters (return non void)
-     *    b) setters (return void)
-     * 3) calls on the NDRange id
-     */
-    void oldUpdateDag(KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
-
-        var here = OpTk.CallSite.of(KernelCallGraph.class,"updateDag");
-        OpTk.elements(here, kernelReachableResolvedMethodCall.funcOp()).forEach(codeElement -> {
-            if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-              //  MethodRef methodRef = invokeOp.invokeDescriptor();
-                Class<?> javaRefTypeClass = OpTk.javaRefClassOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
-                Method invokeOpCalledMethod = OpTk.methodOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
-                if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
-                        kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
-                            new KernelReachableUnresolvedIfaceMappedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod)
-                    ));
-                } else if (entrypoint.method.getDeclaringClass().equals(javaRefTypeClass)) {
-                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeOpCalledMethod);
-                    if (optionalFuncOp.isPresent()) {
-                             kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
-                                new KernelReachableResolvedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod, optionalFuncOp.get()
-                                )));
-                    } else {
-                           kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
-                                new KernelReachableUnresolvedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod)
-                        ));
-                    }
-                } else {
-                       kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
-                            new KernelReachableUnresolvedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod)
-                    ));
-                    // System.out.println("Were we expecting " + methodRef + " here ");
-                }
-            }
-        });
-
-        boolean updated = true;
-        kernelReachableResolvedMethodCall.closed = true;
-        while (updated) {
-            updated = false;
-            var unclosed = callStream().filter(m -> !m.closed).findFirst();
-            if (unclosed.isPresent()) {
-                if (unclosed.get() instanceof KernelReachableResolvedMethodCall reachableResolvedMethodCall) {
-                    oldUpdateDag(reachableResolvedMethodCall);
-                } else {
-                    unclosed.get().closed = true;
-                }
-                updated = true;
-            }
-        }
-    }
-
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
@@ -163,56 +111,5 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
         return true;
     }
-/*
-    public void nodialectifyToHat() {
-        // Analysis Phases to transform the Java Code Model to a HAT Code Model
 
-        // Main kernel
-        // TODO we should not need the entrypoint handles seprately. !
-        //{
-            HATDialectifyTier tier = new HATDialectifyTier(computeContext.accelerator);
-            CoreOp.FuncOp f = tier.run(entrypoint.funcOp());
-            entrypoint.funcOp(f);
-       // }
-        // Reachable functions
-      //  if (moduleOp != null) {
-            List<CoreOp.FuncOp> funcs = new ArrayList<>();
-            getModuleOp().functionTable().forEach((_, funcOp) -> {
-                // ModuleOp is an Immutable Collection, thus, we need to create a new one from a
-                // new list of methods
-         //       HATDialectifyTier tier = new HATDialectifyTier(computeContext.accelerator);
-                CoreOp.FuncOp fn = tier.run(funcOp);
-                funcs.add(fn);
-            });
-            // TODO: can we just replaced moduleOp here.  What if another side table has a prev reference with non transformed funcOps?
-             setModuleOp(CoreOp.module(funcs));
-        //} else {
-          //  throw new IllegalStateException("moduleOp is null");
-           kernelReachableResolvedStream().forEach((kernel) -> {
-                HatDialectifyTier tier = new HatDialectifyTier(computeContext.accelerator);
-                CoreOp.FuncOp f = tier.run(kernel.funcOp());
-                kernel.funcOp(f);
-            });
-        //}
-    }
-
-    public void noconvertArrayView() {
-        CoreOp.FuncOp entry = convertArrayViewForFunc(computeContext.accelerator.lookup, entrypoint.funcOp());
-        entrypoint.funcOp(entry);
-
-       // if (moduleOp != null) {
-            List<CoreOp.FuncOp> funcs = new ArrayList<>();
-            getModuleOp().functionTable().forEach((_, kernelOp) -> {
-                CoreOp.FuncOp f = convertArrayViewForFunc(computeContext.accelerator.lookup, kernelOp);
-                funcs.add(f);
-            });
-            setModuleOp(CoreOp.module(funcs));
-       // } else {
-         //   kernelReachableResolvedStream().forEach((method) -> {
-           //     CoreOp.FuncOp f = convertArrayViewForFunc(computeContext.accelerator.lookup, method.funcOp());
-             //   method.funcOp(f);
-            //});
-       // }
-    }
-*/
 }

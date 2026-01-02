@@ -27,7 +27,6 @@ package experiments;
 
 import java.lang.reflect.Method;
 
-import hat.optools.OpTk;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
@@ -36,8 +35,11 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.util.CallSite;
 
 import java.util.List;
+
+import static optkl.OpTkl.transform;
 
 public class DNA {
     static int myFunc(int i) {
@@ -77,8 +79,8 @@ public class DNA {
     static public void main(String[] args) throws Exception {
         Method method = DNA.class.getDeclaredMethod("addMul", int.class, int.class);
         var funcOp = Op.ofMethod(method).get();
-        var here = OpTk.CallSite.of(DNA.class, "main");
-        var transformed = OpTk.transform(here, funcOp,(builder, op) -> {
+        var here = CallSite.of(DNA.class, "main");
+        var transformed = transform(here, funcOp,_->true,(builder, op) -> {
             CodeContext cc = builder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                // List<Value> operands = new ArrayList<>();

@@ -24,52 +24,61 @@
  */
 package hat.codebuilders;
 
-import hat.buffer.HAType;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATVectorOp;
+import hat.optools.IfaceBufferPattern;
+import hat.optools.RefactorMe;
+import hat.types.HAType;
 import hat.device.DeviceType;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATLocalVarOp;
-import hat.dialect.HATMemoryOp;
-import hat.dialect.HATPrivateInitVarOp;
-import hat.dialect.HATPrivateVarOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorVarOp;
-import hat.ifacemapper.MappableIface;
-import hat.optools.FuncOpParams;
-import hat.optools.OpTk;
-import hat.util.StreamMutable;
+import hat.dialect.HATMemoryVarOp;
+import optkl.FieldAccess;
+import optkl.FuncOpParams;
+import optkl.Invoke;
+import optkl.OpTkl;
+import optkl.ParamVar;
+import optkl.ifacemapper.MappableIface;
+import optkl.util.ops.Precedence;
+import optkl.util.Regex;
+import optkl.util.StreamMutable;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.codebuilders.BabylonCoreOpBuilder;
+import optkl.codebuilders.CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.lang.invoke.MethodHandles;
 
-public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T> implements BabylonCoreOpBuilder<T> {
+import static optkl.FieldAccess.fieldAccessOpHelper;
+import static optkl.Invoke.invokeOpHelper;
+import static optkl.OpTkl.condBlock;
+import static optkl.OpTkl.elseBlock;
+import static optkl.OpTkl.initBlock;
+import static optkl.OpTkl.lhsOps;
+import static optkl.OpTkl.lhsResult;
+import static optkl.OpTkl.mutateBlock;
+import static optkl.OpTkl.result;
+import static optkl.OpTkl.rhsOps;
+import static optkl.OpTkl.rhsResult;
+import static optkl.OpTkl.thenBlock;
 
-  /*  public final  T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
-        if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class)
-                        && javaType instanceof ClassType classType) {
-            suffix_t(classType).asterisk();
-        } else {
-            typeName(javaType.toBasicType().toString());
-        }
-        return self();
-    } */
+public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T>
+        implements BabylonCoreOpBuilder<T, ScopedCodeBuilderContext> {
+
 
     @Override
     public final T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
-            case HATMemoryOp $ -> varName($);
-            case HATVectorVarOp $ -> varName($);
-            case HATVectorLoadOp $ -> varName($);
-            case HATVectorBinaryOp $ -> varName($);
-            case HATF16VarOp $ -> varName($);
+            case HATMemoryVarOp $ -> varName($);
+            case HATVectorOp.HATVectorVarOp $ -> varName($);
+            case HATVectorOp.HATVectorLoadOp $ -> varName($);
+            case HATVectorOp.HATVectorBinaryOp $ -> varName($);
+            case HATF16Op.HATF16VarOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -79,23 +88,26 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     @Override
     public final T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
         Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
+
+        //TODO see if VarLikeOp marker interface fixes this
+
+        // TODO: each of these is delegating to varName().... maybe varName should be handling these types.
+
         // When the op is intended to operate as VarOp, then we need to include it in the following switch.
         // This is because HAT has its own dialect, and some of the Ops operate on HAT Types (not included in the Java
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
-            case CoreOp.VarOp varOp -> varName(varOp).equals();
-            case HATF16VarOp hatf16VarOp -> varName(hatf16VarOp).equals();
-            case HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp).equals();
-            case HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp).equals();
-            case HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp).equals();
-            case HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp).equals();
-            case null, default -> {
-            }
+            case CoreOp.VarOp varOp -> varName(varOp);
+            case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp);
+            case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp);
+            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
+            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp);
+            case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);
+            case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
-        parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
+        equals().parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
         return self();
     }
-
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (buildContext.isVarOpFinal(varOp)) {
@@ -115,27 +127,28 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         return self();
     }
 
-
-
     @Override
-    public T varOp(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp, OpTk.ParamVar paramVar) {
+    public T varOp(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp, ParamVar paramVar) {
+        varName(varOp);
         return self();
     }
 
     @Override
-    public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
-            Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
+    public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp1) {
+        if (fieldAccessOpHelper(buildContext.lookup,fieldLoadOp1) instanceof FieldAccess fieldAccess
+              &&  fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
+            Object value = fieldAccess.getStaticFinalPrimitiveValue();
             literal(value.toString());
         } else {
-            throw new IllegalStateException("What is this field load ?" + fieldLoadOp);
+            throw new IllegalStateException("What is this field load ?" + fieldLoadOp1);
         }
         return self();
     }
 
     @Override
     public T fieldStoreOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
-        return self();
+        throw new IllegalStateException("What is this field store ?" + fieldStoreOp);
+       // return self();
     }
 
 
@@ -147,37 +160,38 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     @Override
     public T binaryOp(ScopedCodeBuilderContext buildContext, JavaOp.BinaryOp binaryOp) {
-        parenthesisIfNeeded(buildContext, binaryOp, OpTk.lhsResult(binaryOp).op());
+        parenthesisIfNeeded(buildContext, binaryOp, lhsResult(binaryOp).op());
         symbol(binaryOp);
-        parenthesisIfNeeded(buildContext, binaryOp, OpTk.rhsResult(binaryOp).op());
+        parenthesisIfNeeded(buildContext, binaryOp, rhsResult(binaryOp).op());
         return self();
     }
 
 
     @Override
     public T conditionalOp(ScopedCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp) {
-        OpTk.lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse(buildContext, o));
+        lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse(buildContext, o));
         space().symbol(logicalOp).space();
-        OpTk.rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse(buildContext, o));
+        rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse(buildContext, o));
         return self();
     }
 
     @Override
     public T binaryTestOp(ScopedCodeBuilderContext buildContext, JavaOp.BinaryTestOp binaryTestOp) {
-        parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.lhsResult(binaryTestOp).op());
+        parenthesisIfNeeded(buildContext, binaryTestOp, lhsResult(binaryTestOp).op());
         symbol(binaryTestOp);
-        parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.rhsResult(binaryTestOp).op());
+        parenthesisIfNeeded(buildContext, binaryTestOp, rhsResult(binaryTestOp).op());
         return self();
     }
 
     @Override
     public T convOp(ScopedCodeBuilderContext buildContext, JavaOp.ConvOp convOp) {
+        // TODO: I think we need to work out how to handle doubles. If I remove this OpenCL on MAC complains (no FP64)
         if (convOp.resultType() == JavaType.DOUBLE) {
             paren(_ -> type(buildContext,JavaType.FLOAT)); // why double to float?
         } else {
             paren(_ -> type(buildContext,(JavaType)convOp.resultType()));
         }
-        parenthesisIfNeeded(buildContext, convOp, OpTk.result(convOp).op());
+        parenthesisIfNeeded(buildContext, convOp, result(convOp).op());
         return self();
     }
 
@@ -237,6 +251,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         recurse(buildContext,forLoopOp);
         return self();
     }
+
     @Override
     public T breakOp(ScopedCodeBuilderContext buildContext, JavaOp.BreakOp breakOp) {
         breakKeyword();
@@ -248,6 +263,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         }
         return self();
     }
+
     @Override
     public T continueOp(ScopedCodeBuilderContext buildContext, JavaOp.ContinueOp continueOp) {
         if (!continueOp.operands().isEmpty()
@@ -278,7 +294,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                        nlSeparated(OpTk.statements(ifOp.bodies().get(idx).entryBlock()),
+                                        nlSeparated(OpTkl.statements(ifOp.bodies().get(idx).entryBlock()),
                                         root-> statement(buildContext,root)
                                         ));
                     }
@@ -303,11 +319,11 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     @Override
     public T whileOp(ScopedCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
-                OpTk.condBlock(whileOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
+                condBlock(whileOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
                         .forEach(o -> recurse(buildContext, o))
         );
         braceNlIndented(_ ->
-                        nlSeparated(OpTk.statements(whileOp),
+                        nlSeparated(OpTkl.loopBodyStatements(whileOp),
                         statement->statement(buildContext,statement)
                 )
         );
@@ -318,16 +334,16 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     public T forOp(ScopedCodeBuilderContext buildContext, JavaOp.ForOp forOp) {
         buildContext.forScope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    OpTk.initBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+                    initBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    OpTk.condBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+                    condBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
                     commaSpaceSeparated(
-                            OpTk.statements(OpTk.mutateBlock(forOp)),
+                            OpTkl.statements(mutateBlock(forOp)),
                             op -> recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->
-                            nlSeparated(OpTk.statements(forOp),
+                            nlSeparated(OpTkl.loopBodyStatements(forOp),
                                     statement ->statement(buildContext,statement)
                         )
                 )
@@ -337,131 +353,76 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     public abstract  T atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name);
 
-    static Pattern atomicInc = Pattern.compile("(atomic.*)Inc");
+    static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)
-                || OpTk.isInvokeDescriptorSubtypeOfAnyMatch(buildContext.lookup,invokeOp, HAType.class, DeviceType.class)) {
-            if (invokeOp.operands().size() == 1
-                   // && OpTk.funcName(invokeOp) instanceof String funcName
-                    && atomicInc.matcher(OpTk.funcName(invokeOp)) instanceof Matcher matcher && matcher.matches()
-                    && OpTk.javaReturnType(invokeOp).equals(JavaType.INT)) {
-                if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
-                    atomicInc(buildContext, instanceResult, matcher.group(1));
-                } else {
-                    throw new IllegalStateException("bad atomic");
+        var invoke = invokeOpHelper(buildContext.lookup,invokeOp);
+        if ( invoke.refIs(MappableIface.class,HAType.class,DeviceType.class)) {
+            if (invoke.isInstance() && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
+                if (invoke.operandNAsResultOrThrow(0) instanceof Op.Result instanceResult) {
+                    atomicInc(buildContext, instanceResult,
+                            ((Regex.Match)atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
+                    );
                 }
-            } else {
+            } else if (invoke.isInstance() && invoke.operandNAsResultOrThrow(0) instanceof Op.Result instance) {
+                parenWhen(
+                   // When we have patterns like:
+                   //
+                   // myiFaceArray.array().value(storeAValue);
+                   //
+                   // We need to generate extra parenthesis to make the struct pointer accessor "->" correct.
+                   // This is a common pattern when we have a IFace type that contains a subtype based on
+                   // struct or union.
+                   // An example of this is for the type F16Array.
+                   // The following expression checks that the current invokeOp has at least 2 operands:
+                    // Why 2?
+                    // - The first one is another invokeOp to load the inner struct from an IFace data structure.
+                    //   The first operand is also assignable.
+                    // - The second one is the store value, but this depends on the semantics and definition
+                    //   of the user code.
+                    invoke.operandCount() > 1
+                                && invokeOpHelper(buildContext.lookup,instance.op()) instanceof Invoke invoke0
+                                && invoke0.returnsClassType()
+                        , _->{
+                    when(invoke.returnsClassType(), _ -> ampersand());
+                    recurse(buildContext, instance.op());
+                });
 
-               if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
-                /*
-                We have three types of returned values from an ifaceBuffer
-                A primitive
-                    int id = stage.firstTreeId(); -> stage->firstTreeId;
+                // Check if the varOpLoad that could follow corresponds to a local/private type
+                boolean isLocalOrPrivateDS = (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                        && buildContext.scope.resolve(varLoadOp.operands().getFirst()) instanceof HATMemoryVarOp);
 
-                Or a sub interface from an array
-                     Tree tree = cascade.tree(treeIdx); -> Tree_t * tree = &cascade->tree[treeIdx]
-                                                        ->               = cascade->tree + treeIdx;
+                either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
-                Or a sub interface from a field
+                funcName(invoke.op());
 
-                var left = feature.left();              ->  LinkOrValue_t * left= &feature->left
-
-                                -
-                    if (left.hasValue()) {                  left->hasValue
-                        sum += left.anon().value();         left->anon.value;
-                        feature = null; // loop ends
-                    } else {
-                        feature = cascade.feature(tree.firstFeatureId() + left.anon().featureId());
-                    }
-                 sumOfThisStage += left.anon().value();
-
-
-                For a primitive we know that the accessor refers to a field so we just  map
-                         stage.firstTreeId() -> stage->firstTreeId;
-
-                For the sub interface we need to treat the call
-                          cascade.tree(treeIdx);
-
-                As an array index into cascade->tree[] that returns a typedef of Tree_t
-                so we need to prefix with an & to return a Tree_t ptr
-                          &cascade->tree[treeIdx]
-
-                 of course we could return
-                          cascade->tree + treeIdx;
-                 */
-
-                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
-                   boolean needExtraParenthesis = OpTk.needExtraParenthesis(invokeOp);
-                   when(needExtraParenthesis, _ -> oparen());
-
-                   if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
-                       ampersand();
-                        /* This is way more complicated I think we need to determine the expression type.
-                         * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
-                         */
-                   }
-
-                   recurse(buildContext, instanceResult.op());
-
-                   // TODO: extra parenthesis to be removed if we have a dialect to express iface memory access
-                   when(needExtraParenthesis, _ -> cparen());
-
-                    // Check if the varOpLoad that could follow corresponds to a local/private type
-                    boolean isLocalOrPrivateDS = false;
-                    if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                        Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
-                        //if (localDataStructures.contains(resolve)) {
-                        if (resolve instanceof HATMemoryOp) {
-                            isLocalOrPrivateDS = true;
-                        }
-                    }
-
-                    either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
-
-                    funcName(invokeOp);
-
-                    if (OpTk.javaReturnTypeIsVoid(invokeOp)) {
-                        //   setter
-                        switch (invokeOp.operands().size()) {
-                            case 2: {
-                                if (invokeOp.operands().get(1) instanceof Op.Result result1) {
-                                    equals().recurse(buildContext, result1.op());
-                                } else {
-                                    throw new IllegalStateException("How ");
-                                }
-                                break;
-                            }
-                            case 3: {
-                                if (invokeOp.operands().get(1) instanceof Op.Result result1
-                                        && invokeOp.operands().get(2) instanceof Op.Result result2) {
-                                    sbrace(_ -> recurse(buildContext, result1.op()));
-                                    equals().recurse(buildContext, result2.op());
-                                } else {
-                                    throw new IllegalStateException("How ");
-                                }
-                                break;
-                            }
-                            default: {
-                                throw new IllegalStateException("How ");
+                if (invoke.returnsVoid()) {//   setter
+                    switch (invoke.operandCount()) {
+                        case 2-> {
+                            if (invoke.opFromOperandNAsResultOrNull(1) instanceof Op op) {
+                                equals().recurse(buildContext, op);
                             }
                         }
-                    } else {
-                        if (OpTk.resultOrNull(invokeOp,1) instanceof Op.Result result1) {
-                            sbrace(_ -> recurse(buildContext, result1.op()));
-                        } else {
-                            // This is a simple usage.   So scaleTable->multiScaleAccumRange
+                        case 3-> {
+                            if ( invoke.opFromOperandNAsResultOrThrow(1) instanceof Op op1
+                                 && invoke.opFromOperandNAsResultOrThrow(2) instanceof Op op2) {
+                                 sbrace(_ -> recurse(buildContext, op1)).equals().recurse(buildContext, op2);
+                            }
                         }
+                        default -> throw new IllegalStateException("How ");
                     }
                 } else {
-                    throw new IllegalStateException("[Illegal] Expected a parameter for the InvokOpWrapper Node");
+                    if (invoke.opFromOperandNAsResultOrNull(1) instanceof Op op) {
+                        sbrace(_ -> recurse(buildContext, op));
+                    }else{
+                            // this is just call.
+                    }
                 }
             }
-        } else {
-            // General case
-            funcName(invokeOp).paren(_ ->
-                    commaSpaceSeparated(invokeOp.operands(),
+        } else {// General case
+            funcName(invoke.op()).paren(_ ->
+                    commaSpaceSeparated(invoke.op().operands(),
                             op -> {if (op instanceof Op.Result result) {recurse(buildContext, result.op());}
                     })
             );
@@ -469,14 +430,13 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         return self();
     }
 
-
     @Override
     public T conditionalExpressionOp(ScopedCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
-        OpTk.condBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        condBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         questionMark();
-        OpTk.thenBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        thenBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         colon();
-        OpTk.elseBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        elseBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         return self();
     }
 
@@ -489,13 +449,13 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
      */
     @Override
     public T parenthesisIfNeeded(ScopedCodeBuilderContext buildContext, Op parent, Op child) {
-        return parenWhen(OpTk.needsParenthesis(parent,child), _ -> recurse(buildContext, child));
+        return parenWhen(Precedence.needsParenthesis(parent,child), _ -> recurse(buildContext, child));
     }
 
     @Override
     public T returnOp(ScopedCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp) {
         returnKeyword().when(!returnOp.operands().isEmpty(),
-                        $-> $.space().parenthesisIfNeeded(buildContext, returnOp, OpTk.result(returnOp).op())
+                        $-> $.space().parenthesisIfNeeded(buildContext, returnOp, OpTkl.result(returnOp).op())
                 );
         return self();
     }
@@ -517,11 +477,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         return self();
     }
 
-
-
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
         return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
-
-
 }

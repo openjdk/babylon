@@ -33,11 +33,11 @@ import hat.KernelContext;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
-import hat.ifacemapper.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
@@ -66,7 +66,7 @@ public class PrefixSum {
         }
 
         static SharedS32x256Array createLocal() {
-            return null;//schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST)); /// This is crazy? why
+            return null;
         }
     }
 

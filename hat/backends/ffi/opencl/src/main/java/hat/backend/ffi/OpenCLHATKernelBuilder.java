@@ -25,17 +25,10 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codebuilders.CodeBuilder;
-import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATVectorOp;
+import optkl.codebuilders.CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
@@ -93,14 +86,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
+    public OpenCLHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
         vstore(hatVectorStoreView.vectorN())
                 .oparen();
         // if the value to be stored is an operation, recurse on the operation
-        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
+        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
             recurse(buildContext, r.op());
         } else {
             varName(hatVectorStoreView);
@@ -126,7 +119,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
+    public OpenCLHATKernelBuilder hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
 
         oparen();
         Value op1 = hatVectorBinaryOp.operands().get(0);
@@ -145,7 +138,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
+    public OpenCLHATKernelBuilder hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         vload(hatVectorLoadOp.vectorN()).paren(_-> {
             intConstZero().comma().space().ampersand();
             if (hatVectorLoadOp.operands().get(0) instanceof Op.Result r) {
@@ -162,8 +155,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
-        if (hatVSelectLoadOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorLoadOp vLoadOp) {
+    public OpenCLHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
+        if (hatVSelectLoadOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
             recurse(buildContext, vLoadOp);
         } else {
             identifier(hatVSelectLoadOp.varName());
@@ -173,8 +166,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
-        if (hatVSelectStoreOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorLoadOp vLoadOp) {
+    public OpenCLHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
+        if (hatVSelectStoreOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
             recurse(buildContext, vLoadOp);
         } else {
             identifier(hatVSelectStoreOp.varName());
@@ -195,7 +188,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
+    public OpenCLHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16ConvOp hatF16ConvOp) {
         ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
 
         paren(_->{
@@ -223,7 +216,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp) {
+    public OpenCLHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarOp hatVectorVarOp) {
         typeName(hatVectorVarOp.buildType())
                 .space()
                 .varName(hatVectorVarOp)
@@ -235,12 +228,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
+    public OpenCLHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOp.HATVectorOfOp hatVectorOfOp) {
         return paren(_->identifier(hatVectorOfOp.buildType()));
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+    public OpenCLHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
 
         // Type conversions:
         // half -> float

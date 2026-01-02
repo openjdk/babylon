@@ -24,10 +24,13 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
+import hat.types.Float2;
+import hat.types.Float4;
+import jdk.incubator.code.Reflect;
+import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 
@@ -35,17 +38,20 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32ArrayPadded extends Buffer {
+    long PAD_SIZE = 12;
+    default int pad(int pad){return pad;}
+   // Ideally ? @Reflect default void  schema(){pad(12);array(length()+pad(12));}
+    //Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class);
+    Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, $ -> $
+            .arrayLen("length").pad(PAD_SIZE).array("array"));
     int length();
     float array(long idx);
     void array(long idx, float f);
-    long PAD_SIZE = 12;
+
     long ARRAY_OFFSET = JAVA_INT.byteSize()+PAD_SIZE;
 
-    Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, $ -> $
-            .arrayLen("length").pad(PAD_SIZE).array("array"));
-
-    static F32ArrayPadded create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    static F32ArrayPadded create(CommonCarrier cc, int length){
+        return schema.allocate(cc, length);
     }
 
     default F32ArrayPadded copyFrom(float[] floats) {
@@ -53,8 +59,8 @@ public interface F32ArrayPadded extends Buffer {
         return this;
     }
 
-    static F32ArrayPadded createFrom(Accelerator accelerator, float[] arr){
-        return create( accelerator, arr.length).copyFrom(arr);
+    static F32ArrayPadded createFrom(CommonCarrier cc, float[] arr){
+        return create( cc, arr.length).copyFrom(arr);
     }
 
     default F32ArrayPadded copyTo(float[] floats) {

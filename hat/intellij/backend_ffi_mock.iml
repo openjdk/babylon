@@ -3,14 +3,15 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$/../backends/ffi/mock">
-      <excludeFolder url="file://$MODULE_DIR$/../backends/ffi/mock/cpp" />
-      <excludeFolder url="file://$MODULE_DIR$/../backends/ffi/mock/include" />
       <sourceFolder url="file://$MODULE_DIR$/../backends/ffi/mock/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../backends/ffi/mock/src/main/resources" type="java-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/../backends/ffi/mock/cpp" />
+      <excludeFolder url="file://$MODULE_DIR$/../backends/ffi/mock/include" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="core" />
     <orderEntry type="module" module-name="backend_ffi_shared" />
+    <orderEntry type="module" module-name="optkl" />
   </component>
 </module>

@@ -24,7 +24,7 @@
  */
 package optkl.textmodel;
 
-import optkl.Regex;
+import optkl.util.Regex;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.textmodel.tokens.Arrow;
 import optkl.textmodel.tokens.At;
@@ -75,13 +75,13 @@ public class BabylonTextModel extends TextModel {
     }
 
     public static class BabylonLocationAttribute extends BabylonNamedAttribute implements LineCol {
-        static Regex locPattern = Regex.of("\"([0-9]+):([0-9]+)[^\"]*\"");
+        static Regex locRegex = Regex.of("\"([0-9]+):([0-9]+)[^\"]*\"");
         public final int line;
         public final int col;
 
         public BabylonLocationAttribute(Token l, Token lm, Token rm, Token r) {
             super(l, lm, rm, r);
-            if (locPattern.is(r.asString()) instanceof Regex.Match m && m.count() > 1) {
+            if (locRegex.is(r.asString()) instanceof Regex.Match m && m.count() > 1) {
                 line = m.intOf(1);
                 col = m.intOf(2);
             } else {
@@ -101,11 +101,11 @@ public class BabylonTextModel extends TextModel {
     }
 
     public static class BabylonFileLocationAttribute extends BabylonLocationAttribute {
-        static Regex locFilePattern = Regex.of("\"([0-9]+):([0-9]+):file:([^\"]*)\"");
+        static Regex locFileRegex = Regex.of("\"([0-9]+):([0-9]+):file:([^\"]*)\"");
         final Path path;
 
         static Path getPathFromFileLocString(String fileLocString) {
-            return locFilePattern.is(fileLocString) instanceof Regex.Match m && m.count() > 2
+            return locFileRegex.is(fileLocString) instanceof Regex.Match m && m.count() > 2
                     && m.stringOf(3) instanceof String filename && Path.of(filename) instanceof Path javaSource
                     ? javaSource : null;
         }
@@ -287,7 +287,7 @@ public class BabylonTextModel extends TextModel {
                         At.isA(t1)
                                 && DottedName.isA(t2, $ -> $.is("loc"))
                                 && Ch.isAnEquals(t3)
-                                && StringLiteral.isA(t4, $ -> $.matches(BabylonFileLocationAttribute.locFilePattern))
+                                && StringLiteral.isA(t4, $ -> $.matches(BabylonFileLocationAttribute.locFileRegex))
                 , BabylonFileLocationAttribute::new
         );
 
@@ -296,7 +296,7 @@ public class BabylonTextModel extends TextModel {
                         At.isA(t1)
                                 && DottedName.isA(t2, $ -> $.is("loc"))
                                 && Ch.isAnEquals(t3)
-                                && StringLiteral.isA(t4, $ -> $.matches(BabylonLocationAttribute.locPattern))
+                                && StringLiteral.isA(t4, $ -> $.matches(BabylonLocationAttribute.locRegex))
                 , BabylonLocationAttribute::new
         );
         //  @name=".*" -> LocationAttribute
@@ -340,7 +340,7 @@ public class BabylonTextModel extends TextModel {
         doc.parse(text);
         doc.find(true, (t) -> t instanceof StringLiteral, (t) -> {
             if (t instanceof StringLiteral sl
-                    && BabylonFileLocationAttribute.locFilePattern.is(sl.asString()) instanceof Regex.Match m
+                    && BabylonFileLocationAttribute.locFileRegex.is(sl.asString()) instanceof Regex.Match m
                     && Path.of(m.stringOf(3)) instanceof Path javaSource && Files.exists(javaSource)
             ) {
                 doc.javaSource = javaSource;

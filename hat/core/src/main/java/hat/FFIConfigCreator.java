@@ -25,7 +25,7 @@
 package hat;
 
 import hat.codebuilders.C99HATConfigBuilder;
-import hat.util.StreamMutable;
+import optkl.util.StreamMutable;
 
 import java.io.IOException;
 import java.nio.file.Files;

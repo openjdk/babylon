@@ -24,7 +24,7 @@
  */
 package optkl.textmodel.tokens;
 
-import optkl.Regex;
+import optkl.util.Regex;
 
 import java.util.function.Predicate;
 

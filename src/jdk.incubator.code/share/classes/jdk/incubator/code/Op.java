@@ -525,7 +525,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         Quoted quoted;
         try {
             quoted = (Quoted) method.invoke(oq);
-        } catch (InvocationTargetException | IllegalAccessException e) {
+        } catch (ReflectiveOperationException e) {
+            // op method may throw UOE in case java compile time version doesn't match runtime version
+            if (e.getCause() instanceof UnsupportedOperationException uoe) {
+                throw uoe;
+            }
             throw new RuntimeException(e);
         }
         return Optional.of(quoted);
@@ -569,6 +573,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             FuncOp funcOp = (FuncOp) opMethod.invoke(null);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
+            // op method may throw UOE in case java compile time version doesn't match runtime version
+            if (e.getCause() instanceof UnsupportedOperationException uoe) {
+                throw uoe;
+            }
             throw new RuntimeException(e);
         }
     }

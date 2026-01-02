@@ -28,26 +28,31 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
+import hat.types.BF16;
+import hat.types.F16;
+import optkl.util.CallSite;
+import optkl.OpTkl;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.buffer.*;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.callgraph.KernelCallGraph;
-import hat.codebuilders.ScopedCodeBuilderContext;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
-import hat.dialect.HATMemoryOp;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.BufferState;
-import hat.ifacemapper.BufferTracker;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
-import hat.optools.OpTk;
-import hat.phases.HATFinalDetectionPhase;
+import hat.dialect.HATMemoryVarOp;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.BufferState;
+import optkl.ifacemapper.BufferTracker;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import hat.phases.HATFinalDetector;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,8 +65,8 @@ import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-    public C99FFIBackend(String libName, Config config) {
-        super(libName, config);
+    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
+        super(arena,lookup,libName, config);
     }
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
@@ -74,9 +79,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelBufferContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(),kernelCallGraph,  ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
@@ -201,7 +206,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
-        var here = OpTk.CallSite.of(C99FFIBackend.class, "createCode");
+        var here = CallSite.of(C99FFIBackend.class, "createCode");
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -238,14 +243,14 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             kernelCallGraph.getModuleOp()
                     .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
-                    .map(c -> ((HATMemoryOp) c).invokeType())
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> ((HATMemoryVarOp) c).invokeType())
                     .forEach(localIFaceList::add);
 
             kernelCallGraph.entrypoint.funcOp()
                     .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
-                    .map(c -> ((HATMemoryOp) c).invokeType())
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> ((HATMemoryVarOp) c).invokeType())
                     .forEach(localIFaceList::add);
 
             // Dynamically build the schema for the user data type we are creating within the kernel.
@@ -260,7 +265,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             for (TypeElement typeElement : localIFaceList) {
                 try {
-                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
+                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.lookup());
                     Field schemaField = clazz.getDeclaredField("schema");
                     schemaField.setAccessible(true);
                     var schema = (DeviceSchema<?>)schemaField.get(schemaField);
@@ -279,28 +284,23 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
 
             ScopedCodeBuilderContext buildContext =
-                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
+                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.lookup(),
                             kernelCallGraph.entrypoint.funcOp());
 
-            // Sorting by rank ensures we don't need forward declarations
             kernelCallGraph.getModuleOp().functionTable()
                     .forEach((_, funcOp) -> {
                         // TODO: did we just trash the callgraph sidetables?
-
                         //  Why are we transforming the callgraph here
-                        HATFinalDetectionPhase finals = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
-                        finals.apply(funcOp);
-
+                        HATFinalDetector finals = new HATFinalDetector(kernelCallGraph);
                         // Update the build context for this method to use the right constants-map
-                        buildContext.setFinals(finals.getFinalVars());
+                        buildContext.setFinals(finals.applied(funcOp));
                         builder.nl().kernelMethod(buildContext, funcOp).nl();
                     });
 
             // Update the constants-map for the main kernel
             // Why are we doing this here we should not be mutating the kernel callgraph at this point
-            HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
-            hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
-            buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
+            HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph);
+            buildContext.setFinals(hatFinalDetector.applied(kernelCallGraph.entrypoint.funcOp()));
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {
@@ -309,7 +309,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
+                IO.println(OpTkl.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
             }
         }
         return builder.toString();

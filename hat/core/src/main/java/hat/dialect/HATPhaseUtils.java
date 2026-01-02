@@ -39,20 +39,6 @@ import java.util.stream.Stream;
 
 public class HATPhaseUtils {
 
-    public static TypeElement getVectorElementType(String primitive) {
-        return switch (primitive) {
-            case "float" -> JavaType.FLOAT;
-            case "double" -> JavaType.DOUBLE;
-            case "int" -> JavaType.INT;
-            case "long" -> JavaType.LONG;
-            case "short" -> JavaType.SHORT;
-            case "byte" -> JavaType.BYTE;
-            case "char" -> JavaType.CHAR;
-            case "boolean" -> JavaType.BOOLEAN;
-            default -> null;
-        };
-    }
-
     public record VectorMetaData(TypeElement vectorTypeElement, int lanes) {
     }
 
@@ -67,12 +53,18 @@ public class HATPhaseUtils {
     public static VectorMetaData getVectorTypeInfo(JavaOp.InvokeOp invokeOp) {
         return getVectorTypeInfoWithCodeReflection(invokeOp.resultType());
     }
-
-    private static CoreOp.FuncOp buildCodeModelFor(Class<?> klass, String methodName) {
-        Optional<Method> methodFunction = Stream.of(klass.getMethods())
-                .filter(m -> m.getName().equals(methodName))
-                .findFirst();
-        return Op.ofMethod(methodFunction.get()).get();
+    public static TypeElement getVectorElementType(String primitive) {
+        return switch (primitive) {
+            case "float" -> JavaType.FLOAT;
+            case "double" -> JavaType.DOUBLE;
+            case "int" -> JavaType.INT;
+            case "long" -> JavaType.LONG;
+            case "short" -> JavaType.SHORT;
+            case "byte" -> JavaType.BYTE;
+            case "char" -> JavaType.CHAR;
+            case "boolean" -> JavaType.BOOLEAN;
+            default -> null;
+        };
     }
 
     /**
@@ -118,68 +110,12 @@ public class HATPhaseUtils {
         return new VectorMetaData(vectorElement.get(), lanes.get());
     }
 
-    public static int getWitdh(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return getWitdh(varLoadOp.operands().getFirst());
-    }
 
-    public static int getWitdh(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return getWitdh(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.vectorN();
-            }
-            return -1;
-        }
-    }
-
-    public static TypeElement findVectorTypeElement(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVectorTypeElement(varLoadOp.operands().getFirst());
-    }
-
-    public static TypeElement findVectorTypeElement(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findVectorTypeElement(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.vectorElementType;
-            }
-            return null;
-        }
-    }
-
-    public static String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findNameVector(varLoadOp.operands().getFirst());
-    }
-
-    public static String findNameVector(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findNameVector(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.varName();
-            }
-            return null;
-        }
-    }
-
-    public static boolean findF16IsLocal(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findF16IsLocal(varLoadOp.operands().getFirst());
-    }
-
-    public static boolean findF16IsLocal(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findF16IsLocal(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATF16VarOp hatf16VarOp) {
-                return true;
-            }
-            return false;
-        }
+    private static CoreOp.FuncOp buildCodeModelFor(Class<?> klass, String methodName) {
+        Optional<Method> methodFunction = Stream.of(klass.getMethods())
+                .filter(m -> m.getName().equals(methodName))
+                .findFirst();
+        return Op.ofMethod(methodFunction.get()).get();
     }
 
 }

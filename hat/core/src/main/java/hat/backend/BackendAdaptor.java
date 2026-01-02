@@ -29,16 +29,15 @@ import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 
 public abstract class BackendAdaptor extends Backend {
-    BackendAdaptor(Config config) {
-        super(config);
+
+    BackendAdaptor(Arena arena, MethodHandles.Lookup lookup,Config config) {
+        super(arena,lookup,config);
     }
 
     @Override
@@ -49,7 +48,7 @@ public abstract class BackendAdaptor extends Backend {
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         try {
-            computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
+            computeContext.computeCallGraph().entrypoint.method.invoke(null, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
@@ -70,9 +69,5 @@ public abstract class BackendAdaptor extends Backend {
         }
     }
 
-    @Override
-    public <T extends MappableIface> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-        return segmentMapper.allocate(Arena.global(), boundSchema);
-    }
 
 }

@@ -33,10 +33,11 @@ import hat.buffer.S32Array;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
-
-import static hat.ifacemapper.MappableIface.*;
 
 public class TestConstants {
 

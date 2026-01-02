@@ -25,3 +25,4 @@ extractions/opengl/target
 stage/
 compile_flags.txt
 remoteTesting.conf
+test_report.txt

@@ -24,7 +24,7 @@
  */
 package life;
 
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface;
 import hat.util.ui.SevenSegmentDisplay;
 
 import javax.swing.Box;
@@ -69,7 +69,7 @@ public class Viewer extends JFrame {
         state.generationsSinceLastChange++;
     }
 
-     void update(long now, @MappableIface.RO Main.CellGrid cellGrid, int from) {
+     public void update(long now, @MappableIface.RO Main.CellGrid cellGrid, int from) {
 
         if (state.deviceOrModeModified) {
             state.generationsSinceLastChange = 0;

@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package hat.phases;
+
+import hat.callgraph.KernelCallGraph;
+import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.util.CallSite;
+import optkl.util.carriers.LookupCarrier;
+
+import java.lang.invoke.MethodHandles;
+import java.util.function.Function;
+
+public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
+        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase,
+        HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
+
+
+    KernelCallGraph kernelCallGraph();
+
+    @Override default MethodHandles.Lookup lookup(){
+        return kernelCallGraph().lookup();
+    }
+
+    default boolean tracing(){
+            return kernelCallGraph().config().showCompilationPhases();
+    }
+
+    default void before(CallSite callSite, CoreOp.FuncOp funcOp) {
+        if (tracing()) {
+            IO.println("[INFO] Code model before [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: "  + System.lineSeparator() + funcOp.toText());
+        }
+    }
+
+    default void after(CallSite callSite, CoreOp.FuncOp funcOp) {
+        if (tracing()) {
+            IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: " + System.lineSeparator() + funcOp.toText());
+        }
+    }
+}

@@ -24,7 +24,7 @@
  */
 package hat.device;
 
-import hat.buffer.F16;
+import hat.types.F16;
 import hat.codebuilders.C99HATCodeBuilder;
 
 import java.lang.reflect.Method;

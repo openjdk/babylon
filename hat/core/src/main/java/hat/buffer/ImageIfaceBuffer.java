@@ -24,8 +24,8 @@
  */
 package hat.buffer;
 
-import hat.ifacemapper.Buffer;
-import hat.ifacemapper.MappableIface;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;

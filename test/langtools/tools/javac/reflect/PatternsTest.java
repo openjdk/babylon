@@ -444,4 +444,39 @@ public class PatternsTest {
     static boolean test11(int i) {
         return i instanceof short s;
     }
+
+    @IR("""
+            func @"m" (%0 : java.type:"int")java.type:"void" -> {
+                  %1 : Var<java.type:"int"> = var %0 @"i";
+                  %2 : java.type:"int" = constant @0;
+                  %3 : java.type:"byte" = conv %2;
+                  %4 : Var<java.type:"byte"> = var %3 @"b";
+                  java.if
+                      ()java.type:"boolean" -> {
+                          %5 : java.type:"int" = var.load %1;
+                          %6 : java.type:"boolean" = pattern.match %5
+                              ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" -> {
+                                  %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" = pattern.type @"b";
+                                  yield %7;
+                              }
+                              (%8 : java.type:"byte")java.type:"void" -> {
+                                  var.store %4 %8;
+                                  yield;
+                              };
+                          yield %6;
+                      }
+                      ()java.type:"void" -> {
+                          yield;
+                      }
+                      ()java.type:"void" -> {
+                          yield;
+                      };
+                  return;
+              };
+            """)
+    @Reflect
+    static void m(int i) {
+        if (i instanceof byte b) {
+        }
+    }
 }
