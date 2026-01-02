@@ -143,7 +143,7 @@ public final class Unreflect {
                                                         interfaceMethodName,
                                                         factoryType,
                                                         interfaceMethodType,
-                                                        unreflectImplementation(caller, interfaceMethodName),
+                                                        unreflectLambdaImplementation(caller, interfaceMethodName),
                                                         dynamicMethodType);
     }
 
@@ -151,27 +151,27 @@ public final class Unreflect {
                                           String interfaceMethodName,
                                           MethodType factoryType,
                                           Object... args) throws LambdaConversionException {
-        args[1] = unreflectImplementation(caller, interfaceMethodName);
+        args[1] = unreflectLambdaImplementation(caller, interfaceMethodName);
         return ReflectableLambdaMetafactory.altMetafactory(caller,
                                                            interfaceMethodName,
                                                            factoryType,
                                                            args);
     }
 
-    static MethodHandle unreflectImplementation(MethodHandles.Lookup caller, String interfaceMethodName)
+    static MethodHandle unreflectLambdaImplementation(MethodHandles.Lookup caller, String interfaceMethodName)
             throws LambdaConversionException {
         try {
             MethodHandle opHandle = caller.findStatic(caller.lookupClass(),
                                                       interfaceMethodName.split("=")[1],
                                                       MethodType.methodType(Op.class));
-            return BytecodeGenerator.generate(caller, unquote((CoreOp.FuncOp)opHandle.invoke()));
+            return BytecodeGenerator.generate(caller, unquoteLambda((CoreOp.FuncOp)opHandle.invoke()));
         } catch (Throwable t) {
             throw new LambdaConversionException(t);
         }
     }
 
     // flat QuotedOp and LambdaOp
-    static CoreOp.FuncOp unquote(CoreOp.FuncOp funcOp) {
+    static CoreOp.FuncOp unquoteLambda(CoreOp.FuncOp funcOp) {
         int capturedValues = funcOp.parameters().size();
         List<Op> ops = funcOp.body().entryBlock().ops();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp)((CoreOp.QuotedOp)ops.get(ops.size() - 2)).quotedOp();
