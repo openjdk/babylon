@@ -36,9 +36,6 @@ import java.lang.invoke.StringConcatFactory;
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @enablePreview
- * @library ../../
- * @run junit TestLiftCustomBytecode
- * @run main Unreflect TestLiftCustomBytecode
  * @run junit TestLiftCustomBytecode
  */
 

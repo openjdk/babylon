@@ -47,9 +47,6 @@ import java.util.stream.Stream;
  * @modules java.base/java.lang.invoke:open
  * @modules java.base/jdk.internal.classfile.components
  * @enablePreview
- * @library ../../
- * @run junit TestSmallCorpus
- * @run main Unreflect TestSmallCorpus
  * @run junit TestSmallCorpus
  */
 public class TestSmallCorpus {
