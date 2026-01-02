@@ -22,7 +22,6 @@
  */
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;

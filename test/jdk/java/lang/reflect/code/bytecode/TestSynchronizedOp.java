@@ -27,12 +27,9 @@
  * @enablePreview
  * @library ../
  * @run junit TestSynchronizedOp
- * @run main Unreflect TestSynchronizedOp
- * @run junit TestSynchronizedOp
  */
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;

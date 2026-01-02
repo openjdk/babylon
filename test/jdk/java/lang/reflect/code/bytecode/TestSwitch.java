@@ -136,7 +136,6 @@ public class TestSwitch {
         "outOfOrderFallThrought",
         "nestedExpressions"
     })
-
     public void testSwitch(String methodName) throws Throwable {
         Method m = getMethod(methodName);
         CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();

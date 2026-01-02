@@ -84,6 +84,20 @@ public class TestArrayCreation {
         Assertions.assertArrayEquals(f3(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
+    @Reflect
+    public static String[][] f4() {
+        return new String[][]{{"one", "two"}, {"three"}};
+    }
+
+    @Test
+    public void testf4() {
+        CoreOp.FuncOp f = getFuncOp("f4");
+
+        System.out.println(f.toText());
+
+        Assertions.assertArrayEquals(f4(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
+    }
+
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestArrayCreation.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
