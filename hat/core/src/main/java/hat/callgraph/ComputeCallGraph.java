@@ -41,7 +41,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
 
-import static optkl.Invoke.javaRefClassOrThrow;
+import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.isAssignable;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
@@ -137,12 +137,13 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
 
     @Override
-    public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        if (entrypoint.method.getDeclaringClass().equals(javaRefClassOrThrow(computeContext.lookup(),invokeOp))
-                && isValidKernelDispatch(computeContext.lookup(),method, f)) {
+    public boolean filterCalls(CoreOp.FuncOp funcOp, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
+        var invoke = invokeOpHelper(computeContext.lookup(),invokeOp);
+        if (entrypoint.method.getDeclaringClass().equals(invoke.classOrThrow())
+                && isValidKernelDispatch(computeContext.lookup(),method, funcOp)) {
             // TODO this side effect is not good.  we should do this when we construct !
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
-                    new KernelCallGraph(this, methodRef, method, f)
+                    new KernelCallGraph(this, methodRef, method, funcOp)
             );
         } else if (ComputeContext.class.isAssignableFrom(javaRefTypeClass)) {
             computeContextMethodCall = new ComputeContextMethodCall(this, methodRef, method);

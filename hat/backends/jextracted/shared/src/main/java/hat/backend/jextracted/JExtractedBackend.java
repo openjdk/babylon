@@ -27,32 +27,14 @@ package hat.backend.jextracted;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.optools.ComputeContextPattern;
-import hat.optools.IfaceBufferPattern;
-import hat.optools.KernelContextPattern;
 import jdk.incubator.code.CodeTransformer;
-import optkl.util.CallSite;
-import optkl.OpTkl;
-import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
-import optkl.ifacemapper.MappableIface;
-import optkl.FuncOpParams;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-
-import static hat.ComputeContext.WRAPPER.ACCESS;
-import static hat.ComputeContext.WRAPPER.MUTATE;
-import static optkl.OpTkl.classTypeToTypeOrThrow;
-import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.transform;
 
 public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
@@ -61,7 +43,6 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        var here = CallSite.of(JExtractedBackend.class, "dispatchCompuet");
         if (computeContext.computeEntrypoint().lowered == null) {
             computeContext.computeEntrypoint().lowered =
                     computeContext.computeEntrypoint().funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);

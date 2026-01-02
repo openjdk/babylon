@@ -27,13 +27,10 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.optools.ComputeContextPattern;
-import hat.optools.IfaceBufferPattern;
-import hat.optools.KernelContextPattern;
+import hat.KernelContext;
 import jdk.incubator.code.CodeTransformer;
 import optkl.Invoke;
 import optkl.util.CallSite;
-import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
 import optkl.ifacemapper.MappableIface;
@@ -44,7 +41,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.annotation.Annotation;
@@ -56,7 +52,6 @@ import java.util.List;
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.Invoke.invokeOpHelper;
-import static optkl.Invoke.methodOrThrow;
 import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.transform;
@@ -141,12 +136,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
             transformedFuncOp = transform(here, computeMethod.funcOp(),_->true,(bldr, op) -> {
                 if (invokeOpHelper(lookup(),op) instanceof Invoke invoke ) {
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
-                    if (IfaceBufferPattern.isInvokeOp(lookup(), invoke.op()) && invoke.returnsVoid()) {                    // iface.v(newV)
+                    if (invoke.isMappableIface() && invoke.returnsVoid()) {                    // iface.v(newV)
                         Value iface = bldr.context().getValue(invoke.op().operands().getFirst());
                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));                  // cc->preMutate(iface);
                         bldr.op(invoke.op());                                              // iface.v(newV);
                         bldr.op(JavaOp.invoke(MUTATE.post, cc, iface));                 // cc->postMutate(iface)
-                    } else if (IfaceBufferPattern.isInvokeOp(lookup(), invoke.op())
+                    } else if (invoke.isMappableIface()
                             && (
                                     invoke.returnsClassType()
                                             && classTypeToTypeOrThrow(lookup(), (ClassType)invoke.returnType()) instanceof Class<?> type
@@ -160,17 +155,17 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));                 // cc->preAccess(iface);
                         bldr.op(invoke.op());                                             // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface));                // cc->postAccess(iface)
-                    } else if (ComputeContextPattern.isComputeContextMethod(lookup(),invoke.op())
-                            || KernelContextPattern.KernelContextInvokePattern.isKernelContextInvokeOp(lookup(),invoke.op(),OpTkl.AnyInvoke)) { //dispatchKernel
+                    } else if (invoke.refIs(ComputeContext.class,KernelContext.class)) { //dispatchKernel
                         bldr.op(invoke.op());
                     } else {
                         List<Value> list = invoke.op().operands();
                         if (!list.isEmpty()) {
                           //  System.out.println("Escape! with args " +invokeOp.toText());
                             // We need to check
-                            var m = methodOrThrow(lookup(), invoke);
 
-                            Annotation[][] parameterAnnotations = m.getParameterAnnotations();
+                            var method = invoke.resolveMethodOrThrow();
+
+                            Annotation[][] parameterAnnotations = method.getParameterAnnotations();
                             boolean isVirtual = list.size() > parameterAnnotations.length;
                             List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
                             for (int i = isVirtual ? 1 : 0; i < list.size(); i++) {

@@ -24,11 +24,8 @@
  */
 package hat.backend.ffi;
 
-import hat.optools.*;
-import optkl.FieldAccess;
 import optkl.FuncOpParams;
 import optkl.Invoke;
-import optkl.OpTkl;
 import optkl.ParamVar;
 import optkl.codebuilders.CodeBuilder;
 
@@ -46,7 +43,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static optkl.FieldAccess.fieldAccessOpHelper;
-import static optkl.Invoke.methodOrThrow;
+import static optkl.Invoke.invokeOpHelper;
 
 
 public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
@@ -144,7 +141,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         block(block);
         colon().nl();
         ops.forEach(op -> {
-            if (op instanceof JavaOp.InvokeOp invoke && !IfaceBufferPattern.isInvokeOp(MethodHandles.lookup(),invoke)) {
+            if (invokeOpHelper(lookup,op) instanceof Invoke invoke && !invoke.isMappableIface()) {
                 ptxIndent().convert(lookup,op).nl();
             } else {
                 ptxIndent().convert(lookup,op).semicolon().nl();
@@ -185,7 +182,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case JavaOp.ConvOp $ -> conv($);
             case CoreOp.ConstantOp $ -> constant($);
             case CoreOp.YieldOp $ -> javaYield($);
-            case JavaOp.InvokeOp $ -> methodCall($);
+            case JavaOp.InvokeOp $ -> methodCall(invokeOpHelper(lookup,$));
             case CoreOp.VarOp $ when ParamVar.of($) != null -> varFuncDeclaration($);
             case CoreOp.VarOp $ -> varDeclaration($);
             case CoreOp.ReturnOp $ -> ret($);
@@ -450,9 +447,9 @@ PTXHATKernelBuilder symbol(Op op) {
     }
 
     // S32Array and S32Array2D functions can be deleted after schema is done
-    public void methodCall(JavaOp.InvokeOp invokeOp) {
-        Invoke invoke = Invoke.invokeOpHelper(MethodHandles.lookup(),invokeOp);
-        switch (invokeOp.invokeDescriptor().toString()) {
+    public void methodCall(Invoke invoke) {
+       // Invoke invoke = Invoke.invokeOpHelper(MethodHandles.lookup(),invokeOp);
+        switch (invoke.op().invokeDescriptor().toString()) {
             // S32Array functions
             case "hat.buffer.S32Array::array(long)int" -> {
                 PTXRegister temp = new PTXRegister(incrOrdinal(addressType()), addressType());
@@ -490,7 +487,7 @@ PTXHATKernelBuilder symbol(Op op) {
                     st().dot().param().paramType(invoke.op().operands().get(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(invoke.op().operands().get(i)).ptxNl();
                 }
                 dot().param().space().paramType(invoke.op().resultType()).space().retVal().ptxNl();
-                call().uni().space().oparen().retVal().cparen().commaSpace().identifier(methodOrThrow(MethodHandles.lookup(),invoke).getName()).commaSpace();
+                call().uni().space().oparen().retVal().cparen().commaSpace().identifier(invoke.name()).commaSpace();
                 final int[] counter = {0};
                 paren(_ ->
                         commaSpaceSeparated(
