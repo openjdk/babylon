@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestLambdaOps
+ * @run main Unreflect TestLambdaOps
+ * @run junit TestLambdaOps
  */
 
 import jdk.incubator.code.*;

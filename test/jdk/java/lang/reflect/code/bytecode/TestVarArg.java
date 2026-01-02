@@ -1,6 +1,5 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.internal.classfile.components.ClassPrinter;
@@ -20,6 +19,9 @@ import java.util.stream.Stream;
  * @enablePreview
  * @modules jdk.incubator.code
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../
+ * @run junit TestVarArg
+ * @run main Unreflect TestVarArg
  * @run junit TestVarArg
  *
  */

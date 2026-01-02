@@ -15,6 +15,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestPatterns2
+ * @run main Unreflect TestPatterns2
+ * @run junit TestPatterns2
  * @enablePreview */
 public class TestPatterns2 {
 

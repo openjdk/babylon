@@ -52,6 +52,8 @@ import static jdk.incubator.code.dialect.java.MethodRef.method;
  * @modules jdk.incubator.code
  * @enablePreview
  * @run junit TestLocalTransformationsAdaption
+ * @run main Unreflect TestLocalTransformationsAdaption
+ * @run junit TestLocalTransformationsAdaption
  */
 
 public class TestLocalTransformationsAdaption {

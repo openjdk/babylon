@@ -38,6 +38,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestArrayTypes
+ * @run main Unreflect TestArrayTypes
+ * @run junit TestArrayTypes
  */
 
 public class TestArrayTypes {
