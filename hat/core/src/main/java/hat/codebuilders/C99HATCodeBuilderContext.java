@@ -26,8 +26,6 @@ package hat.codebuilders;
 
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
-import hat.optools.IfaceBufferPattern;
-import hat.optools.RefactorMe;
 import hat.types.HAType;
 import hat.device.DeviceType;
 import hat.dialect.HATMemoryVarOp;
@@ -42,15 +40,11 @@ import optkl.util.Regex;
 import optkl.util.StreamMutable;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.BabylonCoreOpBuilder;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-
-import java.lang.invoke.MethodHandles;
 
 import static optkl.FieldAccess.fieldAccessOpHelper;
 import static optkl.Invoke.invokeOpHelper;

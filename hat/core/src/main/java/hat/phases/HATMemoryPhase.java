@@ -28,17 +28,16 @@ import hat.callgraph.KernelCallGraph;
 import hat.device.DeviceType;
 import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
-import hat.optools.IfaceBufferPattern;
 import hat.optools.RefactorMe;
+import hat.types.HAType;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.Invoke;
+import optkl.ifacemapper.MappableIface;
 import optkl.util.CallSite;
 
 import java.util.HashMap;
@@ -50,8 +49,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.transform;
+import static optkl.Trxfmr.copyLocation;
 
 public abstract sealed class HATMemoryPhase implements HATPhase {
 
@@ -74,7 +73,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
 
     protected abstract HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
 
-    protected abstract boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp);
+    protected abstract boolean isIfaceBufferInvokeWithName(Invoke invoke);
 
     public HATMemoryPhase(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
@@ -95,7 +94,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                         .stream()
                         .filter(o -> o instanceof Op.Result result
                                 && result.op() instanceof JavaOp.InvokeOp invokeOp
-                                && isIfaceBufferInvokeWithName(invokeOp))
+                                && isIfaceBufferInvokeWithName(invokeOpHelper(lookup(),invokeOp)))
                         .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()))
                         .findFirst().ifPresent(remove-> {
                             removeMe.add(varOp);
@@ -105,15 +104,14 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
 
         funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp && mapMe.contains(invokeOp)) {
-                invokeOp.result()
-                        .uses()
-                        .stream()
-                        .filter(r->r.op() instanceof CoreOp.VarOp).map(r->(CoreOp.VarOp)r.op())
+                invokeOp.result().uses().stream()
+                        .filter(result->result.op() instanceof CoreOp.VarOp)
+                        .map(r->(CoreOp.VarOp)r.op())
                         .forEach(varOp->
                             blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(factory(blockBuilder, varOp, invokeOp)))
                         );
             } else if (op instanceof CoreOp.VarOp varOp && removeMe.contains(varOp)) {
-                      blockBuilder.context().mapValue(varOp.result(), blockBuilder.context().getValue(varOp.operands().getFirst()));
+                blockBuilder.context().mapValue(varOp.result(), blockBuilder.context().getValue(varOp.operands().getFirst()));
             } else {
                 blockBuilder.op(op);
             }
@@ -130,15 +128,10 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp) {
-            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(), invokeOp, n->n.equals(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME))) {
-                return true;
-            } else {
+        protected boolean isIfaceBufferInvokeWithName(Invoke invoke) {
+            return invoke.refIs( DeviceType.class, MappableIface.class, HAType.class)
+                    && invoke.named(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME);
 
-                return invokeOpHelper(lookup(),invokeOp) instanceof  Invoke invoke
-                        && invoke.named(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME)
-                        && invoke.refIs(DeviceType.class);
-            }
         }
 
         @Override
@@ -156,35 +149,26 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
     }
 
     public static final  class LocalMemoryPhase extends HATMemoryPhase {
-
         public LocalMemoryPhase(KernelCallGraph kernelCallGraph) {
             super(kernelCallGraph);
         }
 
         @Override
-        protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            if (IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))) {
-                return true;
-            } else {
-                return invokeOpHelper(lookup(),invokeOp) instanceof  Invoke invoke
-                      && invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME)
-                        && invoke.refIs(DeviceType.class);
-                     //   && invokeOp.resultType() instanceof JavaType javaType &&
-                       // isAssignable(lookup(),javaType,DeviceType.class));
-            }
+        protected boolean isIfaceBufferInvokeWithName(Invoke invoke){
+            return invoke.refIs( DeviceType.class, MappableIface.class, HAType.class)
+                    && invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME);
+
         }
 
         @Override
         protected HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            var op = new HATMemoryVarOp.HATLocalVarOp(
+            return  copyLocation(varOp,new HATMemoryVarOp.HATLocalVarOp(
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
                     invokeOp.resultType(),
                     builder.context().getValues(invokeOp.operands())
-            );
-            op.setLocation(varOp.location());
-            return op;
+            ));
         }
     }
 
@@ -195,24 +179,17 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
-            return IfaceBufferPattern.isIfaceBufferInvokeOpWithName(lookup(),invokeOp, n->n.equals(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
-               || (
-                    invokeOpHelper(lookup(),invokeOp) instanceof  Invoke invoke
-                    && invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME))
-                    && invoke.returnType() instanceof JavaType javaType
-                    && invoke.returns(DeviceType.class);
+        protected boolean isIfaceBufferInvokeWithName(Invoke invoke){
+            return invoke.refIs( DeviceType.class, MappableIface.class, HAType.class)
+                 || invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME);
         }
 
-         private boolean isDeviceTypeReservedMethod(JavaOp.InvokeOp invokeOp){
-            return reservedMethods.contains(invokeOp.invokeDescriptor().name());
-        }
 
-        private boolean meetConditionsForMemoryLoadOp(JavaOp.InvokeOp invokeOp) {
-            return RefactorMe.isInvokeDescriptorSubtypeOf(lookup(),invokeOp, DeviceType.class)
-                    && (invokeOp.resultType() != JavaType.VOID)
-                    && (!(invokeOp.resultType() instanceof PrimitiveType))
-                    && (!isDeviceTypeReservedMethod(invokeOp));
+        private boolean meetConditionsForMemoryLoadOp(Invoke invoke) {
+            return RefactorMe.isInvokeDescriptorSubtypeOf(lookup(),invoke.op(), DeviceType.class)
+                    && !invoke.returnsVoid()
+                    && !invoke.returnsPrimitive()
+                    && !reservedMethods.contains(invoke.name());
         }
 
         @Override
@@ -222,14 +199,14 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Stream<CodeElement<?, ?>> memoryLoadOps = funcOp.elements()
                     .mapMulti((codeElement, consumer) -> {
-                        if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                            if (meetConditionsForMemoryLoadOp(invokeOp)) {
-                                Op.Result result = invokeOp.result();
+                        if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke) {
+                            if (meetConditionsForMemoryLoadOp(invoke)) {
+                                Op.Result result = invoke.op().result();
                                 Set<Op.Result> uses = result.uses();
                                 for (Op.Result use : uses) {
                                     if (use.op() instanceof CoreOp.VarOp varOp) {
-                                        varTable.put(varOp, invokeOp);
-                                        consumer.accept(invokeOp);
+                                        varTable.put(varOp, invoke.op());
+                                        consumer.accept(invoke.op());
                                         consumer.accept(varOp);
                                     }
                                 }

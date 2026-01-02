@@ -25,9 +25,10 @@
 package hat.phases;
 
 
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
-import hat.optools.KernelContextPattern;
+import optkl.FieldAccess;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -37,6 +38,8 @@ import optkl.OpTkl;
 import optkl.util.Regex;
 
 import java.util.Objects;
+
+import static optkl.FieldAccess.fieldAccessOpHelper;
 import static optkl.OpTkl.operandsAsResults;
 
 public sealed abstract class HATThreadsPhase implements HATPhase
@@ -66,8 +69,12 @@ permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPha
             case LocalSizePhase _-> localSizeRegex;
         };
         return txfmr.select(
-                ce-> KernelContextPattern.KernelContextFieldAccessPattern.asKernelContextFieldAccessOrNull(
-                        lookup(),ce,fieldAccessOp->fieldNameRegex.matches(fieldAccessOp.fieldDescriptor().name()))!=null,(s, o)->
+                ce-> fieldAccessOpHelper(lookup(),ce) instanceof FieldAccess fieldAccess
+                        && fieldAccess.refType(KernelContext.class)
+                && fieldAccess.named(fieldNameRegex)
+              //  fieldAccessOpKernelContextPattern.asKernelContextFieldAccessOrNull(
+        //                lookup(),ce,fieldAccessOp->fieldNameRegex.matches(fieldAccessOp.fieldDescriptor().name()))!=null
+        ,(s, o)->
                    operandsAsResults(o)
                      .map(OpTkl::opOfResultOrNull)
                      .map(OpTkl::asVarLoadOrNull)

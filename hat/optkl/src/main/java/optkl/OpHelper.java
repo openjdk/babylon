@@ -25,17 +25,11 @@
 package optkl;
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.Regex;
 import optkl.util.carriers.LookupCarrier;
-
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.function.Predicate;
 
-import static optkl.Invoke.invokeOpHelper;
 
 public interface OpHelper<T extends Op> extends LookupCarrier {
     T op();
@@ -104,8 +98,5 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
     default Op opFromFirstOperandAsResultOrThrow(){
         return opFromOperandNAsResultOrThrow(0);
     }
-
-
-
 
 }

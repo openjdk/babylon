@@ -37,11 +37,9 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.util.CallSite;
-import optkl.util.carriers.LookupCarrier;
 import optkl.util.ops.StatementLikeOp;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -54,12 +52,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static optkl.Invoke.invokeOpHelper;
 
 public interface OpTkl {
-    Predicate<JavaOp.FieldAccessOp> AnyFieldAccess = _ -> true;
-    Predicate<JavaOp.InvokeOp> AnyInvoke = _ -> true;
-
 
     static Type classTypeToTypeOrThrow(MethodHandles.Lookup lookup, ClassType classType) {
         try {
@@ -78,15 +72,7 @@ public interface OpTkl {
 
     }
 
-    static Invoke getTargetInvokeOp(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp, Class<?>... classes) {
-        return lambdaOp.body().entryBlock().ops().stream()
-                .filter(ce -> ce instanceof JavaOp.InvokeOp)
-                .map(ce -> invokeOpHelper(lookup,ce))
-                .filter(Invoke::isStatic)
-                .filter(invoke -> isAssignable(lookup, invoke.op().operands().getFirst().type(), classes))
-                .findFirst()
-                .orElseThrow();
-    }
+
 
     static Object[] getQuotedCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
         var block = lambdaOp.body().entryBlock();
