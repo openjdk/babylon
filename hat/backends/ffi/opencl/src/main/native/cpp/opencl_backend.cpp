@@ -223,10 +223,6 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
                 log[logLen] = '\0';
                 if (logLen > 2) {
                     std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
-                    bool hasImplicitFunctionDeclError = (strstr(log, "error: implicit declaration of function") != nullptr);
-                    if (hasImplicitFunctionDeclError) {
-                        std::cerr << "Did you miss @Reflect annotation on the above function?" << std::endl;
-                    }
                 }
             }
             openclProgram = new OpenCLProgram(this, src, log, buildStatus == CL_SUCCESS, program);

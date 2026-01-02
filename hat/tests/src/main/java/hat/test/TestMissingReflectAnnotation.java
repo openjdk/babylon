@@ -137,7 +137,7 @@ public class TestMissingReflectAnnotation {
 
     @HatTest
     @Reflect
-    public static void testTransitiveMethoFromKernelWithoutReflectAnnotation() {
+    public static void testTransitiveMethodFromKernelWithoutReflectAnnotation() {
         final int size = 64;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var array = S32Array.create(accelerator, size);
@@ -149,9 +149,9 @@ public class TestMissingReflectAnnotation {
         try {
             accelerator.compute(cc -> TestMissingReflectAnnotation.squareComputeCallsSquareItWithoutReflectAnnotation(cc, array));
         } catch (RuntimeException e) {
-            HATAsserts.assertTrue(e.getMessage().contains("OpenCL program failed to compile"));
+            HATAsserts.assertTrue(e.getMessage().contains("Failed to inline squareitWithoutReflectAnnotation. Did you miss @Reflect annotation?"));
             return;
         }
-        throw new HATExpectedFailureException("OpenCL program failed to compile");
+        throw new HATExpectedFailureException("Failed to inline squareitWithoutReflectAnnotation. Did you miss @Reflect annotation?");
     }
 }
