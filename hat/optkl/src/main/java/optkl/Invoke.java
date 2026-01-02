@@ -25,23 +25,27 @@
 package optkl;
 
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.stream.Stream;
 
 
 public interface Invoke extends OpHelper<JavaOp.InvokeOp>{
 
-     default  boolean isStatic(){
+    static Stream<Invoke> stream(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+       return  funcOp.elements().filter(ce->ce instanceof JavaOp.InvokeOp).map(ce->invokeOpHelper(lookup,ce));
+    }
+
+    default  boolean isStatic(){
         return op().invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC);
     }
      default  boolean isInstance(){
@@ -119,6 +123,9 @@ public interface Invoke extends OpHelper<JavaOp.InvokeOp>{
     }
     default boolean returnsShort(){
         return returnType() ==   JavaType.SHORT ;
+    }
+    default boolean returns16BitValue(){
+        return returnsChar()||returnsShort();
     }
     static Method methodOrThrow(MethodHandles.Lookup lookup, Invoke invoke) {
         try {
