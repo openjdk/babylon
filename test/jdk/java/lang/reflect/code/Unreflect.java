@@ -28,6 +28,7 @@ import java.lang.classfile.CodeModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.MethodTransform;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.instruction.InvokeDynamicInstruction;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
@@ -49,8 +50,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
-import jdk.incubator.code.CodeTransformer;
 
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -71,8 +72,7 @@ public final class Unreflect {
                  .orElse(false);
     }
 
-    static byte[] transform(byte[] classBytes) {
-        ClassModel clm = ClassFile.of().parse(classBytes);
+    static byte[] transform(ClassModel clm) {
         return ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(clm, (clb, cle) -> {
             if (cle instanceof MethodModel mm) {
                 if (isReflective(mm)) {
@@ -194,11 +194,21 @@ public final class Unreflect {
 
     public static void main(String[] args) throws Exception {
         // process class files from arguments
-        for (var arg : args) {
+        var toUnreflect = new ArrayDeque<>(List.of(args));
+        var done = new HashSet<String>();
+        while (!toUnreflect.isEmpty()) {
+            String arg = toUnreflect.pop();
             if (!arg.endsWith(".class")) arg += ".class";
-            System.out.println("unreflecting " + arg);
-            Path clsFile = Path.of(Unreflect.class.getResource(arg).toURI());
-            Files.write(clsFile, transform(Files.readAllBytes(clsFile)));
+            if (done.add(arg)) {
+                System.out.println("unreflecting " + arg);
+                Path clsFile = Path.of(Unreflect.class.getResource(arg).toURI());
+                ClassModel clm = ClassFile.of().parse(Files.readAllBytes(clsFile));
+                // unreflect all nest members
+                clm.findAttribute(Attributes.nestMembers())
+                        .ifPresent(nma -> toUnreflect.addAll(
+                                nma.nestMembers().stream().map(ClassEntry::asInternalName).toList()));
+                Files.write(clsFile, transform(clm));
+            }
         }
     }
 }
