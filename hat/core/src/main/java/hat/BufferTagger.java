@@ -99,14 +99,12 @@ public class BufferTagger {
                                     blockbuilder.context().mapValue(invoke.op().result(), exit.parameters().getFirst());
                                 }
                                 changed.set(true);
-                                return exit.rebind(blockbuilder.context(), blockbuilder.transformer());  
+                                return exit.rebind(blockbuilder.context(), blockbuilder.transformer());
                             }
-
                         } else if (method.getDeclaringClass().equals(methodOfFuncOp.getDeclaringClass())) {
-                            // Expect @Reflect annotation to be present on all methods called from the kernel function 
+                            // Expect @Reflect annotation to be present on all methods called from the kernel function
                             // that are defined in the same class as the kernel function.
-                            throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");
-                        
+                            throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");                        
                         }
                     }
                     changed.set(true);
