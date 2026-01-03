@@ -74,48 +74,6 @@ public class Trxfmr {
         T cursor();
     }
 
-  /*  public interface  Walker extends TransformerCarrier {
-        void op(Op op);
-        Op op();
-        void funcOp(CoreOp.FuncOp funcOp);
-        CoreOp.FuncOp funcOp();
-              class Impl implements TransformerCarrier,Walker {
-                private final Trxfmr trxfmr;
-                public Trxfmr trxfmr() {
-                    return trxfmr;
-                }
-                private Op op;
-                private CoreOp.FuncOp funcOp;
-                @Override
-                public void op(Op op) {
-                    this.op = op;
-                }
-
-                @Override
-                public Op op() {
-                    return this.op;
-                }
-
-                @Override
-                public void funcOp(CoreOp.FuncOp funcOp) {
-                    this.funcOp = funcOp;
-                }
-
-                @Override
-                public CoreOp.FuncOp funcOp() {
-                    return this.funcOp;
-                }
-
-                Impl(Trxfmr trxfmr, CoreOp.FuncOp funcOp) {
-                    this.trxfmr = trxfmr;
-                    this.funcOp = funcOp;
-                }
-            }
-      //  static Walker of(Trxfmr trxfmr, CoreOp.FuncOp funcOp){
-        //    return new Impl(trxfmr,funcOp);
-       // }
-    } */
-
     public interface  Cursor extends TransformerCarrier {
         enum Action{NONE,REMOVED,REPLACE,ADDED };
         void op(Op op);
@@ -253,16 +211,6 @@ public class Trxfmr {
         }
     }
 
-    public interface Selector<T extends Selector<T>> extends TransformerCarrier {
-        default T  select(Op...ops){
-            trxfmr().selected.addAll(List.of(ops));
-            return (T)this;
-        }
-       static Selector<?> of(Trxfmr trxfmr){
-            record SelectorImpl(Trxfmr trxfmr) implements Selector<SelectorImpl>{}
-            return  new SelectorImpl(trxfmr);
-        }
-    }
 
 
     public interface Mapper<T extends Mapper<T>> extends CursorCarrier{
@@ -295,7 +243,7 @@ public class Trxfmr {
         }
     }
 
-    public final Set<Op> selected = new LinkedHashSet<>();
+
     public final CallSite callSite;
     private CoreOp.FuncOp funcOp;
     public final BiMap<CodeElement<?,?>,CodeElement<?,?>> biMap = new BiMap<>();
@@ -319,13 +267,6 @@ public class Trxfmr {
         this (null,funcOp);
 
     }
-    public Trxfmr select(Predicate<Op> codeElementPredicate, BiConsumer<Selector<?>,Op> selectorConsumer) {
-        Selector<?> selector = Selector.of(this);
-        funcOp().elements().filter(ce->ce instanceof Op).map(ce->(Op)ce).filter(codeElementPredicate).forEach(op->
-                selectorConsumer.accept(selector,op)
-        );
-        return this;
-    }
 
 
     public Trxfmr done() {
@@ -341,20 +282,12 @@ public class Trxfmr {
         return result;
     }
 
-    private boolean shouldTransform(Predicate<CodeElement<?,?>> predicate, Op op){
-        boolean isEmpty = selected.isEmpty();
-        boolean isInSelected = selected.contains(op);
-        boolean isSelected = isEmpty|isInSelected;
-        boolean passesPredicate = predicate.test(op);
-        return isSelected && passesPredicate;
-    }
-
     public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer) {
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
         var newFuncOp = funcOp().transform((blockBuilder, op) -> {
-            if (shouldTransform(predicate,op)){
+            if (predicate.test(op)){
                 Cursor cursor = Cursor.of(this, funcOp, blockBuilder,op);
                 cursorConsumer.accept(cursor);
                 if (!cursor.handled()){
@@ -378,7 +311,7 @@ public class Trxfmr {
             System.out.println(callSite);
         }
         var newFuncOp = funcOp().transform((blockBuilder, op) -> {
-            if (shouldTransform(predicate,op)){
+            if (predicate.test(op)){
                 codeTransformer.acceptOp(blockBuilder,op);
             } else {
                 biMap.add(op,blockBuilder.op(op).op());
