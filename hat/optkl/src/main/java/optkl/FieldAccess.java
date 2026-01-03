@@ -26,13 +26,14 @@ package optkl;
 
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
+import java.util.stream.Stream;
 
 import static optkl.OpTkl.classTypeToTypeOrThrow;
 
@@ -45,6 +46,10 @@ public interface FieldAccess extends OpHelper<JavaOp.FieldAccessOp>{
 
     default boolean isPrimitive(){
         return op().result().type() instanceof PrimitiveType;
+    }
+
+    default TypeElement resultType(){
+        return op().resultType();
     }
 
     default TypeElement refType(){
@@ -70,5 +75,9 @@ public interface FieldAccess extends OpHelper<JavaOp.FieldAccessOp>{
     static FieldAccess fieldAccessOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
         record Impl(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements FieldAccess {}
         return codeElement instanceof JavaOp.FieldAccessOp fieldAccessOp? new Impl(lookup,fieldAccessOp): null;
+    }
+
+    static Stream<FieldAccess> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        return  funcOp.elements().filter(ce->ce instanceof JavaOp.FieldAccessOp).map(ce->fieldAccessOpHelper(lookup,ce));
     }
 }

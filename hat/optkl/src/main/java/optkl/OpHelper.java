@@ -25,9 +25,13 @@
 package optkl;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.Regex;
 import optkl.util.carriers.LookupCarrier;
+
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Predicate;
 
 
@@ -39,8 +43,8 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
     default boolean named(Regex regex){
         return regex.matches(name());
     }
-    default boolean named(String name){
-        return name().equals(name);
+    default boolean named( String...names){
+       return Set.of(names).contains(name());
     }
     default boolean named(Predicate<String> predicate){
         return predicate.test(name());
@@ -68,7 +72,7 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
     default Op.Result operandNAsResultOrNull(int i){
         return OpTkl.operandAsResult(op(),i) instanceof Op.Result result?result:null;
     }
-    default Op.Result firstOperandAsResultOrNull(int i){
+    default Op.Result firstOperandAsResultOrNull(){
         return operandNAsResultOrNull(0);
     }
     default Op.Result  operandNAsResultOrThrow(int i){
@@ -97,6 +101,17 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
     }
     default Op opFromFirstOperandAsResultOrThrow(){
         return opFromOperandNAsResultOrThrow(0);
+    }
+    default CoreOp.VarAccessOp.VarLoadOp varLoadOpFromFirstOperandAsResultOrNull(){
+           return opFromFirstOperandAsResultOrThrow()
+                instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp?varLoadOp:null;
+    }
+    default CoreOp.VarAccessOp.VarLoadOp varLoadOpFromFirstOperandAsResultOrThrow() {
+        if (varLoadOpFromFirstOperandAsResultOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return varLoadOp;
+        } else {
+            throw new IllegalStateException("Expecting first operand to be a result which yields an VarLoadOp ");
+        }
     }
 
 }
