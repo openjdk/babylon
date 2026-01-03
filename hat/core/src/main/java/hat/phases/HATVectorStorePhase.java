@@ -28,7 +28,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATPhaseUtils;
-import hat.optools.RefactorMe;
+import hat.types._V;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -36,12 +36,17 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.Invoke;
 import optkl.util.CallSite;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static optkl.Invoke.invokeOpHelper;
+import static optkl.OpTkl.asResultOrNull;
+import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.transform;
 
 public abstract sealed class HATVectorStorePhase implements HATPhase
@@ -87,10 +92,13 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
         before(here,funcOp);
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof JavaOp.InvokeOp invokeOp
-                        && (invokeOp.operands().size() >= 3) &&
-                            (RefactorMe.isVectorOperation(invokeOp, invokeOp.operands().get(1), n->n.equals(vectorOperation)))) {
-                            consumer.accept(invokeOp);
+                    if (invokeOpHelper(lookup(),codeElement)instanceof Invoke invoke
+                            && (invoke.op().operands().size() >2)
+                            && invoke.named(vectorOperation)
+                            && asResultOrNull(invoke.op().operands().get(1)) instanceof Op.Result result
+                            && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                            && isAssignable(lookup(),varLoadOp.resultType(), _V.class)){
+                            consumer.accept(invoke.op());
                         }
                 });
 
@@ -105,7 +113,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
 
                 boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
 
-                HATPhaseUtils.VectorMetaData vectorMetaData  = HATPhaseUtils.getVectorTypeInfo(invokeOp, 1);
+                HATPhaseUtils.VectorMetaData vectorMetaData  = HATPhaseUtils.getVectorTypeInfo(lookup(),invokeOp, 1);
                 TypeElement vectorElementType = vectorMetaData.vectorTypeElement();
                 HATVectorOp storeView = new HATVectorOp.HATVectorStoreView(findNameVector(invokeOp.operands().get(1)), invokeOp.resultType(), vectorMetaData.lanes(),
                         vectorElementType, isSharedOrPrivate,  outputOperandsVarOp);

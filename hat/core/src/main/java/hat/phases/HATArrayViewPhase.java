@@ -97,7 +97,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                             return blockBuilder;
                         } else if (isVectorOp(varOp)) {
                             List<Value> operands = (varOp.operands().isEmpty()) ? List.of() : List.of(firstOperand(varOp));
-                            var vectorMetaData = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(varOp.resultType().valueType());
+                            var vectorMetaData = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(lookup(),varOp.resultType().valueType());
                             var hatVectorVarOp = copyLocation(varOp,new HATVectorOp.HATVectorVarOp(
                                     varOp.varName(),
                                     varOp.resultType(),
@@ -142,7 +142,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                     case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
                                     default -> throw new IllegalStateException("Unexpected value: " + vop);
                                 };
-                                var  hatVectorMetaData = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(arrayLoadOp.resultType());
+                                var  hatVectorMetaData = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(lookup(),arrayLoadOp.resultType());
                                 HATVectorOp.HATVectorLoadOp vLoadOp = copyLocation(arrayLoadOp,new HATVectorOp.HATVectorLoadOp(
                                         name,
                                         CoreType.varType(((ArrayType) firstOperand(arrayLoadOp).type()).componentType()),
@@ -180,7 +180,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                         ? (varOp).resultType()
                                         : ((CoreOp.VarOp) varOp).resultType();
                                 var classType = ((ClassType) ((ArrayType) firstOperand(arrayStoreOp).type()).componentType());
-                                var vectorMetaData = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(classType);
+                                var vectorMetaData = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(lookup(),classType);
                                 HATVectorOp.HATVectorStoreView vStoreOp = copyLocation(arrayStoreOp,new HATVectorOp.HATVectorStoreView(
                                         name,
                                         resultType,
@@ -305,7 +305,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
      */
 
     private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String opType, String varName, TypeElement resultType, List<Value> outputOperands) {
-        HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(resultType);
+        HATPhaseUtils.VectorMetaData md = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(lookup(),resultType);
         return switch (opType) {
             case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, resultType, md.vectorTypeElement(), md.lanes(), outputOperands);
             case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName, resultType, md.vectorTypeElement(), md.lanes(), outputOperands);
