@@ -37,7 +37,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.Invoke;
 import optkl.util.CallSite;
 
 import java.util.HashMap;
@@ -63,14 +62,14 @@ public abstract sealed class HATVectorPhase implements HATPhase
 }
 
 
-
-    public static TypeElement findVectorTypeElement(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+    // recursive
+    private static TypeElement findVectorTypeElement(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findVectorTypeElement(varLoadOp.operands().getFirst());
     }
-
+    // recursive
     private static TypeElement findVectorTypeElement(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findVectorTypeElement(varLoadOp);
+            return findVectorTypeElement(varLoadOp); // recurse
         } else {
             // Leaf of tree -
             if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
@@ -80,10 +79,11 @@ public abstract sealed class HATVectorPhase implements HATPhase
         }
     }
 
-    public static String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findNameVector(varLoadOp.operands().getFirst());
+    //recursive
+    public static int getWidth(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return getWidth(varLoadOp.operands().getFirst());
     }
-
+    //recursive
     private static int getWidth(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return getWidth(varLoadOp);
@@ -95,9 +95,26 @@ public abstract sealed class HATVectorPhase implements HATPhase
             return -1;
         }
     }
-    public static int getWidth(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return getWidth(varLoadOp.operands().getFirst());
+    //recursive
+    private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findIsSharedOrPrivate(varLoadOp.operands().getFirst());
     }
+
+    //recursive
+    private boolean findIsSharedOrPrivate(Value v) {
+        return v instanceof Op.Result result && switch (result.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findIsSharedOrPrivate(varLoadOp); //recurse
+            case HATMemoryVarOp.HATLocalVarOp _, HATMemoryVarOp.HATPrivateVarOp _ -> true;
+            default -> false;
+        };
+    }
+
+    // recursive
+    public static String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findNameVector(varLoadOp.operands().getFirst());
+    }
+
+    // recursive
     public static String findNameVector(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp);
@@ -139,19 +156,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
                    && isAMethod(invokeOp, n->n.equals(vectorOperation.methodName))
            );
     }
-    //recursive
-    private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findIsSharedOrPrivate(varLoadOp.operands().getFirst());
-    }
 
-    //recursive
-    private boolean findIsSharedOrPrivate(Value v) {
-        return v instanceof Op.Result result && switch (result.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findIsSharedOrPrivate(varLoadOp); //recurse
-            case HATMemoryVarOp.HATLocalVarOp _, HATMemoryVarOp.HATPrivateVarOp _ -> true;
-            default -> false;
-        };
-    }
 
     private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(BinaryOpEnum opType, String varName, TypeElement resultType,
                                                               TypeElement vectorElementType, int witdh, List<Value> outputOperands) {

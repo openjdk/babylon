@@ -28,16 +28,18 @@ package hat.phases;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
+import jdk.incubator.code.CodeElement;
 import optkl.FieldAccess;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.util.CallSite;
 import optkl.OpTkl;
 import optkl.util.Regex;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import static optkl.FieldAccess.fieldAccessOpHelper;
 import static optkl.OpTkl.operandsAsResults;
@@ -58,9 +60,10 @@ permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPha
     private static final Regex globalSzRegex = Regex.of("(gs[xyz])");
     private static final Regex blockIdRegex = Regex.of("bi([xyz])");
     private static final Regex globalIdxRegex = Regex.of("(gi[xyz])");
+
+
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var txfmr = new Trxfmr(CallSite.of(this.getClass()),funcOp);
         Regex fieldNameRegex  = switch (this){
             case BlockPhase _->blockIdRegex;
             case GlobalIdPhase _->globalIdxRegex;
@@ -68,39 +71,34 @@ permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPha
             case LocalIdPhase _-> localIdRegex;
             case LocalSizePhase _-> localSizeRegex;
         };
-        return txfmr.select(
-                ce-> fieldAccessOpHelper(lookup(),ce) instanceof FieldAccess fieldAccess
-                        && fieldAccess.refType(KernelContext.class)
-                && fieldAccess.named(fieldNameRegex)
-              //  fieldAccessOpKernelContextPattern.asKernelContextFieldAccessOrNull(
-        //                lookup(),ce,fieldAccessOp->fieldNameRegex.matches(fieldAccessOp.fieldDescriptor().name()))!=null
-        ,(s, o)->
-                   operandsAsResults(o)
-                     .map(OpTkl::opOfResultOrNull)
-                     .map(OpTkl::asVarLoadOrNull)
-                     .filter(Objects::nonNull) // ((Result)operand).op()) instanceof VarLoad varload && varload is KernelContext.class
-                     .findFirst()
-                     .ifPresent(varLoadOp -> s.select(o,varLoadOp))
-                ).transform(txfmr.selected::contains, c->{
-                   switch (c.op()){
-                      case JavaOp.FieldAccessOp.FieldLoadOp $  -> {
-                          String name = $.fieldDescriptor().name();
-                          int dimIdx = name.length()==3 ?name.charAt(2)-'x' :-1;
-                          if (dimIdx <0||dimIdx>3){
-                              throw new IllegalStateException();//'x'=1,'y'=2....
-                          }
-                          c.replace(switch (HATThreadsPhase.this){
-                              case BlockPhase _-> HATThreadOp.HATBlockThreadIdOp.of(dimIdx, $.resultType());
-                              case GlobalIdPhase _-> HATThreadOp.HATGlobalThreadIdOp.of(dimIdx, $.resultType());
-                              case GlobalSizePhase _-> HATThreadOp.HATGlobalSizeOp.of(dimIdx, $.resultType());
-                              case LocalIdPhase _-> HATThreadOp.HATLocalThreadIdOp.of(dimIdx, $.resultType());
-                              case LocalSizePhase _-> HATThreadOp.HATLocalSizeOp.of(dimIdx,$.resultType());
-                          });
-                      }
-                      case CoreOp.VarAccessOp.VarLoadOp _ -> c.remove();
-                      default -> {}
-                }
-        }).funcOp();
+        Set<CodeElement<?,?>> removeMe= new HashSet<>();
+        return new Trxfmr(funcOp)
+                .transform(ce->ce instanceof JavaOp.FieldAccessOp, c->{
+                    if (fieldAccessOpHelper(lookup(),c.op()) instanceof FieldAccess fieldAccess
+                            && fieldAccess.refType(KernelContext.class)
+                            && fieldAccess.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp
+                            && fieldAccess.named(fieldNameRegex)) {
+                        operandsAsResults(fieldAccess.op())
+                                .map(OpTkl::opOfResultOrNull)
+                                .map(OpTkl::asVarLoadOrNull)
+                                .filter(Objects::nonNull)
+                                .findFirst()
+                                .ifPresent(varLoadOp -> {
+                                    removeMe.add(varLoadOp); // We will need to remove this
+                                    int dimIdx = fieldAccess.name().charAt(2) - 'x';
+                                    c.replace(switch (HATThreadsPhase.this) {
+                                        case BlockPhase _ -> HATThreadOp.HATBlockThreadIdOp.of(dimIdx, fieldAccess.resultType());
+                                        case GlobalIdPhase _ -> HATThreadOp.HATGlobalThreadIdOp.of(dimIdx, fieldAccess.resultType());
+                                        case GlobalSizePhase _ -> HATThreadOp.HATGlobalSizeOp.of(dimIdx, fieldAccess.resultType());
+                                        case LocalIdPhase _ -> HATThreadOp.HATLocalThreadIdOp.of(dimIdx, fieldAccess.resultType());
+                                        case LocalSizePhase _ -> HATThreadOp.HATLocalSizeOp.of(dimIdx, fieldAccess.resultType());
+                                    });
+                                });
+                    }
+                })
+                .remap(removeMe)
+                .remove(removeMe::contains)
+                .funcOp();
     }
 
     public static final class BlockPhase extends HATThreadsPhase {
