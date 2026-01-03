@@ -36,7 +36,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
+import optkl.Invoke;
 import optkl.util.CallSite;
 
 import java.util.HashMap;
@@ -49,8 +49,7 @@ import java.util.stream.Stream;
 
 import static hat.dialect.HATPhaseUtils.VectorMetaData;
 import static hat.dialect.HATPhaseUtils.getVectorTypeInfo;
-import static hat.optools.RefactorMe.isAMethod;
-import static optkl.OpTkl.isAssignable;
+import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.transform;
 
 public abstract sealed class HATVectorPhase implements HATPhase
@@ -150,12 +149,9 @@ public abstract sealed class HATVectorPhase implements HATPhase
     }
 
 
-    private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
-           return (invokeOp.resultType() instanceof JavaType jt
-                   && isAssignable(lookup(), jt, _V.class)
-                   && isAMethod(invokeOp, n->n.equals(vectorOperation.methodName))
-           );
-    }
+   // private boolean isVectorOperation(Invoke invoke) {
+     //      return ;
+   // }
 
 
     private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(BinaryOpEnum opType, String varName, TypeElement resultType,
@@ -171,7 +167,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
     private void insertVectorLoadOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, CoreOp.VarOp varOp, boolean isShared) {
         List<Value> inputOperandsVarOp = invokeOp.operands();
         List<Value> outputOperandsVarOp = blockBuilder.context().getValues(inputOperandsVarOp);
-        VectorMetaData metaData = getVectorTypeInfo(invokeOp);
+        VectorMetaData metaData = getVectorTypeInfo(lookup(),invokeOp);
         HATVectorOp memoryViewOp = new HATVectorOp.HATVectorLoadOp(varOp.varName(), varOp.resultType(), metaData.vectorTypeElement(), metaData.lanes(), isShared, outputOperandsVarOp);
         Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
         memoryViewOp.setLocation(varOp.location());
@@ -217,7 +213,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
                                      Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation) {
         List<Value> inputOperands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(inputOperands);
-        VectorMetaData vectorMetaData = getVectorTypeInfo(invokeOp);
+        VectorMetaData vectorMetaData = getVectorTypeInfo(lookup(),invokeOp);
         HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOperation.get(invokeOp), "null", invokeOp.resultType(), vectorMetaData.vectorTypeElement(), vectorMetaData.lanes(), outputOperands);
         Op.Result hatVectorOpResult = blockBuilder.op(memoryViewOp);
         memoryViewOp.setLocation(invokeOp.location());
@@ -257,14 +253,15 @@ public abstract sealed class HATVectorPhase implements HATPhase
                         List<Value> inputOperandsVarOp = varOp.operands();
                         for (Value inputOperand : inputOperandsVarOp) {
                             if (inputOperand instanceof Op.Result result) {
-                                if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
-                                    if (isVectorOperation(invokeOp)) {
+                                if (invokeOpHelper(lookup(),result.op()) instanceof Invoke invoke) {
+                                    if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)){
+                                          //  isVectorOperation(invokeOpHelper(lookup(),invokeOp))) {
                                         // Associate both ops to the vectorTypeInfo for easy
                                         // access to type and lanes
-                                        VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
-                                        vectorMetaData.put(invokeOp, vectorTypeInfo);
+                                        VectorMetaData vectorTypeInfo = getVectorTypeInfo(lookup(),invoke.op());
+                                        vectorMetaData.put(invoke.op(), vectorTypeInfo);
                                         vectorMetaData.put(varOp, vectorTypeInfo);
-                                        consumer.accept(invokeOp);
+                                        consumer.accept(invoke.op());
                                         consumer.accept(varOp);
                                     }
                                 }
@@ -303,20 +300,20 @@ public abstract sealed class HATVectorPhase implements HATPhase
         before(here, funcOp);
         Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isVectorOperation(invokeOp)) {
-                            consumer.accept(invokeOp);
-                            Set<Op.Result> uses = invokeOp.result().uses();
+                    if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke
+                         &&invoke.returns(_V.class) && invoke.named(vectorOperation.methodName) ) {
+                            consumer.accept(invoke.op());
+                            Set<Op.Result> uses = invoke.op().result().uses();
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {
                                     consumer.accept(varOp);
-                                    VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
-                                    vectorMetaData.put(invokeOp, vectorTypeInfo);
+                                    VectorMetaData vectorTypeInfo = getVectorTypeInfo(lookup(),invoke.op());
+                                    vectorMetaData.put(invoke.op(), vectorTypeInfo);
                                     vectorMetaData.put(varOp, vectorTypeInfo);
                                 }
                             }
                         }
-                    }
+
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
@@ -347,14 +344,14 @@ public abstract sealed class HATVectorPhase implements HATPhase
                         List<Value> inputOperandsVarOp = varOp.operands();
                         for (Value inputOperand : inputOperandsVarOp) {
                             if (inputOperand instanceof Op.Result result) {
-                                if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
-                                    if (isVectorOperation(invokeOp)) {
-                                        BinaryOpEnum binaryOpType = BinaryOpEnum.of(invokeOp);
-                                        binaryOperation.put(invokeOp, binaryOpType);
-                                        VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
-                                        vectorMetaData.put(invokeOp, vectorTypeInfo);
+                                if (invokeOpHelper(lookup(),result.op()) instanceof Invoke invoke ) {
+                                    if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)) {
+                                        BinaryOpEnum binaryOpType = BinaryOpEnum.of(invoke.op());
+                                        binaryOperation.put(invoke.op(), binaryOpType);
+                                        VectorMetaData vectorTypeInfo = getVectorTypeInfo(lookup(),invoke.op());
+                                        vectorMetaData.put(invoke.op(), vectorTypeInfo);
                                         vectorMetaData.put(varOp, vectorTypeInfo);
-                                        consumer.accept(invokeOp);
+                                        consumer.accept(invoke.op());
                                         consumer.accept(varOp);
                                     }
                                 }
@@ -390,12 +387,12 @@ public abstract sealed class HATVectorPhase implements HATPhase
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isVectorOperation(invokeOp)) {
-                            consumer.accept(invokeOp);
-                            VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
-                            vectorMetaData.put(invokeOp, vectorTypeInfo);
-                            Set<Op.Result> uses = invokeOp.result().uses();
+                    if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke) {
+                        if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)) {
+                            consumer.accept(invoke.op());
+                            VectorMetaData vectorTypeInfo = getVectorTypeInfo(lookup(),invoke.op());
+                            vectorMetaData.put(invoke.op(), vectorTypeInfo);
+                            Set<Op.Result> uses = invoke.op().result().uses();
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {
                                     consumer.accept(varOp);
@@ -428,15 +425,15 @@ public abstract sealed class HATVectorPhase implements HATPhase
         Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation = new HashMap<>();
         Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isVectorOperation(invokeOp)) {
-                            List<Value> inputOperandsInvoke = invokeOp.operands();
+                    if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke) {
+                        if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)) {
+                            List<Value> inputOperandsInvoke = invoke.op().operands();
                             for (Value inputOperand : inputOperandsInvoke) {
                                 if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                                    BinaryOpEnum binaryOpType = BinaryOpEnum.of(invokeOp);
-                                    binaryOperation.put(invokeOp, binaryOpType);
+                                    BinaryOpEnum binaryOpType = BinaryOpEnum.of(invoke.op());
+                                    binaryOperation.put(invoke.op(), binaryOpType);
                                     consumer.accept(varLoadOp);
-                                    consumer.accept(invokeOp);
+                                    consumer.accept(invoke.op());
                                 }
                             }
                         }

@@ -28,9 +28,12 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.OpTkl;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,16 +45,16 @@ public class HATPhaseUtils {
     public record VectorMetaData(TypeElement vectorTypeElement, int lanes) {
     }
 
-    public static VectorMetaData getVectorTypeInfo(JavaOp.InvokeOp invokeOp, int param) {
+    public static VectorMetaData getVectorTypeInfo(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int param) {
         Value varValue = invokeOp.operands().get(param);
         if (varValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return getVectorTypeInfoWithCodeReflection(varLoadOp.resultType());
+            return getVectorTypeInfoWithCodeReflection(lookup,varLoadOp.resultType());
         }
         return null;
     }
 
-    public static VectorMetaData getVectorTypeInfo(JavaOp.InvokeOp invokeOp) {
-        return getVectorTypeInfoWithCodeReflection(invokeOp.resultType());
+    public static VectorMetaData getVectorTypeInfo(MethodHandles.Lookup lookup,JavaOp.InvokeOp invokeOp) {
+        return getVectorTypeInfoWithCodeReflection(lookup,invokeOp.resultType());
     }
     public static TypeElement getVectorElementType(String primitive) {
         return switch (primitive) {
@@ -77,15 +80,9 @@ public class HATPhaseUtils {
      * @return
      * {@link VectorMetaData}
      */
-    public static VectorMetaData getVectorTypeInfoWithCodeReflection(TypeElement typeElement) {
-        Class<?> aClass;
-        try {
-            aClass = Class.forName(typeElement.toString());
-        } catch (ClassNotFoundException e) {
-            // TODO: Add control for exceptions in HAT (HATExceptions Handler)
-            throw new RuntimeException(e);
-        }
-        CoreOp.FuncOp codeModelType = buildCodeModelFor(aClass, "type");
+    public static VectorMetaData getVectorTypeInfoWithCodeReflection(MethodHandles.Lookup lookup,TypeElement typeElement) {
+        Class<?> clazz = (Class<?>)OpTkl.classTypeToTypeOrThrow(lookup, (ClassType) typeElement);
+        CoreOp.FuncOp codeModelType = buildCodeModelFor(clazz, "type");
         AtomicReference<TypeElement> vectorElement = new AtomicReference<>();
         codeModelType.elements().forEach(codeElement -> {
             if (codeElement instanceof CoreOp.ReturnOp returnOp) {
@@ -98,7 +95,7 @@ public class HATPhaseUtils {
         });
 
         AtomicInteger lanes = new AtomicInteger(1);
-        CoreOp.FuncOp codeModelWidth = buildCodeModelFor(aClass, "width");
+        CoreOp.FuncOp codeModelWidth = buildCodeModelFor(clazz, "width");
         codeModelWidth.elements().forEach(codeElement -> {
             if (codeElement instanceof CoreOp.ReturnOp returnOp) {
                 Value v = returnOp.operands().getFirst();

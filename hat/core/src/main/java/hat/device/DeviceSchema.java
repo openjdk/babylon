@@ -105,9 +105,7 @@ public class DeviceSchema<T extends DeviceType> {
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
     private void materialize(C99HATCodeBuilder<?> builder, Class<?> klass) {
-        try {
-            Class<?> aClass = Class.forName(klass.getName());
-            Method[] declaredMethods = aClass.getDeclaredMethods();
+            Method[] declaredMethods = klass.getDeclaredMethods();
             builder.lt().identifier(klass.getName()).colon();
             visited.add(klass.getName());
 
@@ -159,10 +157,6 @@ public class DeviceSchema<T extends DeviceType> {
                 }
                 currentLevel--;
             }
-
-        } catch (ClassNotFoundException e) {
-            IO.println("Error during materialization of DeviceType: " + e.getMessage());
-        }
         builder.gt();
     }
 

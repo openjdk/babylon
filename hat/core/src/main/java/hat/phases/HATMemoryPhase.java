@@ -28,18 +28,20 @@ import hat.callgraph.KernelCallGraph;
 import hat.device.DeviceType;
 import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
-import hat.optools.RefactorMe;
 import hat.types.HAType;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import optkl.Invoke;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.CallSite;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -49,6 +51,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static optkl.Invoke.invokeOpHelper;
+import static optkl.OpTkl.isAssignable;
 import static optkl.OpTkl.transform;
 import static optkl.Trxfmr.copyLocation;
 
@@ -184,14 +187,6 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                  || invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME);
         }
 
-
-        private boolean meetConditionsForMemoryLoadOp(Invoke invoke) {
-            return RefactorMe.isInvokeDescriptorSubtypeOf(lookup(),invoke.op(), DeviceType.class)
-                    && !invoke.returnsVoid()
-                    && !invoke.returnsPrimitive()
-                    && !reservedMethods.contains(invoke.name());
-        }
-
         @Override
         public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
             var here = CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase - memoryLoadOp");
@@ -199,8 +194,11 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Stream<CodeElement<?, ?>> memoryLoadOps = funcOp.elements()
                     .mapMulti((codeElement, consumer) -> {
-                        if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke) {
-                            if (meetConditionsForMemoryLoadOp(invoke)) {
+                        if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke
+                             && invoke.refIs(DeviceType.class)
+                                    && !invoke.returnsVoid()
+                                    && !invoke.returnsPrimitive()
+                                    && !reservedMethods.contains(invoke.name())) {
                                 Op.Result result = invoke.op().result();
                                 Set<Op.Result> uses = result.uses();
                                 for (Op.Result use : uses) {
@@ -210,7 +208,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                                         consumer.accept(varOp);
                                     }
                                 }
-                            }
+
                         }
                     });
 
