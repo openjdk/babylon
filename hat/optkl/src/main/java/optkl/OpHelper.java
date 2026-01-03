@@ -50,21 +50,21 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
         return predicate.test(name());
     }
     default <C>boolean isAssignable(JavaType javaType, Class<C> clazz){
-        try {
-            boolean isit1=  OpTkl.isAssignable(lookup(),javaType,clazz);
-            var basicType = javaType.toBasicType();
+       // try {
+            return  OpTkl.isAssignable(lookup(),javaType,clazz);
+          /*  var basicType = javaType.toBasicType();
             var resolveType = basicType.resolve(lookup());
             var isit2 = resolveType.getTypeName().equals(clazz.getName());
             var resolveTypeClass = resolveType.getClass();
             var isit3 = clazz.isAssignableFrom(resolveTypeClass);
             var isit4 = resolveTypeClass.isAssignableFrom(clazz);
             // System.out.println("isit1="+isit1+",isit2="+isit2+",isit3="+isit3+",isit4="+isit4);
-            return  isit2;
+            return  isit1;*/
 
-        } catch (ReflectiveOperationException e) {
-            System.out.println("Hmm");
-            throw new RuntimeException(e);
-        }
+        //} catch (ReflectiveOperationException e) {
+          //  System.out.println("Hmm");
+            //throw new RuntimeException(e);
+       // }
     }
     default  int operandCount(){
         return op().operands().size();
