@@ -26,30 +26,21 @@ package optkl;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-import optkl.util.CallSite;
 import optkl.util.ops.StatementLikeOp;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 
@@ -69,42 +60,7 @@ public interface OpTkl {
             return Arrays.stream(classes).anyMatch(clazz -> clazz.isAssignableFrom((Class<?>) type));
         }
         return false;
-
     }
-
-
-
-    static Object[] getQuotedCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
-        var block = lambdaOp.body().entryBlock();
-        var ops = block.ops();
-        Object[] varLoadNames = ops.stream()
-                .filter(op -> op instanceof CoreOp.VarAccessOp.VarLoadOp)
-                .map(op -> (CoreOp.VarAccessOp.VarLoadOp) op)
-                .map(varLoadOp -> (Op.Result) varLoadOp.operands().getFirst())
-                .map(varLoadOp -> (CoreOp.VarOp) varLoadOp.op())
-                .map(CoreOp.VarOp::varName).toArray();
-        Map<String, Object> nameValueMap = new HashMap<>();
-
-        quoted.capturedValues().forEach((k, v) -> {
-            if (k instanceof Op.Result result) {
-                if (result.op() instanceof CoreOp.VarOp varOp) {
-                    nameValueMap.put(varOp.varName(), v);
-                }
-            }
-        });
-        Object[] args = new Object[method.getParameterCount()];
-        if (args.length != varLoadNames.length) {
-            throw new IllegalStateException("Why don't we have enough captures.!! ");
-        }
-        for (int i = 1; i < args.length; i++) {
-            args[i] = nameValueMap.get(varLoadNames[i].toString());
-            if (args[i] instanceof CoreOp.Var varbox) {
-                args[i] = varbox.value();
-            }
-        }
-        return args;
-    }
-
 
 
     static Op.Result lhsResult(JavaOp.BinaryOp binaryOp) {
@@ -147,51 +103,37 @@ public interface OpTkl {
         return (Op.Result) returnOp.operands().getFirst();
     }
 
-    static Block block(JavaOp.ConditionalExpressionOp ternaryOp, int idx) {
-        return ternaryOp.bodies().get(idx).entryBlock();
+    static Block entryBlockOfBodyN(Op op, int idx) {
+        return op.bodies().get(idx).entryBlock();
     }
 
     static Block condBlock(JavaOp.ConditionalExpressionOp ternaryOp) {
-        return block(ternaryOp, 0);
+        return entryBlockOfBodyN(ternaryOp, 0);
     }
 
     static Block thenBlock(JavaOp.ConditionalExpressionOp ternaryOp) {
-        return block(ternaryOp, 1);
+        return entryBlockOfBodyN(ternaryOp, 1);
     }
 
     static Block elseBlock(JavaOp.ConditionalExpressionOp ternaryOp) {
-        return block(ternaryOp, 2);
+        return entryBlockOfBodyN(ternaryOp, 2);
     }
 
 
-    static Value operandOrNull(Op op, int idx) {
+    static Value operandNOrNull(Op op, int idx) {
         return op.operands().size() > idx ? op.operands().get(idx) : null;
     }
 
-    static Block block(JavaOp.ForOp forOp, int idx) {
-        return forOp.bodies().get(idx).entryBlock();
-    }
-
-    static Block mutateBlock(JavaOp.ForOp forOp) {
-        return block(forOp, 2);
-    }
-
+    static Block updateBlock(JavaOp.ForOp forOp) {return forOp.update().entryBlock();}
     static Block condBlock(JavaOp.ForOp forOp) {
         return forOp.cond().entryBlock();
     }
-
     static Block initBlock(JavaOp.ForOp forOp) {
         return forOp.init().entryBlock();
     }
-
-    static Block block(JavaOp.WhileOp whileOp, int idx) {
-        return whileOp.bodies().get(idx).entryBlock();
-    }
-
     static Block condBlock(JavaOp.WhileOp whileOp) {
-        return block(whileOp, 0);
+        return entryBlockOfBodyN(whileOp, 0);
     }
-
 
     static PrimitiveType asPrimitiveResultOrNull(Value v) {
         return (v instanceof Op.Result r && r.op().resultType() instanceof PrimitiveType primitiveType)?primitiveType:null;
@@ -202,8 +144,8 @@ public interface OpTkl {
     }
 
     static Op.Result asResultOrThrow(Value value) {
-        if (value instanceof Op.Result r) {
-            return r;
+        if (value instanceof Op.Result result) {
+            return result;
         } else {
             throw new RuntimeException("Value not a result");
         }
@@ -215,7 +157,7 @@ public interface OpTkl {
                 : Stream.of();
     }
 
-    static Op.Result operandAsResult(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
+    static Op.Result operandNAsResult(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
         return codeElement instanceof Op op && op.operands().size() > n && op.operands().get(n) instanceof Op.Result result ? result : null;
     }
 
@@ -272,79 +214,6 @@ public interface OpTkl {
 
     static Stream<Op> statements(Block block) {
         return block.ops().stream().filter(OpTkl::isStatementOp);
-    }
-
-
-    static Stream<jdk.incubator.code.CodeElement<?, ?>> elements(CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (callSite.tracing()) {
-            System.out.println(callSite);
-        }
-        return funcOp.elements();
-    }
-
-    static <T extends Op> Stream<T> ops(CallSite callSite, CoreOp.FuncOp funcOp,
-                                        Predicate<jdk.incubator.code.CodeElement<?, ?>> predicate,
-                                        Function<CodeElement<?, ?>, T> mapper
-    ) {
-        if (callSite.tracing()) {
-            System.out.println(callSite);
-        }
-        return funcOp.elements().filter(predicate).map(mapper);
-    }
-
-
-    static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<CodeElement<?,?>> predicate, CodeTransformer codeTransformer) {
-        if (callSite!= null && callSite.tracing()) {
-            System.out.println(callSite);
-        }
-        return funcOp.transform((blockBuilder, op) -> {
-            if (predicate.test(op)) {
-                var builder = codeTransformer.acceptOp(blockBuilder, op);
-                if (builder != blockBuilder) {
-                    throw new RuntimeException("Where does this builder come from " + builder);
-                }
-            } else {
-                blockBuilder.op(op);
-            }
-            return blockBuilder;
-        });
-    }
-    static CoreOp.FuncOp transform(CoreOp.FuncOp funcOp, Predicate<CodeElement<?,?>> predicate, CodeTransformer codeTransformer) {
-       return OpTkl.transform(null, funcOp,predicate,codeTransformer);
-    }
-
-    static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, CodeTransformer CodeTransformer) {
-        if (callSite.tracing()) {
-            System.out.println(callSite);
-        }
-        return funcOp.transform(CodeTransformer);
-    }
-
-
-    static Class<?> typeElementToClass(MethodHandles.Lookup lookup, TypeElement type) {
-        class PrimitiveHolder {
-            static final Map<PrimitiveType, Class<?>> primitiveToClass = Map.of(
-                    JavaType.BYTE, byte.class,
-                    JavaType.SHORT, short.class,
-                    JavaType.INT, int.class,
-                    JavaType.LONG, long.class,
-                    JavaType.FLOAT, float.class,
-                    JavaType.DOUBLE, double.class,
-                    JavaType.CHAR, char.class,
-                    JavaType.BOOLEAN, boolean.class
-            );
-        }
-        try {
-            if (type instanceof PrimitiveType primitiveType) {
-                return PrimitiveHolder.primitiveToClass.get(primitiveType);
-            } else if (type instanceof ClassType classType) {
-                return ((Class<?>) classType.resolve(lookup));
-            } else {
-                throw new IllegalArgumentException("given type cannot be converted to class");
-            }
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("given type cannot be converted to class");
-        }
     }
 
     static boolean isParamVar(CoreOp.VarOp varOp) {

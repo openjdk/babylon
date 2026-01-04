@@ -35,11 +35,11 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.Trxfmr;
 import optkl.util.CallSite;
 
 import java.util.List;
 
-import static optkl.OpTkl.transform;
 
 public class DNA {
     static int myFunc(int i) {
@@ -80,7 +80,7 @@ public class DNA {
         Method method = DNA.class.getDeclaredMethod("addMul", int.class, int.class);
         var funcOp = Op.ofMethod(method).get();
         var here = CallSite.of(DNA.class, "main");
-        var transformed = transform(here, funcOp,_->true,(builder, op) -> {
+        var transformed = new Trxfmr(funcOp).transform(_->true,(builder, op) -> {
             CodeContext cc = builder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                // List<Value> operands = new ArrayList<>();
@@ -94,7 +94,7 @@ public class DNA {
                 builder.op(op);
             }
             return builder;
-        });
+        }).funcOp();
 
 
         System.out.println(transformed.toText());

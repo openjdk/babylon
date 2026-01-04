@@ -37,8 +37,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Invoke;
-import optkl.OpTkl;
-import optkl.util.CallSite;
+import optkl.Trxfmr;
 
 import java.util.List;
 import java.util.Set;
@@ -100,11 +99,9 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
-           funcOp = OpTkl.transform(CallSite.of(this.getClass()), funcOp, _->true, (blockBuilder, op) -> {
+           return new Trxfmr(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (!nodesInvolved.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
                 List<Value> inputOperandsVarOp = invokeOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
 
@@ -122,8 +119,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
                 context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
             }
             return blockBuilder;
-        });
-        return funcOp;
+        }).funcOp();
     }
 
     public static final class Float4StorePhase extends HATVectorStorePhase {

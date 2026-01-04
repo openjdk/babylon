@@ -30,6 +30,7 @@ import hat.Config;
 import hat.KernelContext;
 import jdk.incubator.code.CodeTransformer;
 import optkl.Invoke;
+import optkl.Trxfmr;
 import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
@@ -54,7 +55,6 @@ import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.classTypeToTypeOrThrow;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.transform;
 
 public abstract class FFIBackend extends FFIBackendDriver {
 
@@ -133,7 +133,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
             }
             var paramTable = new FuncOpParams(computeMethod.funcOp());
 
-            transformedFuncOp = transform(here, computeMethod.funcOp(),_->true,(bldr, op) -> {
+            transformedFuncOp = new Trxfmr(computeMethod.funcOp()).transform(_->true,(bldr, op) -> {
                 if (invokeOpHelper(lookup(),op) instanceof Invoke invoke ) {
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
                     if (invoke.isMappableIface() && invoke.returnsVoid()) {                    // iface.v(newV)
@@ -201,7 +201,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                     bldr.op(op);
                 }
                 return bldr;
-            });
+            }).funcOp();
             if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());

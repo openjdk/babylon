@@ -41,8 +41,7 @@ public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPha
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
          Set<CodeElement<?,?>> removeMe = new HashSet<>();
-         return Trxfmr.of(funcOp)
-                 .transform(
+         return Trxfmr.of(funcOp).transform(
                      ce-> invokeOpHelper(lookup(),ce) instanceof Invoke $ && $.named(HATBarrierOp.NAME), /* predicate */
                      c-> {
                         removeMe.add(((Op.Result)c.op().operands().getFirst()).op());
