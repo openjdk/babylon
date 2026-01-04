@@ -30,6 +30,7 @@ import hat.Config;
 import hat.KernelContext;
 import hat.types.BF16;
 import hat.types.F16;
+import jdk.incubator.code.CodeTransformer;
 import optkl.util.CallSite;
 import optkl.OpTkl;
 import hat.annotations.Kernel;
@@ -309,7 +310,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(OpTkl.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
+                IO.println(kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
             }
         }
         return builder.toString();
