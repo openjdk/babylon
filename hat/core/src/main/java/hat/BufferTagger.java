@@ -27,15 +27,15 @@ package hat;
 
 import jdk.incubator.code.analysis.SSA;
 import optkl.Invoke;
-import optkl.ifacemapper.AccessType;
-import optkl.util.CallSite;
 import optkl.OpTkl;
+import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
+import optkl.util.CallSite;
 import optkl.util.StreamMutable;
 
 import java.lang.invoke.MethodHandles;
@@ -44,6 +44,7 @@ import java.util.*;
 
 import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.isAssignable;
+import static optkl.OpTkl.transform;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
@@ -81,8 +82,8 @@ public class BufferTagger {
                         && optionalFuncOp.isPresent()
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
                 ){
-                    CoreOp.FuncOp ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                    Block.Builder exit = Inliner.inline(
+                    var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
+                    var exitBlockBuilder = Inliner.inline(
                             blockbuilder, ssaInline,
                             blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
                                 // intellij doesnt like value as var name so we use _value
@@ -94,11 +95,11 @@ public class BufferTagger {
                                 blockbuilder.context().mapValue(invoke.op().result(), _value);
                             }
                     });
-                    if (!exit.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invoke.op().result(), exit.parameters().getFirst());
+                    if (!exitBlockBuilder.parameters().isEmpty()) {
+                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
                     }
                     changed.set(true);
-                    return exit.rebind(blockbuilder.context(), blockbuilder.transformer());
+                    return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
                 }
                 blockbuilder.op(op);
                 return blockbuilder;

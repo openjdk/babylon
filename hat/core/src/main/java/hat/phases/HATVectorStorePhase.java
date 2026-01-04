@@ -37,6 +37,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Invoke;
+import optkl.OpTkl;
 import optkl.util.CallSite;
 
 import java.util.List;
@@ -80,21 +81,18 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
         }
     }
 
-
-
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var here = CallSite.of(this.getClass(), "apply");
-        String vectorOperation = switch (this) {
-            case Float2StorePhase _ -> "storeFloat2View";
-            case Float4StorePhase _ -> "storeFloat4View";
-        };
-        before(here,funcOp);
+
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (invokeOpHelper(lookup(),codeElement)instanceof Invoke invoke
                             && (invoke.op().operands().size() >2)
-                            && invoke.named(vectorOperation)
+                            && invoke.named(
+                            switch (HATVectorStorePhase.this) {
+                               case Float2StorePhase _ -> "storeFloat2View";
+                               case Float4StorePhase _ -> "storeFloat4View";
+                            })
                             && asResultOrNull(invoke.op().operands().get(1)) instanceof Op.Result result
                             && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                             && isAssignable(lookup(),varLoadOp.resultType(), _V.class)){
@@ -103,7 +101,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
-           funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
+           funcOp = OpTkl.transform(CallSite.of(this.getClass()), funcOp, _->true, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
@@ -126,7 +124,6 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
             }
             return blockBuilder;
         });
-        after(here, funcOp);
         return funcOp;
     }
 
