@@ -48,7 +48,6 @@ import java.util.stream.Stream;
 import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.asResultOrNull;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.transform;
 
 public abstract sealed class HATVectorStorePhase implements HATPhase
         permits HATVectorStorePhase.Float2StorePhase, HATVectorStorePhase.Float4StorePhase{

@@ -31,6 +31,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.ops.Precedence;
 import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
@@ -326,21 +327,17 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
     }
 
     public static final class HATVectorSelectStoreOp extends HATVectorOp {
-
-      //  private final TypeElement elementType;
         private final int lane;
         private final CoreOp.VarOp resultVarOp;
 
-        public HATVectorSelectStoreOp(String varName, TypeElement resultType, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
-            super(varName, resultType, resultType, -1, operands);
-          //  this.elementType = typeElement;
+        public HATVectorSelectStoreOp(String varName,  int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
+            super(varName, JavaType.VOID, JavaType.VOID, -1, operands);
             this.lane = lane;
             this.resultVarOp = resultVarOp;
         }
 
         public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CodeContext cc) {
             super(that, cc);
-         //   this.elementType = that.elementType;
             this.lane = that.lane;
             this.resultVarOp = that.resultVarOp;
         }
@@ -349,12 +346,6 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
             return new HATVectorSelectStoreOp(this, copyContext);
         }
-
-      //  @Override
-        //public TypeElement resultType() {
-          //  return elementType;
-       // }
-
         @Override
         public Map<String, Object> externalize() {
             return Map.of("hat.dialect.vselect.store." + lane, resultType());
