@@ -26,7 +26,6 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.CallSite;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
@@ -35,27 +34,8 @@ import java.util.function.Function;
 public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
         permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase,
         HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
-
-
     KernelCallGraph kernelCallGraph();
-
     @Override default MethodHandles.Lookup lookup(){
         return kernelCallGraph().lookup();
-    }
-
-    default boolean tracing(){
-            return kernelCallGraph().config().showCompilationPhases();
-    }
-
-    default void before(CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (tracing()) {
-            IO.println("[INFO] Code model before [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: "  + System.lineSeparator() + funcOp.toText());
-        }
-    }
-
-    default void after(CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (tracing()) {
-            IO.println("[INFO] Code model after [" + callSite.clazz().getSimpleName() + "#" + callSite.methodName() +  "]: " + System.lineSeparator() + funcOp.toText());
-        }
     }
 }

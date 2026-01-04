@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.Invoke;
+import optkl.Trxfmr;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.CallSite;
 
@@ -51,8 +52,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.transform;
 import static optkl.Trxfmr.copyLocation;
 
 public abstract sealed class HATMemoryPhase implements HATPhase {
@@ -84,11 +83,8 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        var here = CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase");
-        before(here,funcOp);
         Set<CoreOp.VarOp> removeMe = new LinkedHashSet<>();
         Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
-
         funcOp.elements()
                 .filter(e -> e instanceof CoreOp.VarOp )
                 .map(e-> (CoreOp.VarOp) e)
@@ -105,7 +101,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     })
                 );
 
-        funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
+        return new Trxfmr(funcOp).transform(ce->mapMe.contains(ce)||removeMe.contains(ce), (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp && mapMe.contains(invokeOp)) {
                 invokeOp.result().uses().stream()
                         .filter(result->result.op() instanceof CoreOp.VarOp)
@@ -119,9 +115,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                 blockBuilder.op(op);
             }
             return blockBuilder;
-        });
-        after(here,funcOp );
-        return funcOp;
+        }).funcOp();
     }
 
 
@@ -189,8 +183,6 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
 
         @Override
         public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-            var here = CallSite.of(PrivateMemoryPhase.class, "HATDialectifyMemoryPhase - memoryLoadOp");
-            before(here, funcOp);
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Stream<CodeElement<?, ?>> memoryLoadOps = funcOp.elements()
                     .mapMulti((codeElement, consumer) -> {
@@ -213,20 +205,14 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     });
 
             Set<CodeElement<?, ?>> nodesInvolved = memoryLoadOps.collect(Collectors.toSet());
-            funcOp = transform(here, funcOp,_->true, (blockBuilder, op) -> {
-                if (!nodesInvolved.contains(op)) {
-                    blockBuilder.op(op);
-                } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+            return new Trxfmr(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+               if (op instanceof JavaOp.InvokeOp invokeOp) {
                     insertHatMemoryLoadOp(blockBuilder, invokeOp);
                 } else if (op instanceof CoreOp.VarOp varOp) {
-                    JavaOp.InvokeOp invokeOp = varTable.get(varOp);
-                    factory(blockBuilder, varOp, invokeOp);
+                    factory(blockBuilder, varOp, varTable.get(varOp));
                 }
-
                 return blockBuilder;
-            });
-            after(here, funcOp);
-            return funcOp;
+            }).funcOp();
         }
 
         private void insertHatMemoryLoadOp(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp) {

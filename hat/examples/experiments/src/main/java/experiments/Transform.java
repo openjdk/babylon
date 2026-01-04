@@ -37,13 +37,13 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.Trxfmr;
 import optkl.util.CallSite;
 
 import java.util.List;
 import java.util.Map;
 
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
-import static optkl.OpTkl.transform;
 
 public class Transform {
         @Reflect
@@ -137,7 +137,7 @@ public class Transform {
             CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
             var here = CallSite.of(Transform.class, "main");
-            CoreOp.FuncOp transformed = transform(here, javaFunc,_->true,(builder, op) -> {
+            CoreOp.FuncOp transformed = new Trxfmr(javaFunc).transform(_->true,(builder, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     //  CodeContext cc = builder.context();
                     //  Block.Builder bb = builder;
@@ -152,7 +152,7 @@ public class Transform {
                     builder.op(op);
                 }
                 return builder;
-            });
+            }).funcOp();
 
             System.out.println(transformed.toText());
 

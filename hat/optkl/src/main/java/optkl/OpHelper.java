@@ -30,7 +30,6 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.Regex;
 import optkl.util.carriers.LookupCarrier;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -56,7 +55,7 @@ public interface OpHelper<T extends Op> extends LookupCarrier {
         return op().operands().size();
     }
     default Op.Result operandNAsResultOrNull(int i){
-        return OpTkl.operandAsResult(op(),i) instanceof Op.Result result?result:null;
+        return OpTkl.operandNAsResult(op(),i) instanceof Op.Result result?result:null;
     }
     default Op.Result firstOperandAsResultOrNull(){
         return operandNAsResultOrNull(0);

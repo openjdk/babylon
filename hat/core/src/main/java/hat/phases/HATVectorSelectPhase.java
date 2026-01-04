@@ -35,7 +35,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Invoke;
-import optkl.OpTkl;
+import optkl.Trxfmr;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -94,7 +94,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                     ceToInvokeVar.put(invokeVar.varLoadOp,invokeVar);
                 });
 
-        funcOp = OpTkl.transform( funcOp, ceToInvokeVar::containsKey,(blockBuilder, op) -> {
+        return new Trxfmr(funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (invokeOpHelper(lookup(),op) instanceof Invoke invoke
                     && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
@@ -128,9 +128,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                 context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
             }
             return blockBuilder;
-        });
-
-        return funcOp;
+        }).funcOp();
     }
 
 }
