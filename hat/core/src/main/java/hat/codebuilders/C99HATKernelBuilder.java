@@ -603,7 +603,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (hatPtrOp instanceof HATPtrOp.HATPtrLengthOp) {
             identifier("length");
         } else {
-            boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;
+            boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;// ?
             identifier("array").sbrace(_ -> {
                 paren(_ -> identifier("long"));
                 paren(_ -> {

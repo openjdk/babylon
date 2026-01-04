@@ -27,7 +27,7 @@ package hat;
 
 import jdk.incubator.code.analysis.SSA;
 import optkl.Invoke;
-import optkl.OpTkl;
+import optkl.Trxfmr;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -44,7 +44,6 @@ import java.util.*;
 
 import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.transform;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
@@ -70,13 +69,12 @@ public class BufferTagger {
 
     // inlines functions found in FuncOp f until no more inline-able functions are present
     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        var here = CallSite.of(BufferTagger.class, "inlineLoop");
         CoreOp.FuncOp ssaFunc =  SSA.transform( funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
         var changed  = StreamMutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
-            ssaFunc = OpTkl.transform(here, ssaFunc,(blockbuilder, op) -> {
-                if (invokeOpHelper(lookup, op) instanceof Invoke invoke          // always but pattern friendly
+            ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
+                if (invokeOpHelper(lookup, op) instanceof Invoke invoke                         // always but pattern friendly
                         && invoke.resolvedMethodOrNull() instanceof Method method
                         && Op.ofMethod(method) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
                         && optionalFuncOp.isPresent()
@@ -102,7 +100,7 @@ public class BufferTagger {
                     return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
                 }
                 blockbuilder.op(op);
-                return blockbuilder;
+               return blockbuilder;
             });
         }
         return ssaFunc;

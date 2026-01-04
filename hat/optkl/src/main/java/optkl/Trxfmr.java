@@ -34,15 +34,13 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static optkl.OpTkl.operandOrNull;
+import static optkl.OpTkl.operandNOrNull;
 
 public class Trxfmr {
     public static Trxfmr of(CoreOp.FuncOp funcOp) {
@@ -207,7 +205,7 @@ public class Trxfmr {
         }
 
         default Value mappedOperand(int idx){
-            return getValue(operandOrNull(op(),idx));
+            return getValue(operandNOrNull(op(),idx));
         }
     }
 

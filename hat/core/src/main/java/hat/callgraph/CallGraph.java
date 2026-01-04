@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.elements;
 
 public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
@@ -79,9 +78,9 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
         record RefAndFunc(MethodRef r, CoreOp.FuncOp f) {}
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
-        var here = CallSite.of(OpTkl.class, "createTransitiveInvokeModule");
-        elements(here, entry).forEach(codeElement -> {
-            if (invokeOpHelper(lookup,codeElement) instanceof Invoke invoke) {
+
+        Invoke.stream(lookup,entry)
+                .forEach(invoke -> {
                 Class<?> javaRefTypeClass = invoke.classOrThrow();
                 try {
                     var method = invoke.op().invokeDescriptor().resolveToMethod(lookup);
@@ -94,7 +93,6 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
                 } catch (ReflectiveOperationException _) {
                     throw new IllegalStateException("Could not resolve invokeWrapper to method");
                 }
-            }
         });
 
         while (!work.isEmpty()) {

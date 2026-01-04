@@ -53,7 +53,7 @@ import static optkl.OpTkl.elseBlock;
 import static optkl.OpTkl.initBlock;
 import static optkl.OpTkl.lhsOps;
 import static optkl.OpTkl.lhsResult;
-import static optkl.OpTkl.mutateBlock;
+import static optkl.OpTkl.updateBlock;
 import static optkl.OpTkl.result;
 import static optkl.OpTkl.rhsOps;
 import static optkl.OpTkl.rhsResult;
@@ -333,7 +333,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                     condBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
                     commaSpaceSeparated(
-                            OpTkl.statements(mutateBlock(forOp)),
+                            OpTkl.statements(updateBlock(forOp)),
                             op -> recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->

@@ -28,6 +28,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.device.DeviceType;
 import hat.dialect.*;
 import optkl.Invoke;
+import optkl.Trxfmr;
 import optkl.util.CallSite;
 import optkl.ifacemapper.MappableIface;
 import hat.types._V;
@@ -43,29 +44,20 @@ import java.util.*;
 
 import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.classTypeToTypeOrThrow;
-import static optkl.OpTkl.elements;
-import static optkl.OpTkl.isAssignable;
 import static optkl.Trxfmr.copyLocation;
 
 public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
-    public boolean hasArrayView(CoreOp.FuncOp entry) {
-        var here = CallSite.of(HATArrayViewPhase.class, "isArrayView");
-        return elements(here, entry).anyMatch((element) -> (
-                element instanceof JavaOp.InvokeOp iop &&
-                        iop.resultType() instanceof ArrayType &&
-                        iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        (isAssignable(lookup(), javaType, MappableIface.class)
-                                || isAssignable(lookup(), javaType, DeviceType.class))));
-    }
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        if (hasArrayView(funcOp)) {
+        if (Invoke.stream(lookup(), funcOp).anyMatch(invoke ->
+                            invoke.returnsArray()
+                        && invoke.refIs(MappableIface.class,DeviceType.class))) {
             Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
             Map<Op, CoreOp.VarAccessOp.VarLoadOp> bufferVarLoads = new HashMap<>();
 
-            return funcOp.transform(funcOp.funcName(), (blockBuilder, op) -> {
+            return new Trxfmr(funcOp).transform( (blockBuilder, op) -> {
                 var context = blockBuilder.context();
                 switch (op) {
                     case JavaOp.InvokeOp i when invokeOpHelper(lookup(), i) instanceof Invoke invoke -> {
@@ -227,7 +219,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                 }
                 blockBuilder.op(op);
                 return blockBuilder;
-            });
+            }).funcOp();
         }else {
             return funcOp;
         }

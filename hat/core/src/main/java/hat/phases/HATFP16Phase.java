@@ -39,6 +39,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.Invoke;
+import optkl.Trxfmr;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
@@ -221,17 +222,14 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                                 .ifPresent(varOp->reducedFloatsType.put(varOp,category));
                 });
 
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            if (!reducedFloatsType.containsKey(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+        return new Trxfmr(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16BinaryOp(invokeOp, blockBuilder, binaryOpEnum, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 createF16VarOp(varOp, blockBuilder, reducedFloatsType.get(varOp));
             }
             return blockBuilder;
-        });
-        return funcOp;
+        }).funcOp();
     }
 
     private CoreOp.FuncOp dialectifyF16Stores(CoreOp.FuncOp funcOp) {
@@ -246,18 +244,14 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                         }
                 });
 
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            if (!nodesInvolved.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var ctx = blockBuilder.context();
-                ctx.mapValue(invokeOp.result(), ctx.getValue(invokeOp.operands().getFirst()));
+        return  new Trxfmr(funcOp).transform(ce->nodesInvolved.contains(ce),(blockBuilder, op) -> {
+           if (op instanceof JavaOp.InvokeOp invokeOp) {
+               blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.context().getValue(invokeOp.operands().getFirst()));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 createF16VarLoadOp(varLoadOp, blockBuilder);
             }
             return blockBuilder;
-        });
-        return funcOp;
+        }).funcOp();
     }
 
 
@@ -278,7 +272,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                     })
                 );
 
-        funcOp = funcOp.transform((blockBuilder, op) -> {
+        return new Trxfmr(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
             if (!reducedFloatsType.containsKey(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -287,12 +281,11 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                 createF16VarOp(varOp, blockBuilder, reducedFloatsType.get(varOp));
             }
             return blockBuilder;
-        });
-        return funcOp;
+        }).funcOp();
     }
 
     private CoreOp.FuncOp dialectifyF16ToFloat(CoreOp.FuncOp funcOp) {
-        Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
+        Map<JavaOp.InvokeOp, ReducedFloatType> reducedFloatsType = new HashMap<>();
         funcOp.elements()
                 .filter(ce->ce instanceof JavaOp.InvokeOp)
                 .map(ce->invokeOpHelper(lookup(),ce))
@@ -301,15 +294,12 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                 .ifPresent(invoke -> reducedFloatsType.put(invoke.op(), categorizeReducedFloat(invoke.op())));
 
 
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            if (!reducedFloatsType.containsKey(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                createFloatFromF16(invokeOpHelper(lookup(),invokeOp), blockBuilder, reducedFloatsType.get(invokeOp));
+        return new Trxfmr(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+            if (op instanceof JavaOp.InvokeOp $ && invokeOpHelper(lookup(),$) instanceof Invoke invoke) {
+                createFloatFromF16(invoke, blockBuilder, reducedFloatsType.get(invoke.op()));
             }
             return blockBuilder;
-        });
-        return funcOp;
+        }).funcOp();
     }
 
 
