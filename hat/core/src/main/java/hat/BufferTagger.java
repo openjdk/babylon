@@ -27,15 +27,15 @@ package hat;
 
 import jdk.incubator.code.analysis.SSA;
 import optkl.Invoke;
-import optkl.ifacemapper.AccessType;
-import optkl.util.CallSite;
 import optkl.OpTkl;
+import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
+import optkl.util.CallSite;
 import optkl.util.StreamMutable;
 
 import java.lang.invoke.MethodHandles;
@@ -44,6 +44,7 @@ import java.util.*;
 
 import static optkl.Invoke.invokeOpHelper;
 import static optkl.OpTkl.isAssignable;
+import static optkl.OpTkl.transform;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
@@ -107,8 +108,6 @@ public class BufferTagger {
                             throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");
                         }
                     }
-                    changed.set(true);
-                    return exit.rebind(blockbuilder.context(), blockbuilder.transformer());
                 }
                 blockbuilder.op(op);
                 return blockbuilder;

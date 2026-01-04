@@ -274,12 +274,6 @@ public interface OpTkl {
         return block.ops().stream().filter(OpTkl::isStatementOp);
     }
 
-    static CoreOp.FuncOp lower(CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (callSite.tracing()) {
-            System.out.println(callSite);
-        }
-        return funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
-    }
 
     static Stream<jdk.incubator.code.CodeElement<?, ?>> elements(CallSite callSite, CoreOp.FuncOp funcOp) {
         if (callSite.tracing()) {
@@ -299,13 +293,13 @@ public interface OpTkl {
     }
 
 
-    static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, CodeTransformer CodeTransformer) {
-        if (callSite.tracing()) {
+    static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<CodeElement<?,?>> predicate, CodeTransformer codeTransformer) {
+        if (callSite!= null && callSite.tracing()) {
             System.out.println(callSite);
         }
         return funcOp.transform((blockBuilder, op) -> {
             if (predicate.test(op)) {
-                var builder = CodeTransformer.acceptOp(blockBuilder, op);
+                var builder = codeTransformer.acceptOp(blockBuilder, op);
                 if (builder != blockBuilder) {
                     throw new RuntimeException("Where does this builder come from " + builder);
                 }
@@ -314,6 +308,9 @@ public interface OpTkl {
             }
             return blockBuilder;
         });
+    }
+    static CoreOp.FuncOp transform(CoreOp.FuncOp funcOp, Predicate<CodeElement<?,?>> predicate, CodeTransformer codeTransformer) {
+       return OpTkl.transform(null, funcOp,predicate,codeTransformer);
     }
 
     static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, CodeTransformer CodeTransformer) {

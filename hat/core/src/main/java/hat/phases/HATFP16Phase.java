@@ -82,15 +82,9 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         };
     }
 
-    //recursive
-    private static boolean isOperandF32(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return isOperandF32(varLoadOp.operands().getFirst());
-    }
-
-    //recursive
     private static boolean isOperandF32(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isOperandF32(varLoadOp); //recurse
+            case CoreOp.VarAccessOp varLoadOp -> varLoadOp.varType().valueType() ==JavaType.FLOAT; //recurse
             case CoreOp.VarOp varOp -> varOp.resultType().valueType() == JavaType.FLOAT;
             default -> false;
         };
@@ -187,7 +181,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         // Obtain the memory mapping for each operand
         // if it comes from global memory, HAT replaces with a global* pointer to the inner struct,
         // then, we will need to operate half using a->value, instead of half value directly.
-        boolean isFirstOperandReference = findReference(lookup(),invokeOp.operands().getFirst());
+        boolean isFirstOperandReference = findReference(lookup(),invokeOp.operands().get(0));
         boolean isSecondOperandReference = findReference(lookup(),invokeOp.operands().get(1));
 
         byte valF32Conversion = 0x00;
