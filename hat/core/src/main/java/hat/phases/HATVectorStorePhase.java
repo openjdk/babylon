@@ -99,7 +99,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
-           return new Trxfmr(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+           return Trxfmr.of(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 List<Value> inputOperandsVarOp = invokeOp.operands();
