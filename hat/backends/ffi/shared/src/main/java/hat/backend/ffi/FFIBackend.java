@@ -29,9 +29,8 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import jdk.incubator.code.CodeTransformer;
-import optkl.Invoke;
+import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
 import optkl.ifacemapper.MappableIface;
@@ -39,7 +38,6 @@ import optkl.FuncOpParams;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -52,9 +50,7 @@ import java.util.List;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
-import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.classTypeToTypeOrThrow;
-import static optkl.OpTkl.isAssignable;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public abstract class FFIBackend extends FFIBackendDriver {
 
@@ -89,7 +85,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
             return new TypeAndAccess(annotations, value, (JavaType) value.type());
         }
         boolean isIface(MethodHandles.Lookup lookup) {
-            return isAssignable(lookup, javaType,MappableIface.class);
+            return OpHelper.isAssignable(lookup, javaType,MappableIface.class);
         }
         boolean ro(){
             for (Annotation annotation : annotations) {
@@ -171,7 +167,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                     });
                             bldr.op(invoke.op());
                             typeAndAccesses.stream()
-                                    .filter(typeAndAccess -> isAssignable(lookup(), typeAndAccess.javaType, MappableIface.class))
+                                    .filter(typeAndAccess -> OpHelper.isAssignable(lookup(), typeAndAccess.javaType, MappableIface.class))
                                     .forEach(typeAndAccess -> {
                                         if (typeAndAccess.ro()) {
                                             bldr.op(JavaOp.invoke(ACCESS.post, cc, bldr.context().getValue(typeAndAccess.value)));

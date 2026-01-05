@@ -32,17 +32,13 @@ import hat.types.HAType;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import optkl.Invoke;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.ifacemapper.MappableIface;
-import optkl.util.CallSite;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -51,7 +47,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static optkl.Invoke.invokeOpHelper;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 import static optkl.Trxfmr.copyLocation;
 
 public abstract sealed class HATMemoryPhase implements HATPhase {
@@ -75,7 +71,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
 
     protected abstract HATMemoryVarOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
 
-    protected abstract boolean isIfaceBufferInvokeWithName(Invoke invoke);
+    protected abstract boolean isIfaceBufferInvokeWithName(OpHelper.NamedOpHelper.Invoke invoke);
 
     public HATMemoryPhase(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
@@ -125,7 +121,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected boolean isIfaceBufferInvokeWithName(Invoke invoke) {
+        protected boolean isIfaceBufferInvokeWithName(OpHelper.NamedOpHelper.Invoke invoke) {
             return invoke.refIs( DeviceType.class, MappableIface.class, HAType.class)
                     && invoke.named(HATMemoryVarOp.HATPrivateVarOp.INTRINSIC_NAME);
 
@@ -151,7 +147,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected boolean isIfaceBufferInvokeWithName(Invoke invoke){
+        protected boolean isIfaceBufferInvokeWithName(OpHelper.NamedOpHelper.Invoke invoke){
             return invoke.refIs( DeviceType.class, MappableIface.class, HAType.class)
                     && invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME);
 
@@ -176,7 +172,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected boolean isIfaceBufferInvokeWithName(Invoke invoke){
+        protected boolean isIfaceBufferInvokeWithName(OpHelper.NamedOpHelper.Invoke invoke){
             return invoke.refIs( DeviceType.class, MappableIface.class, HAType.class)
                  || invoke.named(HATMemoryVarOp.HATLocalVarOp.INTRINSIC_NAME);
         }
@@ -186,7 +182,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Stream<CodeElement<?, ?>> memoryLoadOps = funcOp.elements()
                     .mapMulti((codeElement, consumer) -> {
-                        if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke
+                        if (invokeOpHelper(lookup(),codeElement) instanceof OpHelper.NamedOpHelper.Invoke invoke
                              && invoke.refIs(DeviceType.class)
                                     && !invoke.returnsVoid()
                                     && !invoke.returnsPrimitive()

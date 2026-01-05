@@ -29,20 +29,20 @@ import hat.dialect.HATBarrierOp;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.Invoke;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import static optkl.Invoke.invokeOpHelper;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
          Set<CodeElement<?,?>> removeMe = new HashSet<>();
          return Trxfmr.of(funcOp).transform(
-                     ce-> invokeOpHelper(lookup(),ce) instanceof Invoke $ && $.named(HATBarrierOp.NAME), /* predicate */
+                     ce-> invokeOpHelper(lookup(),ce) instanceof OpHelper.NamedOpHelper.Invoke $ && $.named(HATBarrierOp.NAME), /* predicate */
                      c-> {
                         removeMe.add(((Op.Result)c.op().operands().getFirst()).op());
                         c.replace(new HATBarrierOp());

@@ -32,16 +32,14 @@ import hat.types._V;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.Invoke;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,7 +49,7 @@ import java.util.stream.Stream;
 
 import static hat.dialect.HATPhaseUtils.VectorMetaData;
 import static hat.dialect.HATPhaseUtils.getVectorTypeInfo;
-import static optkl.Invoke.invokeOpHelper;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public abstract sealed class HATVectorPhase implements HATPhase
         permits HATVectorPhase.AddPhase, HATVectorPhase.DivPhase, HATVectorPhase.Float2LoadPhase, HATVectorPhase.Float4LoadPhase
@@ -275,7 +273,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
         Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke
+                    if (invokeOpHelper(lookup(),codeElement) instanceof OpHelper.NamedOpHelper.Invoke invoke
                          &&invoke.returns(_V.class) && invoke.named(vectorOperation.methodName) ) {
                             consumer.accept(invoke.op());
                             Set<Op.Result> uses = invoke.op().result().uses();
@@ -316,7 +314,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
                         List<Value> inputOperandsVarOp = varOp.operands();
                         for (Value inputOperand : inputOperandsVarOp) {
                             if (inputOperand instanceof Op.Result result) {
-                                if (invokeOpHelper(lookup(),result.op()) instanceof Invoke invoke ) {
+                                if (invokeOpHelper(lookup(),result.op()) instanceof OpHelper.NamedOpHelper.Invoke invoke ) {
                                     if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)) {
                                         BinaryOpEnum binaryOpType = BinaryOpEnum.of(invoke.op());
                                         binaryOperation.put(invoke.op(), binaryOpType);
@@ -355,7 +353,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke) {
+                    if (invokeOpHelper(lookup(),codeElement) instanceof OpHelper.NamedOpHelper.Invoke invoke) {
                         if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)) {
                             consumer.accept(invoke.op());
                             VectorMetaData vectorTypeInfo = getVectorTypeInfo(lookup(),invoke.op());
@@ -390,7 +388,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
         Map<JavaOp.InvokeOp, BinaryOpEnum> binaryOperation = new HashMap<>();
         Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (invokeOpHelper(lookup(),codeElement) instanceof Invoke invoke) {
+                    if (invokeOpHelper(lookup(),codeElement) instanceof OpHelper.NamedOpHelper.Invoke invoke) {
                         if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)) {
                             List<Value> inputOperandsInvoke = invoke.op().operands();
                             for (Value inputOperand : inputOperandsInvoke) {

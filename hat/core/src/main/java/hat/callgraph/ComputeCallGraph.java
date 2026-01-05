@@ -27,6 +27,7 @@ package hat.callgraph;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import optkl.OpHelper;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
@@ -41,8 +42,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
 
-import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.isAssignable;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
@@ -115,7 +115,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
-                        } else if (isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
+                        } else if (OpHelper.isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
                             traits.atLeastOneIfaceBufferParam= true;
                         } else {
                             traits.hasOnlyPrimitiveAndIfaceBufferParams=false;
