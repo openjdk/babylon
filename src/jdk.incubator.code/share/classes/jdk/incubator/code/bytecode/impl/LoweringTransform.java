@@ -107,7 +107,11 @@ public final class LoweringTransform {
         Value selector = block.context().getValue(swOp.operands().get(0));
         if (ConstantLabelSwitchChecker.isIntegralReferenceType(selector.type())) {
             // unbox selector
-            selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "intValue", JavaType.INT), selector));
+            if (selector.type().equals(J_L_CHARACTER)) {
+                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "charValue", JavaType.CHAR), selector));
+            } else {
+                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "intValue", JavaType.INT), selector));
+            }
         }
         var labels = labelsAndTargets.labels();
         if (!labels.contains(null)) {
