@@ -584,8 +584,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    T ptrAccess(ScopedCodeBuilderContext builderContext, HATPtrOp hatPtrOp) {
-        identifier(hatPtrName(hatPtrOp));
+    private T ptrAccess(ScopedCodeBuilderContext builderContext, HATPtrOp hatPtrOp) {
+        identifier(hatPtrOp.name());
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             Op resolve = builderContext.scope.resolve(varLoadOp.operands().getFirst());
@@ -604,7 +604,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 paren(_ -> {
                     if (hatPtrOp.strides().size() > 1) {
                         paren(_ -> recurse(builderContext, ((Op.Result) hatPtrOp.operands().get(2)).op()));
-                        asterisk().identifier(hatPtrName(hatPtrOp));
+                        asterisk().identifier(hatPtrOp.name());
                         either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).identifier(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
                         add().paren(_ -> recurse(builderContext, ((Op.Result) hatPtrOp.operands().get(1)).op()));
                     } else {
@@ -614,16 +614,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             });
         }
         return self();
-    }
-
-    public String hatPtrName(HATPtrOp hatPtrOp) {
-        Op op = ((Op.Result) ((Op.Result) (hatPtrOp.operands().getFirst())).op().operands().getFirst()).op();
-        return switch (op) {
-            case CoreOp.VarOp varOp -> varOp.varName();
-            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
-            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
-            case null, default -> "";
-        };
     }
 
     /**

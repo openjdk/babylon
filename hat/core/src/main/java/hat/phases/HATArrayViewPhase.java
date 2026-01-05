@@ -147,6 +147,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                 var operands = arrayAccessInfo.bufferAndIndicesAsValues();
 
                                 var hatPtrLoadOp = copyLocation(arrayLoadOp,new HATPtrOp.HATPtrLoadOp(
+                                        arrayAccessInfo.bufferName(),
                                         arrayLoadOp.resultType(),
                                         (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                         context.getValues(operands)
@@ -185,6 +186,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                 var operands = arrayAccessInfo.bufferAndIndicesAsValues();
                                 operands.add(arrayStoreOp.operands().getLast());
                                 HATPtrOp.HATPtrStoreOp ptrLoadOp = copyLocation(arrayStoreOp,new HATPtrOp.HATPtrStoreOp(
+                                        arrayAccessInfo.bufferName(),
                                         arrayStoreOp.resultType(),
                                         (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                         context.getValues(operands)
@@ -202,6 +204,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         if (isBufferArray(arrayLengthOp) && firstOperand(arrayLengthOp) instanceof Op.Result) {
                             var arrayAccessInfo = arrayAccessInfo(op.result(), replaced);
                             var hatPtrLengthOp = copyLocation(arrayLengthOp,new HATPtrOp.HATPtrLengthOp(
+                                    arrayAccessInfo.bufferName(),
                                     arrayLengthOp.resultType(),
                                     (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                     context.getValues(List.of(arrayAccessInfo.buffer()))
@@ -223,7 +226,16 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
         }
     }
 
-    record ArrayAccessInfo(Op.Result buffer, List<Op.Result> indices) {
+    public static String hatPtrName(Op op) {
+        return switch (op) {
+            case CoreOp.VarOp varOp -> varOp.varName();
+            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
+            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
+            case null, default -> "";
+        };
+    }
+
+    record ArrayAccessInfo(Op.Result buffer, String bufferName, List<Op.Result> indices) {
         public List<Value> bufferAndIndicesAsValues() {
             List<Value> operands = new ArrayList<>(List.of(buffer));
             operands.addAll(indices);
@@ -255,7 +267,8 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                 }
             }
             buffer = replaced.get((Op.Result) firstOperand(buffer.op()));
-            return new ArrayAccessInfo(buffer, indices);
+            String bufferName = hatPtrName(((Op.Result) firstOperand(buffer.op())).op());
+            return new ArrayAccessInfo(buffer, bufferName, indices);
         }
     }
 
