@@ -27,6 +27,7 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.types.BF16;
 import hat.types.F16;
+import optkl.OpHelper;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -36,8 +37,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-
-import static optkl.OpTkl.isAssignable;
 
 public record HATFinalDetector(KernelCallGraph kernelCallGraph){
     public Map<Op.Result, CoreOp.VarOp> applied(CoreOp.FuncOp funcOp) {
@@ -53,7 +52,7 @@ public record HATFinalDetector(KernelCallGraph kernelCallGraph){
                 // generate the constant, because at this point of the analysis
                 // after the dialectify, the only accesses left are accesses
                 // to global memory.
-                if (!isAssignable(kernelCallGraph.lookup(), varOp.resultType().valueType(),
+                if (!OpHelper.isAssignable(kernelCallGraph.lookup(), varOp.resultType().valueType(),
                         MappableIface.class, F16.class, BF16.class)) {
                     boolean isFinalVarOp = true;
                     for (Op.Result use : uses) {

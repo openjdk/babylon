@@ -47,8 +47,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.Optional;
 
-import static optkl.Invoke.getTargetInvoke;
-import static optkl.Lambda.lambdaOpHelper;
+import static optkl.OpHelper.NamedOpHelper.Invoke.getTargetInvoke;
+import static optkl.OpHelper.Lambda.lambdaOpHelper;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel

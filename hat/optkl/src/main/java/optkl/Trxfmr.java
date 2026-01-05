@@ -38,11 +38,8 @@ import optkl.util.OpCodeBuilder;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import static optkl.OpTkl.operandNOrNull;
 
 public class Trxfmr {
     public static Trxfmr of(CoreOp.FuncOp funcOp) {
@@ -211,7 +208,7 @@ public class Trxfmr {
         }
 
         default Value mappedOperand(int idx){
-            return getValue(operandNOrNull(op(),idx));
+            return getValue(OpHelper.operandNAsResult(op(),idx));
         }
     }
 

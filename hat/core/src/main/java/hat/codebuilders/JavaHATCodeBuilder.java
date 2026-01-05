@@ -25,10 +25,8 @@
 package hat.codebuilders;
 
 import hat.KernelContext;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.FieldAccess;
-import optkl.OpTkl;
+import optkl.OpHelper;
 import optkl.codebuilders.BabylonCoreOpBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -39,7 +37,7 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 
-import static optkl.FieldAccess.fieldAccessOpHelper;
+import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
 
 public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
 
@@ -72,18 +70,15 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
      public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (invokeOp.invokeKind()== JavaOp.InvokeOp.InvokeKind.STATIC) {
             identifier(invokeOp.invokeDescriptor().refType().toString());
-     //   }else if (!invokeOp.operands().isEmpty() && invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
-       //     recurse(buildContext, instanceResult.op());
         }else{
             throw new IllegalStateException("Unexpected invokeOp ... in code builder");
         }
         dot().identifier(invokeOp.invokeDescriptor().name());
         paren(_ ->
-                // why did we have a sublist before? is this static vs instance?
-            commaSpaceSeparated(  invokeOp.operands()/*.subList(0,invokeOp.operands().size()-1)*/, o-> {
+            commaSpaceSeparated(  invokeOp.operands(), o-> {
                 if (o instanceof Op.Result result) {
                     recurse(buildContext, result.op());
-                } else if (o instanceof Block.Parameter parameter) {
+                } else if (o instanceof jdk.incubator.code.Block.Parameter parameter) {
                     identifier("param$"+parameter.index());
                 }else {
                     throw new IllegalStateException("What have we here ");
@@ -103,7 +98,7 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
                     )
             );
             braceNlIndented(_ -> nlSeparated(
-                    OpTkl.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                    OpHelper.Statement.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
                     statement -> statement(buildContext, statement)
                     )
             );

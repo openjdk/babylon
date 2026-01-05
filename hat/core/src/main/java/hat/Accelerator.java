@@ -48,8 +48,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
-import static optkl.Invoke.getTargetInvoke;
-import static optkl.Lambda.lambdaOpHelper;
+import static optkl.OpHelper.NamedOpHelper.Invoke.getTargetInvoke;
+import static optkl.OpHelper.Lambda.lambdaOpHelper;
 
 
 /**

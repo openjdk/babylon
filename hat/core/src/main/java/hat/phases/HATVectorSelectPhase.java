@@ -34,14 +34,13 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.Invoke;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.asOpFromResultOrNull;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 import static optkl.Trxfmr.copyLocation;
 
 public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
@@ -51,9 +50,10 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
         record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
             // recursive
             static String vectorNameOrThrow(Value v) {
-                return switch (asOpFromResultOrNull(v)){
+                return switch (OpHelper.asOpFromResultOrNull(v)){
                     case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->vectorNameOrThrow(varLoadOp.operands().getFirst()); // recurse
                     case HATVectorOp vectorOp ->vectorOp.varName();
+                    case null -> null;
                     default -> throw new IllegalStateException("failed to find vector name");
                 };
             }
@@ -62,9 +62,10 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
             }
             //recursive
             private CoreOp.VarOp findVarOpOrNull(Value v) {
-                return switch (asOpFromResultOrNull(v)){
+                return switch (OpHelper.asOpFromResultOrNull(v)){
                     case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->findVarOpOrNull(varLoadOp.operands().getFirst()); //recurse
                     case CoreOp.VarOp varOp->varOp;
+                    case null -> null;
                     default ->  null;
                 };
             }
@@ -81,7 +82,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
         }
 
         Map<CodeElement<?,?>, InvokeVar> ceToInvokeVar = new HashMap<>();
-        Invoke.stream(lookup(),funcOp)
+        OpHelper.NamedOpHelper.Invoke.stream(lookup(),funcOp)
                 .filter(invoke ->
                         invoke.named("x","y","z","w")
                                 && invoke.refIs(_V.class)
@@ -96,7 +97,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
 
         return Trxfmr.of(funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (invokeOpHelper(lookup(),op) instanceof Invoke invoke
+            if (invokeOpHelper(lookup(),op) instanceof OpHelper.NamedOpHelper.Invoke invoke
                     && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
                 Op newOp = invoke.returnsVoid()
                         ?

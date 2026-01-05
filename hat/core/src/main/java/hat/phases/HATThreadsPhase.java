@@ -29,20 +29,18 @@ import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
 import jdk.incubator.code.CodeElement;
-import optkl.FieldAccess;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.OpTkl;
 import optkl.util.Regex;
 
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import static optkl.FieldAccess.fieldAccessOpHelper;
-import static optkl.OpTkl.operandsAsResults;
+import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
 
 public sealed abstract class HATThreadsPhase implements HATPhase
 permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPhase.GlobalSizePhase, HATThreadsPhase.LocalIdPhase, HATThreadsPhase.LocalSizePhase {
@@ -73,13 +71,13 @@ permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPha
         };
         Set<CodeElement<?,?>> removeMe= new HashSet<>();
         return Trxfmr.of(funcOp).transform(ce->ce instanceof JavaOp.FieldAccessOp, c->{
-                    if (fieldAccessOpHelper(lookup(),c.op()) instanceof FieldAccess fieldAccess
+                    if (fieldAccessOpHelper(lookup(),c.op()) instanceof OpHelper.NamedOpHelper.FieldAccess fieldAccess
                             && fieldAccess.refType(KernelContext.class)
                             && fieldAccess.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp
                             && fieldAccess.named(fieldNameRegex)) {
-                        operandsAsResults(fieldAccess.op())
-                                .map(OpTkl::opOfResultOrNull)
-                                .map(OpTkl::asVarLoadOrNull)
+                        OpHelper.operandsAsResults(fieldAccess.op())
+                                .map(OpHelper::opOfResultOrNull)
+                                .map(OpHelper.NamedOpHelper.VarAccess::asVarLoadOrNull)
                                 .filter(Objects::nonNull)
                                 .findFirst()
                                 .ifPresent(varLoadOp -> {
