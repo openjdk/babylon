@@ -32,6 +32,7 @@ import hat.types._V;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -40,6 +41,7 @@ import optkl.Invoke;
 import optkl.Trxfmr;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -238,36 +240,25 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
     private CoreOp.FuncOp dialectifyVectorLoad(CoreOp.FuncOp funcOp) {
         Map<Op, VectorMetaData> vectorMetaData = new HashMap<>();
-        Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
-                .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof CoreOp.VarOp varOp) {
-                        List<Value> inputOperandsVarOp = varOp.operands();
-                        for (Value inputOperand : inputOperandsVarOp) {
-                            if (inputOperand instanceof Op.Result result) {
-                                if (invokeOpHelper(lookup(),result.op()) instanceof Invoke invoke) {
-                                    if (invoke.returns(_V.class) && invoke.named(vectorOperation.methodName)){
-                                          //  isVectorOperation(invokeOpHelper(lookup(),invokeOp))) {
-                                        // Associate both ops to the vectorTypeInfo for easy
-                                        // access to type and lanes
-                                        VectorMetaData vectorTypeInfo = getVectorTypeInfo(lookup(),invoke.op());
-                                        vectorMetaData.put(invoke.op(), vectorTypeInfo);
-                                        vectorMetaData.put(varOp, vectorTypeInfo);
-                                        consumer.accept(invoke.op());
-                                        consumer.accept(varOp);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+         funcOp.elements()
+                 .filter(ce->ce instanceof CoreOp.VarOp)
+                 .map(ce->(CoreOp.VarOp)ce)
+                 .forEach(varOp-> varOp.operands().stream()
+                      .filter(operand->operand instanceof Op.Result result && result.op() instanceof JavaOp.InvokeOp)
+                      .map(operand->invokeOpHelper(lookup(),((Op.Result)operand).op()))
+                      .filter(invoke ->  invoke.returns(_V.class) && invoke.named(vectorOperation.methodName))
+                      .forEach(invoke -> {
+                           // Associate both ops to the vectorTypeInfo for easy access to type and lanes
+                            VectorMetaData vectorTypeInfo = getVectorTypeInfo(lookup(), invoke.op());
+                            vectorMetaData.put(invoke.op(), vectorTypeInfo);
+                            vectorMetaData.put(varOp, vectorTypeInfo);
+                      })
+                );
 
-        Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-
-        return new Trxfmr(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(funcOp).transform(vectorMetaData::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                Op.Result result = invokeOp.result();
-                List<Op.Result> collect = result.uses().stream().toList();
                 boolean isShared = findIsSharedOrPrivate(invokeOp.operands().getFirst());
+                List<Op.Result> collect = invokeOp.result().uses().stream().toList();
                 for (Op.Result r : collect) {
                     if (r.op() instanceof CoreOp.VarOp varOp) {
                         insertVectorLoadOp(blockBuilder, invokeOp, varOp, isShared);
@@ -302,7 +293,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
 
-        return new Trxfmr(funcOp).transform(_->true, (blockBuilder, op) -> {
+        return Trxfmr.of(funcOp).transform(_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -343,7 +334,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
 
-        return new Trxfmr(funcOp).transform( nodesInvolved::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(funcOp).transform( nodesInvolved::contains, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Op.Result result = invokeOp.result();
                 List<Op.Result> collect = result.uses().stream().toList();
@@ -382,7 +373,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
 
-        funcOp = new Trxfmr(funcOp).transform(_->true, (blockBuilder, op) -> {
+        funcOp = Trxfmr.of(funcOp).transform(_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -423,7 +414,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
         if (!nodesInvolved.isEmpty()) {
-            funcOp = new Trxfmr(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+            funcOp = Trxfmr.of(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                  if (op instanceof JavaOp.InvokeOp invokeOp) {
                     insertVectorBinaryOp(blockBuilder, invokeOp, binaryOperation);
                 } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

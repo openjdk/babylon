@@ -33,10 +33,12 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
+import optkl.util.OpCodeBuilder;
 
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -63,6 +65,10 @@ public class Trxfmr {
         set.clear();
         set.addAll(newSet);
         return this;
+    }
+
+    public Trxfmr toText() {
+         return run(trxfmr -> System.out.println(OpCodeBuilder.toText(trxfmr.funcOp())));
     }
 
     interface TransformerCarrier {
@@ -261,11 +267,14 @@ public class Trxfmr {
         }
     }
 
-    public Trxfmr(CoreOp.FuncOp funcOp) {
+    private  Trxfmr(CoreOp.FuncOp funcOp) {
         this (null,funcOp);
-
     }
 
+    public Trxfmr run(Consumer<Trxfmr> action){
+        action.accept(this);
+        return this;
+    }
 
     public Trxfmr done() {
         if (callSite!=null && callSite.tracing()) {

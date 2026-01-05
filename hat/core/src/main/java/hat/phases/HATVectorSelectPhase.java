@@ -94,7 +94,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                     ceToInvokeVar.put(invokeVar.varLoadOp,invokeVar);
                 });
 
-        return new Trxfmr(funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (invokeOpHelper(lookup(),op) instanceof Invoke invoke
                     && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {

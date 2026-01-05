@@ -101,7 +101,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     })
                 );
 
-        return new Trxfmr(funcOp).transform(ce->mapMe.contains(ce)||removeMe.contains(ce), (blockBuilder, op) -> {
+        return Trxfmr.of(funcOp).transform(ce->mapMe.contains(ce)||removeMe.contains(ce), (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp && mapMe.contains(invokeOp)) {
                 invokeOp.result().uses().stream()
                         .filter(result->result.op() instanceof CoreOp.VarOp)
@@ -205,7 +205,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     });
 
             Set<CodeElement<?, ?>> nodesInvolved = memoryLoadOps.collect(Collectors.toSet());
-            return new Trxfmr(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+            return Trxfmr.of(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                if (op instanceof JavaOp.InvokeOp invokeOp) {
                     insertHatMemoryLoadOp(blockBuilder, invokeOp);
                 } else if (op instanceof CoreOp.VarOp varOp) {
