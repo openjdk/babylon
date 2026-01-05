@@ -25,21 +25,23 @@
 package life;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
-import hat.buffer.Buffer;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RO;
+import static optkl.ifacemapper.MappableIface.RW;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
@@ -77,7 +79,7 @@ public class Main {
 
         default void copySliceTo(byte[] bytes, int to) {
             long offset = headerOffset + to * valueLayout.byteOffset();
-            MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
+            MemorySegment.copy(MappableIface.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
 
         }
 
@@ -115,7 +117,7 @@ public class Main {
 
 
 
-    public static class Compute {
+    public static class ComputeLife {
         public static final String codeHeader = """
                 #define ALIVE -1
                 #define DEAD 0
@@ -134,13 +136,13 @@ public class Main {
                 """;
 
         final static String codeVal = """
-                 inline int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
+                 int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
                      return CLWrapCellGrid->cellArray[((y * w) + x + from)] & 1;
                  }
                 """;
 
 
-        @CodeReflection
+        @Reflect
         public static int val(@RO CellGrid grid, int from, int w, int x, int y) {
             return grid.cell(((long) y * w) + x + from) & 1;
         }
@@ -171,8 +173,8 @@ public class Main {
                 }
                 """;
 
-        @CodeReflection
-        public static void lifePerIdx(int idx, @RO Control control, @RW CellGrid cellGrid) {
+        @Reflect
+        public static void lifePerIdx(int idx, @RW Control control, @RW CellGrid cellGrid) {
             int w = cellGrid.width();
             int h = cellGrid.height();
             int from = control.from();
@@ -195,40 +197,35 @@ public class Main {
             cellGrid.cell(idx + to, cell);
         }
 
-
-        @CodeReflection
+        @Reflect
         public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
             if (kc.gix < kc.gsx) {
-                Compute.lifePerIdx(kc.gix, control, cellGrid);
+                ComputeLife.lifePerIdx(kc.gix, control, cellGrid);
             }
         }
 
-
-
-
-        @CodeReflection
+        @Reflect
         static public void compute(final @RO ComputeContext cc,
                                    Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
             while (viewer.stillRunning()) {
-                cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid));
+                cc.dispatchKernel(NDRange.of1D(range), kc -> ComputeLife.life(kc, ctrl, grid));
 
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 
                 long now = System.currentTimeMillis();
-                if (viewer.isReadyForUpdate(now)){
+                if (viewer.isReadyForUpdate(now)) {
                     viewer.update(now,grid,to);
                 }
             }
         }
     }
 
-
-    public static void main(String[] args) {
+    static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
-        Arena arena = Arena.global();
+       // Arena arena = Arena.global();
         PatternData patternData = RleParser.readPatternData(
                 Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );
@@ -255,7 +252,8 @@ public class Main {
 
         viewer.mainPanel.repaint();
         viewer.waitForStart();
-         accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+        accelerator.compute((@Reflect Compute)
+                cc -> ComputeLife.compute(cc, viewer, control, cellGrid));
 
     }
 }

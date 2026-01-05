@@ -24,14 +24,11 @@
  */
 package oracle.code.samples;
 
-import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -46,6 +43,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static jdk.incubator.code.CodeTransformer.LOWERING_TRANSFORMER;
 
 /**
  * Simple example of how to use the code reflection API.
@@ -74,7 +73,7 @@ import java.util.stream.Stream;
  */
 public class MathOptimizer {
 
-    @CodeReflection
+    @Reflect
     private static double myFunction(int value) {
         return Math.pow(2, value);
     }
@@ -132,7 +131,7 @@ public class MathOptimizer {
         System.out.println("Result after BC generation: " + resultBC);
 
         System.out.println("\nLet's transform the code");
-        codeModel = codeModel.transform(CopyContext.create(), (blockBuilder, op) -> {
+        codeModel = codeModel.transform((blockBuilder, op) -> {
             switch (op) {
                 case JavaOp.InvokeOp invokeOp when whenIsMathPowFunction(invokeOp) -> {
                     // The idea here is to create a new JavaOp.invoke with the optimization and replace it.
@@ -204,7 +203,7 @@ public class MathOptimizer {
 
         System.out.println("AFTER TRANSFORM: ");
         System.out.println(codeModel.toText());
-        codeModel = codeModel.transform(OpTransformer.LOWERING_TRANSFORMER);
+        codeModel = codeModel.transform(LOWERING_TRANSFORMER);
         System.out.println("After Lowering: ");
         System.out.println(codeModel.toText());
 
@@ -215,8 +214,8 @@ public class MathOptimizer {
 
         // Select invocation calls and display the lines
         System.out.println("\nPlaying with Traverse");
-        codeModel.traverse(null, (map, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
+        codeModel.elements().forEach(e -> {
+            if (e instanceof JavaOp.InvokeOp invokeOp) {
                 System.out.println("Function Name: " + invokeOp.invokeDescriptor().name());
 
                 // Maybe Location should throw a new exception instead of the NPE,
@@ -235,7 +234,6 @@ public class MathOptimizer {
                     System.out.println("[WARNING] Location is null");
                 }
             }
-            return map;
         });
 
         // In addition, we can generate bytecodes from a new code model that

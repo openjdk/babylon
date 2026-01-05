@@ -25,11 +25,13 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestConstants
+ * @run main Unreflect TestConstants
+ * @run junit TestConstants
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -45,94 +47,94 @@ import java.util.stream.Stream;
 
 public class TestConstants {
 
-    @CodeReflection
+    @Reflect
     public static boolean c_boolean() {
         return true;
     }
 
-    @CodeReflection
+    @Reflect
     public static boolean c_boolean_f() {
         return false;
     }
 
-    @CodeReflection
+    @Reflect
     public static byte c_byte() {
         return 42;
     }
 
-    @CodeReflection
+    @Reflect
     public static byte c_byte_neg() {
         return -42;
     }
 
-    @CodeReflection
+    @Reflect
     public static short c_short() {
         return 42;
     }
 
-    @CodeReflection
+    @Reflect
     public static short c_short_neg() {
         return -42;
     }
 
-    @CodeReflection
+    @Reflect
     public static char c_char() {
         return 'A';
     }
 
-    @CodeReflection
+    @Reflect
     public static int c_int() {
         return 42;
     }
 
-    @CodeReflection
+    @Reflect
     public static int c_int_neg() {
         return -42;
     }
 
-    @CodeReflection
+    @Reflect
     public static long c_long() {
         return 42L;
     }
 
-    @CodeReflection
+    @Reflect
     public static long c_long_neg() {
         return -42L;
     }
 
-    @CodeReflection
+    @Reflect
     public static float c_float() {
         return 1.0f;
     }
 
-    @CodeReflection
+    @Reflect
     public static float c_float_neg() {
         return -1.0f;
     }
 
-    @CodeReflection
+    @Reflect
     public static double c_double() {
         return 1.0;
     }
 
-    @CodeReflection
+    @Reflect
     public static double c_double_neg() {
         return -1.0;
     }
 
-    @CodeReflection
+    @Reflect
     public static String c_String() {
         String s = "42";
         s = null;
         return s;
     }
 
-    @CodeReflection
+    @Reflect
     public static Class<?> c_Class() {
         return String.class;
     }
 
-    @CodeReflection
+    @Reflect
     public static Class<?> c_Class_primitive() {
         return float.class;
     }
@@ -169,7 +171,7 @@ public class TestConstants {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static String compareNull(String s) {
         if (s == null) {
             return "NULL";
@@ -184,7 +186,7 @@ public class TestConstants {
 
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         System.out.println(lf.toText());
 

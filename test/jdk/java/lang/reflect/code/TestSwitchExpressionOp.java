@@ -1,5 +1,5 @@
-import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -29,7 +29,7 @@ public class TestSwitchExpressionOp {
             Assertions.assertEquals(casePatternGuard(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
-    @CodeReflection
+    @Reflect
     static String casePatternGuard(Object obj) {
         return switch (obj) {
             case String s when s.length() > 3 -> "str with length > %d".formatted(s.length());
@@ -49,7 +49,7 @@ public class TestSwitchExpressionOp {
         }
     }
     record R(Number n) {}
-    @CodeReflection
+    @Reflect
     static String caseRecordPattern(Object o) {
         return switch (o) {
             case R(Number _) -> "R(_)";
@@ -64,7 +64,7 @@ public class TestSwitchExpressionOp {
             Assertions.assertEquals(caseTypePattern(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
-    @CodeReflection
+    @Reflect
     static String caseTypePattern(Object o) {
         return switch (o) {
             case String _ -> "String"; // class
@@ -86,7 +86,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static String casePatternWithCaseConstant(Integer a) {
         return switch (a) {
             case 42 -> "forty two";
@@ -105,7 +105,7 @@ public class TestSwitchExpressionOp {
             Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
-    // @CodeReflection
+    // @Reflect
     // code model for such as code is not supported
     // @@@ support this case and uncomment its test
     private static String casePatternMultiLabel(Object o) {
@@ -130,7 +130,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static String casePatternThrow(Object o) {
         return switch (o) {
             case Number n -> throw new IllegalArgumentException();
@@ -153,7 +153,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static String casePatternRuleExpression(Object o) {
         return switch (o) {
             case Integer i -> "integer";
@@ -162,7 +162,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    @CodeReflection
+    @Reflect
     private static String casePatternRuleBlock(Object o) {
         return switch (o) {
             case Integer i -> {
@@ -177,7 +177,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    @CodeReflection
+    @Reflect
     private static String casePatternStatement(Object o) {
         return switch (o) {
             case Integer i: yield "integer";
@@ -198,7 +198,7 @@ public class TestSwitchExpressionOp {
         static final int c1 = 12;
     }
 
-    @CodeReflection
+    @Reflect
     private static String caseConstantOtherKindsOfExpr(int i) {
         final int eleven = 11;
         return switch (i) {
@@ -231,7 +231,7 @@ public class TestSwitchExpressionOp {
         MON, TUE, WED, THU, FRI, SAT, SUN
     }
 
-    @CodeReflection
+    @Reflect
     private static int caseConstantEnum(Day d) {
         return switch (d) {
             case MON, FRI, SUN -> 6;
@@ -250,7 +250,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static String caseConstantFallThrough(char c) {
         return switch (c) {
             case 'A':
@@ -261,7 +261,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    // @CodeReflection
+    // @Reflect
     // compiler code doesn't support case null, default
     // @@@ support such as case and test the switch expression lowering for this case
     private static String caseConstantNullAndDefault(String s) {
@@ -280,7 +280,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static String caseConstantNullLabel(String s) {
         return switch (s) {
             case null -> "null";
@@ -298,7 +298,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static String caseConstantThrow(Integer i) {
         return switch (i) {
             case 8 -> throw new IllegalArgumentException();
@@ -316,7 +316,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     private static String caseConstantMultiLabels(char c) {
         return switch (Character.toLowerCase(c)) {
             case 'a', 'e', 'i', 'o', 'u': yield "vowel";
@@ -338,7 +338,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleExpression(String r) {
         return switch (r) {
             case "FOO" -> "BAR";
@@ -348,7 +348,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleBlock(String r) {
         return switch (r) {
             case "FOO" -> {
@@ -366,7 +366,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    @CodeReflection
+    @Reflect
     private static String caseConstantStatement(String s) {
         return switch (s) {
             case "FOO": yield "BAR";
@@ -385,7 +385,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static String caseConstantConv(short a) {
         final short s = 1;
         final byte b = 2;
@@ -406,7 +406,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static String caseConstantConv2(Byte a) {
         final byte b = 2;
         return switch (a) {
@@ -425,7 +425,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static String unconditionalPattern(String s) {
         return switch (s) {
             case "A" -> "A";
@@ -443,7 +443,7 @@ public class TestSwitchExpressionOp {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static String defaultCaseNotTheLast(String s) {
         return switch (s) {
             default -> "else";
@@ -464,7 +464,7 @@ public class TestSwitchExpressionOp {
     private static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
         writeModel(f, System.out, OpWriter.LocationOption.DROP_LOCATION);
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         writeModel(lf, System.out, OpWriter.LocationOption.DROP_LOCATION);
 
         return lf;

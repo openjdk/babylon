@@ -21,9 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -40,12 +40,14 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestSSA
+ * @run main Unreflect TestSSA
+ * @run junit TestSSA
  * @run junit/othervm -Dbabylon.ssa=cytron TestSSA
  */
 
 public class TestSSA {
 
-    @CodeReflection
+    @Reflect
     static int ifelse(int a, int b, int n) {
         if (n < 10) {
             a += 1;
@@ -65,7 +67,7 @@ public class TestSSA {
         Assertions.assertEquals(ifelse(0, 0, 11), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 11));
     }
 
-    @CodeReflection
+    @Reflect
     static int ifelseNested(int a, int b, int c, int d, int n) {
         if (n < 20) {
             if (n < 10) {
@@ -96,7 +98,7 @@ public class TestSSA {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static int loop(int n) {
         int sum = 0;
         for (int i = 0; i < n; i++) {
@@ -114,7 +116,7 @@ public class TestSSA {
         Assertions.assertEquals(loop(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
-    @CodeReflection
+    @Reflect
     static int nestedLoop(int n) {
         int sum = 0;
         for (int i = 0; i < n; i++) {
@@ -134,7 +136,7 @@ public class TestSSA {
         Assertions.assertEquals(nestedLoop(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
-    @CodeReflection
+    @Reflect
     static int nestedLambdaCapture(int i) {
         IntSupplier s = () -> {
             int j = i + 1;
@@ -153,7 +155,7 @@ public class TestSSA {
         Assertions.assertEquals(nestedLambdaCapture(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
-    @CodeReflection
+    @Reflect
     static int deadCode(int n) {
         int factorial = 1;
         int unused = factorial;
@@ -181,7 +183,7 @@ public class TestSSA {
         Assertions.assertEquals(deadCode(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
-    @CodeReflection
+    @Reflect
     static int ifelseLoopNested(int n) {
         int counter = 10;
         while (n > 0) {
@@ -214,7 +216,7 @@ public class TestSSA {
         Assertions.assertEquals(ifelseLoopNested(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
-    @CodeReflection
+    @Reflect
     static int violaJones(int x, int maxX, int length, int integral) {
         int scale = 0;
         scale++;
@@ -235,7 +237,7 @@ public class TestSSA {
         Assertions.assertEquals(violaJones(0, 1, 0, 0), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0));
     }
 
-    @CodeReflection
+    @Reflect
     static int violaJonesTwo(int x, int maxX, int length, int integral) {
         int scale = 0, scale_extra = 1;
         scale++;
@@ -258,7 +260,7 @@ public class TestSSA {
         Assertions.assertEquals(violaJonesTwo(0, 1, 0, 0), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean binarySearch(int[] arr, int target) {
         int l = 0;
         int r = arr.length - 1;
@@ -287,7 +289,7 @@ public class TestSSA {
         Assertions.assertEquals(binarySearch(arr, 4), (boolean) Interpreter.invoke(MethodHandles.lookup(), lf, arr, 4));
     }
 
-    @CodeReflection
+    @Reflect
     static void quicksort(int[] arr, int lo, int hi) {
         if (lo >= hi || lo < 0) {
             return;
@@ -328,7 +330,7 @@ public class TestSSA {
     static CoreOp.FuncOp generate(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         lf = SSA.transform(lf);

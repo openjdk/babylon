@@ -29,27 +29,30 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.F32Array2D;
 import hat.buffer.S08x3RGBImage;
-import static hat.ifacemapper.MappableIface.*;
+import optkl.ifacemapper.MappableIface;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
 
 public class ViolaJonesCoreCompute {
 
-    @CodeReflection
+    @Reflect
     public static int b2i(int v) {
         return v < 0 ? 256 + v : v;
     }
 
-    @CodeReflection
+    @Reflect
     public static int grey(int r, int g, int b) {
         return (29 * b2i(r) + 60 * b2i(g) + 11 * b2i(b)) / 100;
     }
 
-    @CodeReflection
-    public static void rgbToGrey(int id, @RO S08x3RGBImage rgbImage, @WO F32Array2D greyImage) {
+    @Reflect
+    public static void rgbToGrey(int id, @MappableIface.RO S08x3RGBImage rgbImage, @MappableIface.WO F32Array2D greyImage) {
         byte r = rgbImage.data(id * 3 + 0);
         byte g = rgbImage.data(id * 3 + 1);
         byte b = rgbImage.data(id * 3 + 2);
@@ -57,7 +60,7 @@ public class ViolaJonesCoreCompute {
     }
 
     /*
-     * A pure java implementation so no @CodeReflection
+     * A pure java implementation so no @Reflect
      */
     static long javaRgbToGreyScale(S08x3RGBImage rgb, F32Array2D grey) {
         long start = System.currentTimeMillis();
@@ -70,23 +73,23 @@ public class ViolaJonesCoreCompute {
         return System.currentTimeMillis() - start;
     }
 
-    @CodeReflection
-    public static void rgbToGreyKernel(@RO KernelContext kc, @RO S08x3RGBImage rgbImage, @WO F32Array2D greyImage) {
+    @Reflect
+    public static void rgbToGreyKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO S08x3RGBImage rgbImage, @MappableIface.WO F32Array2D greyImage) {
         if (kc.gix < kc.gsx){
            rgbToGrey(kc.gix, rgbImage, greyImage);
         }
     }
 
-    @CodeReflection
-    public static void integralCol(int id, int width, @RO F32Array2D greyImage, @RW F32Array2D integral, @RW F32Array2D integralSq) {
+    @Reflect
+    public static void integralCol(int id, int width, @MappableIface.RO F32Array2D greyImage, @MappableIface.RW F32Array2D integral, @RW F32Array2D integralSq) {
         float greyValue = greyImage.array(id);
         float greyValueSq = greyValue * greyValue;
         integralSq.array(id, greyValueSq + integralSq.array(id - width));
         integral.array(id, greyValue + integral.array(id - width));
     }
 
-    @CodeReflection
-    public static void integralColKernel(@RO KernelContext kc, @RO F32Array2D greyImage, @RW F32Array2D integral, @RW F32Array2D integralSq) {
+    @Reflect
+    public static void integralColKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO F32Array2D greyImage, @MappableIface.RW F32Array2D integral, @RW F32Array2D integralSq) {
         if (kc.gix <kc.gsx){  // kc.gsx = imageWidth
            int x = kc.gix;
            int width = kc.gsx;
@@ -109,14 +112,14 @@ public class ViolaJonesCoreCompute {
         }
     }
 
-    @CodeReflection
-    public static void integralRow(int id, @RW F32Array2D integral, @RW F32Array2D integralSq) {
+    @Reflect
+    public static void integralRow(int id, @MappableIface.RW F32Array2D integral, @MappableIface.RW F32Array2D integralSq) {
         integral.array(id, integral.array(id) + integral.array(id - 1));
         integralSq.array(id, integralSq.array(id) + integralSq.array(id - 1));
     }
 
-    @CodeReflection
-    public static void integralRowKernel(@RO KernelContext kc, @RW F32Array2D integral, @RW F32Array2D integralSq) {
+    @Reflect
+    public static void integralRowKernel(@MappableIface.RO KernelContext kc, @MappableIface.RW F32Array2D integral, @MappableIface.RW F32Array2D integralSq) {
         if (kc.gix <kc.gsx){  // kc.gsx == imageHeight
            int y = kc.gix;
            int width = integral.width();
@@ -138,7 +141,7 @@ public class ViolaJonesCoreCompute {
     }
 
     /*
-     * A pure java implementation so no @CodeReflection
+     * A pure java implementation so no @Reflect
      */
     public static long javaCreateIntegralImage(F32Array2D greyFloats, F32Array2D integral, F32Array2D integralSq) {
         long start = System.currentTimeMillis();
@@ -160,13 +163,13 @@ public class ViolaJonesCoreCompute {
         return System.currentTimeMillis() - start;
     }
 
-    @CodeReflection
+    @Reflect
     static long xyToLong(int imageWidth, int x, int y) {
         return (long) y * imageWidth + x;
     }
 
-    @CodeReflection
-    static float gradient(@RO F32Array2D integralOrIntegralSqImage, int x, int y, int w, int h) {
+    @Reflect
+    static float gradient(@MappableIface.RO F32Array2D integralOrIntegralSqImage, int x, int y, int w, int h) {
         int imageWidth = integralOrIntegralSqImage.width();
         float A = integralOrIntegralSqImage.array(xyToLong(imageWidth, x, y));
         float D = integralOrIntegralSqImage.array(xyToLong(imageWidth, x + w, y + h));   //  [A]-------[B]
@@ -176,7 +179,7 @@ public class ViolaJonesCoreCompute {
     }
 
 
-    @CodeReflection
+    @Reflect
     static boolean isAFaceStage(
             long gid,
             float scale,
@@ -184,9 +187,9 @@ public class ViolaJonesCoreCompute {
             int x,
             int y,
             float vnorm,
-            @RO F32Array2D integral,
-            @RO Cascade.Stage stage,
-            @RO Cascade cascade
+            @MappableIface.RO F32Array2D integral,
+            @MappableIface.RO Cascade.Stage stage,
+            @MappableIface.RO Cascade cascade
         ) {
         float sumOfThisStage = 0;
         int startTreeIdx = stage.firstTreeId();
@@ -230,13 +233,13 @@ public class ViolaJonesCoreCompute {
         return sumOfThisStage > stage.threshold(); // true if this looks like a face
     }
 
-    @CodeReflection
-    public static void findFeaturesKernel(@RO KernelContext kc,
-                                          @RO Cascade cascade,
-                                          @RO F32Array2D integral,
-                                          @RO F32Array2D integralSq,
-                                          @RO ScaleTable scaleTable,
-                                          @RW ResultTable resultTable
+    @Reflect
+    public static void findFeaturesKernel(@MappableIface.RO KernelContext kc,
+                                          @MappableIface.RO Cascade cascade,
+                                          @MappableIface.RO F32Array2D integral,
+                                          @MappableIface.RO F32Array2D integralSq,
+                                          @MappableIface.RO ScaleTable scaleTable,
+                                          @MappableIface.RW ResultTable resultTable
 
     ) {
 
@@ -302,27 +305,27 @@ public class ViolaJonesCoreCompute {
         }
     }
 
-    static F32Array2D createF32Array2D(ComputeContext cc,int width, int height){
-        return F32Array2D.create(cc.accelerator, width, height);
+    static F32Array2D createF32Array2D(ComputeContext cc, int width, int height) {
+        return F32Array2D.create(cc.accelerator(), width, height);
     }
 
-    @CodeReflection
-    static public void compute(@RO final ComputeContext cc, @RO Cascade cascade, @RO S08x3RGBImage s08X3RGBImage, @RW ResultTable resultTable, @RO ScaleTable scaleTable) {
+    @Reflect
+    static public void compute(@MappableIface.RO final ComputeContext cc, @MappableIface.RO Cascade cascade, @MappableIface.RO S08x3RGBImage s08X3RGBImage, @RW ResultTable resultTable, @MappableIface.RO ScaleTable scaleTable) {
 
         int width = s08X3RGBImage.width();
         int height = s08X3RGBImage.height();
 
         F32Array2D greyImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(NDRange.of(width * height), kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
+        cc.dispatchKernel(NDRange.of1D(width * height), kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
 
         F32Array2D integralImage = createF32Array2D(cc, width, height);
         F32Array2D integralSqImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(NDRange.of(width), kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
-        cc.dispatchKernel(NDRange.of(height), kc -> integralRowKernel(kc, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of1D(width), kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of1D(height), kc -> integralRowKernel(kc, integralImage, integralSqImage));
 
-        cc.dispatchKernel(NDRange.of(scaleTable.multiScaleAccumulativeRange()), kc ->
+        cc.dispatchKernel(NDRange.of1D(scaleTable.multiScaleAccumulativeRange()), kc ->
                 findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));
 
     }

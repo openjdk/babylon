@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -33,7 +33,7 @@ import jdk.incubator.code.CodeReflection;
  */
 
 public class ArrayAccessTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -47,7 +47,7 @@ public class ArrayAccessTest {
         return ia[0];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"int" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -64,7 +64,7 @@ public class ArrayAccessTest {
         return ia[i + 1];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -79,7 +79,7 @@ public class ArrayAccessTest {
         ia[0] = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -97,7 +97,7 @@ public class ArrayAccessTest {
         ia[i + 1] = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"int" -> {
                 %3 : Var<java.type:"int[][]"> = var %1 @"ia";
@@ -118,7 +118,7 @@ public class ArrayAccessTest {
         return ia[i + 1][i + 2];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[][]"> = var %1 @"ia";
@@ -142,7 +142,7 @@ public class ArrayAccessTest {
 
     int[] ia;
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
                 %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
@@ -155,7 +155,7 @@ public class ArrayAccessTest {
         return ia[0];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
                 %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
@@ -172,7 +172,7 @@ public class ArrayAccessTest {
         int i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"int" -> {
                 %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
@@ -187,7 +187,7 @@ public class ArrayAccessTest {
         return aa[0].i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"void" -> {
                 %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
@@ -203,7 +203,7 @@ public class ArrayAccessTest {
         aa[0].i = 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -220,7 +220,7 @@ public class ArrayAccessTest {
         ia[0] += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test12" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -243,7 +243,7 @@ public class ArrayAccessTest {
         ia[1] = ia[i + 2] += 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test13" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -269,7 +269,7 @@ public class ArrayAccessTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test14" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -295,7 +295,7 @@ public class ArrayAccessTest {
         int y = ia[0]--;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test15" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -321,7 +321,7 @@ public class ArrayAccessTest {
         int y = --ia[0];
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test16" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -337,7 +337,7 @@ public class ArrayAccessTest {
         return ia.length + ia.hashCode();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test17" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"a";

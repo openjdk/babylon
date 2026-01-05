@@ -35,24 +35,26 @@ public class ForkExec {
     public record Result(
             Dependency dependency,
             Path path,
-            Opts opts,
+            StringList stringList,
             int status,
             List<String> stdErrAndOut){
     }
-    static Result forkExec(Dependency dependency, Path path, Opts opts) {
+    static Result forkExec(Dependency dependency,boolean show, Path path, StringList stringList) {
         try {
             List<String> stdErrAndOut = new ArrayList<>();
             Process process = new ProcessBuilder()
                     .directory(path.toFile())
-                    .command(opts.opts)
+                    .command(stringList.list())
                     .redirectErrorStream(true)
                     .start();
             new BufferedReader(new InputStreamReader(process.getInputStream())).lines().forEach(line->{
-                System.out.println(line);
+                if (show) {
+                    IO.println(line);
+                }
                 stdErrAndOut.add(line);
             });
             process.waitFor();
-            return new Result(dependency, path, opts, process.exitValue(), stdErrAndOut);
+            return new Result(dependency, path, stringList, process.exitValue(), stdErrAndOut);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
@@ -60,26 +62,4 @@ public class ForkExec {
         }
     }
 
-    public static class Opts {
-        List<String> opts = new ArrayList<>();
-        private Opts(){
-
-        }
-        Opts add(String ...opts){
-            this.opts.addAll(List.of(opts));
-            return this;
-        }
-
-        public static Opts of(String executable) {
-            Opts opts = new Opts();
-            opts.add(executable);
-            return opts;
-        }
-
-        @Override
-        public String toString() {
-            return String.join(" ", opts);
-        }
-
-    }
 }

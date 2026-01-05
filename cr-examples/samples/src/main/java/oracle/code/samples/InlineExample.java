@@ -25,7 +25,7 @@
 package oracle.code.samples;
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -56,7 +56,7 @@ public class InlineExample {
     // We are going to inline this function and specialize one of the parameters
     // (e.g., parameter b) to a constant value.
     // The new function will contain two parameters to perform a * CONSTANT + c
-    @CodeReflection
+    @Reflect
     private static float fma(float a, float b, float c) {
         return a * b + c;
     }

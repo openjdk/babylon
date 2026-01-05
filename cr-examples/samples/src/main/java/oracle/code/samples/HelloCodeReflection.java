@@ -26,7 +26,7 @@ package oracle.code.samples;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -63,17 +63,17 @@ public class HelloCodeReflection {
         this.value = value;
     }
 
-    // Code Reflection methods are annotated with @CodeReflection.
-    // When javac sees an annotated method with @CodeReflection, it stores
+    // Code Reflection methods are annotated with @Reflect.
+    // When javac sees an annotated method with @Reflect, it stores
     // metadata in the ClassFile to be able to query and manipulate
     // code models at runtime.
-    @CodeReflection
+    @Reflect
     private double myFunction(int value) {
         return Math.pow(value, 2);
     }
 
     // Example of an instance method using a field
-    @CodeReflection
+    @Reflect
     private double myFunctionWithFieldAccess() {
         return Math.pow(this.value, 2);
     }
@@ -132,14 +132,13 @@ public class HelloCodeReflection {
         // 7. AST Printer
         // Just for illustration purposes, this is another way to print a code model,
         // traversing each element until we reach the parent
-        codeModel.traverse(null, (acc, codeElement) -> {
+        codeModel.elements().forEach(codeElement -> {
             int depth = 0;
             CodeElement<?, ?> parent = codeElement;
             while ((parent = parent.parent()) != null) {
                 depth++;
             }
             System.out.println(" ".repeat(depth) + codeElement.getClass());
-            return acc;
         });
     }
 }

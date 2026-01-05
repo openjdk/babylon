@@ -368,6 +368,7 @@ CudaBackend::CudaBuffer *CudaBackend::getOrCreateBuffer(BufferState *bufferState
         if (config->trace) {
             std::cout << "We allocated arg buffer " << std::endl;
         }
+        bufferState->state = BufferState::NEW_STATE;
     } else {
         if (config->trace) {
             std::cout << "Were reusing  buffer  buffer " << std::endl;

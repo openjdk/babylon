@@ -25,24 +25,25 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.MappableIface;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
 public class QuotedArrayArg {
-    @CodeReflection
+    @Reflect
     public static void addScalerKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO S32Array in, @MappableIface.WO S32Array out, int scaler) {
         out.array(kc.gix, in.array(kc.gix) + scaler);
     }
 
-    @CodeReflection
+    @Reflect
     static public void addScalerCompute(final ComputeContext computeContext, S32Array in, S32Array out, int scaler) {
-        computeContext.dispatchKernel(NDRange.of(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
+        computeContext.dispatchKernel(NDRange.of1D(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
     }
 
     public static void main(String[] args) {
@@ -55,12 +56,15 @@ public class QuotedArrayArg {
         // This works
         if (args.length == 0) {
             int lvar = array[index];
-            accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out,lvar));
+            accelerator.compute((@Reflect Compute)
+                    computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out,lvar));
         }else {
             if (args.length == 1 && args[0].equals("passIndex")) {
-                accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[index]));
+                accelerator.compute((@Reflect Compute)
+                        computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[index]));
             }else if (args.length == 1 && args[0].equals("passZero")) {
-                accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[0]));
+                accelerator.compute((@Reflect Compute)
+                        computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[0]));
             }else{
                 throw new IllegalArgumentException("Invalid args either no args, passIndex or passZero");
             }

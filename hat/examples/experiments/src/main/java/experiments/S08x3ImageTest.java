@@ -25,21 +25,16 @@
 package experiments;
 
 import hat.Accelerator;
-import hat.backend.DebugBackend;
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
+import optkl.ifacemapper.Buffer;
 import hat.buffer.S08x3RGBImage;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
 public class S08x3ImageTest implements Buffer {
 
     public static void main(String[] args) {
-
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+        var lookup =MethodHandles.lookup();
+        Accelerator accelerator = new Accelerator(lookup);
 
         var rgbS08x3Image = S08x3RGBImage.create(accelerator,100,100);
     }

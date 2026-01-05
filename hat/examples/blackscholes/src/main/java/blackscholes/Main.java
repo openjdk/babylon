@@ -26,20 +26,26 @@
 package blackscholes;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
+
+import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.*;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
+
+import jdk.incubator.code.Reflect;
 
 public class Main {
     static Random rand;
 
-    @CodeReflection
+    @Reflect
     public static void blackScholesKernel(@RO KernelContext kc,
                                           @WO F32Array call,
                                           @WO F32Array put,
@@ -63,7 +69,7 @@ public class Main {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static float CND(float input) {
         float x = input;
         if (input < 0f) { // input = Math.abs(input)?
@@ -90,9 +96,9 @@ public class Main {
        return part1 * part2;
     }
 
-    @CodeReflection
+    @Reflect
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(NDRange.of(call.length()),
+        cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }
@@ -108,7 +114,7 @@ public class Main {
     public static void main(String[] args) {
         int size = 1024;
         rand = new Random();
-        var accelerator = new Accelerator(java.lang.invoke.MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var call = F32Array.create(accelerator, size);
         for (int i = 0; i < call.length(); i++) {
             call.array(i, i);
@@ -125,7 +131,8 @@ public class Main {
         float r = 0.02f;
         float v = 0.30f;
 
-        accelerator.compute(cc -> blackScholes(cc, call, put, S, X, T, r, v));
+        accelerator.compute((@Reflect Compute)
+                cc -> blackScholes(cc, call, put, S, X, T, r, v));
         for (int i = 0; i < 10; i++) {
             System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + call.array(i) + "\t\t put option price = " + put.array(i));
         }

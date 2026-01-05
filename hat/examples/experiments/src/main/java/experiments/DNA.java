@@ -27,24 +27,26 @@ package experiments;
 
 import java.lang.reflect.Method;
 
-import hat.optools.OpTk;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.util.CallSite;
 
 import java.util.List;
+
+import static optkl.OpTkl.transform;
 
 public class DNA {
     static int myFunc(int i) {
         return 0;
     }
 
-    @CodeReflection
+    @Reflect
     public static void addMul(int add, int mul) {
         int len = myFunc(add);
     }
@@ -60,7 +62,7 @@ public class DNA {
         }
 
         @Override
-        public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
             throw new IllegalStateException("in transform");
             //  return null;
         }
@@ -77,9 +79,9 @@ public class DNA {
     static public void main(String[] args) throws Exception {
         Method method = DNA.class.getDeclaredMethod("addMul", int.class, int.class);
         var funcOp = Op.ofMethod(method).get();
-        var here = OpTk.CallSite.of(DNA.class, "main");
-        var transformed = OpTk.transform(here, funcOp,(builder, op) -> {
-            CopyContext cc = builder.context();
+        var here = CallSite.of(DNA.class, "main");
+        var transformed = transform(here, funcOp,_->true,(builder, op) -> {
+            CodeContext cc = builder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                // List<Value> operands = new ArrayList<>();
                 //builder.op(new DNAOp("dna", JavaType.INT, operands));

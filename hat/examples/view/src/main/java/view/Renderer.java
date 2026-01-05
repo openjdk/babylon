@@ -31,8 +31,10 @@
  */
 package view;
 
+import view.f32.F32x2Triangle;
+
 import java.awt.Graphics2D;
-import java.awt.Image;
+import java.util.List;
 
 public interface Renderer {
     enum DisplayMode {
@@ -41,23 +43,25 @@ public interface Renderer {
         WIRE_SHOW_HIDDEN(true, false, true),
         WIRE_AND_FILL(true, true, false);
         final public boolean wire;
-        final public boolean filled;
+        final public boolean fill;
         final public boolean showHidden;
+        final public boolean alwaysShow;
 
-        DisplayMode(boolean wire, boolean filled, boolean showHidden) {
+        DisplayMode(boolean wire, boolean fill, boolean showHidden) {
             this.wire = wire;
-            this.filled = filled;
+            this.fill = fill;
             this.showHidden = showHidden;
+            this.alwaysShow = !showHidden;
         }
     }
 
     DisplayMode displayMode();
 
-    void render();
+    void render(List<F32x2Triangle> triangles);
 
     void paint(Graphics2D g);
 
-  //  Image image();
+    //  Image image();
 
     int width();
 

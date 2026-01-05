@@ -26,17 +26,17 @@ package hat;
 
 
 import hat.backend.Backend;
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.buffer.BufferTracker;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.SegmentMapper;
-import hat.optools.OpTk;
 
+import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.BufferTracker;
+import optkl.ifacemapper.MappableIface;
+
+
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -48,6 +48,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
+import static optkl.Invoke.methodOrThrow;
+import static optkl.OpTkl.getQuotedCapturedValues;
+import static optkl.OpTkl.getTargetInvokeOp;
 
 
 /**
@@ -74,13 +77,16 @@ import static hat.backend.Backend.FIRST;
  *
  * @author Gary Frost
  */
-public class Accelerator implements BufferAllocator, BufferTracker {
-    public MethodHandles.Lookup lookup;
+public class Accelerator implements CommonCarrier,  BufferTracker {
+
+    private MethodHandles.Lookup lookup;
+    @Override public MethodHandles.Lookup lookup(){return lookup;}
     public final Backend backend;
+
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public KernelContext range(NDRange ndRange) {
+    public KernelContext range(NDRange<?,?> ndRange) {
         return new KernelContext(ndRange);
     }
 
@@ -109,36 +115,36 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundShema) {
-        return backend.allocate(segmentMapper, boundShema);
-    }
-
-    @Override
-    public void preMutate(Buffer b) {
+    public void preMutate(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).preMutate(b);
         }
     }
 
     @Override
-    public void postMutate(Buffer b) {
+    public void postMutate(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).postMutate(b);
         }
     }
 
     @Override
-    public void preAccess(Buffer b) {
+    public void preAccess(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).preAccess(b);
         }
     }
 
     @Override
-    public void postAccess(Buffer b) {
+    public void postAccess(MappableIface b) {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).postAccess(b);
         }
+    }
+
+    @Override
+    public Arena arena() {
+        return backend.arena();
     }
 
     /**
@@ -147,26 +153,28 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      * So given a ComputeClass such as...
      * <pre>
      *  public class MyComputeClass {
-     *    @ CodeReflection
+     *    @ Reflect
      *    public static void addDeltaKernel(KernelContext kc, S32Array arrayOfInt, int delta) {
      *        arrayOfInt.array(kc.x, arrayOfInt.array(kc.x)+delta);
      *    }
      *
-     *    @ CodeReflection
+     *    @ Reflect
      *    static public void doSomeWork(final ComputeContext cc, S32Array arrayOfInt) {
      *    }
      *  }
      *  </pre>
-     * The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code QuotableComputeContextConsumer}
+     * The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code Compute}
      * <pre>
      *  accelerator.compute(cc ->
      *     MyCompute.doSomeWork(cc, arrayOfInt)
      *  );
      *  </pre>
      */
-    @CodeReflection
-    public interface QuotableComputeContextConsumer extends Consumer<ComputeContext> {
+    @Reflect
+    @FunctionalInterface
+    public interface Compute extends Consumer<ComputeContext> {
     }
+
     // convenience
     public Config config(){
         return backend.config();
@@ -175,7 +183,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     /**
      * This method provides the Accelerator with the {@code Compute Entrypoint} from a Compute class.
      * <p>
-     * The entrypoint is wrapped in a <a href="QuotableComputeContextConsumer.html">QuotableComputeContextConsumer</a> lambda.
+     * The entrypoint is wrapped in a {@link Compute} lambda.
      *
      * <pre>
      * accelerator.compute(cc -&gt;
@@ -183,17 +191,17 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      * )
      * </pre>
      */
-    public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
-        Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
+    public void compute(Compute compute) {
+        Quoted quoted = Op.ofQuotable(compute).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = OpTk.methodOrThrow(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));
-        // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
+        Method method = methodOrThrow(lookup,getTargetInvokeOp(this.lookup,lambda, ComputeContext.class));
+        // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
         ComputeContext computeContext = cache.computeIfAbsent(method, (_) -> new ComputeContext(this, method));
-        // Here we get the captured values  from the Quotable
-        Object[] args = OpTk.getQuotableCapturedValues(lambda,quoted, method);
+        // Here we get the captured values from the lambda
+        Object[] args = getQuotedCapturedValues(lambda, quoted, method);
         args[0] = computeContext;
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

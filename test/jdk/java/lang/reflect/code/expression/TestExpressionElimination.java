@@ -22,8 +22,8 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -43,14 +43,14 @@ public class TestExpressionElimination {
 
     @Test
     public void testAddZero() {
-        JavaOp.LambdaOp lf = generate((@CodeReflection DoubleUnaryOperator) (double a) -> a + 0.0);
+        JavaOp.LambdaOp lf = generate((@Reflect DoubleUnaryOperator) (double a) -> a + 0.0);
 
         Assertions.assertEquals(1.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d));
     }
 
     @Test
     public void testF() {
-        JavaOp.LambdaOp lf = generate((@CodeReflection DoubleBinaryOperator) (double a, double b) -> -a + b);
+        JavaOp.LambdaOp lf = generate((@Reflect DoubleBinaryOperator) (double a, double b) -> -a + b);
 
         Assertions.assertEquals(0.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d, 1.0d));
     }
@@ -63,7 +63,7 @@ public class TestExpressionElimination {
         System.out.println(f.toText());
 
         @SuppressWarnings("unchecked")
-        T lf = (T) f.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        T lf = (T) f.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         lf = SSA.transform(lf);

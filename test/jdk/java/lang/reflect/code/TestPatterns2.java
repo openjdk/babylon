@@ -1,6 +1,6 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -15,12 +15,14 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestPatterns2
+ * @run main Unreflect TestPatterns2
+ * @run junit TestPatterns2
  * @enablePreview */
 public class TestPatterns2 {
 
     record R<T extends Number> (T n) {}
 
-    @CodeReflection
+    @Reflect
     static boolean f(Object o) {
         return o instanceof R(Integer i);
     }
@@ -31,7 +33,7 @@ public class TestPatterns2 {
         CoreOp.FuncOp f = getFuncOp("f");
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         R[] args = {new R(1), new R(2d)};

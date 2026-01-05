@@ -26,7 +26,7 @@ package oracle.code.onnx;
 import java.lang.foreign.ValueLayout;
 import java.util.List;
 import java.util.Optional;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -36,12 +36,13 @@ import static oracle.code.onnx.OnnxRuntime.execute;
 
 public class SimpleTest {
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> add(Tensor<Float> a, Tensor<Float> b) {
         return Add(a, b);
     }
 
     @Test
+    @Reflect
     public void testAdd() throws Exception {
         var a = Tensor.ofFlat(1f, 2, 3);
         assertEquals(
@@ -49,12 +50,13 @@ public class SimpleTest {
                 execute(() -> add(a, a)));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> sub(Tensor<Float> a, Tensor<Float> b) {
         return Sub(a, b);
     }
 
     @Test
+    @Reflect
     public void testSub() throws Exception {
         var b = Tensor.ofFlat(6f, 5, 4);
         var a = Tensor.ofFlat(1f, 2, 3);
@@ -63,12 +65,13 @@ public class SimpleTest {
                 execute(() -> sub(a, b)));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> fconstant() {
         return Constant(-1f);
     }
 
     @Test
+    @Reflect
     public void testFconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1f);
@@ -76,12 +79,13 @@ public class SimpleTest {
         assertEquals(expected, execute(() -> fconstant()));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> fconstants() {
         return Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
     }
 
     @Test
+    @Reflect
     public void testFconstants() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
@@ -89,12 +93,13 @@ public class SimpleTest {
         assertEquals(expected, execute(() -> fconstants()));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Long> lconstant() {
         return Constant(-1l);
     }
 
     @Test
+    @Reflect
     public void testLconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1l);
@@ -102,12 +107,13 @@ public class SimpleTest {
         assertEquals(expected, execute(() -> lconstant()));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Long> lconstants() {
         return Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
     }
 
     @Test
+    @Reflect
     public void testLconstants() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
@@ -115,12 +121,13 @@ public class SimpleTest {
         assertEquals(expected, execute(() -> lconstants()));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Long> reshapeAndShape(Tensor<Float> data, Tensor<Long> shape) {
         return Shape(Reshape(data, shape, empty()), empty(), empty());
     }
 
     @Test
+    @Reflect
     public void testReshapeAndShape() throws Exception {
         var data = Tensor.ofFlat(1f, 2, 3, 4, 5, 6, 7, 8);
         var shape = Tensor.ofFlat(2l, 2, 2);
@@ -129,13 +136,14 @@ public class SimpleTest {
                 execute(() -> reshapeAndShape(data, shape)));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Long> indicesOfMaxPool(Tensor<Float> x) {
         // testing secondary output
         return MaxPool(x, empty(), empty(), empty(), empty(), empty(), empty(),  new long[]{2}).Indices();
     }
 
     @Test
+    @Reflect
     public void testIndicesOfMaxPool() throws Exception {
         var x = Tensor.ofShape(new long[]{2, 2, 2}, 1f, 2, 3, 4, 5, 6, 7, 8);
         assertEquals(
@@ -143,12 +151,13 @@ public class SimpleTest {
                 execute(() -> indicesOfMaxPool(x)));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> concat(Tensor<Float> input1, Tensor<Float> input2) {
         return Concat(List.of(input1, input2), 0);
     }
 
     @Test
+    @Reflect
     public void testConcat() throws Exception {
         var input1 = Tensor.ofFlat(1f, 2, 3);
         var input2 = Tensor.ofFlat(4f, 5);
@@ -157,12 +166,13 @@ public class SimpleTest {
                 execute(()-> concat(input1, input2)));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> split(Tensor<Float> input, Tensor<Long> split) {
         return Split(input, Optional.of(split), empty(), empty()).get(0);
     }
 
     @Test
+    @Reflect
     public void testSplit() throws Exception {
         var input = Tensor.ofFlat(1f, 2, 3, 4, 5);
         var split = Tensor.ofFlat(5l);
@@ -171,24 +181,25 @@ public class SimpleTest {
                 execute(()-> split(input, split)));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> ifConst(Tensor<Boolean> cond) {
         return If(cond, () -> List.of(Constant(1f)), () -> List.of(Constant(-1f))).get(0);
     }
 
-    @CodeReflection
+    @Reflect
     public List<Tensor<Float>> ifConstList(Tensor<Boolean> cond) {
         return If(cond, () -> List.of(Constant(1f)), () -> List.of(Constant(-1f)));
     }
 
     public record SingleValueTuple<T>(T val) {}
 
-    @CodeReflection
+    @Reflect
     public SingleValueTuple<Tensor<Float>> ifConstRecord(Tensor<Boolean> cond) {
         return If(cond, () -> new SingleValueTuple<>(Constant(1f)), () -> new SingleValueTuple<>(Constant(-1f)));
     }
 
     @Test
+    @Reflect
     public void testIfConst() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);
@@ -208,13 +219,14 @@ public class SimpleTest {
         assertEquals(expTrue, execute(() -> ifConstRecord(condTrue)).val());
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
         var falseValue = Constant(-1f);
         return If(cond, () -> Identity(trueValue), () -> Identity(falseValue));
     }
 
     @Test
+    @Reflect
     public void testIfCapture() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);
@@ -230,12 +242,13 @@ public class SimpleTest {
 
     final Tensor<Float> initialized = Tensor.ofFlat(42f);
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> initialized() {
         return Identity(initialized);
     }
 
     @Test
+    @Reflect
     public void testInitialized() throws Exception {
 
         assertEquals(initialized(),
@@ -246,7 +259,7 @@ public class SimpleTest {
     final Tensor<Float> initialized3 = Tensor.ofFlat(-1f);
     final Tensor<Float> initialized4 = Tensor.ofFlat(-99f);
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> ifInitialized(Tensor<Boolean> cond1, Tensor<Boolean> cond2) {
         return If(cond1,
                 () -> If(cond2,
@@ -258,6 +271,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testIfInitialized() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var condTrue = Tensor.ofScalar(true);
@@ -275,17 +289,18 @@ public class SimpleTest {
 
     static final Tensor<Boolean> TRUE = Tensor.ofScalar(true);
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Float> initialValue) {
         return Loop(max, TRUE, initialValue, (i, cond, v) -> new LoopResult<>(cond, Add(v, v)));
     }
 
-    @CodeReflection
+    @Reflect
     public SingleValueTuple<Tensor<Float>> forLoopAddRecord(Tensor<Long> max, Tensor<Float> initialValue) {
         return Loop(max, TRUE, new SingleValueTuple<>(initialValue), (i, cond, v) -> new LoopResult<>(cond, new SingleValueTuple<>(Add(v.val(), v.val()))));
     }
 
     @Test
+    @Reflect
     public void testForLoopAdd() throws Exception {
         var expected = Tensor.ofFlat(0f, 8, 16, 24);
         var value = Tensor.ofFlat(0f, 1, 2, 3);
@@ -297,7 +312,7 @@ public class SimpleTest {
 
     public record Tuple(Tensor<Long> a, Tensor<Float> b) {}
 
-    @CodeReflection
+    @Reflect
     public Tuple loop(Tensor<Boolean> b) {
         var c1 = Constant(1l);
         var c2 = Constant(1f);
@@ -306,6 +321,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testLoop() throws Exception {
         var b = Tensor.ofScalar(true);
         var res = execute(() -> loop(b));
@@ -315,23 +331,25 @@ public class SimpleTest {
 
     public record ArgRecord(Tensor<Float> a, Tensor<Float> b) {}
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> recordArgAdd(ArgRecord arg) {
         return Add(arg.a(), arg.b());
     }
 
     @Test
+    @Reflect
     public void testRecordArgAdd() throws Exception {
         var arg = new ArgRecord(Tensor.ofFlat(3f), Tensor.ofFlat(4f));
         assertEquals(recordArgAdd(arg), execute(() -> recordArgAdd(arg)));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> constantArrayArg(Tensor<Float>[] arg) {
         return Identity(arg[1]);
     }
 
     @Test
+    @Reflect
     public void testConstantArrayArg() throws Exception {
         Tensor<Float>[] arg = new Tensor[]{Tensor.ofFlat(2f), Tensor.ofFlat(3f)};
         assertEquals(constantArrayArg(arg), execute(() -> constantArrayArg(arg)));
@@ -340,22 +358,24 @@ public class SimpleTest {
     static final Tensor<Float>[] INIT_1_2 = new Tensor[]{Tensor.ofFlat(1f), Tensor.ofFlat(2f)};
 
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float> constantArrayInit() {
         return Identity(INIT_1_2[1]);
     }
 
     @Test
+    @Reflect
     public void testConstantArrayInit() throws Exception {
         assertEquals(constantArrayInit(), execute(() -> constantArrayInit()));
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Float>[] constantArrayReturn(Tensor<Float> value) {
         return new Tensor[]{Identity(value)};
     }
 
     @Test
+    @Reflect
     public void testConstantArrayReturn() throws Exception {
         Tensor<Float> val = Tensor.ofFlat(3f);
         assertEquals(constantArrayReturn(val), execute(() -> constantArrayReturn(val)));
@@ -363,19 +383,20 @@ public class SimpleTest {
 
     public record ConstantArrayWrap(Tensor<Float> key, Tensor<Float>[] values) {}
 
-    @CodeReflection
+    @Reflect
     public ConstantArrayWrap constantArrayInRecordReturn(Tensor<Float> key, Tensor<Float> value) {
         return new ConstantArrayWrap(Identity(key), new Tensor[]{Identity(value)});
     }
 
     @Test
+    @Reflect
     public void testConstantArrayInRecordReturn() throws Exception {
         Tensor<Float> key = Tensor.ofFlat(1f);
         Tensor<Float> val = Tensor.ofFlat(3f);
         assertEquals(constantArrayInRecordReturn(key, val).values(), execute(() -> constantArrayInRecordReturn(key, val)).values());
     }
 
-    @CodeReflection
+    @Reflect
     public Tensor<Long>[] unrollingConstantArrayReturn() {
         Tensor<Long>[] ret = new Tensor[5];
         for (int i = 0; i < 5; i++) {
@@ -385,6 +406,7 @@ public class SimpleTest {
     }
 
     @Test
+    @Reflect
     public void testUnrollingConstantArrayReturn() throws Exception {
         assertEquals(unrollingConstantArrayReturn(), execute(() -> unrollingConstantArrayReturn()));
     }

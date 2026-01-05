@@ -46,8 +46,6 @@ public class Intellij {
     public CompilerInfo compilerInfo;
 
     Map<String, String> vars;
-
-    //static Pattern varPattern = Pattern.compile("\\$\\{([^}]*)\\}");
     static Pattern varPattern = Pattern.compile("\\$([^$]*)\\$");
 
     public String expand(String value) { // recurse

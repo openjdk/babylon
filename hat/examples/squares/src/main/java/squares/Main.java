@@ -25,37 +25,36 @@
 package squares;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 
-import static hat.ifacemapper.MappableIface.*;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 
 public class Main {
-    @CodeReflection
+    @Reflect
     public static int squareit(int v) {
         return  v * v;
 
     }
 
-    @CodeReflection
-    public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
+    @Reflect
+    public static void squareKernel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array s32Array) {
         if (kc.gix < kc.gsx){
            int value = s32Array.array(kc.gix);       // arr[cc.x]
            s32Array.array(kc.gix, squareit(value));  // arr[cc.x]=value*value
         }
     }
 
-    @CodeReflection
-    public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(NDRange.of(NDRange.Global1D.of(s32Array.length())),
-                kc -> squareKernel(kc, s32Array)
-        );
+    @Reflect
+    public static void square(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array s32Array) {
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()), kc -> squareKernel(kc, s32Array));
     }
 
     static void main(String[] args) {
@@ -64,9 +63,9 @@ public class Main {
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }
-        accelerator.compute(
-                cc -> Main.square(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+        accelerator.compute((@Reflect Compute)
+                cc -> Main.square(cc, arr)
+        );
         for (int i = 0; i < arr.length(); i++) {
             System.out.println(i + " " + arr.array(i));
         }

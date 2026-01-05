@@ -44,14 +44,14 @@ We'll ignore the detail regarding the `life` kernel, and we will assume the kern
 are appropriately annotated as RO, RW or WO.
 
 ```java
- @CodeReflection
+ @Reflect
 public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
   if (kc.x < kc.maxX) {
     Compute.lifePerIdx(kc.x, control, cellGrid);
   }
 }
 
-@CodeReflection
+@Reflect
 static public void compute(final @RO ComputeContext cc,
                            Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
   var timeOfLastUIUpdate = System.currentTimeMillis();
@@ -83,14 +83,14 @@ First, let's assume there were no automatic transfers, assume we had to define t
 What would our code look like?
 
 ```java
- @CodeReflection
+ @Reflect
 public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
   if (kc.x < kc.maxX) {
     Compute.lifePerIdx(kc.x, control, cellGrid);
   }
 }
 
-@CodeReflection
+@Reflect
 static public void compute(final @RO ComputeContext cc,
                            Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
   var timeOfLastUIUpdate = System.currentTimeMillis();
@@ -140,14 +140,14 @@ Alternatively, what if the buffers themselves could hold the deviceDirty flags j
 
 
 ```java
- @CodeReflection
+ @Reflect
 public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
   if (kc.x < kc.maxX) {
     Compute.lifePerIdx(kc.x, control, cellGrid);
   }
 }
 
-@CodeReflection
+@Reflect
 static public void compute(final @RO ComputeContext cc,
                            Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
   control.flags =JavaDirty; // not ideal but necessary
@@ -220,7 +220,7 @@ We rely on babylon to mark each buffer passed to it as JavaDirty
 
 ```java
 
-@CodeReflection
+@Reflect
 static public void compute(final @RO ComputeContext cc,
                            Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
     control.flags = JavaDirty;
@@ -235,7 +235,7 @@ So the injected code would look like this.gc
 
 ```java
 
-@CodeReflection
+@Reflect
 static public void compute(final @RO ComputeContext cc,
                            Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
   control.flags =JavaDirty; // injected by bablyon

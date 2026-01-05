@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.Supplier;
 
 
@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 
 public class NullTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
@@ -49,7 +49,7 @@ public class NullTest {
         String s = null;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.Object" = constant @null;
@@ -62,7 +62,7 @@ public class NullTest {
         String s = (String)null;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -86,7 +86,7 @@ public class NullTest {
         return cond ? null : "";
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -110,7 +110,7 @@ public class NullTest {
         return cond ? "" : null;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -134,7 +134,7 @@ public class NullTest {
         return cond ? null : null;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -159,7 +159,7 @@ public class NullTest {
         return (String)(cond ? null : null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -192,7 +192,7 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -225,7 +225,7 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -258,7 +258,7 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -292,7 +292,7 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -325,7 +325,7 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test12" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -358,7 +358,7 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test13" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -391,7 +391,7 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test14" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"int"> = var %1 @"cond";
@@ -425,10 +425,10 @@ public class NullTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test15" (%0 : java.type:"NullTest")java.type:"java.util.function.Supplier<java.lang.String>" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.String" -> {
                     %2 : java.type:"java.lang.String" = constant @null;
                     return %2;
                 };
@@ -441,7 +441,7 @@ public class NullTest {
 
     static void m(String s, String... ss) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test16" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
@@ -453,7 +453,7 @@ public class NullTest {
         m(null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test17" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
@@ -466,7 +466,7 @@ public class NullTest {
         m(null, null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test18" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
@@ -484,7 +484,7 @@ public class NullTest {
         Box(String s, String... ss) { }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test19" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
@@ -496,7 +496,7 @@ public class NullTest {
         new Box(null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test20" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
@@ -509,7 +509,7 @@ public class NullTest {
         new Box(null, null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test21" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;

@@ -30,8 +30,8 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.FieldRef;
@@ -51,13 +51,13 @@ public class SpirvOps {
             this.name = moduleName;
         }
 
-        public ModuleOp(ModuleOp that, CopyContext cc) {
+        public ModuleOp(ModuleOp that, CodeContext cc) {
             super(that, cc);
             this.name = that.name;
         }
 
         @Override
-        public ModuleOp transform(CopyContext cc, OpTransformer ot) {
+        public ModuleOp transform(CodeContext cc, CodeTransformer ot) {
             return new ModuleOp(this, cc);
         }
     }
@@ -69,12 +69,12 @@ public class SpirvOps {
             super(OPNAME, resultType, operands);
         }
 
-        public LoadOp(LoadOp that, CopyContext cc) {
+        public LoadOp(LoadOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LoadOp transform(CopyContext cc, OpTransformer ot) {
+        public LoadOp transform(CodeContext cc, CodeTransformer ot) {
             return new LoadOp(this, cc);
         }
     }
@@ -88,13 +88,13 @@ public class SpirvOps {
             this.fieldDesc = fieldRef;
         }
 
-        public FieldLoadOp(FieldLoadOp that, CopyContext cc) {
+        public FieldLoadOp(FieldLoadOp that, CodeContext cc) {
             super(that, cc);
             this.fieldDesc = that.fieldDesc;
         }
 
         @Override
-        public FieldLoadOp transform(CopyContext cc, OpTransformer ot) {
+        public FieldLoadOp transform(CodeContext cc, CodeTransformer ot) {
             return new FieldLoadOp(this, cc);
         }
 
@@ -110,12 +110,12 @@ public class SpirvOps {
             super(NAME, JavaType.VOID, List.of(dest, value));
         }
 
-        public StoreOp(StoreOp that, CopyContext cc) {
+        public StoreOp(StoreOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public StoreOp transform(CopyContext cc, OpTransformer ot) {
+        public StoreOp transform(CodeContext cc, CodeTransformer ot) {
             return new StoreOp(this, cc);
         }
     }
@@ -129,12 +129,12 @@ public class SpirvOps {
             this.descriptor = descriptor;
         }
 
-        public CallOp(CallOp that, CopyContext cc) {
+        public CallOp(CallOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public CallOp transform(CopyContext cc, OpTransformer ot) {
+        public CallOp transform(CodeContext cc, CodeTransformer ot) {
             return new CallOp(this, cc);
         }
 
@@ -154,12 +154,12 @@ public class SpirvOps {
             super(NAME, resultType, operands);
         }
 
-        public ArrayLengthOp(ArrayLengthOp that, CopyContext cc) {
+        public ArrayLengthOp(ArrayLengthOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ArrayLengthOp transform(CopyContext cc, OpTransformer ot) {
+        public ArrayLengthOp transform(CodeContext cc, CodeTransformer ot) {
             return new ArrayLengthOp(this, cc);
         }
     }
@@ -173,13 +173,13 @@ public class SpirvOps {
                 this.value = value;
         }
 
-        public ConstantOp(ConstantOp that, CopyContext cc) {
+        public ConstantOp(ConstantOp that, CodeContext cc) {
             super(that, cc);
             this.value = that.value;
         }
 
         @Override
-        public ConstantOp transform(CopyContext cc, OpTransformer ot) {
+        public ConstantOp transform(CodeContext cc, CodeTransformer ot) {
             return new ConstantOp(this, cc);
         }
 
@@ -195,12 +195,12 @@ public class SpirvOps {
                 super(OPNAME, resultType, operands);
         }
 
-        public ConvertOp(ConvertOp that, CopyContext cc) {
+        public ConvertOp(ConvertOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ConvertOp transform(CopyContext cc, OpTransformer ot) {
+        public ConvertOp transform(CodeContext cc, CodeTransformer ot) {
             return new ConvertOp(this, cc);
         }
     }
@@ -212,12 +212,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public IAddOp(IAddOp that, CopyContext cc) {
+        public IAddOp(IAddOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public IAddOp transform(CopyContext cc, OpTransformer ot) {
+        public IAddOp transform(CodeContext cc, CodeTransformer ot) {
             return new IAddOp(this, cc);
         }
     }
@@ -229,12 +229,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public FAddOp(FAddOp that, CopyContext cc) {
+        public FAddOp(FAddOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FAddOp transform(CopyContext cc, OpTransformer ot) {
+        public FAddOp transform(CodeContext cc, CodeTransformer ot) {
             return new FAddOp(this, cc);
         }
     }
@@ -246,12 +246,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public ISubOp(ISubOp that, CopyContext cc) {
+        public ISubOp(ISubOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ISubOp transform(CopyContext cc, OpTransformer ot) {
+        public ISubOp transform(CodeContext cc, CodeTransformer ot) {
             return new ISubOp(this, cc);
         }
     }
@@ -263,12 +263,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public FSubOp(FSubOp that, CopyContext cc) {
+        public FSubOp(FSubOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FSubOp transform(CopyContext cc, OpTransformer ot) {
+        public FSubOp transform(CodeContext cc, CodeTransformer ot) {
             return new FSubOp(this, cc);
         }
     }
@@ -280,12 +280,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public IMulOp(IMulOp that, CopyContext cc) {
+        public IMulOp(IMulOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public IMulOp transform(CopyContext cc, OpTransformer ot) {
+        public IMulOp transform(CodeContext cc, CodeTransformer ot) {
             return new IMulOp(this, cc);
         }
     }
@@ -297,12 +297,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public FMulOp(FMulOp that, CopyContext cc) {
+        public FMulOp(FMulOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FMulOp transform(CopyContext cc, OpTransformer ot) {
+        public FMulOp transform(CodeContext cc, CodeTransformer ot) {
             return new FMulOp(this, cc);
         }
     }
@@ -314,12 +314,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public IDivOp(IDivOp that, CopyContext cc) {
+        public IDivOp(IDivOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public IDivOp transform(CopyContext cc, OpTransformer ot) {
+        public IDivOp transform(CodeContext cc, CodeTransformer ot) {
             return new IDivOp(this, cc);
         }
     }
@@ -331,12 +331,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public FDivOp(FDivOp that, CopyContext cc) {
+        public FDivOp(FDivOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FDivOp transform(CopyContext cc, OpTransformer ot) {
+        public FDivOp transform(CodeContext cc, CodeTransformer ot) {
             return new FDivOp(this, cc);
         }
     }
@@ -348,12 +348,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public ModOp(ModOp that, CopyContext cc) {
+        public ModOp(ModOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ModOp transform(CopyContext cc, OpTransformer ot) {
+        public ModOp transform(CodeContext cc, CodeTransformer ot) {
             return new ModOp(this, cc);
         }
     }
@@ -365,12 +365,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public IEqualOp(IEqualOp that, CopyContext cc) {
+        public IEqualOp(IEqualOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public IEqualOp transform(CopyContext cc, OpTransformer ot) {
+        public IEqualOp transform(CodeContext cc, CodeTransformer ot) {
             return new IEqualOp(this, cc);
         }
     }
@@ -382,12 +382,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public FEqualOp(FEqualOp that, CopyContext cc) {
+        public FEqualOp(FEqualOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FEqualOp transform(CopyContext cc, OpTransformer ot) {
+        public FEqualOp transform(CodeContext cc, CodeTransformer ot) {
             return new FEqualOp(this, cc);
         }
     }
@@ -399,12 +399,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public INotEqualOp(INotEqualOp that, CopyContext cc) {
+        public INotEqualOp(INotEqualOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public INotEqualOp transform(CopyContext cc, OpTransformer ot) {
+        public INotEqualOp transform(CodeContext cc, CodeTransformer ot) {
             return new INotEqualOp(this, cc);
         }
     }
@@ -417,12 +417,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public FNotEqualOp(FNotEqualOp that, CopyContext cc) {
+        public FNotEqualOp(FNotEqualOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FNotEqualOp transform(CopyContext cc, OpTransformer ot) {
+        public FNotEqualOp transform(CodeContext cc, CodeTransformer ot) {
             return new FNotEqualOp(this, cc);
         }
     }
@@ -434,12 +434,12 @@ public class SpirvOps {
                 super(NAME, resultType, operands);
         }
 
-        public LtOp(LtOp that, CopyContext cc) {
+        public LtOp(LtOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LtOp transform(CopyContext cc, OpTransformer ot) {
+        public LtOp transform(CodeContext cc, CodeTransformer ot) {
             return new LtOp(this, cc);
         }
     }
@@ -453,13 +453,13 @@ public class SpirvOps {
             this.successor = successor;
         }
 
-        public BranchOp(BranchOp that, CopyContext cc) {
+        public BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
             this.successor = that.successor;
         }
 
         @Override
-        public BranchOp transform(CopyContext cc, OpTransformer ot) {
+        public BranchOp transform(CodeContext cc, CodeTransformer ot) {
             return new BranchOp(this, cc);
         }
 
@@ -484,14 +484,14 @@ public class SpirvOps {
                 this.falseBlock = falseBlock;
         }
 
-        public ConditionalBranchOp(ConditionalBranchOp that, CopyContext cc) {
+        public ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
             this.trueBlock = that.trueBlock;
             this.falseBlock = that.falseBlock;
         }
 
         @Override
-        public ConditionalBranchOp transform(CopyContext cc, OpTransformer ot) {
+        public ConditionalBranchOp transform(CodeContext cc, CodeTransformer ot) {
             return new ConditionalBranchOp(this, cc);
         }
 
@@ -520,14 +520,14 @@ public class SpirvOps {
             this.varType = varType;
         }
 
-        public VariableOp(VariableOp that, CopyContext cc) {
+        public VariableOp(VariableOp that, CodeContext cc) {
             super(that, cc);
             this.varName = that.varName;
             this.varType = that.varType;
         }
 
         @Override
-        public VariableOp transform(CopyContext cc, OpTransformer ot) {
+        public VariableOp transform(CodeContext cc, CodeTransformer ot) {
             return new VariableOp(this, cc);
         }
 
@@ -547,12 +547,12 @@ public class SpirvOps {
                 super(OPNAME, resultType, operands);
         }
 
-        public CompositeExtractOp(CompositeExtractOp that, CopyContext cc) {
+        public CompositeExtractOp(CompositeExtractOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public CompositeExtractOp transform(CopyContext cc, OpTransformer ot) {
+        public CompositeExtractOp transform(CodeContext cc, CodeTransformer ot) {
             return new CompositeExtractOp(this, cc);
         }
     }
@@ -564,12 +564,12 @@ public class SpirvOps {
                 super(OPNAME, resultType, operands);
         }
 
-        public InBoundAccessChainOp(InBoundAccessChainOp that, CopyContext cc) {
+        public InBoundAccessChainOp(InBoundAccessChainOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public InBoundAccessChainOp transform(CopyContext cc, OpTransformer ot) {
+        public InBoundAccessChainOp transform(CodeContext cc, CodeTransformer ot) {
             return new InBoundAccessChainOp(this, cc);
         }
     }
@@ -581,12 +581,12 @@ public class SpirvOps {
             super(OPNAME, resultType, operands);
         }
 
-        public ReturnOp(ReturnOp that, CopyContext cc) {
+        public ReturnOp(ReturnOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReturnOp transform(CopyContext cc, OpTransformer ot) {
+        public ReturnOp transform(CodeContext cc, CodeTransformer ot) {
             return new ReturnOp(this, cc);
         }
     }
@@ -598,12 +598,12 @@ public class SpirvOps {
             super(OPNAME, resultType, operands);
         }
 
-        public FunctionParameterOp(FunctionParameterOp that, CopyContext cc) {
+        public FunctionParameterOp(FunctionParameterOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public FunctionParameterOp transform(CopyContext cc, OpTransformer ot) {
+        public FunctionParameterOp transform(CodeContext cc, CodeTransformer ot) {
             return new FunctionParameterOp(this, cc);
         }
     }
@@ -630,7 +630,7 @@ public class SpirvOps {
             this.body = builder.build(this);
         }
 
-        public FuncOp(FuncOp that, CopyContext cc) {
+        public FuncOp(FuncOp that, CodeContext cc) {
             super(that, cc);
             this.functionName = that.functionName;
             this.functionType = that.functionType;
@@ -638,7 +638,7 @@ public class SpirvOps {
         }
 
         @Override
-        public FuncOp transform(CopyContext cc, OpTransformer ot) {
+        public FuncOp transform(CodeContext cc, CodeTransformer ot) {
             return new FuncOp(this, cc);
         }
 

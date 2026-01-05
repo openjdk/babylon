@@ -28,18 +28,18 @@ import hat.buffer.S32Array;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
 
 /*
  * @test
- * @run testng hat.CustomOpTest
+ * @run testng hat.SquaresTest
  */
 
 public class SquaresTest {
-    @CodeReflection
+    @Reflect
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
         if (kc.x<kc.maxX){
             int value = s32Array.array(kc.x);     // arr[cc.x]
@@ -47,7 +47,7 @@ public class SquaresTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void square(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(s32Array.length(),
                 kc -> squareKernel(kc, s32Array)
@@ -63,8 +63,8 @@ public class SquaresTest {
             arr.array(i, i);
         }
         accelerator.compute(
-                cc -> SquaresTest.square(cc, arr)  //QuotableComputeContextConsumer
-        );                                     //   extends Quotable, Consumer<ComputeContext>
+                cc -> SquaresTest.square(cc, arr)
+        );
         for (int i = 0; i < arr.length(); i++) {
             Assert.assertEquals(i*i, arr.array(i));
         }

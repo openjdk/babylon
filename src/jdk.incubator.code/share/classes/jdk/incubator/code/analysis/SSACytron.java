@@ -67,7 +67,7 @@ final class SSACytron {
         Map<Body, Boolean> visited = new HashMap<>();
         Map<Block, Map<CoreOp.VarOp, Block.Parameter>> joinBlockArguments = new HashMap<>();
         @SuppressWarnings("unchecked")
-        T ssaOp = (T) nestedOp.transform(CopyContext.create(), (block, op) -> {
+        T ssaOp = (T) nestedOp.transform(CodeContext.create(), (block, op) -> {
             // Compute join points and value mappings for body
             visited.computeIfAbsent(op.ancestorBody(), b -> {
                 findJoinPoints(b, joinPoints);
@@ -80,7 +80,7 @@ final class SSACytron {
                 if (op instanceof CoreOp.VarAccessOp.VarLoadOp vl) {
                     // Replace result of load
                     Object loadValue = loadValues.get(vl);
-                    CopyContext cc = block.context();
+                    CodeContext cc = block.context();
                     Value v = loadValue instanceof VarOpBlockArgument vba
                             ? joinBlockArguments.get(vba.b()).get(vba.vop())
                             : cc.getValue((Value) loadValue);
@@ -91,7 +91,7 @@ final class SSACytron {
                     List<Object> joinValues = joinSuccessorValues.get(s);
                     // Successor has join values
                     if (joinValues != null) {
-                        CopyContext cc = block.context();
+                        CodeContext cc = block.context();
 
                         // Lazily append target block arguments
                         joinBlockArguments.computeIfAbsent(s.targetBlock(), b -> {
@@ -204,13 +204,12 @@ final class SSACytron {
                 } else if (op instanceof Op.Nested) {
                     // Traverse descendant variable loads for variables
                     // declared in the block's parent body
-                    op.traverse(null, (_, ce) -> {
+                    op.elements().forEach(ce -> {
                         if (ce instanceof CoreOp.VarAccessOp.VarLoadOp loadOp &&
                                 loadOp.varOp().ancestorBody() == op.ancestorBody()) {
                             Object to = peekAtCurrentVariable(variableStack, loadOp.varOp());
                             loadValues.put(loadOp, to);
                         }
-                        return null;
                     });
                 }
             }
@@ -328,8 +327,9 @@ final class SSACytron {
     // Throws ISE if a descendant store operation is encountered
     // @@@ Compute map for whole tree, then traverse keys with filter
     static Map<CoreOp.VarOp, Set<Block>> findVarStores(Body r) {
-        return r.traverse(new LinkedHashMap<>(), CodeElement.opVisitor((stores, op) -> {
-            if (op instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
+        LinkedHashMap<CoreOp.VarOp, Set<Block>> stores = new LinkedHashMap<>();
+        r.elements().forEach(e -> {
+            if (e instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
                 if (storeOp.varOp().ancestorBody() != storeOp.ancestorBody()) {
                     throw new IllegalStateException("Descendant variable store operation");
                 }
@@ -337,8 +337,8 @@ final class SSACytron {
                     stores.computeIfAbsent(storeOp.varOp(), _v -> new LinkedHashSet<>()).add(storeOp.ancestorBlock());
                 }
             }
-            return stores;
-        }));
+        });
+        return stores;
     }
 
     record Node(Block b, Set<Node> children) {

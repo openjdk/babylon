@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.Collection;
 import java.util.List;
 
@@ -36,7 +36,7 @@ import java.util.List;
 
 public class CastInstanceOfTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -53,7 +53,7 @@ public class CastInstanceOfTest {
         String ss = (String) s;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -73,7 +73,7 @@ public class CastInstanceOfTest {
         Collection<String> c2 = (Collection) l;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
@@ -89,7 +89,7 @@ public class CastInstanceOfTest {
         List<Number> ln = raw;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -103,7 +103,7 @@ public class CastInstanceOfTest {
         long l = (int) i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -117,7 +117,7 @@ public class CastInstanceOfTest {
         boolean b = o instanceof String;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.util.List<java.lang.Object>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.Object>"> = var %1 @"l";

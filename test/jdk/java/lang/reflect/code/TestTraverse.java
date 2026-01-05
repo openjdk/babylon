@@ -28,9 +28,9 @@
  */
 
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -40,11 +40,12 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 public class TestTraverse {
 
-    @CodeReflection
+    @Reflect
     private static int f(String s, int i, List<Object> acc) {
         char c = s.charAt(i);
         int d = (c - '0');
@@ -66,7 +67,7 @@ public class TestTraverse {
         CoreOp.FuncOp f = getFuncOp("f");
         testTraverse(f);
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         testTraverse(f);
 
         f = SSA.transform(f);
@@ -74,13 +75,22 @@ public class TestTraverse {
     }
 
     void testTraverse(Op op) {
-        List<CodeElement<?, ?>> tl = op.traverse(new ArrayList<>(), (l, e) -> {
+        List<CodeElement<?, ?>> tl = traverse(new ArrayList<>(), op, (l, e) -> {
             l.add(e);
             return l;
         });
-        Assertions.assertEquals(tl, op.elements().toList());
+        Assertions.assertEquals(op.elements().toList(), tl);
 
-        Assertions.assertEquals(tl.subList(0, 2), op.elements().limit(2).toList());
+        Assertions.assertEquals(op.elements().limit(2).toList(), tl.subList(0, 2));
+    }
+
+    static <T> T traverse(T t, CodeElement<?, ?> e, BiFunction<T, CodeElement<?, ?>, T> v) {
+        t = v.apply(t, e);
+        for (CodeElement<?, ?> c : e.children()) {
+            t = traverse(t, c, v);
+        }
+
+        return t;
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

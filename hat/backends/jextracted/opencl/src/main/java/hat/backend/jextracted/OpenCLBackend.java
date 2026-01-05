@@ -25,19 +25,18 @@
 package hat.backend.jextracted;
 
 
-import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 //import hat.backend.ffi.C99FFIBackend;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Schema;
 
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandle;
-
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import java.lang.invoke.MethodHandles;
 
 public class OpenCLBackend extends C99JExtractedBackend {
+
 
     final MethodHandle getBackend_MH;
     public long getBackend(int mode, int platform, int device) {
@@ -50,7 +49,7 @@ public class OpenCLBackend extends C99JExtractedBackend {
     }
 
     public OpenCLBackend(Config config) {
-        super(config,"opencl_backend");
+        super(Arena.global(), MethodHandles.lookup(),config,"opencl_backend");
         getBackend_MH  = null;// nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
         getBackend(0,0,0);
         info();
@@ -62,14 +61,14 @@ public class OpenCLBackend extends C99JExtractedBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeEntrypoint());
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
+            String code = createCode(kernelCallGraph, new OpenCLJExtractedHATKernelBuilder(), args);
             System.out.println(code);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {

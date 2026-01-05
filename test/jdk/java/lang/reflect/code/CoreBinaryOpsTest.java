@@ -28,9 +28,9 @@
  * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -67,110 +67,110 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class CoreBinaryOpsTest {
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int and(int left, int right) {
         return left & right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int add(int left, int right) {
         return left + right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int div(int left, int right) {
         return left / right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INT_LONG)
     static int leftShift(int left, int right) {
         return left << right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static int leftShiftIL(int left, long right) {
         return left << right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static long leftShiftLI(long left, int right) {
         return left << right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mod(int left, int right) {
         return left % right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mul(int left, int right) {
         return left * right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int or(int left, int right) {
         return left | right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INT_LONG)
     static int signedRightShift(int left, int right) {
         return left >> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static int signedRightShiftIL(int left, long right) {
         return left >> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static long signedRightShiftLI(long left, int right) {
         return left >> right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int sub(int left, int right) {
         return left - right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INT_LONG)
     static int unsignedRightShift(int left, int right) {
         return left >>> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static int unsignedRightShiftIL(int left, long right) {
         return left >>> right;
     }
 
-    @CodeReflection
+    @Reflect
     @Direct
     static long unsignedRightShiftLI(long left, int right) {
         return left >>> right;
     }
 
-    @CodeReflection
+    @Reflect
     @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int xor(int left, int right) {
         return left ^ right;
     }
 
     @ParameterizedTest
-    @CodeReflectionExecutionSource
+    @ReflectExecutionSource
     void test(CoreOp.FuncOp funcOp, Object left, Object right) {
         Result interpret = runCatching(() -> interpret(left, right, funcOp));
         Result bytecode = runCatching(() -> bytecode(left, right, funcOp));
@@ -207,11 +207,11 @@ public class CoreBinaryOpsTest {
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
-    @ArgumentsSource(CodeReflectionSourceProvider.class)
-    @interface CodeReflectionExecutionSource {
+    @ArgumentsSource(ReflectSourceProvider.class)
+    @interface ReflectExecutionSource {
     }
 
-    static class CodeReflectionSourceProvider implements ArgumentsProvider {
+    static class ReflectSourceProvider implements ArgumentsProvider {
         private static final Map<JavaType, List<?>> INTERESTING_INPUTS = Map.of(
                 // explicit type parameters to ensure boxing results in the expected type
                 JavaType.INT, List.<Integer>of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
@@ -227,7 +227,7 @@ public class CoreBinaryOpsTest {
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) {
             Method testMethod = extensionContext.getRequiredTestMethod();
-            return codeReflectionMethods(extensionContext.getRequiredTestClass())
+            return ReflectMethods(extensionContext.getRequiredTestClass())
                     .flatMap(method -> {
                         CoreOp.FuncOp funcOp = Op.ofMethod(method).orElseThrow(
                                 () -> new IllegalStateException("Expected code model to be present for method " + method)
@@ -275,7 +275,7 @@ public class CoreBinaryOpsTest {
                     ? type
                     : functionType.returnType();
             return CoreOp.func(original.funcName(), CoreType.functionType(retType, type, type))
-                    .body(builder -> builder.body(original.body(), builder.parameters(), OpTransformer.COPYING_TRANSFORMER)
+                    .body(builder -> builder.body(original.body(), builder.parameters(), CodeTransformer.COPYING_TRANSFORMER)
                     );
         }
 
@@ -326,10 +326,10 @@ public class CoreBinaryOpsTest {
             return MethodType.methodType(target).wrap().returnType();
         }
 
-        private static Stream<Method> codeReflectionMethods(Class<?> testClass) {
+        private static Stream<Method> ReflectMethods(Class<?> testClass) {
             return Arrays.stream(testClass.getDeclaredMethods())
                     .filter(method -> method.accessFlags().contains(AccessFlag.STATIC))
-                    .filter(method -> method.isAnnotationPresent(CodeReflection.class));
+                    .filter(method -> method.isAnnotationPresent(Reflect.class));
         }
 
     }
@@ -339,7 +339,7 @@ public class CoreBinaryOpsTest {
     }
 
     private static Object bytecode(Object left, Object right, CoreOp.FuncOp op) throws Throwable {
-        CoreOp.FuncOp func = SSA.transform(op.transform(OpTransformer.LOWERING_TRANSFORMER));
+        CoreOp.FuncOp func = SSA.transform(op.transform(CodeTransformer.LOWERING_TRANSFORMER));
         MethodHandle handle = BytecodeGenerator.generate(MethodHandles.lookup(), func);
         return handle.invoke(left, right);
     }

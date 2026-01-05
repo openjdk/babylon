@@ -22,7 +22,7 @@
  */
 
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.IntUnaryOperator;
 
 /*
@@ -37,7 +37,7 @@ import java.util.function.IntUnaryOperator;
 
 public class UnreachableTest {
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" ()java.type:"void" -> {
                 java.block ()java.type:"void" -> {
@@ -52,7 +52,7 @@ public class UnreachableTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
@@ -69,7 +69,7 @@ public class UnreachableTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
@@ -98,10 +98,10 @@ public class UnreachableTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=false (%1 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"i";
                     java.if
                         ()java.type:"boolean" -> {
@@ -132,7 +132,7 @@ public class UnreachableTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"n";
@@ -195,7 +195,7 @@ public class UnreachableTest {
                 return;
             };
             """)
-    static final IntUnaryOperator QUOTABLE_TEST = (@CodeReflection IntUnaryOperator) (int i) -> {
+    static final IntUnaryOperator QUOTABLE_TEST = (@Reflect IntUnaryOperator) (int i) -> {
         if (true) {
             return i;
         } else {

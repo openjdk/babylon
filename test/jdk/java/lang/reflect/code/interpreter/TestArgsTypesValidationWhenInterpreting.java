@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -38,7 +38,7 @@ import java.lang.reflect.Method;
  */
 public class TestArgsTypesValidationWhenInterpreting {
 
-    @CodeReflection
+    @Reflect
     private double f(int value) {
         return Math.pow(value, 2);
     }

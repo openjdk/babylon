@@ -24,11 +24,13 @@
  */
 package hat.test;
 
-import hat.buffer.F16;
+import jdk.incubator.code.Reflect;
+
+import hat.types.F16;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 
 /**
  * Test to check the Intermediate Representation (IR) of {@link DeviceType} interfaces
@@ -69,10 +71,11 @@ public class TestDeviceType {
      * Note that {@link F16} type is provided by hat, and it can be used within {@link DeviceType}.
      */
     @HatTest
+    @Reflect
     public void testdevice_type_01() {
         MyDeviceArray myDeviceArray = MyDeviceArray.create();
         String text = MyDeviceArray.schema.toText();
-        boolean isEquals = text.equals("<hat.buffer.F16:s:half:value;><hat.test.TestDeviceType$MyDeviceArray:[:hat.buffer.F16:array:2048;s:float:x;>");
+        boolean isEquals = text.equals("<hat.types.F16:s:half:value;><hat.test.TestDeviceType$MyDeviceArray:[:hat.types.F16:array:2048;s:float:x;>");
         HATAsserts.assertTrue(isEquals);
     }
 
@@ -104,6 +107,7 @@ public class TestDeviceType {
     }
 
     @HatTest
+    @Reflect
     public void testdevice_type_02() {
         MyNDRAnge myDeviceArray = MyNDRAnge.create();
         String text = MyNDRAnge.schema.toText();
@@ -147,12 +151,52 @@ public class TestDeviceType {
     }
 
     @HatTest
+    @Reflect
     public void testdevice_type_03() {
         // This test is expected to fail. It request a member called "range2" from the _2D class.
         // However, the method name is "_range2". Thus the requested method doen't exits.
         try {
             MultiDim myDeviceArray = MultiDim.create();
             String text = MultiDim.schema.toText();
+            // If we request the correct method, the result should be as follows:
+            boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
+            HATAsserts.assertFalse(isEquals);
+        } catch (ExceptionInInitializerError e) {
+            HATAsserts.assertTrue(true);
+        }
+    }
+
+    public interface MultiDimFix extends DeviceType {
+        _2D array(int index);
+        void array(int index, _2D value);
+
+        interface _2D {
+            _3D _range2(int index);
+            void _range2(int index, _3D val);
+
+            interface _3D {
+                int value(int index);
+                void value(int index, int val);
+            }
+        }
+
+        DeviceSchema<MultiDimFix> schema = DeviceSchema.of(MultiDimFix.class, builder ->
+                builder.withArray("array", 2048)
+                        .withDeps(_2D.class,subrange -> subrange.withArray("_range2", 64)
+                                .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));
+
+        static MultiDimFix create() {
+            return null;
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void testdevice_type_04() {
+        // Same test as the previous one with the correct field names
+        try {
+            MultiDimFix myDeviceArray = MultiDimFix.create();
+            String text = MultiDimFix.schema.toText();
             // If we request the correct method, the result should be as follows:
             boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
             HATAsserts.assertFalse(isEquals);

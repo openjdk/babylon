@@ -24,17 +24,17 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATOp extends Op {
+public abstract sealed class HATOp extends Op permits HATBarrierOp, HATF16Op, HATMemoryDefOp, HATMemoryVarOp, HATPtrOp, HATThreadOp, HATVectorOp {
     public HATOp(List<Value> operands) {
         super(operands);
     }
-    protected HATOp(Op that, CopyContext cc) {
+    protected HATOp(Op that, CodeContext cc) {
         super(that, cc);
     }
 }

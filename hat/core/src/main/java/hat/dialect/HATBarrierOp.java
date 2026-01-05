@@ -24,9 +24,9 @@
  */
 package hat.dialect;
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -36,19 +36,18 @@ import java.util.List;
 import java.util.Map;
 
 public final class HATBarrierOp extends HATOp {
-    public static final String INTRINSIC_NAME = "barrier";
-    private static final String NAME = "hat.dialect.sync."+INTRINSIC_NAME;
+    public static final String NAME = "barrier";
 
     public HATBarrierOp(List<Value> operands) {
         super(operands);
     }
 
-    public HATBarrierOp(HATBarrierOp hatBarrierOp, CopyContext copyContext) {
+    public HATBarrierOp(HATBarrierOp hatBarrierOp, CodeContext copyContext) {
         super(hatBarrierOp, copyContext);
     }
 
     @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+    public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
         return new HATBarrierOp(this, copyContext);
     }
 
@@ -57,7 +56,7 @@ public final class HATBarrierOp extends HATOp {
         return JavaType.VOID;
     }
 
-    public Map<String, Object> externalize() {return Map.of(NAME, JavaOp.InvokeOp.InvokeKind.INSTANCE);
+    public Map<String, Object> externalize() {return Map.of("hat.dialect.sync."+NAME, JavaOp.InvokeOp.InvokeKind.INSTANCE);
     }
 
 }

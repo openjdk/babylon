@@ -84,7 +84,7 @@ public final class OnnxTransformer {
                 b.context().mapValue(inputCapture, output);
             }
 
-            b.body(lambda.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
+            b.body(lambda.body(), List.of(), CodeTransformer.COPYING_TRANSFORMER);
         });
 
         return OnnxTransformer.transform(l, f);
@@ -102,12 +102,11 @@ public final class OnnxTransformer {
     }
 
     static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline, CoreOp.FuncOp func) {
-        func.traverse(null, (_, op) -> {
-            if(op instanceof JavaOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
+        func.elements().forEach(e -> {
+            if (e instanceof JavaOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
                 collectModuleFunctions(l, funcs, doNotInline, f);
                 doNotInline.add(funcs.putIfAbsent(io.invokeDescriptor(), f));
             }
-            return null;
         });
     }
 
@@ -149,7 +148,8 @@ public final class OnnxTransformer {
     static ModuleAndInitializers remapInitializers(TypeConvertor tc, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
         record TI(TypeElement type, int index) {}
-        var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
+        LinkedHashMap<FieldRef, TI> initializers = new LinkedHashMap();
+        module.elements().forEach(op -> {
             if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flo
                     && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
                      || tc.isRecord(flo.resultType())
@@ -157,13 +157,12 @@ public final class OnnxTransformer {
                     )) {
                 var targetType = tc.convertType(flo.result());
                 // computataion of the tuple size created out of the static array initializer field
-                i.compute(flo.fieldDescriptor(), (fd, ti) -> ti == null
-                        ? new TI(targetType, i.size())
+                initializers.compute(flo.fieldDescriptor(), (fd, ti) -> ti == null
+                        ? new TI(targetType, initializers.size())
                         : targetType instanceof TupleType newTt && ti.type() instanceof TupleType oldTt && newTt.componentTypes().size() > oldTt.componentTypes().size()
                                 ? new TI(newTt, ti.index())
                                 : ti);
             }
-            return i;
         });
 
         if (initializers.isEmpty()) {
@@ -212,7 +211,7 @@ public final class OnnxTransformer {
 
     public static CoreOp.FuncOp evaluate(MethodHandles.Lookup l, CoreOp.FuncOp f) {
         try {
-            f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
             f = PartialEvaluator.evaluate(l,
                     op -> switch (op) {
                         case CoreOp.ConstantOp _ -> true;
@@ -314,17 +313,17 @@ public final class OnnxTransformer {
     static CoreOp.FuncOp transformToOnnx(TypeConvertor tc, CoreOp.FuncOp func, OnnxPartialEvaluator pe) {
         FunctionType ft = tc.convertType(func);
         var func2 = CoreOp.func(func.funcName(), ft).body(b -> {
-            b.body(func.body(), b.parameters(), toOnnxOpTransformer(tc, pe));
+            b.body(func.body(), b.parameters(), toOnnxCodeTransformer(tc, pe));
         });
         // double transformation to fix return type by the returned tuple type
-        return CoreOp.func(func2.funcName(), tc.convertType(func2)).body(b -> b.body(func2.body(), b.parameters(), OpTransformer.COPYING_TRANSFORMER));
+        return CoreOp.func(func2.funcName(), tc.convertType(func2)).body(b -> b.body(func2.body(), b.parameters(), CodeTransformer.COPYING_TRANSFORMER));
     }
 
     static CoreOp.FuncOp removeDropedFuncCallsArgs(CoreOp.FuncOp func, Map<String, BitSet> paramsToDropMap) {
         return func.transform((bb, op) -> {
             if (op instanceof CoreOp.FuncCallOp fco) {
                 BitSet argsToDrop = paramsToDropMap.get(fco.funcName());
-                CopyContext cc = bb.context();
+                CodeContext cc = bb.context();
                 List<Value> newOperands = IntStream.range(0, fco.operands().size()).filter(i -> !argsToDrop.get(i)).mapToObj(i -> cc.getValue(fco.operands().get(i))).toList();
                 CoreOp.FuncCallOp newCall = CoreOp.funcCall(fco.funcName(),
                                                             CoreType.functionType(fco.opType().returnType(),
@@ -365,7 +364,7 @@ public final class OnnxTransformer {
         });
     }
 
-    static OpTransformer toOnnxOpTransformer(TypeConvertor tc, OnnxPartialEvaluator pe) {
+    static CodeTransformer toOnnxCodeTransformer(TypeConvertor tc, OnnxPartialEvaluator pe) {
         return (bb, op) -> {
             if (!pe.unevaluatedOperations.contains(op)) {
                 return bb;
@@ -443,12 +442,12 @@ public final class OnnxTransformer {
                         // Explicit transformation of nested bodies
                         for (int i = 1; i < 3; i++) {
                             var lambda = (JavaOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
-                            opArgs.add(transformBodyTranslateTypes(tc, lambda, bb, toOnnxOpTransformer(tc, pe)));
+                            opArgs.add(transformBodyTranslateTypes(tc, lambda, bb, toOnnxCodeTransformer(tc, pe)));
                         }
                     } else if (opClass == ExplicitOnnxOps.Loop.class) {
                         // Explicit transformation of nested body
                         var lambda = (JavaOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
-                        opArgs.add(transformBodyTranslateTypes(tc, lambda, bb, toOnnxOpTransformer(tc, pe)));
+                        opArgs.add(transformBodyTranslateTypes(tc, lambda, bb, toOnnxCodeTransformer(tc, pe)));
                     }
                     OnnxOp onnxOp;
                     try {
@@ -531,7 +530,7 @@ public final class OnnxTransformer {
 
     // @@@ Copy of Body::transform content to translate types
     static Body.Builder transformBodyTranslateTypes(TypeConvertor tc, Op.Invokable iop,
-                                                    Block.Builder ancestor, OpTransformer ot) {
+                                                    Block.Builder ancestor, CodeTransformer ot) {
         // @@@ Pass in function type to override that of body's type?
 //        return iop.body().transform(cc, ot);
         FunctionType inputType = iop.invokableType();

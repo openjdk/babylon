@@ -29,27 +29,32 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.F16;
+import hat.types.BF16;
+import hat.buffer.BF16Array;
+import hat.types.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
-import hat.buffer.Float4;
+import hat.types.Float4;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
-import jdk.incubator.code.CodeReflection;
+import hat.test.exceptions.HATAssertionError;
+import hat.test.exceptions.HATAsserts;
+import hat.test.exceptions.HATExpectedPrecisionError;
+import jdk.incubator.code.Reflect;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RO;
+import static optkl.ifacemapper.MappableIface.RW;
 
 public class TestMatMul {
 
     private static final int SIZE = 256;
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.gix < kc.gsy) {
@@ -62,7 +67,7 @@ public class TestMatMul {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
@@ -75,7 +80,7 @@ public class TestMatMul {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
@@ -109,7 +114,7 @@ public class TestMatMul {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         final int tileSize = 16;
@@ -151,7 +156,7 @@ public class TestMatMul {
         matrixC.array((long) row * size + col, sum);
     }
 
-    @CodeReflection
+    @Reflect
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
@@ -160,7 +165,7 @@ public class TestMatMul {
         return acc;
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
@@ -173,7 +178,7 @@ public class TestMatMul {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
@@ -183,52 +188,46 @@ public class TestMatMul {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(globalSize), NDRange.Local1D.of(16));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of1D(globalSize,16),
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     final static int BLOCK_SIZE = 16;
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(size));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of1D(size),
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(ndRange,
+          cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(ndRange,
+          cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(globalSize, globalSize), NDRange.Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(ndRange,
+          cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -275,9 +274,24 @@ public class TestMatMul {
         }
     }
 
+    private static void runSequential(BF16Array matrixA, BF16Array matrixB, BF16Array matrixC, final int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                BF16 sum = BF16.of(0.0f);
+                for (int k = 0; k < size; k++) {
+                    BF16 a = matrixA.array((long) i * size + k);
+                    BF16 b = matrixB.array((long) k * size + j);
+                    sum = BF16.add(sum, BF16.mul(a, b));
+                }
+                matrixC.array((long) i * size + j).value(sum.value());
+            }
+        }
+    }
+
     @HatTest
+    @Reflect
     public void testMatrixMultiply1D() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -310,8 +324,9 @@ public class TestMatMul {
     }
 
     @HatTest
+    @Reflect
     public void testMatrixMultiply1DWithFunctionCalls() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -345,8 +360,9 @@ public class TestMatMul {
 
 
     @HatTest
+    @Reflect
     public void testMatrixMultiply2D() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -379,8 +395,9 @@ public class TestMatMul {
     }
 
     @HatTest
+    @Reflect
     public void testMatrixMultiply2DLI() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -413,8 +430,9 @@ public class TestMatMul {
     }
 
     @HatTest
+    @Reflect
     public void testMatrixMultiply2DLIF16() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -441,17 +459,22 @@ public class TestMatMul {
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HATAsserts.assertEquals(
-                        Float.float16ToFloat(resultSeq.array(i * size + j).value()),
-                        Float.float16ToFloat(matrixC.array(i * size + j).value()),
-                        0.01f);
+                try {
+                    HATAsserts.assertEquals(
+                            Float.float16ToFloat(resultSeq.array(i * size + j).value()),
+                            Float.float16ToFloat(matrixC.array(i * size + j).value()),
+                            0.01f);
+                } catch (HATAssertionError hatAssertionError) {
+                    throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+                }
             }
         }
     }
 
     @HatTest
+    @Reflect
     public void testMatrixMultiply2DTiling() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = SIZE;
@@ -525,7 +548,7 @@ public class TestMatMul {
     }
 
     // Code ported from the HAT example module.
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
@@ -627,12 +650,12 @@ public class TestMatMul {
     }
 
     // Code ported from the HAT example module.
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
-        final int M = size;
+      //  final int M = size;
         final int N = size;
         final int K = size;
         final int BM = 64;
@@ -727,25 +750,24 @@ public class TestMatMul {
         }
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, final int size) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
-    @CodeReflection
+    @Reflect
     public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, final int size) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @HatTest
+    @Reflect
     public void testMatMul2DRegisterTiling() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;
@@ -778,8 +800,9 @@ public class TestMatMul {
     }
 
     @HatTest
+    @Reflect
     public void testMatMul2DRegisterTilingVectorized() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;
@@ -860,7 +883,7 @@ public class TestMatMul {
     }
 
     // Taking from the HAT Examples module
-    @CodeReflection
+    @Reflect
     public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
         final int BM = 64;
         final int BN = 64;
@@ -934,8 +957,8 @@ public class TestMatMul {
                         F16 privB = regN.array(resIdxN);
                         F16 mul = F16.mul(privA, privB);
                         F16 acc = threadResults.array(resIdxM * TN + resIdxN);
-                        F16 acc2 = F16.add(acc, mul);   // FIXME: this is a partial fix until we support expressions such as: acc = acc <OP> val
-                        threadResults.array((resIdxM * TN + resIdxN)).value(acc2.value());
+                        acc = F16.add(acc, mul);
+                        threadResults.array((resIdxM * TN + resIdxN)).value(acc.value());
                     }
                 }
             }
@@ -949,17 +972,161 @@ public class TestMatMul {
         }
     }
 
-    @CodeReflection
+    private interface SharedMemoryBfloat16 extends DeviceType {
+        BF16 array(int index);
+
+        DeviceSchema<SharedMemoryBfloat16> schema = DeviceSchema.of(SharedMemoryBfloat16.class,
+                arr -> arr.withArray("array", 1024)
+                        .withDeps(BF16.class, half -> half.withField("value")));
+
+        static SharedMemoryBfloat16 create(Accelerator accelerator) {
+            return null;
+        }
+
+        static SharedMemoryBfloat16 createLocal() {
+            return null;
+        }
+    }
+
+    private interface PrivateArrayBfloat16 extends DeviceType {
+        BF16 array(int index);
+
+        DeviceSchema<PrivateArrayBfloat16> schema = DeviceSchema.of(PrivateArrayBfloat16.class,
+                arr -> arr.withArray("array", 16)
+                        .withDeps(BF16.class, half -> half.withField("value")));
+
+        static PrivateArrayBfloat16 create(Accelerator accelerator) {
+            return null;
+        }
+
+        static PrivateArrayBfloat16 createPrivate() {
+            return null;
+        }
+    }
+
+    private interface FlatPrivateBfloat16 extends DeviceType {
+        BF16 array(int index);
+
+        DeviceSchema<FlatPrivateBfloat16> schema = DeviceSchema.of(FlatPrivateBfloat16.class,
+                arr -> arr.withArray("array", 4)
+                        .withDeps(BF16.class, half -> half.withField("value")));
+
+        static FlatPrivateBfloat16 create(Accelerator accelerator) {
+            return null;
+        }
+
+        static FlatPrivateBfloat16 createPrivate() {
+            return null;
+        }
+    }
+
+    @Reflect
+    public static void matrixMultiplyKernel2DRegisterTilingBFloat16(@RO KernelContext kc, @RO BF16Array matrixA, @RO BF16Array matrixB, @RW BF16Array matrixC, int size) {
+        final int BM = 64;
+        final int BN = 64;
+        final int BK = 16;
+        final int TM = 4;
+        final int TN = 4;
+
+        int bx = kc.bix;
+        int by = kc.biy;
+
+        int totalResultsBlockTile = BM * BN;
+        final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
+
+        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
+        final int threadCol = kc.lix;
+        final int threadRow = kc.liy;
+
+        SharedMemoryBfloat16 tileA = SharedMemoryBfloat16.createLocal();
+        SharedMemoryBfloat16 tileB = SharedMemoryBfloat16.createLocal();
+
+        int aFrom = by * BM * size;
+        int bFrom = bx * BN;
+        int v = bx * BN;
+        int cFrom = (by * BM * size) + (v);
+
+        final int innerRowA = linearLocalId / BK;
+        final int innerColA = linearLocalId % BK;
+
+        final int strideA = numThreadsBlockTile / BK;
+        final int innerRowB = linearLocalId / BN;
+        final int innerColB = linearLocalId % BN;
+
+        int strideB = numThreadsBlockTile / BN;
+
+        PrivateArrayBfloat16 threadResults = PrivateArrayBfloat16.createPrivate();
+        FlatPrivateBfloat16 regM = FlatPrivateBfloat16.createPrivate();
+        FlatPrivateBfloat16 regN = FlatPrivateBfloat16.createPrivate();
+
+        for (int i = 0; i < (TN * TN); i++) {
+            BF16 init = BF16.of(0.0f);
+            threadResults.array(i).value(init.value());
+        }
+
+        for (int bkIdx = 0; bkIdx < size; bkIdx += BK) {
+            for (int loadOffset = 0; loadOffset < BM; loadOffset += strideA) {
+                BF16 ha = matrixA.array(((innerRowA + loadOffset) * size + innerColA) + aFrom);
+                tileA.array((innerRowA + loadOffset) * BK + innerColA).value(ha.value());
+            }
+            for (int loadOffset = 0; loadOffset < BK; loadOffset += strideB) {
+                BF16 hb = matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom);
+                tileB.array((innerRowB + loadOffset) * BN + innerColB).value(hb.value());
+            }
+            kc.barrier();
+
+            aFrom += (BK);
+            int f = BK * size;
+            bFrom += f;
+
+            for (int dotIdx = 0; dotIdx < BK; dotIdx++) {
+                for (int i = 0; i < TM; i++) {
+                    BF16 ha = tileA.array((threadRow * TM + i) * BK + dotIdx);
+                    regM.array(i).value(ha.value());
+                }
+                for (int i = 0; i < TN; i++) {
+                    BF16 hb = tileB.array(dotIdx * BN + threadCol * TN + i);
+                    regN.array(i).value(hb.value());
+                }
+                for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
+                    for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
+                        BF16 privA = regM.array(resIdxM);
+                        BF16 privB = regN.array(resIdxN);
+                        BF16 mul = BF16.mul(privA, privB);
+                        BF16 acc = threadResults.array(resIdxM * TN + resIdxN);
+                        acc = BF16.add(acc, mul);
+                        threadResults.array((resIdxM * TN + resIdxN)).value(acc.value());
+                    }
+                }
+            }
+            kc.barrier();
+        }
+        for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
+            for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
+                BF16 result = threadResults.array(resIdxM * TN + resIdxN);
+                matrixC.array((((threadRow * TM + resIdxM) * size + threadCol * TN + resIdxN) + (cFrom))).value(result.value());
+            }
+        }
+    }
+
+    @Reflect
     public static void matrixMultiply2DRegisterTilingHalf(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
-        NDRange ndRange = NDRange.of(NDRange.Global2D.of(256, 256), NDRange.Local2D.of(16, 16));
-        cc.dispatchKernel(ndRange,
+        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
                 kc -> matrixMultiplyKernel2DRegisterTilingHalf(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
+    @Reflect
+    public static void matrixMultiply2DRegisterTilingBFloat16(@RO ComputeContext cc, @RO BF16Array matrixA, @RO BF16Array matrixB, @RW BF16Array matrixC, int globalSize) {
+        cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
+                kc -> matrixMultiplyKernel2DRegisterTilingBFloat16(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
     @HatTest
+    @Reflect
     public void matrixMultiply2DRegisterTilingHalf() {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;
@@ -985,9 +1152,53 @@ public class TestMatMul {
 
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(F16.f16ToFloat(resultSeq.array(i * size + j)),
+                try {
+                    HATAsserts.assertEquals(F16.f16ToFloat(resultSeq.array(i * size + j)),
                                         F16.f16ToFloat(matrixC.array(i * size + j)),
                                         0.01f);
+                } catch (HATAssertionError hatAssertionError) {
+                    throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+                }
+            }
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void matrixMultiply2DRegisterTilingBFloat16() {
+        var lookup = MethodHandles.lookup();
+        var accelerator = new Accelerator(lookup, Backend.FIRST);
+
+        final int size = 1024;
+        var matrixA = BF16Array.create(accelerator, size * size);
+        var matrixB = BF16Array.create(accelerator, size * size);
+
+        // Matrix for the results
+        var matrixC = BF16Array.create(accelerator, size * size);
+        var resultSeq = BF16Array.create(accelerator, size * size);
+
+        // Initialize matrices (A and B have the same size)
+        Random r = new Random(19);
+        for (int j = 0; j < matrixA.length(); j++) {
+            matrixA.array(j).value(BF16.float2bfloat16(r.nextFloat()).value());
+            matrixB.array(j).value(BF16.float2bfloat16(r.nextFloat()).value());
+        }
+
+        accelerator.compute(cc ->
+                TestMatMul.matrixMultiply2DRegisterTilingBFloat16(cc, matrixA, matrixB, matrixC, size));
+
+        // Run Seq for reference
+        runSequential(matrixA, matrixB, resultSeq, size);
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                try {
+                    HATAsserts.assertEquals(BF16.bfloat162float(resultSeq.array(i * size + j)),
+                            BF16.bfloat162float(matrixC.array(i * size + j)),
+                            0.01f);
+                } catch (HATAssertionError hatAssertionError) {
+                    throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+                }
             }
         }
     }

@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 
 /*
@@ -35,7 +35,7 @@ import java.util.List;
 
 public class DenotableTypesTest {
     static <X extends Number & Runnable> X m1(X x) { return null; }
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Number" = constant @null;
@@ -47,7 +47,7 @@ public class DenotableTypesTest {
         m1(null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" ()java.type:"void" -> {
                 %0 : java.type:"int" = constant @1;
@@ -64,7 +64,7 @@ public class DenotableTypesTest {
 
     static <X extends Throwable> X m2(X x) throws X { return null; }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.RuntimeException" = constant @null;
@@ -83,7 +83,7 @@ public class DenotableTypesTest {
 
     static <Z> Z pick(Z z1, Z z2) { return null; }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Object" = constant @null;
@@ -98,7 +98,7 @@ public class DenotableTypesTest {
         pick((C)null, (D)null);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" ()java.type:"void" -> {
                 %0 : java.type:"java.util.List<? extends java.lang.Number>" = constant @null;
@@ -114,7 +114,7 @@ public class DenotableTypesTest {
         l.get(0);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" ()java.type:"void" -> {
                 %0 : java.type:"java.util.List<? super java.lang.Number>" = constant @null;
@@ -132,7 +132,7 @@ public class DenotableTypesTest {
 
     static void consume(Runnable r) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" ()java.type:"void" -> {
                 %0 : java.type:"&DenotableTypesTest::test7():void::<X>" = constant @null;
@@ -152,7 +152,7 @@ public class DenotableTypesTest {
         void add(Adder<X> adder);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>"> = var %0 @"list";
@@ -174,7 +174,7 @@ public class DenotableTypesTest {
         X x;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>"> = var %0 @"list";
@@ -204,7 +204,7 @@ public class DenotableTypesTest {
 
     static void g() throws XA, XB { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" ()java.type:"void" -> {
                 java.try
@@ -228,5 +228,198 @@ public class DenotableTypesTest {
         } catch (XA | XB x) {
             x.m();
         }
+    }
+
+    static <Z> List<Z> pickInv(Z z1, Z z2) { return null; }
+    static <Z> List<? extends Z> pickExt(Z z1, Z z2) { return null; }
+    static <Z> List<? super Z> pickSup(Z z1, Z z2) { return null; }
+
+    // test intersections
+
+    @Reflect
+    @IR("""
+            func @"test11" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"java.util.List<? extends DenotableTypesTest$A>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickInv(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test11() {
+        pickInv((C)null, (D)null);
+    }
+
+    @Reflect
+    @IR("""
+            func @"test12" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"java.util.List<? extends DenotableTypesTest$A>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickExt(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test12() {
+        pickExt((C)null, (D)null);
+    }
+
+    @Reflect
+    @IR("""
+            func @"test13" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"java.util.List<?>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickSup(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test13() {
+        pickSup((C)null, (D)null);
+    }
+
+    static <Z> List<Z[]> pickInvArr(Z z1, Z z2) { return null; }
+    static <Z> List<? extends Z[]> pickExtArr(Z z1, Z z2) { return null; }
+    static <Z> List<? super Z[]> pickSupArr(Z z1, Z z2) { return null; }
+
+    // test arrays of intersections
+
+    @Reflect
+    @IR("""
+            func @"test14" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"java.util.List<? extends DenotableTypesTest$A[]>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickInvArr(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test14() {
+        pickInvArr((C)null, (D)null);
+    }
+
+    @Reflect
+    @IR("""
+            func @"test15" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"java.util.List<? extends DenotableTypesTest$A[]>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickExtArr(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test15() {
+        pickExtArr((C)null, (D)null);
+    }
+
+    @Reflect
+    @IR("""
+            func @"test16" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"java.util.List<?>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickSupArr(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test16() {
+        pickSupArr((C)null, (D)null);
+    }
+
+    interface F<X> { }
+    interface G<X> { }
+    static class H<X> implements F<X>, G<X> { }
+    static class I<X> implements F<X>, G<X> { }
+
+    static <Z> H<Z> pickH(Z z1, Z z2) { return null; }
+    static <Z> I<Z> pickI(Z z1, Z z2) { return null; }
+
+    // test intersections of intersections
+
+    @Reflect
+    @IR("""
+            func @"test17" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickH(java.lang.Object, java.lang.Object):DenotableTypesTest$H";
+                %5 : Var<java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>"> = var %4 @"fst";
+                %6 : java.type:"java.lang.Object" = constant @null;
+                %7 : java.type:"DenotableTypesTest$C" = cast %6 @java.type:"DenotableTypesTest$C";
+                %8 : java.type:"java.lang.Object" = constant @null;
+                %9 : java.type:"DenotableTypesTest$D" = cast %8 @java.type:"DenotableTypesTest$D";
+                %10 : java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>" = invoke %7 %9 @java.ref:"DenotableTypesTest::pickI(java.lang.Object, java.lang.Object):DenotableTypesTest$I";
+                %11 : Var<java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>"> = var %10 @"snd";
+                %12 : java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>" = var.load %5;
+                %13 : java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>" = var.load %11;
+                %14 : java.type:"java.util.List<? extends DenotableTypesTest$F<? extends DenotableTypesTest$A>>" = invoke %12 %13 @java.ref:"DenotableTypesTest::pickInv(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test17() {
+        var fst = pickH((C)null, (D)null);
+        var snd = pickI((C)null, (D)null);
+        pickInv(fst, snd);
+    }
+
+    @Reflect
+    @IR("""
+            func @"test18" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickH(java.lang.Object, java.lang.Object):DenotableTypesTest$H";
+                %5 : Var<java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>"> = var %4 @"fst";
+                %6 : java.type:"java.lang.Object" = constant @null;
+                %7 : java.type:"DenotableTypesTest$C" = cast %6 @java.type:"DenotableTypesTest$C";
+                %8 : java.type:"java.lang.Object" = constant @null;
+                %9 : java.type:"DenotableTypesTest$D" = cast %8 @java.type:"DenotableTypesTest$D";
+                %10 : java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>" = invoke %7 %9 @java.ref:"DenotableTypesTest::pickI(java.lang.Object, java.lang.Object):DenotableTypesTest$I";
+                %11 : Var<java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>"> = var %10 @"snd";
+                %12 : java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>" = var.load %5;
+                %13 : java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>" = var.load %11;
+                %14 : java.type:"java.util.List<? extends DenotableTypesTest$F<? extends DenotableTypesTest$A>>" = invoke %12 %13 @java.ref:"DenotableTypesTest::pickExt(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test18() {
+        var fst = pickH((C)null, (D)null);
+        var snd = pickI((C)null, (D)null);
+        pickExt(fst, snd);
+    }
+
+    @Reflect
+    @IR("""
+            func @"test19" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Object" = constant @null;
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
+                %2 : java.type:"java.lang.Object" = constant @null;
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>" = invoke %1 %3 @java.ref:"DenotableTypesTest::pickH(java.lang.Object, java.lang.Object):DenotableTypesTest$H";
+                %5 : Var<java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>"> = var %4 @"fst";
+                %6 : java.type:"java.lang.Object" = constant @null;
+                %7 : java.type:"DenotableTypesTest$C" = cast %6 @java.type:"DenotableTypesTest$C";
+                %8 : java.type:"java.lang.Object" = constant @null;
+                %9 : java.type:"DenotableTypesTest$D" = cast %8 @java.type:"DenotableTypesTest$D";
+                %10 : java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>" = invoke %7 %9 @java.ref:"DenotableTypesTest::pickI(java.lang.Object, java.lang.Object):DenotableTypesTest$I";
+                %11 : Var<java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>"> = var %10 @"snd";
+                %12 : java.type:"DenotableTypesTest$H<? extends DenotableTypesTest$A>" = var.load %5;
+                %13 : java.type:"DenotableTypesTest$I<? extends DenotableTypesTest$A>" = var.load %11;
+                %14 : java.type:"java.util.List<?>" = invoke %12 %13 @java.ref:"DenotableTypesTest::pickSup(java.lang.Object, java.lang.Object):java.util.List";
+                return;
+            };
+            """)
+    static void test19() {
+        var fst = pickH((C)null, (D)null);
+        var snd = pickI((C)null, (D)null);
+        pickSup(fst, snd);
     }
 }

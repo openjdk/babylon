@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -58,7 +59,7 @@ public class CodeReflectionTester {
     }
 
     static void check(MethodHandles.Lookup l, Predicate<Op> opConstants, Method method) throws ReflectiveOperationException {
-        if (!method.isAnnotationPresent(CodeReflection.class)) {
+        if (!method.isAnnotationPresent(Reflect.class)) {
             return;
         }
 
@@ -91,7 +92,7 @@ public class CodeReflectionTester {
     }
 
     static CoreOp.FuncOp evaluate(MethodHandles.Lookup l, Predicate<Op> opConstants, CoreOp.FuncOp f, boolean ssa) {
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         if (ssa) {
             f = SSA.transform(f);

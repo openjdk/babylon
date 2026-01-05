@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -53,7 +53,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleExpression(String r) {
         return switch (r) {
             case "FOO" -> "BAR";
@@ -106,7 +106,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleBlock(String r) {
         return switch (r) {
             case "FOO" -> {
@@ -167,7 +167,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantStatement(String s) {
         return switch (s) {
             case "FOO": yield "BAR";
@@ -227,7 +227,7 @@ public class SwitchExpressionTest2 {
                 return %4;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantMultiLabels(char c) {
         return switch (Character.toLowerCase(c)) {
             case 'a', 'e', 'i', 'o', 'u': yield "vowel";
@@ -271,7 +271,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantThrow(Integer i) {
         return switch (i) {
             case 8 -> throw new IllegalArgumentException();
@@ -305,7 +305,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantNullLabel(String s) {
         return switch (s) {
             case null -> "null";
@@ -313,7 +313,7 @@ public class SwitchExpressionTest2 {
         };
     }
 
-    // @CodeReflection
+    // @Reflect
     // compiler code doesn't support case null, default
     // @@@ support such as case and test the switch expression lowering for this case
     private static String caseConstantNullAndDefault(String s) {
@@ -356,7 +356,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantFallThrough(char c) {
         return switch (c) {
             case 'A':
@@ -445,7 +445,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static int caseConstantEnum(Day d) {
         return switch (d) {
             case MON, FRI, SUN -> 6;
@@ -627,7 +627,7 @@ public class SwitchExpressionTest2 {
                 return %5;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantOtherKindsOfExpr(int i) {
         final int eleven = 11;
         return switch (i) {
@@ -701,7 +701,7 @@ public class SwitchExpressionTest2 {
                 return %9;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseConstantConv(short a) {
         final short s = 1;
         final byte b = 2;
@@ -753,7 +753,7 @@ public class SwitchExpressionTest2 {
                 return %6;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseConstantConv2(Byte a) {
         final byte b = 2;
         return switch (a) {
@@ -799,7 +799,7 @@ public class SwitchExpressionTest2 {
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String noDefaultLabelEnum(E e) {
         return switch (e) {
             case F -> "f";
@@ -842,7 +842,7 @@ public class SwitchExpressionTest2 {
                 return %5;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String unconditionalPattern(String s) {
         return switch (s) {
             case "A" -> "Alphabet";
@@ -905,7 +905,7 @@ public class SwitchExpressionTest2 {
                 return %7;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String noDefault(A a) {
         return switch (a) {
             case B b -> "B";
@@ -918,6 +918,14 @@ public class SwitchExpressionTest2 {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"s";
                 %2 : java.type:"java.lang.String" = var.load %1;
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
+                    ()java.type:"boolean" -> {
+                        %12 : java.type:"boolean" = constant @true;
+                        yield %12;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %13 : java.type:"java.lang.String" = constant @"else";
+                        yield %13;
+                    }
                     (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %5 : java.type:"java.lang.String" = constant @"M";
                         %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
@@ -935,19 +943,11 @@ public class SwitchExpressionTest2 {
                     ()java.type:"java.lang.String" -> {
                         %11 : java.type:"java.lang.String" = constant @"Aow";
                         yield %11;
-                    }
-                    ()java.type:"boolean" -> {
-                        %12 : java.type:"boolean" = constant @true;
-                        yield %12;
-                    }
-                    ()java.type:"java.lang.String" -> {
-                        %13 : java.type:"java.lang.String" = constant @"else";
-                        yield %13;
                     };
                 return %3;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String defaultNotTheLastLabel(String s) {
         return switch (s) {
             default -> "else";

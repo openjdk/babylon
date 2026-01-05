@@ -24,12 +24,14 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestNestedCapturingLambda
+ * @run main Unreflect TestNestedCapturingLambda
  * @run junit TestNestedCapturingLambda
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -45,11 +47,11 @@ import java.util.stream.Stream;
 public class TestNestedCapturingLambda {
 
     @FunctionalInterface
-    @CodeReflection
+    @Reflect
     interface QIntSupplier extends IntSupplier {
     }
 
-    @CodeReflection
+    @Reflect
     static public int f(int a) {
         if (a > 0) {
             QIntSupplier s = () -> a;
@@ -79,10 +81,7 @@ public class TestNestedCapturingLambda {
     static MethodHandle generate(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lf.toText());
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), f);
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

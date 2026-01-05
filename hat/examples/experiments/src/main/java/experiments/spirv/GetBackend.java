@@ -25,6 +25,7 @@
 package experiments.spirv;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -32,7 +33,7 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class GetBackend {
 
@@ -91,7 +92,7 @@ public class GetBackend {
                 }
 
          */
-        @CodeReflection
+        @Reflect
         static void kernel(KernelContext kid, F32Array a, F32Array b, F32Array c) {
             for (int j = 0; j < kid.gsx; j++) {
                 float sum = 0f;
@@ -106,9 +107,9 @@ public class GetBackend {
             }
         }
 
-        @CodeReflection
+        @Reflect
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
-            computeContext.dispatchKernel(NDRange.of(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
+            computeContext.dispatchKernel(NDRange.of1D(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
         }
 
     }
@@ -120,7 +121,8 @@ public class GetBackend {
         var a = F32Array.create(accelerator, 100);
         var b = F32Array.create(accelerator, 100);
         var c = F32Array.create(accelerator, 100);
-        accelerator.compute(cc -> MatrixMultiply.compute(cc, a, b, c, 100));
+        accelerator.compute((@Reflect Compute)
+                cc -> MatrixMultiply.compute(cc, a, b, c, 100));
     }
 
 }

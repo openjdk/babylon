@@ -96,7 +96,6 @@ public:
     ~Log() override = default;
 };
 
-
 #define UNKNOWN_BYTE 0
 #define RO_BYTE (1<<1)
 #define WO_BYTE (1<<2)
@@ -104,8 +103,8 @@ public:
 
 struct Buffer_s {
     void *memorySegment; // Address of a Buffer/MemorySegment
-    long sizeInBytes; // The size of the memory segment in bytes
-    u8_t access; // see hat/buffer/ArgArray.java  UNKNOWN_BYTE=0, RO_BYTE =1<<1,WO_BYTE =1<<2,RW_BYTE =RO_BYTE|WO_BYTE;
+    long sizeInBytes;    // The size of the memory segment in bytes
+    u8_t access;         // see hat/buffer/ArgArray.java  UNKNOWN_BYTE=0, RO_BYTE =1<<1,WO_BYTE =1<<2,RW_BYTE =RO_BYTE|WO_BYTE;
 };
 
 union Value_u {
@@ -113,13 +112,13 @@ union Value_u {
     u8_t s8; // 'B'
     u16_t u16; // 'C'
     s16_t s16; // 'S'
-    u16_t x16; // 'C' or 'S"
+    u16_t x16; // 'C' or 'S'   // this is never used
     s32_t s32; // 'I'
-    s32_t x32; // 'I' or 'F'
+    s32_t x32; // 'I' or 'F'   // this is never used
     f32_t f32; // 'F'
     f64_t f64; // 'D'
     s64_t s64; // 'J'
-    s64_t x64; // 'D' or 'J'
+    s64_t x64; // 'D' or 'J'   // this is never used
     Buffer_s buffer; // '&'
 };
 
@@ -144,21 +143,20 @@ struct KernelArg {
             case 'D':
             case 'J':
                 return sizeof(u64_t);
-                break;
             case 'B':
                 return sizeof(u8_t);
-                break;
             default:
                 std::cerr << "Bad variant " << variant << "arg::size" << std::endl;
                 exit(1);
         }
-
         return sz;
     }
 };
 
 struct BufferState {
-    static constexpr long MAGIC = 0x4a71facebffab175;
+    static constexpr long MAGIC = 0x4a71facebffab175;   // This magic number is a delimiter to
+                                                        // check the length of the buffer as follows:
+                                                        // *(bufferStart+(bufferLen - sizeof(bufferState)) == MAGIC
     static constexpr int NO_STATE = 0;
     static constexpr int NEW_STATE = 1;
     static constexpr int HOST_OWNED = 2;
@@ -170,7 +168,7 @@ struct BufferState {
     void *ptr;
     long length;
     int bits;
-    int state;
+    mutable int state;
     void *vendorPtr;
     long magic2;
 
@@ -205,25 +203,24 @@ struct BufferState {
 
     static BufferState *of(const KernelArg *arg) {
         // access?
-        BufferState *bufferState = BufferState::of(
+        BufferState *bufferState = of(
             arg->value.buffer.memorySegment,
             arg->value.buffer.sizeInBytes
         );
 
-
-        //Sanity check the buffers
+        // Sanity check the buffers
         // These sanity check finds errors passing memory segments which are not Buffers
-
         if (bufferState->ptr != arg->value.buffer.memorySegment) {
             std::cerr << "bufferState->ptr !=  arg->value.buffer.memorySegment" << std::endl;
+
+            // A bit brutal to stop the VM? We can throw an exception and handle it in the Java side?
             std::exit(1);
         }
 
-        if ((bufferState->vendorPtr == nullptr) && (bufferState->state != BufferState::NEW_STATE)) {
+        if ((bufferState->vendorPtr == nullptr) && (bufferState->state != NEW_STATE)) {
             std::cerr << "Warning:  Unexpected initial state for buffer "
-                    //<<" of kernel '"<<(dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name<<"'"
                     << " state=" << bufferState->state << " '"
-                    << BufferState::stateNames[bufferState->state] << "'"
+                    << stateNames[bufferState->state] << "'"
                     << " vendorPtr" << bufferState->vendorPtr << std::endl;
         }
         // End of sanity checks
@@ -553,8 +550,6 @@ public:
 
     virtual ~Backend() = default;
 };
-
-
 
 template<typename T>
 T *bufferOf(const char *name) {

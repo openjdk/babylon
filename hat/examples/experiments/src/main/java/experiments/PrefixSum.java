@@ -25,6 +25,7 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.annotations.Kernel;
@@ -32,12 +33,12 @@ import hat.KernelContext;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.Schema;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -65,7 +66,7 @@ public class PrefixSum {
         }
 
         static SharedS32x256Array createLocal() {
-            return null;//schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST)); /// This is crazy? why
+            return null;
         }
     }
 
@@ -160,7 +161,7 @@ public class PrefixSum {
 //
 // then sum each group
 
-    @CodeReflection
+    @Reflect
     static void groupScan(@RO KernelContext kc, @RW S32Array dataBuf) {
         var scratchBuf = SharedS32x256Array.createLocal();
         // int[] scratch=scratchBuf.arrayView();
@@ -207,7 +208,7 @@ public class PrefixSum {
 //                 ^                 ^                 ^                 ^                  ^
 //                 s0                s1                s2                s3                 s4
 
-    @CodeReflection
+    @Reflect
     @Preformatted("""
             // anything you like !
             """)
@@ -296,7 +297,7 @@ public class PrefixSum {
     //                 ^                 ^                 ^                 ^                  ^
     //                 s0                s1                s2                s3                 s4
     //                     0+s0, 1+s0, ....| 0+s1, 1+s1, ....| 0+s2, 1+s2, ....| 0+s3, 1+s4, ....
-    @CodeReflection
+    @Reflect
     static void sumKernel(@RO KernelContext kc, @RW S32Array dataBuf) {
         var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();
@@ -335,7 +336,7 @@ public class PrefixSum {
 
 
 
-    @CodeReflection
+    @Reflect
     private static void compute(ComputeContext cc, @RW S32Array data) {
         List<String> results = new ArrayList<>();
         int[] ref = new int[data.length()];
@@ -348,11 +349,11 @@ public class PrefixSum {
         }
         results.add(view(ref));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of(data.length()), kc -> groupScan(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()), kc -> groupScan(kc, data));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of(GROUP_SIZE), kc -> crossGroupScan(kc, data));
+        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), kc -> crossGroupScan(kc, data));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of(GROUP_SIZE), kc -> sumKernel(kc, data));
+        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), kc -> sumKernel(kc, data));
       //  results.add(view(data));
         results.add(view(seq));
         boolean brokenBytecodeGen = false;
@@ -379,7 +380,8 @@ public class PrefixSum {
 
 
         // Compute on the accelerator
-        accelerator.compute(cc -> PrefixSum.compute(cc, input));
+        accelerator.compute((@Reflect Compute)
+                cc -> PrefixSum.compute(cc, input));
 
 
     }

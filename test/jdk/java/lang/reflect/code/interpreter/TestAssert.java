@@ -21,9 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -164,7 +164,7 @@ public class TestAssert {
             CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow();
 
             //Ensure we're fully lowered before testing.
-            final var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            final var fz = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
             Interpreter.invoke(MethodHandles.lookup(), fz ,args);
         } catch (NoSuchMethodException e) {
@@ -179,7 +179,7 @@ public class TestAssert {
             CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow();
 
             //Ensure we're fully lowered before testing.
-            final var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            final var fz = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
 
             AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), fz ,args));
@@ -201,65 +201,65 @@ public class TestAssert {
 
 
 
-    @CodeReflection
+    @Reflect
     public static void assertThrow() {
         assert false;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertThrowWithMessage() {
         assert false : FAILURESTRING;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertChar() {
         char c = FAILURECHAR;
         assert false : c;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertFloat() {
         float f = FAILUREFLOAT;
         assert false : f;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertDouble() {
         double d = FAILUREDOUBLE;
         assert false : d;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertByte() {
         byte b = FAILUREBYTE;
         assert false : b;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertShort() {
         short s = FAILURESHORT;
         assert false : s;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertInt() {
         int i = FAILUREINT;
         assert false : i;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertLong() {
         long l = FAILURELONG;
         assert false : l;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertObject() {
         Object o = FAILUREOBJECT;
         assert false : o;
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertExpr1() {
         int i = FAILUREINT;
         long l = FAILURELONG;
@@ -267,7 +267,7 @@ public class TestAssert {
         String y = "test";
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertExpr2(int iz) {
         int i = FAILUREINT;
         long l = FAILURELONG;
@@ -275,7 +275,7 @@ public class TestAssert {
         String s = "";
     }
 
-    @CodeReflection
+    @Reflect
     public static void assertExpr3(int iz) {
         int i = FAILUREINT;
         long l = FAILURELONG;

@@ -47,7 +47,6 @@ import java.util.Objects;
 public class ViolaJones {
 
     public static void main(String[] _args) throws IOException, ParserConfigurationException, SAXException {
-        //  Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend::isJava);
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());
 
 
@@ -122,13 +121,13 @@ public class ViolaJones {
                 #define atomicInc(p) atom_add(p, 1)
                 #endif
 
-                inline int b2i(i4 v){
+                int b2i(i4 v){
                    return v < 0 ? 256 + v : v;
                 }
-                inline int rgbToGrey(i4 r, i4 g, i4 b){
+                int rgbToGrey(i4 r, i4 g, i4 b){
                    return (29 * b2i(r) + 60 * b2i(g) + 11 * b2i(b)) / 100;
                 }
-                inline void integralColById(i4 id, __global cascade_t *cascadeContext, __global b1 *rgb, __global f4 *integral, __global f4 *integralSq){
+                void integralColById(i4 id, __global cascade_t *cascadeContext, __global b1 *rgb, __global f4 *integral, __global f4 *integralSq){
                    integralSq[id] = integral[id] = 0.0f;
                    for (s32_t y = 1; y < cascadeContext->imageHeight; y++) {
                        s32_t monoOffset = (y * cascadeContext->imageWidth) + id;
@@ -147,7 +146,7 @@ public class ViolaJones {
                      SCOPE_START
                      integralColById(ndrange.id.x, cascadeContext, rgb,  integral, integralSq);
                 }
-                inline void integralRowById(i4 id, __global cascade_t *cascadeContext, __global f4 *integral, __global f4 *integralSq){
+                void integralRowById(i4 id, __global cascade_t *cascadeContext, __global f4 *integral, __global f4 *integralSq){
                      for (s32_t x = 1; x < cascadeContext->imageWidth; x++) {
                         s32_t monoOffset = (id * cascadeContext->imageWidth) + x;
                         integral[monoOffset] = integral[monoOffset] + integral[monoOffset - 1];
@@ -173,14 +172,14 @@ public class ViolaJones {
                         |       |       D-B-C+A
                       C +-------+ D
                 /
-                inline float gradient(__global f4 *image, i4 imageWidth, i4 x, i4 y, i4 width, i4 height){
+                float gradient(__global f4 *image, i4 imageWidth, i4 x, i4 y, i4 width, i4 height){
                    f32_t A = image[(y * imageWidth) + x];
                    f32_t D = image[((y + height) * imageWidth) + x + width];
                    f32_t C = image[((y + height) * imageWidth) + x];
                    f32_t B = image[(y * imageWidth) + x + width];
                    return D-B-C+A;
                 }
-                inline boolean isAFaceStage(__global cascade_t *cascadeContext, __global scale_t *scale, i4 x, i4 y, f4 vnorm, __global f4 *integral, __global stage_t *stagePtr, __global tree_t *treeTable, __global feature_t *featureTable){
+                boolean isAFaceStage(__global cascade_t *cascadeContext, __global scale_t *scale, i4 x, i4 y, f4 vnorm, __global f4 *integral, __global stage_t *stagePtr, __global tree_t *treeTable, __global feature_t *featureTable){
                    f32_t sumOfThisStage = 0;
                    for (s32_t treeId = stagePtr->firstTreeId; treeId < (stagePtr->firstTreeId+stagePtr->treeCount); treeId++) {
                        // featureId from 0 to how many roots there are.... we use -1 for none! hence s32_t
@@ -330,7 +329,7 @@ public class ViolaJones {
         if (true) {
             long start = System.currentTimeMillis();
             WorkStealer.usingAllProcessors()
-                    .forEachInRange(accelerator.range(NDRange.of(NDRange.Global1D.of(scaleTable.multiScaleAccumulativeRange()))), kc -> {
+                    .forEachInRange(accelerator.range(NDRange.of1D(scaleTable.multiScaleAccumulativeRange())), kc -> {
                         ReferenceJavaViolaJones.findFeatures(
                                 kc.gix,
                                 xmlCascade,//cascade,//haarCascade, //or cascade

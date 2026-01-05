@@ -25,6 +25,7 @@
 package mandel;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
@@ -35,11 +36,13 @@ import hat.buffer.S32Array2D;
 import java.awt.Color;
 import java.lang.invoke.MethodHandles;
 
-import jdk.incubator.code.CodeReflection;
-import static hat.ifacemapper.MappableIface.*;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.RW;
 
 public class Main {
-    @CodeReflection
+    @Reflect
     public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
         if (kc.gix < kc.gsx) {
             float width = s32Array2D.width();
@@ -62,10 +65,10 @@ public class Main {
     }
 
 
-    @CodeReflection
+    @Reflect
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
         computeContext.dispatchKernel(
-                NDRange.of(s32Array2D.width()*s32Array2D.height()),               //0..S32Array2D.size()
+                NDRange.of1D(s32Array2D.width()*s32Array2D.height()),               //0..S32Array2D.size()
                 kc -> Main.mandel(kc, s32Array2D, pallete, x, y, scale));
     }
 
@@ -98,7 +101,8 @@ public class Main {
         }
         S32Array pallette = S32Array.createFrom(accelerator, palletteArray);
 
-        accelerator.compute(cc -> Main.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
+        accelerator.compute((@Reflect Compute)
+                cc -> Main.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
 
         if (headless){
             // Well take 1 in 4 samples (so 1024 -> 128 grid) of the pallette.
@@ -128,7 +132,8 @@ public class Main {
                         final float fscale = scale;
                         final float fx = x - sign * zoomPoint.x / zoomFrames;
                         final float fy = y - sign * zoomPoint.y / zoomFrames;
-                        accelerator.compute(cc -> Main.compute(cc, pallette, s32Array2D, fx, fy, fscale));
+                        accelerator.compute((@Reflect Compute)
+                                cc -> Main.compute(cc, pallette, s32Array2D, fx, fy, fscale));
                         viewer.imageViewer.syncWithRGB(s32Array2D);
 
                     }

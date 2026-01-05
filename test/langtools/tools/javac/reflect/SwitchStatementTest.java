@@ -1,4 +1,4 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.Collection;
 import java.util.RandomAccess;
 import java.util.Stack;
@@ -70,7 +70,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleExpression(String r) {
         String s = "";
         switch (r) {
@@ -140,7 +140,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     public static String caseConstantRuleBlock(String r) {
         String s = "";
         switch (r) {
@@ -218,7 +218,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantStatement(String s) {
         String r = "";
         switch (s) {
@@ -296,7 +296,7 @@ public class SwitchStatementTest {
                 return %25;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantMultiLabels(char c) {
         String r = "";
         switch (Character.toLowerCase(c)) {
@@ -354,7 +354,7 @@ public class SwitchStatementTest {
                 return %21;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantThrow(Integer i) {
         String r = "";
         switch (i) {
@@ -399,7 +399,7 @@ public class SwitchStatementTest {
                 return %15;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantNullLabel(String s) {
         String r = "";
         switch (s) {
@@ -409,7 +409,7 @@ public class SwitchStatementTest {
         return r;
     }
 
-//    @CodeReflection
+//    @Reflect
 //    @@@ not supported
     private static String caseConstantNullAndDefault(String s) {
         String r = "";
@@ -462,7 +462,7 @@ public class SwitchStatementTest {
                 return %18;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantFallThrough(char c) {
         String r = "";
         switch (c) {
@@ -561,7 +561,7 @@ public class SwitchStatementTest {
                 return %37;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantEnum(Day d) {
         String r = "";
         switch (d) {
@@ -790,7 +790,7 @@ public class SwitchStatementTest {
                 return %113;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String caseConstantOtherKindsOfExpr(int i) {
         String r = "";
         final int eleven = 11;
@@ -879,7 +879,7 @@ public class SwitchStatementTest {
                 return %35;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseConstantConv(short a) {
         final short s = 1;
         final byte b = 2;
@@ -945,7 +945,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseConstantConv2(Byte a) {
         final byte b = 2;
         String r = "";
@@ -992,7 +992,7 @@ public class SwitchStatementTest {
                 return %17;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String nonEnhancedSwStatNoDefault(int a) {
         String r = "";
         switch (a) {
@@ -1060,7 +1060,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String enhancedSwStatNoDefault1(E e) {
         String r = "";
         switch (e) {
@@ -1135,7 +1135,7 @@ public class SwitchStatementTest {
                 return %25;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String enhancedSwStatNoDefault2(I i) {
         String r = "";
         switch (i) {
@@ -1189,7 +1189,7 @@ public class SwitchStatementTest {
                 return %20;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String enhancedSwStatUnconditionalPattern(String s) {
         String r = "";
         switch (s) {
@@ -1263,7 +1263,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternRuleExpression(Object o) {
         String r = "";
         switch (o) {
@@ -1338,7 +1338,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternRuleBlock(Object o) {
         String r = "";
         switch (o) {
@@ -1419,7 +1419,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternStatement(Object o) {
         String r = "";
         switch (o) {
@@ -1498,7 +1498,7 @@ public class SwitchStatementTest {
                 return %27;
             };
             """)
-    @CodeReflection
+    @Reflect
     private static String casePatternThrow(Object o) {
         String r = "";
         switch (o) {
@@ -1510,7 +1510,7 @@ public class SwitchStatementTest {
     }
 
     // @@@ code model for such as code is not supported
-//    @CodeReflection
+//    @Reflect
     private static String casePatternMultiLabel(Object o) {
         String r = "";
         switch (o) {
@@ -1619,7 +1619,7 @@ public class SwitchStatementTest {
                 return %44;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String casePatternWithCaseConstant(Integer a) {
         String r = "";
         switch (a) {
@@ -1780,7 +1780,7 @@ public class SwitchStatementTest {
                 return %63;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseTypePattern(Object o) {
         String r = "";
         switch (o) {
@@ -1840,7 +1840,7 @@ public class SwitchStatementTest {
                 return %19;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String caseRecordPattern(Object o) {
         String r = "";
         switch (o) {
@@ -1941,7 +1941,7 @@ public class SwitchStatementTest {
                 return %42;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String casePatternGuard(Object obj) {
         String r = "";
         switch (obj) {
@@ -1959,6 +1959,17 @@ public class SwitchStatementTest {
                 %3 : Var<java.type:"java.lang.String"> = var %2 @"r";
                 %4 : java.type:"java.lang.String" = var.load %1;
                 java.switch.statement %4
+                    ()java.type:"boolean" -> {
+                        %17 : java.type:"boolean" = constant @true;
+                        yield %17;
+                    }
+                    ()java.type:"void" -> {
+                        %18 : java.type:"java.lang.String" = var.load %3;
+                        %19 : java.type:"java.lang.String" = constant @"else";
+                        %20 : java.type:"java.lang.String" = concat %18 %19;
+                        var.store %3 %20;
+                        yield;
+                    }
                     (%5 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %6 : java.type:"java.lang.String" = constant @"M";
                         %7 : java.type:"boolean" = invoke %5 %6 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
@@ -1982,23 +1993,12 @@ public class SwitchStatementTest {
                         %16 : java.type:"java.lang.String" = concat %14 %15;
                         var.store %3 %16;
                         yield;
-                    }
-                    ()java.type:"boolean" -> {
-                        %17 : java.type:"boolean" = constant @true;
-                        yield %17;
-                    }
-                    ()java.type:"void" -> {
-                        %18 : java.type:"java.lang.String" = var.load %3;
-                        %19 : java.type:"java.lang.String" = constant @"else";
-                        %20 : java.type:"java.lang.String" = concat %18 %19;
-                        var.store %3 %20;
-                        yield;
                     };
                 %21 : java.type:"java.lang.String" = var.load %3;
                 return %21;
             };
             """)
-    @CodeReflection
+    @Reflect
     static String defaultCaseNotTheLast(String s) {
         String r = "";
         switch (s) {
@@ -2027,7 +2027,7 @@ public class SwitchStatementTest {
                   return %7;
               };
             """)
-    @CodeReflection
+    @Reflect
     static int f(int i) {
         switch (i) {
             case 0 -> {
@@ -2035,5 +2035,93 @@ public class SwitchStatementTest {
             }
         }
         return 0;
+    }
+
+    @IR("""
+            func @"outOfOrderFallThrought" (%0 : java.type:"int")java.type:"java.lang.String" -> {
+                  %1 : Var<java.type:"int"> = var %0 @"i";
+                  %2 : java.type:"java.lang.String" = constant @"";
+                  %3 : Var<java.type:"java.lang.String"> = var %2 @"ret";
+                  %4 : java.type:"int" = var.load %1;
+                  java.switch.statement %4
+                      ()java.type:"boolean" -> {
+                          %5 : java.type:"boolean" = constant @true;
+                          yield %5;
+                      }
+                      ()java.type:"void" -> {
+                          %6 : java.type:"java.lang.String" = var.load %3;
+                          %7 : java.type:"java.lang.String" = constant @"? ";
+                          %8 : java.type:"java.lang.String" = concat %6 %7;
+                          var.store %3 %8;
+                          java.switch.fallthrough;
+                      }
+                      (%9 : java.type:"int")java.type:"boolean" -> {
+                          %10 : java.type:"int" = constant @4;
+                          %11 : java.type:"boolean" = eq %9 %10;
+                          yield %11;
+                      }
+                      ()java.type:"void" -> {
+                          %12 : java.type:"java.lang.String" = var.load %3;
+                          %13 : java.type:"java.lang.String" = constant @"four ";
+                          %14 : java.type:"java.lang.String" = concat %12 %13;
+                          var.store %3 %14;
+                          java.switch.fallthrough;
+                      }
+                      (%15 : java.type:"int")java.type:"boolean" -> {
+                          %16 : java.type:"int" = constant @2;
+                          %17 : java.type:"boolean" = eq %15 %16;
+                          yield %17;
+                      }
+                      ()java.type:"void" -> {
+                          %18 : java.type:"java.lang.String" = var.load %3;
+                          %19 : java.type:"java.lang.String" = constant @"two ";
+                          %20 : java.type:"java.lang.String" = concat %18 %19;
+                          var.store %3 %20;
+                          java.switch.fallthrough;
+                      }
+                      (%21 : java.type:"int")java.type:"boolean" -> {
+                          %22 : java.type:"int" = constant @3;
+                          %23 : java.type:"boolean" = eq %21 %22;
+                          yield %23;
+                      }
+                      ()java.type:"void" -> {
+                          %24 : java.type:"java.lang.String" = var.load %3;
+                          %25 : java.type:"java.lang.String" = constant @"three ";
+                          %26 : java.type:"java.lang.String" = concat %24 %25;
+                          var.store %3 %26;
+                          java.switch.fallthrough;
+                      }
+                      (%27 : java.type:"int")java.type:"boolean" -> {
+                          %28 : java.type:"int" = constant @1;
+                          %29 : java.type:"boolean" = eq %27 %28;
+                          yield %29;
+                      }
+                      ()java.type:"void" -> {
+                          %30 : java.type:"java.lang.String" = var.load %3;
+                          %31 : java.type:"java.lang.String" = constant @"one";
+                          %32 : java.type:"java.lang.String" = concat %30 %31;
+                          var.store %3 %32;
+                          yield;
+                      };
+                  %33 : java.type:"java.lang.String" = var.load %3;
+                  return %33;
+              };
+            """)
+    @Reflect
+    static String outOfOrderFallThrought(int i) {
+        String ret = "";
+        switch (i) {
+            default:
+                ret += "? ";
+            case 4:
+                ret += "four ";
+            case 2:
+                ret += "two ";
+            case 3:
+                ret += "three ";
+            case 1:
+                ret += "one";
+        }
+        return ret;
     }
 }

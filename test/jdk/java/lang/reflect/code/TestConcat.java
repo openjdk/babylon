@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -41,13 +41,15 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestConcat
+ * @run main Unreflect TestConcat
+ * @run junit TestConcat
  */
 
 public class TestConcat {
 
     static final String TESTSTR = "TESTING STRING";
 
-    @CodeReflection
+    @Reflect
     static String f() {
        int test = 1;
        String res = "HI " + TESTSTR + test;
@@ -55,105 +57,105 @@ public class TestConcat {
     }
 
 
-    @CodeReflection
+    @Reflect
     public static String byteConcat1(byte b, String s) {
        return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String byteConcat2(String s, byte b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String shortConcat1(short b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String shortConcat2(String s, short b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String intConcat1(int b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String intConcat2(String s, int b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String longConcat1(long b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String longConcat2(String s, long b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String floatConcat1(float b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String floatConcat2(String s, float b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String doubleConcat1(double b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String doubleConcat2(String s, double b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String booleanConcat1(boolean b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String booleanConcat2(String s, boolean b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String charConcat1(char b, String s) {
         return b + s;
     }
-    @CodeReflection
+    @Reflect
     public static String charConcat2(String s, char b) {
         return s + b;
     }
-    @CodeReflection
+    @Reflect
     public static String objectConcat1(Object b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String objectConcat2(String s, Object b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String objectConcat3(TestObject b, String s) {
         return b + s;
     }
 
-    @CodeReflection
+    @Reflect
     public static String objectConcat4(String s, TestObject b) {
         return s + b;
     }
 
-    @CodeReflection
+    @Reflect
     public static String stringConcat(String b, String s) {
         return b + s;
     }

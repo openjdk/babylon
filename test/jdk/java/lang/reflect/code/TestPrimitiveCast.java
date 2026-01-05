@@ -25,9 +25,11 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestPrimitiveCast
+ * @run main Unreflect TestPrimitiveCast
+ * @run junit TestPrimitiveCast
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -47,7 +49,7 @@ public class TestPrimitiveCast {
 
     static final Function<Object, String> FROM_DOUBLE = v -> fromDouble((double) v);
 
-    @CodeReflection
+    @Reflect
     @SuppressWarnings("cast")
     static String fromDouble(double v) {
         double d = (double) v;
@@ -62,7 +64,7 @@ public class TestPrimitiveCast {
 
     static final Function<Object, String> FROM_FLOAT = v -> fromFloat((float) v);
 
-    @CodeReflection
+    @Reflect
     @SuppressWarnings("cast")
     static String fromFloat(float v) {
         double d = (double) v;
@@ -77,7 +79,7 @@ public class TestPrimitiveCast {
 
     static final Function<Object, String> FROM_LONG = v -> fromLong((long) v);
 
-    @CodeReflection
+    @Reflect
     @SuppressWarnings("cast")
     static String fromLong(long v) {
         double d = (double) v;
@@ -92,7 +94,7 @@ public class TestPrimitiveCast {
 
     static final Function<Object, String> FROM_INT = v -> fromInt((int) v);
 
-    @CodeReflection
+    @Reflect
     @SuppressWarnings("cast")
     static String fromInt(int v) {
         double d = (double) v;
@@ -107,7 +109,7 @@ public class TestPrimitiveCast {
 
     static final Function<Object, String> FROM_SHORT = v -> fromShort((short) v);
 
-    @CodeReflection
+    @Reflect
     @SuppressWarnings("cast")
     static String fromShort(short v) {
         double d = (double) v;
@@ -122,7 +124,7 @@ public class TestPrimitiveCast {
 
     static final Function<Object, String> FROM_CHAR = v -> fromChar((char) v);
 
-    @CodeReflection
+    @Reflect
     @SuppressWarnings("cast")
     static String fromChar(char v) {
         double d = (double) v;
@@ -137,7 +139,7 @@ public class TestPrimitiveCast {
 
     static final Function<Object, String> FROM_BYTE = v -> fromByte((byte) v);
 
-    @CodeReflection
+    @Reflect
     @SuppressWarnings("cast")
     static String fromByte(byte v) {
         double d = (double) v;

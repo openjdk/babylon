@@ -57,77 +57,19 @@ public sealed interface CodeElement<
      * {@return a stream of code elements sorted topologically in pre-order traversal.}
      */
     default Stream<CodeElement<?, ?>> elements() {
-        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream));
+        return Stream.of(this).gather(() -> (_, e, downstream) -> traversePreOrder(e, downstream));
     }
 
-    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
-        if (!v.push(this)) {
+    private static boolean traversePreOrder(CodeElement<?, ?> e, Gatherer.Downstream<? super CodeElement<?, ?>> d) {
+        if (!d.push(e)) {
             return false;
         }
-        for (C c : children()) {
-            if (!((CodeElement<?, ?>) c).traversePreOrder(v)) {
+        for (CodeElement<?, ?> c : e.children()) {
+            if (!traversePreOrder(c, d)) {
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * Traverses this code element and any descendant code elements.
-     * <p>
-     * Traversal is performed in pre-order, reporting each code element to the visitor.
-     *
-     * @param t   the traversing accumulator
-     * @param v   the code element visitor
-     * @param <T> accumulator type
-     * @return the traversing accumulator
-     */
-    default <T> T traverse(T t, BiFunction<T, CodeElement<?, ?>, T> v) {
-        t = v.apply(t, this);
-        for (C r : children()) {
-            t = r.traverse(t, v);
-        }
-
-        return t;
-    }
-
-    /**
-     * Creates a visiting function for bodies.
-     *
-     * @param v   the body visitor
-     * @param <T> accumulator type
-     * @return the visiting function for bodies
-     */
-    static <T> BiFunction<T, CodeElement<?, ?>, T> bodyVisitor(BiFunction<T, Body, T> v) {
-        return (t, e) -> e instanceof Body f
-                ? v.apply(t, f)
-                : t;
-    }
-
-    /**
-     * Creates a visiting function for blocks.
-     *
-     * @param v   the block visitor
-     * @param <T> accumulator type
-     * @return the visiting function for blocks
-     */
-    static <T> BiFunction<T, CodeElement<?, ?>, T> blockVisitor(BiFunction<T, Block, T> v) {
-        return (t, e) -> e instanceof Block f
-                ? v.apply(t, f)
-                : t;
-    }
-
-    /**
-     * Creates a visiting function for operations.
-     *
-     * @param v   the operation visitor
-     * @param <T> accumulator type
-     * @return the visiting function for operations
-     */
-    static <T> BiFunction<T, CodeElement<?, ?>, T> opVisitor(BiFunction<T, Op, T> v) {
-        return (t, e) -> e instanceof Op f
-                ? v.apply(t, f)
-                : t;
     }
 
     /**

@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 /*
  * @test
@@ -33,7 +33,7 @@ import jdk.incubator.code.CodeReflection;
  */
 
 public class ThrowTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"ThrowTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.RuntimeException" = new @java.ref:"java.lang.RuntimeException::()";

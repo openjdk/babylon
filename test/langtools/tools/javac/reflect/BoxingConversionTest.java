@@ -21,7 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+
+import java.util.List;
 import java.util.function.Supplier;
 
 /*
@@ -34,7 +36,7 @@ import java.util.function.Supplier;
  */
 
 public class BoxingConversionTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"long" = constant @1;
@@ -47,7 +49,7 @@ public class BoxingConversionTest {
         Long x = 1L;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Long")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Long"> = var %1 @"L";
@@ -61,7 +63,7 @@ public class BoxingConversionTest {
         long l = L;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"long" = constant @0;
@@ -74,7 +76,7 @@ public class BoxingConversionTest {
         Object o = 0L;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
@@ -89,7 +91,7 @@ public class BoxingConversionTest {
         long l = (long)o;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
@@ -106,7 +108,7 @@ public class BoxingConversionTest {
         i2++;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
@@ -127,7 +129,7 @@ public class BoxingConversionTest {
         Integer i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
@@ -144,7 +146,7 @@ public class BoxingConversionTest {
         new Box().i++;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
@@ -161,7 +163,7 @@ public class BoxingConversionTest {
         new Box().i += 3;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int[]", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -180,7 +182,7 @@ public class BoxingConversionTest {
         ia[0] += i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test10" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"boolean", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -207,7 +209,7 @@ public class BoxingConversionTest {
         int res = cond ? I : 2;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"boolean", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -234,7 +236,7 @@ public class BoxingConversionTest {
         int res = cond ? 2 : I;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test12" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"boolean")java.type:"void" -> {
                 %2 : Var<java.type:"boolean"> = var %1 @"cond";
@@ -260,10 +262,10 @@ public class BoxingConversionTest {
         Integer x = cond ? 1 : 2;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test13" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Integer" -> {
                     %2 : java.type:"int" = constant @1;
                     %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;
@@ -276,10 +278,10 @@ public class BoxingConversionTest {
         Supplier<Integer> s = () -> { return 1; };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test14" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Integer" -> {
                     %2 : java.type:"int" = constant @1;
                     %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;
@@ -292,7 +294,7 @@ public class BoxingConversionTest {
         Supplier<Integer> s = () -> 1;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test15" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -328,7 +330,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test16" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -364,7 +366,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test17" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -400,7 +402,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test18" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -436,7 +438,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test19" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -472,7 +474,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test20" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -508,7 +510,7 @@ public class BoxingConversionTest {
         };
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test21" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int", %2 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
@@ -527,7 +529,7 @@ public class BoxingConversionTest {
 
     void m(Integer I) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test22" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -543,7 +545,7 @@ public class BoxingConversionTest {
 
     void m(int i1, int i2, Integer... I) { }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test23" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -557,7 +559,7 @@ public class BoxingConversionTest {
         m(i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test24" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -573,7 +575,7 @@ public class BoxingConversionTest {
         m(i, i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test25" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -596,7 +598,7 @@ public class BoxingConversionTest {
         Box2(int i1, int i2, Integer... Is) { }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test26" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -610,7 +612,7 @@ public class BoxingConversionTest {
         new Box2(i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test27" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -624,7 +626,7 @@ public class BoxingConversionTest {
         new Box2(i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test28" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -640,7 +642,7 @@ public class BoxingConversionTest {
         new Box2(i, i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test29" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -658,7 +660,7 @@ public class BoxingConversionTest {
         new Box2(i, i, i, i);
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test30" (%0 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Integer"> = var %0 @"i";
@@ -673,7 +675,7 @@ public class BoxingConversionTest {
         int j = -i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test31" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
@@ -688,7 +690,7 @@ public class BoxingConversionTest {
         Integer j = -i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test32" (%0 : java.type:"boolean")java.type:"void" -> {
                 %1 : Var<java.type:"boolean"> = var %0 @"i";
@@ -703,7 +705,7 @@ public class BoxingConversionTest {
         Boolean j = !i;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test33" (%0 : java.type:"java.lang.Boolean")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Boolean"> = var %0 @"i";
@@ -716,5 +718,147 @@ public class BoxingConversionTest {
             """)
     static void test33(Boolean i) {
         boolean j = !i;
+    }
+
+    @Reflect
+    @IR("""
+            func @"unboxForEachList" (%0 : java.type:"java.util.List<java.lang.Integer>")java.type:"int" -> {
+                %1 : Var<java.type:"java.util.List<java.lang.Integer>"> = var %0 @"li";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"j";
+                java.enhancedFor
+                    ()java.type:"java.util.List<java.lang.Integer>" -> {
+                        %4 : java.type:"java.util.List<java.lang.Integer>" = var.load %1;
+                        yield %4;
+                    }
+                    (%5 : java.type:"java.lang.Integer")Var<java.type:"int"> -> {
+                        %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                        %7 : Var<java.type:"int"> = var %6 @"i";
+                        yield %7;
+                    }
+                    (%8 : Var<java.type:"int">)java.type:"void" -> {
+                        %9 : java.type:"int" = var.load %3;
+                        %10 : java.type:"int" = var.load %8;
+                        %11 : java.type:"int" = add %9 %10;
+                        var.store %3 %11;
+                        java.continue;
+                    };
+                %12 : java.type:"int" = var.load %3;
+                return %12;
+            };
+            """)
+    static int unboxForEachList(List<Integer> li) {
+        int j = 0;
+        for (int i : li) {
+            j += i;
+        }
+        return j;
+    }
+
+    @Reflect
+    @IR("""
+            func @"unboxForEachArray" (%0 : java.type:"java.lang.Integer[]")java.type:"int" -> {
+                %1 : Var<java.type:"java.lang.Integer[]"> = var %0 @"is";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"j";
+                java.enhancedFor
+                    ()java.type:"java.lang.Integer[]" -> {
+                        %4 : java.type:"java.lang.Integer[]" = var.load %1;
+                        yield %4;
+                    }
+                    (%5 : java.type:"java.lang.Integer")Var<java.type:"int"> -> {
+                        %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                        %7 : Var<java.type:"int"> = var %6 @"i";
+                        yield %7;
+                    }
+                    (%8 : Var<java.type:"int">)java.type:"void" -> {
+                        %9 : java.type:"int" = var.load %3;
+                        %10 : java.type:"int" = var.load %8;
+                        %11 : java.type:"int" = add %9 %10;
+                        var.store %3 %11;
+                        java.continue;
+                    };
+                %12 : java.type:"int" = var.load %3;
+                return %12;
+            };
+            """)
+    static int unboxForEachArray(Integer[] is) {
+        int j = 0;
+        for (int i : is) {
+            j += i;
+        }
+        return j;
+    }
+
+    @Reflect
+    @IR("""
+            func @"unboxListRaw" (%0 : java.type:"java.util.List")java.type:"int" -> {
+                %1 : Var<java.type:"java.util.List"> = var %0 @"li";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"j";
+                java.enhancedFor
+                    ()java.type:"java.util.List" -> {
+                        %4 : java.type:"java.util.List" = var.load %1;
+                        yield %4;
+                    }
+                    (%5 : java.type:"java.lang.Object")Var<java.type:"java.lang.Object"> -> {
+                        %6 : Var<java.type:"java.lang.Object"> = var %5 @"i";
+                        yield %6;
+                    }
+                    (%7 : Var<java.type:"java.lang.Object">)java.type:"void" -> {
+                        %8 : java.type:"int" = var.load %3;
+                        %9 : java.type:"java.lang.Object" = var.load %7;
+                        %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
+                        %11 : java.type:"int" = invoke %10 @java.ref:"java.lang.Integer::intValue():int";
+                        %12 : java.type:"int" = add %8 %11;
+                        var.store %3 %12;
+                        java.continue;
+                    };
+                %13 : java.type:"int" = var.load %3;
+                return %13;
+            };
+            """)
+    public static int unboxListRaw(List li) {
+        int j = 0;
+        for (Object i : li) {
+            j += (int)i;
+        }
+        return j;
+    }
+
+    @Reflect
+    @IR("""
+            func @"unboxListTvar" (%0 : java.type:"java.util.List<&BoxingConversionTest::unboxListTvar(java.util.List):int::<X extends java.lang.Integer>>")java.type:"int" -> {
+                %1 : Var<java.type:"java.util.List<&BoxingConversionTest::unboxListTvar(java.util.List):int::<X extends java.lang.Integer>>"> = var %0 @"li";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"j";
+                java.enhancedFor
+                    ()java.type:"java.util.List<&BoxingConversionTest::unboxListTvar(java.util.List):int::<X extends java.lang.Integer>>" -> {
+                        %4 : java.type:"java.util.List<&BoxingConversionTest::unboxListTvar(java.util.List):int::<X extends java.lang.Integer>>" = var.load %1;
+                        yield %4;
+                    }
+                    (%5 : java.type:"&BoxingConversionTest::unboxListTvar(java.util.List):int::<X extends java.lang.Integer>")Var<java.type:"int"> -> {
+                        %6 : java.type:"java.lang.Integer" = cast %5 @java.type:"java.lang.Integer";
+                        %7 : java.type:"int" = invoke %6 @java.ref:"java.lang.Integer::intValue():int";
+                        %8 : Var<java.type:"int"> = var %7 @"i";
+                        yield %8;
+                    }
+                    (%9 : Var<java.type:"int">)java.type:"void" -> {
+                        %10 : java.type:"int" = var.load %3;
+                        %11 : java.type:"int" = var.load %9;
+                        %12 : java.type:"int" = add %10 %11;
+                        var.store %3 %12;
+                        java.continue;
+                    };
+                %13 : java.type:"int" = var.load %3;
+                return %13;
+            };
+            """)
+    public static <X extends Integer> int unboxListTvar(List<X> li) {
+        int j = 0;
+        for (int i : li) {
+            j += i;
+        }
+        return j;
     }
 }

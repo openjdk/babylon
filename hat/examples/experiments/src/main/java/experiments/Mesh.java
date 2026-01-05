@@ -25,18 +25,20 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.Random;
 
 import static hat.backend.Backend.FIRST;
@@ -115,8 +117,8 @@ public class Mesh {
         }
     }
 
-    public static class Compute {
-        @CodeReflection
+    public static class ComputeApp {
+        @Reflect
         public static void initPoints(KernelContext kc, MeshData mesh) {
             if (kc.gix < kc.gsx) {
                 MeshData.Point3D point = mesh.point(kc.gix);
@@ -126,9 +128,9 @@ public class Mesh {
             }
         }
 
-        @CodeReflection
+        @Reflect
         public static void buildMesh(ComputeContext cc, MeshData meshData) {
-            cc.dispatchKernel(NDRange.of(meshData.points()),
+            cc.dispatchKernel(NDRange.of1D(meshData.points()),
                     kc -> initPoints(kc, meshData)
             );
 
@@ -140,11 +142,11 @@ public class Mesh {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
 
         var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
-        var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
+        var meshDataNew = boundSchema.allocate(accelerator.lookup(),accelerator);
         var meshDataOld = MeshData.create(accelerator);
 
-        String layoutNew = Buffer.getLayout(meshDataNew).toString();
-        String layoutOld = Buffer.getLayout(meshDataOld).toString();
+        String layoutNew = MappableIface.getLayout(meshDataNew).toString();
+        String layoutOld = MappableIface.getLayout(meshDataOld).toString();
         if (layoutOld.equals(layoutNew)) {
             MeshData meshData = MeshData.create(accelerator);
             Random random = new Random(System.currentTimeMillis());
@@ -160,7 +162,8 @@ public class Mesh {
                 vertex3D.to(random.nextInt(meshData.points()));
             }
 
-            accelerator.compute(cc -> Compute.buildMesh(cc, meshData));
+            accelerator.compute((@Reflect Compute)
+                    cc -> ComputeApp.buildMesh(cc, meshData));
         }else{
             System.out.println("layouts differ");
         }

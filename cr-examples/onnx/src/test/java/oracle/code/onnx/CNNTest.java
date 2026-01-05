@@ -26,7 +26,7 @@ package oracle.code.onnx;
 import java.io.*;
 import java.lang.foreign.Arena;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -42,6 +42,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -81,7 +82,7 @@ public class CNNTest {
     private static final int NUM_CHANNELS = 1;
     private static final int IMAGE_SIZE = 28;
 
-    @CodeReflection
+    @Reflect
     public static Tensor<Float> cnn(
             // Weights and biases
             // [6, 1, 5, 5]
@@ -370,7 +371,7 @@ public class CNNTest {
             var fc2Bias = floatTensor(arena, "mnist/fc2-bias-float-le", 84);
             var fc3Weight = floatTensor(arena, "mnist/fc3-weight-float-le", 10, 84);
             var fc3Bias = floatTensor(arena, "mnist/fc3-bias-float-le", 10);
-            test(arena, inputImage -> OnnxRuntime.execute(arena, MethodHandles.lookup(), () ->
+            test(arena, inputImage -> OnnxRuntime.execute(arena, MethodHandles.lookup(), (@Reflect Supplier<Tensor<Float>>) () ->
                     cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
                         fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
                         inputImage)));
@@ -436,7 +437,7 @@ public class CNNTest {
         return Op.ofMethod(m).get();
     }
 
-//    @CodeReflection
+//    @Reflect
 //    public Tensor<Float> loadWeight(Initializer init) {
 //        var buf = ByteBuffer.allocate(init.values().length).order(ByteOrder.nativeOrder());
 //        buf.put(init.values());

@@ -25,16 +25,17 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.Schema;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
@@ -74,7 +75,7 @@ public class Reduction {
      * @param input
      * @param partialSums
      */
-    @CodeReflection
+    @Reflect
     private static void reduce(@RO KernelContext context, @RW S32Array input, @RW S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
@@ -103,7 +104,7 @@ public class Reduction {
      * @param input
      * @param partialSums
      */
-    @CodeReflection
+    @Reflect
     private static void reduceLocal(@RO KernelContext context, @RW S32Array input, @RW S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
@@ -130,11 +131,10 @@ public class Reduction {
 
     private static final int BLOCK_SIZE = 16;
 
-    @CodeReflection
+    @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array input, @RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
-        cc.dispatchKernel(ndRange, kc -> reduceLocal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32,16), kc -> reduceLocal(kc, input, partialSums));
     }
 
     public static void main(String[] args) {
@@ -153,7 +153,8 @@ public class Reduction {
         partialSums.fill(_ -> 0);
 
         // Compute on the accelerator
-        accelerator.compute( cc -> Reduction.mySimpleCompute(cc, input, partialSums));
+        accelerator.compute((@Reflect Compute)
+                cc -> Reduction.mySimpleCompute(cc, input, partialSums));
 
         int[] results = new int[2]; // 2 groups
         int sum = 0;

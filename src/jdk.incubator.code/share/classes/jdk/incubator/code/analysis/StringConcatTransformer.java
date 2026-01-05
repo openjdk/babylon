@@ -31,11 +31,11 @@ import jdk.incubator.code.dialect.java.*;
 import java.util.*;
 
 /**
- * StringConcatTransformer is an {@link jdk.incubator.code.OpTransformer} that removes concatenation operations
+ * StringConcatTransformer is an {@link CodeTransformer} that removes concatenation operations
  * from blocks and replaces them with equivalent {@link java.lang.StringBuilder} operations. This provides a pathway
  * to remove {@link jdk.incubator.code.dialect.java.JavaOp.ConcatOp} for easier lowering to Bytecode.
  */
-public final class StringConcatTransformer implements OpTransformer {
+public final class StringConcatTransformer implements CodeTransformer {
 
     private static final JavaType J_L_STRING_BUILDER = JavaType.type(StringBuilder.class);
     private static final MethodRef SB_TO_STRING_REF = MethodRef.method(

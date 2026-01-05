@@ -24,43 +24,44 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import jdk.incubator.code.Reflect;
 
 import java.lang.foreign.MemorySegment;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array2D extends Buffer {
+    @Reflect default void schema(){array(width()*height());};
+    Schema<S32Array2D> schema = Schema.of(S32Array2D.class);
 
     int width();
     int height();
     int array(long idx);
     void array(long idx, int i);
 
-    @CodeReflection
+    @Reflect
     default int get(int x, int y) {
         return array((long) y * width() + x);
     }
 
-    @CodeReflection
+    @Reflect
     default void set(int x, int y, int v) {
         array((long) y * width() + x, v);
     }
 
-    Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").array("array"));
-
-    static S32Array2D create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator, width,height);
+    static S32Array2D create(CommonCarrier cc, int width, int height){
+        return schema.allocate(cc, width,height);
     }
     default S32Array2D copyFrom(int[] ints) {
-        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
+        MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
         return this;
     }
     default S32Array2D copyTo(int[] ints) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(),  ints, 0, width()*height());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(),  ints, 0, width()*height());
         return this;
     }
 

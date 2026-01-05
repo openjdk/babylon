@@ -40,18 +40,18 @@ We implement this in HAT by collecting the kernel(s) and compute method(s) in a 
 
 ```java
 public class SquareCompute {
-    @CodeReflection
+    @Reflect
     public static int square(int v) {
         return v * v;
     }
 
-    @CodeReflection
+    @Reflect
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
         int value = s32Array.array(kc.x);     // arr[cc.x]
         s32Array.array(kc.x, square(value));  // arr[cc.x]=value*value
     }
 
-    @CodeReflection
+    @Reflect
     public static void square(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(s32Array.length(),
                 kc -> squareKernel(kc, s32Array)
@@ -65,8 +65,7 @@ And we dispatch by creating the appropriate data buffer and then asking an `Acce
   // Create an accelerator bound to a particular backend
 
   var accelerator = new Accelerator(
-      java.lang.invoke.MethodHandles.lookup(),
-      Backend.FIRST  // Predicate<Backend>
+      MethodHandles.lookup(), Backend.FIRST  // Predicate<Backend>
   );
 
   // Ask the accelerator/backend to allocate an S32Array
@@ -113,14 +112,14 @@ Kernel's and any kernel reachable methods will naturally be restricted to subset
      - `KernelContext.barrier()`
      - `kernelContext.I32.hypot(x,y)`
 #### Kernel Entrypoints
-* Declared `@CodeReflection static public void`
+* Declared `@Reflect static public void`
     * Later we may allow reductions to return data...
 * Parameters
     * 0 is always a `KernelContext` (KernelContext2D, KernelContext3D logically follow)
     * 1..n are restricted to uniform primitive values and Panama FFM `ifaceMappedSegments`
 
 #### Kernel Reachable Methods
-* Declared `@CodeReflection static public`
+* Declared `@Reflect static public`
 * All Parameters are restricted to uniform primitive values and Panama FFM `ifaceMappedSegments`
 
 ### Compute Code (Compute entry points and compute reachable methods)
@@ -141,9 +140,9 @@ methods` have much fewer Java restrictions than kernels but generally...
   * Calls on the `ComputeContext` to generate ranges, or dispatch kernels.
 
 #### Compute Entry Points
-* Declared `@CodeReflection static public void`
+* Declared `@Reflect static public void`
 * Parameter 0 is `ComputeContext`
 
 
 #### Compute Reachable Methods
-* Declared `@CodeReflection static public `
+* Declared `@Reflect static public `

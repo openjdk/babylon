@@ -24,7 +24,7 @@ package oracle.code.onnx.llm;
 
 import java.io.IOException;
 import java.lang.foreign.Arena;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.genai.TensorDataStream;
 
@@ -98,7 +98,7 @@ public final class LlamaModel {
                                   Tensor<Float>[] presentValue) {
     }
 
-    @CodeReflection
+    @Reflect
     public ForwardResponse forward(Tensor<Long> inputIds, Tensor<Long> attentionMask, Tensor<Float>[] pastKey, Tensor<Float>[] pastValue) {
 
         Tensor<Integer> amSL = Cast(Sub(ReduceSum(attentionMask, of(flat1), empty(), empty()), flat1), empty(), OnnxType.INT32.id(), empty());

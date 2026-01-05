@@ -24,32 +24,32 @@
  */
 package hat.codebuilders;
 
-import hat.optools.OpTk;
-
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
-
-import java.lang.invoke.MethodHandles;
+import optkl.OpTkl;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
 
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilderContext<T> {
 
     public T computeDeclaration(TypeElement typeElement, String name) {
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
-     public T compute(ScopedCodeBuilderContext buildContext) {
-
+    public T compute(ScopedCodeBuilderContext buildContext) {
         computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
         parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , param -> declareParam(buildContext, param)
+                commaSpaceSeparated(
+                        buildContext.paramTable.list(),
+                        param -> declareParam(buildContext, param)
                 )
         );
 
-        braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
-                statement ->statement(buildContext,statement).nl()));
+        braceNlIndented(_ ->
+                nlSeparated(
+                        OpTkl.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                        statement ->statement(buildContext,statement).nl()
+                )
+        );
 
         return self();
     }

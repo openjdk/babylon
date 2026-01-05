@@ -79,11 +79,11 @@ public record ExternalizedOp(String name,
      * specific content is externalized to an attribute map, otherwise the attribute map
      * is empty.
      *
-     * @param cc the copy context
+     * @param cc the code context
      * @param op the operation
      * @return the operation's content.
      */
-    public static ExternalizedOp externalizeOp(CopyContext cc, Op op) {
+    public static ExternalizedOp externalizeOp(CodeContext cc, Op op) {
         return new ExternalizedOp(
                 op.externalizeOpName(),
                 op.location(),

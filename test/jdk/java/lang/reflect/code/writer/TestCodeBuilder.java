@@ -21,9 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.FieldRef;
@@ -50,7 +50,7 @@ import java.util.stream.Stream;
 
 public class TestCodeBuilder {
 
-    @CodeReflection
+    @Reflect
     static void constants() {
         boolean bool = false;
         byte b = 1;
@@ -74,7 +74,7 @@ public class TestCodeBuilder {
         void m() {}
     }
 
-    @CodeReflection
+    @Reflect
     static void reflect() {
         X x = new X(1);
         int i = x.f;
@@ -98,7 +98,7 @@ public class TestCodeBuilder {
         testWithTransforms(getFuncOp("reflect"));
     }
 
-    @CodeReflection
+    @Reflect
     static int bodies(int m, int n) {
         int sum = 0;
         for (int i = 0; i < m; i++) {
@@ -117,7 +117,7 @@ public class TestCodeBuilder {
     public void testWithTransforms(CoreOp.FuncOp f) {
         test(f);
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         test(f);
 
         f = SSA.transform(f);
@@ -129,7 +129,7 @@ public class TestCodeBuilder {
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                module.functionTable().get(fExpected.funcName()));
+                module.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(fExpected.funcName()));
         Assertions.assertEquals(fExpected.toText(), fActual.toText());
     }
 

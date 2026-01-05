@@ -24,11 +24,11 @@
  */
 package oracle.code.samples;
 
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.SSA;
@@ -37,13 +37,9 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -68,7 +64,7 @@ import java.util.stream.Stream;
  */
 public class DialectFMAOp {
 
-    @CodeReflection
+    @Reflect
     public static float compute(float a, float b, float c) {
         return a * b + c;
     }
@@ -84,13 +80,13 @@ public class DialectFMAOp {
             this.typeElement = typeElement;
         }
 
-        FMA(Op that, CopyContext cc) {
+        FMA(Op that, CodeContext cc) {
             super(that, cc);
             this.typeElement = that.resultType();
         }
 
         @Override
-        public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
             return new FMA(this, copyContext);
         }
 
@@ -154,7 +150,7 @@ public class DialectFMAOp {
 
         // 5. Transform the code model to include the FMA op
         CoreOp.FuncOp dialectModel = functionModel.transform((builder, op) -> {
-            CopyContext context = builder.context();
+            CodeContext context = builder.context();
             if (!nodesInvolved.contains(op)) {
                 builder.op(op);
             } else if (op instanceof JavaOp.MulOp  mulOp) {

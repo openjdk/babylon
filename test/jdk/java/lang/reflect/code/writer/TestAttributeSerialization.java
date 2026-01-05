@@ -27,9 +27,9 @@
  * @run junit TestAttributeSerialization
  */
 
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
@@ -49,13 +49,13 @@ public class TestAttributeSerialization {
             this((Object) null);
         }
 
-        TestOp(TestOp that, CopyContext cc) {
+        TestOp(TestOp that, CodeContext cc) {
             super(that, cc);
             this.attributeValue = that.attributeValue;
         }
 
         @Override
-        public TestOp transform(CopyContext cc, OpTransformer ot) {
+        public TestOp transform(CodeContext cc, CodeTransformer ot) {
             return new TestOp(this, cc);
         }
 

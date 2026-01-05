@@ -25,8 +25,8 @@
 package heal;
 
 import hat.Accelerator;
-import hat.buffer.Buffer;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface Box extends Buffer {
     int x1();

@@ -29,17 +29,19 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
-import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.CodeReflection;
+import hat.codebuilders.JavaHATCodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
+import optkl.ifacemapper.MappableIface;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.util.OpCodeBuilder;
 
 import java.lang.invoke.MethodHandles;
 
 public class TestJavaHATCodeBuilder {
     public static class Compute {
-        @CodeReflection
+        @Reflect
         public static void mandel(@MappableIface.RO KernelContext kc,
                                   @MappableIface.RO S32Array pallette,
                                   @MappableIface.RW S32Array2D s32Array2D,
@@ -65,23 +67,23 @@ public class TestJavaHATCodeBuilder {
         }
 
 
-        @CodeReflection
+        @Reflect
         static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
             computeContext.dispatchKernel(
-                    NDRange.of(s32Array2D.width()*s32Array2D.height()),  //0..S32Array2D.size()
+                    NDRange.of1D(s32Array2D.width()*s32Array2D.height()),  //0..S32Array2D.size()
                     kc -> mandel(kc,  pallete,s32Array2D, x, y, scale));
         }
 
     }
    public static void main(String[] args) throws NoSuchMethodException {
-           var builder=  new JavaHATCodeBuilder();
-           CoreOp.FuncOp mandel =  Op.ofMethod(Compute.class.getDeclaredMethod("mandel",
+            CoreOp.FuncOp mandel =  Op.ofMethod(Compute.class.getDeclaredMethod("mandel",
                        KernelContext.class, S32Array.class,  S32Array2D.class, float.class, float.class,float.class)).get();
             CoreOp.FuncOp compute =  Op.ofMethod(Compute.class.getDeclaredMethod("compute",
                     ComputeContext.class,  S32Array.class, S32Array2D.class,float.class, float.class,float.class)).get();
+       var builder=  new JavaHATCodeBuilder(MethodHandles.lookup(),mandel);
 
-            OpCodeBuilder.writeTo(System.out,mandel);
+       OpCodeBuilder.writeTo(System.out,mandel);
             System.out.println();
             System.out.println("----");
             System.out.println(mandel.toText());
@@ -90,7 +92,7 @@ public class TestJavaHATCodeBuilder {
        System.out.println("----");
            builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),mandel));
            builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),compute));
-           System.out.println(builder);
+           System.out.println(builder.toText());
 
     }
 }

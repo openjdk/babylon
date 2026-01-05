@@ -30,24 +30,20 @@ import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
+
 public class MockBackend extends FFIBackend {
-    //final FFILib.LongIntMethodPtr getBackend_MPtr;
-    //public long getBackend(int mode) {
-      // return getBackend_MPtr.invoke(mode);
-   // }
 
-
-    public MockBackend() {
-        super("mock_backend", Config.fromIntBits(0));
-       // getBackend_MPtr  =  ffiLib.longIntFunc("getMockBackend");
-       // getBackend(0);
+    public MockBackend(Arena arena, MethodHandles.Lookup lookup) {
+        super(arena,lookup,"mock_backend", Config.fromIntBits(0));
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend recieved closed closure");
-        System.out.println("Mock backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        System.out.println("Mock backend will mutate  " + computeContext.computeEntrypoint() + computeContext.computeEntrypoint().method);
+        injectBufferTracking(computeContext.computeEntrypoint());
     }
 
     @Override

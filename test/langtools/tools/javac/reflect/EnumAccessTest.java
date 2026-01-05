@@ -22,7 +22,7 @@
  */
 
 import java.lang.constant.DirectMethodHandleDesc;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 import static java.lang.constant.DirectMethodHandleDesc.Kind;
 import static java.lang.constant.DirectMethodHandleDesc.Kind.VIRTUAL;
@@ -37,7 +37,7 @@ import static java.lang.constant.DirectMethodHandleDesc.Kind.VIRTUAL;
  */
 
 public class EnumAccessTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"EnumAccessTest")java.type:"java.lang.constant.DirectMethodHandleDesc$Kind" -> {
                 %1 : java.type:"java.lang.constant.DirectMethodHandleDesc$Kind" = field.load @java.ref:"java.lang.constant.DirectMethodHandleDesc$Kind::VIRTUAL:java.lang.constant.DirectMethodHandleDesc$Kind";
@@ -48,7 +48,7 @@ public class EnumAccessTest {
         return DirectMethodHandleDesc.Kind.VIRTUAL;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"EnumAccessTest")java.type:"java.lang.constant.DirectMethodHandleDesc$Kind" -> {
                 %1 : java.type:"java.lang.constant.DirectMethodHandleDesc$Kind" = field.load @java.ref:"java.lang.constant.DirectMethodHandleDesc$Kind::VIRTUAL:java.lang.constant.DirectMethodHandleDesc$Kind";
@@ -59,7 +59,7 @@ public class EnumAccessTest {
         return Kind.VIRTUAL;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"EnumAccessTest")java.type:"java.lang.constant.DirectMethodHandleDesc$Kind" -> {
                 %1 : java.type:"java.lang.constant.DirectMethodHandleDesc$Kind" = field.load @java.ref:"java.lang.constant.DirectMethodHandleDesc$Kind::VIRTUAL:java.lang.constant.DirectMethodHandleDesc$Kind";

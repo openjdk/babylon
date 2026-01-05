@@ -24,28 +24,23 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.BufferTagger;
+import optkl.ifacemapper.AccessType;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Schema;
+import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import optkl.ifacemapper.SchemaBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
-import java.nio.ByteOrder;
-import java.util.List;
-
-import static hat.buffer.ArgArray.Arg.Value.Buf.UNKNOWN_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface ArgArray extends Buffer {
     interface Arg extends Buffer.Struct{
         interface Value extends Buffer.Union{
             interface Buf extends Buffer.Struct{
-                 byte UNKNOWN_BYTE=(byte)0;
-                 byte RO_BYTE =(byte)1<<1;
-                 byte WO_BYTE =(byte)1<<2;
-                 byte RW_BYTE =RO_BYTE|WO_BYTE;
                 MemorySegment address();
                 void address(MemorySegment address);
                 long bytes();
@@ -105,27 +100,18 @@ public interface ArgArray extends Buffer {
         Value value();
 
         default String asString() {
-            switch (variant()) {
-                case '&':
-                    return Long.toHexString(u64());
-                case 'F':
-                    return Float.toString(f32());
-                case 'I':
-                    return Integer.toString(s32());
-                case 'J':
-                    return Long.toString(s64());
-                case 'D':
-                    return Double.toString(f64());
-                case 'Z':
-                    return Boolean.toString(z1());
-                case 'B':
-                    return Byte.toString(s8());
-                case 'S':
-                    return Short.toString(s16());
-                case 'C':
-                    return Character.toString(u16());
-            }
-            throw new IllegalStateException("what is this");
+            return switch (variant()) {
+                case '&'-> Long.toHexString(u64());
+                case 'F'-> Float.toString(f32());
+                case 'I'-> Integer.toString(s32());
+                case 'J'-> Long.toString(s64());
+                case 'D'-> Double.toString(f64());
+                case 'Z'-> Boolean.toString(z1());
+                case 'B'-> Byte.toString(s8());
+                case 'S'-> Short.toString(s16());
+                case 'C'-> Character.toString(u16());
+                default-> throw new IllegalStateException("what is this");
+            };
         }
 
         default boolean z1() {
@@ -220,39 +206,27 @@ public interface ArgArray extends Buffer {
     byte schemaBytes(long idx);
     void schemaBytes(long idx, byte b);
 
+
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s->s
-            .arrayLen("argc").pad(12).array("arg", arg->arg
-                            .fields("idx", "variant")
-                            .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
-                            .field("value", val->val
-                                            .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
-                                                    .field("buf", buf->buf
-                                                            .fields("address","bytes",/*"vendorPtr",*/"access")
-                                                            .pad((int)(16 - JAVA_BYTE.byteSize()/* - JAVA_BYTE.byteSize()*/))
-                                                    )
+            .arrayLen("argc")
+            .pad((int)(16-JAVA_INT.byteSize()))
+            .array("arg", arg->arg
+                    .fields("idx", "variant")
+                    .pad((int)(16-JAVA_INT.byteSize()-JAVA_BYTE.byteSize()))
+                    .field("value", val->val
+                            .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
+                            .field("buf", buf->buf
+                                    .fields("address","bytes","access")
+                                    .pad((int)(16 - JAVA_BYTE.byteSize()))
                             )
                     )
-         //   .field("vendorPtr")
-            .arrayLen("schemaLen").array("schemaBytes")
+            )
+            .arrayLen("schemaLen")
+            .array("schemaBytes")
     );
 
-    static String valueLayoutToSchemaString(ValueLayout valueLayout) {
-        String descriptor = valueLayout.carrier().descriptorString();
-        String schema = switch (descriptor) {
-            case "Z" -> "Z";
-            case "B" -> "S";
-            case "C" -> "U";
-            case "S" -> "S";
-            case "I" -> "S";
-            case "F" -> "F";
-            case "D" -> "F";
-            case "J" -> "S";
-            default -> throw new IllegalStateException("Unexpected value: " + descriptor);
-        } + valueLayout.byteSize() * 8;
-        return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
-    }
 
-    static ArgArray create(Accelerator accelerator, KernelCallGraph kernelCallGraph, Object... args) {
+    static ArgArray create(CommonCarrier cc, KernelCallGraph kernelCallGraph, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -267,7 +241,7 @@ public interface ArgArray extends Buffer {
                 case Integer s32 -> "(?:s32)";
                 case Long s64 -> "(?:s64)";
                 case Double f64 -> "(?:f64)";
-                case Buffer buffer -> "(?:" +SchemaBuilder.schema(buffer)+")";
+                case Buffer buffer -> "(?:" + SchemaBuilder.schema(buffer)+")";
                 default -> throw new IllegalStateException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
             };
             if (i > 0) {
@@ -276,7 +250,7 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = schema.allocate(accelerator,args.length,schemaStr.length() + 1);
+        ArgArray argArray = schema.allocate(cc,args.length,schemaStr.length() + 1);
         byte[] schemaStrBytes = schemaStr.getBytes();
         for (int i = 0; i < schemaStrBytes.length; i++) {
             argArray.schemaBytes(i, schemaStrBytes[i]);
@@ -288,7 +262,7 @@ public interface ArgArray extends Buffer {
 
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
         Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
-        List<BufferTagger.AccessType> bufferAccessList = kernelCallGraph.bufferAccessList;
+        var bufferAccessList = kernelCallGraph.traits.bufferAccessList;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
@@ -304,32 +278,27 @@ public interface ArgArray extends Buffer {
                 case Double f64 -> arg.f64(f64);
                 case Buffer buffer -> {
                     Annotation[] annotations = parameterAnnotations[i];
-                    byte accessByte = UNKNOWN_BYTE;
+                    AccessType accessType = AccessType.NA;
                     if (annotations.length > 0) {
                         for (Annotation annotation : annotations) {
-                            accessByte = switch (annotation) {
-                                case RO ro-> Arg.Value.Buf.RO_BYTE;
-                                case RW rw -> Arg.Value.Buf.RW_BYTE;
-                                case WO wo -> Arg.Value.Buf.WO_BYTE;
-                                default -> throw new IllegalStateException("Unexpected value: " + annotation);
-                            };
+                            accessType = AccessType.of(annotation);
                         }
-                    }else{
+                    } else {
                         throw new IllegalArgumentException("Argument " + i + " has no access annotations");
                     }
-                    MemorySegment segment = Buffer.getMemorySegment(buffer);
+                    MemorySegment segment = MappableIface.getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
-                    buf.access(accessByte);
+                    buf.access(accessType.value);
+                    assert bufferAccessList.get(i).value == accessType.value: "buffer tagging mismatch: "
+                                + kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
+                                + " in " + kernelCallGraph.entrypoint.getMethod().getName()
+                                + " annotated as " + AccessType.of(accessType.value)
+                                + " but tagged as " + bufferAccessList.get(i).name();
 
-                    assert bufferAccessList.get(i).value == accessByte: "buffer tagging mismatch: "
-                            + kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
-                            + " in " + kernelCallGraph.entrypoint.getMethod().getName()
-                            + " annotated as " + BufferTagger.convertAccessType(accessByte)
-                            + " but tagged as " + bufferAccessList.get(i).name();
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }

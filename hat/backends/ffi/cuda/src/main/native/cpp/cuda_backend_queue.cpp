@@ -130,38 +130,34 @@ int CudaBackend::CudaQueue::estimateThreadsPerBlock(int dimensions) {
     }
 }
 
+int CudaBackend::CudaQueue::estimateThreadsPerBlock(int dimensions, int globalSizePerDimension, int localSize) {
+    int threadsPerBlock = 1;
+    if (localSize > 0) {
+        threadsPerBlock = localSize;
+    } else if (globalSizePerDimension > 1) {
+        threadsPerBlock = estimateThreadsPerBlock(dimensions);
+        // Check if we are running a small range
+        while (globalSizePerDimension < threadsPerBlock) {
+            threadsPerBlock /= 2;
+        }
+    }
+    return threadsPerBlock;
+}
+
 void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
     const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
-    int threadsPerBlockX;
-    int threadsPerBlockY = 1;
-    int threadsPerBlockZ = 1;
-
-    // The local and global mesh dimensions match by design from the Java APIs
-    const int dimensions = kernelContext->dimensions;
-    if (kernelContext->lsx > 0) {
-        threadsPerBlockX = kernelContext -> lsx;
-    } else {
-        threadsPerBlockX = estimateThreadsPerBlock(dimensions);
-    }
-    if (kernelContext-> lsy > 0) {
-        threadsPerBlockY = kernelContext->lsy;
-    } else if (dimensions > 1) {
-        threadsPerBlockY = estimateThreadsPerBlock(dimensions);
-    }
-    if (kernelContext-> lsz > 0) {
-        threadsPerBlockZ = kernelContext-> lsz;
-    } else if (dimensions > 2) {
-        threadsPerBlockZ = estimateThreadsPerBlock(dimensions);
-    }
+    int threadsPerBlockX = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsx, kernelContext->lsx);
+    int threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
+    int threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
 
     int blocksPerGridX = (kernelContext->gsx + threadsPerBlockX - 1) / threadsPerBlockX;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
-    if (dimensions > 1) {
+    if (kernelContext->dimensions > 1) {
         blocksPerGridY = (kernelContext->gsy + threadsPerBlockY - 1) / threadsPerBlockY;
     }
-    if (dimensions > 2) {
+    if (kernelContext->dimensions > 2) {
         blocksPerGridZ = (kernelContext->gsz + threadsPerBlockZ - 1) / threadsPerBlockZ;
     }
 

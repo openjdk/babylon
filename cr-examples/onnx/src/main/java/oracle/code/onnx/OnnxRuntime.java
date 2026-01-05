@@ -128,11 +128,11 @@ public final class OnnxRuntime {
         }).toList();
     }
 
-    public static <T> T execute(OnnxFunction<T> codeLambda) {
+    public static <T> T execute(Supplier<T> codeLambda) {
         return execute(MethodHandles.lookup(), codeLambda);
     }
 
-    public static <T> T execute(MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
+    public static <T> T execute(MethodHandles.Lookup l, Supplier<T> codeLambda) {
         return execute(Arena.ofAuto(), l, codeLambda);
     }
 
@@ -159,11 +159,11 @@ public final class OnnxRuntime {
         }
     }
 
-    public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
+    public static <T> T execute(Arena arena, MethodHandles.Lookup l, Supplier<T> codeLambda) {
         return execute(arena, l, codeLambda, null);
     }
 
-    public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda, SessionOptions options) {
+    public static <T> T execute(Arena arena, MethodHandles.Lookup l, Supplier<T> codeLambda, SessionOptions options) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q, options);
@@ -435,11 +435,6 @@ public final class OnnxRuntime {
         } finally {
             OrtApi.ReleaseStatus.invoke(OrtApi.ReleaseStatus(runtimeAddress), status);
         }
-    }
-
-    @FunctionalInterface
-    @CodeReflection
-    public interface OnnxFunction<T> extends Supplier<T> {
     }
 
     record SessionWithReturnType(Session session, TypeElement returnType) {

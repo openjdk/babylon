@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -58,7 +58,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test1(boolean b, int x, int y) {
         int z = b ? x : y;
     }
@@ -87,7 +87,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test2(boolean b, int x, double y) {
         double z = !b ? x : y;
     }
@@ -103,7 +103,7 @@ public class ConditionalExpressionTest {
                         yield %8;
                     }
                     ()java.type:"java.util.function.Supplier<java.lang.Double>" -> {
-                        %9 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda ()java.type:"java.lang.Double" -> {
+                        %9 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Double" -> {
                             %10 : java.type:"int" = var.load %5;
                             %11 : java.type:"double" = conv %10;
                             %12 : java.type:"java.lang.Double" = invoke %11 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
@@ -112,7 +112,7 @@ public class ConditionalExpressionTest {
                         yield %9;
                     }
                     ()java.type:"java.util.function.Supplier<java.lang.Double>" -> {
-                        %13 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda ()java.type:"java.lang.Double" -> {
+                        %13 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Double" -> {
                             %14 : java.type:"double" = var.load %6;
                             %15 : java.type:"java.lang.Double" = invoke %14 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
                             return %15;
@@ -123,7 +123,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test3(boolean b, int x, double y) {
         Supplier<Double> z = b ? () -> (double) x : () -> y;
     }
@@ -165,7 +165,7 @@ public class ConditionalExpressionTest {
                 return;
             };
             """)
-    @CodeReflection
+    @Reflect
     void test4(boolean b1, boolean b2, int x, double y, double z) {
         double r = b1 ? (b2 ? x : y) : z;
     }

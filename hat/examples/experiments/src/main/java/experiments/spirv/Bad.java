@@ -24,21 +24,19 @@
  */
 package experiments.spirv;
 
-import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Quoted;
+import experiments.spirv.Bad.AcceleratorProxy.ComputeProxy;
+import jdk.incubator.code.Reflect;
 import java.util.function.Consumer;
 
 public class Bad {
     public static class AcceleratorProxy {
-        @CodeReflection
-        public interface QuotableComputeConsumer extends Consumer<ComputeClosureProxy> {
+        public interface ComputeProxy extends Consumer<ComputeContextProxy> {
         }
 
-        public static class ComputeClosureProxy {
+        public static class ComputeContextProxy {
         }
 
-        public void compute(AcceleratorProxy.QuotableComputeConsumer cqr) {
+        public void compute(ComputeProxy cqr) {
            // Quoted quoted = cqr.quoted();
             //Op op = quoted.op();
             //System.out.println(op.toText());
@@ -48,7 +46,7 @@ public class Bad {
     }
 
     public static class MatrixMultiplyCompute {
-        static void compute(AcceleratorProxy.ComputeClosureProxy computeContext, float[] a, float[] b, float[] c, int size) {
+        static void compute(AcceleratorProxy.ComputeContextProxy computeContext, float[] a, float[] b, float[] c, int size) {
         }
     }
 
@@ -60,6 +58,7 @@ public class Bad {
         var a = new float[]{};
         var b = new float[]{};
         var c = new float[]{};
-        accelerator.compute(cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size));
+        accelerator.compute((@Reflect ComputeProxy)
+                cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size));
     }
 }

@@ -27,8 +27,9 @@
 
 OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferState)
         : Buffer(backend, bufferState) {
-    cl_int status;
+
     const auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
+    cl_int status;
     clMem = clCreateBuffer(
         openclBackend->context,
         CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,

@@ -30,7 +30,7 @@
  * @run main CodeReflectionTester RecordAccessTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class RecordAccessTest {
 
@@ -41,7 +41,7 @@ public class RecordAccessTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"RecordAccessTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = field.load @java.ref:"RecordAccessTest$R::F:java.lang.String";
@@ -53,7 +53,7 @@ public class RecordAccessTest {
         String f = R.F;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"RecordAccessTest")java.type:"void" -> {
                 invoke @java.ref:"RecordAccessTest$R::m():void";

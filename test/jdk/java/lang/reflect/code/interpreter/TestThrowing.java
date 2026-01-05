@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -66,17 +66,17 @@ public class TestThrowing {
 
     }
 
-    @CodeReflection
+    @Reflect
     static void throwsError() {
         throw new TestError();
     }
 
-    @CodeReflection
+    @Reflect
     static void throwsRuntimeException() {
         throw new TestRuntimeException();
     }
 
-    @CodeReflection
+    @Reflect
     static void throwsCheckedException() throws TestCheckedException {
         throw new TestCheckedException();
     }

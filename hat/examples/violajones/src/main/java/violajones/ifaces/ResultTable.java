@@ -25,11 +25,8 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.ifacemapper.Schema;
-
-import java.lang.invoke.MethodHandles;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface ResultTable extends Buffer {
 

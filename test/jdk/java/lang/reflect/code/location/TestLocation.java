@@ -27,10 +27,10 @@
  * @run junit TestLocation
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
@@ -47,7 +47,7 @@ public class TestLocation {
     @Test
     public void testLocation() {
         CoreOp.FuncOp f = getFuncOp(ClassWithReflectedMethod.class, "f");
-        f.traverse(null, (o, ce) -> {
+        f.elements().forEach(ce -> {
             if (ce instanceof CoreOp.ConstantOp cop) {
                 Location loc = cop.location();
                 Assertions.assertNotNull(loc);
@@ -56,11 +56,10 @@ public class TestLocation {
                 int expectedLine = Integer.parseInt((String) cop.value());
                 Assertions.assertEquals(expectedLine, actualLine);
             }
-            return null;
         });
     }
 
-    @CodeReflection
+    @Reflect
     static int f(int m, int n) {
         int sum = 0;
         for (int i = 0; i < m; i++) {
@@ -75,11 +74,11 @@ public class TestLocation {
     public void dropLocationTransform() {
         CoreOp.FuncOp f = getFuncOp(TestLocation.class, "f");
 
-        CoreOp.FuncOp tf = f.transform(OpTransformer.DROP_LOCATION_TRANSFORMER);
+        CoreOp.FuncOp tf = f.transform(CodeTransformer.DROP_LOCATION_TRANSFORMER);
         tf.setLocation(Location.NO_LOCATION);
         testNoLocations(tf);
 
-        CoreOp.FuncOp tlf = lower(f).transform(OpTransformer.DROP_LOCATION_TRANSFORMER);
+        CoreOp.FuncOp tlf = lower(f).transform(CodeTransformer.DROP_LOCATION_TRANSFORMER);
         tlf.setLocation(Location.NO_LOCATION);
         testNoLocations(tlf);
     }
@@ -96,7 +95,7 @@ public class TestLocation {
     }
 
     static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
-        return f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        return f.transform(CodeTransformer.LOWERING_TRANSFORMER);
     }
 
     static void testNoLocations(Op op) {

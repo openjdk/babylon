@@ -25,15 +25,16 @@
 package experiments.spirv;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
-import hat.buffer.SchemaBuilder;
+import optkl.ifacemapper.SchemaBuilder;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 
 public class MatrixMultiply {
 
@@ -86,7 +87,7 @@ public class MatrixMultiply {
          https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_Env.html#_built_in_variables
          */
 
-        @CodeReflection
+        @Reflect
         static void matmul(KernelContext kc, F32Array a, F32Array b, F32Array c, int sz) {
             //long size = kc.maxX; // There is probably a SPIRV call or intrinsic or const for this
             //   OpenCL kc.max -> get_global_size(0)
@@ -111,10 +112,10 @@ public class MatrixMultiply {
             }
         }
 
-        @CodeReflection
+        @Reflect
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
             computeContext.dispatchKernel(
-                    NDRange.of(size * size),                // range is passed as int and creation internalized
+                    NDRange.of1D(size * size),                // range is passed as int and creation internalized
                     (kid) -> matmul(kid, a, b, c, size));  // kid is Kid1D has kid.x and kid.maxX
         }
 
@@ -132,7 +133,7 @@ public class MatrixMultiply {
         var b = F32Array.create(accelerator, arrB.length);
         var c = F32Array.create(accelerator, size * size);
         System.out.print(SchemaBuilder.schema(c));
-        accelerator.compute(
+        accelerator.compute((@Reflect Compute)
                 cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size)
         );
 

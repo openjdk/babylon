@@ -93,14 +93,16 @@ class Stats {
     int passed = 0;
     int failed = 0;
     int unsupported = 0;
-    public void incrementPassed(int val) {
-        this.passed += val;
-    }
+    int precisionErrors = 0;
+    public void incrementPassed(int val) { this.passed += val; }
     public void incrementFailed(int fail) {
         this.failed += fail;
     }
     public void incrementUnsupported(int unsupporeted) {
         this.unsupported += unsupporeted;
+    }
+    public void incrementPrecisionErrors(int precisionErrors) {
+        this.precisionErrors += precisionErrors;
     }
 
     public int getPassed() {
@@ -112,11 +114,12 @@ class Stats {
     public int getUnsupported() {
         return unsupported;
     }
+    public int getPrecisionErrors { return precisionErrors }
 
     @Override
     public String toString() {
-        return String.format("Global passed: %d, failed: %d, unsupported: %d, pass-rate: %.2f%%",
-                passed, failed, unsupported, ((float)(passed * 100 / (passed + failed + unsupported))));
+        return String.format("Global passed: %d, failed: %d, unsupported: %d, precision-errors: %d, pass-rate: %.2f%%",
+                passed, failed, unsupported, precisionErrors, ((float)(passed * 100 / (passed + failed + unsupported + precisionErrors))));
     }
 }
 
@@ -180,7 +183,10 @@ void main(String[] argv) {
                 "hat.test.TestArrayView",
                 "hat.test.TestVectorTypes",
                 "hat.test.TestF16Type",
-                "hat.test.TestFloat2"
+                "hat.test.TestFloat2",
+                "hat.test.TestBFloat16Type",
+                "hat.test.TestDeviceType",
+                "hat.test.TestVecorArrayView",
         };
 
         // Test the whole suite
@@ -218,16 +224,22 @@ void main(String[] argv) {
                     int passed = Integer.parseInt(matcher.group(1));
                     int fail = Integer.parseInt(matcher.group(2));
                     int unsupported = Integer.parseInt(matcher.group(3));
+                    int precisionErrors = Integer.parseInt(matcher.group(4));
                     stats.incrementPassed(passed);
                     stats.incrementFailed(fail);
                     stats.incrementUnsupported(unsupported);
+                    stats.incrementPrecisionErrors(precisionErrors);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
         System.out.println(stats);
-
+        if (stats.failed > 0) {
+            System.exit(-1);
+        } else {
+            System.exit(0);
+        }
     } else {
         // A single command for a specific class/method
         Script.java(java -> java
@@ -244,5 +256,4 @@ void main(String[] argv) {
                 .args(config.appargs)
                 .justShowCommandline(config.justShowCommandline));
     }
-
 }

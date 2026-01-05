@@ -28,16 +28,12 @@ package hat.backend.jextracted;
 import hat.Config;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
-import hat.buffer.Buffer;
 
 import java.lang.foreign.Arena;
-import java.lang.invoke.MethodHandle;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_LONG;
+import java.lang.invoke.MethodHandles;
 
 public abstract class JExtractedBackendDriver extends Backend {
+
 /*
     public boolean isAvailable() {
         return nativeLibrary.available;
@@ -66,8 +62,8 @@ public abstract class JExtractedBackendDriver extends Backend {
 */
     //public final FFILib nativeLibrary;
 
-    public JExtractedBackendDriver(Config config,String libName) {
-      super(config);
+    public JExtractedBackendDriver(Arena arena, MethodHandles.Lookup lookup,Config config, String libName) {
+      super(arena,lookup,config);
       /*  this.nativeLibrary = new FFILib(libName);
         this.dumpArgArray_MH = nativeLibrary.voidFunc("dumpArgArray", ADDRESS);
         this.getDevice_MH = nativeLibrary.longFunc("getDeviceHandle");

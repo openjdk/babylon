@@ -25,8 +25,9 @@
 package violajones;
 
 import hat.Accelerator;
-import hat.Config;
+import hat.Accelerator.Compute;
 import hat.backend.Backend;
+import jdk.incubator.code.Reflect;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
 import violajones.attic.ViolaJonesRaw;
@@ -68,7 +69,8 @@ public class Main {
             resultTable.atomicResultTableCount(0);
             long start = System.currentTimeMillis();
 
-            accelerator.compute(cc -> ViolaJonesCoreCompute.compute(cc, cascade, rgbImage, resultTable,scaleTable));
+            accelerator.compute((@Reflect Compute)
+                    cc -> ViolaJonesCoreCompute.compute(cc, cascade, rgbImage, resultTable,scaleTable));
             if (headless) {
                 System.out.print(resultTable.atomicResultTableCount() + "faces found in");
                 System.out.println((System.currentTimeMillis() - start)+"ms");

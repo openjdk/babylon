@@ -32,19 +32,22 @@
 package view;
 
 import view.f32.F32;
-import view.f32.pool.F32x2TrianglePool;
-import view.f32.pool.Pool;
+import view.f32.F32x2Triangle;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.util.List;
 import java.util.stream.IntStream;
 
 public record RasterizingRenderer(F32 f32, int width, int height, DisplayMode displayMode, BufferedImage image,
-                                  int[] offscreenRgb) implements Renderer {
+                                  int[] offscreenRgb, float[] zplane) implements Renderer {
     static private Renderer of(F32 f32, int width, int height, DisplayMode displayMode) {
+        var len = width * height;
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        return new RasterizingRenderer(f32,width, height, displayMode, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length]);
+
+        return new RasterizingRenderer(f32, width, height, displayMode, image,
+                ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), new float[len]);
     }
 
     static public Renderer wireOf(F32 f32, int width, int height) {
@@ -52,22 +55,25 @@ public record RasterizingRenderer(F32 f32, int width, int height, DisplayMode di
     }
 
     static public Renderer fillOf(F32 f32, int width, int height) {
-        return of(f32,width, height, DisplayMode.FILL);
+        return of(f32, width, height, DisplayMode.FILL);
     }
 
-    private void kernel(int gid) {
+
+    private void kernel(int gid, List<F32x2Triangle> zordered) {
         int x = gid % width;
         int y = gid / height;
         int col = 0x404040;
-        for (int t = 0; t < ((Pool<?,?>) f32.f32x2TriangleFactory()).count(); t++) {
-            col = F32.rgb(displayMode.filled,x, y, ((F32x2TrianglePool) f32.f32x2TriangleFactory()).entry(t),col);
+        for (int t = 0; t < zordered.size(); t++) {
+            col = F32.rgb(displayMode.fill, x, y, zordered.get(t), col);
         }
         offscreenRgb[gid] = col;
     }
 
     @Override
-    public void render() {
-        IntStream.range(0, width * height).parallel().forEach(this::kernel);
+    public void render(List<F32x2Triangle> zordered) {
+        IntStream.range(0, width * height).parallel().forEach(gid -> {
+            kernel(gid, zordered);
+        });
         System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
     }
 

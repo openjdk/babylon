@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -49,7 +50,7 @@ public class TestInline {
 
     @Test
     public void testInline() {
-        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) -> a + b;
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         // functional type = (int)int
@@ -71,7 +72,7 @@ public class TestInline {
 
     @Test
     public void testInlineVar() {
-        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) -> a + b;
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         // functional type = (int)int
@@ -100,7 +101,7 @@ public class TestInline {
 
     @Test
     public void testInlineLowerMultipleReturn() {
-        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) ->  {
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -108,7 +109,7 @@ public class TestInline {
         };
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
         System.out.println(cop.toText());
-        JavaOp.LambdaOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        JavaOp.LambdaOp lcop = cop.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
 
         // functional type = (int)int
@@ -129,7 +130,7 @@ public class TestInline {
 
     @Test
     public void testInlineLowerMultipleReturnVar() {
-        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) ->  {
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -137,7 +138,7 @@ public class TestInline {
         };
         JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
         System.out.println(cop.toText());
-        JavaOp.LambdaOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        JavaOp.LambdaOp lcop = cop.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
 
         // functional type = (int)int
@@ -164,7 +165,7 @@ public class TestInline {
 
     @Test
     public void testInlineMultipleReturnLower() {
-        IntBinaryOperator q = (@CodeReflection IntBinaryOperator)(int a, int b) ->  {
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -184,7 +185,7 @@ public class TestInline {
                 });
         System.out.println(f.toText());
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
@@ -193,7 +194,7 @@ public class TestInline {
 
     @Test
     public void testInlineVoid() {
-        Consumer<int[]> q = (@CodeReflection Consumer<int[]>) (int[] a) -> {
+        Consumer<int[]> q = (@Reflect Consumer<int[]>) (int[] a) -> {
             a[0] = 42;
             return;
         };

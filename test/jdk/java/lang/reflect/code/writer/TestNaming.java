@@ -28,9 +28,9 @@
  */
 
 import jdk.incubator.code.CodeItem;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 public class TestNaming {
 
-    @CodeReflection
+    @Reflect
     static int f(int n, int m) {
         int sum = 0;
         for (int i = 0; i < n; i++) {
@@ -67,7 +67,7 @@ public class TestNaming {
     public void testLow() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
         f = SSA.transform(f);
 

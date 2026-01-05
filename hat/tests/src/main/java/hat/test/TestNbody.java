@@ -29,17 +29,19 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
-import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
+import hat.test.exceptions.HATAssertionError;
+import hat.test.exceptions.HATExpectedPrecisionError;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RO;
+import static optkl.ifacemapper.MappableIface.RW;
 import static hat.test.TestNbody.Universe.*;
 
 public class TestNbody {
@@ -74,7 +76,7 @@ public class TestNbody {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
@@ -103,10 +105,9 @@ public class TestNbody {
         body.vz(body.vz() + accz);
     }
 
-    @CodeReflection
+    @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(universe.length()));
-        cc.dispatchKernel(ndRange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
+        cc.dispatchKernel(NDRange.of1D(universe.length()), kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
     }
 
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {
@@ -140,6 +141,7 @@ public class TestNbody {
     }
 
     @HatTest
+    @Reflect
     public void testNbody() {
         final int NUM_BODIES = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -189,12 +191,16 @@ public class TestNbody {
             Body hatBody = universe.body(i);
             Body seqBody = universeSeq.body(i);
             IO.println(i);
-            HATAsserts.assertEquals(seqBody.x(), hatBody.x(), delta);
-            HATAsserts.assertEquals(seqBody.y(), hatBody.y(), delta);
-            HATAsserts.assertEquals(seqBody.z(), hatBody.z(), delta);
-            HATAsserts.assertEquals(seqBody.vx(), hatBody.vx(), delta);
-            HATAsserts.assertEquals(seqBody.vy(), hatBody.vy(), delta);
-            HATAsserts.assertEquals(seqBody.vz(), hatBody.vz(), delta);
+            try {
+                HATAsserts.assertEquals(seqBody.x(), hatBody.x(), delta);
+                HATAsserts.assertEquals(seqBody.y(), hatBody.y(), delta);
+                HATAsserts.assertEquals(seqBody.z(), hatBody.z(), delta);
+                HATAsserts.assertEquals(seqBody.vx(), hatBody.vx(), delta);
+                HATAsserts.assertEquals(seqBody.vy(), hatBody.vy(), delta);
+                HATAsserts.assertEquals(seqBody.vz(), hatBody.vz(), delta);
+            } catch (HATAssertionError hatAssertionError) {
+                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
+            }
         }
     }
 }

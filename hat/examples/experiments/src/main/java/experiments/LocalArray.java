@@ -26,16 +26,17 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.buffer.F32Array;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.Schema;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
@@ -70,7 +71,7 @@ public class LocalArray {
     }
 
 
-    @CodeReflection
+    @Reflect
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
         MyArray mySharedArray = MyArray.createLocal();
         int lix = kernelContext.lix;
@@ -81,10 +82,9 @@ public class LocalArray {
         data.array(lix + (long) blockId * blockSize, mySharedArray.array(lix));
     }
 
-    @CodeReflection
+    @Reflect
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(32), NDRange.Local1D.of(16));
-        computeContext.dispatchKernel(ndRange,
+        computeContext.dispatchKernel(NDRange.of1D(32,16),
                 kernelContext -> compute(kernelContext, data)
         );
     }
@@ -97,7 +97,7 @@ public class LocalArray {
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
-        accelerator.compute(computeContext -> {
+        accelerator.compute((@Reflect Compute) computeContext -> {
             LocalArray.myCompute(computeContext, data);
         });
 

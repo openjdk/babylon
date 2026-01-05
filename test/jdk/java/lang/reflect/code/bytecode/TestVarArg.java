@@ -1,6 +1,5 @@
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.internal.classfile.components.ClassPrinter;
@@ -20,6 +19,9 @@ import java.util.stream.Stream;
  * @enablePreview
  * @modules jdk.incubator.code
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../
+ * @run junit TestVarArg
+ * @run main Unreflect TestVarArg
  * @run junit TestVarArg
  *
  */
@@ -30,18 +32,15 @@ public class TestVarArg {
         var f = getFuncOp("f");
         System.out.println(f.toText());
 
-        var lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lf.toText());
-
         var bytes = BytecodeGenerator.generateClassData(MethodHandles.lookup(), f);
         var classModel = ClassFile.of().parse(bytes);
         ClassPrinter.toYaml(classModel, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
 
-        MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lf);
+        MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), f);
         Assertions.assertEquals(f(), mh.invoke());
     }
 
-    @CodeReflection
+    @Reflect
     static String f() {
         String r = "";
         String ls = System.lineSeparator();

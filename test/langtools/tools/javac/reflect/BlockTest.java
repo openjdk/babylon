@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -35,7 +35,7 @@ import java.util.function.Consumer;
  */
 
 public class BlockTest {
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"BlockTest")java.type:"void" -> {
                 java.block ()java.type:"void" -> {
@@ -70,7 +70,7 @@ public class BlockTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"BlockTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
@@ -136,7 +136,7 @@ public class BlockTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"BlockTest")java.type:"void" -> {
                 java.for
@@ -169,7 +169,7 @@ public class BlockTest {
         }
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"BlockTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
@@ -203,10 +203,10 @@ public class BlockTest {
         }
    }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"BlockTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isQuotable=true (%2 : java.type:"java.lang.String")java.type:"void" -> {
                     %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
                     java.block ()java.type:"void" -> {
                         %4 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
@@ -229,7 +229,7 @@ public class BlockTest {
     }
 
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"BlockTest")java.type:"void" -> {
                 java.if

@@ -24,8 +24,6 @@
  */
 package job;
 
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Set;
 
 public interface Dependency {
@@ -38,17 +36,14 @@ public interface Dependency {
 
     interface Buildable extends Dependency {
         boolean build();
-
-        boolean clean();
-
-        List<Path> generatedPaths();
+        boolean clean(boolean verbose);
     }
 
     interface Executable extends Dependency {
     }
 
     interface ExecutableJar extends Executable {
-        boolean run(String mainClassName, Set<Dependency> depsInOrder, List<String> vmOpts, List<String> args);
+        boolean run(Jar.JavaConfig javaOpts, Dependency ...unorderedDeps);
     }
 
     interface Runnable extends Executable {

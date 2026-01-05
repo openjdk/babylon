@@ -1,0 +1,56 @@
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.interpreter.Interpreter;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandles;
+import java.util.function.IntSupplier;
+import java.util.function.IntUnaryOperator;
+import java.util.stream.IntStream;
+
+/*
+ * @test
+ * @summary test that invoking Op#ofQuotable returns the same instance
+ * @modules jdk.incubator.code
+ * @run junit ReflectableLambdaSameInstanceTest
+ */
+
+public class ReflectableLambdaSameInstanceTest {
+
+    @Reflect
+    private static final Runnable q1 = () -> { };
+
+    @Test
+    public void testWithOneThread() {
+        Assertions.assertSame(Op.ofQuotable(q1).get(), Op.ofQuotable(q1).get());
+    }
+
+    @Reflect
+    private static final IntUnaryOperator q2 = x -> x;
+
+    @Test
+    public void testWithMultiThreads() {
+        Object[] quotedObjects = IntStream.range(0, 1024).parallel().mapToObj(__ -> Op.ofQuotable(q2).get()).toArray();
+        for (int i = 1; i < quotedObjects.length; i++) {
+            Assertions.assertSame(quotedObjects[i], quotedObjects[i - 1]);
+        }
+    }
+
+    @Reflect
+    static IntSupplier q() {
+        return () -> 8;
+    }
+
+    @Test
+    public void testMultiThreadsViaInterpreter() throws NoSuchMethodException {
+        var qm = this.getClass().getDeclaredMethod("q");
+        var q = Op.ofMethod(qm).get();
+        IntSupplier quotable = (IntSupplier) Interpreter.invoke(MethodHandles.lookup(), q);
+        Object[] quotedObjects = IntStream.range(0, 1024).parallel().mapToObj(__ -> Op.ofQuotable(quotable).get()).toArray();
+        for (int i = 1; i < quotedObjects.length; i++) {
+            Assertions.assertSame(quotedObjects[i-1], quotedObjects[i]);
+        }
+    }
+}

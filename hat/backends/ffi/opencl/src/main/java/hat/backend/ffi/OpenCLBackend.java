@@ -30,24 +30,19 @@ import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
+
 public class OpenCLBackend extends C99FFIBackend {
-
-    public OpenCLBackend(String configSpec) {
-        this(Config.fromSpec(configSpec));
+    public OpenCLBackend(Config config) {
+        super(Arena.global(), MethodHandles.lookup(),"opencl_backend", config);
     }
-
     public OpenCLBackend() {
         this(Config.fromEnvOrProperty());
     }
-
-    public OpenCLBackend(Config config) {
-        super("opencl_backend", config);
-    }
-
-
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeEntrypoint());
     }
 
     @Override
@@ -62,7 +57,8 @@ public class OpenCLBackend extends C99FFIBackend {
                 var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.method.getName());
                 return new CompiledKernel(this, kernelCallGraph, kernel, args);
             } else {
-                throw new IllegalStateException("opencl failed to compile ");
+                // TODO: We should capture the log from OpenCL and provide as exception message
+                throw new IllegalStateException("OpenCL program failed to compile");
             }
         });
         compiledKernel.dispatch(kernelContext, args);

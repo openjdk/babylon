@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -37,10 +37,12 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestArrayCreation
+ * @run main Unreflect TestArrayCreation
+ * @run junit TestArrayCreation
  */
 
 public class TestArrayCreation {
-    @CodeReflection
+    @Reflect
     public static String[] f() {
         return new String[10];
     }
@@ -54,7 +56,7 @@ public class TestArrayCreation {
         Assertions.assertArrayEquals(f(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
-    @CodeReflection
+    @Reflect
     public static String[][] f2() {
         return new String[10][];
     }
@@ -68,7 +70,7 @@ public class TestArrayCreation {
         Assertions.assertArrayEquals(f2(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
-    @CodeReflection
+    @Reflect
     public static String[][] f3() {
         return new String[10][10];
     }
@@ -80,6 +82,20 @@ public class TestArrayCreation {
         System.out.println(f.toText());
 
         Assertions.assertArrayEquals(f3(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
+    }
+
+    @Reflect
+    public static String[][] f4() {
+        return new String[][]{{"one", "two"}, {"three"}};
+    }
+
+    @Test
+    public void testf4() {
+        CoreOp.FuncOp f = getFuncOp("f4");
+
+        System.out.println(f.toText());
+
+        Assertions.assertArrayEquals(f4(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

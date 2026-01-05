@@ -39,7 +39,7 @@ void main(String[] args) {
            ├──build/                               // All jars, native libs and executables
            │    ├── cmake-build-debug/             // All intermediate cmake artifacts
            │    ├── hat-wrap-*-1.0.jar             // Wrapper jars around extracted * (opencl, glwrap, opencl)
-           │    ├── core-1.0.jar                   // Base hat jar
+           │    ├── hat-core-1.0.jar               // Base hat jar
            │    ├── hat-example-*-1.0.jar          // Example jars (hat-example-nbody-1.0.jar, hat-example-life-1.0.jar)
            │    ├── hat-extracted-opencl-1.0.jar   // Raw extraction jars (hat-extracted-opencl-1.0.jar ....)
            │    ├── lib*_backend.[dylib|so]        // ffi library backends

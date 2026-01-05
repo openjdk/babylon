@@ -1,7 +1,7 @@
 import jdk.incubator.code.Body;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -147,7 +147,7 @@ public class TestPrimitiveTypePatterns {
         var model = buildTypePatternModel(sourceType, targetType);
         System.out.println(model.toText());
 
-        var lmodel = model.transform(OpTransformer.LOWERING_TRANSFORMER);
+        var lmodel = model.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lmodel.toText());
 
 
@@ -168,9 +168,9 @@ public class TestPrimitiveTypePatterns {
         }
     }
 
-    @CodeReflection
-    static boolean identityPrimitive(short s) {
-        return s instanceof short _;
+    @Reflect
+    static boolean identityPrimitive(short s, int i, float f) {
+        return s instanceof short _ && i instanceof int _ && f instanceof float _;
     }
 
     @Test
@@ -178,13 +178,16 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("identityPrimitive");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
+        // because it's an identity conversion, we expect no check performed
+        Assertions.assertTrue(lf.elements().noneMatch(e -> e instanceof JavaOp.InvokeOp));
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Short.MAX_VALUE));
+        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf,
+                Short.MAX_VALUE, Integer.MAX_VALUE, Float.MAX_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean wideningNarrowingPrimitive(byte s) {
         return s instanceof char _;
     }
@@ -194,14 +197,14 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("wideningNarrowingPrimitive");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MAX_VALUE));
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean boxing(int s) {
         return s instanceof Integer _;
     }
@@ -211,14 +214,14 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("boxing");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean boxingWideningReference(int s) {
         return s instanceof Number _;
     }
@@ -228,14 +231,14 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("boxingWideningReference");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean narrowingReferenceUnboxing(Number n) {
         return n instanceof int _;
     }
@@ -245,14 +248,14 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("narrowingReferenceUnboxing");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, 1));
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean unboxing(Integer n) {
         return n instanceof int _;
     }
@@ -262,14 +265,14 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("unboxing");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean unboxingWideningPrimitive(Integer n) {
         return n instanceof long _;
     }
@@ -279,14 +282,14 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("unboxingWideningPrimitive");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean wideningReference(String s) {
         return s instanceof Object _;
     }
@@ -296,14 +299,14 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("wideningReference");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, "str"));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean identityReference(Float f) {
         return f instanceof Float _;
     }
@@ -313,7 +316,7 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("identityReference");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE));
@@ -322,7 +325,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.NEGATIVE_INFINITY));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean narrowingReference(Number n) {
         return n instanceof Double _;
     }
@@ -332,7 +335,7 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("narrowingReference");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE));
@@ -341,7 +344,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Double.NEGATIVE_INFINITY));
     }
 
-    @CodeReflection
+    @Reflect
     static boolean wideningPrimitive(int i) {
         return i instanceof long _;
     }
@@ -351,7 +354,7 @@ public class TestPrimitiveTypePatterns {
         FuncOp f = getFuncOp("wideningPrimitive");
         System.out.println(f.toText());
 
-        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));

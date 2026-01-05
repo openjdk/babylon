@@ -247,7 +247,10 @@ public class Liveness {
             throw new UncheckedIOException(e);
         }
         Function<CodeItem, String> namer = ow.namer();
-        op.traverse(null, CodeElement.blockVisitor((_, b) -> {
+        op.elements().forEach(e -> {
+            if (!(e instanceof Block b)) {
+                return;
+            }
             BlockInfo liveness = getLiveness(b);
             try {
                 w.write("^" + namer.apply(b));
@@ -262,11 +265,10 @@ public class Liveness {
                         .map(v -> "%" + namer.apply(v))
                         .collect(Collectors.joining(",")));
                 w.write("\n");
-                return null;
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
             }
-        }));
+        });
     }
 
     /**

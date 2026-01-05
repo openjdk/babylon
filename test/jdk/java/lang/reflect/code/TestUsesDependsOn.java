@@ -122,24 +122,21 @@ public class TestUsesDependsOn {
     }
 
     static <T> T computeValues(Op op, T t, BiConsumer<Value, T> c) {
-        return op.traverse(t, (m, codeElement) -> {
-            return switch (codeElement) {
+        op.elements().forEach(e -> {
+            switch (e) {
                 case Block b -> {
                     for (var a : b.parameters()) {
-                        c.accept(a, m);
+                        c.accept(a, t);
                     }
-
-                    yield m;
                 }
                 case Op o -> {
                     if (o.result() != null) {
-                        c.accept(o.result(), m);
+                        c.accept(o.result(), t);
                     }
-
-                    yield m;
                 }
-                default -> m;
-            };
+                default -> { }
+            }
         });
+        return t;
     }
 }

@@ -28,29 +28,30 @@ package experiments;
 
 import java.lang.reflect.Method;
 
-import hat.optools.OpTk;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.util.CallSite;
 
 import java.util.List;
 import java.util.Map;
 
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
+import static optkl.OpTkl.transform;
 
 public class Transform {
-        @CodeReflection
+        @Reflect
         public static void removeMe(int size, int x, int y) {
 
         }
 
-        @CodeReflection
+        @Reflect
         public static void matrixMultiply(float[] a, float[] b, float[] c, int size) {
             for (int i = 0; i < size; i++) {
                 for (int j = 0; j < size; j++) {
@@ -88,7 +89,7 @@ public class Transform {
                 this.type = type;
             }
 
-            MyOp(MyOp that, CopyContext cc) {
+            MyOp(MyOp that, CodeContext cc) {
                 super(that, cc);
                 this.opName = that.opName;
                 this.type = that.type;
@@ -106,12 +107,12 @@ public class Transform {
                 super("Root");
             }
 
-            public RootOp(MyOp that, CopyContext cc) {
+            public RootOp(MyOp that, CodeContext cc) {
                 super(that, cc);
             }
 
             @Override
-            public Op transform(CopyContext cc, OpTransformer ot) {
+            public Op transform(CodeContext cc, CodeTransformer ot) {
                 return new RootOp(this, cc);
             }
         }
@@ -135,13 +136,15 @@ public class Transform {
 
             CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
-            var here = OpTk.CallSite.of(Transform.class, "main");
-            CoreOp.FuncOp transformed = OpTk.transform(here, javaFunc,(builder, op) -> {
+            var here = CallSite.of(Transform.class, "main");
+            CoreOp.FuncOp transformed = transform(here, javaFunc,_->true,(builder, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
-                    //  CopyContext cc = builder.context();
+                    //  CodeContext cc = builder.context();
                     //  Block.Builder bb = builder;
                     // var invokePre = CoreOp.invoke(PRE);
                     RootOp rootOp = new RootOp();
+                   // builder.body(op.bodies().getFirst(),List.of(), this);
+                    builder.op(op);
                     // builder.op(rootOp);
                     //  builder.op(invokeOp);
                     //  builder.op(CoreOp.invoke(POST));

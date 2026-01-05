@@ -106,7 +106,10 @@ public final class TritonTransformer {
     public static <O extends Op & Op.Invokable> void typeCheckKernel(
             O kernel, List<? extends TypeElement> argTypes,
             Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData) {
-        kernel.traverse(null, CodeElement.opVisitor((o, op) -> {
+        kernel.elements().forEach(e -> {
+            if (!(e instanceof Op op)) {
+                return;
+            }
             switch (op) {
                 case Op.Invokable fop -> {
                     List<Block.Parameter> parameters = fop.body().entryBlock().parameters();
@@ -145,14 +148,14 @@ public final class TritonTransformer {
                     Field f;
                     try {
                         f = flop.fieldDescriptor().resolveToField(MethodHandles.lookup());
-                    } catch (ReflectiveOperationException e) {
-                        throw new IllegalStateException("Unsupported field load: " + flop.fieldDescriptor(), e);
+                    } catch (ReflectiveOperationException ex) {
+                        throw new IllegalStateException("Unsupported field load: " + flop.fieldDescriptor(), ex);
                     }
                     Object value;
                     try {
                         value = f.get(null);
-                    } catch (IllegalAccessException e) {
-                        throw new IllegalStateException("Unsupported field load: " + f, e);
+                    } catch (IllegalAccessException ex) {
+                        throw new IllegalStateException("Unsupported field load: " + f, ex);
                     }
                     valueTypeMap.put(op.result(), new ConstantType(JavaType.type(f.getType()), value));
                 }
@@ -213,9 +216,7 @@ public final class TritonTransformer {
                 }
                 default -> throw new UnsupportedOperationException("Unsupported operation: " + op);
             }
-
-            return null;
-        }));
+        });
     }
 
     static TypeElement checkWithTypeInterpreter(Op op, String name, Map<Value, TypeElement> valueTypeMap) {
@@ -587,7 +588,7 @@ public final class TritonTransformer {
                                                     Map<String, TritonOps.FuncOp> fsymTable) {
         // @@@ Avoid constructing for each operation -- block builder passed as argument or a scoped value
         TritonBuilderInterpreter tbi = new TritonBuilderInterpreter(fsymTable, kblock);
-        CopyContext cc = kblock.context();
+        CodeContext cc = kblock.context();
         switch (op) {
             case VarOp varOp -> {
                 // @@@ Cannot copy op because the result type
@@ -674,7 +675,7 @@ public final class TritonTransformer {
         return kblock;
     }
 
-    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, JavaOp.ForOp fop,
+    static void transformToSCFFor(CodeContext cc, Block.Builder kblock, JavaOp.ForOp fop,
                                   Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
                                   Map<String, TritonOps.FuncOp> fsymTable) {
         Body body = fop.loopBody();
@@ -723,7 +724,7 @@ public final class TritonTransformer {
         // @@@ Build in java code model, then transform?
         SCFOps.ForOp scffor = SCFOps.for_(kblock.parentBody(), start, end, step, iterValues)
                 // Ensure existing context is used
-                .body(CopyContext.create(cc), builder -> {
+                .body(CodeContext.create(cc), builder -> {
                     // Create index var initialized from entry block parameter
                     Value index = builder.parameters().get(0);
                     valueTypeMap.put(index, JavaType.INT);
@@ -1247,7 +1248,7 @@ public final class TritonTransformer {
             O kernel, Map<Value, TypeElement> valueTypeMap) {
         AtomicInteger valueId = new AtomicInteger();
         Map<Value, Integer> valueIdMap = new LinkedHashMap<>();
-        kernel.traverse(null, (o, codeElement) -> {
+        kernel.elements().forEach(codeElement -> {
             switch (codeElement) {
                 case FuncOp _ -> {
                     // Ignore
@@ -1263,7 +1264,6 @@ public final class TritonTransformer {
                 default -> {
                 }
             }
-            return null;
         });
 
         valueIdMap.forEach((value, id) -> {

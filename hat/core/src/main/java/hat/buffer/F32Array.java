@@ -24,38 +24,42 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.Reflect;
+import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
+    @Reflect default void  schema(){array(length());}
     int length();
     float array(long idx);
     void array(long idx, float f);
 
-    int ARRAY_OFFSET = 4;
+    long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<F32Array> schema = Schema.of(F32Array.class, s32Array ->
-            s32Array.arrayLen("length").array("array"));
+    Schema<F32Array> schema = Schema.of(F32Array.class);
 
-    static F32Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    static F32Array create(CommonCarrier cc, int length){
+        return schema.allocate(cc, length);
     }
 
     default F32Array copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
+        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
         return this;
     }
 
-    static F32Array createFrom(Accelerator accelerator, float[] arr){
-        return create( accelerator, arr.length).copyFrom(arr);
+    static F32Array createFrom(CommonCarrier cc, float[] arr){
+        return create( cc, arr.length).copyFrom(arr);
     }
 
     default F32Array copyTo(float[] floats) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
         return this;
     }
 
@@ -64,5 +68,4 @@ public interface F32Array extends Buffer {
         this.copyTo(arr);
         return arr;
     }
-
 }

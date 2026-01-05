@@ -21,9 +21,8 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -38,11 +37,14 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestSlots
+ * @run main Unreflect TestSlots
  * @run junit TestSlots
  */
 
 public class TestSlots {
-    @CodeReflection
+    @Reflect
     static double f(double i, double j) {
         i = i + j;
 
@@ -60,7 +62,7 @@ public class TestSlots {
         Assertions.assertEquals((double) mh.invoke(1.0d, 2.0d), f(1.0d, 2.0d));
     }
 
-    @CodeReflection
+    @Reflect
     static double f2(double x, double y) {
         return x * (-Math.sin(x * y) + y) * 4.0d;
     }
@@ -74,7 +76,7 @@ public class TestSlots {
         Assertions.assertEquals((double) mh.invoke(1.0d, 2.0d), f2(1.0d, 2.0d));
     }
 
-    @CodeReflection
+    @Reflect
     static double f3(/* independent */ double x, int y) {
         /* dependent */
         double o = 1.0;
@@ -99,7 +101,7 @@ public class TestSlots {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static int f4(/* Unused */ int a, int b) {
         return b;
     }
@@ -119,7 +121,7 @@ public class TestSlots {
         Assertions.assertEquals((int) mh.invoke(1, 2), f4(1, 2));
     }
 
-    @CodeReflection
+    @Reflect
     static double f5(/* Unused */ double a, double b) {
         return b;
     }
@@ -142,10 +144,7 @@ public class TestSlots {
     static MethodHandle generate(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lf.toText());
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), f);
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

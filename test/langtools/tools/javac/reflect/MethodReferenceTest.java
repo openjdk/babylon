@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -32,9 +32,7 @@ import java.util.function.Supplier;
  * @test
  * @summary Smoke test for code reflection with method reference expressions.
  * @modules jdk.incubator.code
- * @build MethodReferenceTest
- * @build CodeReflectionTester
- * @run main CodeReflectionTester MethodReferenceTest
+ * @compile MethodReferenceTest.java
  */
 
 public class MethodReferenceTest {
@@ -43,10 +41,10 @@ public class MethodReferenceTest {
 
     void m(String s) {}
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isQuotable=true (%2 : java.type:"java.lang.String")java.type:"void" -> {
                     %3 : Var<java.type:"java.lang.String"> = var %2 @"x$0";
                     %4 : java.type:"java.lang.String" = var.load %3;
                     invoke %4 @java.ref:"MethodReferenceTest::m_s(java.lang.String):void";
@@ -60,10 +58,10 @@ public class MethodReferenceTest {
         Consumer<String> c = MethodReferenceTest::m_s;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test2" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.BiConsumer<MethodReferenceTest, java.lang.String>" = lambda (%2 : java.type:"MethodReferenceTest", %3 : java.type:"java.lang.String")java.type:"void" -> {
+                %1 : java.type:"java.util.function.BiConsumer<MethodReferenceTest, java.lang.String>" = lambda @lambda.isQuotable=true (%2 : java.type:"MethodReferenceTest", %3 : java.type:"java.lang.String")java.type:"void" -> {
                     %4 : Var<java.type:"MethodReferenceTest"> = var %2 @"rec$";
                     %5 : Var<java.type:"java.lang.String"> = var %3 @"x$0";
                     %6 : java.type:"MethodReferenceTest" = var.load %4;
@@ -79,10 +77,10 @@ public class MethodReferenceTest {
         BiConsumer<MethodReferenceTest, String> bc = MethodReferenceTest::m;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test3" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isQuotable=true (%2 : java.type:"java.lang.String")java.type:"void" -> {
                     %3 : Var<java.type:"java.lang.String"> = var %2 @"x$0";
                     %4 : java.type:"java.lang.String" = var.load %3;
                     invoke %0 %4 @java.ref:"MethodReferenceTest::m(java.lang.String):void";
@@ -102,13 +100,13 @@ public class MethodReferenceTest {
 
     <T> A<T> a(T t) { return null; }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test4" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"s";
                 %2 : java.type:"MethodReferenceTest::A<java.lang.String>" = invoke %0 %1 @java.ref:"MethodReferenceTest::a(java.lang.Object):MethodReferenceTest::A";
                 %3 : Var<java.type:"MethodReferenceTest::A<java.lang.String>"> = var %2 @"rec$";
-                %4 : java.type:"java.util.function.Function<java.lang.String, java.lang.String>" = lambda (%5 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
+                %4 : java.type:"java.util.function.Function<java.lang.String, java.lang.String>" = lambda @lambda.isQuotable=true (%5 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                     %6 : Var<java.type:"java.lang.String"> = var %5 @"x$0";
                     %7 : java.type:"MethodReferenceTest::A<java.lang.String>" = var.load %3;
                     %8 : java.type:"java.lang.String" = var.load %6;
@@ -123,12 +121,12 @@ public class MethodReferenceTest {
         Function<String, String> f = a("s")::m;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                 %2 : Var<java.type:"java.io.PrintStream"> = var %1 @"rec$";
-                %3 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%4 : java.type:"java.lang.String")java.type:"void" -> {
+                %3 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isQuotable=true (%4 : java.type:"java.lang.String")java.type:"void" -> {
                     %5 : Var<java.type:"java.lang.String"> = var %4 @"x$0";
                     %6 : java.type:"java.io.PrintStream" = var.load %2;
                     %7 : java.type:"java.lang.String" = var.load %5;
@@ -147,10 +145,10 @@ public class MethodReferenceTest {
         X(int i) {}
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test6" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Function<java.lang.Integer, MethodReferenceTest$X>" = lambda (%2 : java.type:"java.lang.Integer")java.type:"MethodReferenceTest$X" -> {
+                %1 : java.type:"java.util.function.Function<java.lang.Integer, MethodReferenceTest$X>" = lambda @lambda.isQuotable=true (%2 : java.type:"java.lang.Integer")java.type:"MethodReferenceTest$X" -> {
                     %3 : Var<java.type:"java.lang.Integer"> = var %2 @"x$0";
                     %4 : java.type:"java.lang.Integer" = var.load %3;
                     %5 : java.type:"int" = invoke %4 @java.ref:"java.lang.Integer::intValue():int";
@@ -165,10 +163,10 @@ public class MethodReferenceTest {
         Function<Integer, X> xNew = X::new;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<MethodReferenceTest::A<java.lang.String>>" = lambda ()java.type:"MethodReferenceTest::A<java.lang.String>" -> {
+                %1 : java.type:"java.util.function.Supplier<MethodReferenceTest::A<java.lang.String>>" = lambda @lambda.isQuotable=true ()java.type:"MethodReferenceTest::A<java.lang.String>" -> {
                     %2 : java.type:"MethodReferenceTest::A<java.lang.String>" = new %0 @java.ref:"MethodReferenceTest::A::(MethodReferenceTest)";
                     return %2;
                 };
@@ -180,10 +178,10 @@ public class MethodReferenceTest {
         Supplier<A<String>> aNew = A::new;
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.IntFunction<MethodReferenceTest::A<java.lang.String>[]>" = lambda (%2 : java.type:"int")java.type:"MethodReferenceTest::A<java.lang.String>[]" -> {
+                %1 : java.type:"java.util.function.IntFunction<MethodReferenceTest::A<java.lang.String>[]>" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"MethodReferenceTest::A<java.lang.String>[]" -> {
                     %3 : Var<java.type:"int"> = var %2 @"x$0";
                     %4 : java.type:"int" = var.load %3;
                     %5 : java.type:"MethodReferenceTest::A[]" = new %4 @java.ref:"MethodReferenceTest::A[]::(int)";

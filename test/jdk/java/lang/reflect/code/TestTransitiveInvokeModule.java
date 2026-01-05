@@ -28,9 +28,9 @@
  * @run junit/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -46,7 +46,7 @@ import java.util.stream.Stream;
 
 public class TestTransitiveInvokeModule {
 
-    @CodeReflection
+    @Reflect
     static int m(int i, List<Integer> l) {
         if (i < 0) {
             return i;
@@ -55,7 +55,7 @@ public class TestTransitiveInvokeModule {
         return n(i - 1, l);
     }
 
-    @CodeReflection
+    @Reflect
     static int n(int i, List<Integer> l) {
         l.add(i);
         return m(i - 1, l);
@@ -69,7 +69,7 @@ public class TestTransitiveInvokeModule {
 
         CoreOp.ModuleOp module = createTransitiveInvokeModule(MethodHandles.lookup(), om.get());
         System.out.println(module.toText());
-        module = module.transform(OpTransformer.LOWERING_TRANSFORMER);
+        module = module.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(module.toText());
         module = SSA.transform(module);
         System.out.println(module.toText());

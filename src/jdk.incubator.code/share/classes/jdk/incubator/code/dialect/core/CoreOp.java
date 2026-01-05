@@ -31,6 +31,8 @@ import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.internal.OpDeclaration;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -44,7 +46,7 @@ import java.util.function.Function;
  */
 public sealed abstract class CoreOp extends Op {
 
-    protected CoreOp(Op that, CopyContext cc) {
+    protected CoreOp(Op that, CodeContext cc) {
         super(that, cc);
     }
 
@@ -104,14 +106,14 @@ public sealed abstract class CoreOp extends Op {
             this(funcName, def.bodyDefinitions().get(0));
         }
 
-        FuncOp(FuncOp that, CopyContext cc, OpTransformer ot) {
+        FuncOp(FuncOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.funcName = that.funcName;
             this.body = that.body.transform(cc, ot).build(this);
         }
 
-        FuncOp(FuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
+        FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.funcName = funcName;
@@ -119,16 +121,16 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public FuncOp transform(CopyContext cc, OpTransformer ot) {
+        public FuncOp transform(CodeContext cc, CodeTransformer ot) {
             return new FuncOp(this, cc, ot);
         }
 
-        public FuncOp transform(OpTransformer ot) {
-            return new FuncOp(this, CopyContext.create(), ot);
+        public FuncOp transform(CodeTransformer ot) {
+            return new FuncOp(this, CodeContext.create(), ot);
         }
 
-        public FuncOp transform(String funcName, OpTransformer ot) {
-            return new FuncOp(this, funcName, CopyContext.create(), ot);
+        public FuncOp transform(String funcName, CodeTransformer ot) {
+            return new FuncOp(this, funcName, CodeContext.create(), ot);
         }
 
         FuncOp(String funcName, Body.Builder bodyBuilder) {
@@ -163,9 +165,9 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
+            b.rebind(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
 
@@ -198,7 +200,7 @@ public sealed abstract class CoreOp extends Op {
             this(funcName, def.resultType(), def.operands());
         }
 
-        FuncCallOp(FuncCallOp that, CopyContext cc) {
+        FuncCallOp(FuncCallOp that, CodeContext cc) {
             super(that, cc);
 
             this.funcName = that.funcName;
@@ -206,7 +208,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public FuncCallOp transform(CopyContext cc, OpTransformer ot) {
+        public FuncCallOp transform(CodeContext cc, CodeTransformer ot) {
             return new FuncCallOp(this, cc);
         }
 
@@ -253,7 +255,7 @@ public sealed abstract class CoreOp extends Op {
             this(def.bodyDefinitions().get(0));
         }
 
-        ModuleOp(ModuleOp that, CopyContext cc, OpTransformer ot) {
+        ModuleOp(ModuleOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.body = that.body.transform(cc, ot).build(this);
@@ -273,12 +275,12 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public ModuleOp transform(CopyContext cc, OpTransformer ot) {
+        public ModuleOp transform(CodeContext cc, CodeTransformer ot) {
             return new ModuleOp(this, cc, ot);
         }
 
-        public ModuleOp transform(OpTransformer ot) {
-            return new ModuleOp(this, CopyContext.create(), ot);
+        public ModuleOp transform(CodeTransformer ot) {
+            return new ModuleOp(this, CodeContext.create(), ot);
         }
 
         ModuleOp(Body.Builder bodyBuilder) {
@@ -314,9 +316,83 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
-            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
+        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+            b.rebind(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
+        }
+
+        static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
+            try {
+                Method method = invokeOp.invokeDescriptor().resolveToMethod(l);
+                return Op.ofMethod(method).orElse(null);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Could not resolve invokeOp to method");
+            }
+        }
+
+        /**
+         * Returns a moduleOp with the given funcOp as the root.
+         * The funcOps in the moduleOp functionTable are returned in the order encountered within the funcOp.
+         */
+        public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp root, MethodHandles.Lookup l) {
+            SequencedSet<FuncOp> visited = new LinkedHashSet<>();
+            Map<FuncOp, String> funcNames = new HashMap<>(); // holds the original funcOps and their new names
+            Deque<CoreOp.FuncOp> stack = new LinkedList<>(); // holds worklist of og funcOps to process
+            SequencedSet<FuncOp> transformed = new LinkedHashSet<>();
+
+            stack.push(root);
+            funcNames.put(root, root.funcName() + "_" + funcNames.size());
+            while (!stack.isEmpty()) {
+                CoreOp.FuncOp cur = stack.pop();
+
+                if (!visited.add(cur)) {
+                    continue;
+                }
+
+                List<CoreOp.FuncOp> calledFuncs = new ArrayList<>();
+                // traversing to convert invokeOps -> funcCallOps and gathering invokeOps to be processed later
+                transformed.add(cur.transform(funcNames.get(cur), (blockBuilder, op) -> {
+                    if (op instanceof JavaOp.InvokeOp iop) {
+                        Method invokeOpCalledMethod = null;
+                        try {
+                            invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l);
+                        } catch (ReflectiveOperationException e) {
+                            throw new RuntimeException("Could not resolve invokeOp to method");
+                        }
+                        if (invokeOpCalledMethod instanceof Method m &&
+                                Op.ofMethod(m).orElse(null) instanceof CoreOp.FuncOp calledFunc) {
+                            calledFuncs.add(calledFunc);
+                            funcNames.computeIfAbsent(calledFunc,
+                                    f -> f.funcName() + "_" + funcNames.size());
+                            Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                                    funcNames.get(calledFunc),
+                                    calledFunc.invokableType(),
+                                    blockBuilder.context().getValues(iop.operands())));
+                            blockBuilder.context().mapValue(op.result(), result);
+                            return blockBuilder;
+                        }
+                    }
+                    blockBuilder.op(op);
+                    return blockBuilder;
+                }));
+
+                for (FuncOp f : calledFuncs.reversed()) {
+                    if (!stack.contains(f)) stack.push(f);
+                }
+            }
+            return CoreOp.module(transformed.stream().toList());
+        }
+
+        /**
+         * Returns a moduleOp with a root funcOp representing the given lambdaOp.
+         * The funcOps in the moduleOp functionTable are returned in the order encountered within the lambdaOp.
+         */
+        public static CoreOp.ModuleOp ofLambdaOp(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, String lambdaName) {
+            if (lambdaName == null) lambdaName = "";
+            CoreOp.FuncOp funcOp = lambdaOp.directInvocation().isPresent() ?
+                    invokeToFuncOp(lambdaOp.directInvocation().get(), l) :
+                    lambdaOp.toFuncOp(lambdaName);
+            return ofFuncOp(funcOp, l);
         }
     }
 
@@ -338,7 +414,7 @@ public sealed abstract class CoreOp extends Op {
             this(def.bodyDefinitions().get(0));
         }
 
-        QuotedOp(QuotedOp that, CopyContext cc, OpTransformer ot) {
+        QuotedOp(QuotedOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
             this.quotedBody = that.quotedBody.transform(cc, ot).build(this);
@@ -346,7 +422,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public QuotedOp transform(CopyContext cc, OpTransformer ot) {
+        public QuotedOp transform(CodeContext cc, CodeTransformer ot) {
             return new QuotedOp(this, cc, ot);
         }
 
@@ -376,10 +452,10 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.rebind(b.context(), OpTransformer.COPYING_TRANSFORMER).op(this);
+            b.rebind(b.context(), CodeTransformer.COPYING_TRANSFORMER).op(this);
             return b;
         }
 
@@ -407,12 +483,12 @@ public sealed abstract class CoreOp extends Op {
             this(def.operands().isEmpty() ? null : def.operands().get(0));
         }
 
-        ReturnOp(ReturnOp that, CopyContext cc) {
+        ReturnOp(ReturnOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public ReturnOp transform(CopyContext cc, OpTransformer ot) {
+        public ReturnOp transform(CodeContext cc, CodeTransformer ot) {
             return new ReturnOp(this, cc);
         }
 
@@ -453,12 +529,12 @@ public sealed abstract class CoreOp extends Op {
             this();
         }
 
-        UnreachableOp(UnreachableOp that, CopyContext cc) {
+        UnreachableOp(UnreachableOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public UnreachableOp transform(CopyContext cc, OpTransformer ot) {
+        public UnreachableOp transform(CodeContext cc, CodeTransformer ot) {
             return new UnreachableOp(this, cc);
         }
 
@@ -491,12 +567,12 @@ public sealed abstract class CoreOp extends Op {
             this(def.operands());
         }
 
-        YieldOp(YieldOp that, CopyContext cc) {
+        YieldOp(YieldOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public YieldOp transform(CopyContext cc, OpTransformer ot) {
+        public YieldOp transform(CodeContext cc, CodeTransformer ot) {
             return new YieldOp(this, cc);
         }
 
@@ -543,14 +619,14 @@ public sealed abstract class CoreOp extends Op {
             this(def.successors().get(0));
         }
 
-        BranchOp(BranchOp that, CopyContext cc) {
+        BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
 
             this.b = cc.getSuccessorOrCreate(that.b);
         }
 
         @Override
-        public BranchOp transform(CopyContext cc, OpTransformer ot) {
+        public BranchOp transform(CodeContext cc, CodeTransformer ot) {
             return new BranchOp(this, cc);
         }
 
@@ -598,7 +674,7 @@ public sealed abstract class CoreOp extends Op {
             this(def.operands().getFirst(), def.successors().get(0), def.successors().get(1));
         }
 
-        ConditionalBranchOp(ConditionalBranchOp that, CopyContext cc) {
+        ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
 
             this.t = cc.getSuccessorOrCreate(that.t);
@@ -606,7 +682,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public ConditionalBranchOp transform(CopyContext cc, OpTransformer ot) {
+        public ConditionalBranchOp transform(CodeContext cc, CodeTransformer ot) {
             return new ConditionalBranchOp(this, cc);
         }
 
@@ -694,7 +770,7 @@ public sealed abstract class CoreOp extends Op {
             throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
         }
 
-        ConstantOp(ConstantOp that, CopyContext cc) {
+        ConstantOp(ConstantOp that, CodeContext cc) {
             super(that, cc);
 
             this.type = that.type;
@@ -702,7 +778,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public ConstantOp transform(CopyContext cc, OpTransformer ot) {
+        public ConstantOp transform(CodeContext cc, CodeTransformer ot) {
             return new ConstantOp(this, cc);
         }
 
@@ -785,7 +861,7 @@ public sealed abstract class CoreOp extends Op {
             this.resultType = (VarType) def.resultType();
         }
 
-        VarOp(VarOp that, CopyContext cc) {
+        VarOp(VarOp that, CodeContext cc) {
             super(that, cc);
 
             this.varName = that.varName;
@@ -798,7 +874,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public VarOp transform(CopyContext cc, OpTransformer ot) {
+        public VarOp transform(CodeContext cc, CodeTransformer ot) {
             return new VarOp(this, cc);
         }
 
@@ -849,7 +925,7 @@ public sealed abstract class CoreOp extends Op {
      */
     public sealed abstract static class VarAccessOp extends CoreOp
             implements JavaOp.AccessOp {
-        VarAccessOp(VarAccessOp that, CopyContext cc) {
+        VarAccessOp(VarAccessOp that, CodeContext cc) {
             super(that, cc);
         }
 
@@ -899,12 +975,12 @@ public sealed abstract class CoreOp extends Op {
                 this(opdef.operands().get(0));
             }
 
-            VarLoadOp(VarLoadOp that, CopyContext cc) {
+            VarLoadOp(VarLoadOp that, CodeContext cc) {
                 super(that, cc);
             }
 
             @Override
-            public VarLoadOp transform(CopyContext cc, OpTransformer ot) {
+            public VarLoadOp transform(CodeContext cc, CodeTransformer ot) {
                 return new VarLoadOp(this, cc);
             }
 
@@ -936,7 +1012,7 @@ public sealed abstract class CoreOp extends Op {
                 this(opdef.operands().get(0), opdef.operands().get(1));
             }
 
-            VarStoreOp(VarStoreOp that, CopyContext cc) {
+            VarStoreOp(VarStoreOp that, CodeContext cc) {
                 super(that, cc);
             }
 
@@ -945,7 +1021,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public VarStoreOp transform(CopyContext cc, OpTransformer ot) {
+            public VarStoreOp transform(CodeContext cc, CodeTransformer ot) {
                 return new VarStoreOp(this, cc);
             }
 
@@ -978,12 +1054,12 @@ public sealed abstract class CoreOp extends Op {
             this(def.operands());
         }
 
-        TupleOp(TupleOp that, CopyContext cc) {
+        TupleOp(TupleOp that, CodeContext cc) {
             super(that, cc);
         }
 
         @Override
-        public TupleOp transform(CopyContext cc, OpTransformer ot) {
+        public TupleOp transform(CodeContext cc, CodeTransformer ot) {
             return new TupleOp(this, cc);
         }
 
@@ -1021,14 +1097,14 @@ public sealed abstract class CoreOp extends Op {
             this(def.operands().get(0), index);
         }
 
-        TupleLoadOp(TupleLoadOp that, CopyContext cc) {
+        TupleLoadOp(TupleLoadOp that, CodeContext cc) {
             super(that, cc);
 
             this.index = that.index;
         }
 
         @Override
-        public TupleLoadOp transform(CopyContext cc, OpTransformer ot) {
+        public TupleLoadOp transform(CodeContext cc, CodeTransformer ot) {
             return new TupleLoadOp(this, cc);
         }
 
@@ -1079,14 +1155,14 @@ public sealed abstract class CoreOp extends Op {
             this(def.operands().get(0), index, def.operands().get(1));
         }
 
-        TupleWithOp(TupleWithOp that, CopyContext cc) {
+        TupleWithOp(TupleWithOp that, CodeContext cc) {
             super(that, cc);
 
             this.index = that.index;
         }
 
         @Override
-        public TupleWithOp transform(CopyContext cc, OpTransformer ot) {
+        public TupleWithOp transform(CodeContext cc, CodeTransformer ot) {
             return new TupleWithOp(this, cc);
         }
 

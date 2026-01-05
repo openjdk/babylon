@@ -24,10 +24,10 @@
  */
 package oracle.code.samples;
 
-import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.SSA;
@@ -36,7 +36,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -61,7 +60,7 @@ public class DialectWithInvoke {
         return Math.fma(a, b, c);
     }
 
-    @CodeReflection
+    @Reflect
     public static float myFunction(float a, float b, float c) {
         return intrinsicsFMA(a, b, c);
     }
@@ -76,13 +75,13 @@ public class DialectWithInvoke {
             this.typeDescriptor = typeDescriptor;
         }
 
-        FMAIntrinsicOp(Op that, CopyContext cc) {
+        FMAIntrinsicOp(Op that, CodeContext cc) {
             super(that, cc);
             this.typeDescriptor = that.resultType();
         }
 
         @Override
-        public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
             return new FMAIntrinsicOp(this, copyContext);
         }
 
@@ -112,7 +111,7 @@ public class DialectWithInvoke {
         // method name matches with the one we want to replace. We could also check
         // parameters and their types. For simplication, this example does not check this.
         CoreOp.FuncOp dialectModel = functionModel.transform((blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
+            CodeContext context = blockBuilder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeDescriptor().name().equals("intrinsicsFMA")) {
                 // The Op is the one we are looking for.
                 // We obtain the input values to this Op and use them to build the new FMA op.

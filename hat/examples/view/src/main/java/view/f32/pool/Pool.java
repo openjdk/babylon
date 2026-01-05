@@ -24,21 +24,27 @@
  */
 package view.f32.pool;
 
-public abstract class Pool<T, P extends Pool<T,P>> {
-    interface PoolEntry<T, P >{
+public abstract class Pool<T, P extends Pool<T, P>> {
+    interface PoolEntry<T, P> {
         P pool();
+
         int idx();
     }
+
     public final int max;
     protected int count = 0;
-    public int count(){
+
+    public int count() {
         return this.count;
     }
+
     public final void reset(int count) {
         this.count = count;
     }
-    Pool( int max) {
+
+    Pool(int max) {
         this.max = max;
     }
+
     public abstract T entry(int idx);
 }

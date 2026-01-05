@@ -32,14 +32,16 @@
  * @run main CodeReflectionTester LocalClassTest
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
+
+import java.util.function.Supplier;
 
 public class LocalClassTest {
 
     final static String CONST_STRING = "Hello!";
     String nonConstString = "Hello!";
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
                   class.dec @java.type:"LocalClassTest::$1Foo" ()java.type:"void" -> {
@@ -69,7 +71,7 @@ public class LocalClassTest {
         new Foo().m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
                   class.dec @java.type:"LocalClassTest::$1" ()java.type:"void" -> {
@@ -95,7 +97,7 @@ public class LocalClassTest {
         }.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -127,7 +129,7 @@ public class LocalClassTest {
         return new Foo().m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -158,7 +160,7 @@ public class LocalClassTest {
         }.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalCaptureParamAndField" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -200,7 +202,7 @@ public class LocalClassTest {
         return new Foo().m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonCaptureParamAndField" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                   %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
@@ -241,7 +243,7 @@ public class LocalClassTest {
         }.m();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testLocalDependency" (%0 : java.type:"LocalClassTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                   %3 : Var<java.type:"int"> = var %1 @"s";
@@ -301,7 +303,7 @@ public class LocalClassTest {
         new Bar();
     }
 
-    @CodeReflection
+    @Reflect
     @IR("""
             func @"testAnonDependency" (%0 : java.type:"LocalClassTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                   %3 : Var<java.type:"int"> = var %1 @"s";
@@ -357,6 +359,172 @@ public class LocalClassTest {
         new Object() {
             int s() { return s; }
             Foo foo() { return new Foo(); }
+        };
+    }
+
+    class Inner { }
+
+    @Reflect
+    @IR("""
+            func @"testImplicitInner" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Supplier<LocalClassTest::Inner>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::Inner" -> {
+                    %2 : java.type:"LocalClassTest::Inner" = new %0 @java.ref:"LocalClassTest::Inner::(LocalClassTest)";
+                    return %2;
+                };
+                %3 : Var<java.type:"java.util.function.Supplier<LocalClassTest::Inner>"> = var %1 @"aNew";
+                return;
+            };
+            """)
+    void testImplicitInner() {
+        Supplier<Inner> aNew = (@Reflect Supplier<Inner>) () -> new Inner();
+    }
+
+    @Reflect
+    @IR("""
+            func @"testExplicitInner" (%0 : java.type:"LocalClassTest", %1 : java.type:"LocalClassTest")java.type:"void" -> {
+                %2 : Var<java.type:"LocalClassTest"> = var %1 @"test";
+                %3 : java.type:"java.util.function.Supplier<LocalClassTest::Inner>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::Inner" -> {
+                    %4 : java.type:"LocalClassTest" = var.load %2;
+                    %5 : java.type:"LocalClassTest::Inner" = new %4 @java.ref:"LocalClassTest::Inner::(LocalClassTest)";
+                    return %5;
+                };
+                %6 : Var<java.type:"java.util.function.Supplier<LocalClassTest::Inner>"> = var %3 @"aNew";
+                return;
+            };
+            """)
+    void testExplicitInner(LocalClassTest test) {
+        Supplier<Inner> aNew = (@Reflect Supplier<Inner>) () -> test.new Inner();
+    }
+
+    @Reflect
+    @IR("""
+            func @"testLocalInMethod" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
+                 class.dec @java.type:"LocalClassTest::$1L" ()java.type:"void" -> {
+                     %1 : Var<java.type:"LocalClassTest"> = var;
+                     func @"<init>" (%2 : java.type:"LocalClassTest")java.type:"void" -> {
+                         invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
+                         var.store %1 %2;
+                         return;
+                     };
+                     yield;
+                 };
+                 %3 : java.type:"java.util.function.Supplier<LocalClassTest::$1L>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::$1L" -> {
+                     %4 : java.type:"LocalClassTest::$1L" = new %0 @java.ref:"LocalClassTest::$1L::(LocalClassTest)";
+                     return %4;
+                 };
+                 %5 : Var<java.type:"java.util.function.Supplier<LocalClassTest::$1L>"> = var %3 @"aNew";
+                 return;
+             };
+            """)
+    void testLocalInMethod() {
+        class L { }
+        Supplier<L> aNew = (@Reflect Supplier<L>) () -> new L();
+    }
+
+    @Reflect
+    @IR("""
+            func @"testLocalInLambda" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
+                 %1 : java.type:"java.util.function.Supplier<java.lang.Object>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Object" -> {
+                     class.dec @java.type:"LocalClassTest::$2L" ()java.type:"void" -> {
+                         %2 : Var<java.type:"LocalClassTest"> = var;
+                         func @"<init>" (%3 : java.type:"LocalClassTest")java.type:"void" -> {
+                             invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
+                             var.store %2 %3;
+                             return;
+                         };
+                         yield;
+                     };
+                     %4 : java.type:"LocalClassTest::$2L" = new %0 @java.ref:"LocalClassTest::$2L::(LocalClassTest)";
+                     return %4;
+                 };
+                 %5 : Var<java.type:"java.util.function.Supplier<java.lang.Object>"> = var %1 @"aNew";
+                 return;
+             };
+            """)
+    void testLocalInLambda() {
+        Supplier<Object> aNew = (@Reflect Supplier<Object>) () -> {
+            class L { }
+            return new L();
+        };
+    }
+
+    @Reflect
+    @IR("""
+            func @"testLocalInMethodWithCaptures" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
+                 %1 : java.type:"java.lang.String" = constant @"Foo";
+                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
+                 class.dec @java.type:"LocalClassTest::$3L" ()java.type:"void" -> {
+                     %3 : Var<java.type:"LocalClassTest"> = var;
+                     %4 : Var<java.type:"java.lang.String"> = var;
+                     func @"<init>" (%5 : java.type:"LocalClassTest", %6 : java.type:"java.lang.String")java.type:"void" -> {
+                         invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
+                         var.store %3 %5;
+                         var.store %4 %6;
+                         return;
+                     };
+                     func @"s" (%7 : java.type:"LocalClassTest::$3L")java.type:"java.lang.String" -> {
+                         %8 : java.type:"java.lang.String" = var.load %4;
+                         return %8;
+                     };
+                     yield;
+                 };
+                 %9 : java.type:"java.util.function.Supplier<LocalClassTest::$3L>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::$3L" -> {
+                     %10 : java.type:"java.lang.String" = var.load %2;
+                     %11 : java.type:"LocalClassTest::$3L" = new %0 %10 @java.ref:"LocalClassTest::$3L::(LocalClassTest, java.lang.String)";
+                     return %11;
+                 };
+                 %12 : Var<java.type:"java.util.function.Supplier<LocalClassTest::$3L>"> = var %9 @"aNew";
+                 return;
+             };
+            """)
+    void testLocalInMethodWithCaptures() {
+        String s = "Foo";
+        class L {
+            String s() {
+                return s;
+            }
+        }
+        Supplier<L> aNew = (@Reflect Supplier<L>) () -> new L();
+    }
+
+    @Reflect
+    @IR("""
+            func @"testLocalInLambdaWithCaptures" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
+                  %1 : java.type:"java.lang.String" = constant @"Foo";
+                  %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
+                  %3 : java.type:"java.util.function.Supplier<java.lang.Object>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Object" -> {
+                      class.dec @java.type:"LocalClassTest::$4L" ()java.type:"void" -> {
+                          %4 : Var<java.type:"LocalClassTest"> = var;
+                          %5 : Var<java.type:"java.lang.String"> = var;
+                          func @"<init>" (%6 : java.type:"LocalClassTest", %7 : java.type:"java.lang.String")java.type:"void" -> {
+                              invoke @java.ref:"java.lang.Object::()" @invoke.kind="SUPER";
+                              var.store %4 %6;
+                              var.store %5 %7;
+                              return;
+                          };
+                          func @"s" (%8 : java.type:"LocalClassTest::$4L")java.type:"java.lang.String" -> {
+                              %9 : java.type:"java.lang.String" = var.load %5;
+                              return %9;
+                          };
+                          yield;
+                      };
+                      %10 : java.type:"java.lang.String" = var.load %2;
+                      %11 : java.type:"LocalClassTest::$4L" = new %0 %10 @java.ref:"LocalClassTest::$4L::(LocalClassTest, java.lang.String)";
+                      return %11;
+                  };
+                  %12 : Var<java.type:"java.util.function.Supplier<java.lang.Object>"> = var %3 @"aNew";
+                  return;
+              };
+            """)
+    void testLocalInLambdaWithCaptures() {
+        String s = "Foo";
+        Supplier<Object> aNew = (@Reflect Supplier<Object>) () -> {
+            class L {
+                String s() {
+                    return s;
+                }
+            }
+            return new L();
         };
     }
 }

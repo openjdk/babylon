@@ -25,24 +25,25 @@
 package experiments;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.MappableIface;
+import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
 public class QuotedConstantArgs {
-    @CodeReflection
+    @Reflect
     public static void addScalerKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO S32Array in, @MappableIface.WO S32Array out, int scaler) {
         out.array(kc.gix, in.array(kc.gix) + scaler);
     }
 
-    @CodeReflection
+    @Reflect
     static public void addScalerCompute(final ComputeContext computeContext, S32Array in, S32Array out, int scaler) {
-        computeContext.dispatchKernel(NDRange.of(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
+        computeContext.dispatchKernel(NDRange.of1D(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
     }
 
     public static void main(String[] args) {
@@ -52,9 +53,11 @@ public class QuotedConstantArgs {
         S32Array out = S32Array.create(accelerator, 32);
         if (args.length == 0) {
             int value = 1;
-            accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, value));
+            accelerator.compute((@Reflect Compute)
+                    computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, value));
         }else if (args.length == 1 && args[0].equals("passConstant")) {
-            accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, 1));
+            accelerator.compute((@Reflect Compute)
+                    computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, 1));
         }else{
             throw new IllegalArgumentException("Invalid arguments either zero args or passConstant");
         }

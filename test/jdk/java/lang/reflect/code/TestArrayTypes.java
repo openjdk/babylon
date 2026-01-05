@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -38,10 +38,12 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestArrayTypes
+ * @run main Unreflect TestArrayTypes
+ * @run junit TestArrayTypes
  */
 
 public class TestArrayTypes {
-    @CodeReflection
+    @Reflect
     public static Class<?> f() {
         return String[].class;
     }
@@ -55,7 +57,7 @@ public class TestArrayTypes {
         Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
-    @CodeReflection
+    @Reflect
     public static Class<?> f2() {
         return int[][].class;
     }
@@ -69,7 +71,7 @@ public class TestArrayTypes {
         Assertions.assertEquals(f2(), Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
-    @CodeReflection
+    @Reflect
     public static Class<?> f3() {
         return JavaOp.ArrayLengthOp[][][][][][][].class;
     }

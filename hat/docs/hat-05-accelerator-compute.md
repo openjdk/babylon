@@ -36,16 +36,16 @@ compute entrypoints (and compute reachable methods).
 
 ```java
 public class SquareCompute{
-    @CodeReflection public static int square(int v) {
+    @Reflect public static int square(int v) {
         return  v * v;
     }
 
-    @CodeReflection public static void squareKernel(KernelContext kc, S32Array s32Array) {
+    @Reflect public static void squareKernel(KernelContext kc, S32Array s32Array) {
         int value = s32Array.array(kc.x);     // arr[cc.x]
         s32Array.array(kc.x, square(value));  // arr[cc.x]=value*value
     }
 
-    @CodeReflection public static void square(ComputeContext cc, S32Array s32Array) {
+    @Reflect public static void square(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(s32Array.length(),
                 kc -> squareKernel(kc, s32Array)
         );
@@ -197,35 +197,28 @@ The ComputeContext and the captured args are then passed to the backend for exec
 ----
 ### Notes
 
-In reality. The Accelerator receives a `QuotableComputeContextConsumer`
+In reality. The Accelerator receives a `Compute`
 
 ```java
-   public interface QuotableComputeContextConsumer
-        extends Quotable,
-        Consumer<ComputeContext> {
+    public interface Compute extends Consumer<ComputeContext> {
     }
 ```
 Here is how we extract the 'target' from such a lambda
 
 ```java
- public void  compute(QuotableComputeContextConsumer qccc) {
-   Quoted quoted = Op.ofQuotable(qccc).orElseThrow();
-   LambdaOpWrapper lambda = OpTools.wrap((CoreOps.LambdaOp)quoted.op());
-
-   Method method = lambda.getQuotableComputeContextTargetMethod();
-
-   // Get from the cache or create a compute context which closes over compute entryppint
-   // and reachable kernels.
-   // The models of all compute and kernel methods are passed to the backend during creation
-   // The backend may well mutate the models.
-   // It will also use this opportunity to generate ISA specific code for the kernels.
-
-   ComputeContext = this.cache.computeIfAbsent(method, (_) ->
-           new ComputeContext(this/*Accelerator*/, method)
-   );
-
-   // Here we get the captured args from the Quotable and 'jam' in the CLWrapComputeContext in slot[0]
-   Object[] args = lambda.getQuotableComputeContextArgs(quoted, method, CLWrapComputeContext);
-   this.compute(CLWrapComputeContext, args);
+public void compute(Compute compute) {
+    Quoted quoted = Op.ofQuotable(compute).orElseThrow();
+    JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
+    Method method = OpTk.methodOrThrow(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));
+    // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
+    // The models of all compute and kernel methods are passed to the backend during creation
+    // The backend may well mutate the models.
+    // It will also use this opportunity to generate ISA specific code for the kernels.
+    ComputeContext computeContext = cache.computeIfAbsent(method, (_) -> new ComputeContext(this, method));
+    // Here we get the captured values from the lambda
+    Object[] args = OpTk.getQuotableCapturedValues(lambda, quoted, method);
+    args[0] = computeContext;
+    // now ask the backend to execute
+    backend.dispatchCompute(computeContext, args);
 }
 ```

@@ -27,6 +27,9 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.JavaType;
+
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.java.JavaType.parameterized;
@@ -47,13 +50,13 @@ public interface Queryable<T> {
     FuncOp expression();
 
     @SuppressWarnings("unchecked")
-    default Queryable<T> where(QuotablePredicate<T> f) {
+    default Queryable<T> where(Predicate<T> f) {
         JavaOp.LambdaOp l = (JavaOp.LambdaOp) Op.ofQuotable(f).get().op();
         return (Queryable<T>) insertQuery(elementType(), "where", l);
     }
 
     @SuppressWarnings("unchecked")
-    default <R> Queryable<R> select(QuotableFunction<T, R> f) {
+    default <R> Queryable<R> select(Function<T, R> f) {
         JavaOp.LambdaOp l = (JavaOp.LambdaOp) Op.ofQuotable(f).get().op();
         return (Queryable<R>) insertQuery((JavaType) l.invokableType().returnType(), "select", l);
     }

@@ -25,8 +25,8 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codebuilders.CodeBuilder;
-import hat.codebuilders.ScopedCodeBuilderContext;
+import optkl.codebuilders.CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.*;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
@@ -36,42 +36,69 @@ import java.util.List;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    private CudaHATKernelBuilder threadDimId(int id) {
-        return keyword(switch(id){
-            case 0->"x";
-            case 1->"y";
-            case 2->"z";
-            default -> throw new RuntimeException("Thread Dimension not supported");
-        });
+    private CudaHATKernelBuilder half2float() {
+        return identifier("__half2float");
     }
+
+    private CudaHATKernelBuilder __nv_bfloat16() {
+        return identifier("__nv_bfloat16");
+    }
+
+    private CudaHATKernelBuilder __bfloat162float() {
+        return identifier("__bfloat162float");
+    }
+
+    private CudaHATKernelBuilder reinterpret_cast() {
+        return keyword("reinterpret_cast");
+    }
+    private CudaHATKernelBuilder threadIdx() {
+        return keyword("threadIdx");
+    }
+    private CudaHATKernelBuilder threadIdxX() {return threadIdx().dot().identifier("x");}
+    private CudaHATKernelBuilder threadIdxY() {return threadIdx().dot().identifier("y");}
+    private CudaHATKernelBuilder threadIdxZ() {return threadIdx().dot().identifier("z");}
+    private CudaHATKernelBuilder gridDim() {
+        return keyword("gridDim");
+    }
+    private CudaHATKernelBuilder gridDimX() {return gridDim().dot().identifier("x");}
+    private CudaHATKernelBuilder gridDimY() {return gridDim().dot().identifier("y");}
+    private CudaHATKernelBuilder gridDimZ() {return gridDim().dot().identifier("z");}
+    private CudaHATKernelBuilder blockDim() {return keyword("blockDim");}
+    private CudaHATKernelBuilder blockDimX() {return blockDim().dot().identifier("x");}
+    private CudaHATKernelBuilder blockDimY() {return blockDim().dot().identifier("y");}
+    private CudaHATKernelBuilder blockDimZ() {return blockDim().dot().identifier("z");}
+    private CudaHATKernelBuilder blockIdx() {return keyword("blockIdx");}
+    private CudaHATKernelBuilder blockIdxX() {return blockIdx().dot().identifier("x");}
+    private CudaHATKernelBuilder blockIdxY() {return blockIdx().dot().identifier("y");}
+    private CudaHATKernelBuilder blockIdxZ() {return blockIdx().dot().identifier("z");}
     @Override
     public CudaHATKernelBuilder defines() {
         return self()
                 .hashDefine("HAT_CUDA")
-                 // .hashIfdef("HAT_CUDA", _ ->
-                   //     indent(_ -> self()
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space().keyword("inline"))
+                .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space())//.keyword("inline"))
                 .hashDefine("HAT_KERNEL", _->externC().space().keyword("__global__"))
-                .hashDefine("HAT_GIX", _ -> paren(_->blockId(0).asterisk().localSize(0).plus().localId(0)))
-                .hashDefine("HAT_GIY", _ -> paren(_->blockId(1).asterisk().localSize(1).plus().localId(1)))
-                .hashDefine("HAT_GIZ", _ -> paren(_->blockId(2).asterisk().localSize(2).plus().localId(2)))
-                .hashDefine("HAT_LIX", _ -> keyword("threadIdx").dot().threadDimId(0))
-                .hashDefine("HAT_LIY", _ -> keyword("threadIdx").dot().threadDimId(1))
-                .hashDefine("HAT_LIZ", _ -> keyword("threadIdx").dot().threadDimId(2))
-                .hashDefine("HAT_GSX", _ -> keyword("gridDim").dot().threadDimId(0).asterisk().localSize(0))
-                .hashDefine("HAT_GSY", _ -> keyword("gridDim").dot().threadDimId(1).asterisk().localSize(1))
-                .hashDefine("HAT_GSZ", _ -> keyword("gridDim").dot().threadDimId(2).asterisk().localSize(2))
-                .hashDefine("HAT_LSX", _ -> keyword("blockDim").dot().threadDimId(0))
-                .hashDefine("HAT_LSY", _ -> keyword("blockDim").dot().threadDimId(1))
-                .hashDefine("HAT_LSZ", _ -> keyword("blockDim").dot().threadDimId(2))
-                .hashDefine("HAT_BIX", _ -> keyword("blockIdx").dot().threadDimId(0))
-                .hashDefine("HAT_BIY", _ -> keyword("blockIdx").dot().threadDimId(1))
-                .hashDefine("HAT_BIZ", _ -> keyword("blockIdx").dot().threadDimId(2))
+                .hashDefine("HAT_GIX", _ -> paren(_-> HAT_BIX().asterisk().HAT_LSX().plus().HAT_LIX()))
+                .hashDefine("HAT_GIY", _ -> paren(_-> HAT_BIY().asterisk().HAT_LSY().plus().HAT_LIY()))
+                .hashDefine("HAT_GIZ", _ -> paren(_-> HAT_BIZ().asterisk().HAT_LSZ().plus().HAT_LIZ()))
+                .hashDefine("HAT_LIX", _ -> threadIdxX())
+                .hashDefine("HAT_LIY", _ -> threadIdxY())
+                .hashDefine("HAT_LIZ", _ -> threadIdxZ())
+                .hashDefine("HAT_GSX", _ -> gridDimX().asterisk().HAT_LSX())
+                .hashDefine("HAT_GSY", _ -> gridDimY().asterisk().HAT_LSY())
+                .hashDefine("HAT_GSZ", _ -> gridDimZ().asterisk().HAT_LSZ())
+                .hashDefine("HAT_LSX", _ -> blockDimX())
+                .hashDefine("HAT_LSY", _ -> blockDimY())
+                .hashDefine("HAT_LSZ", _ -> blockDimZ())
+                .hashDefine("HAT_BIX", _ -> blockIdxX())
+                .hashDefine("HAT_BIY", _ -> blockIdxY())
+                .hashDefine("HAT_BIZ", _ -> blockIdxZ())
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
-                .includeSys("cuda_fp16.h")
-                .buildStructSingleMember("F16", "value", "half");
+                .includeSys("cuda_fp16.h", "cuda_bf16.h")
+                .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
+                .typedefSingleValueStruct("F16", "half")
+                .typedefSingleValueStruct("BF16",  "BFLOAT16");
     }
 
     @Override
@@ -80,10 +107,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
+    public CudaHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
-
         keyword("reinterpret_cast")
                 .lt()
                 .typeName(hatVectorStoreView.buildType())
@@ -107,7 +133,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         csbrace().cparen().osbrace().intConstZero().csbrace()
                 .space().equals().space();
         // if the value to be stored is an operation, recurse on the operation
-        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
+        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
             recurse(buildContext, r.op());
         } else {
             varName(hatVectorStoreView);
@@ -117,24 +143,27 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
+    public CudaHATKernelBuilder hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
 
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
 
-        if (op1 instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp1) {
+        final String postFixOp1 = "_1";
+        final String postFixOp2 = "_2";
+
+        if (op1 instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp1) {
             typeName(hatVectorBinaryOp1.buildType()).space()
-                            .identifier(hatVectorBinaryOp.varName() + "_1")
+                            .identifier(hatVectorBinaryOp.varName() + postFixOp1)
                                     .semicolon().nl();
-            hatVectorBinaryOp1.varName(hatVectorBinaryOp.varName() + "_1");
+            hatVectorBinaryOp1.varName(hatVectorBinaryOp.varName() + postFixOp1);
             recurse(buildContext, hatVectorBinaryOp1);
         }
 
-        if (op2 instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp2) {
+        if (op2 instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp2) {
             typeName(hatVectorBinaryOp2.buildType()).space()
-                    .identifier(hatVectorBinaryOp.varName() + "_2")
+                    .identifier(hatVectorBinaryOp.varName() + postFixOp2)
                     .semicolon().nl();
-            hatVectorBinaryOp2.varName(hatVectorBinaryOp.varName() + "_2");
+            hatVectorBinaryOp2.varName(hatVectorBinaryOp.varName() + postFixOp2);
             recurse(buildContext, hatVectorBinaryOp2);
         }
 
@@ -146,7 +175,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                    .space().equals().space();
 
             if (op1 instanceof Op.Result r) {
-                if (!(r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp1)) {
+                if (!(r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp1)) {
                     recurse(buildContext, r.op());
                 } else {
                     identifier(hatVectorBinaryOp1.varName());
@@ -156,7 +185,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             identifier(hatVectorBinaryOp.operationType().symbol()).space();
 
             if (op2 instanceof Op.Result r) {
-                if (!(r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp2)) {
+                if (!(r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp2)) {
                     recurse(buildContext, r.op());
                 } else {
                     identifier(hatVectorBinaryOp2.varName());
@@ -169,11 +198,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
+    public CudaHATKernelBuilder hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-        keyword("reinterpret_cast")
+        reinterpret_cast()
                 .lt()
                 .typeName(hatVectorLoadOp.buildType())
                 .space()
@@ -198,7 +227,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
+    public CudaHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
         identifier(hatVSelectLoadOp.varName())
                 .dot()
                 .identifier(hatVSelectLoadOp.mapLane());
@@ -206,7 +235,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
+    public CudaHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
         identifier(hatVSelectStoreOp.varName())
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
@@ -225,9 +254,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-        oparen().halfType().cparen().obrace();
-        identifier("__float2half").oparen();
+    public CudaHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16ConvOp hatF16ConvOp) {
+        oparen();
+        ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
+        generateReduceFloatType(reducedFloatType);
+        cparen().obrace();
+
+        buildReducedFloatType(reducedFloatType);
+        oparen();
         Value param =  hatF16ConvOp.operands().getFirst();
         if (param instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -237,8 +271,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        identifier("__half2float").oparen();
+    public CudaHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+        buildReducedFloatType(hatF16ToFloatConvOp.reducedFloatType());
+        oparen();
         Value param =  hatF16ToFloatConvOp.operands().getFirst();
         if (param instanceof Op.Result r) {
             recurse(builderContext, r.op());
@@ -253,13 +288,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp) {
+    public CudaHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarOp hatVectorVarOp) {
         Value operand = hatVectorVarOp.operands().getFirst();
         typeName(hatVectorVarOp.buildType())
                 .space()
                 .varName(hatVectorVarOp);
 
-        if (operand instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
+        if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
             semicolon().nl();
         } else {
             space().equals().space();
@@ -272,22 +307,23 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
-        identifier("make_" + hatVectorOfOp.buildType()).oparen();
+    public CudaHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOp.HATVectorOfOp hatVectorOfOp) {
+        composeIdentifier("make_", hatVectorOfOp.buildType());
         return self();
     }
 
     @Override
-    public CudaHATKernelBuilder hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+    public CudaHATKernelBuilder hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
         Value op1 = hatF16BinaryOp.operands().get(0);
         Value op2 = hatF16BinaryOp.operands().get(1);
+        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
         List<Boolean> references = hatF16BinaryOp.references();
-        byte f32Mixed = hatF16BinaryOp.getF32();
+        byte f32Mixed = hatF16BinaryOp.getByteFloatRepresentation();
 
-        oparen().halfType().cparen().obrace().oparen();
+        paren( _-> generateReduceFloatType(reducedFloatType)).obrace().oparen();
 
-        if (f32Mixed == HATF16BinaryOp.LAST_OP) {
-            identifier("__half2float").oparen();
+        if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
+            generateReducedFloatConversionToFloat(reducedFloatType).oparen();
         }
 
         if (op1 instanceof Op.Result r) {
@@ -299,14 +335,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             dot().identifier("value");
         }
 
-        if (f32Mixed == HATF16BinaryOp.LAST_OP) {
+        if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
             cparen();
         }
 
-        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+        space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
 
-        if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
-            identifier("__half2float").oparen();
+        if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
+            generateReducedFloatConversionToFloat(reducedFloatType).oparen();
         }
 
         if (op2 instanceof Op.Result r) {
@@ -319,11 +355,39 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             dot().identifier("value");
         }
 
-        if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
+        if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
+            // close the pending parenthesis
             cparen();
         }
 
         cparen().cbrace();
+        return self();
+    }
+
+    private CudaHATKernelBuilder buildReducedFloatType(ReducedFloatType reducedFloatType) {
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> half2float();
+            case ReducedFloatType.BFloat16 _ -> __nv_bfloat16();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+        return self();
+    }
+
+    private CudaHATKernelBuilder generateReduceFloatType(ReducedFloatType reducedFloatType) {
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> f16Type();
+            case ReducedFloatType.BFloat16 _ -> bf16Type();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+        return self();
+    }
+
+    private CudaHATKernelBuilder generateReducedFloatConversionToFloat(ReducedFloatType reducedFloatType) {
+        switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ ->  half2float();
+            case ReducedFloatType.BFloat16 _ ->  __bfloat162float();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
         return self();
     }
 }

@@ -31,17 +31,17 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
-import jdk.incubator.code.CodeReflection;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
-import hat.test.engine.HATAsserts;
+import hat.test.exceptions.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 
 public class TestMandel {
 
-    @CodeReflection
+    @Reflect
     public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
         if (kc.gix < kc.gsx) {
             float width = s32Array2D.width();
@@ -63,13 +63,11 @@ public class TestMandel {
         }
     }
 
-    @CodeReflection
+    @Reflect
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
-        NDRange ndRange = NDRange.of(NDRange.Global1D.of(s32Array2D.width() & s32Array2D.height()));
-        computeContext.dispatchKernel(ndRange,
-                kc -> {
-                    TestMandel.mandel(kc, s32Array2D, pallete, x, y, scale);
-                });
+        computeContext.dispatchKernel(NDRange.of1D(s32Array2D.width() * s32Array2D.height()),
+                kc -> TestMandel.mandel(kc, s32Array2D, pallete, x, y, scale)
+        );
     }
 
     public static void mandelSeq(@RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
@@ -95,6 +93,7 @@ public class TestMandel {
     }
 
     @HatTest
+    @Reflect
     public void testMandel() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int width = 1024;
