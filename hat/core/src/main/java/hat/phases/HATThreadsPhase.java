@@ -72,7 +72,7 @@ permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPha
             case LocalSizePhase _-> localSizeRegex;
         };
         Set<CodeElement<?,?>> removeMe= new HashSet<>();
-        return new Trxfmr(funcOp).transform(ce->ce instanceof JavaOp.FieldAccessOp, c->{
+        return Trxfmr.of(funcOp).transform(ce->ce instanceof JavaOp.FieldAccessOp, c->{
                     if (fieldAccessOpHelper(lookup(),c.op()) instanceof FieldAccess fieldAccess
                             && fieldAccess.refType(KernelContext.class)
                             && fieldAccess.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp

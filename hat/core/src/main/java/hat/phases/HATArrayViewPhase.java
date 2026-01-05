@@ -57,7 +57,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
             Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
             Map<Op, CoreOp.VarAccessOp.VarLoadOp> bufferVarLoads = new HashMap<>();
 
-            return new Trxfmr(funcOp).transform( (blockBuilder, op) -> {
+            return Trxfmr.of(funcOp).transform( (blockBuilder, op) -> {
                 var context = blockBuilder.context();
                 switch (op) {
                     case JavaOp.InvokeOp i when invokeOpHelper(lookup(), i) instanceof Invoke invoke -> {

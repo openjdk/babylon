@@ -125,7 +125,6 @@ public abstract class FFIBackend extends FFIBackendDriver {
     // This code should be common with jextracted-shared probably should be pushed down into another lib?
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
-        var here = CallSite.of(FFIBackend.class,"injectBufferTracking");
         if (config().minimizeCopies()) {
             if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
@@ -133,45 +132,33 @@ public abstract class FFIBackend extends FFIBackendDriver {
             }
             var paramTable = new FuncOpParams(computeMethod.funcOp());
 
-            transformedFuncOp = new Trxfmr(computeMethod.funcOp()).transform(_->true,(bldr, op) -> {
-                if (invokeOpHelper(lookup(),op) instanceof Invoke invoke ) {
+            transformedFuncOp =Trxfmr.of(computeMethod.funcOp())
+                    .transform(ce->ce instanceof JavaOp.InvokeOp ,(bldr, invokeOp) -> {
+                var invoke = invokeOpHelper(lookup(),invokeOp);
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
                     if (invoke.isMappableIface() && invoke.returnsVoid()) {                    // iface.v(newV)
                         Value iface = bldr.context().getValue(invoke.op().operands().getFirst());
                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));                  // cc->preMutate(iface);
-                        bldr.op(invoke.op());                                              // iface.v(newV);
+                        bldr.op(invoke.op());                                           // iface.v(newV);
                         bldr.op(JavaOp.invoke(MUTATE.post, cc, iface));                 // cc->postMutate(iface)
-                    } else if (invoke.isMappableIface()
-                            && (
-                                    invoke.returnsClassType()
-                                            && classTypeToTypeOrThrow(lookup(), (ClassType)invoke.returnType()) instanceof Class<?> type
-                                            && Buffer.class.isAssignableFrom(type)
-                                ||
-                                            invoke.returnsPrimitive()
-                               )
+                    } else if (invoke.isMappableIface() && ( invoke.returns(Buffer.class) || invoke.returnsPrimitive())
                     ) {
                         // if this is accessing a width if an array we don't want to force the buffer back from the GPU.
                         Value iface = bldr.context().getValue(invoke.op().operands().getFirst());
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));                 // cc->preAccess(iface);
-                        bldr.op(invoke.op());                                             // iface.v();
+                        bldr.op(invoke.op());                                           // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface));                // cc->postAccess(iface)
                     } else if (invoke.refIs(ComputeContext.class,KernelContext.class)) { //dispatchKernel
                         bldr.op(invoke.op());
                     } else {
                         List<Value> list = invoke.op().operands();
                         if (!list.isEmpty()) {
-                          //  System.out.println("Escape! with args " +invokeOp.toText());
-                            // We need to check
-
                             var method = invoke.resolveMethodOrThrow();
-
                             Annotation[][] parameterAnnotations = method.getParameterAnnotations();
                             boolean isVirtual = list.size() > parameterAnnotations.length;
                             List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
                             for (int i = isVirtual ? 1 : 0; i < list.size(); i++) {
-                                typeAndAccesses.add(TypeAndAccess.of(
-                                        parameterAnnotations[i - (isVirtual ? 1 : 0)],
-                                        list.get(i)));
+                                typeAndAccesses.add(TypeAndAccess.of(parameterAnnotations[i - (isVirtual ? 1 : 0)], list.get(i)));
                             }
                             typeAndAccesses.stream()
                                     .filter(typeAndAccess -> typeAndAccess.isIface(lookup()))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
@@ -197,10 +184,6 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         }
                     }
                     return bldr;
-                } else {
-                    bldr.op(op);
-                }
-                return bldr;
             }).funcOp();
             if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");

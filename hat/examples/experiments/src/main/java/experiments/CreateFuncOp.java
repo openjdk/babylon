@@ -27,7 +27,6 @@ package experiments;
 
 
 import hat.codebuilders.JavaHATCodeBuilder;
-import optkl.Trxfmr;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -40,6 +39,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.Trxfmr;
 import optkl.util.OpCodeBuilder;
 
 import java.lang.invoke.MethodHandles;
@@ -152,7 +152,7 @@ public class CreateFuncOp {
                     // var arg = builder.parameters().getFirst();
                     var argOp = CoreOp.var("arg", builder.parameters().getFirst());
                     var arg = builder.op(argOp);
-                   // var arg = builder.parameters().getFirst();
+                    // var arg = builder.parameters().getFirst();
                     var sqrtInvoke = JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathSqrt, arg);
                     var _1f = builder.op(CoreOp.constant(JavaType.DOUBLE, 1.0));
 
@@ -163,40 +163,47 @@ public class CreateFuncOp {
                     builder.op(CoreOp.return_(divResult));
                 });
 
-        System.out.println( OpCodeBuilder.toText(rsqrtFuncOp));
+        System.out.println(OpCodeBuilder.toText(rsqrtFuncOp));
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrtFuncOp).invoke(100));
-        var trxfmr = new Trxfmr(rsqrtFuncOp);
-        trxfmr.transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-            c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
-                var lhs = b.op(CoreOp.constant(JavaType.BOOLEAN, false));
-                var rhs = b.op(CoreOp.constant(JavaType.BOOLEAN, true));
-                b.op(CoreOp.core_yield(b.op(JavaOp.or(lhs, rhs))));
-            }).then(b -> {
-                var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then"));
-                b.op(new Pre(List.of()));
-                b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
-                b.op(new Post(List.of()));
-                b.op(CoreOp.core_yield());
-            }).else_(b -> {
-                var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Else"));
-                b.op(new Pre(List.of()));
-                b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
-                b.op(new Post(List.of()));
-                b.op(CoreOp.core_yield());
-            }));
-             c.add(new Pre(List.of()));
-             c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand(0)));
-             c.add(new Post(List.of()));
-        });
-        System.out.println( OpCodeBuilder.toText(trxfmr.funcOp()));
+        Trxfmr.of(rsqrtFuncOp)
+                .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
+                    c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
+                        var lhs = b.op(CoreOp.constant(JavaType.BOOLEAN, false));
+                        var rhs = b.op(CoreOp.constant(JavaType.BOOLEAN, true));
+                        b.op(CoreOp.core_yield(b.op(JavaOp.or(lhs, rhs))));
+                    }).then(b -> {
+                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then"));
+                        b.op(new Pre(List.of()));
+                        b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
+                        b.op(new Post(List.of()));
+                        b.op(CoreOp.core_yield());
+                    }).else_(b -> {
+                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Else"));
+                        b.op(new Pre(List.of()));
+                        b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
+                        b.op(new Post(List.of()));
+                        b.op(CoreOp.core_yield());
+                    }));
+                    c.add(new Pre(List.of()));
+                    c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand(0)));
+                    c.add(new Post(List.of()));
+                })
+                .toText()
+                // We need to remove our injected ops from the model to execute
+                .transform(ce -> ce instanceof Inject, c -> c.remove())
+                .toText()
+                .run(trxfmr -> {
+                    var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup, trxfmr.funcOp());
+                    System.out.println(javaCodeBuilder.toText());
+                    System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
+                    try {
+                        System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp()).invoke(100));
+                    } catch (Throwable throwable) {
+                        throw new RuntimeException(throwable);
+                    }
+                });
 
-        // We need to remove our injected ops from the model to execute
-        trxfmr.transform(ce -> ce instanceof Inject, c -> c.remove()).funcOp();
 
-        var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,trxfmr.funcOp());
-        System.out.println(javaCodeBuilder.toText());
-        System.out.println( OpCodeBuilder.toText(trxfmr.funcOp()));
-        System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp()).invoke(100));
     }
 }
 
