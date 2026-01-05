@@ -72,6 +72,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         if (typeElement instanceof ClassType classType) {
             Type type = classTypeToTypeOrThrow(lookup, classType);
             return Arrays.stream(classes).anyMatch(clazz -> clazz.isAssignableFrom((Class<?>) type));
+        }else if (typeElement instanceof PrimitiveType){
+            return Arrays.stream(classes).anyMatch(clazz ->
+                           (typeElement == JavaType.FLOAT && clazz.equals(float.class))
+                        || (typeElement == JavaType.DOUBLE && clazz.equals(double.class))
+                        || (typeElement == JavaType.INT && clazz.equals(int.class))
+                        || (typeElement == JavaType.LONG && clazz.equals(long.class))
+                        || (typeElement == JavaType.SHORT && clazz.equals(short.class))
+                        || (typeElement == JavaType.CHAR && clazz.equals(char.class))
+                        || (typeElement == JavaType.BYTE && clazz.equals(byte.class))
+                        || (typeElement == JavaType.BOOLEAN && clazz.equals(boolean.class))
+                        || (typeElement == JavaType.VOID && clazz.equals(void.class))
+            );
         }
         return false;
     }

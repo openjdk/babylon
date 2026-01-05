@@ -286,11 +286,14 @@ public class Trxfmr {
         return result;
     }
 
-    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer) {
+    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer){
+        return transform(funcOp.funcName(),predicate,cursorConsumer);
+    }
+    public Trxfmr transform(String name, Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer) {
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
-        var newFuncOp = funcOp().transform((blockBuilder, op) -> {
+        var newFuncOp = funcOp().transform(name,(blockBuilder, op) -> {
             if (predicate.test(op)){
                 Cursor cursor = Cursor.of(this, funcOp, blockBuilder,op);
                 cursorConsumer.accept(cursor);
@@ -306,6 +309,7 @@ public class Trxfmr {
         biMap.add(funcOp,newFuncOp);
         return this;
     }
+
     public Trxfmr transform(Consumer<Cursor> transformer) {
         return transform(_->true,transformer);
     }
