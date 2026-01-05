@@ -72,7 +72,7 @@ public class SwapMath {
 
 
         System.out.println("--------------------------");
-        var abs = rsqrt.transform((builder,op)->{
+        var abs = rsqrt.transform("usingAbs", (builder,op)->{
             if (invokeOpHelper(lookup,op) instanceof OpHelper.NamedOpHelper.Invoke ih
                     && ih.named(Regex.of("sqrt")) && ih.isStatic() && ih.returns(double.class) && ih.receives(double.class)){
                 var absStaticMethod = MethodRef.method(Math.class, "abs", double.class, double.class);
@@ -93,11 +93,12 @@ public class SwapMath {
 
         System.out.println("Now using txfmr--------------------------");
         var newAbs =Trxfmr.of(rsqrt)
-                .transform(ce-> OpHelper.NamedOpHelper.Invoke.invokeOpHelper(lookup,ce) instanceof OpHelper.NamedOpHelper.Invoke $
-                                && $.named(Regex.of("sqrt"))
+                .transform("usingAbs",ce-> OpHelper.NamedOpHelper.Invoke.invokeOpHelper(lookup,ce) instanceof OpHelper.NamedOpHelper.Invoke $
+                                && $.named("sqrt")
                                 && $.isStatic()
                                 && $.returns(double.class)
-                                && $.receives(double.class), c->
+                                && $.receives(double.class)
+                        , c->
                         c.replace(
                                 JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand( 0))
                         )
