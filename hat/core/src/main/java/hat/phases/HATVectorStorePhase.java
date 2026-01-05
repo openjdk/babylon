@@ -36,7 +36,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.Invoke;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import java.util.List;
@@ -44,9 +44,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.asResultOrNull;
-import static optkl.OpTkl.isAssignable;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public abstract sealed class HATVectorStorePhase implements HATPhase
         permits HATVectorStorePhase.Float2StorePhase, HATVectorStorePhase.Float4StorePhase{
@@ -84,16 +82,16 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
 
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (invokeOpHelper(lookup(),codeElement)instanceof Invoke invoke
+                    if (invokeOpHelper(lookup(),codeElement)instanceof OpHelper.NamedOpHelper.Invoke invoke
                             && (invoke.op().operands().size() >2)
                             && invoke.named(
                             switch (HATVectorStorePhase.this) {
                                case Float2StorePhase _ -> "storeFloat2View";
                                case Float4StorePhase _ -> "storeFloat4View";
                             })
-                            && asResultOrNull(invoke.op().operands().get(1)) instanceof Op.Result result
+                            && OpHelper.asResultOrNull(invoke.op().operands().get(1)) instanceof Op.Result result
                             && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && isAssignable(lookup(),varLoadOp.resultType(), _V.class)){
+                            && OpHelper.isAssignable(lookup(),varLoadOp.resultType(), _V.class)){
                             consumer.accept(invoke.op());
                         }
                 });

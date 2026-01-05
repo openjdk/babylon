@@ -26,8 +26,7 @@
 package hat;
 
 import jdk.incubator.code.analysis.SSA;
-import optkl.Invoke;
-import optkl.Trxfmr;
+import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -35,15 +34,13 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
-import optkl.util.CallSite;
 import optkl.util.StreamMutable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.isAssignable;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
@@ -58,7 +55,7 @@ public class BufferTagger {
         for (Block.Parameter p : inlinedFunc.body().entryBlock().parameters()) {
             if (accessMap.containsKey(p)) {
                 accessList.add(accessMap.get(p)); // is an accessed buffer
-            } else if (isAssignable(lookup, p.type(), MappableIface.class)) {
+            } else if (OpHelper.isAssignable(lookup, p.type(), MappableIface.class)) {
                 accessList.add(AccessType.NA); // is a buffer but not accessed
             } else {
                 accessList.add(AccessType.NOT_BUFFER); // is not a buffer
@@ -74,7 +71,7 @@ public class BufferTagger {
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
-                if (invokeOpHelper(lookup, op) instanceof Invoke invoke                         // always but pattern friendly
+                if (invokeOpHelper(lookup, op) instanceof OpHelper.NamedOpHelper.Invoke invoke                         // always but pattern friendly
                         && invoke.resolvedMethodOrNull() instanceof Method method
                         && Op.ofMethod(method) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
                         && optionalFuncOp.isPresent()
@@ -133,14 +130,14 @@ public class BufferTagger {
                     }
                 }
                 case CoreOp.VarOp vop -> { // map the new VarOp to the "root" param
-                    if (isAssignable(lookup,  vop.resultType().valueType(), Buffer.class)) {
+                    if (OpHelper.isAssignable(lookup,  vop.resultType().valueType(), Buffer.class)) {
                         remappedVals.put(vop.initOperand(), getRootValue(vop));
                     }else{
                         // or else maybe CoreOp.VarOp vop when ??? ->
                     }
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flop -> {
-                    if (isAssignable(lookup,  flop.fieldDescriptor().refType(), KernelContext.class)) {
+                    if (OpHelper.isAssignable(lookup,  flop.fieldDescriptor().refType(), KernelContext.class)) {
                         updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
                     }else{
                         // or else
@@ -161,7 +158,7 @@ public class BufferTagger {
             Value value = args.get(i);
             if (value instanceof Op.Result result) {
                 // either find root param or it doesn't exist (is a constant for example)
-                if (isAssignable(lookup, value.type(), MappableIface.class)) {
+                if (OpHelper.isAssignable(lookup, value.type(), MappableIface.class)) {
                     value = getRootValue(result.op());
                     if (value instanceof Block.Parameter) {
                         value = remappedVals.getOrDefault(value, value);

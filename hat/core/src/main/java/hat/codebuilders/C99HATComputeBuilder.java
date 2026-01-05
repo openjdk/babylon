@@ -25,7 +25,7 @@
 package hat.codebuilders;
 
 import jdk.incubator.code.TypeElement;
-import optkl.OpTkl;
+import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 
@@ -46,7 +46,7 @@ public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> ex
 
         braceNlIndented(_ ->
                 nlSeparated(
-                        OpTkl.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                        OpHelper.Statement.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
                         statement ->statement(buildContext,statement).nl()
                 )
         );

@@ -27,9 +27,8 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.device.DeviceType;
 import hat.dialect.*;
-import optkl.Invoke;
+import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.util.CallSite;
 import optkl.ifacemapper.MappableIface;
 import hat.types._V;
 import jdk.incubator.code.Block;
@@ -42,8 +41,7 @@ import jdk.incubator.code.dialect.java.*;
 
 import java.util.*;
 
-import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.classTypeToTypeOrThrow;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 import static optkl.Trxfmr.copyLocation;
 
 public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
@@ -51,7 +49,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        if (Invoke.stream(lookup(), funcOp).anyMatch(invoke ->
+        if (OpHelper.NamedOpHelper.Invoke.stream(lookup(), funcOp).anyMatch(invoke ->
                             invoke.returnsArray()
                         && invoke.refIs(MappableIface.class,DeviceType.class))) {
             Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
@@ -60,7 +58,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
             return Trxfmr.of(funcOp).transform( (blockBuilder, op) -> {
                 var context = blockBuilder.context();
                 switch (op) {
-                    case JavaOp.InvokeOp i when invokeOpHelper(lookup(), i) instanceof Invoke invoke -> {
+                    case JavaOp.InvokeOp i when invokeOpHelper(lookup(), i) instanceof OpHelper.NamedOpHelper.Invoke invoke -> {
                         if (isHatVectorBinaryOperation(invoke)) {
                             // catching HATVectorBinaryOps not stored in VarOps
                             var hatVectorBinaryOp = copyLocation(invoke.op(), buildVectorBinaryOp(
@@ -150,7 +148,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
 
                                 var hatPtrLoadOp = copyLocation(arrayLoadOp,new HATPtrOp.HATPtrLoadOp(
                                         arrayLoadOp.resultType(),
-                                        (Class<?>) classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
+                                        (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                         context.getValues(operands)
                                 ));
                                 context.mapValue(arrayLoadOp.result(), blockBuilder.op(hatPtrLoadOp));
@@ -188,7 +186,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                 operands.add(arrayStoreOp.operands().getLast());
                                 HATPtrOp.HATPtrStoreOp ptrLoadOp = copyLocation(arrayStoreOp,new HATPtrOp.HATPtrStoreOp(
                                         arrayStoreOp.resultType(),
-                                        (Class<?>) classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
+                                        (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                         context.getValues(operands)
                                 ));
                                 context.mapValue(arrayStoreOp.result(), blockBuilder.op(ptrLoadOp));
@@ -205,7 +203,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                             var arrayAccessInfo = arrayAccessInfo(op.result(), replaced);
                             var hatPtrLengthOp = copyLocation(arrayLengthOp,new HATPtrOp.HATPtrLengthOp(
                                     arrayLengthOp.resultType(),
-                                    (Class<?>) classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
+                                    (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                     context.getValues(List.of(arrayAccessInfo.buffer()))
                             ));
                             context.mapValue(arrayLengthOp.result(), blockBuilder.op(hatPtrLengthOp));
@@ -307,7 +305,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
         };
     }
 
-    private boolean isHatVectorBinaryOperation(Invoke invoke) {
+    private boolean isHatVectorBinaryOperation(OpHelper.NamedOpHelper.Invoke invoke) {
         // no! lets not compare strings what if we refactor the class names?  This is brittle
         return invoke.returnType().toString().startsWith("hat.buffer.Float")
                    && invoke.name().toLowerCase() instanceof String name
@@ -385,7 +383,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
         return isBufferArray(op);
     }
 
-    private String varNameFromInvokeFirstUse(Invoke invoke) {
+    private String varNameFromInvokeFirstUse(OpHelper.NamedOpHelper.Invoke invoke) {
         var uses= invoke.op().result().uses();
         if (!uses.isEmpty()) {
             Op.Result result = uses.stream().toList().getFirst();

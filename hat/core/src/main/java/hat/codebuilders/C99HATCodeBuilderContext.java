@@ -29,10 +29,8 @@ import hat.dialect.HATVectorOp;
 import hat.types.HAType;
 import hat.device.DeviceType;
 import hat.dialect.HATMemoryVarOp;
-import optkl.FieldAccess;
 import optkl.FuncOpParams;
-import optkl.Invoke;
-import optkl.OpTkl;
+import optkl.OpHelper;
 import optkl.ParamVar;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.ops.Precedence;
@@ -46,18 +44,9 @@ import optkl.codebuilders.BabylonCoreOpBuilder;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
-import static optkl.FieldAccess.fieldAccessOpHelper;
-import static optkl.Invoke.invokeOpHelper;
-import static optkl.OpTkl.condBlock;
-import static optkl.OpTkl.elseBlock;
-import static optkl.OpTkl.initBlock;
-import static optkl.OpTkl.lhsOps;
-import static optkl.OpTkl.lhsResult;
-import static optkl.OpTkl.updateBlock;
-import static optkl.OpTkl.result;
-import static optkl.OpTkl.rhsOps;
-import static optkl.OpTkl.rhsResult;
-import static optkl.OpTkl.thenBlock;
+import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Ternary.ternaryOpHelper;
 
 public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContext<T>> extends C99HATCodeBuilder<T>
         implements BabylonCoreOpBuilder<T, ScopedCodeBuilderContext> {
@@ -129,7 +118,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp1) {
-        if (fieldAccessOpHelper(buildContext.lookup,fieldLoadOp1) instanceof FieldAccess fieldAccess
+        if (fieldAccessOpHelper(buildContext.lookup,fieldLoadOp1) instanceof OpHelper.NamedOpHelper.FieldAccess fieldAccess
               &&  fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
             Object value = fieldAccess.getStaticFinalPrimitiveValue();
             literal(value.toString());
@@ -154,26 +143,26 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     @Override
     public T binaryOp(ScopedCodeBuilderContext buildContext, JavaOp.BinaryOp binaryOp) {
-        parenthesisIfNeeded(buildContext, binaryOp, lhsResult(binaryOp).op());
+        parenthesisIfNeeded(buildContext, binaryOp, OpHelper.lhsResult(binaryOp).op());
         symbol(binaryOp);
-        parenthesisIfNeeded(buildContext, binaryOp, rhsResult(binaryOp).op());
+        parenthesisIfNeeded(buildContext, binaryOp, OpHelper.rhsResult(binaryOp).op());
         return self();
     }
 
 
     @Override
     public T conditionalOp(ScopedCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp) {
-        lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse(buildContext, o));
+        OpHelper.lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse(buildContext, o));
         space().symbol(logicalOp).space();
-        rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse(buildContext, o));
+        OpHelper.rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse(buildContext, o));
         return self();
     }
 
     @Override
     public T binaryTestOp(ScopedCodeBuilderContext buildContext, JavaOp.BinaryTestOp binaryTestOp) {
-        parenthesisIfNeeded(buildContext, binaryTestOp, lhsResult(binaryTestOp).op());
+        parenthesisIfNeeded(buildContext, binaryTestOp, OpHelper.lhsResult(binaryTestOp).op());
         symbol(binaryTestOp);
-        parenthesisIfNeeded(buildContext, binaryTestOp, rhsResult(binaryTestOp).op());
+        parenthesisIfNeeded(buildContext, binaryTestOp, OpHelper.rhsResult(binaryTestOp).op());
         return self();
     }
 
@@ -185,7 +174,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         } else {
             paren(_ -> type(buildContext,(JavaType)convOp.resultType()));
         }
-        parenthesisIfNeeded(buildContext, convOp, result(convOp).op());
+        parenthesisIfNeeded(buildContext, convOp, ((Op.Result) convOp.operands().getFirst()).op());
         return self();
     }
 
@@ -288,7 +277,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                        nlSeparated(OpTkl.statements(ifOp.bodies().get(idx).entryBlock()),
+                                        nlSeparated(OpHelper.Statement.statements(ifOp.bodies().get(idx).entryBlock()),
                                         root-> statement(buildContext,root)
                                         ));
                     }
@@ -313,11 +302,13 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     @Override
     public T whileOp(ScopedCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
-                condBlock(whileOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
+                        OpHelper.entryBlockOfBodyN(whileOp, 0)
+               // condBlock(whileOp)
+                        .ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
                         .forEach(o -> recurse(buildContext, o))
         );
         braceNlIndented(_ ->
-                        nlSeparated(OpTkl.loopBodyStatements(whileOp),
+                        nlSeparated(OpHelper.Statement.loopBodyStatements(whileOp),
                         statement->statement(buildContext,statement)
                 )
         );
@@ -328,16 +319,16 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     public T forOp(ScopedCodeBuilderContext buildContext, JavaOp.ForOp forOp) {
         buildContext.forScope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    initBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+                    forOp.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    condBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+                    forOp.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
                     commaSpaceSeparated(
-                            OpTkl.statements(updateBlock(forOp)),
+                            OpHelper.Statement.statements(forOp.update().entryBlock()),
                             op -> recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->
-                            nlSeparated(OpTkl.loopBodyStatements(forOp),
+                            nlSeparated(OpHelper.Statement.loopBodyStatements(forOp),
                                     statement ->statement(buildContext,statement)
                         )
                 )
@@ -376,7 +367,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                     // - The second one is the store value, but this depends on the semantics and definition
                     //   of the user code.
                     invoke.operandCount() > 1
-                                && invokeOpHelper(buildContext.lookup,instance.op()) instanceof Invoke invoke0
+                                && invokeOpHelper(buildContext.lookup,instance.op()) instanceof OpHelper.NamedOpHelper.Invoke invoke0
                                 && invoke0.returnsClassType()
                         , _->{
                     when(invoke.returnsClassType(), _ -> ampersand());
@@ -426,11 +417,12 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     @Override
     public T conditionalExpressionOp(ScopedCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
-        condBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        OpHelper.Ternary ternary = ternaryOpHelper(buildContext.lookup,ternaryOp);
+        ternary.condBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         questionMark();
-        thenBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        ternary.thenBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         colon();
-        elseBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        ternary.elseBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         return self();
     }
 
@@ -449,7 +441,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     @Override
     public T returnOp(ScopedCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp) {
         returnKeyword().when(!returnOp.operands().isEmpty(),
-                        $-> $.space().parenthesisIfNeeded(buildContext, returnOp, OpTkl.result(returnOp).op())
+                        $-> $.space().parenthesisIfNeeded(buildContext, returnOp, ((Op.Result) returnOp.operands().getFirst()).op())
                 );
         return self();
     }

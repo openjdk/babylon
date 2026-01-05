@@ -30,10 +30,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.Invoke;
-import optkl.util.CallSite;
+import optkl.OpHelper;
 import optkl.util.carriers.LookupCarrier;
-import optkl.OpTkl;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -46,8 +44,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static optkl.Invoke.invokeOpHelper;
 
 public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
@@ -79,7 +75,7 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
 
-        Invoke.stream(lookup,entry)
+        OpHelper.NamedOpHelper.Invoke.stream(lookup,entry)
                 .forEach(invoke -> {
                 Class<?> javaRefTypeClass = invoke.classOrThrow();
                 try {

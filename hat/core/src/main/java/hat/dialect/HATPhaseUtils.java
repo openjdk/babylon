@@ -31,7 +31,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.OpTkl;
+import optkl.OpHelper;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -81,7 +81,7 @@ public class HATPhaseUtils {
      * {@link VectorMetaData}
      */
     public static VectorMetaData getVectorTypeInfoWithCodeReflection(MethodHandles.Lookup lookup,TypeElement typeElement) {
-        Class<?> clazz = (Class<?>)OpTkl.classTypeToTypeOrThrow(lookup, (ClassType) typeElement);
+        Class<?> clazz = (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) typeElement);
         CoreOp.FuncOp codeModelType = buildCodeModelFor(clazz, "type");
         AtomicReference<TypeElement> vectorElement = new AtomicReference<>();
         codeModelType.elements().forEach(codeElement -> {

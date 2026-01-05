@@ -30,8 +30,6 @@ import hat.KernelContext;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
-import optkl.util.CallSite;
-import optkl.OpTkl;
 import optkl.ifacemapper.Buffer;
 import hat.callgraph.KernelCallGraph;
 import optkl.codebuilders.ScopedCodeBuilderContext;

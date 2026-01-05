@@ -29,7 +29,7 @@ import hat.KernelContext;
 import hat.dialect.*;
 import hat.types.BF16;
 import hat.types.F16;
-import optkl.OpTkl;
+import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;
@@ -41,18 +41,13 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.CodeBuilder;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static hat.buffer.F16Array.F16Impl;
-import static optkl.FieldAccess.fieldAccessOpHelper;
-import static optkl.OpTkl.asResultOrThrow;
-import static optkl.OpTkl.isAssignable;
-import static optkl.OpTkl.isPrimitiveResult;
-import static optkl.OpTkl.statements;
+import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonKernelOpBuilder<T>  {
 
@@ -363,13 +358,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
-        if (javaType instanceof ClassType classType && isAssignable(buildContext.lookup, javaType, MappableIface.class)) {
+        if (javaType instanceof ClassType classType && OpHelper.isAssignable(buildContext.lookup, javaType, MappableIface.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(classType).asterisk();
-        } else if (OpTkl.isAssignable(buildContext.lookup, javaType,KernelContext.class)) {
+        } else if (OpHelper.isAssignable(buildContext.lookup, javaType,KernelContext.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(KernelContext.class).asterisk();
-        } else if (OpTkl.isAssignable(buildContext.lookup, javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(buildContext.lookup, javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().space().suffix_t(F16Impl.class).asterisk();
-        } else if (OpTkl.isAssignable(buildContext.lookup, javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(buildContext.lookup, javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().space().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             typeName(javaType.toString());
@@ -390,7 +385,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
               braceNlIndented(_ ->
                 nlSeparated(
-                        statements(funcOp.bodies().getFirst().entryBlock()),
+                        OpHelper.Statement.statements(funcOp.bodies().getFirst().entryBlock()),
                         statement->statement(buildContext,statement)
                 )
               );
@@ -407,7 +402,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     param -> declareParam(buildContext,param))
                 )
                 .braceNlIndented(_ -> nlSeparated(
-                    statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                    OpHelper.Statement.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
                     statement ->statement(buildContext,statement)
                 )
             )
@@ -438,7 +433,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
         }).space().assign(
                 _-> identifier(hatF16VarOp.varName()),
-                _->recurse(buildContext, asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
+                _->recurse(buildContext, OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
     }
 
     private boolean isMixedFirstOperand(byte f32Mixed) {
@@ -467,12 +462,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
                     builtin_bfloat16ToFloat().oparen();// open
                 }
-                recurse(buildContext, asResultOrThrow(hatf16BinaryOp.operands().getFirst()).op());
+                recurse(buildContext, OpHelper.asResultOrThrow(hatf16BinaryOp.operands().getFirst()).op());
 
                 List<Boolean> references = hatf16BinaryOp.references();
                 if (references.getFirst()) {
                     rarrow().identifier("value");
-                } else if (!isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
+                } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
                     dot().identifier("value");
                 }else{
                     //throw new IllegalStateException("what happens here 1");
@@ -487,10 +482,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     builtin_bfloat16ToFloat().oparen();
                 }
 
-                recurse(buildContext, asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
+                recurse(buildContext, OpHelper.asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
                 if (references.get(1)) {
                     rarrow().identifier("value");
-                } else if (!isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
+                } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
                     dot().identifier("value");
                 } else{
                       //  throw new IllegalStateException("what happens here 2");
@@ -513,19 +508,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         paren(_-> f16Type());
         return brace(_->
             paren(_-> {
-                recurse(buildContext, asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
+                recurse(buildContext, OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
                 if (hatF16BinaryOp.references().getFirst()) {
                     rarrow().identifier("value");
-                } else if (!isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
+                } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
                     dot().identifier("value");
                 } else {
                     blockComment("hatF16BinaryOp not a result !!");
                 }
                 space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
-                recurse(buildContext, asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
+                recurse(buildContext, OpHelper.asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
                 if (hatF16BinaryOp.references().get(1)) {
                     rarrow().identifier("value");
-                } else if (!isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
+                } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
                     dot().identifier("value");
                 }else {
                     blockComment("hatF16BinaryOp not a value !!");
@@ -551,7 +546,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return genVectorIdentifier(buildContext, hatVectorOp)
                 .paren(_->commaSpaceSeparated(
                         hatVectorOp.operands(),
-                        operand -> recurse(buildContext, asResultOrThrow(operand).op()))
+                        operand -> recurse(buildContext, OpHelper.asResultOrThrow(operand).op()))
                 );
     }
 
@@ -560,15 +555,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return suffix_t(hatPrivateInitVarOp.classType()).space()
                 .assign(
                         _-> identifier(hatPrivateInitVarOp.varName()),
-                        _->recurse(builderContext,asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
+                        _->recurse(builderContext,OpHelper.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
     }
 
     @Override
     public T hatMemoryLoadOp(ScopedCodeBuilderContext builderContext, HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp) {
-        return recurse(builderContext, asResultOrThrow(hatMemoryLoadOp.operands().getFirst()).op())
+        return recurse(builderContext, OpHelper.asResultOrThrow(hatMemoryLoadOp.operands().getFirst()).op())
                 .dot().identifier(hatMemoryLoadOp.memberName())
                 .when(hatMemoryLoadOp.operands().size() > 1,_->// If the hatMemoryLoadOp has more than 1 operand, the second is the index
-                   sbrace(_-> recurse(builderContext, asResultOrThrow(hatMemoryLoadOp.operands().get(1)).op()))
+                   sbrace(_-> recurse(builderContext, OpHelper.asResultOrThrow(hatMemoryLoadOp.operands().get(1)).op()))
                 );
     }
 
