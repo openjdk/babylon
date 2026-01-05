@@ -322,13 +322,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
      * @throws IllegalStateException if this operation is bound or sealed
      */
-    public final void setLocation(Location l) {
+    public final Op setLocation(Location l) {
         // @@@ Fail if location != null?
         if (isSealed() || (result != null && result.block.isBound())) {
             throw new IllegalStateException();
         }
 
         location = l;
+        return this;
     }
 
     /**
