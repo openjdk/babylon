@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
@@ -48,6 +49,7 @@ import jdk.incubator.code.interpreter.Interpreter;
 
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
+import jdk.incubator.code.dialect.java.JavaType;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
@@ -103,7 +105,21 @@ public final class LoweringTransform {
         }
 
         Value selector = block.context().getValue(swOp.operands().get(0));
-        block.op(new ConstantLabelSwitchOp(selector, labelsAndTargets.labels(), blocks.stream().map(Block.Builder::successor).toList()));
+        if (ConstantLabelSwitchChecker.isIntegralReferenceType(selector.type())) {
+            // unbox selector
+            if (selector.type().equals(J_L_CHARACTER)) {
+                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "charValue", JavaType.CHAR), selector));
+            } else {
+                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "intValue", JavaType.INT), selector));
+            }
+        }
+        var labels = labelsAndTargets.labels();
+        if (!labels.contains(null)) {
+            // implicit default to exit
+            labels.add(null);
+            blocks.add(exit);
+        }
+        block.op(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::successor).toList()));
         return exit;
     }
 
@@ -276,7 +292,12 @@ public final class LoweringTransform {
                 if (!(capturedValue instanceof Op.Result r) || !(r.op() instanceof CoreOp.VarOp vop)) {
                     continue;
                 }
-                block.op(((Op.Result) vop.initOperand()).op());
+                Op cop = ((Op.Result) vop.initOperand()).op();
+                if (cop instanceof JavaOp.ConvOp) {
+                    // converted constant
+                    block.op(((Op.Result)cop.operands().getFirst()).op());
+                }
+                block.op(cop);
                 block.op(vop);
             }
             Op.Result last = null;
