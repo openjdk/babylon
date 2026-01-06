@@ -23,12 +23,16 @@
  * questions.
  */
 package hat.codebuilders;
-import hat.dialect.HATF16Op;
-import hat.dialect.HATMemoryVarOp;
-import hat.dialect.HATVectorOp;
-import optkl.codebuilders.C99CodeBuilder;
 
-public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends C99CodeBuilder<T> {
+import hat.dialect.HATF16Op;
+import hat.dialect.HATVectorOp;
+import hat.dialect.HATMemoryVarOp;
+import optkl.codebuilders.BabylonOpDispatcher;
+import optkl.codebuilders.C99CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
+
+public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends C99CodeBuilder<T>
+        implements BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
     public final T varName(HATMemoryVarOp hatLocalVarOp) {
         identifier(hatLocalVarOp.varName());
@@ -64,4 +68,5 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends C99CodeB
         identifier(hatF16VarOp.varName());
         return self();
     }
+
 }

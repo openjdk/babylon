@@ -29,7 +29,7 @@ import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilderContext<T> {
+public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilder<T> {
 
     public final T computeDeclaration(TypeElement typeElement, String name) {
         return typeName(typeElement.toString()).space().identifier(name);
