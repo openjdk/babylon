@@ -119,8 +119,13 @@ public class Config {
     }
     private static final Bit PROFILE_CUDA_KERNEL = Bit.nextBit(SHOW_COMPILATION_PHASES, "PROFILE_CUDA_KERNEL", "Add -lineinfo to CUDA kernel compilation for profiling and debugging");
 
-    public boolean isProfileCUDAKernel() {
+    public boolean profileCUDAKernel() {
         return PROFILE_CUDA_KERNEL.isSet(this);
+    }
+    private static final Bit SHOW_COMPUTE_MODEL_JAVA_CODE = Bit.nextBit(PROFILE_CUDA_KERNEL, "SHOW_COMPUTE_MODEL_JAVA_CODE", "Show java code view of compute model");
+
+    public boolean showComputeModelJavaCode() {
+        return SHOW_COMPUTE_MODEL_JAVA_CODE.isSet(this);
     }
     public static final List<Bit> bitList = List.of(
             PLATFORM,
@@ -146,7 +151,8 @@ public class Config {
             HEADLESS,
             SHOW_LOWERED_KERNEL_MODEL,
             SHOW_COMPILATION_PHASES,
-            PROFILE_CUDA_KERNEL
+            PROFILE_CUDA_KERNEL,
+            SHOW_COMPUTE_MODEL_JAVA_CODE
     );
 
     final private int bits;
