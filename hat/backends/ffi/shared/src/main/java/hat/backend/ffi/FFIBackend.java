@@ -28,7 +28,6 @@ package hat.backend.ffi;
 import hat.ComputeContext;
 import hat.Config;
 import hat.callgraph.CallGraph;
-import optkl.codebuilders.JavaCodeBuilder;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -39,7 +38,6 @@ import jdk.incubator.code.interpreter.Interpreter;
 import optkl.FuncOpParams;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 
 import java.lang.annotation.Annotation;
@@ -92,7 +90,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         boolean ro() {
             for (Annotation annotation : annotations) {
                 if (annotation instanceof MappableIface.RO) {
-                    System.out.println("MappableIface.RO");
+                    //System.out.println("MappableIface.RO");
                     return true;
                 }
             }
@@ -102,7 +100,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         boolean rw() {
             for (Annotation annotation : annotations) {
                 if (annotation instanceof MappableIface.RW) {
-                    System.out.println("MappableIface.RW");
+                    //System.out.println("MappableIface.RW");
                     return true;
                 }
             }
@@ -112,7 +110,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         boolean wo() {
             for (Annotation annotation : annotations) {
                 if (annotation instanceof MappableIface.WO) {
-                    System.out.println("MappableIface.WO");
+                   // System.out.println("MappableIface.WO");
                     return true;
                 }
             }
@@ -128,22 +126,17 @@ public abstract class FFIBackend extends FFIBackendDriver {
         if (config().minimizeCopies()) {
             var paramTable = new FuncOpParams(computeMethod.funcOp());
             transformer
-                  //  .when(config().showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE before injecting buffer tracking..."))
-                    .when(config().showComputeModel(), trxfmr ->{
-                     var javaCodeBuilder = new JavaCodeBuilder<>(lookup(),trxfmr.funcOp());
-                      System.out.println(javaCodeBuilder.toText());
-                    })
+                    .when(config().showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE before injecting buffer tracking..."))
+                    .when(config().showComputeModelJavaCode(), trxfmr -> trxfmr.toJavaSource(lookup(),"COMPUTE (Java) before injecting buffer tracking..."))
                     .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
                         var invoke = invokeOpHelper(lookup(), c.op());
-                        if (invoke.isMappableIface() && (invoke.returns(Buffer.class) || invoke.returnsPrimitive())) {
+                        if (invoke.isMappableIface() && (invoke.returns(MappableIface.class) || invoke.returnsPrimitive())) {
                             Value computeContext = c.builder().context().getValue(paramTable.list().getFirst().parameter);
                             Value ifaceMappedBuffer = c.builder().context().getValue(invoke.op().operands().getFirst());
                             c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
                             c.retain();
                             c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
                         } else if (!invoke.refIs(ComputeContext.class) && invoke.operandCount()>0) {
-                            //List<Value> list = invoke.op().operands();
-                            //if (!list.isEmpty()) {
                                 Annotation[][] parameterAnnotations =  invoke.resolveMethodOrThrow().getParameterAnnotations();
                                 int firstParam =invoke.isInstance()?1:0; // if virtual
                                 List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
