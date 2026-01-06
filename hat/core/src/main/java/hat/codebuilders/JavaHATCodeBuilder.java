@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 import java.lang.invoke.MethodHandles;
 
 import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
+import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATCodeBuilderContext<T> implements BabylonCoreOpBuilder<T,ScopedCodeBuilderContext> {
 
@@ -48,15 +49,15 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
     }
 
     @Override
-    public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldLoadOp);
+    public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp1) {
+        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldLoadOp1);
         if ( fieldAccess.refType(KernelContext.class)) {
-            identifier("kc").dot().fieldName(fieldLoadOp);
-        } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) { // only primitve fields
+            identifier("kc").dot().fieldName(fieldAccess.op());
+        } else if (fieldAccess.op().operands().isEmpty() && fieldAccess.op().result().type() instanceof PrimitiveType primitiveType) { // only primitve fields
             var value = fieldAccess.getStaticFinalPrimitiveValue();
-            literal(value.toString());
+            literal(primitiveType,value.toString());
         } else {
-            throw new IllegalStateException("An instance field? I guess - we dont get those in HAT " +fieldLoadOp);
+            throw new IllegalStateException("An instance field? I guess - we dont get those in HAT " + fieldAccess.op());
         }
         return self();
     }
@@ -68,14 +69,10 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends C99HATC
 
     @Override
      public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        if (invokeOp.invokeKind()== JavaOp.InvokeOp.InvokeKind.STATIC) {
-            identifier(invokeOp.invokeDescriptor().refType().toString());
-        }else{
-            throw new IllegalStateException("Unexpected invokeOp ... in code builder");
-        }
-        dot().identifier(invokeOp.invokeDescriptor().name());
+        var invoke = invokeOpHelper(buildContext.lookup,invokeOp);
+        identifier(invoke.refType().toString()).dot().identifier(invoke.name());
         paren(_ ->
-            commaSpaceSeparated(  invokeOp.operands(), o-> {
+            commaSpaceSeparated(invoke.op().operands(), o-> {
                 if (o instanceof Op.Result result) {
                     recurse(buildContext, result.op());
                 } else if (o instanceof jdk.incubator.code.Block.Parameter parameter) {

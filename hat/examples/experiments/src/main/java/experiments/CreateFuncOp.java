@@ -179,7 +179,7 @@ public class CreateFuncOp {
                         var rhs = b.op(CoreOp.constant(JavaType.BOOLEAN, true));
                         b.op(CoreOp.core_yield(b.op(JavaOp.or(lhs, rhs))));
                     }).then(b -> {
-                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then"));
+                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then \"With this text\""));
                         b.op(new Pre(List.of()));
                         b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
                         b.op(new Post(List.of()));

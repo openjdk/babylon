@@ -26,6 +26,8 @@ package hat.codebuilders;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.function.Consumer;
@@ -360,5 +362,14 @@ public  class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends HATCodeB
 
     public final T sizeType(String identifier) {
         return sizeType().space().identifier(identifier);
+    }
+
+    public final T literal(TypeElement typeElement,String string){
+         if (typeElement.toString().equals("java.lang.String")){
+             dquote().escaped(string).dquote();
+         }else{
+             literal(string);
+         }
+         return self();
     }
 }

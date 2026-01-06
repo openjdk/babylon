@@ -117,21 +117,24 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     }
 
     @Override
-    public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp1) {
-        if (fieldAccessOpHelper(buildContext.lookup,fieldLoadOp1) instanceof OpHelper.NamedOpHelper.FieldAccess fieldAccess
-              &&  fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
-            Object value = fieldAccess.getStaticFinalPrimitiveValue();
-            literal(value.toString());
+    public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldLoadOp);
+        if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
+            literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
-            throw new IllegalStateException("What is this field load ?" + fieldLoadOp1);
+            literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
+            blockInlineComment("Non HAT friendly field load?"+fieldAccess.name());
+            //throw new IllegalStateException("Where did this field come from ?" + fieldLoadOp1);
         }
         return self();
     }
 
     @Override
     public T fieldStoreOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
-        throw new IllegalStateException("What is this field store ?" + fieldStoreOp);
-       // return self();
+        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldStoreOp);
+      //  throw new IllegalStateException("What is this field store ?" + fieldStoreOp);
+        blockInlineComment("Non HAT friendly field load? "+fieldAccess.name());
+        return self();
     }
 
 
@@ -183,7 +186,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
         if (constantOp.value() == null) {
             nullConst();
         } else {
-            literal(constantOp.value().toString());
+            literal(constantOp.resultType(),constantOp.value().toString());
         }
         return self();
     }
@@ -198,7 +201,8 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
     @Override
     public T lambdaOp(ScopedCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp) {
-        return comment("/*LAMBDA*/");
+
+        return comment("/* how to generate LAMBDA code! /");
     }
 
     @Override
@@ -207,7 +211,8 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
             if (operand instanceof Op.Result result) {
                 recurse(buildContext, result.op());
             } else {
-                comment("/*nothing to tuple*/");
+                throw new IllegalStateException("handle tuple");
+                //comment("/* nothing to tuple */");
             }
         });
         return self();
@@ -283,9 +288,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                     }
                     lastWasBody.set(true);
                 } else {
-                    if (idx>0) {
-                        elseKeyword().space();
-                    }
+                    when(idx>0,_-> elseKeyword().space());
                     ifKeyword().paren(_ ->
                             ifOp.bodies().get(idx).entryBlock()            // get the entryblock if bodies[c.value]
                                     .ops().stream().filter(o->o instanceof CoreOp.YieldOp) // we want all the yields
@@ -303,7 +306,6 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     public T whileOp(ScopedCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
                         OpHelper.entryBlockOfBodyN(whileOp, 0)
-               // condBlock(whileOp)
                         .ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
                         .forEach(o -> recurse(buildContext, o))
         );
@@ -343,7 +345,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         var invoke = invokeOpHelper(buildContext.lookup,invokeOp);
-        if ( invoke.refIs(MappableIface.class,HAType.class,DeviceType.class)) {
+        if ( invoke.refIs(MappableIface.class,HAType.class,DeviceType.class)) { // we need a common type
             if (invoke.isInstance() && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
                 if (invoke.operandNAsResultOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc(buildContext, instanceResult,
@@ -352,6 +354,10 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                 }
             } else if (invoke.isInstance() && invoke.operandNAsResultOrThrow(0) instanceof Op.Result instance) {
                 parenWhen(
+                        invoke.operandCount() > 1
+                                && invokeOpHelper(buildContext.lookup,instance.op()) instanceof OpHelper.NamedOpHelper.Invoke invoke0
+                                && invoke0.returnsClassType()
+                        ,
                    // When we have patterns like:
                    //
                    // myiFaceArray.array().value(storeAValue);
@@ -366,10 +372,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
                     //   The first operand is also assignable.
                     // - The second one is the store value, but this depends on the semantics and definition
                     //   of the user code.
-                    invoke.operandCount() > 1
-                                && invokeOpHelper(buildContext.lookup,instance.op()) instanceof OpHelper.NamedOpHelper.Invoke invoke0
-                                && invoke0.returnsClassType()
-                        , _->{
+                    _->{
                     when(invoke.returnsClassType(), _ -> ampersand());
                     recurse(buildContext, instance.op());
                 });
@@ -384,7 +387,7 @@ public abstract class C99HATCodeBuilderContext<T extends C99HATCodeBuilderContex
 
                 if (invoke.returnsVoid()) {//   setter
                     switch (invoke.operandCount()) {
-                        case 2-> {
+                        case 2 -> {
                             if (invoke.opFromOperandNAsResultOrNull(1) instanceof Op op) {
                                 equals().recurse(buildContext, op);
                             }
