@@ -200,8 +200,7 @@ public class CreateFuncOp {
                 .transform(ce -> ce instanceof Inject, c -> c.remove())
                 .toText()
                 .run(trxfmr -> {
-                    var javaCodeBuilder = new JavaCodeBuilder<>(lookup, trxfmr.funcOp());
-                    System.out.println(javaCodeBuilder.toText());
+                    trxfmr.toJavaSource(lookup);
                     System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
                     try {
                         System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp()).invoke(100));

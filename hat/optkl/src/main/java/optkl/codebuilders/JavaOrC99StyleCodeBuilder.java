@@ -32,7 +32,6 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.FuncOpParams;
 import optkl.OpHelper;
 import optkl.ParamVar;
-import optkl.util.Regex;
 import optkl.util.StreamMutable;
 import optkl.util.ops.Precedence;
 
@@ -84,8 +83,6 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
         return typeName(javaType.toString());
     }
 
-    /// /
-
 
     @Override
     public T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -129,9 +126,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
-            literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
-            blockInlineComment("Non HAT friendly field load?"+fieldAccess.name());
-            //throw new IllegalStateException("Where did this field come from ?" + fieldLoadOp1);
+          identifier(fieldAccess.name());
         }
         return self();
     }
@@ -139,8 +134,10 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
     @Override
     public final T fieldStoreOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
         var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldStoreOp);
-        //  throw new IllegalStateException("What is this field store ?" + fieldStoreOp);
-        blockInlineComment("Non HAT friendly field load? "+fieldAccess.name());
+        identifier(fieldAccess.name()).space().equals().space();
+        recurse(buildContext,((Op.Result)fieldAccess.op().operands().get(0)).op());
+        dot();
+        recurse(buildContext,((Op.Result)fieldAccess.op().operands().get(1)).op());
         return self();
     }
 
