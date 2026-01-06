@@ -32,10 +32,12 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.codebuilders.JavaCodeBuilder;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
 import optkl.util.OpCodeBuilder;
 
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -83,6 +85,27 @@ public class Trxfmr {
     }
     public Trxfmr toText(String prefix) {
         return toText(prefix, null);
+    }
+
+    public Trxfmr toJavaSource(MethodHandles.Lookup lookup,String prefix, String suffix) {
+        return run(trxfmr -> {
+                    if (prefix != null && !prefix.isEmpty()){
+                        System.out.println(prefix);
+                    }
+                    var javaCodeBuilder = new JavaCodeBuilder<>(lookup, trxfmr.funcOp());
+                    System.out.println(javaCodeBuilder.toText());
+                    if (suffix != null && !suffix.isEmpty()){
+                        System.out.println(suffix);
+                    }
+                }
+        );
+
+    }
+    public Trxfmr toJavaSource(MethodHandles.Lookup lookup,String prefix) {
+        return toJavaSource(lookup,prefix, null);
+    }
+    public Trxfmr toJavaSource(MethodHandles.Lookup lookup) {
+        return toJavaSource(lookup,null, null);
     }
 
 
