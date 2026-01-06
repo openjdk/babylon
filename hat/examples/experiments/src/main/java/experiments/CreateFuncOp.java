@@ -26,7 +26,7 @@
 package experiments;
 
 
-import hat.codebuilders.JavaHATCodeBuilder;
+import optkl.codebuilders.JavaCodeBuilder;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -179,7 +179,7 @@ public class CreateFuncOp {
                         var rhs = b.op(CoreOp.constant(JavaType.BOOLEAN, true));
                         b.op(CoreOp.core_yield(b.op(JavaOp.or(lhs, rhs))));
                     }).then(b -> {
-                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then"));
+                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then \"With this text\""));
                         b.op(new Pre(List.of()));
                         b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
                         b.op(new Post(List.of()));
@@ -200,7 +200,7 @@ public class CreateFuncOp {
                 .transform(ce -> ce instanceof Inject, c -> c.remove())
                 .toText()
                 .run(trxfmr -> {
-                    var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup, trxfmr.funcOp());
+                    var javaCodeBuilder = new JavaCodeBuilder<>(lookup, trxfmr.funcOp());
                     System.out.println(javaCodeBuilder.toText());
                     System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
                     try {

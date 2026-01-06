@@ -26,7 +26,7 @@
 package experiments;
 
 
-import hat.codebuilders.JavaHATCodeBuilder;
+import optkl.codebuilders.JavaCodeBuilder;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
@@ -64,7 +64,7 @@ public class SwapMath {
                     );
                     builder.op(CoreOp.return_(divResult));
                 });
-        var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,rsqrt);
+        var javaCodeBuilder = new JavaCodeBuilder<>(lookup,rsqrt);
         System.out.println(rsqrt.toText());
         System.out.println(javaCodeBuilder.toText());
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrt).invoke(100));
@@ -87,7 +87,7 @@ public class SwapMath {
         });
 
         System.out.println(abs.toText());
-        javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,abs);
+        javaCodeBuilder = new JavaCodeBuilder<>(lookup,abs);
         System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(MethodHandles.lookup(), abs).invoke(100));
 
 
@@ -107,7 +107,7 @@ public class SwapMath {
 
 
         System.out.println(newAbs.toText());
-        javaCodeBuilder = new JavaHATCodeBuilder<>(lookup,newAbs);
+        javaCodeBuilder = new JavaCodeBuilder<>(lookup,newAbs);
         System.out.println(javaCodeBuilder.toText());
         System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(MethodHandles.lookup(), newAbs).invoke(100));
 

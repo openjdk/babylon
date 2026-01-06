@@ -29,6 +29,7 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.util.BiMap;
@@ -64,9 +65,26 @@ public class Trxfmr {
         return this;
     }
 
-    public Trxfmr toText() {
-         return run(trxfmr -> System.out.println(OpCodeBuilder.toText(trxfmr.funcOp())));
+
+    public Trxfmr toText(String prefix, String suffix) {
+        return run(trxfmr -> {
+                    if (prefix != null && !prefix.isEmpty()){
+                        System.out.println(prefix);
+                    }
+                    System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
+                    if (suffix != null && !suffix.isEmpty()){
+                        System.out.println(suffix);
+                    }
+                }
+        );
     }
+    public Trxfmr toText() {
+        return toText(null, null);
+    }
+    public Trxfmr toText(String prefix) {
+        return toText(prefix, null);
+    }
+
 
     interface TransformerCarrier {
         Trxfmr trxfmr();
@@ -76,7 +94,9 @@ public class Trxfmr {
     }
 
     public interface  Cursor extends TransformerCarrier {
-        enum Action{NONE,REMOVED,REPLACE,ADDED };
+
+
+        enum Action{NONE,RETAIN,REMOVED,REPLACE,ADDED };
         void op(Op op);
         Op op();
        void funcOp(CoreOp.FuncOp funcOp);
@@ -91,11 +111,14 @@ public class Trxfmr {
         void handled(boolean handled);
         boolean handled();
         Op.Result replace(Op op, Consumer<Mapper<?>> mapperConsumer);
-        Op.Result add(Op op, Consumer<Mapper<?>> mapperConsumer);
         default Op.Result replace(Op op){
             return replace(op, _->{});
         }
-
+        Op.Result retain(Consumer<Mapper<?>> mapperConsumer);
+        default Op.Result retain(){
+            return retain(_->{});
+        }
+        Op.Result add(Op op, Consumer<Mapper<?>> mapperConsumer);
         default Op.Result add(Op op){
             return add(op, _->{});
         }
@@ -189,6 +212,12 @@ public class Trxfmr {
                     return result;
                 }
                 @Override
+                public Op.Result retain( Consumer<Mapper<?>> mapperConsumer) {
+                    handled(true);
+                    action(Action.RETAIN);
+                    return trxfmr.opToResultOp(op(),builder().op(op()));
+                }
+                @Override
                 public void remove( Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
                     action(Action.REMOVED);
@@ -270,6 +299,12 @@ public class Trxfmr {
 
     public Trxfmr run(Consumer<Trxfmr> action){
         action.accept(this);
+        return this;
+    }
+    public Trxfmr when(boolean c,Consumer<Trxfmr> action){
+        if (c) {
+            run(action);
+        }
         return this;
     }
 

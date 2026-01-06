@@ -454,8 +454,7 @@ public class CudaBackend extends C99FFIBackend {
                     PTXPtrOp ptxOp = new PTXPtrOp(invoke.returnType(), invoke.name(), outputOperands, boundSchema);
                     Op.Result outputResult = block.op(ptxOp);
                     cc.mapValue(invoke.op().result(), outputResult);
-                } else if (invoke.refIs(Math.class)
-                        && mathFns.containsKey(invoke.name() + "_" + invoke.returnType().toString())){
+                } else if (invoke.refIs(Math.class) && mathFns.containsKey(invoke.name() + "_" + invoke.returnType().toString())){
                     usedMathFns.add(invoke.name() + "_" + invoke.returnType().toString());
                     block.op(op);
                 } else {
