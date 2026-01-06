@@ -79,8 +79,10 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
      * @throws IllegalStateException if the value is not an instance of an operation result.
      */
     public Op.Result result() {
-        if (this instanceof Op.Result r) return r;
-        else throw new IllegalStateException("Value is not an instance of operation result");
+        if (this instanceof Op.Result r) {
+            return r;
+        }
+        throw new IllegalStateException("Value is not an instance of operation result");
     }
 
     /**
@@ -90,8 +92,10 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
      * @throws IllegalStateException if the value is not an instance of a block parameter.
      */
     public Block.Parameter parameter() {
-        if (this instanceof Block.Parameter p) return p;
-        else throw new IllegalStateException("Value is not an instance of block parameter");
+        if (this instanceof Block.Parameter p) {
+            return p;
+        }
+        throw new IllegalStateException("Value is not an instance of block parameter");
     }
 
     /**
