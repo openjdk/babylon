@@ -29,7 +29,7 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
-import hat.codebuilders.JavaHATCodeBuilder;
+import optkl.codebuilders.JavaCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
@@ -81,7 +81,7 @@ public class TestJavaHATCodeBuilder {
                        KernelContext.class, S32Array.class,  S32Array2D.class, float.class, float.class,float.class)).get();
             CoreOp.FuncOp compute =  Op.ofMethod(Compute.class.getDeclaredMethod("compute",
                     ComputeContext.class,  S32Array.class, S32Array2D.class,float.class, float.class,float.class)).get();
-       var builder=  new JavaHATCodeBuilder(MethodHandles.lookup(),mandel);
+       var builder=  new JavaCodeBuilder(MethodHandles.lookup(),mandel);
 
        OpCodeBuilder.writeTo(System.out,mandel);
             System.out.println();

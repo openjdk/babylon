@@ -30,8 +30,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.ParamVar;
 
-/* this should not be too C99 specific */
-public interface BabylonCoreOpBuilder<T extends CodeBuilder<?>, SB extends CodeBuilderContext> {
+/* this should not be too C99 specific also cannot reference HAT Ops. */
+public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T>, SB extends ScopedCodeBuilderContext> {
     T type(SB buildContext, JavaType javaType);
 
     T varLoadOp(SB buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp);

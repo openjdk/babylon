@@ -27,20 +27,20 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.KernelContext;
-import jdk.incubator.code.CodeTransformer;
-import optkl.OpHelper;
-import optkl.Trxfmr;
-import optkl.ifacemapper.Buffer;
 import hat.callgraph.CallGraph;
-import optkl.ifacemapper.MappableIface;
-import optkl.FuncOpParams;
+import optkl.codebuilders.JavaCodeBuilder;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.interpreter.Interpreter;
+import optkl.FuncOpParams;
+import optkl.OpHelper;
+import optkl.Trxfmr;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.Arena;
@@ -54,8 +54,8 @@ import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public abstract class FFIBackend extends FFIBackendDriver {
 
-    public FFIBackend(Arena arena,MethodHandles.Lookup lookup,String libName, Config config) {
-        super(arena, lookup,libName, config);
+    public FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
+        super(arena, lookup, libName, config);
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
@@ -84,30 +84,34 @@ public abstract class FFIBackend extends FFIBackendDriver {
         static TypeAndAccess of(Annotation[] annotations, Value value) {
             return new TypeAndAccess(annotations, value, (JavaType) value.type());
         }
+
         boolean isIface(MethodHandles.Lookup lookup) {
-            return OpHelper.isAssignable(lookup, javaType,MappableIface.class);
+            return OpHelper.isAssignable(lookup, javaType, MappableIface.class);
         }
-        boolean ro(){
+
+        boolean ro() {
             for (Annotation annotation : annotations) {
-                if (  annotation instanceof MappableIface.RO){
+                if (annotation instanceof MappableIface.RO) {
                     System.out.println("MappableIface.RO");
                     return true;
                 }
             }
             return false;
         }
-        boolean rw(){
+
+        boolean rw() {
             for (Annotation annotation : annotations) {
-                if (  annotation instanceof MappableIface.RW){
+                if (annotation instanceof MappableIface.RW) {
                     System.out.println("MappableIface.RW");
                     return true;
                 }
             }
             return false;
         }
-        boolean wo(){
+
+        boolean wo() {
             for (Annotation annotation : annotations) {
-                if (  annotation instanceof MappableIface.WO){
+                if (annotation instanceof MappableIface.WO) {
                     System.out.println("MappableIface.WO");
                     return true;
                 }
@@ -117,81 +121,60 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
 
-
     // This code should be common with jextracted-shared probably should be pushed down into another lib?
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
-        CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
-        if (config().minimizeCopies()) {
-            if (config().showComputeModel()) {
-                System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-                System.out.println(transformedFuncOp.toText());
-            }
-            var paramTable = new FuncOpParams(computeMethod.funcOp());
 
-            transformedFuncOp =Trxfmr.of(computeMethod.funcOp())
-                    .transform(ce->ce instanceof JavaOp.InvokeOp ,(bldr, invokeOp) -> {
-                var invoke = invokeOpHelper(lookup(),invokeOp);
-                    Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
-                    if (invoke.isMappableIface() && invoke.returnsVoid()) {                    // iface.v(newV)
-                        Value iface = bldr.context().getValue(invoke.op().operands().getFirst());
-                        bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));                  // cc->preMutate(iface);
-                        bldr.op(invoke.op());                                           // iface.v(newV);
-                        bldr.op(JavaOp.invoke(MUTATE.post, cc, iface));                 // cc->postMutate(iface)
-                    } else if (invoke.isMappableIface() && ( invoke.returns(Buffer.class) || invoke.returnsPrimitive())
-                    ) {
-                        // if this is accessing a width if an array we don't want to force the buffer back from the GPU.
-                        Value iface = bldr.context().getValue(invoke.op().operands().getFirst());
-                        bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));                 // cc->preAccess(iface);
-                        bldr.op(invoke.op());                                           // iface.v();
-                        bldr.op(JavaOp.invoke(ACCESS.post, cc, iface));                // cc->postAccess(iface)
-                    } else if (invoke.refIs(ComputeContext.class,KernelContext.class)) { //dispatchKernel
-                        bldr.op(invoke.op());
-                    } else {
-                        List<Value> list = invoke.op().operands();
-                        if (!list.isEmpty()) {
-                            var method = invoke.resolveMethodOrThrow();
-                            Annotation[][] parameterAnnotations = method.getParameterAnnotations();
-                            boolean isVirtual = list.size() > parameterAnnotations.length;
-                            List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
-                            for (int i = isVirtual ? 1 : 0; i < list.size(); i++) {
-                                typeAndAccesses.add(TypeAndAccess.of(parameterAnnotations[i - (isVirtual ? 1 : 0)], list.get(i)));
+        var transformer =   Trxfmr.of(computeMethod.funcOp());
+        if (config().minimizeCopies()) {
+            var paramTable = new FuncOpParams(computeMethod.funcOp());
+            transformer
+                  //  .when(config().showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE before injecting buffer tracking..."))
+                    .when(config().showComputeModel(), trxfmr ->{
+                     var javaCodeBuilder = new JavaCodeBuilder<>(lookup(),trxfmr.funcOp());
+                      System.out.println(javaCodeBuilder.toText());
+                    })
+                    .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
+                        var invoke = invokeOpHelper(lookup(), c.op());
+                        if (invoke.isMappableIface() && (invoke.returns(Buffer.class) || invoke.returnsPrimitive())) {
+                            Value computeContext = c.builder().context().getValue(paramTable.list().getFirst().parameter);
+                            Value ifaceMappedBuffer = c.builder().context().getValue(invoke.op().operands().getFirst());
+                            c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
+                            c.retain();
+                            c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
+                        } else if (!invoke.refIs(ComputeContext.class) && invoke.operandCount()>0) {
+                            //List<Value> list = invoke.op().operands();
+                            //if (!list.isEmpty()) {
+                                Annotation[][] parameterAnnotations =  invoke.resolveMethodOrThrow().getParameterAnnotations();
+                                int firstParam =invoke.isInstance()?1:0; // if virtual
+                                List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
+                                for (int i = firstParam; i < invoke.operandCount(); i++) {
+                                    typeAndAccesses.add(TypeAndAccess.of(parameterAnnotations[i - firstParam], invoke.op().operands().get(i)));
+                                }
+                                Value computeContext = c.builder().context().getValue(paramTable.list().getFirst().parameter);
+                                typeAndAccesses.stream()
+                                        .filter(typeAndAccess -> typeAndAccess.isIface(lookup()))
+                                        .forEach(typeAndAccess ->
+                                            c.add(JavaOp.invoke(
+                                                    typeAndAccess.ro() ? ACCESS.pre : MUTATE.pre,
+                                                    computeContext, c.builder().context().getValue(typeAndAccess.value))
+                                            )
+                                        );
+                                c.retain();
+                                typeAndAccesses.stream()
+                                        .filter(typeAndAccess -> OpHelper.isAssignable(lookup(), typeAndAccess.javaType, MappableIface.class))
+                                        .forEach(typeAndAccess ->
+                                            c.add(JavaOp.invoke(
+                                                    typeAndAccess.ro() ? ACCESS.post : MUTATE.post,
+                                                    computeContext, c.builder().context().getValue(typeAndAccess.value))
+                                            )
+                                        );
                             }
-                            typeAndAccesses.stream()
-                                    .filter(typeAndAccess -> typeAndAccess.isIface(lookup()))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
-                                    .forEach(typeAndAccess -> {
-                                        if (typeAndAccess.ro()) {
-                                            bldr.op(JavaOp.invoke(ACCESS.pre, cc, bldr.context().getValue(typeAndAccess.value)));
-                                        } else {
-                                            bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldr.context().getValue(typeAndAccess.value)));
-                                        }
-                                    });
-                            bldr.op(invoke.op());
-                            typeAndAccesses.stream()
-                                    .filter(typeAndAccess -> OpHelper.isAssignable(lookup(), typeAndAccess.javaType, MappableIface.class))
-                                    .forEach(typeAndAccess -> {
-                                        if (typeAndAccess.ro()) {
-                                            bldr.op(JavaOp.invoke(ACCESS.post, cc, bldr.context().getValue(typeAndAccess.value)));
-                                        } else {
-                                            bldr.op(JavaOp.invoke(MUTATE.post, cc, bldr.context().getValue(typeAndAccess.value)));
-                                        }
-                                    });
-                        } else {
-                            bldr.op(invoke.op());
-                        }
-                    }
-                    return bldr;
-            }).funcOp();
-            if (config().showComputeModel()) {
-                System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-                System.out.println(transformedFuncOp.toText());
-            }
-        }else{
-            if (config().showComputeModel()) {
-                System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
-                System.out.println(transformedFuncOp.toText());
-            }
+                    })
+                    .when(config().showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE after injecting buffer tracking..."))
+                    .run(trxfmr -> computeMethod.funcOp(trxfmr.funcOp()));
+        } else {
+            transformer.when(config().showComputeModel(),trxfmr -> trxfmr.toText("COMPUTE not injecting buffer tracking)"));
         }
-        computeMethod.funcOp(transformedFuncOp);
-        return transformedFuncOp;
+        return computeMethod.funcOp();
     }
 }
