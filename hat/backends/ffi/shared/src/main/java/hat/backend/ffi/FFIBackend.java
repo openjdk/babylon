@@ -28,7 +28,7 @@ package hat.backend.ffi;
 import hat.ComputeContext;
 import hat.Config;
 import hat.callgraph.CallGraph;
-import hat.codebuilders.JavaHATCodeBuilder;
+import optkl.codebuilders.JavaCodeBuilder;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -130,7 +130,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
             transformer
                   //  .when(config().showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE before injecting buffer tracking..."))
                     .when(config().showComputeModel(), trxfmr ->{
-                     var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup(),trxfmr.funcOp());
+                     var javaCodeBuilder = new JavaCodeBuilder<>(lookup(),trxfmr.funcOp());
                       System.out.println(javaCodeBuilder.toText());
                     })
                     .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {

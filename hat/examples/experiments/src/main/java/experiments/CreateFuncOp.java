@@ -26,7 +26,7 @@
 package experiments;
 
 
-import hat.codebuilders.JavaHATCodeBuilder;
+import optkl.codebuilders.JavaCodeBuilder;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -200,7 +200,7 @@ public class CreateFuncOp {
                 .transform(ce -> ce instanceof Inject, c -> c.remove())
                 .toText()
                 .run(trxfmr -> {
-                    var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup, trxfmr.funcOp());
+                    var javaCodeBuilder = new JavaCodeBuilder<>(lookup, trxfmr.funcOp());
                     System.out.println(javaCodeBuilder.toText());
                     System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
                     try {
