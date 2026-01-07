@@ -25,6 +25,7 @@
 package optkl.codebuilders;
 
 
+import jdk.incubator.code.dialect.core.VarType;
 import optkl.util.ops.VarLikeOp;
 
 import optkl.FuncOpParams;
@@ -62,6 +63,9 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
             if (parent != null) {
                 return parent.resolve(value);
             }
+            if (value instanceof Block.Parameter parameter){
+                return parameter.uses().iterator().next().op();
+            }
             throw new IllegalStateException("failed to resolve VarOp for value " + value);
         }
     }
@@ -79,7 +83,8 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
                 if (paramTable.parameterVarOpMap.containsFrom(blockParameter)) {
                     return paramTable.parameterVarOpMap.getTo(blockParameter);
                 } else {
-                    throw new IllegalStateException("what ?");
+                    return super.resolve(value);
+                    //throw new IllegalStateException("what ?");
                 }
             } else {
                 return super.resolve(value);

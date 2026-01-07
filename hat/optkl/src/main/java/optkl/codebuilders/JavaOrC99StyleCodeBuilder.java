@@ -27,6 +27,7 @@ package optkl.codebuilders;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.FuncOpParams;
@@ -87,7 +88,11 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
     @Override
     public T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
-        varName((CoreOp.VarOp)resolve);
+        if (resolve instanceof CoreOp.VarOp varOp) {
+            varName(varOp);
+        }else if (resolve instanceof CoreOp.VarAccessOp.VarLoadOp){
+            varName(varLoadOp);
+        }
         return self();
     }
 
@@ -109,7 +114,13 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
                 constKeyword().space();
             }
             type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
-            parenthesisIfNeeded(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
+            var first = varOp.operands().getFirst();
+            if (first instanceof Op.Result result) {
+                parenthesisIfNeeded(buildContext, varOp, result.op());
+            }else {
+
+                blockInlineComment("how "+first);
+            }
         }
         return self();
     }
@@ -203,11 +214,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
         return self();
     }
 
-    @Override
-    public final T lambdaOp(ScopedCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp) {
 
-        return comment("/* how to generate LAMBDA code! /");
-    }
 
     @Override
     public final  T tupleOp(ScopedCodeBuilderContext buildContext, CoreOp.TupleOp tupleOp) {
@@ -405,5 +412,77 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
 
     public final  T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
         return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+    }
+
+    @Override
+    public T newOp(ScopedCodeBuilderContext buildContext, JavaOp.NewOp newOp) {
+         newKeyword().space().type(buildContext,(JavaType) newOp.type());
+       if (newOp.operands().isEmpty()){
+           ocparen();
+       }else {
+           if (newOp.type() instanceof ArrayType){
+               brace(_ -> {
+                   commaSpaceSeparated(newOp.operands(),
+                           op -> {
+                               if (op instanceof Op.Result result) {
+                                   recurse(buildContext, result.op());
+                               }
+                           });
+               });
+           }else {
+               paren(_ -> {
+                   commaSpaceSeparated(newOp.operands(),
+                           op -> {
+                               if (op instanceof Op.Result result) {
+                                   recurse(buildContext, result.op());
+                               }
+                           });
+               });
+           }
+       }
+       return self();
+    }
+    @Override
+    public T arrayLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp){
+        recurse(buildContext,((Op.Result)arrayLoadOp.operands().get(0)).op());
+        sbrace(_-> recurse(buildContext,((Op.Result)arrayLoadOp.operands().get(1)).op()));
+        return self();
+    }
+
+    @Override
+    public T arrayStoreOp(ScopedCodeBuilderContext buildContext, JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp){
+        recurse(buildContext,((Op.Result)arrayStoreOp.operands().get(0)).op());
+        sbrace(_-> recurse(buildContext,((Op.Result)arrayStoreOp.operands().get(1)).op()));
+        space().equals().space();
+        recurse(buildContext,((Op.Result)arrayStoreOp.operands().get(2)).op());
+        return self();
+    }
+
+    @Override
+    public T enhancedForOp(ScopedCodeBuilderContext builderContext, JavaOp.EnhancedForOp enhancedForOp){
+        forKeyword().paren(_-> {
+            keyword("var").space().blockInlineComment("v").space().colon().space();
+            //  enhancedForOp.initialization().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
+            enhancedForOp.expression().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
+            // enhancedForOp.loopBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
+            // recurse(builderContext,exp);
+        }).braceNlIndented(_->
+            nlSeparated(OpHelper.Statement.loopBodyStatements(enhancedForOp),
+                    statement ->statement(builderContext,statement)
+            )
+
+        );
+        return self();
+    }
+    @Override
+    public final T lambdaOp(ScopedCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp) {
+        braceNlIndented(_-> {
+            blockInlineComment("LAMBDA");
+            nlSeparated(OpHelper.Statement.bodyStatements(lambdaOp.body()),
+                    statement -> statement(buildContext, statement)
+            );
+            blockInlineComment("ADBMAL");
+        });
+        return self();
     }
 }
