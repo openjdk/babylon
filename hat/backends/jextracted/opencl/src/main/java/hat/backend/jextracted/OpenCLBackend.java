@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 //import hat.backend.ffi.C99FFIBackend;
+import hat.backend.Backend;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.foreign.Arena;
@@ -61,7 +62,7 @@ public class OpenCLBackend extends C99JExtractedBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeEntrypoint());
+        computeContext.computeEntrypoint().funcOp(injectBufferTracking(config(),lookup(),computeContext.computeEntrypoint().funcOp()));
     }
 
     @Override

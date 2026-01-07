@@ -25,6 +25,7 @@
 package optkl;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
@@ -37,11 +38,13 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.Regex;
 import optkl.util.carriers.LookupCarrier;
 import optkl.util.ops.StatementLikeOp;
 
+import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -262,11 +265,19 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 if (refType() instanceof ClassType classType) {
                     Class<?> clazz = (Class<?>) classTypeToTypeOrThrow(lookup(), classType);
                     try {
+
                         Field field = clazz.getField(name());
                         field.setAccessible(true);
                         return field.get(null);
                     } catch (NoSuchFieldException | IllegalAccessException e) {
-                        throw new RuntimeException(e);
+                        try {
+                            Field field = clazz.getDeclaredField(name());
+                            field.setAccessible(true);
+                            return field.get(null);
+                        }catch (NoSuchFieldException |  IllegalAccessException e2){
+                            throw new RuntimeException(e2);
+                        }
+
                     }
                 }
                 throw new RuntimeException("Could not find field value" + op());
@@ -394,6 +405,16 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 return refIs(MappableIface.class);
             }
 
+           default List<AccessType.TypeAndAccess> paramaterAccessList(){
+                Annotation[][] parameterAnnotations =  resolveMethodOrThrow().getParameterAnnotations();
+                int firstParam =isInstance()?1:0; // if virtual
+                List<AccessType.TypeAndAccess> typeAndAccesses = new ArrayList<>();
+                for (int i = firstParam; i < operandCount(); i++) {
+                    typeAndAccesses.add(AccessType.TypeAndAccess.of(parameterAnnotations[i - firstParam], op().operands().get(i)));
+                }
+                return typeAndAccesses;
+            }
+
             record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Invoke {}
 
             static Invoke invokeOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
@@ -447,12 +468,16 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         static Stream<Op> statements(Block block) {
             return block.ops().stream().filter(Statement::isStatementOp);
         }
-        static Stream<Op> loopBodyStatements(Op.Loop op) {
-            var list = new ArrayList<>(statements(op.loopBody().entryBlock()).toList());
+
+        static Stream<Op> bodyStatements(Body body) {
+            var list = new ArrayList<>(statements(body.entryBlock()).toList());
             if (list.getLast() instanceof JavaOp.ContinueOp) {
                 list.removeLast();
             }
             return list.stream();
+        }
+        static Stream<Op> loopBodyStatements(Op.Loop op) {
+           return bodyStatements(op.loopBody());
         }
 
     }
