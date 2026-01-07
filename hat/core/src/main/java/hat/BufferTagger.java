@@ -39,8 +39,8 @@ import optkl.util.StreamMutable;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
-
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
@@ -104,7 +104,7 @@ public class BufferTagger {
                                 return exit.rebind(blockbuilder.context(), blockbuilder.transformer());
 =======
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
-                if (invokeOpHelper(lookup, op) instanceof OpHelper.NamedOpHelper.Invoke invoke                         // always but pattern friendly
+                if (invoke(lookup, op) instanceof Invoke invoke                         // always but pattern friendly
                         && invoke.resolvedMethodOrNull() instanceof Method method
                         && Op.ofMethod(method) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
                         && optionalFuncOp.isPresent()
@@ -153,7 +153,7 @@ public class BufferTagger {
                     mapBranch(lookup, cb.falseBranch()); // handle false branch
                 }
                 case JavaOp.InvokeOp invokeOp -> {
-                    var ioh =  invokeOpHelper(lookup,invokeOp);
+                    var ioh =  invoke(lookup,invokeOp);
                     // we have to deal with  array views  too
                     if ( ioh.refIs(MappableIface.class)) {
                         updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access

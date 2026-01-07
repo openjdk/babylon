@@ -25,7 +25,6 @@
 package hat.backend.ffi;
 
 import optkl.FuncOpParams;
-import optkl.OpHelper;
 import optkl.ParamVar;
 import optkl.codebuilders.CodeBuilder;
 
@@ -42,8 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 
 public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
@@ -141,7 +142,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         block(block);
         colon().nl();
         ops.forEach(op -> {
-            if (invokeOpHelper(lookup,op) instanceof OpHelper.NamedOpHelper.Invoke invoke && !invoke.isMappableIface()) {
+            if (invoke(lookup,op) instanceof Invoke invoke && !invoke.isMappableIface()) {
                 ptxIndent().convert(lookup,op).nl();
             } else {
                 ptxIndent().convert(lookup,op).semicolon().nl();
@@ -182,7 +183,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case JavaOp.ConvOp $ -> conv($);
             case CoreOp.ConstantOp $ -> constant($);
             case CoreOp.YieldOp $ -> javaYield($);
-            case JavaOp.InvokeOp $ -> methodCall(invokeOpHelper(lookup,$));
+            case JavaOp.InvokeOp $ -> methodCall(invoke(lookup,$));
             case CoreOp.VarOp $ when ParamVar.of($) != null -> varFuncDeclaration($);
             case CoreOp.VarOp $ -> varDeclaration($);
             case CoreOp.ReturnOp $ -> ret($);
@@ -220,7 +221,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
     public void fieldLoad(MethodHandles.Lookup lookup,JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
 
-        var fieldAccess = fieldAccessOpHelper(lookup,fieldLoadOp);
+        var fieldAccess = fieldAccess(lookup,fieldLoadOp);
         if (fieldAccess.named(Field.KC_X.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
                 loadKcX(fieldLoadOp.result());
@@ -447,7 +448,7 @@ PTXHATKernelBuilder symbol(Op op) {
     }
 
     // S32Array and S32Array2D functions can be deleted after schema is done
-    public void methodCall(OpHelper.NamedOpHelper.Invoke invoke) {
+    public void methodCall(Invoke invoke) {
        // Invoke invoke = Invoke.invokeOpHelper(MethodHandles.lookup(),invokeOp);
         switch (invoke.op().invokeDescriptor().toString()) {
             // S32Array functions

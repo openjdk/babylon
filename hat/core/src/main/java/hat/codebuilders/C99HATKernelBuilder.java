@@ -50,8 +50,10 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static hat.buffer.F16Array.F16Impl;
-import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
 
@@ -351,7 +353,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldLoadOp);
+        var fieldAccess = fieldAccess(buildContext.lookup,fieldLoadOp);
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive()) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
@@ -738,7 +740,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        var invoke = invokeOpHelper(buildContext.lookup,invokeOp);
+        var invoke = invoke(buildContext.lookup,invokeOp);
         if ( invoke.refIs(MappableIface.class, HAType.class, DeviceType.class)) { // we need a common type
             if (invoke.isInstance() && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
                 if (invoke.operandNAsResultOrThrow(0) instanceof Op.Result instanceResult) {
@@ -749,7 +751,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else if (invoke.isInstance() && invoke.operandNAsResultOrThrow(0) instanceof Op.Result instance) {
                 parenWhen(
                         invoke.operandCount() > 1
-                                && invokeOpHelper(buildContext.lookup,instance.op()) instanceof OpHelper.NamedOpHelper.Invoke invoke0
+                                && invoke(buildContext.lookup,instance.op()) instanceof Invoke invoke0
                                 && invoke0.returnsClassType()
                         ,
                         // When we have patterns like:
