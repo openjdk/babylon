@@ -62,12 +62,4 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
             }
         }
     }
-
-    // This code should be common with ffi-shared probably should be pushed down into another lib?
-    protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
-      //  System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-       // System.out.println(computeMethod.funcOp().toText());
-        throw new RuntimeException("implement inject buffer tracking ");
-        //return transformedFuncOp;
-    }
 }

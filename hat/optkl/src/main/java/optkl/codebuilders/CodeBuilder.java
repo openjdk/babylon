@@ -724,6 +724,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T varName(CoreOp.VarOp varOp) {
         return identifier(varOp.varName());
     }
+    public final T varName(CoreOp.VarAccessOp.VarLoadOp varOp) {
+        return blockInlineComment("varName of varLoadOp?");//varName(varOp.varOp());
+    }
     public final  T funcName(CoreOp.FuncCallOp funcCallOp){
         return identifier(funcCallOp.funcName());
     }
