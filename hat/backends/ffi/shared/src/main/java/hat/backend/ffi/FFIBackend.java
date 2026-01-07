@@ -27,26 +27,12 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.callgraph.CallGraph;
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.interpreter.Interpreter;
-import optkl.FuncOpParams;
-import optkl.OpHelper;
-import optkl.Trxfmr;
-import optkl.ifacemapper.AccessType;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-import java.util.List;
-
-import static hat.ComputeContext.WRAPPER.ACCESS;
-import static hat.ComputeContext.WRAPPER.MUTATE;
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
 
 public abstract class FFIBackend extends FFIBackendDriver {
 

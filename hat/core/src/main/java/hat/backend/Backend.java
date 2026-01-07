@@ -30,7 +30,6 @@ import hat.Config;
 import hat.KernelContext;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
-import hat.callgraph.CallGraph;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -51,7 +50,7 @@ import java.util.function.Predicate;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public  abstract class Backend implements BufferAllocator, LookupCarrier {
     private final Config config;
@@ -112,7 +111,7 @@ public  abstract class Backend implements BufferAllocator, LookupCarrier {
                     .when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE before injecting buffer tracking..."))
                     .when(config.showComputeModelJavaCode(), trxfmr -> trxfmr.toJavaSource(lookup, "COMPUTE (Java) before injecting buffer tracking..."))
                     .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                        var invoke = invokeOpHelper(lookup, c.op());
+                        var invoke = invoke(lookup, c.op());
                         if (invoke.isMappableIface() && (invoke.returns(MappableIface.class) || invoke.returnsPrimitive())) {
                             Value computeContext = c.builder().context().getValue(paramTable.list().getFirst().parameter);
                             Value ifaceMappedBuffer = c.builder().context().getValue(invoke.op().operands().getFirst());

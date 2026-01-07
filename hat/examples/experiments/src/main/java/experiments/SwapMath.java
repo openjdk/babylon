@@ -27,9 +27,9 @@ package experiments;
 
 
 import optkl.codebuilders.JavaCodeBuilder;
-import optkl.OpHelper;
 import optkl.Trxfmr;
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -73,7 +73,7 @@ public class SwapMath {
 
         System.out.println("--------------------------");
         var abs = rsqrt.transform("usingAbs", (builder,op)->{
-            if (invokeOpHelper(lookup,op) instanceof OpHelper.NamedOpHelper.Invoke ih
+            if (invoke(lookup,op) instanceof Invoke ih
                     && ih.named(Regex.of("sqrt")) && ih.isStatic() && ih.returns(double.class) && ih.receives(double.class)){
                 var absStaticMethod = MethodRef.method(Math.class, "abs", double.class, double.class);
                 var absInvoke =  JavaOp.invoke(InvokeKind.STATIC, false, absStaticMethod.type().returnType(), absStaticMethod,
@@ -93,7 +93,7 @@ public class SwapMath {
 
         System.out.println("Now using txfmr--------------------------");
         var newAbs =Trxfmr.of(rsqrt)
-                .transform("usingAbs",ce-> OpHelper.NamedOpHelper.Invoke.invokeOpHelper(lookup,ce) instanceof OpHelper.NamedOpHelper.Invoke $
+                .transform("usingAbs",ce-> invoke(lookup,ce) instanceof Invoke $
                                 && $.named("sqrt")
                                 && $.isStatic()
                                 && $.returns(double.class)

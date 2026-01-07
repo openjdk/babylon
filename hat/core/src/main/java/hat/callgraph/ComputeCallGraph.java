@@ -42,7 +42,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
 
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
@@ -138,7 +138,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp funcOp, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        var invoke = invokeOpHelper(computeContext.lookup(),invokeOp);
+        var invoke = invoke(computeContext.lookup(),invokeOp);
         if (entrypoint.method.getDeclaringClass().equals(invoke.classOrThrow())
                 && isValidKernelDispatch(computeContext.lookup(),method, funcOp)) {
             // TODO this side effect is not good.  we should do this when we construct !

@@ -24,6 +24,7 @@
  */
 package optkl.codebuilders;
 
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -38,9 +39,9 @@ import optkl.util.ops.Precedence;
 
 import java.util.function.Consumer;
 
-import static optkl.OpHelper.NamedOpHelper.FieldAccess.fieldAccessOpHelper;
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
-import static optkl.OpHelper.Ternary.ternaryOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Ternary.ternary;
 
 public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> extends CodeBuilder<T>  implements BabylonOpDispatcher<T,ScopedCodeBuilderContext>{
 
@@ -117,9 +118,17 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
             var first = varOp.operands().getFirst();
             if (first instanceof Op.Result result) {
                 parenthesisIfNeeded(buildContext, varOp, result.op());
-            }else {
+            }else if (first instanceof Block.Parameter parameter) {
+               var p1 =  parameter.declaringBlock().parameters().getFirst();
 
-                blockInlineComment("how "+first);
+                var r = parameter.uses().iterator().next();
+                //parenthesisIfNeeded(buildContext, varOp, r.op());
+               // if (r.op() instanceof CoreOp.VarOp varOp1){
+                 //   identifier(varOp1.varName());
+               // }
+              blockInlineComment("param "+r);
+            }else{
+                blockInlineComment("look at varOp "+first);
             }
         }
         return self();
@@ -133,7 +142,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldLoadOp);
+        var fieldAccess = fieldAccess(buildContext.lookup,fieldLoadOp);
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
@@ -144,7 +153,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
 
     @Override
     public final T fieldStoreOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
-        var fieldAccess = fieldAccessOpHelper(buildContext.lookup,fieldStoreOp);
+        var fieldAccess = fieldAccess(buildContext.lookup,fieldStoreOp);
         identifier(fieldAccess.name()).space().equals().space();
         recurse(buildContext,((Op.Result)fieldAccess.op().operands().get(0)).op());
         dot();
@@ -351,7 +360,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
 
     @Override
     public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        var invoke = invokeOpHelper(buildContext.lookup,invokeOp);
+        var invoke = invoke(buildContext.lookup,invokeOp);
 
             funcName(invoke.op()).paren(_ ->
                     commaSpaceSeparated(invoke.op().operands(),
@@ -364,7 +373,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
 
     @Override
     public final T conditionalExpressionOp(ScopedCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
-        OpHelper.Ternary ternary = ternaryOpHelper(buildContext.lookup,ternaryOp);
+        OpHelper.Ternary ternary = ternary(buildContext.lookup,ternaryOp);
         ternary.condBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         questionMark();
         ternary.thenBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
@@ -461,11 +470,9 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
     @Override
     public T enhancedForOp(ScopedCodeBuilderContext builderContext, JavaOp.EnhancedForOp enhancedForOp){
         forKeyword().paren(_-> {
-            keyword("var").space().blockInlineComment("v").space().colon().space();
-            //  enhancedForOp.initialization().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
+            enhancedForOp.initialization().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
+            space().colon().space().blockInlineComment("Get rid of = before this");
             enhancedForOp.expression().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
-            // enhancedForOp.loopBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
-            // recurse(builderContext,exp);
         }).braceNlIndented(_->
             nlSeparated(OpHelper.Statement.loopBodyStatements(enhancedForOp),
                     statement ->statement(builderContext,statement)

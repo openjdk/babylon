@@ -31,7 +31,6 @@ import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
@@ -51,8 +50,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public class CudaBackend extends C99FFIBackend {
     final int major = 7;
@@ -441,7 +440,7 @@ public class CudaBackend extends C99FFIBackend {
         return Trxfmr.of(funcOp).transform(_->true,(block, op) -> {
             CodeContext cc = block.context();
             // use first operand of invoke to figure out schema
-            if (invokeOpHelper(lookup,op) instanceof OpHelper.NamedOpHelper.Invoke invoke){
+            if (invoke(lookup,op) instanceof Invoke invoke){
                 if (invoke.isMappableIface()
                         && invoke.op().operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
