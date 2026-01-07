@@ -26,7 +26,6 @@
 package experiments;
 
 
-import optkl.codebuilders.JavaCodeBuilder;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -39,15 +38,14 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.OpCodeBuilder;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
-
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 /**
  * Demonstrates how to dynamically build a new function using the code reflection API.
@@ -169,7 +167,7 @@ public class CreateFuncOp {
         System.out.println(OpCodeBuilder.toText(rsqrtFuncOp));
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrtFuncOp).invoke(100));
         Trxfmr.of(rsqrtFuncOp)
-                .transform("usingAbs", ce -> invokeOpHelper(lookup,ce) instanceof OpHelper.NamedOpHelper.Invoke $
+                .transform("usingAbs", ce -> invoke(lookup,ce) instanceof Invoke $
                         && $.named("sqrt")
                         && $.isStatic()
                         && $.returns(double.class)

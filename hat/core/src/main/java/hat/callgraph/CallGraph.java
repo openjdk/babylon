@@ -30,7 +30,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.OpHelper;
+import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
@@ -75,7 +75,7 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
 
-        OpHelper.NamedOpHelper.Invoke.stream(lookup,entry)
+        Invoke.stream(lookup,entry)
                 .forEach(invoke -> {
                 Class<?> javaRefTypeClass = invoke.classOrThrow();
                 try {

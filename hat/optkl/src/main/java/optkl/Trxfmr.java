@@ -29,7 +29,6 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.JavaCodeBuilder;
@@ -50,10 +49,6 @@ public class Trxfmr {
     }
     public static Trxfmr of(CallSite callSite,CoreOp.FuncOp funcOp) {
         return new Trxfmr(callSite,funcOp);
-    }
-    public static <F extends Op, T extends Op> T copyLocation(F from, T to) {
-        to.setLocation(from.location());
-        return to;
     }
 
     public Trxfmr remove(Predicate<CodeElement<?,?>> codeElementPredicate) {
@@ -217,7 +212,7 @@ public class Trxfmr {
                 public Op.Result replace(Op replacement, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
                     action(Action.REPLACE);
-                    var result = trxfmr.opToResultOp(op(),builder().op(copyLocation(op(), replacement)));
+                    var result = trxfmr.opToResultOp(op(),builder().op(OpHelper.copyLocation(op(), replacement)));
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
                     }else {
                         mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
@@ -227,7 +222,7 @@ public class Trxfmr {
                 public Op.Result add(Op newOne, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
                     action(Action.ADDED);
-                    var result = trxfmr.opToResultOp(op(),builder().op(copyLocation(op(), newOne)));
+                    var result = trxfmr.opToResultOp(op(),builder().op(OpHelper.copyLocation(op(), newOne)));
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
                     }else{
                         mapperConsumer.accept(Mapper.of(this).map(op().result(), result));

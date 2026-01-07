@@ -60,9 +60,17 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 
-public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpHelper.Lambda, OpHelper.NamedOpHelper, OpHelper.Ternary {
-    T op();
+public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpHelper.Lambda, OpHelper.Named, OpHelper.Ternary {
+    static <F extends Op, T extends Op> T copyLocation(F from, T to) {
+        to.setLocation(from.location());
+        return to;
+    }
 
+    T op();
+    default   <TO extends Op> TO copyLocationTo(TO to) {
+        to.setLocation(op().location());
+        return to;
+    }
     static Type classTypeToTypeOrThrow(MethodHandles.Lookup lookup, ClassType classType) {
         try {
             return classType.resolve(lookup);
@@ -112,11 +120,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             throw new IllegalStateException("Expecting operand "+i+" to be a result");
         }
     }
-
-    default Op.Result firstOperandAsResultOrThrow(){
-        return operandNAsResultOrThrow(0);
-    }
-
     default Op opFromOperandNAsResultOrNull(int i){
         return operandNAsResultOrNull(i) instanceof Op.Result result && result.op() instanceof Op op ?op:null;
     }
@@ -142,11 +145,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
     }
 
 
-    static Value operandNOrNull(Op op, int idx) {
-        return op.operands().size() > idx ? op.operands().get(idx) : null;
-    }
-
-
     static boolean isPrimitiveResult(Value val) {
         return ((val instanceof Op.Result result && result.op().resultType() instanceof PrimitiveType primitiveType)?primitiveType:null) != null;
     }
@@ -157,12 +155,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         } else {
             throw new RuntimeException("Value not a result");
         }
-    }
-
-    static Stream<Op.Result> operandsAsResults(jdk.incubator.code.CodeElement<?, ?> codeElement) {
-        return codeElement instanceof Op ?
-                ((Op) codeElement).operands().stream().filter(o -> o instanceof Op.Result).map(o -> (Op.Result) o)
-                : Stream.of();
     }
 
     static Op.Result operandNAsResult(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
@@ -177,9 +169,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         return asResultOrNull(operand) instanceof Op.Result r && r.op() instanceof Op op ? op : null;
     }
 
-    static Op opOfResultOrNull(Op.Result result) {
-        return result.op() instanceof Op op ? op : null;
-    }
     static Op.Result lhsResult(JavaOp.BinaryOp binaryOp) {
         return (Op.Result) binaryOp.operands().get(0);
     }
@@ -203,8 +192,8 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         return (Op.Result) binaryTestOp.operands().get(1);
     }
 
-    sealed interface NamedOpHelper<T extends Op> extends OpHelper<T>
-            permits NamedOpHelper.FieldAccess, NamedOpHelper.Invoke, NamedOpHelper.VarAccess {
+    sealed interface Named<T extends Op> extends OpHelper<T>
+            permits Named.NamedStaticOrInstance, Named.Var, Named.VarAccess {
         String name();
         default boolean named(Regex regex){
             return regex.matches(name());
@@ -216,223 +205,273 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             return predicate.test(name());
         }
 
-        sealed interface VarAccess extends NamedOpHelper<CoreOp.VarAccessOp> {
-
+        sealed interface VarAccess extends Named<CoreOp.VarAccessOp> {
             @Override
             default  String name(){
                 return op().varOp().varName();
             }
 
-            default boolean isPrimitive(){
-                return op().result().type() instanceof PrimitiveType;
-            }
-
-
             default  <T>boolean of(Class<T> clazz){
                 return isAssignable((JavaType) op().resultType(),clazz);
             }
             record Impl(MethodHandles.Lookup lookup, CoreOp.VarAccessOp op) implements VarAccess {}
-            static VarAccess varAccessOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
-                return codeElement instanceof CoreOp.VarAccessOp varAccessOp? new VarAccess.Impl(lookup,varAccessOp): null;
+            static VarAccess varAccess(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement) {
+                return codeElement instanceof CoreOp.VarAccessOp varAccessOp ? new VarAccess.Impl(lookup, varAccessOp) : null;
             }
-            static CoreOp.VarAccessOp.VarLoadOp asVarLoadOrNull(Op op) {
-                return op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ? varLoadOp : null;
+            static Stream<VarAccess> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+                return funcOp.elements().filter(ce -> ce instanceof CoreOp.VarAccessOp).map(ce -> varAccess(lookup, ce));
             }
         }
-
-        sealed interface FieldAccess extends NamedOpHelper<JavaOp.FieldAccessOp> {
-
+        sealed interface Var extends Named<CoreOp.VarOp> {
             @Override
             default  String name(){
-                return op().fieldDescriptor().name();
+                return op().varName();
             }
 
-            default boolean isPrimitive(){
-                return op().result().type() instanceof PrimitiveType;
+            default  <T>boolean of(Class<T> clazz){
+                return isAssignable((JavaType) op().varValueType(),clazz);
             }
-
-            default TypeElement resultType(){
-                return op().resultType();
+            record Impl(MethodHandles.Lookup lookup, CoreOp.VarOp op) implements Var {}
+            static Var var(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement) {
+                return codeElement instanceof CoreOp.VarOp varOp ? new Var.Impl(lookup, varOp) : null;
             }
-
-            default TypeElement refType(){
-                return op().fieldDescriptor().refType();
-            }
-            default boolean refType(Class<?> ... classes){
-                return OpHelper.isAssignable(lookup(),refType(),classes);
-            }
-            default  Object getStaticFinalPrimitiveValue() {
-                if (refType() instanceof ClassType classType) {
-                    Class<?> clazz = (Class<?>) classTypeToTypeOrThrow(lookup(), classType);
-                    try {
-
-                        Field field = clazz.getField(name());
-                        field.setAccessible(true);
-                        return field.get(null);
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
-                        try {
-                            Field field = clazz.getDeclaredField(name());
-                            field.setAccessible(true);
-                            return field.get(null);
-                        }catch (NoSuchFieldException |  IllegalAccessException e2){
-                            throw new RuntimeException(e2);
-                        }
-
-                    }
-                }
-                throw new RuntimeException("Could not find field value" + op());
-            }
-            record Impl(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements FieldAccess {}
-
-
-            static FieldAccess fieldAccessOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
-
-                return codeElement instanceof JavaOp.FieldAccessOp fieldAccessOp? new FieldAccess.Impl(lookup,fieldAccessOp): null;
-            }
-
-            static Stream<FieldAccess> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-                return  funcOp.elements().filter(ce->ce instanceof JavaOp.FieldAccessOp).map(ce->fieldAccessOpHelper(lookup,ce));
+            static Stream<Var> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+                return funcOp.elements().filter(ce -> ce instanceof CoreOp.VarOp).map(ce -> var(lookup, ce));
             }
         }
 
-        sealed interface Invoke extends NamedOpHelper<JavaOp.InvokeOp> {
+        sealed interface NamedStaticOrInstance<T extends Op> extends Named<T> {
+             boolean isStatic();
 
-            static Stream<Invoke> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-               return  funcOp.elements().filter(ce->ce instanceof JavaOp.InvokeOp).map(ce->invokeOpHelper(lookup,ce));
-            }
-
-            default  boolean isStatic(){
-                return op().invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC);
-            }
-             default  boolean isInstance(){
-                return op().invokeKind().equals(JavaOp.InvokeOp.InvokeKind.INSTANCE);
-            }
-            @Override default String name(){
-                return op().invokeDescriptor().name();
-            }
-            default <T>boolean returns(Class<T> clazz){
-                return isAssignable((JavaType)op().resultType(),clazz);
-            }
-            default boolean receives(Class<?>... classes){
-                boolean  assignable = true;
-                for (int i=isStatic()?1:0; assignable && i< classes.length; i++) {
-                    var operand = op().operands().get(i);
-                    TypeElement resultType = operand.type() instanceof VarType varType?varType.valueType():null;
-                    assignable &= isAssignable((JavaType) resultType,classes[i-(isStatic()?1:0)]);
-                }
-                return assignable;
-            }
-
-            default Method resolvedMethodOrNull(){
-                try {
-                    return op().invokeDescriptor().resolveToMethod(lookup()) instanceof Method method ? method : null;
-                }catch (ReflectiveOperationException rope){
+             boolean isInstance();
+             default Op.Result instance(){
+                if (isInstance()){
+                    return (Op.Result) op().operands().getFirst();
+                }else {
                     return null;
                 }
             }
-
-
-             default boolean refIs(Class<?> ...classes) {
-                return OpHelper.isAssignable(lookup(), op().invokeDescriptor().refType(), classes);
+            default Op instanceOp(){
+                return instance() instanceof Op.Result result? result.op():null;
             }
+            default VarAccess instanceVarAccess(){
+                 return instanceOp() instanceof CoreOp.VarAccessOp varAccessOp && VarAccess.varAccess(lookup(),varAccessOp) instanceof VarAccess varAccess?varAccess:null;
+            }
+            sealed interface FieldAccess extends NamedStaticOrInstance<JavaOp.FieldAccessOp> {
 
-             default boolean returnsArray() {
-                return op().resultType() instanceof ArrayType;
-            }
+                @Override
+                default String name() {
+                    return op().fieldDescriptor().name();
+                }
 
-             default boolean returnsVoid() {
-                return op().invokeDescriptor().type().returnType().equals(JavaType.VOID);
-            }
+                @Override default boolean isStatic() {
+                    return operandCount()==0;
+                }
 
-             default   TypeElement returnType() {
-                return op().invokeDescriptor().type().returnType();
-            }
+                @Override default boolean isInstance() {
+                    return !isStatic();
+                }
+                default boolean isPrimitive() {
+                    return op().result().type() instanceof PrimitiveType;
+                }
 
-            default boolean returnsInt(){
-                return returnType().equals(JavaType.INT);
-            }
+                default TypeElement resultType() {
+                    return op().resultType();
+                }
 
+                default TypeElement refType() {
+                    return op().fieldDescriptor().refType();
+                }
 
+                default boolean refType(Class<?>... classes) {
+                    return OpHelper.isAssignable(lookup(), refType(), classes);
+                }
 
-            default boolean returnsClassType(){
-                return returnType() instanceof ClassType;
-            }
-
-
-            default TypeElement refType(){
-                return op().invokeDescriptor().refType();
-            }
-
-            default boolean returnsPrimitive(){
-                return returnType() instanceof PrimitiveType ;
-            }
-            default boolean returnsFloat(){
-                return returnType() == JavaType.FLOAT;
-            }
-            default boolean returnsChar(){
-               return returnType() ==   JavaType.CHAR;
-            }
-            default boolean returnsShort(){
-                return returnType() ==   JavaType.SHORT ;
-            }
-            default boolean returns16BitValue(){
-                return returnsChar()||returnsShort();
-            }
-            default Method resolveMethodOrNull() {
-                try {
-                    return op().invokeDescriptor().resolveToMethod(lookup());
-                } catch (ReflectiveOperationException e) {
-                   return null;
+                default Object getStaticFinalPrimitiveValue() {
+                    if (refType() instanceof ClassType classType) {
+                        Class<?> clazz = (Class<?>) classTypeToTypeOrThrow(lookup(), classType);
+                        try {
+                            Field field = clazz.getField(name());
+                            field.setAccessible(true);
+                            return field.get(null);
+                        } catch (NoSuchFieldException | IllegalAccessException e) {
+                            try {
+                                Field field = clazz.getDeclaredField(name());
+                                field.setAccessible(true);
+                                return field.get(null);
+                            } catch (NoSuchFieldException | IllegalAccessException e2) {
+                                throw new RuntimeException(e2);
+                            }
+                        }
+                    }
+                    throw new RuntimeException("Could not find field value" + op());
+                }
+                default boolean isLoad(){
+                    return op() instanceof JavaOp.FieldAccessOp.FieldLoadOp;
+                }
+                default boolean isStore(){
+                    return op() instanceof JavaOp.FieldAccessOp.FieldStoreOp;
+                }
+                record Impl(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements FieldAccess {
+                }
+                static FieldAccess fieldAccess(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
+                    return codeElement instanceof JavaOp.FieldAccessOp fieldAccessOp ? new FieldAccess.Impl(lookup, fieldAccessOp) : null;
+                }
+                static Stream<FieldAccess> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+                    return funcOp.elements().filter(ce -> ce instanceof JavaOp.FieldAccessOp).map(ce -> fieldAccess(lookup, ce));
                 }
             }
-            default Method resolveMethodOrThrow() {
-                try {
-                    return op().invokeDescriptor().resolveToMethod(lookup());
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
+
+            sealed interface Invoke extends NamedStaticOrInstance<JavaOp.InvokeOp> {
+                static Stream<Invoke> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+                    return funcOp.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
                 }
-            }
 
-            default Class<?> classOrThrow() {
-                if (refType() instanceof ClassType classType) {
-                    return (Class<?>) classTypeToTypeOrThrow(lookup(), classType);
-                } else {
-                    throw new IllegalStateException(" javaRef class is null");
+                @Override default boolean isStatic() {
+                    return op().invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC);
                 }
-            }
 
-            default boolean isMappableIface() {
-                return refIs(MappableIface.class);
-            }
-
-           default List<AccessType.TypeAndAccess> paramaterAccessList(){
-                Annotation[][] parameterAnnotations =  resolveMethodOrThrow().getParameterAnnotations();
-                int firstParam =isInstance()?1:0; // if virtual
-                List<AccessType.TypeAndAccess> typeAndAccesses = new ArrayList<>();
-                for (int i = firstParam; i < operandCount(); i++) {
-                    typeAndAccesses.add(AccessType.TypeAndAccess.of(parameterAnnotations[i - firstParam], op().operands().get(i)));
+                @Override default boolean isInstance() {
+                    return op().invokeKind().equals(JavaOp.InvokeOp.InvokeKind.INSTANCE);
                 }
-                return typeAndAccesses;
-            }
 
-            record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Invoke {}
+                @Override
+                default String name() {
+                    return op().invokeDescriptor().name();
+                }
 
-            static Invoke invokeOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
+                default <T> boolean returns(Class<T> clazz) {
+                    return isAssignable((JavaType) op().resultType(), clazz);
+                }
 
-                return codeElement instanceof JavaOp.InvokeOp invokeOp? new Invoke.Impl(lookup,invokeOp): null;
-            }
-            default Op.Result returnResult(){
-                return op().result();
-            }
+                default boolean receives(Class<?>... classes) {
+                    boolean assignable = true;
+                    for (int i = isStatic() ? 1 : 0; assignable && i < classes.length; i++) {
+                        var operand = op().operands().get(i);
+                        TypeElement resultType = operand.type() instanceof VarType varType ? varType.valueType() : null;
+                        assignable &= isAssignable((JavaType) resultType, classes[i - (isStatic() ? 1 : 0)]);
+                    }
+                    return assignable;
+                }
 
-            static Invoke getTargetInvoke(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp, Class<?>... classes) {
-                return lambdaOp.body().entryBlock().ops().stream()
-                        .filter(ce -> ce instanceof JavaOp.InvokeOp)
-                        .map(ce -> invokeOpHelper(lookup,ce))
-                        .filter(Invoke::isStatic)
-                        .filter(invoke -> OpHelper.isAssignable(lookup, invoke.op().operands().getFirst().type(), classes))
-                        .findFirst()
-                        .orElseThrow();
+                default Method resolvedMethodOrNull() {
+                    try {
+                        return op().invokeDescriptor().resolveToMethod(lookup()) instanceof Method method ? method : null;
+                    } catch (ReflectiveOperationException rope) {
+                        return null;
+                    }
+                }
+
+
+                default boolean refIs(Class<?>... classes) {
+                    return OpHelper.isAssignable(lookup(), op().invokeDescriptor().refType(), classes);
+                }
+
+                default boolean returnsArray() {
+                    return op().resultType() instanceof ArrayType;
+                }
+
+                default boolean returnsVoid() {
+                    return op().invokeDescriptor().type().returnType().equals(JavaType.VOID);
+                }
+
+                default TypeElement returnType() {
+                    return op().invokeDescriptor().type().returnType();
+                }
+
+                default boolean returnsInt() {
+                    return returnType().equals(JavaType.INT);
+                }
+
+
+                default boolean returnsClassType() {
+                    return returnType() instanceof ClassType;
+                }
+
+
+                default TypeElement refType() {
+                    return op().invokeDescriptor().refType();
+                }
+
+                default boolean returnsPrimitive() {
+                    return returnType() instanceof PrimitiveType;
+                }
+
+                default boolean returnsFloat() {
+                    return returnType() == JavaType.FLOAT;
+                }
+
+                default boolean returnsChar() {
+                    return returnType() == JavaType.CHAR;
+                }
+
+                default boolean returnsShort() {
+                    return returnType() == JavaType.SHORT;
+                }
+
+                default boolean returns16BitValue() {
+                    return returnsChar() || returnsShort();
+                }
+
+                default Method resolveMethodOrNull() {
+                    try {
+                        return op().invokeDescriptor().resolveToMethod(lookup());
+                    } catch (ReflectiveOperationException e) {
+                        return null;
+                    }
+                }
+
+                default Method resolveMethodOrThrow() {
+                    try {
+                        return op().invokeDescriptor().resolveToMethod(lookup());
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                default Class<?> classOrThrow() {
+                    if (refType() instanceof ClassType classType) {
+                        return (Class<?>) classTypeToTypeOrThrow(lookup(), classType);
+                    } else {
+                        throw new IllegalStateException(" javaRef class is null");
+                    }
+                }
+
+                default boolean isMappableIface() {
+                    return refIs(MappableIface.class);
+                }
+
+                default List<AccessType.TypeAndAccess> paramaterAccessList() {
+                    Annotation[][] parameterAnnotations = resolveMethodOrThrow().getParameterAnnotations();
+                    int firstParam = isInstance() ? 1 : 0; // if virtual
+                    List<AccessType.TypeAndAccess> typeAndAccesses = new ArrayList<>();
+                    for (int i = firstParam; i < operandCount(); i++) {
+                        typeAndAccesses.add(AccessType.TypeAndAccess.of(parameterAnnotations[i - firstParam], op().operands().get(i)));
+                    }
+                    return typeAndAccesses;
+                }
+
+
+                record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Invoke {
+                }
+
+                static Invoke invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
+                    return codeElement instanceof JavaOp.InvokeOp invokeOp ? new Impl(lookup, invokeOp) : null;
+                }
+
+                default Op.Result returnResult() {
+                    return op().result();
+                }
+
+                static Invoke getTargetInvoke(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp, Class<?>... classes) {
+                    return lambdaOp.body().entryBlock().ops().stream()
+                            .filter(ce -> ce instanceof JavaOp.InvokeOp)
+                            .map(ce -> invoke(lookup, ce))
+                            .filter(Invoke::isStatic)
+                            .filter(invoke -> OpHelper.isAssignable(lookup, invoke.op().operands().getFirst().type(), classes))
+                            .findFirst()
+                            .orElseThrow();
+                }
             }
         }
     }
@@ -483,18 +522,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
     }
 
     sealed interface Ternary extends OpHelper<JavaOp.ConditionalExpressionOp>{
-
-        default boolean isPrimitive(){
-            return op().result().type() instanceof PrimitiveType;
-        }
-
         default  <T>boolean of(Class<T> clazz){
             return isAssignable((JavaType) op().resultType(),clazz);
         }
 
-        default Block condBlock() {
-            return OpHelper.entryBlockOfBodyN(op(), 0);
-        }
+        default Block condBlock() {return OpHelper.entryBlockOfBodyN(op(), 0);}
 
         default Block thenBlock() {
             return OpHelper.entryBlockOfBodyN(op(), 1);
@@ -504,26 +536,19 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             return OpHelper.entryBlockOfBodyN(op(), 2);
         }
         record Impl(MethodHandles.Lookup lookup, JavaOp.ConditionalExpressionOp op) implements Ternary {}
-        static Ternary ternaryOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
-
+        static Ternary ternary(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
             return codeElement instanceof JavaOp.ConditionalExpressionOp op? new Impl(lookup,op): null;
         }
     }
 
     sealed interface Lambda extends OpHelper<JavaOp.LambdaOp>{
-        default boolean isPrimitive(){
-            return op().result().type() instanceof PrimitiveType;
-        }
-
         default  <T>boolean of(Class<T> clazz){
             return isAssignable((JavaType) op().resultType(),clazz);
         }
         record Impl(MethodHandles.Lookup lookup, JavaOp.LambdaOp op) implements Lambda {}
         static Lambda lambdaOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
-
             return codeElement instanceof JavaOp.LambdaOp lambdaOp? new Impl(lookup,lambdaOp): null;
         }
-
 
         default Object[] getQuotedCapturedValues(Quoted quoted, Method method) {
             var block = op().body().entryBlock();
