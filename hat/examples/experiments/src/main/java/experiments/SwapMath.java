@@ -92,7 +92,7 @@ public class SwapMath {
 
 
         System.out.println("Now using txfmr--------------------------");
-        var newAbs =Trxfmr.of(rsqrt)
+        var newAbs =Trxfmr.of(lookup,rsqrt)
                 .transform("usingAbs",ce-> invoke(lookup,ce) instanceof Invoke $
                                 && $.named("sqrt")
                                 && $.isStatic()

@@ -29,12 +29,14 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.JavaCodeBuilder;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
 import optkl.util.OpCodeBuilder;
+import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
@@ -43,12 +45,24 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class Trxfmr {
-    public static Trxfmr of(CoreOp.FuncOp funcOp) {
-        return new Trxfmr(funcOp);
+public class Trxfmr implements LookupCarrier{
+    @Override public MethodHandles.Lookup lookup(){
+        return lookup;
     }
-    public static Trxfmr of(CallSite callSite,CoreOp.FuncOp funcOp) {
-        return new Trxfmr(callSite,funcOp);
+    public static Trxfmr of(MethodHandles.Lookup lookup,CallSite callSite,CoreOp.FuncOp funcOp) {
+        return new Trxfmr(lookup,callSite,funcOp);
+    }
+    //public static Trxfmr of(CoreOp.FuncOp funcOp) {
+      //  return of(null,null, funcOp);
+   // }
+    //public static Trxfmr of(CallSite callSite,CoreOp.FuncOp funcOp) {
+      //  return of(null,callSite, funcOp);
+    //}
+    public static Trxfmr of(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        return of(lookup,null, funcOp);
+    }
+    public static Trxfmr of(LookupCarrier lookupCarrier, CoreOp.FuncOp funcOp) {
+        return of(lookupCarrier.lookup(),null, funcOp);
     }
 
     public Trxfmr remove(Predicate<CodeElement<?,?>> codeElementPredicate) {
@@ -82,7 +96,7 @@ public class Trxfmr {
         return toText(prefix, null);
     }
 
-    public Trxfmr toJavaSource(MethodHandles.Lookup lookup,String prefix, String suffix) {
+    public Trxfmr toJava(String prefix, String suffix) {
         return run(trxfmr -> {
                     if (prefix != null && !prefix.isEmpty()){
                         System.out.println(prefix);
@@ -96,11 +110,23 @@ public class Trxfmr {
         );
 
     }
-    public Trxfmr toJavaSource(MethodHandles.Lookup lookup,String prefix) {
-        return toJavaSource(lookup,prefix, null);
+    public Trxfmr toJava(String prefix) {
+        return toJava(prefix, null);
     }
-    public Trxfmr toJavaSource(MethodHandles.Lookup lookup) {
-        return toJavaSource(lookup,null, null);
+    public Trxfmr toJava() {
+        return toJava(null, null);
+    }
+
+    public void exec( Object ... args) {
+        try {
+            if (args.length==0) {
+                BytecodeGenerator.generate(lookup, funcOp()).invoke();
+            }else{
+                BytecodeGenerator.generate(lookup, funcOp()).invoke(args);
+            }
+        } catch (Throwable throwable) {
+            throw new RuntimeException(throwable);
+        }
     }
 
 
@@ -112,8 +138,6 @@ public class Trxfmr {
     }
 
     public interface  Cursor extends TransformerCarrier {
-
-
         enum Action{NONE,RETAIN,REMOVED,REPLACE,ADDED };
         void op(Op op);
         Op op();
@@ -291,7 +315,7 @@ public class Trxfmr {
         }
     }
 
-
+    public final MethodHandles.Lookup lookup;
     public final CallSite callSite;
     private CoreOp.FuncOp funcOp;
     public final BiMap<CodeElement<?,?>,CodeElement<?,?>> biMap = new BiMap<>();
@@ -303,7 +327,8 @@ public class Trxfmr {
         return this.funcOp=funcOp;
     }
 
-    public Trxfmr(CallSite callSite, CoreOp.FuncOp funcOp) {
+    private Trxfmr(MethodHandles.Lookup lookup,CallSite callSite, CoreOp.FuncOp funcOp) {
+        this.lookup = lookup;
         this.callSite = callSite;
         this.funcOp =  funcOp;
         if (callSite!=null && callSite.tracing()) {
@@ -311,9 +336,6 @@ public class Trxfmr {
         }
     }
 
-    private  Trxfmr(CoreOp.FuncOp funcOp) {
-        this (null,funcOp);
-    }
 
     public Trxfmr run(Consumer<Trxfmr> action){
         action.accept(this);

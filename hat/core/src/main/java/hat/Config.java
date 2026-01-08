@@ -31,19 +31,19 @@ import java.util.Optional;
 
 public class Config {
 
-    public record Bit(int index, int size, String name, String description) implements Comparable<Bit> {
-        static Bit of(int index, int size, String name, String description){
-            return new Bit(index,size,name,description);
+    public record Bit(int index, int size, String name, String alt, String description) implements Comparable<Bit> {
+        static Bit of(int index, int size, String name, String alt, String description){
+            return new Bit(index,size,name, alt, description);
         }
-        public static Bit of(int index, String name, String description){
-            return new Bit(index,1,name,description);
+        public static Bit of(int index, String name, String alt,  String description){
+            return new Bit(index,1,name, alt,description);
         }
 
-        public static Bit nextBit(Bit bit, int size, String name, String description){
-            return new Bit(bit.index+bit.size,size,name, description);
+        public static Bit nextBit(Bit bit, int size, String name, String alt,String description){
+            return new Bit(bit.index+bit.size,size,name, alt, description);
         }
-        public static Bit nextBit(Bit bit, String name, String description){
-            return nextBit(bit, 1,name,description);
+        public static Bit nextBit(Bit bit, String name, String alt, String description){
+            return nextBit(bit, 1,name,alt, description);
         }
         @Override
         public int compareTo(Bit bit) {
@@ -65,64 +65,64 @@ public class Config {
         }
     }
 
-    public static final Bit PLATFORM =  Bit.of(0,4, "PLATFORM", "FFI ONLY platform id (0-15)");
-    public static final Bit DEVICE = Bit.nextBit(PLATFORM, 4, "DEVICE","FFI ONLY device id (0-15)");
-    private static final Bit MINIMIZE_COPIES =  Bit.nextBit(DEVICE, "MINIMIZE_COPIES","FFI ONLY Try to minimize copies");
+    public static final Bit PLATFORM =  Bit.of(0,4, "PLATFORM","P", "FFI ONLY platform id (0-15)");
+    public static final Bit DEVICE = Bit.nextBit(PLATFORM, 4, "DEVICE","D","FFI ONLY device id (0-15)");
+    private static final Bit MINIMIZE_COPIES =  Bit.nextBit(DEVICE, "MINIMIZE_COPIES","MC","FFI ONLY Try to minimize copies");
     public boolean minimizeCopies() {
         return MINIMIZE_COPIES.isSet(this);
     }
-    private static final Bit TRACE = Bit.nextBit(MINIMIZE_COPIES,"TRACE", "FFI ONLY trace code");
-    private static final Bit PROFILE = Bit.nextBit(TRACE, "PROFILE", "FFI ONLY Turn on profiling");
-    private static final Bit SHOW_CODE = Bit.nextBit(PROFILE,"SHOW_CODE","Show generated code (PTX/OpenCL/CUDA)");
+    private static final Bit TRACE = Bit.nextBit(MINIMIZE_COPIES,"TRACE", "T","FFI ONLY trace code");
+    private static final Bit PROFILE = Bit.nextBit(TRACE, "PROFILE", "P","FFI ONLY Turn on profiling");
+    private static final Bit SHOW_CODE = Bit.nextBit(PROFILE,"SHOW_CODE","SC","Show generated code (PTX/OpenCL/CUDA)");
     public boolean showCode() {
         return SHOW_CODE.isSet(this);
     }
-    private static final Bit SHOW_KERNEL_MODEL = Bit.nextBit(SHOW_CODE,"SHOW_KERNEL_MODEL", "Show (via OpWriter) Kernel Model");
+    private static final Bit SHOW_KERNEL_MODEL = Bit.nextBit(SHOW_CODE,"SHOW_KERNEL_MODEL", "SKM","Show (via OpWriter) Kernel Model");
     public boolean showKernelModel() {
         return SHOW_COMPUTE_MODEL.isSet(this);
     }
-    private static final Bit SHOW_COMPUTE_MODEL = Bit.nextBit(SHOW_KERNEL_MODEL,"SHOW_COMPUTE_MODEL", "Show (via OpWriter) Compute Model");
+    private static final Bit SHOW_COMPUTE_MODEL = Bit.nextBit(SHOW_KERNEL_MODEL,"SHOW_COMPUTE_MODEL", "SCM","Show (via OpWriter) Compute Model");
     public boolean showComputeModel() {
         return SHOW_COMPUTE_MODEL.isSet(this);
     }
-    private static final Bit SHOW_DEVICE_INFO = Bit.nextBit(SHOW_COMPUTE_MODEL, "SHOW_DEVICE_INFO", "FFI show platform and device info");
-    public static final Bit INFO = Bit.nextBit(SHOW_DEVICE_INFO, "INFO", "INFO level logging");
-    public static final Bit WARN = Bit.nextBit(INFO, "WARN", "WARN(ing) level logging ");
-    public static final Bit UNIT = Bit.nextBit(WARN, "UNIT", "UNIT test level logging  ");
-    private static final Bit TRACE_COPIES = Bit.nextBit(UNIT, "TRACE_COPIES", "FFI ONLY trace copies");
-    private static final Bit TRACE_SKIPPED_COPIES = Bit.nextBit(TRACE_COPIES, "TRACE_SKIPPED_COPIES", "FFI ONLY Trace skipped copies (see MINIMIZE_COPIES) ");
-    private static final Bit TRACE_ENQUEUES = Bit.nextBit(TRACE_SKIPPED_COPIES,"TRACE_ENQUEUES", "FFI ONLY trace enqueued tasks");
-    private static final Bit TRACE_CALLS= Bit.nextBit(TRACE_ENQUEUES, "TRACE_CALLS", "FFI ONLY trace calls (enter/leave)");
-    private static final Bit SHOW_WHY = Bit.nextBit(TRACE_CALLS, "SHOW_WHY", "FFI ONLY show why we decided to copy buffer (H to D)");
-    private static final Bit SHOW_STATE = Bit.nextBit(SHOW_WHY, "SHOW_STATE", "Show iface buffer state changes");
+    private static final Bit SHOW_DEVICE_INFO = Bit.nextBit(SHOW_COMPUTE_MODEL, "SHOW_DEVICE_INFO", "SDI","FFI show platform and device info");
+    public static final Bit INFO = Bit.nextBit(SHOW_DEVICE_INFO, "INFO", "I","INFO level logging");
+    public static final Bit WARN = Bit.nextBit(INFO, "WARN", "W","WARN(ing) level logging ");
+    public static final Bit UNIT = Bit.nextBit(WARN, "UNIT", "U","UNIT test level logging  ");
+    private static final Bit TRACE_COPIES = Bit.nextBit(UNIT, "TRACE_COPIES", "TC","FFI ONLY trace copies");
+    private static final Bit TRACE_SKIPPED_COPIES = Bit.nextBit(TRACE_COPIES,"TRACE_SKIPPED_COPIES", "TSC",  "FFI ONLY Trace skipped copies (see MINIMIZE_COPIES) ");
+    private static final Bit TRACE_ENQUEUES = Bit.nextBit(TRACE_SKIPPED_COPIES,"TRACE_ENQUEUES","TE", "FFI ONLY trace enqueued tasks");
+    private static final Bit TRACE_CALLS= Bit.nextBit(TRACE_ENQUEUES, "TRACE_CALLS", "TCALLS","FFI ONLY trace calls (enter/leave)");
+    private static final Bit SHOW_WHY = Bit.nextBit(TRACE_CALLS, "SHOW_WHY", "SW","FFI ONLY show why we decided to copy buffer (H to D)");
+    private static final Bit SHOW_STATE = Bit.nextBit(SHOW_WHY, "SHOW_STATE", "SS","Show iface buffer state changes");
     public boolean showState(){return SHOW_STATE.isSet(this);}
-    private static final Bit PTX = Bit.nextBit(SHOW_STATE, "PTX", "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code");
+    private static final Bit PTX = Bit.nextBit(SHOW_STATE, "PTX", "PTX","FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code");
     public boolean ptx(){return PTX.isSet(this);}
-    private static final Bit INTERPRET = Bit.nextBit(PTX, "INTERPRET", "Interpret the code model rather than converting to bytecode");
+    private static final Bit INTERPRET = Bit.nextBit(PTX, "INTERPRET", "I","Interpret the code model rather than converting to bytecode");
     public boolean interpret() {
         return INTERPRET.isSet(this);
     }
-    private static final Bit HEADLESS = Bit.nextBit(INTERPRET, "HEADLESS", "Don't show UI");
+    private static final Bit HEADLESS = Bit.nextBit(INTERPRET, "HEADLESS", "H","Don't show UI");
     public boolean headless() {
         return HEADLESS.isSet(this)|| Boolean.getBoolean("headless");
     }
     public boolean headless(String arg) {
         return headless()|"--headless".equals(arg);
     }
-    private static final Bit SHOW_LOWERED_KERNEL_MODEL = Bit.nextBit(HEADLESS,"SHOW_LOWERED_KERNEL_MODEL", "Show (via OpWriter) Lowered Kernel Model");
+    private static final Bit SHOW_LOWERED_KERNEL_MODEL = Bit.nextBit(HEADLESS,"SHOW_LOWERED_KERNEL_MODEL", "SLKM","Show (via OpWriter) Lowered Kernel Model");
     public boolean showLoweredKernelModel() {
         return SHOW_LOWERED_KERNEL_MODEL.isSet(this);
     }
-    private static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(SHOW_LOWERED_KERNEL_MODEL, "SHOW_COMPILATION_PHASES", "Show HAT compilation phases");
+    private static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(SHOW_LOWERED_KERNEL_MODEL, "SHOW_COMPILATION_PHASES","SCP", "Show HAT compilation phases");
     public boolean showCompilationPhases() {
         return SHOW_COMPILATION_PHASES.isSet(this);
     }
-    private static final Bit PROFILE_CUDA_KERNEL = Bit.nextBit(SHOW_COMPILATION_PHASES, "PROFILE_CUDA_KERNEL", "Add -lineinfo to CUDA kernel compilation for profiling and debugging");
+    private static final Bit PROFILE_CUDA_KERNEL = Bit.nextBit(SHOW_COMPILATION_PHASES, "PROFILE_CUDA_KERNEL","PCK", "Add -lineinfo to CUDA kernel compilation for profiling and debugging");
 
     public boolean profileCUDAKernel() {
         return PROFILE_CUDA_KERNEL.isSet(this);
     }
-    private static final Bit SHOW_COMPUTE_MODEL_JAVA_CODE = Bit.nextBit(PROFILE_CUDA_KERNEL, "SHOW_COMPUTE_MODEL_JAVA_CODE", "Show java code view of compute model");
+    private static final Bit SHOW_COMPUTE_MODEL_JAVA_CODE = Bit.nextBit(PROFILE_CUDA_KERNEL, "SHOW_COMPUTE_MODEL_JAVA_CODE","SCMJC", "Show java code view of compute model");
 
     public boolean showComputeModelJavaCode() {
         return SHOW_COMPUTE_MODEL_JAVA_CODE.isSet(this);
@@ -191,14 +191,19 @@ public class Config {
         Optional<Config> returnValue=Optional.of(Config.fromIntBits(0));
         if (spec == null || spec.isEmpty()) {
            // default is good
+        } else if (spec.equals("HELP")) {
+          bitList.forEach(bit -> System.out.println(bit.name+ "/"+bit.alt+" ".repeat(40-(bit.name.length()+bit.alt.length()))+(bit.index<10?" ":"")+bit.index+((bit.size>1)?"-"+(bit.index+bit.size-1):"  ")+ " "+bit.description));
+          if(spec.equals("HELP")){
+              System.exit(0);
+          }
         }else if (spec.contains(",")) {
             returnValue =  Arrays.stream(spec.split(",")).map(Config::fromSpec).reduce((lhs, rhs) -> Config.fromIntBits(lhs.bits() | rhs.bits()));
         } else if (!spec.contains(":")) {
-            returnValue=  bitList.stream().filter(bit->bit.name().equals(spec)).findFirst().map(b->fromIntBits(b.mask()));
+            returnValue=  bitList.stream().filter(bit->bit.name().equals(spec)||bit.alt().equals(spec)).findFirst().map(b->fromIntBits(b.mask()));
         }else{
             var split = spec.split(":");
             if (split.length==2) {
-                var optBit = bitList.stream().filter(bit -> bit.name().equals(split[0])).findFirst();
+                var optBit = bitList.stream().filter(bit -> bit.name().equals(split[0])||bit.alt().equals(split[0])).findFirst();
                 if (optBit.isPresent()) {
                     var bv = new BitValue(optBit.get(), Integer.parseInt(split[1]));
                     var bitz = bv.value << bv.bit().index();
