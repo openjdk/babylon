@@ -73,6 +73,32 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
     }
 
     /**
+     * Returns this value as an operation result.
+     *
+     * @return the value as an operation result.
+     * @throws IllegalStateException if the value is not an instance of an operation result.
+     */
+    public Op.Result result() {
+        if (this instanceof Op.Result r) {
+            return r;
+        }
+        throw new IllegalStateException("Value is not an instance of operation result");
+    }
+
+    /**
+     * Returns this value as a block parameter.
+     *
+     * @return the value as a block parameter.
+     * @throws IllegalStateException if the value is not an instance of a block parameter.
+     */
+    public Block.Parameter parameter() {
+        if (this instanceof Block.Parameter p) {
+            return p;
+        }
+        throw new IllegalStateException("Value is not an instance of block parameter");
+    }
+
+    /**
      * Returns the values this value directly depends on.
      * <p>
      * An operation result depends on the set of values whose members are the operation's operands and block arguments
