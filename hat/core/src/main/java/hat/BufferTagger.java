@@ -65,17 +65,12 @@ public class BufferTagger {
     }
 
     // inlines functions found in FuncOp f until no more inline-able functions are present
-<<<<<<< HEAD
     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, Method methodOfFuncOp, CoreOp.FuncOp funcOp) {
-=======
-    public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
->>>>>>> 7925192394fbfa29a24693ccc07bef378da3f161
         CoreOp.FuncOp ssaFunc =  SSA.transform( funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
         var changed  = StreamMutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
-<<<<<<< HEAD
                 Invoke invoke  = invoke(lookup, op);
                 if (invoke != null) {
                     Method method = invoke.resolvedMethodOrNull();
@@ -108,32 +103,6 @@ public class BufferTagger {
                             throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");
                         }
                     }
-=======
-                if (invoke(lookup, op) instanceof Invoke invoke                         // always but pattern friendly
-                        && invoke.resolvedMethodOrNull() instanceof Method method
-                        && Op.ofMethod(method) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
-                        && optionalFuncOp.isPresent()
-                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
-                ){
-                    var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                    var exitBlockBuilder = Inliner.inline(
-                            blockbuilder, ssaInline,
-                            blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
-                                // intellij doesnt like value as var name so we use _value
-                            if (_value == null) {
-                               //   What is special about TestArrayView.Compute.lifePerIdx? it reaches here
-                                // I think its because it is void ? no return type.
-                                    //   throw new IllegalStateException("inliner returned  null processing "+method);
-                            }else{
-                                blockbuilder.context().mapValue(invoke.op().result(), _value);
-                            }
-                    });
-                    if (!exitBlockBuilder.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
-                    }
-                    changed.set(true);
-                    return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
->>>>>>> 7925192394fbfa29a24693ccc07bef378da3f161
                 }
                 blockbuilder.op(op);
                return blockbuilder;
@@ -158,11 +127,7 @@ public class BufferTagger {
                     mapBranch(lookup, cb.falseBranch()); // handle false branch
                 }
                 case JavaOp.InvokeOp invokeOp -> {
-<<<<<<< HEAD
                     var ioh = invoke(lookup,invokeOp);
-=======
-                    var ioh =  invoke(lookup,invokeOp);
->>>>>>> 7925192394fbfa29a24693ccc07bef378da3f161
                     // we have to deal with  array views  too
                     if (ioh.refIs(MappableIface.class)) {
                         updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
