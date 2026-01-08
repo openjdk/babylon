@@ -27,7 +27,6 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.Trxfmr;
 
@@ -40,11 +39,14 @@ public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPha
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
          Set<CodeElement<?,?>> removeMe = new HashSet<>();
-         return Trxfmr.of(funcOp).transform(
-                     ce-> invoke(lookup(),ce) instanceof Invoke $ && $.named(HATBarrierOp.NAME), /* predicate */
-                     c-> {
-                        removeMe.add(((Op.Result)c.op().operands().getFirst()).op());
-                        c.replace(new HATBarrierOp());
+         return Trxfmr.of(this,funcOp).transform(c-> {
+                         if (invoke(lookup(),c.op()) instanceof Invoke invoke
+                                 && invoke.isInstanceAccessedViaVarAccess()
+                                 && invoke.named(HATBarrierOp.NAME)
+                         ){
+                             removeMe.add(invoke.instanceVarAccess().op());
+                             c.replace(new HATBarrierOp());
+                         }
                     })
                  .remap(removeMe) // replaced varOps with new identities
                  .remove(removeMe::contains)

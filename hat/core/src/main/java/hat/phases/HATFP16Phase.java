@@ -219,7 +219,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                                 .ifPresent(varOp->reducedFloatsType.put(varOp,category));
                 });
 
-        return Trxfmr.of(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16BinaryOp(invokeOp, blockBuilder, binaryOpEnum, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
@@ -241,7 +241,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                         }
                 });
 
-        return  Trxfmr.of(funcOp).transform(ce->nodesInvolved.contains(ce),(blockBuilder, op) -> {
+        return  Trxfmr.of(this,funcOp).transform(ce->nodesInvolved.contains(ce),(blockBuilder, op) -> {
            if (op instanceof JavaOp.InvokeOp invokeOp) {
                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.context().getValue(invokeOp.operands().getFirst()));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -269,7 +269,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                     })
                 );
 
-        return Trxfmr.of(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16ConvOP(invoke(lookup(),invokeOp), blockBuilder, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
@@ -289,7 +289,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                 .ifPresent(invoke -> reducedFloatsType.put(invoke.op(), categorizeReducedFloat(invoke.op())));
 
 
-        return Trxfmr.of(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp $ && invoke(lookup(),$) instanceof Invoke invoke) {
                 createFloatFromF16(invoke, blockBuilder, reducedFloatsType.get(invoke.op()));
             }

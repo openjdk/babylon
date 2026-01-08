@@ -254,8 +254,12 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             default Op instanceOp(){
                 return instance() instanceof Op.Result result? result.op():null;
             }
+
             default VarAccess instanceVarAccess(){
                  return instanceOp() instanceof CoreOp.VarAccessOp varAccessOp && VarAccess.varAccess(lookup(),varAccessOp) instanceof VarAccess varAccess?varAccess:null;
+            }
+            default boolean isInstanceAccessedViaVarAccess(){
+                return instanceVarAccess()!=null;
             }
             sealed interface FieldAccess extends NamedStaticOrInstance<JavaOp.FieldAccessOp> {
 

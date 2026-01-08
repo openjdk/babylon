@@ -166,7 +166,7 @@ public class CreateFuncOp {
 
         System.out.println(OpCodeBuilder.toText(rsqrtFuncOp));
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrtFuncOp).invoke(100));
-        Trxfmr.of(rsqrtFuncOp)
+        Trxfmr.of(lookup,rsqrtFuncOp)
                 .transform("usingAbs", ce -> invoke(lookup,ce) instanceof Invoke $
                         && $.named("sqrt")
                         && $.isStatic()
@@ -198,7 +198,7 @@ public class CreateFuncOp {
                 .transform(ce -> ce instanceof Inject, c -> c.remove())
                 .toText()
                 .run(trxfmr -> {
-                    trxfmr.toJavaSource(lookup);
+                    trxfmr.toJava();
                     System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
                     try {
                         System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp()).invoke(100));

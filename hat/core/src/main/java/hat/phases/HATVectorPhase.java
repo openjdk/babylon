@@ -253,7 +253,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
                       })
                 );
 
-        return Trxfmr.of(funcOp).transform(vectorMetaData::containsKey, (blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(vectorMetaData::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 boolean isShared = findIsSharedOrPrivate(invokeOp.operands().getFirst());
                 List<Op.Result> collect = invokeOp.result().uses().stream().toList();
@@ -291,7 +291,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
 
-        return Trxfmr.of(funcOp).transform(_->true, (blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -332,7 +332,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
 
-        return Trxfmr.of(funcOp).transform( nodesInvolved::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform( nodesInvolved::contains, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Op.Result result = invokeOp.result();
                 List<Op.Result> collect = result.uses().stream().toList();
@@ -371,7 +371,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
 
-        funcOp = Trxfmr.of(funcOp).transform(_->true, (blockBuilder, op) -> {
+        funcOp = Trxfmr.of(this,funcOp).transform(_->true, (blockBuilder, op) -> {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -412,7 +412,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
         if (!nodesInvolved.isEmpty()) {
-            funcOp = Trxfmr.of(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+            funcOp = Trxfmr.of(this,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                  if (op instanceof JavaOp.InvokeOp invokeOp) {
                     insertVectorBinaryOp(blockBuilder, invokeOp, binaryOperation);
                 } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

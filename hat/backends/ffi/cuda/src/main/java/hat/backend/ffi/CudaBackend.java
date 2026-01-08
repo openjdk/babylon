@@ -437,7 +437,7 @@ public class CudaBackend extends C99FFIBackend {
     }
 
       static  public CoreOp.FuncOp transformPTXPtrs(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
-        return Trxfmr.of(funcOp).transform(_->true,(block, op) -> {
+        return Trxfmr.of(lookup,funcOp).transform(_->true,(block, op) -> {
             CodeContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (invoke(lookup,op) instanceof Invoke invoke){
