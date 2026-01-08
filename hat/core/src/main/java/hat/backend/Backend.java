@@ -104,29 +104,29 @@ public  abstract class Backend implements BufferAllocator, LookupCarrier {
 
 
     public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        var transformer = Trxfmr.of(funcOp);
+        var transformer = Trxfmr.of(lookup,funcOp);
         if (config.minimizeCopies()) {
             var paramTable = new FuncOpParams(funcOp);
             return transformer
                     .when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE before injecting buffer tracking..."))
-                    .when(config.showComputeModelJavaCode(), trxfmr -> trxfmr.toJavaSource(lookup, "COMPUTE (Java) before injecting buffer tracking..."))
+                    .when(config.showComputeModelJavaCode(), trxfmr -> trxfmr.toJava("COMPUTE (Java) before injecting buffer tracking..."))
                     .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
                         var invoke = invoke(lookup, c.op());
                         if (invoke.isMappableIface() && (invoke.returns(MappableIface.class) || invoke.returnsPrimitive())) {
-                            Value computeContext = c.builder().context().getValue(paramTable.list().getFirst().parameter);
-                            Value ifaceMappedBuffer = c.builder().context().getValue(invoke.op().operands().getFirst());
+                            Value computeContext = c.getValue(paramTable.list().getFirst().parameter);
+                            Value ifaceMappedBuffer = c.mappedOperand(0);
                             c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
                             c.retain();
                             c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
                         } else if (!invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
                             List<AccessType.TypeAndAccess> typeAndAccesses = invoke.paramaterAccessList();
-                            Value computeContext = c.builder().context().getValue(paramTable.list().getFirst().parameter);
+                            Value computeContext = c.getValue(paramTable.list().getFirst().parameter);
                             typeAndAccesses.stream()
                                     .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
                                     .forEach(typeAndAccess ->
                                             c.add(JavaOp.invoke(
                                                     typeAndAccess.ro() ? ACCESS.pre : MUTATE.pre,
-                                                    computeContext, c.builder().context().getValue(typeAndAccess.value()))
+                                                    computeContext, c.getValue(typeAndAccess.value()))
                                             )
                                     );
                             c.retain();
@@ -135,7 +135,7 @@ public  abstract class Backend implements BufferAllocator, LookupCarrier {
                                     .forEach(typeAndAccess ->
                                             c.add(JavaOp.invoke(
                                                     typeAndAccess.ro() ? ACCESS.post : MUTATE.post,
-                                                    computeContext, c.builder().context().getValue(typeAndAccess.value()))
+                                                    computeContext, c.getValue(typeAndAccess.value()))
                                             )
                                     );
                         }
