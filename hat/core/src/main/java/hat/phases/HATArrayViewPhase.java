@@ -319,10 +319,15 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
     }
 
     private boolean isHatVectorBinaryOperation(Invoke invoke) {
-        // no! lets not compare strings what if we refactor the class names?  This is brittle
-        return invoke.returnType().toString().startsWith("hat.buffer.Float")
-                   && invoke.name().toLowerCase() instanceof String name
-                   &&(name.equals("add")|| name.equals("sub")||name.equals("mul")||name.equals("div"));
+        try {
+            return ((invoke.returnType() instanceof ClassType ct
+                        && _V.class.isAssignableFrom((Class<?>) ct.resolve(lookup())))
+                        || (invoke.returnType() instanceof ArrayType at
+                        && _V.class.isAssignableFrom((Class<?>) at.componentType().resolve(lookup()))))
+                       &&invoke.operandCount() == 2;
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Op findVarOpOrHATVarOP(Op op) {
