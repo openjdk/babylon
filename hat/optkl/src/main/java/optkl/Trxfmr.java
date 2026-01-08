@@ -29,28 +29,40 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.codebuilders.JavaCodeBuilder;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
 import optkl.util.OpCodeBuilder;
+import optkl.util.carriers.LookupCarrier;
 
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class Trxfmr {
-    public static Trxfmr of(CoreOp.FuncOp funcOp) {
-        return new Trxfmr(funcOp);
+public class Trxfmr implements LookupCarrier{
+    @Override public MethodHandles.Lookup lookup(){
+        return lookup;
     }
-    public static Trxfmr of(CallSite callSite,CoreOp.FuncOp funcOp) {
-        return new Trxfmr(callSite,funcOp);
+    public static Trxfmr of(MethodHandles.Lookup lookup,CallSite callSite,CoreOp.FuncOp funcOp) {
+        return new Trxfmr(lookup,callSite,funcOp);
     }
-    public static <F extends Op, T extends Op> T copyLocation(F from, T to) {
-        to.setLocation(from.location());
-        return to;
+    //public static Trxfmr of(CoreOp.FuncOp funcOp) {
+      //  return of(null,null, funcOp);
+   // }
+    //public static Trxfmr of(CallSite callSite,CoreOp.FuncOp funcOp) {
+      //  return of(null,callSite, funcOp);
+    //}
+    public static Trxfmr of(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        return of(lookup,null, funcOp);
+    }
+    public static Trxfmr of(LookupCarrier lookupCarrier, CoreOp.FuncOp funcOp) {
+        return of(lookupCarrier.lookup(),null, funcOp);
     }
 
     public Trxfmr remove(Predicate<CodeElement<?,?>> codeElementPredicate) {
@@ -64,9 +76,59 @@ public class Trxfmr {
         return this;
     }
 
-    public Trxfmr toText() {
-         return run(trxfmr -> System.out.println(OpCodeBuilder.toText(trxfmr.funcOp())));
+
+    public Trxfmr toText(String prefix, String suffix) {
+        return run(trxfmr -> {
+                    if (prefix != null && !prefix.isEmpty()){
+                        System.out.println(prefix);
+                    }
+                    System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
+                    if (suffix != null && !suffix.isEmpty()){
+                        System.out.println(suffix);
+                    }
+                }
+        );
     }
+    public Trxfmr toText() {
+        return toText(null, null);
+    }
+    public Trxfmr toText(String prefix) {
+        return toText(prefix, null);
+    }
+
+    public Trxfmr toJava(String prefix, String suffix) {
+        return run(trxfmr -> {
+                    if (prefix != null && !prefix.isEmpty()){
+                        System.out.println(prefix);
+                    }
+                    var javaCodeBuilder = new JavaCodeBuilder<>(lookup, trxfmr.funcOp());
+                    System.out.println(javaCodeBuilder.toText());
+                    if (suffix != null && !suffix.isEmpty()){
+                        System.out.println(suffix);
+                    }
+                }
+        );
+
+    }
+    public Trxfmr toJava(String prefix) {
+        return toJava(prefix, null);
+    }
+    public Trxfmr toJava() {
+        return toJava(null, null);
+    }
+
+    public void exec( Object ... args) {
+        try {
+            if (args.length==0) {
+                BytecodeGenerator.generate(lookup, funcOp()).invoke();
+            }else{
+                BytecodeGenerator.generate(lookup, funcOp()).invoke(args);
+            }
+        } catch (Throwable throwable) {
+            throw new RuntimeException(throwable);
+        }
+    }
+
 
     interface TransformerCarrier {
         Trxfmr trxfmr();
@@ -76,7 +138,7 @@ public class Trxfmr {
     }
 
     public interface  Cursor extends TransformerCarrier {
-        enum Action{NONE,REMOVED,REPLACE,ADDED };
+        enum Action{NONE,RETAIN,REMOVED,REPLACE,ADDED };
         void op(Op op);
         Op op();
        void funcOp(CoreOp.FuncOp funcOp);
@@ -91,11 +153,14 @@ public class Trxfmr {
         void handled(boolean handled);
         boolean handled();
         Op.Result replace(Op op, Consumer<Mapper<?>> mapperConsumer);
-        Op.Result add(Op op, Consumer<Mapper<?>> mapperConsumer);
         default Op.Result replace(Op op){
             return replace(op, _->{});
         }
-
+        Op.Result retain(Consumer<Mapper<?>> mapperConsumer);
+        default Op.Result retain(){
+            return retain(_->{});
+        }
+        Op.Result add(Op op, Consumer<Mapper<?>> mapperConsumer);
         default Op.Result add(Op op){
             return add(op, _->{});
         }
@@ -171,7 +236,7 @@ public class Trxfmr {
                 public Op.Result replace(Op replacement, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
                     action(Action.REPLACE);
-                    var result = trxfmr.opToResultOp(op(),builder().op(copyLocation(op(), replacement)));
+                    var result = trxfmr.opToResultOp(op(),builder().op(OpHelper.copyLocation(op(), replacement)));
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
                     }else {
                         mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
@@ -181,12 +246,18 @@ public class Trxfmr {
                 public Op.Result add(Op newOne, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
                     action(Action.ADDED);
-                    var result = trxfmr.opToResultOp(op(),builder().op(copyLocation(op(), newOne)));
+                    var result = trxfmr.opToResultOp(op(),builder().op(OpHelper.copyLocation(op(), newOne)));
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
                     }else{
                         mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
                     }
                     return result;
+                }
+                @Override
+                public Op.Result retain( Consumer<Mapper<?>> mapperConsumer) {
+                    handled(true);
+                    action(Action.RETAIN);
+                    return trxfmr.opToResultOp(op(),builder().op(op()));
                 }
                 @Override
                 public void remove( Consumer<Mapper<?>> mapperConsumer) {
@@ -244,7 +315,7 @@ public class Trxfmr {
         }
     }
 
-
+    public final MethodHandles.Lookup lookup;
     public final CallSite callSite;
     private CoreOp.FuncOp funcOp;
     public final BiMap<CodeElement<?,?>,CodeElement<?,?>> biMap = new BiMap<>();
@@ -256,7 +327,8 @@ public class Trxfmr {
         return this.funcOp=funcOp;
     }
 
-    public Trxfmr(CallSite callSite, CoreOp.FuncOp funcOp) {
+    private Trxfmr(MethodHandles.Lookup lookup,CallSite callSite, CoreOp.FuncOp funcOp) {
+        this.lookup = lookup;
         this.callSite = callSite;
         this.funcOp =  funcOp;
         if (callSite!=null && callSite.tracing()) {
@@ -264,12 +336,15 @@ public class Trxfmr {
         }
     }
 
-    private  Trxfmr(CoreOp.FuncOp funcOp) {
-        this (null,funcOp);
-    }
 
     public Trxfmr run(Consumer<Trxfmr> action){
         action.accept(this);
+        return this;
+    }
+    public Trxfmr when(boolean c,Consumer<Trxfmr> action){
+        if (c) {
+            run(action);
+        }
         return this;
     }
 

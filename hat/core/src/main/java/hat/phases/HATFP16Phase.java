@@ -38,7 +38,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.Regex;
 
@@ -48,9 +47,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
-import static optkl.Trxfmr.copyLocation;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.copyLocation;
 
 public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
@@ -78,7 +77,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findReference(lookup,varLoadOp); // recurse
             case CoreOp.VarOp varOp ->
                     varOp.operands().getFirst() instanceof Op.Result varOpResult
-                            && invokeOpHelper(lookup,varOpResult.op()) instanceof OpHelper.NamedOpHelper.Invoke invoke && invoke.named("array");
+                            && invoke(lookup,varOpResult.op()) instanceof Invoke invoke && invoke.named("array");
             default -> false;
         };
     }
@@ -114,7 +113,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         return null;
     }
 
-    private boolean is16BitFloat(OpHelper.NamedOpHelper.Invoke invoke, Regex methodName) {
+    private boolean is16BitFloat(Invoke invoke, Regex methodName) {
         String invokeClassName = invoke.refType().toString();
         invokeClassName = invokeClassName.replace("$", "."); // lets not compare strings here
         boolean is16BitFloatOperation = invokeClassName.startsWith(F16.class.getCanonicalName()) || invokeClassName.startsWith(BF16.class.getCanonicalName());
@@ -136,10 +135,9 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
            );
     }
 
-    private void createF16ConvOP(OpHelper.NamedOpHelper.Invoke invoke, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
+    private void createF16ConvOP(Invoke invoke, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
         blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.op(copyLocation(invoke.op(),
-                        new HATF16Op.HATF16ConvOp(
+                blockBuilder.op(invoke.copyLocationTo(new HATF16Op.HATF16ConvOp(
                                 JavaType.VOID,
                                 reducedFloatType,
                                 blockBuilder.context().getValues(invoke.op().operands()))
@@ -158,14 +156,13 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                 )
         );
     }
-    private void createFloatFromF16(OpHelper.NamedOpHelper.Invoke invoke, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
+    private void createFloatFromF16(Invoke invoke, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
         boolean wasFloat = invoke.op().operands().getFirst() instanceof Op.Result r
                 && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                 && varLoadOp.resultType().equals(JavaType.FLOAT);
 
         blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.op(copyLocation(invoke.op(),
-                        new HATF16Op.HATF16ToFloatConvOp(
+                blockBuilder.op(invoke.copyLocationTo(new HATF16Op.HATF16ToFloatConvOp(
                                 JavaType.FLOAT,
                                 reducedFloatType,
                                 findF16IsLocal(invoke.op().operands().getFirst()),
@@ -210,7 +207,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
     private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, BinaryOpEnum binaryOpEnum) {
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
 
-        OpHelper.NamedOpHelper.Invoke.stream(lookup(),funcOp)
+        Invoke.stream(lookup(),funcOp)
                 .filter(invoke -> is16BitFloat(invoke, Regex.of(binaryOpEnum.name().toLowerCase())) && !invoke.returnsVoid())
                 .forEach(invoke ->  {
                         ReducedFloatType category = categorizeReducedFloat(invoke.op());
@@ -222,7 +219,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                                 .ifPresent(varOp->reducedFloatsType.put(varOp,category));
                 });
 
-        return Trxfmr.of(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16BinaryOp(invokeOp, blockBuilder, binaryOpEnum, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
@@ -234,7 +231,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
 
     private CoreOp.FuncOp dialectifyF16Stores(CoreOp.FuncOp funcOp) {
         Set<CodeElement<?,?>> nodesInvolved = new HashSet<>();
-        OpHelper.NamedOpHelper.Invoke.stream(lookup(),funcOp)
+        Invoke.stream(lookup(),funcOp)
                 .filter(invoke-> is16BitFloat(invoke,Regex.of("value")) && invoke.returns16BitValue())
                 .forEach(invoke -> {
                     if(invoke.opFromFirstOperandAsResultOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
@@ -244,7 +241,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                         }
                 });
 
-        return  Trxfmr.of(funcOp).transform(ce->nodesInvolved.contains(ce),(blockBuilder, op) -> {
+        return  Trxfmr.of(this,funcOp).transform(ce->nodesInvolved.contains(ce),(blockBuilder, op) -> {
            if (op instanceof JavaOp.InvokeOp invokeOp) {
                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.context().getValue(invokeOp.operands().getFirst()));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -258,7 +255,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
     private CoreOp.FuncOp dialectifyF16Init(CoreOp.FuncOp funcOp) {
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
 
-        OpHelper.NamedOpHelper.Invoke.stream(lookup(),funcOp)
+        Invoke.stream(lookup(),funcOp)
                 .filter(invoke -> !invoke.returnsVoid() && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)")))
                 .forEach(invoke ->
                     invoke.op().result().uses().stream()
@@ -272,9 +269,9 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                     })
                 );
 
-        return Trxfmr.of(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                createF16ConvOP(invokeOpHelper(lookup(),invokeOp), blockBuilder, reducedFloatsType.get(invokeOp));
+                createF16ConvOP(invoke(lookup(),invokeOp), blockBuilder, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 createF16VarOp(varOp, blockBuilder, reducedFloatsType.get(varOp));
             }
@@ -286,14 +283,14 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         Map<JavaOp.InvokeOp, ReducedFloatType> reducedFloatsType = new HashMap<>();
         funcOp.elements()
                 .filter(ce->ce instanceof JavaOp.InvokeOp)
-                .map(ce->invokeOpHelper(lookup(),ce))
+                .map(ce-> invoke(lookup(),ce))
                 .filter(invoke->(invoke.named("f16ToFloat")||invoke.named("bfloat162float")) && invoke.returnsFloat())
                 .findFirst() // only one?
                 .ifPresent(invoke -> reducedFloatsType.put(invoke.op(), categorizeReducedFloat(invoke.op())));
 
 
-        return Trxfmr.of(funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp $ && invokeOpHelper(lookup(),$) instanceof OpHelper.NamedOpHelper.Invoke invoke) {
+        return Trxfmr.of(this,funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
+            if (op instanceof JavaOp.InvokeOp $ && invoke(lookup(),$) instanceof Invoke invoke) {
                 createFloatFromF16(invoke, blockBuilder, reducedFloatsType.get(invoke.op()));
             }
             return blockBuilder;

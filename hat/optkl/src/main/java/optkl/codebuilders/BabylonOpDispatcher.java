@@ -30,8 +30,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.ParamVar;
 
-/* this should not be too C99 specific */
-public interface BabylonCoreOpBuilder<T extends CodeBuilder<?>, SB extends CodeBuilderContext> {
+/* this should not be too C99 specific also cannot reference HAT Ops. */
+public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T>, SB extends ScopedCodeBuilderContext> {
     T type(SB buildContext, JavaType javaType);
 
     T varLoadOp(SB buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp);
@@ -86,6 +86,10 @@ public interface BabylonCoreOpBuilder<T extends CodeBuilder<?>, SB extends CodeB
 
     T returnOp(SB buildContext, CoreOp.ReturnOp returnOp);
 
+    T newOp(SB buildContext, JavaOp.NewOp newOp);
+    T arrayLoadOp(SB buildContext, JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp);
+    T arrayStoreOp(SB buildContext, JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp);
+    T enhancedForOp(SB buildContext, JavaOp.EnhancedForOp enhancedForOp);
     default T recurse(SB buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -113,7 +117,10 @@ public interface BabylonCoreOpBuilder<T extends CodeBuilder<?>, SB extends CodeB
             case JavaOp.BinaryOp $ -> binaryOp(buildContext, $);
             case JavaOp.JavaConditionalOp $ -> conditionalOp(buildContext, $);
             case JavaOp.UnaryOp $ -> unaryOp(buildContext, $);
-
+            case JavaOp.NewOp $ -> newOp(buildContext, $);
+            case JavaOp.ArrayAccessOp.ArrayStoreOp  $ ->  arrayStoreOp(buildContext,$);
+            case JavaOp.ArrayAccessOp.ArrayLoadOp  $ ->  arrayLoadOp(buildContext,$);
+            case JavaOp.EnhancedForOp $ -> enhancedForOp(buildContext,$);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

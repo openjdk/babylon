@@ -30,14 +30,27 @@ import hat.Config;
 import hat.KernelContext;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.FuncOpParams;
+import optkl.OpHelper;
+import optkl.Trxfmr;
+import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
+import optkl.ifacemapper.MappableIface;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
+import java.util.List;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
+
+import static hat.ComputeContext.WRAPPER.ACCESS;
+import static hat.ComputeContext.WRAPPER.MUTATE;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public  abstract class Backend implements BufferAllocator, LookupCarrier {
     private final Config config;
@@ -88,4 +101,51 @@ public  abstract class Backend implements BufferAllocator, LookupCarrier {
     public abstract void dispatchCompute(ComputeContext computeContext, Object... args);
 
     public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
+
+
+    public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        var transformer = Trxfmr.of(lookup,funcOp);
+        if (config.minimizeCopies()) {
+            var paramTable = new FuncOpParams(funcOp);
+            return transformer
+                    .when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE before injecting buffer tracking..."))
+                    .when(config.showComputeModelJavaCode(), trxfmr -> trxfmr.toJava("COMPUTE (Java) before injecting buffer tracking..."))
+                    .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
+                        var invoke = invoke(lookup, c.op());
+                        if (invoke.isMappableIface() && (invoke.returns(MappableIface.class) || invoke.returnsPrimitive())) {
+                            Value computeContext = c.getValue(paramTable.list().getFirst().parameter);
+                            Value ifaceMappedBuffer = c.mappedOperand(0);
+                            c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
+                            c.retain();
+                            c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
+                        } else if (!invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
+                            List<AccessType.TypeAndAccess> typeAndAccesses = invoke.paramaterAccessList();
+                            Value computeContext = c.getValue(paramTable.list().getFirst().parameter);
+                            typeAndAccesses.stream()
+                                    .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
+                                    .forEach(typeAndAccess ->
+                                            c.add(JavaOp.invoke(
+                                                    typeAndAccess.ro() ? ACCESS.pre : MUTATE.pre,
+                                                    computeContext, c.getValue(typeAndAccess.value()))
+                                            )
+                                    );
+                            c.retain();
+                            typeAndAccesses.stream()
+                                    .filter(typeAndAccess -> OpHelper.isAssignable(lookup, typeAndAccess.javaType(), MappableIface.class))
+                                    .forEach(typeAndAccess ->
+                                            c.add(JavaOp.invoke(
+                                                    typeAndAccess.ro() ? ACCESS.post : MUTATE.post,
+                                                    computeContext, c.getValue(typeAndAccess.value()))
+                                            )
+                                    );
+                        }
+                    })
+                    .when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE after injecting buffer tracking..."))
+                    .funcOp();
+        } else {
+            return transformer.when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE not injecting buffer tracking)")).funcOp();
+        }
+    }
+
+
 }

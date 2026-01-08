@@ -43,8 +43,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public abstract sealed class HATVectorStorePhase implements HATPhase
         permits HATVectorStorePhase.Float2StorePhase, HATVectorStorePhase.Float4StorePhase{
@@ -82,7 +82,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
 
         Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
-                    if (invokeOpHelper(lookup(),codeElement)instanceof OpHelper.NamedOpHelper.Invoke invoke
+                    if (invoke(lookup(),codeElement)instanceof Invoke invoke
                             && (invoke.op().operands().size() >2)
                             && invoke.named(
                             switch (HATVectorStorePhase.this) {
@@ -97,7 +97,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
-           return Trxfmr.of(funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+           return Trxfmr.of(this,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 List<Value> inputOperandsVarOp = invokeOp.operands();

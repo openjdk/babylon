@@ -26,7 +26,6 @@
 package experiments;
 
 
-import hat.codebuilders.JavaHATCodeBuilder;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -39,15 +38,14 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.OpCodeBuilder;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
-
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 /**
  * Demonstrates how to dynamically build a new function using the code reflection API.
@@ -168,8 +166,8 @@ public class CreateFuncOp {
 
         System.out.println(OpCodeBuilder.toText(rsqrtFuncOp));
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrtFuncOp).invoke(100));
-        Trxfmr.of(rsqrtFuncOp)
-                .transform("usingAbs", ce -> invokeOpHelper(lookup,ce) instanceof OpHelper.NamedOpHelper.Invoke $
+        Trxfmr.of(lookup,rsqrtFuncOp)
+                .transform("usingAbs", ce -> invoke(lookup,ce) instanceof Invoke $
                         && $.named("sqrt")
                         && $.isStatic()
                         && $.returns(double.class)
@@ -179,7 +177,7 @@ public class CreateFuncOp {
                         var rhs = b.op(CoreOp.constant(JavaType.BOOLEAN, true));
                         b.op(CoreOp.core_yield(b.op(JavaOp.or(lhs, rhs))));
                     }).then(b -> {
-                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then"));
+                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then \"With this text\""));
                         b.op(new Pre(List.of()));
                         b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
                         b.op(new Post(List.of()));
@@ -200,8 +198,7 @@ public class CreateFuncOp {
                 .transform(ce -> ce instanceof Inject, c -> c.remove())
                 .toText()
                 .run(trxfmr -> {
-                    var javaCodeBuilder = new JavaHATCodeBuilder<>(lookup, trxfmr.funcOp());
-                    System.out.println(javaCodeBuilder.toText());
+                    trxfmr.toJava();
                     System.out.println(OpCodeBuilder.toText(trxfmr.funcOp()));
                     try {
                         System.out.println(" 1/abs(100) = " + BytecodeGenerator.generate(lookup, trxfmr.funcOp()).invoke(100));

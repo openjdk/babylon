@@ -49,7 +49,10 @@ public interface Precedence {
                  CoreOp.ConstantOp _,
                  JavaOp.LambdaOp _,
                  CoreOp.TupleOp _,
-                 JavaOp.WhileOp _
+                 JavaOp.WhileOp _,
+                 JavaOp.ArrayAccessOp.ArrayLoadOp _,
+                 JavaOp.ArrayAccessOp.ArrayStoreOp _,
+                 JavaOp.NewOp _
                     -> 0;   //  ()[ ] .
             case JavaOp.ConvOp _,
                  JavaOp.NegOp  _
@@ -91,6 +94,7 @@ public interface Precedence {
             case Precedence.Store _,
                  CoreOp.VarOp _,
                  CoreOp.VarAccessOp.VarStoreOp _
+
                     -> 13;  // = += -= *= /= %= &= ^= |= <<= >>=
             case CoreOp.ReturnOp _-> 14;
             default -> throw new IllegalStateException("[Illegal] Precedence Op not registered: " + op.getClass().getSimpleName());

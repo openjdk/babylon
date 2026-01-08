@@ -25,7 +25,7 @@
 package hat.device;
 
 import hat.types.F16;
-import hat.codebuilders.C99HATCodeBuilder;
+import optkl.codebuilders.C99CodeBuilder;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public class DeviceSchema<T extends DeviceType> {
     private final Class<T> klass;
     private final List<List<String>> members = new ArrayList<>();
     private final Map<String, Integer> arraySize = new HashMap<>();
-    private final C99HATCodeBuilder<?> representationBuilder = new C99HATCodeBuilder<>();
+    private final C99CodeBuilder<?> representationBuilder = new C99CodeBuilder<>();
     private final Set<String> visited = new HashSet<>();
 
     private static final Map<Class<?>, String> specialTypes = new HashMap<>();
@@ -104,7 +104,7 @@ public class DeviceSchema<T extends DeviceType> {
     // then it recursively inspect its inner members.
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
-    private void materialize(C99HATCodeBuilder<?> builder, Class<?> klass) {
+    private void materialize(C99CodeBuilder<?> builder, Class<?> klass) {
             Method[] declaredMethods = klass.getDeclaredMethods();
             builder.lt().identifier(klass.getName()).colon();
             visited.add(klass.getName());
@@ -121,7 +121,7 @@ public class DeviceSchema<T extends DeviceType> {
 
                         if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
                             // inspect the dependency and add it at the front of the string builder
-                            C99HATCodeBuilder<?> depsBuilder = new C99HATCodeBuilder<>();
+                            C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>();
                             depsBuilder.preformatted(builder.getText());
                             materialize(depsBuilder, returnType);
                             builder = depsBuilder;

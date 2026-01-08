@@ -24,7 +24,12 @@
  */
 package optkl.ifacemapper;
 
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.OpHelper;
+
 import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandles;
 
 public enum AccessType {
     NOT_BUFFER((byte) 0),
@@ -58,4 +63,44 @@ public enum AccessType {
             default -> NA;
         };
     }
+
+
+
+    public record TypeAndAccess(Annotation[] annotations, Value value, JavaType javaType) {
+        public static TypeAndAccess of(Annotation[] annotations, Value value) {
+            return new TypeAndAccess(annotations, value, (JavaType) value.type());
+        }
+
+      public  boolean isIface(MethodHandles.Lookup lookup) {
+            return OpHelper.isAssignable(lookup, javaType, MappableIface.class);
+        }
+
+      public   boolean ro() {
+            for (Annotation annotation : annotations) {
+                if (annotation instanceof MappableIface.RO) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+       public boolean rw() {
+            for (Annotation annotation : annotations) {
+                if (annotation instanceof MappableIface.RW) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+       public boolean wo() {
+            for (Annotation annotation : annotations) {
+                if (annotation instanceof MappableIface.WO) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
 }

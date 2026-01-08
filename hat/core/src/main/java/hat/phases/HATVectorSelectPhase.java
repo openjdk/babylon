@@ -40,8 +40,9 @@ import optkl.Trxfmr;
 import java.util.HashMap;
 import java.util.Map;
 
-import static optkl.OpHelper.NamedOpHelper.Invoke.invokeOpHelper;
-import static optkl.Trxfmr.copyLocation;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.copyLocation;
 
 public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
@@ -82,7 +83,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
         }
 
         Map<CodeElement<?,?>, InvokeVar> ceToInvokeVar = new HashMap<>();
-        OpHelper.NamedOpHelper.Invoke.stream(lookup(),funcOp)
+        Invoke.stream(lookup(),funcOp)
                 .filter(invoke ->
                         invoke.named("x","y","z","w")
                                 && invoke.refIs(_V.class)
@@ -95,9 +96,9 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                     ceToInvokeVar.put(invokeVar.varLoadOp,invokeVar);
                 });
 
-        return Trxfmr.of(funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (invokeOpHelper(lookup(),op) instanceof OpHelper.NamedOpHelper.Invoke invoke
+            if (invoke(lookup(),op) instanceof Invoke invoke
                     && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
                 Op newOp = invoke.returnsVoid()
                         ?

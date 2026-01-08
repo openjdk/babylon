@@ -29,13 +29,13 @@ import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilderContext<T> {
+public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilder<T> {
 
-    public T computeDeclaration(TypeElement typeElement, String name) {
+    public final T computeDeclaration(TypeElement typeElement, String name) {
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
-    public T compute(ScopedCodeBuilderContext buildContext) {
+    public final  T compute(ScopedCodeBuilderContext buildContext) {
         computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
         parenNlIndented(_ ->
                 commaSpaceSeparated(
