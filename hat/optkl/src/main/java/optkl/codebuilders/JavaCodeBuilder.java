@@ -30,6 +30,8 @@ import optkl.OpHelper;
 import java.lang.invoke.MethodHandles;
 
 public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends JavaOrC99StyleCodeBuilder<T> implements BabylonOpDispatcher<T,ScopedCodeBuilderContext> {
+
+
     public T createJava(ScopedCodeBuilderContext buildContext) {
         buildContext.funcScope(buildContext.funcOp, () -> {
             typeName(buildContext.funcOp.resultType().toString()).space().funcName(buildContext.funcOp);
@@ -58,5 +60,13 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends JavaOrC99Styl
     public String toText() {
         ScopedCodeBuilderContext scopedCodeBuilderContext= new ScopedCodeBuilderContext(lookup,funcOp);
         return createJava(scopedCodeBuilderContext).getText();
+    }
+
+    public static JavaCodeBuilder of(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        return new JavaCodeBuilder(lookup,funcOp);
+    }
+
+    public static String toText(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        return of(lookup,funcOp).toText();
     }
 }
