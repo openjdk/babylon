@@ -279,7 +279,7 @@ public class Trxfmr implements LookupCarrier{
         }
 
         default Value mappedOperand(int idx){
-            return getValue(OpHelper.operandNAsResult(op(),idx));
+            return getValue(OpHelper.resultFromOperandN(op(),idx));
         }
     }
 
