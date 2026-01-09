@@ -155,6 +155,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
+    private final boolean reflectAll;
 
     private TreeMaker make;
     private ListBuffer<JCTree> opMethodDecls;
@@ -173,6 +174,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
+        reflectAll = options.isSet("reflectAll");
         names = Names.instance(context);
         syms = Symtab.instance(context);
         types = Types.instance(context);
@@ -200,7 +202,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     public void visitMethodDef(JCMethodDecl tree) {
         boolean isReflectable = isReflectable(tree);
         if (isReflectable) {
-            if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
+            if (currentClassSym.type.getEnclosingType().hasTag(CLASS) || currentClassSym.isDirectlyOrIndirectlyLocal()) {
                 // Reflectable methods in local classes are not supported
                 log.warning(tree, ReflectableMethodInnerClass(currentClassSym.enclClass()));
                 super.visitMethodDef(tree);
@@ -208,15 +210,25 @@ public class ReflectMethods extends TreeTranslatorPrev {
             } else {
                 // if the method is annotated, scan it
                 BodyScanner bodyScanner = new BodyScanner(tree);
-                CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
-                if (dumpIR) {
-                    // dump the method IR if requested
-                    log.note(ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
+                try {
+                    CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
+                    if (dumpIR) {
+                        // dump the method IR if requested
+                        log.note(ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
+                    }
+                    // create a static method that returns the op
+                    Name methodName = methodName(symbolToMethodRef(tree.sym));
+                    opMethodDecls.add(opMethodDecl(methodName));
+                    ops.put(methodName.toString(), funcOp);
+                } catch (RuntimeException e) {
+                    if (reflectAll) {
+                        // log as warning for debugging purposses when reflectAll enabled
+                        log.warning(tree, ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
+                        super.visitMethodDef(tree);
+                        return;
+                    }
+                    throw e;
                 }
-                // create a static method that returns the op
-                Name methodName = methodName(symbolToMethodRef(tree.sym));
-                opMethodDecls.add(opMethodDecl(methodName));
-                ops.put(methodName.toString(), funcOp);
             }
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
@@ -2518,13 +2530,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     boolean isReflectable(JCMethodDecl tree) {
-        return codeReflectionEnabled ||
+        return reflectAll || codeReflectionEnabled ||
                 (tree.body != null &&
                 tree.sym.attribute(crSyms.codeReflectionType.tsym) != null);
     }
 
     boolean isReflectable(JCFunctionalExpression expr) {
-        return codeReflectionEnabled ||
+        return reflectAll || codeReflectionEnabled ||
                 (prevNode() instanceof JCTypeCast castTree && isReflectable(castTree.clazz.type));
     }
 
