@@ -57,7 +57,7 @@ public class TestMatMul {
     @Reflect
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
-            if (kc.gix < kc.gsy) {
+            if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + kc.giy));

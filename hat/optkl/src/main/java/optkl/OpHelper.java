@@ -106,38 +106,38 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         return op().operands().size();
     }
 
-    default Op.Result operandNAsResultOrNull(int i){
-        return operandNAsResult(op(),i) instanceof Op.Result result?result:null;
+    default Op.Result resultFromOperandNOrNull(int i){
+        return resultFromOperandN(op(),i) instanceof Op.Result result?result:null;
     }
-    default Op.Result firstOperandAsResultOrNull(){
-        return operandNAsResultOrNull(0);
+    default Op.Result resultFromFirstOperandOrNull(){
+        return resultFromOperandNOrNull(0);
     }
 
-    default Op.Result  operandNAsResultOrThrow(int i){
-        if (operandNAsResultOrNull(i) instanceof Op.Result result){
+    default Op.Result resultFromOperandNOrThrow(int i){
+        if (resultFromOperandNOrNull(i) instanceof Op.Result result){
             return result;
         }else {
             throw new IllegalStateException("Expecting operand "+i+" to be a result");
         }
     }
-    default Op opFromOperandNAsResultOrNull(int i){
-        return operandNAsResultOrNull(i) instanceof Op.Result result && result.op() instanceof Op op ?op:null;
+    default Op opFromOperandNOrNull(int i){
+        return resultFromOperandNOrNull(i) instanceof Op.Result result && result.op() instanceof Op op ?op:null;
     }
-    default Op opFromFirstOperandAsResultOrNull(){
-        return opFromOperandNAsResultOrNull(0);
+    default Op opFromFirstOperandOrNull(){
+        return opFromOperandNOrNull(0);
     }
-    default Op opFromOperandNAsResultOrThrow(int i){
-        if ( opFromOperandNAsResultOrNull(i)  instanceof Op op){
+    default Op opFromOperandNOrThrow(int i){
+        if ( opFromOperandNOrNull(i)  instanceof Op op){
             return op;
         }else {
             throw new IllegalStateException("Expecting operand "+i+" to be a result which yields an Op ");
         }
     }
-    default Op opFromFirstOperandAsResultOrThrow(){
-        return opFromOperandNAsResultOrThrow(0);
+    default Op opFromFirstOperandOrThrow(){
+        return opFromOperandNOrThrow(0);
     }
-    default CoreOp.VarAccessOp.VarLoadOp varLoadOpFromFirstOperandAsResultOrNull(){
-           return opFromFirstOperandAsResultOrThrow()
+    default CoreOp.VarAccessOp.VarLoadOp varLoadOpFromFirstOperandOrNull(){
+           return opFromFirstOperandOrThrow()
                 instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp?varLoadOp:null;
     }
     static Block entryBlockOfBodyN(Op op, int idx) {
@@ -157,7 +157,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         }
     }
 
-    static Op.Result operandNAsResult(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
+    static Op.Result resultFromOperandN(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
         return codeElement instanceof Op op && op.operands().size() > n && op.operands().get(n) instanceof Op.Result result ? result : null;
     }
 
@@ -327,8 +327,14 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             }
 
             sealed interface Invoke extends NamedStaticOrInstance<JavaOp.InvokeOp> {
-                static Stream<Invoke> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-                    return funcOp.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
+              //  static Stream<Invoke> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+                //    return funcOp.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
+               // }
+                static Stream<Invoke> stream(MethodHandles.Lookup lookup, Op op) {
+                    return op.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
+                }
+                static Stream<Invoke> stream(MethodHandles.Lookup lookup, Block block) {
+                    return block.ops().stream().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
                 }
 
                 @Override default boolean isStatic() {
@@ -495,6 +501,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                                 && parameter.invokableOperation() instanceof CoreOp.FuncOp)
                         )
                                 && !(op instanceof CoreOp.YieldOp)
+
                 )
                         ? op
                         : null;
@@ -518,9 +525,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 list.removeLast();
             }
             return list.stream();
-        }
-        static Stream<Op> loopBodyStatements(Op.Loop op) {
-           return bodyStatements(op.loopBody());
         }
 
     }

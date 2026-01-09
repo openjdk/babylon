@@ -42,83 +42,26 @@ import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess;
 import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Named.VarAccess;
 
-public sealed abstract class HATThreadsPhase implements HATPhase
-permits HATThreadsPhase.BlockPhase, HATThreadsPhase.GlobalIdPhase, HATThreadsPhase.GlobalSizePhase, HATThreadsPhase.LocalIdPhase, HATThreadsPhase.LocalSizePhase {
-    private final KernelCallGraph kernelCallGraph;
-    @Override public KernelCallGraph kernelCallGraph(){
-        return kernelCallGraph;
-    }
+public record HATThreadsPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
-    public HATThreadsPhase(KernelCallGraph kernelCallGraph) {
-        this.kernelCallGraph=kernelCallGraph;
-    }
-
-    private static final Regex localSizeRegex = Regex.of("ls([xyz])");
-    private static final Regex localIdRegex = Regex.of("li([xyz])");
-    private static final Regex globalSzRegex = Regex.of("(gs[xyz])");
-    private static final Regex blockIdRegex = Regex.of("bi([xyz])");
-    private static final Regex globalIdxRegex = Regex.of("(gi[xyz])");
-
+    private static final Regex allfieldNameRegex = Regex.of("[glb][si]([xyz])");
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        Regex fieldNameRegex  = switch (this){
-            case BlockPhase _->blockIdRegex;
-            case GlobalIdPhase _->globalIdxRegex;
-            case GlobalSizePhase _->globalSzRegex;
-            case LocalIdPhase _-> localIdRegex;
-            case LocalSizePhase _-> localSizeRegex;
-        };
-        Set<CodeElement<?,?>> removeMe= new HashSet<>();
-        return Trxfmr.of(this,funcOp).transform(ce->ce instanceof JavaOp.FieldAccessOp, c->{
-                    if (fieldAccess(lookup(),c.op()) instanceof FieldAccess fieldAccess
+        Set<CodeElement<?, ?>> removeMe = new HashSet<>();
+        return Trxfmr.of(this, funcOp)
+                .transform(ce -> ce instanceof JavaOp.FieldAccessOp, c -> { // We care about field accesses
+                    if (fieldAccess(lookup(), c.op()) instanceof FieldAccess fieldAccess // get a FieldAccessHelper
                             && fieldAccess.refType(KernelContext.class)
                             && fieldAccess.isLoad()
-                            && fieldAccess.named(fieldNameRegex)
+                            && fieldAccess.named(allfieldNameRegex)
                             && fieldAccess.instanceVarAccess() instanceof VarAccess varAccess) {
-                                    removeMe.add(varAccess.op()); // We will need to remove this
-                                    int dimIdx = fieldAccess.name().charAt(2) - 'x';
-                                    c.replace(switch (HATThreadsPhase.this) {
-                                        case BlockPhase _ -> HATThreadOp.HATBlockThreadIdOp.of(dimIdx, fieldAccess.resultType());
-                                        case GlobalIdPhase _ -> HATThreadOp.HATGlobalThreadIdOp.of(dimIdx, fieldAccess.resultType());
-                                        case GlobalSizePhase _ -> HATThreadOp.HATGlobalSizeOp.of(dimIdx, fieldAccess.resultType());
-                                        case LocalIdPhase _ -> HATThreadOp.HATLocalThreadIdOp.of(dimIdx, fieldAccess.resultType());
-                                        case LocalSizePhase _ -> HATThreadOp.HATLocalSizeOp.of(dimIdx, fieldAccess.resultType());
-                                    });
-                                }
+                        removeMe.add(varAccess.op());// We will remove in the next transform (see removeme)
+                        c.replace(HATThreadOp.create(fieldAccess.name()));
+                    }
                 })
                 .remap(removeMe)
                 .remove(removeMe::contains)
                 .funcOp();
-    }
-
-    public static final class BlockPhase extends HATThreadsPhase {
-        public BlockPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph);
-        }
-    }
-
-    public static final class GlobalIdPhase extends HATThreadsPhase {
-        public GlobalIdPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph);
-        }
-    }
-
-    public static final class GlobalSizePhase extends HATThreadsPhase {
-        public GlobalSizePhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph);
-        }
-    }
-
-    public static final class LocalIdPhase extends HATThreadsPhase {
-        public LocalIdPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph);
-        }
-    }
-
-    public static final class LocalSizePhase extends HATThreadsPhase {
-        public LocalSizePhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph);
-        }
     }
 }

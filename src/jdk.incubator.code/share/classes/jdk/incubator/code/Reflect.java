@@ -38,6 +38,7 @@ import java.lang.reflect.Method;
  * models for reflectable lambdas and method references can be obtained using the {@link Op#ofQuotable(Object)} method.
  * <p>
  * This annotation only has effect on the program elements listed below:
+ * <ul>
  * <li>When a method is annotated with this annotation, the method becomes reflectable, and all the lambda expressions
  * and method references enclosed in it also become reflectable.</li>
  * <li>When a variable declaration (a field, or a local variable) is annotated with this annotation, all lambda expressions
