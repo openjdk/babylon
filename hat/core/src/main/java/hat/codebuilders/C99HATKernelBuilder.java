@@ -138,58 +138,26 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return identifier("HAT_BIZ");
     }
 
-
     @Override
-    public final T hatGlobalThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATGlobalThreadIdOp globalThreadIdOp) {
-        switch (globalThreadIdOp.getDimension()) {
-            case 0 -> HAT_GIX();
-            case 1 -> HAT_GIY();
-            case 2 -> HAT_GIZ();
-            default -> throw new RuntimeException("globalId id = " + globalThreadIdOp.getDimension());
-        }
-        return self();
-    }
-
-    @Override
-    public final T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATGlobalSizeOp globalSizeOp) {
-        return (switch (globalSizeOp.getDimension()) {
-            case 0 -> HAT_GSX();
-            case 1 -> HAT_GSY();
-            case 2 -> HAT_GSZ();
-            default -> throw new RuntimeException("globalSize id = " + globalSizeOp.getDimension());
+    public final T hatThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp threadOp) {
+        return (switch (threadOp) {
+            case HATThreadOp.HAT_LI.HAT_LIX _ -> HAT_LIX();
+            case HATThreadOp.HAT_LI.HAT_LIY _ -> HAT_LIY();
+            case HATThreadOp.HAT_LI.HAT_LIZ _ -> HAT_LIZ();
+            case HATThreadOp.HAT_LS.HAT_LSX _ -> HAT_LSX();
+            case HATThreadOp.HAT_LS.HAT_LSY _ -> HAT_LSY();
+            case HATThreadOp.HAT_LS.HAT_LSZ _ -> HAT_LSZ();
+            case HATThreadOp.HAT_GI.HAT_GIX _ -> HAT_GIX();
+            case HATThreadOp.HAT_GI.HAT_GIY _ -> HAT_GIY();
+            case HATThreadOp.HAT_GI.HAT_GIZ _ -> HAT_GIZ();
+            case HATThreadOp.HAT_GS.HAT_GSX _ -> HAT_GSX();
+            case HATThreadOp.HAT_GS.HAT_GSY _ -> HAT_GSY();
+            case HATThreadOp.HAT_GS.HAT_GSZ _ -> HAT_GSZ();
+            case HATThreadOp.HAT_BI.HAT_BIX _ -> HAT_BIX();
+            case HATThreadOp.HAT_BI.HAT_BIY _ -> HAT_BIY();
+            case HATThreadOp.HAT_BI.HAT_BIZ _ -> HAT_BIZ();
         });
 
-    }
-
-    @Override
-    public final T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATLocalThreadIdOp localThreadIdOp) {
-        return (switch (localThreadIdOp.getDimension()) {
-            case 0 -> HAT_LIX();
-            case 1 -> HAT_LIY();
-            case 2 -> HAT_LIZ();
-            default -> throw new RuntimeException("localId id = " + localThreadIdOp.getDimension());
-        });
-
-    }
-
-    @Override
-    public final T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATLocalSizeOp hatLocalSizeOp) {
-        return (switch (hatLocalSizeOp.getDimension()) {
-            case 0 -> HAT_LSX();
-            case 1 -> HAT_LSY();
-            case 2 -> HAT_LSZ();
-            default -> throw new RuntimeException("localSize id = " + hatLocalSizeOp.getDimension());
-        });
-    }
-
-    @Override
-    public final T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATBlockThreadIdOp hatBlockThreadIdOp) {
-        return (switch (hatBlockThreadIdOp.getDimension()) {
-            case 0 -> HAT_BIX();
-            case 1 -> HAT_BIY();
-            case 2 -> HAT_BIZ();
-            default -> throw new RuntimeException("blockId id = " + hatBlockThreadIdOp.getDimension());
-        });
     }
 
     public final T kernelDeclaration(CoreOp.FuncOp funcOp) {

@@ -39,15 +39,7 @@ public interface HATOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T>> extends
 
     T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
 
-    T hatGlobalThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATGlobalThreadIdOp hatGlobalThreadIdOp);
-
-    T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATGlobalSizeOp hatGlobalSizeOp);
-
-    T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATLocalThreadIdOp hatLocalThreadIdOp);
-
-    T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATLocalSizeOp hatLocalSizeOp);
-
-    T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp.HATBlockThreadIdOp hatBlockThreadIdOp);
+    T hatThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp hatThreadOp);
 
     T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarOp hatVectorVarOp);
 
@@ -95,11 +87,7 @@ public interface HATOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T>> extends
                 case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp(buildContext, $);
                 case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
                 case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp(buildContext, $);
-                case HATThreadOp.HATGlobalThreadIdOp $ -> hatGlobalThreadIdOp(buildContext, $);
-                case HATThreadOp.HATGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
-                case HATThreadOp.HATLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
-                case HATThreadOp.HATLocalSizeOp $ -> hatLocalSizeOp(buildContext, $);
-                case HATThreadOp.HATBlockThreadIdOp $ -> hatBlockThreadIdOp(buildContext, $);
+                case HATThreadOp $ -> hatThreadIdOp(buildContext, $);
                 case HATVectorOp.HATVectorVarOp $ -> hatVectorVarOp(buildContext, $);
                 case HATVectorOp.HATVectorStoreView $ -> hatVectorStoreOp(buildContext, $);
                 case HATVectorOp.HATVectorBinaryOp $ -> hatBinaryVectorOp(buildContext, $);
