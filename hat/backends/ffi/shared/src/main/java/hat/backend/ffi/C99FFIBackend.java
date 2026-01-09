@@ -206,7 +206,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
-        var here = CallSite.of(C99FFIBackend.class, "createCode");
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -304,7 +303,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {
-                IO.println("Original");
+                IO.println("Non Lowered");
                 IO.println(kernelCallGraph.entrypoint.funcOp().toText());
             }
             if (config().showLoweredKernelModel()) {

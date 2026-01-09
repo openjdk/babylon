@@ -29,143 +29,289 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.ops.Precedence;
 
 import java.util.List;
 import java.util.Map;
 
-public abstract sealed class HATThreadOp extends HATOp implements Precedence.LoadOrConv
-        permits HATThreadOp.HATBlockThreadIdOp, HATThreadOp.HATGlobalSizeOp, HATThreadOp.HATGlobalThreadIdOp, HATThreadOp.HATLocalSizeOp, HATThreadOp.HATLocalThreadIdOp {
-   final  private String name;
-   final  private TypeElement resultType;
-   final  private int dimension;
+public abstract sealed class HATThreadOp extends HATOp implements Dim,  Precedence.LoadOrConv
+        permits HATThreadOp.HAT_BI, HATThreadOp.HAT_GS, HATThreadOp.HAT_GI, HATThreadOp.HAT_LS, HATThreadOp.HAT_LI {
 
-    public HATThreadOp(String name, TypeElement resultType,int dimension, List<Value> operands) {
+    public HATThreadOp( List<Value> operands) {
         super(operands);
-        this.name = name;
-        this.resultType = resultType;
-        this.dimension = dimension;
     }
 
     protected HATThreadOp(HATThreadOp that, CodeContext cc) {
         super(that, cc);
-        this.name =that.name;
-        this.resultType = that.resultType;
-        this.dimension = that.dimension;
     }
-
-    public int getDimension() {
-        return dimension;
-    }
-
 
     @Override
     final public TypeElement resultType() {
-        return resultType;
+        return JavaType.INT;
+    }
+  //  @Override
+  //  final public Map<String, Object> externalize() {
+    //    return Map.of("hat.dialect." + getClass().getSimpleName(), "");
+   // }
+
+
+    public static HATThreadOp create(String name){
+        return switch (name){
+            case "gix"->  new HATThreadOp.HAT_GI.HAT_GIX();
+            case "giy"->  new HATThreadOp.HAT_GI.HAT_GIY();
+            case "giz"->  new HATThreadOp.HAT_GI.HAT_GIZ();
+            case "gsx"->  new HATThreadOp.HAT_GS.HAT_GSX();
+            case "gsy"->  new HATThreadOp.HAT_GS.HAT_GSY();
+            case "gsz"->  new HATThreadOp.HAT_GS.HAT_GSZ();
+            case "lix"->  new HATThreadOp.HAT_LI.HAT_LIX();
+            case "liy"->  new HATThreadOp.HAT_LI.HAT_LIY();
+            case "liz"->  new HATThreadOp.HAT_LI.HAT_LIZ();
+            case "lsx"->  new HATThreadOp.HAT_LS.HAT_LSX();
+            case "lsy"->  new HATThreadOp.HAT_LS.HAT_LSY();
+            case "lsz"->  new HATThreadOp.HAT_LS.HAT_LSZ();
+            case "bix"->  new HATThreadOp.HAT_BI.HAT_BIX();
+            case "biy"->  new HATThreadOp.HAT_BI.HAT_BIY();
+            case "biz"->  new HATThreadOp.HAT_BI.HAT_BIZ();
+            default -> throw  new RuntimeException("what is this ?");
+        };
     }
 
-    @Override
-    final public Map<String, Object> externalize() {
-        return Map.of("hat.dialect." + name, this.getDimension());
-    }
+    public static sealed abstract class HAT_LI extends HATThreadOp  permits HAT_LI.HAT_LIX, HAT_LI.HAT_LIY, HAT_LI.HAT_LIZ {
 
-    public static final class HATLocalThreadIdOp extends HATThreadOp {
-
-        public HATLocalThreadIdOp(int dimension, TypeElement resultType) {
-            super("LocalThreadId",resultType,dimension, List.of());
+        public HAT_LI() {
+            super(List.of());
         }
 
-        public HATLocalThreadIdOp(HATLocalThreadIdOp op, CodeContext copyContext) {
+        public HAT_LI(HAT_LI op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATLocalThreadIdOp(this, copyContext);
+        public static final class HAT_LIX extends HAT_LI implements Dim.X{
+            public HAT_LIX(HAT_LIX op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_LIX() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_LIX(this, copyContext);
+            }
+        }
+        public static final class HAT_LIY extends HAT_LI implements Dim.Y{
+            public HAT_LIY(HAT_LIY op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_LIY() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_LIY(this, copyContext);
+            }
+        }
+        public static final class HAT_LIZ extends HAT_LI implements Dim.Z{
+            public HAT_LIZ(HAT_LI op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_LIZ() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_LIZ(this, copyContext);
+            }
         }
 
-        public static HATLocalThreadIdOp of(int dimension, TypeElement resultType){
-            return new HATLocalThreadIdOp(dimension,resultType);
-        }
     }
 
-    public static final class HATBlockThreadIdOp extends HATThreadOp {
-        public HATBlockThreadIdOp(int dimension, TypeElement resultType) {
-            super("BlockThreadId", resultType,dimension, List.of());
+    public static abstract sealed class HAT_BI extends HATThreadOp {
+        public HAT_BI() {
+            super(List.of());
         }
 
-        public HATBlockThreadIdOp(HATBlockThreadIdOp op, CodeContext copyContext) {
+        public HAT_BI(HAT_BI op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATBlockThreadIdOp(this, copyContext);
+        public static final class HAT_BIX extends HAT_BI implements Dim.X{
+            public HAT_BIX(HAT_BI op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_BIX() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_BIX(this, copyContext);
+            }
         }
-
-
-        public static HATBlockThreadIdOp of(int dimension, TypeElement resultType){
-            return new HATBlockThreadIdOp(dimension,resultType);
+        public static final class HAT_BIY extends HAT_BI implements Dim.Y{
+            public HAT_BIY(HAT_BI op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_BIY() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_BIY(this, copyContext);
+            }
         }
-    }
-
-    public static final class HATLocalSizeOp extends HATThreadOp {
-
-        public HATLocalSizeOp(int dimension, TypeElement resultType) {
-            super("GlobalThreadSize",resultType,dimension, List.of());
-        }
-
-        public HATLocalSizeOp(HATLocalSizeOp op, CodeContext copyContext) {
-            super(op, copyContext);
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATLocalSizeOp(this, copyContext);
-        }
-
-        public static HATThreadOp of(int dimension, TypeElement resultType){
-            return new HATLocalSizeOp(dimension, resultType);
-        }
-    }
-
-    public static final class HATGlobalThreadIdOp extends HATThreadOp {
-
-        public HATGlobalThreadIdOp(int dimension, TypeElement resultType) {
-            super("GlobalThreadId",resultType,dimension, List.of());
-        }
-
-        public HATGlobalThreadIdOp(HATGlobalThreadIdOp op, CodeContext copyContext) {
-            super(op, copyContext);
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATGlobalThreadIdOp(this, copyContext);
-        }
-
-        public static HATGlobalThreadIdOp of(int dimension, TypeElement resultType){
-            return new HATGlobalThreadIdOp(dimension, resultType);
+        public static final class HAT_BIZ extends HAT_BI implements Dim.Z{
+            public HAT_BIZ(HAT_BI op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_BIZ() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_BIZ(this, copyContext);
+            }
         }
     }
 
-    public static final class HATGlobalSizeOp extends HATThreadOp {
-        public HATGlobalSizeOp(int dimension, TypeElement resultType) {
-            super("GlobalThreadSize",resultType,dimension, List.of());
+    public static abstract sealed class HAT_LS extends HATThreadOp permits HAT_LS.HAT_LSX, HAT_LS.HAT_LSY, HAT_LS.HAT_LSZ {
+
+        public HAT_LS() {
+            super(List.of());
         }
 
-        public HATGlobalSizeOp(HATGlobalSizeOp op, CodeContext copyContext) {
+        public HAT_LS(HAT_LS op, CodeContext copyContext) {
+            super(op, copyContext);
+        }
+        public static final class HAT_LSX extends HAT_LS implements Dim.X{
+            public HAT_LSX(HAT_LS op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_LSX() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_LSX(this, copyContext);
+            }
+        }
+        public static final class HAT_LSY extends HAT_LS implements Dim.Y{
+            public HAT_LSY(HAT_LS op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_LSY() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_LSY(this, copyContext);
+            }
+        }
+        public static final class HAT_LSZ extends HAT_LS implements Dim.Z{
+            public HAT_LSZ(HAT_LS op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_LSZ() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_LSZ(this, copyContext);
+            }
+        }
+    }
+
+    public static abstract sealed class HAT_GI extends HATThreadOp
+            permits HAT_GI.HAT_GIX, HAT_GI.HAT_GIY, HAT_GI.HAT_GIZ {
+
+        public HAT_GI() {
+            super(List.of());
+        }
+
+        public HAT_GI(HAT_GI op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATGlobalSizeOp(this, copyContext);
+        public static final class HAT_GIX extends HAT_GI implements Dim.X{
+            public HAT_GIX(HAT_GI op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_GIX() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_GIX(this, copyContext);
+            }
+        }
+        public static final class HAT_GIY extends HAT_GI implements Dim.Y{
+            public HAT_GIY(HAT_GI op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_GIY() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_GIY(this, copyContext);
+            }
+        }
+        public static final class HAT_GIZ extends HAT_GI implements Dim.Z{
+            public HAT_GIZ(HAT_GI op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_GIZ() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_GIZ(this, copyContext);
+            }
+        }
+    }
+
+    public static abstract sealed class HAT_GS extends HATThreadOp permits HAT_GS.HAT_GSY, HAT_GS.HAT_GSX, HAT_GS.HAT_GSZ {
+        public HAT_GS() {
+            super( List.of());
+        }
+        public HAT_GS(HAT_GS op, CodeContext copyContext) {
+            super(op, copyContext);
         }
 
-
-        static public HATGlobalSizeOp of(int dimension, TypeElement resultType){
-            return new HATGlobalSizeOp(dimension,resultType);
+        public static final class HAT_GSX extends HAT_GS implements Dim.X{
+            public HAT_GSX(HAT_GS op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_GSX() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_GSX(this, copyContext);
+            }
+        }
+        public static final class HAT_GSY extends HAT_GS implements Dim.Y{
+            public HAT_GSY(HAT_GS op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_GSY() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_GSY(this, copyContext);
+            }
+        }
+        public static final class HAT_GSZ extends HAT_GS implements Dim.Z{
+            public HAT_GSZ(HAT_GS op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+            public HAT_GSZ() {
+                super();
+            }
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HAT_GSZ(this, copyContext);
+            }
         }
     }
 }

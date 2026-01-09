@@ -57,11 +57,22 @@ public class HATTier implements  LookupCarrier {
         hatPhases.add(new HATMemoryPhase.DeviceTypePhase(kernelCallGraph));
 
         // ID's /thread access
-        hatPhases.add(new HATThreadsPhase.GlobalIdPhase(kernelCallGraph));
-        hatPhases.add(new HATThreadsPhase.GlobalSizePhase(kernelCallGraph));
-        hatPhases.add(new HATThreadsPhase.LocalIdPhase(kernelCallGraph));
-        hatPhases.add(new HATThreadsPhase.LocalSizePhase(kernelCallGraph));
-        hatPhases.add(new HATThreadsPhase.BlockPhase(kernelCallGraph));
+      /*  hatPhases.add(new HATThreadsPhase.GI_Phase.HAT_GIX(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.GI_Phase.HAT_GIY(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.GI_Phase.HAT_GIZ(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.GS_Phase.HAT_GSX(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.GS_Phase.HAT_GSY(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.GS_Phase.HAT_GSZ(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LI_Phase.HAT_LIX(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LI_Phase.HAT_LIY(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LI_Phase.HAT_LIZ(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LS_Phase.HAT_LSX(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LS_Phase.HAT_LSY(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.LS_Phase.HAT_LSZ(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.BI_Phase.HAT_BIY(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.BI_Phase.HAT_BIZ(kernelCallGraph));
+        hatPhases.add(new HATThreadsPhase.BI_Phase.HAT_BIX(kernelCallGraph)); */
+        hatPhases.add(new HATThreadsPhase(kernelCallGraph));
 
         // views for vector types
         hatPhases.add(new HATVectorPhase.Float4LoadPhase(kernelCallGraph));
