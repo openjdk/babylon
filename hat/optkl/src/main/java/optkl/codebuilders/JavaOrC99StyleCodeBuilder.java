@@ -481,6 +481,14 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
         );
         return self();
     }
+
+    @Override
+    public T blockOp(ScopedCodeBuilderContext buildContext, JavaOp.BlockOp blockOp) {
+      return  brace(_->blockInlineComment("from Java.Block").nl().nlSeparated(OpHelper.Statement.statements(blockOp.body().entryBlock()),
+               statement ->statement(buildContext,statement)
+       ).nl());
+    }
+
     @Override
     public final T lambdaOp(ScopedCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp) {
         braceNlIndented(_-> {

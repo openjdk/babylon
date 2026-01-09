@@ -90,6 +90,7 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T>, SB 
     T arrayLoadOp(SB buildContext, JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp);
     T arrayStoreOp(SB buildContext, JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp);
     T enhancedForOp(SB buildContext, JavaOp.EnhancedForOp enhancedForOp);
+    T blockOp(SB buildContext, JavaOp.BlockOp blockOp);
     default T recurse(SB buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -121,6 +122,7 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T>, SB 
             case JavaOp.ArrayAccessOp.ArrayStoreOp  $ ->  arrayStoreOp(buildContext,$);
             case JavaOp.ArrayAccessOp.ArrayLoadOp  $ ->  arrayLoadOp(buildContext,$);
             case JavaOp.EnhancedForOp $ -> enhancedForOp(buildContext,$);
+            case JavaOp.BlockOp   $ -> blockOp(buildContext,$);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;
