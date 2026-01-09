@@ -234,7 +234,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         Invoke.stream(lookup(),funcOp)
                 .filter(invoke-> is16BitFloat(invoke,Regex.of("value")) && invoke.returns16BitValue())
                 .forEach(invoke -> {
-                    if(invoke.opFromFirstOperandAsResultOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                    if(invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                          && varLoadOp.operands().getFirst() instanceof Op.Result firstOperandsOpResult
                          && firstOperandsOpResult.op() instanceof HATF16Op.HATF16VarOp) {
                              nodesInvolved.addAll(Set.of(invoke.op(),varLoadOp));

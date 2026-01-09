@@ -711,12 +711,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         var invoke = invoke(buildContext.lookup,invokeOp);
         if ( invoke.refIs(MappableIface.class, HAType.class, DeviceType.class)) { // we need a common type
             if (invoke.isInstance() && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
-                if (invoke.operandNAsResultOrThrow(0) instanceof Op.Result instanceResult) {
+                if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc(buildContext, instanceResult,
                             ((Regex.Match)atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
                     );
                 }
-            } else if (invoke.isInstance() && invoke.operandNAsResultOrThrow(0) instanceof Op.Result instance) {
+            } else if (invoke.isInstance() && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
                 parenWhen(
                         invoke.operandCount() > 1
                                 && invoke(buildContext.lookup,instance.op()) instanceof Invoke invoke0
@@ -752,20 +752,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 if (invoke.returnsVoid()) {//   setter
                     switch (invoke.operandCount()) {
                         case 2 -> {
-                            if (invoke.opFromOperandNAsResultOrNull(1) instanceof Op op) {
+                            if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
                                 equals().recurse(buildContext, op);
                             }
                         }
                         case 3-> {
-                            if ( invoke.opFromOperandNAsResultOrThrow(1) instanceof Op op1
-                                    && invoke.opFromOperandNAsResultOrThrow(2) instanceof Op op2) {
+                            if ( invoke.opFromOperandNOrThrow(1) instanceof Op op1
+                                    && invoke.opFromOperandNOrThrow(2) instanceof Op op2) {
                                 sbrace(_ -> recurse(buildContext, op1)).equals().recurse(buildContext, op2);
                             }
                         }
                         default -> throw new IllegalStateException("How ");
                     }
                 } else {
-                    if (invoke.opFromOperandNAsResultOrNull(1) instanceof Op op) {
+                    if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
                         sbrace(_ -> recurse(buildContext, op));
                     }else{
                         // this is just call.

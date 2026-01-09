@@ -71,7 +71,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                            context.mapValue(invoke.returnResult(), binaryResult);
                             replaced.put(invoke.returnResult(), binaryResult);
                             return blockBuilder;
-                        } else if (isBufferArray(invoke.op()) && invoke.firstOperandAsResultOrNull() instanceof Op.Result result) { // ensures we can use iop as key for replaced vvv
+                        } else if (isBufferArray(invoke.op()) && invoke.resultFromFirstOperandOrNull() instanceof Op.Result result) { // ensures we can use iop as key for replaced vvv
                             replaced.put(invoke.returnResult(), result);
                             // map buffer VarOp to its corresponding VarLoadOp
                             bufferVarLoads.put((firstOperandAsResultOrNull(result.op())).op(), (CoreOp.VarAccessOp.VarLoadOp) result.op());
