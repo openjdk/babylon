@@ -488,6 +488,14 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
     }
 
     @Override
+    public T concatOp(ScopedCodeBuilderContext buildContext, JavaOp.ConcatOp concatOp) {
+        return
+                recurse(buildContext, ((Op.Result)concatOp.operands().get(0)).op()).
+        add().recurse(buildContext, ((Op.Result)concatOp.operands().get(1)).op());
+      //  blockInlineComment("concat");
+    }
+
+    @Override
     public final T lambdaOp(ScopedCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp) {
         braceNlIndented(_-> {
             blockInlineComment("LAMBDA");
