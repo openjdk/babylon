@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -64,6 +65,25 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
     static <F extends Op, T extends Op> T copyLocation(F from, T to) {
         to.setLocation(from.location());
         return to;
+    }
+    static Value firstOperandOrNull(Op op) {
+        if (!op.operands().isEmpty()){
+            return op.operands().getFirst();
+        }else {
+           return null;
+        }
+    }
+
+    static Value firstOperandOrThrow(Op op) {
+        if (!op.operands().isEmpty()){
+            return op.operands().getFirst();
+        }else {
+            throw new RuntimeException("Op has no operands");
+        }
+    }
+
+    static List<Value> firstOperandAsListOrEmpty(Op op) {
+        return op.operands().isEmpty() ? List.of() : List.of(op.operands().getFirst());
     }
 
     T op();
@@ -113,6 +133,9 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         return resultFromOperandNOrNull(0);
     }
 
+
+
+
     default Op.Result resultFromOperandNOrThrow(int i){
         if (resultFromOperandNOrNull(i) instanceof Op.Result result){
             return result;
@@ -120,11 +143,22 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             throw new IllegalStateException("Expecting operand "+i+" to be a result");
         }
     }
+    static Op opFromOperandNOrNull(Op op,int i){
+        return resultFromOperandN(op, i) instanceof Op.Result result && result.op() instanceof Op op2 ?op2:null;
+    }
+
     default Op opFromOperandNOrNull(int i){
         return resultFromOperandNOrNull(i) instanceof Op.Result result && result.op() instanceof Op op ?op:null;
     }
     default Op opFromFirstOperandOrNull(){
         return opFromOperandNOrNull(0);
+    }
+    static Op opFromOperandNOrThrow(Op op, int i){
+        if ( opFromOperandNOrNull(op, i)  instanceof Op op1){
+            return op1;
+        }else {
+            throw new IllegalStateException("Expecting operand "+i+" to be a result which yields an Op ");
+        }
     }
     default Op opFromOperandNOrThrow(int i){
         if ( opFromOperandNOrNull(i)  instanceof Op op){
@@ -132,6 +166,13 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         }else {
             throw new IllegalStateException("Expecting operand "+i+" to be a result which yields an Op ");
         }
+    }
+    static Op opFromFirstOperandOrNull(Op op){
+        return opFromOperandNOrNull(op, 0);
+    }
+
+    static Op opFromFirstOperandOrThrow(Op op){
+        return opFromOperandNOrThrow(op, 0);
     }
     default Op opFromFirstOperandOrThrow(){
         return opFromOperandNOrThrow(0);
@@ -157,13 +198,24 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         }
     }
 
-    static Op.Result resultFromOperandN(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
-        return codeElement instanceof Op op && op.operands().size() > n && op.operands().get(n) instanceof Op.Result result ? result : null;
-    }
 
     static Op.Result asResultOrNull(Value operand) {
         return operand instanceof Op.Result result ? result : null;
     }
+    static Op.Result resultFromOperandN(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
+        return codeElement instanceof Op op && op.operands().size() > n && op.operands().get(n) instanceof Op.Result result ? result : null;
+    }
+    static Op.Result resultFromFirstOperandOrNull(jdk.incubator.code.CodeElement<?, ?> codeElement) {
+        return resultFromOperandN(codeElement,0);
+    }
+    static Op.Result resultFromFirstOperandOrThrow(jdk.incubator.code.CodeElement<?, ?> codeElement) {
+        if ( resultFromFirstOperandOrNull(codeElement) instanceof Op.Result result){
+            return result;
+        }else {
+            throw new RuntimeException("Expected result as first operand");
+        }
+    }
+
 
     static Op asOpFromResultOrNull(Value operand) {
         return asResultOrNull(operand) instanceof Op.Result r && r.op() instanceof Op op ? op : null;
@@ -200,6 +252,9 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         }
         default boolean named( String...names){
            return Set.of(names).contains(name());
+        }
+        default boolean namedIgnoreCase( String...names){
+            return Set.of(names).stream().map(String::toLowerCase).collect(Collectors.toSet()).contains(name().toLowerCase());
         }
         default boolean named(Predicate<String> predicate){
             return predicate.test(name());
@@ -459,6 +514,15 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                         typeAndAccesses.add(AccessType.TypeAndAccess.of(parameterAnnotations[i - firstParam], op().operands().get(i)));
                     }
                     return typeAndAccesses;
+                }
+
+                default CoreOp.VarOp varOpFromFirstUseOrThrow(){
+                    var iterator= op().result().uses().iterator();
+                    if (iterator.hasNext() && iterator.next().op() instanceof CoreOp.VarOp varOp) {
+                        return varOp;
+                    }else {
+                        throw new RuntimeException("Expecting first use of invoke to be VarOp");
+                    }
                 }
 
 
