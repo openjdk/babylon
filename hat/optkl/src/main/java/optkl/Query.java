@@ -1,48 +1,21 @@
 package optkl;
 
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.Op;
 import optkl.util.BiMap;
 import optkl.util.carriers.LookupCarrier;
-import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import java.lang.invoke.MethodHandles;
 
-public interface  Query<OH extends OpHelper<?>> extends LookupCarrier {
+public interface  Query<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends LookupCarrier {
 
-    interface Res<Query> {
+    interface Res<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> {
     }
-    Res<Query<OH>> test(CodeElement<?,?> ce);
+    Res<O,OH,Q> test(CodeElement<?,?> ce);
 
-    interface Fail<OH extends OpHelper<?>> extends Res<OH>{
+    interface Fail<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
     }
-    interface Match<OH extends OpHelper<?>> extends Res<OH>{
-        Query<OH> query();
+    interface Match<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
+        Q query();
         OH helper();
-        Match<OH> remap(BiMap<CodeElement<?,?>, CodeElement<?,?>> biMap);
-    }
-    interface InvokeQuery<OH extends Invoke> extends Query<OH>{
-        record Impl<OH extends Invoke>(Query<OH> query, OH helper) implements Match<OH> {
-            @Override
-            public Match<OH> remap(BiMap<CodeElement<?, ?>, CodeElement<?, ?>> biMap) {
-                return new Impl<>(query, null);
-            }
-        }
-        static <OH extends Invoke>InvokeQuery<OH> create(MethodHandles.Lookup lookup){
-            return new InvokeQuery<>() {
-                @Override
-                public MethodHandles.Lookup lookup(){
-                    return lookup;
-                }
-                @Override
-                public Res<Query<OH>> test(CodeElement<?, ?> ce) {
-                    if (ce instanceof JavaOp.InvokeOp invokeOp) {
-                        Invoke invoke =Invoke.invoke(lookup,invokeOp);
-                        return  new Impl<>((InvokeQuery)this,invoke);
-                    }else{
-                        return new Fail() {};
-                    }
-                }
-            };
-        }
+        Match<O,OH,Q> remap(BiMap<CodeElement<?,?>, CodeElement<?,?>> biMap);
     }
 }

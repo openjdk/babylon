@@ -24,30 +24,16 @@
  */
 package experiments;
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
-import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.Query;
-import optkl.Trxfmr;
-import optkl.codebuilders.JavaCodeBuilder;
-import optkl.util.Regex;
+import optkl.InvokeQuery;
 
-import java.io.PrintStream;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.Comparator;
-import java.util.List;
-import java.util.SequencedSet;
-import java.util.TreeSet;
 
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.asOpFromResultOrNull;
 
 public class Queries {
 
@@ -67,10 +53,10 @@ public class Queries {
         Method m = Queries.class.getDeclaredMethod("m", int.class, int.class);
         CoreOp.FuncOp mModel = Op.ofMethod(m).orElseThrow();
 
-        var query = Query.InvokeQuery.create(lookup);
+        var query = InvokeQuery.create(lookup);
         Invoke.stream(lookup,mModel).forEach(invoke->{
-            if (query.test(invoke.op()) instanceof Query.InvokeQuery.Match<?> match){
-                System.out.println(((Invoke)match.helper()).name());
+            if (query.test(invoke.op()) instanceof InvokeQuery.Match<JavaOp.InvokeOp,Invoke,InvokeQuery> match){
+                System.out.println(match.helper().name());
             }else{
                 System.out.println("failed");
             }
