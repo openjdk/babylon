@@ -28,7 +28,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.InvokeQuery;
+import optkl.MappedIfaceBufferInvokeQuery;
+import optkl.Query;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -36,7 +37,6 @@ import java.lang.reflect.Method;
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 
 public class Queries {
-
     @Reflect
     static int m(int a, int b) {
         a += 2;
@@ -47,18 +47,15 @@ public class Queries {
         return a + b;
     }
 
-
     public static void main(String[] args) throws Throwable {
         var lookup = MethodHandles.lookup();
         Method m = Queries.class.getDeclaredMethod("m", int.class, int.class);
         CoreOp.FuncOp mModel = Op.ofMethod(m).orElseThrow();
 
-        var query = InvokeQuery.create(lookup);
+        var query = MappedIfaceBufferInvokeQuery.create(lookup);
         Invoke.stream(lookup,mModel).forEach(invoke->{
-            if (query.test(invoke.op()) instanceof InvokeQuery.Match<JavaOp.InvokeOp,Invoke,InvokeQuery> match){
+            if (query.test(invoke.op()) instanceof Query.Match<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> match){
                 System.out.println(match.helper().name());
-            }else{
-                System.out.println("failed");
             }
         });
 

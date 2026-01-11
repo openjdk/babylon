@@ -26,29 +26,33 @@ package optkl;
 
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 import optkl.util.BiMap;
 
 import java.lang.invoke.MethodHandles;
-import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 
-public interface InvokeQuery extends Query<JavaOp.InvokeOp,Invoke,InvokeQuery> {
-    record Impl(MethodHandles.Lookup lookup) implements InvokeQuery {
+public interface MappedIfaceBufferInvokeQuery extends Query<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> {
+    interface OK extends Match<JavaOp.InvokeOp, Invoke, MappedIfaceBufferInvokeQuery>{
+         boolean mutatesBuffer();
+    }
+    record Impl(MethodHandles.Lookup lookup) implements MappedIfaceBufferInvokeQuery {
         @Override
-        public Res<JavaOp.InvokeOp,Invoke,InvokeQuery> test(CodeElement<?, ?> ce) {
-            if (Invoke.invoke(lookup,ce) instanceof Invoke invoke) {
-                record  MatchImpl (InvokeQuery query, Invoke helper) implements Match<JavaOp.InvokeOp,Invoke,InvokeQuery>{
-                    @Override
-                    public Match<JavaOp.InvokeOp,Invoke,InvokeQuery> remap(BiMap<CodeElement<?, ?>, CodeElement<?, ?>> biMap) {
-                        return  new MatchImpl(MatchImpl.this.query,Invoke.invoke(query().lookup(), biMap.getTo(MatchImpl.this.helper.op())));
+        public Res<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> test(CodeElement<?, ?> ce) {
+            if (Invoke.invoke(lookup, ce) instanceof Invoke invoke) {
+                if (invoke.isInstance() && invoke.returns(MappedIfaceBufferInvokeQuery.class) || invoke.returnsPrimitive()){
+                    record MatchImpl(MappedIfaceBufferInvokeQuery query, Invoke helper, boolean mutatesBuffer) implements OK{
+                        @Override
+                        public Match<JavaOp.InvokeOp, Invoke, MappedIfaceBufferInvokeQuery> remap(BiMap<CodeElement<?, ?>, CodeElement<?, ?>> biMap) {
+                            return new MatchImpl(MatchImpl.this.query, Invoke.invoke(query().lookup(), biMap.getTo(MatchImpl.this.helper.op())),MatchImpl.this.mutatesBuffer);
+                        }
                     }
+                    return new MatchImpl(this, invoke, invoke.returnsVoid());
                 }
-                return new  MatchImpl(this,invoke);
-            } else {
-                return Query.FAILED;
             }
+            return Query.FAILED;
         }
     }
-    static InvokeQuery create(MethodHandles.Lookup lookup) {
+    static MappedIfaceBufferInvokeQuery create(MethodHandles.Lookup lookup) {
          return new Impl(lookup);
     }
 }

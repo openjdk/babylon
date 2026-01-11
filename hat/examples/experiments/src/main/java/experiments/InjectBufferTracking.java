@@ -34,6 +34,7 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.MappedIfaceBufferInvokeQuery;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.ifacemapper.AccessType;
@@ -46,7 +47,7 @@ import java.util.List;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 
 public class InjectBufferTracking {
 
@@ -62,7 +63,7 @@ public class InjectBufferTracking {
 
         int l = s32Array.length();
 
-        System.out.println("l = "+l);
+        System.out.println("l = " + l);
 
         for (int i = 0; i < n; i++) {
             cc.dispatchKernel(NDRange.of1D(len), kc -> inc(kc, s32Array, len));
@@ -70,29 +71,30 @@ public class InjectBufferTracking {
         }
     }
 
-    static Block.Parameter getFuncParamOrNull(Op op, int n){
+    static Block.Parameter getFuncParamOrNull(Op op, int n) {
         while (op != null && !(op instanceof CoreOp.FuncOp)) {
             System.out.println(op);
             op = op.ancestorOp();
         }
         if (op instanceof CoreOp.FuncOp funcOp) {
             return funcOp.bodies().get(0).entryBlock().parameters().get(n);
-        }else{
+        } else {
             return null;
         }
     }
 
-    static Block.Parameter getFuncParamOrThrow(Op op, int n){
-        if (getFuncParamOrNull(op, n) instanceof Block.Parameter parameter){
+    static Block.Parameter getFuncParamOrThrow(Op op, int n) {
+        if (getFuncParamOrNull(op, n) instanceof Block.Parameter parameter) {
             return parameter;
-        }else {
-            throw new IllegalStateException("cant find func parameter parameter "+n);
+        } else {
+            throw new IllegalStateException("cant find func parameter parameter " + n);
         }
     }
 
 
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
+        var mappedIfaceBufferInvokeQuery = MappedIfaceBufferInvokeQuery.create(lookup);
         var addMethod = Op.ofMethod(
                 InjectBufferTracking.class.getDeclaredMethod("add", ComputeContext.class, S32Array.class, int.class, int.class)
         ).orElseThrow();
@@ -100,16 +102,15 @@ public class InjectBufferTracking {
                 .toText("COMPUTE before injecting buffer tracking...")
                 .toJava("COMPUTE (Java) before injecting buffer tracking...")
                 .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    var invoke = invoke(lookup, c.op());
-                    if (invoke.isMappableIface() && (invoke.returns(MappableIface.class) || invoke.returnsPrimitive())) {
-                        Value computeContext =c.getValue(getFuncParamOrThrow(invoke.op(),0));
-                        Value ifaceMappedBuffer = c.mappedOperand(0);
-                        c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
-                        c.retain();
-                        c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
-                    } else if (!invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
+                    if (mappedIfaceBufferInvokeQuery.test(c.op()) instanceof MappedIfaceBufferInvokeQuery.OK match) {
+                       Value computeContext = c.getValue(getFuncParamOrThrow(match.helper().op(), 0));
+                       Value ifaceMappedBuffer = c.mappedOperand(0);
+                       c.add(JavaOp.invoke(match.mutatesBuffer()? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
+                       c.retain();
+                       c.add(JavaOp.invoke(match.mutatesBuffer()? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
+                    } else if (Invoke.invoke(lookup, c.op()) instanceof Invoke invoke && !invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
                         List<AccessType.TypeAndAccess> typeAndAccesses = invoke.paramaterAccessList();
-                        Value computeContext =c.getValue(getFuncParamOrThrow(invoke.op(),0));// c.getValue(invoke.op().operands().getFirst());
+                        Value computeContext = c.getValue(getFuncParamOrThrow(invoke.op(), 0));// c.getValue(invoke.op().operands().getFirst());
                         typeAndAccesses.stream()
                                 .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
                                 .forEach(typeAndAccess ->
