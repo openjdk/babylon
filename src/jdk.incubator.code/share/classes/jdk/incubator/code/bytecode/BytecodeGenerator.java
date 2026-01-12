@@ -166,12 +166,7 @@ public final class BytecodeGenerator {
     public static byte[] generateClassData(MethodHandles.Lookup lookup,
                                            ClassDesc clName,
                                            ModuleOp mop) {
-        try {
         return generateClassData(lookup, clName, mop.functionTable());
-        } catch (Exception e) {
-            System.out.println(mop.toText());
-            throw e;
-        }
     }
 
     /**
