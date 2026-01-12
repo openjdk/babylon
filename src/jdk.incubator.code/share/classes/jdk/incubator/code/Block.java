@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,8 +54,8 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         @Override
-        public Set<Value> dependsOn() {
-            return Set.of();
+        public SequencedSet<Value> dependsOn() {
+            return Collections.emptyNavigableSet();
         }
 
         /**
@@ -282,7 +282,8 @@ public final class Block implements CodeElement<Block, Op> {
      * Returns the set of predecessors, the set containing each block in the parent
      * body that refers to this block as a successor.
      *
-     * @return the set of predecessors, as an unmodifiable set.
+     * @return the set of predecessors, as an unmodifiable sequenced set. The encouncter order is unspecified
+     * and determined by the order in which operations are built.
      * @apiNote A block may refer to itself as a successor and therefore also be its predecessor.
      */
     public SequencedSet<Block> predecessors() {
