@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -248,7 +248,8 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends JavaOrC99Style
     public final T unionBfloat16() {
         return typedefUnion("BFLOAT16_UNION", _ -> {
             typeName("float").space().identifier("f").semicolon().nl();
-            u16Type("s").sizeArray(2).semicolon();
+            u16Type("s").sizeArray(2).semicolon().nl();
+            u32Type("i").semicolon();
         });
     }
 
@@ -265,6 +266,16 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends JavaOrC99Style
     public final T call(Consumer<T> name,Consumer<T> ...args) {
         name.accept(self());
         return paren(_->commaSpaceSeparated(args));
+    }
+
+    public final T ifTrueCondition(Consumer<T> condition, Consumer<T> ... trueStatements) {
+        return ifKeyword().space().paren( _-> condition.accept(self())).space().brace( _ ->
+                nl().indent( _ -> {
+                    for (Consumer<T> statement : trueStatements) {
+                        statement.accept(self());
+                        semicolonNl();
+                    }
+                })).nl();
     }
 
     public final T call(String name,Consumer<T> ...args) {

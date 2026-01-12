@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,8 +31,7 @@ import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
-public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends C99CodeBuilder<T>
-        implements BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
+public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends C99CodeBuilder<T> implements BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
     public final T varName(HATMemoryVarOp hatLocalVarOp) {
         identifier(hatLocalVarOp.varName());

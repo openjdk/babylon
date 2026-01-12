@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,33 +26,53 @@ package hat.types;
 
 public interface BF16 extends HAType {
 
-    char value();
-    void value(char value);
+    short value();
+    void value(short value);
 
     static BF16 of(float value) {
         return new BF16() {
             @Override
-            public char value() {
+            public short value() {
                 int bits = Float.floatToRawIntBits(value);
-                bits >>= 16;
-                return (char) bits;
+                short sign_bit = (short)((bits & 0x8000_0000) >> 16);
+
+                // For round to nearest even, determining whether or not to
+                // round up (in magnitude) is a function of the least
+                // significant bit (LSB), the next bit position (the round
+                // position), and the sticky bit (whether there are any
+                // nonzero bits in the exact result to the right of the round
+                // digit). An increment occurs in three cases:
+                //
+                // LSB  Round Sticky
+                // 0    1     1
+                // 1    1     0
+                // 1    1     1
+                // See "Computer Arithmetic Algorithms," Koren, Table 4.9
+
+                int lsb    = bits & 0x1_0000;
+                int round  = bits & 0x0_8000;
+                int sticky = bits & 0x0_7FFF;
+                if (round != 0 && ((lsb | sticky) != 0 )) {
+                    bits += 0x1_0000;
+                }
+                return (short) (((bits >> 16 ) | sign_bit) & 0xffff);
             }
 
             @Override
-            public void value(char value) {
+            public void value(short value) {
             }
         };
     }
 
-    static BF16 of(char value) {
+    static BF16 of(short value) {
         return new BF16() {
             @Override
-            public char value() {
+            public short value() {
                 return value;
             }
 
             @Override
-            public void value(char value) {
+            public void value(short value) {
             }
         };
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,8 +35,8 @@ public interface BF16Array extends Buffer {
     BF16Impl array(long index);
 
     interface BF16Impl extends Struct, BF16 {
-        char value();
-        void value(char value);
+        short value();
+        void value(short value);
     }
 
     Schema<BF16Array> schema = Schema.of(BF16Array.class, bf16array ->
