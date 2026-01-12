@@ -26,25 +26,32 @@ package optkl;
 
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.util.BiMap;
 import optkl.util.carriers.LookupCarrier;
+
+import java.util.function.Predicate;
 
 public interface  Query<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends LookupCarrier {
 
     interface Res<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> {
     }
-    Res<O,OH,Q> test(CodeElement<?,?> ce);
+    default Res<O,OH,Q> matches(CodeElement<?,?> ce){
+        return matches(ce, _->true);
+    }
+    default Res<O,OH,Q> matches(Trxfmr.Cursor cursor){
+        return matches(cursor.op(), _->true);
+    }
+    Res<O,OH,Q> matches(CodeElement<?,?> ce, Predicate<OH> predicate);
 
-    interface Fail extends Res{
+    interface Fail<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
     }
     record  FailImpl() implements Fail{
     }
     Fail FAILED= new FailImpl();
 
-    interface Match<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
+    interface SimpleMatch<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
         Q query();
         OH helper();
-        Match<O,OH,Q> remap(BiMap<CodeElement<?,?>, CodeElement<?,?>> biMap);
+        SimpleMatch<O,OH,Q> remap(BiMap<CodeElement<?,?>, CodeElement<?,?>> biMap);
     }
 }

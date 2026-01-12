@@ -54,7 +54,7 @@ public class Queries {
 
         var query = MappedIfaceBufferInvokeQuery.create(lookup);
         Invoke.stream(lookup,mModel).forEach(invoke->{
-            if (query.test(invoke.op()) instanceof Query.Match<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> match){
+            if (query.matches(invoke.op()) instanceof Query.SimpleMatch<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> match){
                 System.out.println(match.helper().name());
             }
         });
