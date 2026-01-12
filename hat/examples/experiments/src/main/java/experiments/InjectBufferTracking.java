@@ -35,6 +35,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.MappedIfaceBufferInvokeQuery;
+import optkl.MappedIfaceBufferInvokeQuery.Match;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.ifacemapper.AccessType;
@@ -48,7 +49,6 @@ import java.util.List;
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-
 public class InjectBufferTracking {
 
     @Reflect
@@ -102,7 +102,7 @@ public class InjectBufferTracking {
                 .toText("COMPUTE before injecting buffer tracking...")
                 .toJava("COMPUTE (Java) before injecting buffer tracking...")
                 .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    if (mappedIfaceBufferInvokeQuery.test(c.op()) instanceof MappedIfaceBufferInvokeQuery.OK match) {
+                    if (mappedIfaceBufferInvokeQuery.matches(c.op()) instanceof Match match) {
                        Value computeContext = c.getValue(getFuncParamOrThrow(match.helper().op(), 0));
                        Value ifaceMappedBuffer = c.mappedOperand(0);
                        c.add(JavaOp.invoke(match.mutatesBuffer()? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));

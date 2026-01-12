@@ -29,16 +29,21 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.util.BiMap;
 
 import java.lang.invoke.MethodHandles;
+import java.util.function.Predicate;
+
 import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 
 public interface InvokeQuery extends Query<JavaOp.InvokeOp,Invoke,InvokeQuery> {
+    interface Match extends SimpleMatch<JavaOp.InvokeOp, Invoke, InvokeQuery> {
+
+    }
     record Impl(MethodHandles.Lookup lookup) implements InvokeQuery {
         @Override
-        public Res<JavaOp.InvokeOp,Invoke,InvokeQuery> test(CodeElement<?, ?> ce) {
-            if (Invoke.invoke(lookup,ce) instanceof Invoke invoke) {
-                record  MatchImpl (InvokeQuery query, Invoke helper) implements Match<JavaOp.InvokeOp,Invoke,InvokeQuery>{
+        public Res<JavaOp.InvokeOp,Invoke,InvokeQuery> matches(CodeElement<?, ?> ce, Predicate<Invoke> predicate) {
+            if (Invoke.invoke(lookup,ce) instanceof Invoke invoke && predicate.test(invoke)) {
+                record  MatchImpl (InvokeQuery query, Invoke helper) implements Match {
                     @Override
-                    public Match<JavaOp.InvokeOp,Invoke,InvokeQuery> remap(BiMap<CodeElement<?, ?>, CodeElement<?, ?>> biMap) {
+                    public SimpleMatch<JavaOp.InvokeOp,Invoke,InvokeQuery> remap(BiMap<CodeElement<?, ?>, CodeElement<?, ?>> biMap) {
                         return  new MatchImpl(MatchImpl.this.query,Invoke.invoke(query().lookup(), biMap.getTo(MatchImpl.this.helper.op())));
                     }
                 }

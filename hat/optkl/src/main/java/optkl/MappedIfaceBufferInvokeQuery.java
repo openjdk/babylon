@@ -30,25 +30,26 @@ import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 import optkl.util.BiMap;
 
 import java.lang.invoke.MethodHandles;
+import java.util.function.Predicate;
 
 public interface MappedIfaceBufferInvokeQuery extends Query<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> {
-    interface OK extends Match<JavaOp.InvokeOp, Invoke, MappedIfaceBufferInvokeQuery>{
+    interface Match extends SimpleMatch<JavaOp.InvokeOp, Invoke, MappedIfaceBufferInvokeQuery> {
          boolean mutatesBuffer();
     }
     record Impl(MethodHandles.Lookup lookup) implements MappedIfaceBufferInvokeQuery {
         @Override
-        public Res<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> test(CodeElement<?, ?> ce) {
-            if (Invoke.invoke(lookup, ce) instanceof Invoke invoke) {
-                if (invoke.isInstance() && invoke.returns(MappedIfaceBufferInvokeQuery.class) || invoke.returnsPrimitive()){
-                    record MatchImpl(MappedIfaceBufferInvokeQuery query, Invoke helper, boolean mutatesBuffer) implements OK{
+        public Res<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> matches(CodeElement<?, ?> ce, Predicate<Invoke> predicate) {
+            if (Invoke.invoke(lookup, ce) instanceof Invoke invoke && predicate.test(invoke)
+                    && invoke.isInstance() && (invoke.returns(MappedIfaceBufferInvokeQuery.class) || invoke.returnsPrimitive())){
+                    record MatchImpl(MappedIfaceBufferInvokeQuery query, Invoke helper, boolean mutatesBuffer) implements Match{
                         @Override
-                        public Match<JavaOp.InvokeOp, Invoke, MappedIfaceBufferInvokeQuery> remap(BiMap<CodeElement<?, ?>, CodeElement<?, ?>> biMap) {
+                        public SimpleMatch<JavaOp.InvokeOp, Invoke, MappedIfaceBufferInvokeQuery> remap(BiMap<CodeElement<?, ?>, CodeElement<?, ?>> biMap) {
                             return new MatchImpl(MatchImpl.this.query, Invoke.invoke(query().lookup(), biMap.getTo(MatchImpl.this.helper.op())),MatchImpl.this.mutatesBuffer);
                         }
                     }
                     return new MatchImpl(this, invoke, invoke.returnsVoid());
                 }
-            }
+
             return Query.FAILED;
         }
     }
