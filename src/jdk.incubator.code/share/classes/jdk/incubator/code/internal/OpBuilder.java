@@ -33,6 +33,7 @@ import jdk.incubator.code.extern.*;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
@@ -187,7 +188,13 @@ public class OpBuilder {
 
     final Map<TypeElement, Value> typeElementMap;
 
-    final Block.Builder builder;
+    Block.Builder builder;
+
+    final Stack<Block.Builder> lambdaStack = new Stack<>();
+
+    // limit of the operations built by a single method/lambda body
+    static final int OP_LIMIT = 1000;
+    int opCounter = 0;
 
     /**
      * Transform the given code model to one that builds it.
@@ -452,11 +459,25 @@ public class OpBuilder {
         builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
         builder.op(return_(result));
 
+        // return from lambdas on stack
+        while (!lambdaStack.isEmpty()) {
+            var lambdaBuilder = builder;
+            builder = lambdaStack.pop();
+            var l = builder.op(lambda(JavaType.parameterized(JavaType.type(Supplier.class), JavaType.type(Op.class)), lambdaBuilder.parentBody()));
+            builder.op(return_(builder.op(cast(JavaType.type(Op.class), builder.op(invoke(MethodRef.method(Supplier.class, "get", Object.class), l))))));
+        }
+
         return func(name, builder.parentBody());
     }
 
 
     Value buildOp(Value blockBuilder, Value ancestorBody, Op inputOp) {
+        if (++opCounter == OP_LIMIT) {
+            // continue building in a lambda
+            opCounter = 0;
+            lambdaStack.push(builder);
+            builder = Body.Builder.of(builder.parentBody(), functionType(JavaType.type(Supplier.class))).entryBlock();
+        }
         List<Value> bodies = new ArrayList<>();
         for (Body inputBody : inputOp.bodies()) {
             Value body = buildBody(ancestorBody, inputBody);
