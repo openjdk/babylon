@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,7 +45,6 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -249,13 +248,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         @Override
-        public Set<Value> dependsOn() {
-            Set<Value> depends = new LinkedHashSet<>(op.operands());
+        public SequencedSet<Value> dependsOn() {
+            SequencedSet<Value> depends = new LinkedHashSet<>(op.operands());
             if (op instanceof Terminating) {
                 op.successors().stream().flatMap(h -> h.arguments().stream()).forEach(depends::add);
             }
 
-            return Collections.unmodifiableSet(depends);
+            return Collections.unmodifiableSequencedSet(depends);
         }
 
         /**
