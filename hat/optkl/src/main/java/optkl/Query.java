@@ -42,7 +42,9 @@ public interface  Query<O extends Op, OH extends OpHelper<O>, Q extends Query<O,
         return matches(cursor.op(), _->true);
     }
     Res<O,OH,Q> matches(CodeElement<?,?> ce, Predicate<OH> predicate);
-
+    default Res<O,OH,Q> matches(Trxfmr.Cursor cursor, Predicate<OH> predicate){
+        return matches(cursor.op(), predicate);
+    }
     interface Fail<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
     }
     record  FailImpl() implements Fail{
