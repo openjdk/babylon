@@ -194,10 +194,10 @@ public class OpBuilder {
 
     final Stack<Block.Builder> lambdaStack = new Stack<>();
 
-    // limit of the operations built by a single method/lambda body
+    // safe limit of the operations built by a single method/lambda body
     static final int OP_LIMIT = 1000;
-    // limit of types built by a single type builder method
-    static final int TYPE_LIMIT = 1000;
+    // safe limit of types / exterType calls built by a single builder method
+    static final int TYPE_LIMIT = 3000;
 
     int opCounter = 0;
 
@@ -396,13 +396,15 @@ public class OpBuilder {
         */
         List<FuncOp> funcs = new ArrayList<>();
         Iterator<Map.Entry<ExternalizedTypeElement, List<Integer>>> typesEnntryIterator = registeredExterTypes.sequencedEntrySet().iterator();
-        for (int mc = 0; mc <= registeredExterTypes.size() / TYPE_LIMIT; mc++) {
-            String followUpBuilderName = EXTER_TYPE_BUILDER_F_NAME + (mc + 1);
-            funcs.add(func(EXTER_TYPE_BUILDER_F_NAME + (mc > 0 ? mc : ""), EXTER_TYPE_BUILDER_F_TYPE).body(b -> {
+        int methodCounter = 0;
+        do {
+            String followUpBuilderName = EXTER_TYPE_BUILDER_F_NAME + (methodCounter + 1);
+            funcs.add(func(EXTER_TYPE_BUILDER_F_NAME + (methodCounter > 0 ? methodCounter : ""), EXTER_TYPE_BUILDER_F_TYPE).body(b -> {
                 Block.Parameter i = b.parameter(INT);
                 List<Body.Builder> swBodies = new ArrayList<>();
-                for (int counter = 0; counter < TYPE_LIMIT && typesEnntryIterator.hasNext(); counter++) {
+                for (int counter = 0; counter < TYPE_LIMIT && typesEnntryIterator.hasNext();) {
                     Map.Entry<ExternalizedTypeElement, List<Integer>> e = typesEnntryIterator.next();
+                    counter += e.getValue().size();
                     Body.Builder l = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
                     Block.Parameter target = l.entryBlock().parameter(INT);
                     Integer typeIndex = e.getValue().getLast();
@@ -452,7 +454,8 @@ public class OpBuilder {
                 var r = b.op(switchExpression(i, swBodies));
                 b.op(return_(r));
             }));
-        }
+            methodCounter++;
+        } while (typesEnntryIterator.hasNext());
         return funcs;
     }
 
