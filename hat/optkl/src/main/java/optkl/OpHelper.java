@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -84,6 +85,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
 
     static List<Value> firstOperandAsListOrEmpty(Op op) {
         return op.operands().isEmpty() ? List.of() : List.of(op.operands().getFirst());
+    }
+    static CoreOp.FuncOp methodModelOrNull(Method method) {
+        return CoreOp.FuncOp.ofMethod(method).orElse(null);
+    }
+
+    static CoreOp.FuncOp methodModelOrThrow(Method method) {
+
+        if (methodModelOrNull(method) instanceof CoreOp.FuncOp funcOp) {
+            return funcOp;
+        }else{
+            throw  new RuntimeException("No funcop/method model for "+method+ " did you forget @Reflec");
+        }
     }
 
     T op();
@@ -316,6 +329,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             default boolean isInstanceAccessedViaVarAccess(){
                 return instanceVarAccess()!=null;
             }
+
+            default Class<?> refClass(){
+                return (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(),(ClassType) op().operands().getFirst().type());
+            }
+
             sealed interface FieldAccess extends NamedStaticOrInstance<JavaOp.FieldAccessOp> {
 
                 @Override
@@ -411,10 +429,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
 
                 default boolean receives(Class<?>... classes) {
                     boolean assignable = true;
-                    for (int i = isStatic() ? 1 : 0; assignable && i < classes.length; i++) {
-                        var operand = op().operands().get(i);
-                        TypeElement resultType = operand.type() instanceof VarType varType ? varType.valueType() : null;
-                        assignable &= isAssignable((JavaType) resultType, classes[i - (isStatic() ? 1 : 0)]);
+                    if (isInstance()){
+                        for (int i =  0; assignable && i < classes.length && i< op().operands().size()-1; i++) {
+                            var operand = op().operands().get(i+1);
+                            TypeElement resultType = operand.type() ;//instanceof VarType varType ? varType.valueType() : null;
+                            assignable &= isAssignable((JavaType) resultType, classes[i]);
+                        }
+                    }else{
+                        for (int i = 0; assignable && i < classes.length; i++) {
+                            var operand = op().operands().get(i);
+                            TypeElement resultType = operand.type() instanceof VarType varType ? varType.valueType() : null;
+                            assignable &= isAssignable((JavaType) resultType, classes[i]);
+                        }
                     }
                     return assignable;
                 }
@@ -523,6 +549,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                     }else {
                         throw new RuntimeException("Expecting first use of invoke to be VarOp");
                     }
+                }
+
+                default CoreOp.FuncOp targetMethodModelOrThrow(){
+                    Method method = resolveMethodOrNull();
+                    return OpHelper.methodModelOrThrow(method);
                 }
 
 

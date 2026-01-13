@@ -37,7 +37,7 @@ public class StreamMutable<R> {
       return setIf(true, value);
     }
     public boolean eq(R r){
-        return r.equals(value);
+        return value == null && r == null  || r.equals(value);
     }
     private StreamMutable(){}
     static public <R> StreamMutable<R> of(R value){
