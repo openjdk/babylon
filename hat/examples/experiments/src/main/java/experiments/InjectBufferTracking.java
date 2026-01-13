@@ -95,10 +95,8 @@ public class InjectBufferTracking {
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
         var mappedIfaceBufferInvokeQuery = MappedIfaceBufferInvokeQuery.create(lookup);
-        var addMethod = Op.ofMethod(
-                InjectBufferTracking.class.getDeclaredMethod("add", ComputeContext.class, S32Array.class, int.class, int.class)
-        ).orElseThrow();
-        Trxfmr.of(lookup, addMethod)
+        Trxfmr.of(lookup,
+                        InjectBufferTracking.class,"add",ComputeContext.class, S32Array.class, int.class, int.class)
                 .toText("COMPUTE before injecting buffer tracking...")
                 .toJava("COMPUTE (Java) before injecting buffer tracking...")
                 .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
