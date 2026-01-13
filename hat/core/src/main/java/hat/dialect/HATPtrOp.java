@@ -51,6 +51,7 @@ public abstract sealed class HATPtrOp extends HATOp
                             .stream()
                             .map(fieldNode -> fieldNode.name)
                             .toList();
+                    // remove the "array" field from the fields
                     if (!retValue.isEmpty()) retValue = retValue.subList(0, retValue.size() - 1); // is this intended to drop the last one?
                 }
             } catch (IllegalAccessException | NoSuchFieldException e) {
