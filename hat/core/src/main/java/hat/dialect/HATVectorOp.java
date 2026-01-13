@@ -63,7 +63,7 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         this.vectorN = that.vectorN;
         this.vectorElementType = that.vectorElementType;
     }
-   // @Override
+    @Override
     final public String varName() {
         return varName;
     }

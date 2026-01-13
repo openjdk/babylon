@@ -25,12 +25,20 @@
 package optkl.codebuilders;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import optkl.OpHelper;
 
 import java.lang.invoke.MethodHandles;
 
 public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends JavaOrC99StyleCodeBuilder<T> implements BabylonOpDispatcher<T,ScopedCodeBuilderContext> {
-
+    @Override
+    public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
+        // lets do equiv of SimpleName
+        String longName = javaType.toString();
+        int lastIdx = Math.max(longName.lastIndexOf('$'),longName.lastIndexOf('.'));
+        String shortName  = lastIdx>0?longName.substring(lastIdx+1):longName;
+        return typeName(shortName);
+    }
 
     public T createJava(ScopedCodeBuilderContext buildContext) {
         buildContext.funcScope(buildContext.funcOp, () -> {
