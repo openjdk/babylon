@@ -25,43 +25,50 @@
 package hat.phases;
 
 
-import hat.KernelContext;
+
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
 import jdk.incubator.code.CodeElement;
+import optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.util.Regex;
+import hat.phases.KernelContextThreadIdFieldAccessQuery.Match;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
-import static optkl.OpHelper.Named.VarAccess;
-
 public record HATThreadsPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
-
-    private static final Regex allfieldNameRegex = Regex.of("[glb][si]([xyz])");
-
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        Set<CodeElement<?, ?>> removeMe = new HashSet<>();
+        Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
+        var query = KernelContextThreadIdFieldAccessQuery.create(lookup()); // This Query matches kc->[glb][is][xyz] calls
         return Trxfmr.of(this, funcOp)
-                .transform(ce -> ce instanceof JavaOp.FieldAccessOp, c -> { // We care about field accesses
-                    if (fieldAccess(lookup(), c.op()) instanceof FieldAccess fieldAccess // get a FieldAccessHelper
-                            && fieldAccess.refType(KernelContext.class)
-                            && fieldAccess.isLoad()
-                            && fieldAccess.named(allfieldNameRegex)
-                            && fieldAccess.instanceVarAccess() instanceof VarAccess varAccess) {
-                        removeMe.add(varAccess.op());// We will remove in the next transform (see removeme)
-                        c.replace(HATThreadOp.create(fieldAccess.name()));
+                .transform( c -> {
+                    if (query.matches(c) instanceof Match match && match.helper() instanceof FieldAccess fieldAccess){
+                        varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());  // the var access will be removed the next transform
+                        c.replace(switch (fieldAccess.name()){
+                            case "gix"->  new HATThreadOp.HAT_GI.HAT_GIX();
+                            case "giy"->  new HATThreadOp.HAT_GI.HAT_GIY();
+                            case "giz"->  new HATThreadOp.HAT_GI.HAT_GIZ();
+                            case "gsx"->  new HATThreadOp.HAT_GS.HAT_GSX();
+                            case "gsy"->  new HATThreadOp.HAT_GS.HAT_GSY();
+                            case "gsz"->  new HATThreadOp.HAT_GS.HAT_GSZ();
+                            case "lix"->  new HATThreadOp.HAT_LI.HAT_LIX();
+                            case "liy"->  new HATThreadOp.HAT_LI.HAT_LIY();
+                            case "liz"->  new HATThreadOp.HAT_LI.HAT_LIZ();
+                            case "lsx"->  new HATThreadOp.HAT_LS.HAT_LSX();
+                            case "lsy"->  new HATThreadOp.HAT_LS.HAT_LSY();
+                            case "lsz"->  new HATThreadOp.HAT_LS.HAT_LSZ();
+                            case "bix"->  new HATThreadOp.HAT_BI.HAT_BIX();
+                            case "biy"->  new HATThreadOp.HAT_BI.HAT_BIY();
+                            case "biz"->  new HATThreadOp.HAT_BI.HAT_BIZ();
+                            default -> throw  new RuntimeException("what is this ?");
+                        });
                     }
                 })
-                .remap(removeMe)
-                .remove(removeMe::contains)
+                .remap(varAccessesToBeRemoved)                // after this transform this set needs to be replaced with new op references
+                .remove(varAccessesToBeRemoved::contains)     // now we can transform again and remove everything in the remove me set
                 .funcOp();
     }
 }

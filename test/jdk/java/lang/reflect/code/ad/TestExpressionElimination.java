@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,7 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.*;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;

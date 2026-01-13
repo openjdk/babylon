@@ -28,23 +28,25 @@ import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.InvokeQuery;
+import optkl.InvokeQuery.Match;
 import optkl.Trxfmr;
 
 import java.util.HashSet;
 import java.util.Set;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
          Set<CodeElement<?,?>> removeMe = new HashSet<>();
+         var invokeQuery = InvokeQuery.create(lookup());
          return Trxfmr.of(this,funcOp).transform(c-> {
-                         if (invoke(lookup(),c.op()) instanceof Invoke invoke
-                                 && invoke.isInstanceAccessedViaVarAccess()
-                                 && invoke.named(HATBarrierOp.NAME)
+                         if (invokeQuery.matches(c.op(), $->//
+                                 $.isInstanceAccessedViaVarAccess()                  // we are called via var kc such as kc->XX()
+                              && $.named(HATBarrierOp.NAME)) instanceof Match match  // and the method name is `barrier`
+                              && match.helper().instanceVarAccess().op() instanceof CoreOp.VarAccessOp varAccess
                          ){
-                             removeMe.add(invoke.instanceVarAccess().op());
+                             removeMe.add(varAccess);
                              c.replace(new HATBarrierOp());
                          }
                     })

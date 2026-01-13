@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 import static jdk.incubator.code.dialect.java.JavaOp.sub;
-import static jdk.incubator.code.analysis.Patterns.*;
 
 public final class ExpressionElimination {
     private ExpressionElimination() {
@@ -38,16 +37,16 @@ public final class ExpressionElimination {
 
     static final JavaType J_L_MATH = JavaType.type(Math.class);
 
-    static OpPattern negP(Pattern operand) {
-        return opP(JavaOp.NegOp.class, operand);
+    static Patterns.OpPattern negP(Patterns.Pattern operand) {
+        return Patterns.opP(JavaOp.NegOp.class, operand);
     }
 
-    static OpPattern addP(Pattern lhs, Pattern rhs) {
-        return opP(JavaOp.AddOp.class, lhs, rhs);
+    static Patterns.OpPattern addP(Patterns.Pattern lhs, Patterns.Pattern rhs) {
+        return Patterns.opP(JavaOp.AddOp.class, lhs, rhs);
     }
 
-    static OpPattern mulP(Pattern lhs, Pattern rhs) {
-        return opP(JavaOp.MulOp.class, lhs, rhs);
+    static Patterns.OpPattern mulP(Patterns.Pattern lhs, Patterns.Pattern rhs) {
+        return Patterns.opP(JavaOp.MulOp.class, lhs, rhs);
     }
 
     public static <T extends Op> T eliminate(T f) {
@@ -55,13 +54,13 @@ public final class ExpressionElimination {
         // are normalized e.g. when they have an operand that is a constant expression
         // and the operation is associative such as add(0, x) -> add(x, 0)
 
-        var actions = multiMatch(new HashMap<Op.Result, BiConsumer<Block.Builder, Op>>(), f)
-                .pattern(mulP(_P(), valueP(constantP(0.0d))))
-                .pattern(mulP(valueP(constantP(0.0d)), _P()))
-                .pattern(addP(valueP(), constantP(0.0d)))
-                .pattern(addP(constantP(0.0d), valueP()))
-                .pattern(mulP(constantP(1.0d), valueP()))
-                .pattern(mulP(valueP(), constantP(1.0d)))
+        var actions = Patterns.multiMatch(new HashMap<Op.Result, BiConsumer<Block.Builder, Op>>(), f)
+                .pattern(mulP(Patterns._P(), Patterns.valueP(Patterns.constantP(0.0d))))
+                .pattern(mulP(Patterns.valueP(Patterns.constantP(0.0d)), Patterns._P()))
+                .pattern(addP(Patterns.valueP(), Patterns.constantP(0.0d)))
+                .pattern(addP(Patterns.constantP(0.0d), Patterns.valueP()))
+                .pattern(mulP(Patterns.constantP(1.0d), Patterns.valueP()))
+                .pattern(mulP(Patterns.valueP(), Patterns.constantP(1.0d)))
                 .target((ms, as) -> {
                     Value a = ms.matchedOperands().get(0);
                     as.put(ms.op().result(), (block, op) -> {
@@ -71,7 +70,7 @@ public final class ExpressionElimination {
                     return as;
                 })
                 // add(neg(x), y) -> sub(y, x)
-                .pattern(addP(negP(valueP()), valueP()))
+                .pattern(addP(negP(Patterns.valueP()), Patterns.valueP()))
                 .target((ms, as) -> {
                     Value x = ms.matchedOperands().get(0);
                     Value y = ms.matchedOperands().get(1);
@@ -105,7 +104,7 @@ public final class ExpressionElimination {
         };
 
         while (true) {
-            Set<Op> unused = matchUnusedPureOps(ef, testPure);
+            Set<Op> unused = Patterns.matchUnusedPureOps(ef, testPure);
             if (unused.isEmpty()) {
                 break;
             }
