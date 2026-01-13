@@ -352,7 +352,7 @@ public class OpBuilder {
                 //  static private TypeElement $type(int typeIndex) {
                 //      return JavaOp.JAVA_DIALECT_FACTORY.typeElementFactory().constructType($exType(typeIndex));
                 //  }
-func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class))).body(b -> {
+                func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class))).body(b -> {
                     var i = b.parameter(INT);
                     var typeElementFactory = b.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactoryF.apply(b)));
                     var exterType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, i));
