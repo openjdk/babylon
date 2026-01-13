@@ -229,7 +229,8 @@ public class OpBuilder {
     }
 
     static List<FuncOp> createSupportFunctions(Function<Block.Builder, Value> dialectFactoryF) {
-        return List.of(// static List $list(Object o) {
+        return List.of(
+                // static List $list(Object o) {
                 //     if (o == null) return List.of();
                 //     if (o instanceof List) return (List)o;
                 //     return List.of(o);
