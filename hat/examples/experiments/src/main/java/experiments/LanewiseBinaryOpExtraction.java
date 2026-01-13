@@ -106,17 +106,32 @@ public class LanewiseBinaryOpExtraction {
     /**
      * Look for first real BinaryOp by recursively decending through nested invokes until we find a BinaryOp
      *
-     * @param lookup
-     * @param funcOp
+     * We first test if the target of the invoke has a binary op, if it does we return it
+     * If not then we find the first invoke in the target of this invoke that returns a binary Op and return that one
+     *
+     * So if we had
+     *   @Reflect
+     *   static XY mul(XY lhs, XY rhs) { #1
+     *        return new XY(lhs.x * rhs.x, lhs.y * rhs.y);
+     *   }
+     *
+     *   @Reflect
+     *   public XY mul(XY xy) { // #2
+     *       return mul(this, xy);
+     *   }
+     *
+     *   And our invoke was #1 we would return MulOp
+     *
+     *   If the invoke was #2 we would recurse inside and then end up at #1 and return Mul Op.
      * @return The binaryOp from one of the reachable methods
      */
 
-    static JavaOp.BinaryOp getLaneWiseOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        if (funcOp.elements().filter(o -> o instanceof JavaOp.BinaryOp).map(o -> (JavaOp.BinaryOp) o).findFirst()
+    static JavaOp.BinaryOp getLaneWiseOp(Invoke invoke) {
+        if (invoke.targetMethodModelOrThrow().elements().filter(o -> o instanceof JavaOp.BinaryOp).map(o -> (JavaOp.BinaryOp) o).findFirst()
                 instanceof Optional<JavaOp.BinaryOp> optionalBinaryOp && optionalBinaryOp.isPresent()) {
             return optionalBinaryOp.get();
         } else {
-           return  Invoke.stream(lookup,funcOp).map(invoke ->getLaneWiseOp(lookup,invoke.targetMethodModelOrThrow())).findFirst().get();
+           return  Invoke.stream(invoke.lookup(),invoke.targetMethodModelOrThrow()).map(LanewiseBinaryOpExtraction::getLaneWiseOp).findFirst().get();
         }
     }
 
@@ -149,12 +164,11 @@ public class LanewiseBinaryOpExtraction {
 
 
     static JavaOp.BinaryOp createBinaryOpFromCodeModel(Invoke invoke, Value lhs, Value rhs) {
-        //in our case invoke is on we now have XY.class
-        JavaOp.BinaryOp laneWiseBinaryOp =getLaneWiseOp(invoke.lookup(), invoke.targetMethodModelOrThrow());// getLaneWiseOp(invoke);  // begin the search for lanewise Op.. So if invoke.name()=="add" we would expect "AddOp"
-        String simpleNameWithOpSuffix = laneWiseBinaryOp.getClass().getSimpleName();                                          // CoreOp.AddOp -> AddOp
-        String simpleNameSansOp = simpleNameWithOpSuffix.substring(0, simpleNameWithOpSuffix.length() - "Op".length());  // AddOp -> Add
-        String simpleName = simpleNameSansOp.substring(0, 1).toLowerCase() + simpleNameSansOp.substring(1);     // Add->add
-        return createBinaryOp(simpleName, lhs, rhs);  // now we can reflectifly create a new AddOp.
+        JavaOp.BinaryOp laneWiseBinaryOp =getLaneWiseOp(invoke);                                          // search for lanewise Op..
+        String nameWithOpSuffix = laneWiseBinaryOp.getClass().getSimpleName();                            // CoreOp.AddOp -> AddOp
+        String nameSansOp = nameWithOpSuffix.substring(0, nameWithOpSuffix.length() - "Op".length());     // AddOp -> Add
+        String simpleName = nameSansOp.substring(0, 1).toLowerCase() + nameSansOp.substring(1); // Add->add
+        return createBinaryOp(simpleName, lhs, rhs);                                                     // now we can reflectifly create a new AddOp.
     }
 
     @Reflect
