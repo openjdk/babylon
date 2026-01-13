@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -95,9 +95,16 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return symbol("++");
     }
 
+    public T plusEquals() {
+        return symbol("+=");
+    }
 
     public T minusminus() {
         return symbol("--");
+    }
+
+    public T ne() {
+        return pling().equals();
     }
 
     public T lineComment(String line) {
@@ -373,7 +380,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return emitText("<");
     }
 
-    public T bar() {
+    public T bitwiseOR() {
         return symbol("|");
     }
 
@@ -523,7 +530,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public <I> T barSeparated(Iterable<I> iterable, Consumer<I> consumer) {
-        return separated(iterable, _ -> bar(), consumer);
+        return separated(iterable, _ -> bitwiseOR(), consumer);
     }
 
     public <I> T semicolonNlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
@@ -695,7 +702,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public final T oracleCopyright(){
         return blockComment("""
-                * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+                * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
                 * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
                 *
                 * This code is free software; you can redistribute it and/or modify it
@@ -769,7 +776,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
             case JavaOp.EqOp o -> equals().equals();
             case JavaOp.NotOp o -> pling();
             case JavaOp.AndOp o -> ampersand();
-            case JavaOp.OrOp o -> bar();
+            case JavaOp.OrOp o -> bitwiseOR();
             case JavaOp.XorOp o -> hat();
             case JavaOp.ConditionalAndOp o -> condAnd();
             case JavaOp.ConditionalOrOp o -> condOr();

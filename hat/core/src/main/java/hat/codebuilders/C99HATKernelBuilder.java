@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,10 +24,18 @@
  */
 package hat.codebuilders;
 
-import hat.buffer.*;
 import hat.KernelContext;
+import hat.buffer.BF16Array;
+import hat.buffer.F16Array;
 import hat.device.DeviceType;
-import hat.dialect.*;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATMemoryDefOp;
+import hat.dialect.HATMemoryVarOp;
+import hat.dialect.HATPtrOp;
+import hat.dialect.HATThreadOp;
+import hat.dialect.HATVectorOp;
+import hat.dialect.ReducedFloatType;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.HAType;
@@ -444,8 +452,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     rarrow().identifier("value");
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
                     dot().identifier("value");
-                }else{
-                    //throw new IllegalStateException("what happens here 1");
                 }
 
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
@@ -462,9 +468,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     rarrow().identifier("value");
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
                     dot().identifier("value");
-                } else{
-                      //  throw new IllegalStateException("what happens here 2");
                 }
+
                 if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
                     cparen();
                 }
@@ -630,23 +635,37 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     /**
      * <code>
      * ushort floatTobfloat16(float f) {
-     *      b16_t b1 = {f};
-     *      return b1.s[1];
+     *      b16_t b = {f};
+     *      uint32_t bits = b.i;
+     *      short sign_bit = (short)((bits & 0x8000_0000) >> 16);
+     *      int lsb    = bits & 0x1_0000;
+     *      int round  = bits & 0x0_8000;
+     *      int sticky = bits & 0x0_7FFF;
+     *      if (round != 0 && ((lsb | sticky) != 0 )) {
+     *          bits += 0x1_0000;
+     *      }
+     *      return (short) (((bits >> 16 ) | sign_bit) & 0xffff);
      * }
      * </code>
      * @param parameterName
      * @return
      */
     public final T build_builtin_float2bfloat16(String parameterName) {
-        String b16 = "b16";
-        String s = "s";
+        String idBFloat16 = "b";
         return funcDef(
                 _ -> u16Type(),
                 _ -> builtin_float2bfloat16(),
                 _ -> f32Type(parameterName),
-                _ -> assign(_ -> bfloat16Type(b16),
-                        _ ->  brace( _ -> identifier(parameterName)).semicolonNl()
-                                .returnKeyword(_ ->identifier(b16).dot().identifier(s).sbrace(_ -> intConstOne()))));
+                _ -> assign(_ -> bfloat16Type(idBFloat16),
+                        _ ->  brace( _ -> identifier(parameterName)).semicolonNl())
+                        .assign( _ -> u32Type("bits"), _ -> identifier(idBFloat16).dot().identifier("i")).semicolonNl()
+                        .assign( _ -> u16Type("sign_bit"), _ -> cast( _ -> s16Type()).paren( _ -> paren( _ -> identifier("bits").ampersand().constant("0x80000000")).rightShift(16))).semicolonNl()
+                        .assign( _ -> s32Type("lsb"), _ -> identifier("bits").ampersand().constant("0x10000")).semicolonNl()
+                        .assign( _ -> s32Type("round"), _ -> identifier("bits").ampersand().constant("0x08000")).semicolonNl()
+                        .assign( _ -> s32Type("sticky"), _ -> identifier("bits").ampersand().constant("0x07FFF")).semicolonNl()
+                        .ifTrueCondition(_ -> identifier("round").space().ne().space().intConstZero().condAnd().paren( _ -> paren( _ -> identifier("lsb").bitwiseOR().identifier("sticky")).ne().intConstZero()),
+                                _ -> identifier("bits").space().plusEquals().space().constant("0x10000"))
+                        .returnKeyword( _ -> cast( _ ->u16Type()).paren( _ -> paren( _ -> paren( _-> identifier("bits").rightShift(16)).bitwiseOR().identifier("sign_bit")).ampersand().constant("0xffff"))));
     }
 
 
