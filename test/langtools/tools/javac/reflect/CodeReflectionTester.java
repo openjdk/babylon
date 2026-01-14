@@ -108,7 +108,7 @@ public class CodeReflectionTester {
         if (ir == null) return;
         // quotable
         Object quotable = field.get(null);
-        Quoted quoted = Op.ofQuotable(quotable).get();
+        Quoted quoted = Op.ofLambda(quotable).get();
         String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
         checkModel(field, found, ir);
     }

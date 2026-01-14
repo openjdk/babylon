@@ -492,20 +492,20 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * Returns the quoted code model of the given quotable reference, if present.
+     * Returns the code model of a reflectable lambda expression or method reference.
      *
-     * @param q the quotable reference.
-     * @return the quoted code model or an empty optional if the
-     *         quoted code model is unavailable.
-     * @throws UnsupportedOperationException If The Java version used at compile time to generate and store the code model
+     * @param fiInstance a functional interface instance that is the result of a reflectable lambda expression
+     *                   or method reference.
+     * @return the code model, or an empty optional the functional interface instance is not the result of a
+     *         reflectable lambda expression or method reference.
+     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code model
      *                                       is not the same as the Java version used at runtime to load the code model.
-     * @apiNote If the quotable reference is a proxy instance, then the
-     *          quoted code model is unavailable and this method
-     *          returns an empty optional.
+     * @apiNote if the functional interface instance is a proxy instance, then the
+     *          code model is unavailable and this method returns an empty optional.
      * @since 99
      */
-    public static Optional<Quoted> ofQuotable(Object q) {
-        Object oq = q;
+    public static Optional<Quoted> ofLambda(Object fiInstance) {
+        Object oq = fiInstance;
         if (Proxy.isProxyClass(oq.getClass())) {
             // @@@ The interpreter implements interpretation of
             // lambdas using a proxy whose invocation handler
@@ -535,11 +535,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the code model of the given method's body, if present.
+     * Returns the code model of a reflectable method.
      *
      * @param method the method.
-     * @return the code model of the method body.
-     * @throws UnsupportedOperationException If The Java version used at compile time to generate and store the code model
+     * @return the code model, or an empty optional if the method is not reflectable.
+     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code model
      *                                       is not the same as the Java version used at runtime to load the code model.
      * @since 99
      */
