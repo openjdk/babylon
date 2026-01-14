@@ -940,7 +940,7 @@ public final class BytecodeGenerator {
                             int lambdaIndex = lambdaSink.size();
                             DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
                             String intfMethodName = intfMethod.getName();
-                            if (op.isQuotable()) {
+                            if (op.isReflectable()) {
                                 lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
                                 intfMethodName = intfMethodName + "=" + "op$lambda$" + lambdaIndex;
                                 quotable.set(lambdaSink.size());

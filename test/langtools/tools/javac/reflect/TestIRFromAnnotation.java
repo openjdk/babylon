@@ -66,8 +66,7 @@ public class TestIRFromAnnotation {
                                                 // in method superInterfaceMethodInvocation
             "LocalClassTest.java",              // name of local classes is not stable at annotation processing time
             "TestLocalCapture.java",            // plain junit test
-            "TestCaptureQuoted.java",           // plain junit test
-            "TestCaptureQuotable.java",         // plain junit test
+            "TestLambdaCapture.java",           // plain junit test
             "QuotedSameInstanceTest.java",      // plain junit test
             "CodeModelSameInstanceTest.java"    // plain junit test
     );
