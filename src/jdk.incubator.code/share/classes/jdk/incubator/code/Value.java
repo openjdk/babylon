@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,7 @@ package jdk.incubator.code;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.SequencedSet;
 
 /**
  * A value, that is the result of an operation or a block parameter.
@@ -40,7 +40,7 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
     final TypeElement type;
     // @@@ In topological order?
     //     Can the representation be more efficient e.g. an array?
-    final Set<Op.Result> uses;
+    final SequencedSet<Op.Result> uses;
 
     Value(Block block, TypeElement type) {
         this.block = block;
@@ -103,27 +103,27 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
      * <p>
      * An operation result depends on the set of values whose members are the operation's operands and block arguments
      * of the operation's successors.
-     * A block parameter does not depend on any values.
+     * A block parameter does not depend on any values, and therefore this method returns an empty sequenced set.
      *
-     * @return the values this value directly depends on, as an unmodifiable set.
+     * @return the values this value directly depends on, as an unmodifiable sequenced set. For an operation result the
+     * operation's operands will occur first and then block arguments of each successor.
      */
-    // @@@ Consider an additional method that returns a lazy stream of all dependent values, in order.
-    public abstract Set<Value> dependsOn();
+    public abstract SequencedSet<Value> dependsOn();
 
     /**
      * Returns the uses of this value, specifically each operation result of an operation where this value is used as
      * an operand or as an argument of a block reference that is a successor.
      *
-     * @return the uses of this value, as an unmodifiable set.
+     * @return the uses of this value, as an unmodifiable sequenced set. The encouncter order is unspecified
+     * and determined by the order in which operations are built.
      * @throws IllegalStateException if the declaring block is partially built
      */
-    // @@@ Consider an additional method that returns a lazy stream of all uses, in order.
-    public Set<Op.Result> uses() {
+    public SequencedSet<Op.Result> uses() {
         if (!isBound()) {
             throw new IllegalStateException("Users are partially constructed");
         }
 
-        return Collections.unmodifiableSet(uses);
+        return Collections.unmodifiableSequencedSet(uses);
     }
 
     /**
@@ -198,9 +198,7 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
         Body r1 = b1.ancestorBody();
         Body r2 = b2.ancestorBody();
         if (r1 == r2) {
-            // @@@ order should be defined by CFG and dominator relations
-            List<Block> bs = r1.blocks();
-            return Integer.compare(bs.indexOf(b1), bs.indexOf(b2));
+            return Integer.compare(b1.index(), b2.index());
         }
 
         Op o1 = r1.ancestorOp();

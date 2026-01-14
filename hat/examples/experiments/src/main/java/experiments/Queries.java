@@ -22,25 +22,42 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl.util;
+package experiments;
 
-public class StreamMutable<R> {
-    private R value;
-    public R get() {
-        return value;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.MappedIfaceBufferInvokeQuery;
+import optkl.Query;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
+
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+
+public class Queries {
+    @Reflect
+    static int m(int a, int b) {
+        a += 2;
+        b += 2;
+        // Group these
+        System.out.println(a);
+        System.out.println(b);
+        return a + b;
     }
-    public StreamMutable<R> setIf(boolean iff,R value) {
-        this.value = iff?value:this.value;
-        return this;
-    }
-    public StreamMutable<R> set(R value) {
-      return setIf(true, value);
-    }
-    public boolean eq(R r){
-        return value == null && r == null  || r.equals(value);
-    }
-    private StreamMutable(){}
-    static public <R> StreamMutable<R> of(R value){
-        return new StreamMutable<R>().set(value);
+
+    public static void main(String[] args) throws Throwable {
+        var lookup = MethodHandles.lookup();
+        Method m = Queries.class.getDeclaredMethod("m", int.class, int.class);
+        CoreOp.FuncOp mModel = Op.ofMethod(m).orElseThrow();
+
+        var query = MappedIfaceBufferInvokeQuery.create(lookup);
+        Invoke.stream(lookup,mModel).forEach(invoke->{
+            if (query.matches(invoke.op()) instanceof Query.SimpleMatch<JavaOp.InvokeOp,Invoke, MappedIfaceBufferInvokeQuery> match){
+                System.out.println(match.helper().name());
+            }
+        });
+
     }
 }

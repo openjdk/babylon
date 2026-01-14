@@ -22,25 +22,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl.util;
+package optkl;
 
-public class StreamMutable<R> {
-    private R value;
-    public R get() {
-        return value;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.Op;
+import optkl.util.BiMap;
+import optkl.util.carriers.LookupCarrier;
+
+import java.util.function.Predicate;
+
+public interface  Query<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends LookupCarrier {
+
+    interface Res<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> {
     }
-    public StreamMutable<R> setIf(boolean iff,R value) {
-        this.value = iff?value:this.value;
-        return this;
+    default Res<O,OH,Q> matches(CodeElement<?,?> ce){
+        return matches(ce, _->true);
     }
-    public StreamMutable<R> set(R value) {
-      return setIf(true, value);
+    default Res<O,OH,Q> matches(Trxfmr.Cursor cursor){
+        return matches(cursor.op(), _->true);
     }
-    public boolean eq(R r){
-        return value == null && r == null  || r.equals(value);
+    Res<O,OH,Q> matches(CodeElement<?,?> ce, Predicate<OH> predicate);
+    default Res<O,OH,Q> matches(Trxfmr.Cursor cursor, Predicate<OH> predicate){
+        return matches(cursor.op(), predicate);
     }
-    private StreamMutable(){}
-    static public <R> StreamMutable<R> of(R value){
-        return new StreamMutable<R>().set(value);
+    interface Fail<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
+    }
+    record  FailImpl() implements Fail{
+    }
+    Fail FAILED= new FailImpl();
+
+    interface SimpleMatch<O extends Op, OH extends OpHelper<O>, Q extends Query<O,OH,Q>> extends Res<O,OH,Q>{
+        Q query();
+        OH helper();
+        SimpleMatch<O,OH,Q> remap(BiMap<CodeElement<?,?>, CodeElement<?,?>> biMap);
     }
 }

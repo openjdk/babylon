@@ -46,6 +46,15 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Trxfmr implements LookupCarrier{
+    public static Trxfmr of(MethodHandles.Lookup lookup, Class<?> clazz, String methodName, Class<?> ...paramTypes) {
+        try {
+            var addMethod = Op.ofMethod(clazz.getDeclaredMethod(methodName, paramTypes)).orElseThrow();
+            return of(lookup,addMethod);
+        }catch (NoSuchMethodException nsme){
+            throw new RuntimeException(nsme);
+        }
+    }
+
     @Override public MethodHandles.Lookup lookup(){
         return lookup;
     }
@@ -279,7 +288,7 @@ public class Trxfmr implements LookupCarrier{
         }
 
         default Value mappedOperand(int idx){
-            return getValue(OpHelper.operandNAsResult(op(),idx));
+            return getValue(OpHelper.resultFromOperandN(op(),idx));
         }
     }
 

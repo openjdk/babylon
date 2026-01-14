@@ -330,7 +330,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
                         .forEach(o -> recurse(buildContext, o))
         );
         braceNlIndented(_ ->
-                nlSeparated(OpHelper.Statement.loopBodyStatements(whileOp),
+                nlSeparated(OpHelper.Statement.bodyStatements(whileOp.loopBody()),
                         statement->statement(buildContext,statement)
                 )
         );
@@ -350,7 +350,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
                             op -> recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->
-                        nlSeparated(OpHelper.Statement.loopBodyStatements(forOp),
+                        nlSeparated(OpHelper.Statement.bodyStatements(forOp.loopBody()),
                                 statement ->statement(buildContext,statement)
                         )
                 )
@@ -474,7 +474,7 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
             space().colon().space().blockInlineComment("Get rid of = before this");
             enhancedForOp.expression().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
         }).braceNlIndented(_->
-            nlSeparated(OpHelper.Statement.loopBodyStatements(enhancedForOp),
+            nlSeparated(OpHelper.Statement.bodyStatements(enhancedForOp.loopBody()),
                     statement ->statement(builderContext,statement)
             )
 
@@ -484,9 +484,15 @@ public class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T>> e
 
     @Override
     public T blockOp(ScopedCodeBuilderContext buildContext, JavaOp.BlockOp blockOp) {
-      return  brace(_->blockInlineComment("from Java.Block").nl().nlSeparated(OpHelper.Statement.statements(blockOp.body().entryBlock()),
-               statement ->statement(buildContext,statement)
-       ).nl());
+      return braceNlIndented(_-> nlSeparated(OpHelper.Statement.statements(blockOp.body().entryBlock()), statement ->statement(buildContext,statement)));
+    }
+
+    @Override
+    public T concatOp(ScopedCodeBuilderContext buildContext, JavaOp.ConcatOp concatOp) {
+        return
+                recurse(buildContext, ((Op.Result)concatOp.operands().get(0)).op()).
+        add().recurse(buildContext, ((Op.Result)concatOp.operands().get(1)).op());
+      //  blockInlineComment("concat");
     }
 
     @Override

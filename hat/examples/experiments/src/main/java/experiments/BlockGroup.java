@@ -25,17 +25,20 @@
 package experiments;
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.OpHelper;
+import optkl.Trxfmr;
 import optkl.codebuilders.JavaCodeBuilder;
-import optkl.util.OpCodeBuilder;
+import optkl.util.Regex;
 
 
+import java.io.PrintStream;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 
 public class BlockGroup {
 
@@ -43,70 +46,62 @@ public class BlockGroup {
     static int m(int a, int b) {
         a += 2;
         b += 2;
-
         // Group these
         System.out.println(a);
         System.out.println(b);
-
         return a + b;
     }
 
 
-    static SequencedSet<Op> findGroup(Block b) {
-        SequencedSet<Op> ops = new TreeSet<>(Comparator.comparingInt(op -> op.parent().ops().indexOf(op)));
-        for (Op op : b.ops()) {
-            // Assuming System.out.println(t) :)
-            if (op instanceof JavaOp.InvokeOp _) {
-                Value out = op.operands().get(0);
-                Value value = op.operands().get(1);
-
-                ops.add(OpHelper.asOpFromResultOrNull(out));
-                ops.add(OpHelper.asOpFromResultOrNull(value));
-                ops.add(op);
-            }
-        }
-        return ops;
-    }
-
-    static CoreOp.FuncOp group(CoreOp.FuncOp f) {
-        SequencedSet<Op> group = findGroup(f.body().entryBlock());
-
-        return f.transform((block, op) -> {
-            if (group.contains(op)) {
-                // Drop op until we reach the last one
-                if (group.getLast() == op) {
-                    // Create a new body builder connected as a child
-                    // Use a child of the code context so values can be shared
-                    Body.Builder groupBodyBuilder = Body.Builder.of(
-                            block.parentBody(), CoreType.FUNCTION_TYPE_VOID,
-                            CodeContext.create(block.context()));
-
-                    // Add ops to the entry block
-                    Block.Builder groupBlockBuilder = groupBodyBuilder.entryBlock();
-                    group.forEach(groupBlockBuilder::op);
-                    groupBlockBuilder.op(CoreOp.core_yield());
-
-                    // Replace all those added ops with the block op
-                    block.op(JavaOp.block(groupBodyBuilder));
-                }
-            } else {
-                block.op(op);
-            }
-            return block;
-        });
-    }
-
-
-
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Throwable {
         var lookup = MethodHandles.lookup();
         Method m = BlockGroup.class.getDeclaredMethod("m", int.class, int.class);
         CoreOp.FuncOp mModel = Op.ofMethod(m).orElseThrow();
+
        // System.out.println("From Code Model             -\n"+ OpCodeBuilder.toText(mModel));
         System.out.println("From Approx Jave Source ------\n"+JavaCodeBuilder.toText(lookup,mModel));
-        CoreOp.FuncOp mGroupModel = group(mModel);
+
+        BytecodeGenerator.generate(lookup, mModel).invoke(1,2);
+        SequencedSet<Op> opsToGroup = new TreeSet<>(Comparator.comparingInt(op -> op.parent().ops().indexOf(op)));
+
+
+        Invoke.stream(lookup,mModel.body().entryBlock()) // So this yields a stream of Invoke helpers
+                .filter(invoke->// it's easier to check if is in fact println
+                        invoke.refIs(PrintStream.class)
+                                && invoke.named(Regex.of("print(ln|)"))
+                                && invoke.returns(void.class))
+                .forEach(invoke -> opsToGroup.addAll(List.of(
+                                invoke.opFromOperandNOrThrow(0),// instead of op.operands().get(0).result().op()
+                                invoke.opFromOperandNOrThrow(1),
+                                invoke.op())
+                        )
+                );
+
+         var mGroupModel=  Trxfmr.of(lookup,mModel).transform(opsToGroup::contains, c->{ // Here we use a HAT style transformer
+            if (opsToGroup.getLast() == c.op()) {
+                // Create a new body builder connected as a child
+                // Use a child of the code context so values can be shared ???? what does this mean
+                Body.Builder groupBodyBuilder = Body.Builder.of(
+                        c.builder().parentBody(), CoreType.FUNCTION_TYPE_VOID,
+                        CodeContext.create(c.builder().context()));
+
+                // Add ops to the entry block
+                Block.Builder groupBlockBuilder = groupBodyBuilder.entryBlock();
+                opsToGroup.forEach(groupBlockBuilder::op); // transfers all to this builder?
+                groupBlockBuilder.op(CoreOp.core_yield());
+
+                c.replace(JavaOp.block(groupBodyBuilder)); // Replace all those added ops with the block op
+            }else{
+                c.remove(); // Unlike regular trasnformers we must actively remove
+            }
+            // But we don't' have to deal with anything we don't care about
+            // no do we return the builder
+        }).funcOp();
+
       //  System.out.println("To Code Model               -\n"+ OpCodeBuilder.toText(mGroupModel));
         System.out.println("To Approx Java Source    ------\n"+JavaCodeBuilder.toText(lookup,mGroupModel));
 
+        // make sure we didnt break anything
+       BytecodeGenerator.generate(lookup, mGroupModel).invoke(1,2);
     }
 }
