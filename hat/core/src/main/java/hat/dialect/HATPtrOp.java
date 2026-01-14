@@ -52,7 +52,7 @@ public abstract sealed class HATPtrOp extends HATOp
                             .map(fieldNode -> fieldNode.name)
                             .toList();
                     // remove the "array" field from the fields
-                    if (!retValue.isEmpty()) retValue = retValue.subList(0, retValue.size() - 1); // is this intended to drop the last one?
+                    if (!retValue.isEmpty()) retValue = retValue.subList(0, retValue.size() - 1);
                 }
             } catch (IllegalAccessException | NoSuchFieldException e) {
                 throw new RuntimeException("No schema field ",e);
