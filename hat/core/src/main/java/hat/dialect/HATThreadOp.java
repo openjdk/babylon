@@ -50,11 +50,6 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim,  Preceden
     final public TypeElement resultType() {
         return JavaType.INT;
     }
-  //  @Override
-  //  final public Map<String, Object> externalize() {
-    //    return Map.of("hat.dialect." + getClass().getSimpleName(), "");
-   // }
-
 
     public static HATThreadOp create(String name){
         return switch (name){
