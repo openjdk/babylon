@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpHelper.Lambda, OpHelper.Named, OpHelper.Ternary {
+public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpHelper.Binary, OpHelper.Lambda, OpHelper.Named, OpHelper.Ternary {
     static <F extends Op, T extends Op> T copyLocation(F from, T to) {
         to.setLocation(from.location());
         return to;
@@ -215,6 +215,9 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
     static Op.Result asResultOrNull(Value operand) {
         return operand instanceof Op.Result result ? result : null;
     }
+    static Op asOpFromResultOrNull(Value operand) {
+        return asResultOrNull(operand) instanceof Op.Result r && r.op() instanceof Op op ? op : null;
+    }
     static Op.Result resultFromOperandN(jdk.incubator.code.CodeElement<?, ?> codeElement, int n) {
         return codeElement instanceof Op op && op.operands().size() > n && op.operands().get(n) instanceof Op.Result result ? result : null;
     }
@@ -227,11 +230,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         }else {
             throw new RuntimeException("Expected result as first operand");
         }
-    }
-
-
-    static Op asOpFromResultOrNull(Value operand) {
-        return asResultOrNull(operand) instanceof Op.Result r && r.op() instanceof Op op ? op : null;
     }
 
     static Op.Result lhsResult(JavaOp.BinaryOp binaryOp) {
@@ -398,11 +396,30 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                     return funcOp.elements().filter(ce -> ce instanceof JavaOp.FieldAccessOp).map(ce -> fieldAccess(lookup, ce));
                 }
             }
+            sealed interface Func extends NamedStaticOrInstance<CoreOp.FuncOp> {
+                @Override default boolean isStatic() {
+                    throw new RuntimeException("implement Func.isStatic");
+                }
+
+                @Override default boolean isInstance() {
+                     throw new RuntimeException("implement Func.isInstance");
+                }
+
+                @Override
+                default String name() {
+                    return op().funcName();
+                }
+
+                record Impl(MethodHandles.Lookup lookup, CoreOp.FuncOp op) implements Func {
+                }
+
+                static Func invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
+                    return codeElement instanceof CoreOp.FuncOp funcOp ? new Func.Impl(lookup, funcOp) : null;
+                }
+
+            }
 
             sealed interface Invoke extends NamedStaticOrInstance<JavaOp.InvokeOp> {
-              //  static Stream<Invoke> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-                //    return funcOp.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
-               // }
                 static Stream<Invoke> stream(MethodHandles.Lookup lookup, Op op) {
                     return op.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
                 }
@@ -429,16 +446,13 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
 
                 default boolean receives(Class<?>... classes) {
                     boolean assignable = true;
-                    if (isInstance()){
-                        for (int i =  0; assignable && i < classes.length && i< op().operands().size()-1; i++) {
-                            var operand = op().operands().get(i+1);
-                            TypeElement resultType = operand.type() ;//instanceof VarType varType ? varType.valueType() : null;
-                            assignable &= isAssignable((JavaType) resultType, classes[i]);
-                        }
-                    }else{
-                        for (int i = 0; assignable && i < classes.length; i++) {
-                            var operand = op().operands().get(i);
-                            TypeElement resultType = operand.type() instanceof VarType varType ? varType.valueType() : null;
+                    int adj=isInstance()?1:0;// for instance we compare op().operands(1..N) (0..N) for static
+                    if (classes.length!= op().operands().size()-adj){
+                        assignable=false;
+                    }else {
+                        for (int i = 0; assignable && i < classes.length && i < op().operands().size() - adj; i++) {
+                            var operand = op().operands().get(i + adj);
+                            TypeElement resultType = operand.type();//instanceof VarType varType ? varType.valueType() : null;
                             assignable &= isAssignable((JavaType) resultType, classes[i]);
                         }
                     }
@@ -578,6 +592,8 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                             .orElseThrow();
                 }
             }
+
+
         }
     }
 
@@ -649,7 +665,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             return isAssignable((JavaType) op().resultType(),clazz);
         }
         record Impl(MethodHandles.Lookup lookup, JavaOp.LambdaOp op) implements Lambda {}
-        static Lambda lambdaOpHelper(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
+        static Lambda lambda(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
             return codeElement instanceof JavaOp.LambdaOp lambdaOp? new Impl(lookup,lambdaOp): null;
         }
 
@@ -684,4 +700,16 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             return args;
         }
     }
+
+
+    sealed interface Binary extends OpHelper<JavaOp.BinaryOp>{
+        default  <T>boolean of(Class<T> clazz){
+            return isAssignable((JavaType) op().resultType(),clazz);
+        }
+        record Impl(MethodHandles.Lookup lookup, JavaOp.BinaryOp op) implements Binary {}
+        static Binary binary(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
+            return codeElement instanceof JavaOp.BinaryOp binaryOp? new Impl(lookup,binaryOp): null;
+        }
+    }
+
 }

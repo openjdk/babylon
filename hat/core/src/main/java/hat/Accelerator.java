@@ -49,7 +49,7 @@ import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.getTargetInvoke;
-import static optkl.OpHelper.Lambda.lambdaOpHelper;
+import static optkl.OpHelper.Lambda.lambda;
 
 
 /**
@@ -200,7 +200,7 @@ public class Accelerator implements CommonCarrier,  BufferTracker {
         // It will also use this opportunity to generate ISA specific code for the kernels.
         ComputeContext computeContext = cache.computeIfAbsent(method, (_) -> new ComputeContext(this, method));
         // Here we get the captured values from the lambda
-        Object[] args = lambdaOpHelper(lookup,lambda).getQuotedCapturedValues( quoted, method);
+        Object[] args = lambda(lookup,lambda).getQuotedCapturedValues( quoted, method);
         args[0] = computeContext;
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

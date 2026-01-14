@@ -48,7 +48,7 @@ import java.util.function.Consumer;
 import java.util.Optional;
 
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.getTargetInvoke;
-import static optkl.OpHelper.Lambda.lambdaOpHelper;
+import static optkl.OpHelper.Lambda.lambda;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
@@ -167,7 +167,7 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
             }
             return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
         });
-        Object[] args = lambdaOpHelper(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method);
+        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method);
         KernelContext kernelContext = accelerator.range(ndRange);
         args[0] = kernelContext;
         accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);

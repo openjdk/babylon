@@ -33,63 +33,11 @@ import optkl.util.Regex;
 import java.lang.invoke.MethodHandles;
 
 public class UnpackingFluentBinaryOps {
-    public static class XY {
-        private XY(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
 
-        private int x, y;
-
-        static XY of(int x, int y) {
-            return new XY(x, y);
-        }
-
-        static XY mul(XY lhs, XY rhs) {
-            return new XY(lhs.x * rhs.x, lhs.y * rhs.y);
-        }
-
-        static XY add(XY lhs, XY rhs) {
-            return new XY(lhs.x + rhs.x, lhs.y + rhs.y);
-        }
-
-        static XY sub(XY lhs, XY rhs) {
-            return new XY(lhs.x - rhs.x, lhs.y - rhs.y);
-        }
-
-        static XY div(XY lhs, XY rhs) {
-            return new XY(lhs.x / rhs.x, lhs.y / rhs.y);
-        }
-
-        static XY mod(XY lhs, XY rhs) {
-            return new XY(lhs.x % rhs.x, lhs.y % rhs.y);
-        }
-
-        public XY mul(XY xy) {
-            return mul(this, xy);
-        }
-
-        public XY add(XY xy) {
-            return add(this, xy);
-        }
-
-        public XY sub(XY xy) {
-            return sub(this, xy);
-        }
-
-        public XY div(XY xy) {
-            return div(this, xy);
-        }
-
-        public XY mod(XY xy) {
-            return mod(this, xy);
-        }
-
-    }
 
     @Reflect
-    public static XY center(XY min, XY max) {
-        var two = XY.of(2, 2);
+    public static S32x2 center(S32x2 min, S32x2 max) {
+        var two = S32x2.of(2, 2);
         return  min.add(max).div(two);
     }
 
@@ -97,8 +45,7 @@ public class UnpackingFluentBinaryOps {
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
          var mathOperatorQuery = InvokeQuery.create(lookup);
-         Trxfmr.of(lookup,
-                        UnpackingFluentBinaryOps.class, "center", XY.class, XY.class)
+         Trxfmr.of(lookup, UnpackingFluentBinaryOps.class, "center", S32x2.class, S32x2.class)
                  .toText("// (Code Model) before transform", "//-------")
                  .toJava("// (Java) before mapping", "//-------")
 
