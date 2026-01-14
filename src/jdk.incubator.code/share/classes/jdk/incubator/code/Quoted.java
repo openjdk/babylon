@@ -39,6 +39,7 @@ import java.util.function.Consumer;
  * The quoted form is utilized when the code model of some code is to be obtained rather than obtaining the result of
  * executing that code. For example passing the of a lambda expression in quoted form rather than the expression being
  * targeted to a functional interface from which it can be invoked.
+ * @param <T> the type of operation that is quoted
  */
 public final class Quoted<T extends Op> {
     private final T op;
