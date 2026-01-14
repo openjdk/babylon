@@ -26,8 +26,8 @@ public class TestOpOfQuotable {
     public void testWithLambdaThatDoNotCaptureInSequence() {
         Runnable q1 = f();
         Runnable q2 = f();
-        Quoted quoted1 = Op.ofQuotable(q1).orElseThrow();
-        Quoted quoted2 = Op.ofQuotable(q2).orElseThrow();
+        Quoted quoted1 = Op.ofLambda(q1).orElseThrow();
+        Quoted quoted2 = Op.ofLambda(q2).orElseThrow();
         Assertions.assertSame(quoted1.op(), quoted2.op());
     }
 
@@ -35,7 +35,7 @@ public class TestOpOfQuotable {
     public void testWithLambdaThatDoNotCaptureInParallel() { // parallel
         Runnable q1 = f();
         Runnable q2 = f();
-        List<Op> ops = Stream.of(q1, q2).parallel().map(q -> Op.ofQuotable(q).orElseThrow().op()).toList();
+        List<Op> ops = Stream.of(q1, q2).parallel().map(q -> Op.ofLambda(q).orElseThrow().op()).toList();
         Assertions.assertSame(ops.getFirst(), ops.getLast());
     }
 
@@ -47,8 +47,8 @@ public class TestOpOfQuotable {
     public void testWithLambdaThatCaptureInSequence() {
         IntUnaryOperator q1 = g(1);
         IntUnaryOperator q2 = g(2);
-        Quoted quoted1 = Op.ofQuotable(q1).orElseThrow();
-        Quoted quoted2 = Op.ofQuotable(q2).orElseThrow();
+        Quoted quoted1 = Op.ofLambda(q1).orElseThrow();
+        Quoted quoted2 = Op.ofLambda(q2).orElseThrow();
         Assertions.assertSame(quoted1.op(), quoted2.op());
     }
 
@@ -56,7 +56,7 @@ public class TestOpOfQuotable {
     public void testWithLambdaThatCaptureInParallel() {
         IntUnaryOperator q1 = g(1);
         IntUnaryOperator q2 = g(2);
-        List<Op> ops = Stream.of(q1, q2).parallel().map(q -> Op.ofQuotable(q).orElseThrow().op()).toList();
+        List<Op> ops = Stream.of(q1, q2).parallel().map(q -> Op.ofLambda(q).orElseThrow().op()).toList();
         Assertions.assertSame(ops.getFirst(), ops.getLast());
     }
 
@@ -64,8 +64,8 @@ public class TestOpOfQuotable {
     public void testQuotedIsSameInSequence() {
         int j = 8;
         IntUnaryOperator q = (@Reflect IntUnaryOperator) i -> i * 2 + j;
-        Quoted q1 = Op.ofQuotable(q).get();
-        Quoted q2 = Op.ofQuotable(q).get();
+        Quoted q1 = Op.ofLambda(q).get();
+        Quoted q2 = Op.ofLambda(q).get();
         Assertions.assertSame(q1, q2);
     }
 
@@ -73,7 +73,7 @@ public class TestOpOfQuotable {
     public void testQuotedIsSameInParallel() {
         int j = 8;
         IntUnaryOperator q = (@Reflect IntUnaryOperator) i -> i * 2 + j;
-        List<Quoted> quotedObjects = IntStream.range(1, 3).parallel().mapToObj(_ -> Op.ofQuotable(q).get()).toList();
+        List<Quoted> quotedObjects = IntStream.range(1, 3).parallel().mapToObj(_ -> Op.ofLambda(q).get()).toList();
         Assertions.assertSame(quotedObjects.getFirst(), quotedObjects.getLast());
     }
 }

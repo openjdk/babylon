@@ -207,7 +207,7 @@ Here is how we extract the 'target' from such a lambda
 
 ```java
 public void compute(Compute compute) {
-    Quoted quoted = Op.ofQuotable(compute).orElseThrow();
+    Quoted quoted = Op.ofLambda(compute).orElseThrow();
     JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
     Method method = OpTk.methodOrThrow(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));
     // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.

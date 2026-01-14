@@ -58,7 +58,7 @@ public class TestExpressionElimination {
     }
 
     static JavaOp.LambdaOp generate(Object q) {
-        return generateF((JavaOp.LambdaOp)Op.ofQuotable(q).get().op());
+        return generateF((JavaOp.LambdaOp)Op.ofLambda(q).get().op());
     }
 
     static <T extends Op & Op.Invokable> T generateF(T f) {

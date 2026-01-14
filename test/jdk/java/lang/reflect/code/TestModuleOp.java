@@ -28,27 +28,18 @@
  * @run junit/othervm -Dbabylon.ssa=cytron TestModuleOp
  */
 
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.MethodRef;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.IntUnaryOperator;
-import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
-import static jdk.incubator.code.dialect.java.JavaType.*;
 
 public class TestModuleOp {
 
@@ -77,7 +68,7 @@ public class TestModuleOp {
     @Test
     public void testEmptyLambda() {
         Runnable runnable = (@Reflect Runnable) () -> {};
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(runnable).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0")));
         Assertions.assertTrue(moduleOp.functionTable().get("rootLambda_0").elements().allMatch(e -> e instanceof ReturnOp || e instanceof FuncOp || !(e instanceof Op)));
@@ -86,7 +77,7 @@ public class TestModuleOp {
     @Test
     public void testSingleInvoke() {
         Runnable runnable = (@Reflect Runnable) () -> a();
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(runnable).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("a_0")));
     }
@@ -96,7 +87,7 @@ public class TestModuleOp {
         int i = 0;
         int j = 0;
         Runnable runnable = (@Reflect Runnable) () -> d(i, j);
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(runnable).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("d_0", "c_1")));
     }
@@ -106,7 +97,7 @@ public class TestModuleOp {
         int i = 10;
         int[] array = new int[i];
         Consumer<Integer> lambda = (@Reflect Consumer<Integer>) (j) -> c(b(i) + array[j]);
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(lambda).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(lambda).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0", "b_1", "c_2")));
     }
@@ -116,7 +107,7 @@ public class TestModuleOp {
         int i = 0;
         int j = 0;
         Consumer<Integer> lambda = (@Reflect Consumer<Integer>) (k) -> c(i > k ? b(i) : c(d(j, k)));
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(lambda).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(lambda).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0", "b_1", "d_2", "c_3")));
     }
@@ -124,7 +115,7 @@ public class TestModuleOp {
     @Test
     public void testRepeatLambdaName() {
         @Reflect IntUnaryOperator runnable = (@Reflect IntUnaryOperator) (int j) -> {return b(1);};
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(runnable).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "b");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("b_0", "b_1")));
     }
@@ -138,7 +129,7 @@ public class TestModuleOp {
            a();
            b(k * d(temp, j));
         };
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(lambda).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(lambda).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "rootLambda");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("rootLambda_0", "c_1", "a_2", "d_3", "b_4")));
     }
@@ -146,7 +137,7 @@ public class TestModuleOp {
     @Test
     public void testRecursion() throws ReflectiveOperationException {
         Runnable runnable = (@Reflect Runnable) () -> e(1);
-        LambdaOp lambdaOp = (LambdaOp) Op.ofQuotable(runnable).get().op();
+        LambdaOp lambdaOp = (LambdaOp) Op.ofLambda(runnable).get().op();
         ModuleOp moduleOp = ModuleOp.ofLambdaOp(lambdaOp, MethodHandles.lookup(), "e");
         Assertions.assertTrue(moduleOp.functionTable().keySet().stream().toList().equals(List.of("e_0", "e_1")));
     }

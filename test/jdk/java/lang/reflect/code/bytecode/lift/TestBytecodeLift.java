@@ -370,9 +370,9 @@ public class TestBytecodeLift {
     }
 
     static int consumeQuotable(int i, IntUnaryOperator f) {
-        Assertions.assertNotNull(Op.ofQuotable(f).get());
-        Assertions.assertNotNull(Op.ofQuotable(f).get().op());
-        Assertions.assertTrue(Op.ofQuotable(f).get().op() instanceof JavaOp.LambdaOp);
+        Assertions.assertNotNull(Op.ofLambda(f).get());
+        Assertions.assertNotNull(Op.ofLambda(f).get().op());
+        Assertions.assertTrue(Op.ofLambda(f).get().op() instanceof JavaOp.LambdaOp);
         return f.applyAsInt(i + 1);
     }
 

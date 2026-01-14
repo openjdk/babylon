@@ -154,7 +154,7 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
      So we cache the callsite against the location from the lambdaop.
      */
     public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
-        Quoted quoted = Op.ofQuotable(kernel).orElseThrow();
+        Quoted quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
 
