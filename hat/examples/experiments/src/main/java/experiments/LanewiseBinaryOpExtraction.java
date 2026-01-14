@@ -25,168 +25,33 @@
 package experiments;
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.InvokeQuery;
 import optkl.Trxfmr;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.InvocationTargetException;
-import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
 
-import java.util.Arrays;
-import java.util.Optional;
+import static experiments.LanewiseUtils.createBinaryOp;
+
 
 public class LanewiseBinaryOpExtraction {
 
-    public record XY(int x, int y) {
-        @Reflect
-        static XY of(int x, int y) {
-            return new XY(x, y);
-        }
-
-        @Reflect
-        static XY addEm(XY lhs, XY rhs) { // We don't have to call this add.
-            return new XY(lhs.x + rhs.x, lhs.y + rhs.y);
-        }
-
-        @Reflect
-        static XY sub(XY lhs, XY rhs) {
-            return new XY(lhs.x - rhs.x, lhs.y - rhs.y);
-        }
-
-        @Reflect
-        static XY div(XY lhs, XY rhs) {
-            return new XY(lhs.x / rhs.x, lhs.y / rhs.y);
-        }
-
-        @Reflect
-        static XY mod(XY lhs, XY rhs) {
-            return new XY(lhs.x % rhs.x, lhs.y % rhs.y);
-        }
-
-        @Reflect
-        static XY mul(XY lhs, XY rhs) {
-            return new XY(lhs.x * rhs.x, lhs.y * rhs.y);
-        }
-
-        @Reflect
-        public XY mul(XY xy) {
-            return mul(this, xy);
-        }
-
-        @Reflect
-        public XY mul(int scalar) {
-            return mul(this, XY.of(scalar, scalar));
-        }
-
-        @Reflect
-        public XY addEm(XY xy) { // we don't have to call this add either
-            return addEm(this, xy);
-        }
-
-        @Reflect
-        public XY sub(XY xy) {
-            return sub(this, xy);
-        }
-
-        @Reflect
-        public XY div(XY xy) {
-            return div(this, xy);
-        }
-
-        @Reflect
-        public XY mod(XY xy) {
-            return mod(this, xy);
-        }
-    }
-
-
-    /**
-     * Look for first real BinaryOp by recursively decending through nested invokes until we find a BinaryOp
-     *
-     * We first test if the target of the invoke has a binary op, if it does we return it
-     * If not then we find the first invoke in the target of this invoke that returns a binary Op and return that one
-     *
-     * So if we had
-     *   @Reflect
-     *   static XY mul(XY lhs, XY rhs) { #1
-     *        return new XY(lhs.x * rhs.x, lhs.y * rhs.y);
-     *   }
-     *
-     *   @Reflect
-     *   public XY mul(XY xy) { // #2
-     *       return mul(this, xy);
-     *   }
-     *
-     *   And our invoke was #1 we would return MulOp
-     *
-     *   If the invoke was #2 we would recurse inside and then end up at #1 and return Mul Op.
-     * @return The binaryOp from one of the reachable methods
-     */
-
-    static JavaOp.BinaryOp getLaneWiseOp(Invoke invoke) {
-        if (invoke.targetMethodModelOrThrow().elements().filter(o -> o instanceof JavaOp.BinaryOp).map(o -> (JavaOp.BinaryOp) o).findFirst()
-                instanceof Optional<JavaOp.BinaryOp> optionalBinaryOp && optionalBinaryOp.isPresent()) {
-            return optionalBinaryOp.get();
-        } else {
-           return  Invoke.stream(invoke.lookup(),invoke.targetMethodModelOrThrow()).map(LanewiseBinaryOpExtraction::getLaneWiseOp).findFirst().get();
-        }
-    }
-
-    /*
-     Create a binary Op by reflecting over code model of the reftype of the invoke method and determining the lanewise op.
-    */
-
-    /**
-     * Reflectively a Replacement for
-     * static JavaOp.BinaryOp createBinaryOp(String name, Value lhs, Value rhs){
-     * return switch (name) {
-     * case "add" -> JavaOp.add(lhs, rhs);
-     * case "sub" -> JavaOp.sub(lhs, rhs);
-     * case "mul" -> JavaOp.mul(lhs, rhs);
-     * case "div" -> JavaOp.div(lhs, rhs);
-     * case "mod" -> JavaOp.mod(lhs, rhs);
-     * default -> throw new IllegalStateException("missed one");
-     * }
-     * }
-     */
-
-    static JavaOp.BinaryOp createBinaryOp(String name, Value lhs, Value rhs) {
-        var opMethod = Arrays.stream(JavaOp.class.getDeclaredMethods()).filter(m -> m.getName().equals(name)).findFirst().get();
-        try {
-            return (JavaOp.BinaryOp) opMethod.invoke(null, lhs, rhs);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    static JavaOp.BinaryOp createBinaryOpFromCodeModel(Invoke invoke, Value lhs, Value rhs) {
-        JavaOp.BinaryOp laneWiseBinaryOp =getLaneWiseOp(invoke);                                          // search for lanewise Op..
-        String nameWithOpSuffix = laneWiseBinaryOp.getClass().getSimpleName();                            // CoreOp.AddOp -> AddOp
-        String nameSansOp = nameWithOpSuffix.substring(0, nameWithOpSuffix.length() - "Op".length());     // AddOp -> Add
-        String simpleName = nameSansOp.substring(0, 1).toLowerCase() + nameSansOp.substring(1); // Add->add
-        return createBinaryOp(simpleName, lhs, rhs);                                                     // now we can reflectifly create a new AddOp.
-    }
-
     @Reflect
-    public static XY center(XY min, XY max) {
-        var two = XY.of(2, 2);
-        return min.addEm(max).div(two).addEm(XY.of(1,1)).mul(XY.of(15,15));
+    public static S32x2 center(S32x2 min, S32x2 max) {
+        return min.add(max).div(S32x2.of(2,2));
     }
 
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
         var binaryOpQuery = InvokeQuery.create(lookup);
-        Trxfmr.of(lookup, LanewiseBinaryOpExtraction.class, "center", XY.class, XY.class)
+        Trxfmr.of(lookup, LanewiseBinaryOpExtraction.class, "center", S32x2.class, S32x2.class)
                 .toJava("// (Java) before mapping", "//-------")
                 .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    if (binaryOpQuery.matches(c, $ -> // does it look like a fluent binary op we don't care about the name
-                            $.returns(XY.class) && $.isInstance() && $.receives( XY.class)
+                    if (binaryOpQuery.matches(c, $ ->
+                            // does it look like a fluent binary op we don't care about the name
+                            $.returns(S32x2.class) && $.isInstance() && $.receives( S32x2.class)
                     ) instanceof InvokeQuery.Match match) {
-                        c.replace(createBinaryOpFromCodeModel(match.helper(), c.mappedOperand(0), c.mappedOperand(1)));
+                        c.replace(createBinaryOp(match.helper(), c.mappedOperand(0), c.mappedOperand(1)));
                     }
                 })
                 .toJava("// (Java) after transform ", "// -------");
