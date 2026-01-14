@@ -132,8 +132,8 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         return false;
     }
 
-     default <C>boolean isAssignable(JavaType javaType, Class<C> clazz){
-            return  OpHelper.isAssignable(lookup(),javaType,clazz);
+     default boolean isAssignable(JavaType javaType, Class<?> ...clazzes){
+            return  OpHelper.isAssignable(lookup(),javaType,clazzes);
     }
     default  int operandCount(){
         return op().operands().size();
@@ -262,7 +262,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             return regex.matches(name());
         }
         default boolean named( String...names){
-           return Set.of(names).contains(name());
+           return named(Set.of(names));
         }
         default boolean namedIgnoreCase( String...names){
             return Set.of(names).stream().map(String::toLowerCase).collect(Collectors.toSet()).contains(name().toLowerCase());
@@ -271,6 +271,9 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             return predicate.test(name());
         }
 
+        default boolean named(Set<String> set){
+            return set.contains(name());
+        }
         sealed interface VarAccess extends Named<CoreOp.VarAccessOp> {
             @Override
             default  String name(){
@@ -294,9 +297,14 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 return op().varName();
             }
 
-            default  <T>boolean of(Class<T> clazz){
-                return isAssignable((JavaType) op().varValueType(),clazz);
+            default  boolean assignable(Class<?> ...clazzes){
+                return isAssignable((JavaType) op().varValueType(),clazzes);
             }
+
+            default TypeElement type(){
+                return op().resultType().valueType();
+            }
+
             record Impl(MethodHandles.Lookup lookup, CoreOp.VarOp op) implements Var {}
             static Var var(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement) {
                 return codeElement instanceof CoreOp.VarOp varOp ? new Var.Impl(lookup, varOp) : null;
@@ -452,8 +460,12 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                     }else {
                         for (int i = 0; assignable && i < classes.length && i < op().operands().size() - adj; i++) {
                             var operand = op().operands().get(i + adj);
-                            TypeElement resultType = operand.type();//instanceof VarType varType ? varType.valueType() : null;
-                            assignable &= isAssignable((JavaType) resultType, classes[i]);
+                            TypeElement resultType = operand.type();
+                            if (resultType instanceof JavaType javaType) {
+                                assignable &= isAssignable(javaType, classes[i]);
+                            }else{
+                                assignable=false;
+                            }
                         }
                     }
                     return assignable;
@@ -569,6 +581,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                     Method method = resolveMethodOrNull();
                     return OpHelper.methodModelOrThrow(method);
                 }
+
 
 
                 record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Invoke {
