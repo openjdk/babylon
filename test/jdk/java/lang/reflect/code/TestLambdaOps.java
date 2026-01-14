@@ -149,9 +149,9 @@ public class TestLambdaOps {
     }
 
     @Test
-    public void testQuotableModel() {
-        Runnable quotable = (@Reflect Runnable) () -> {};
-        Op qop = Op.ofLambda(quotable).get().op();
+    public void testLambdaModel() {
+        Runnable r = (@Reflect Runnable) () -> {};
+        Op qop = Op.ofLambda(r).get().op();
         Op top = qop.ancestorOp().ancestorOp();
         Assertions.assertTrue(top instanceof CoreOp.FuncOp);
 
@@ -165,7 +165,7 @@ public class TestLambdaOps {
     }
 
     @Test
-    public void testQuote() {
+    public void testQuoted() {
         FuncOp g = getFuncOp("quote");
         System.out.println(g.toText());
 
@@ -219,11 +219,11 @@ public class TestLambdaOps {
     @Test
     public void testToFuncOp() {
         int a = 4, b = 3, c = 6;
-        IntUnaryOperator lambda = (@Reflect IntUnaryOperator) (d) -> {d += 2 * a + (b % 2) + (int) Math.exp(c); return d;};
-        LambdaOp qop = (LambdaOp) Op.ofLambda(lambda).get().op();
+        IntUnaryOperator f = (@Reflect IntUnaryOperator) (d) -> {d += 2 * a + (b % 2) + (int) Math.exp(c); return d;};
+        LambdaOp qop = (LambdaOp) Op.ofLambda(f).get().op();
         FuncOp funcOp = qop.toFuncOp(null);
         int funcOpRes = (int) Interpreter.invoke(MethodHandles.lookup(), funcOp, 1, 4, 3, 6);
-        int lambdaRes = lambda.applyAsInt(1);
+        int lambdaRes = f.applyAsInt(1);
         Assertions.assertEquals(funcOpRes, lambdaRes);
     }
 }

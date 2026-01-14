@@ -12,9 +12,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run junit TestOpOfQuotable
+ * @run junit TestOpOfLambda
  */
-public class TestOpOfQuotable {
+public class TestOpOfLambda {
 
     Runnable f() {
         return (@Reflect Runnable) () -> {

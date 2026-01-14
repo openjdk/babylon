@@ -181,7 +181,7 @@ public class ImplicitConversionTest {
     @Reflect
     @IR("""
             func @"test8" (%0 : java.type:"ImplicitConversionTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.LongSupplier" = lambda @lambda.isQuotable=true ()java.type:"long" -> {
+                %1 : java.type:"java.util.function.LongSupplier" = lambda @lambda.isReflectable=true ()java.type:"long" -> {
                     %2 : java.type:"int" = constant @1;
                     %3 : java.type:"long" = conv %2;
                     return %3;
@@ -197,7 +197,7 @@ public class ImplicitConversionTest {
     @Reflect
     @IR("""
             func @"test9" (%0 : java.type:"ImplicitConversionTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.LongSupplier" = lambda @lambda.isQuotable=true ()java.type:"long" -> {
+                %1 : java.type:"java.util.function.LongSupplier" = lambda @lambda.isReflectable=true ()java.type:"long" -> {
                     %2 : java.type:"int" = constant @1;
                     %3 : java.type:"long" = conv %2;
                     return %3;

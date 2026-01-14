@@ -107,7 +107,6 @@ import static com.sun.tools.javac.code.Flags.*;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
-import static com.sun.tools.javac.code.TypeTag.ARRAY;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
@@ -465,13 +464,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
         private Op lastOp;
         private Value result;
         private Type pt = Type.noType;
-        private final boolean isQuoted;
+        private final boolean isLambdaReflectable;
         private Type bodyTarget;
 
         BodyScanner(JCMethodDecl tree) {
             this.tree = tree;
             this.name = tree.name;
-            this.isQuoted = false;
+            this.isLambdaReflectable = false;
 
             List<TypeElement> parameters = new ArrayList<>();
             int blockArgOffset = 0;
@@ -504,10 +503,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
         BodyScanner(JCLambda tree) {
             this.tree = tree;
             this.name = names.fromString("quotedLambda");
-            this.isQuoted = true;
+            this.isLambdaReflectable = true;
 
-            QuotableLambdaCaptureScanner lambdaCaptureScanner =
-                    new QuotableLambdaCaptureScanner(tree);
+            ReflectableLambdaCaptureScanner lambdaCaptureScanner =
+                    new ReflectableLambdaCaptureScanner(tree);
 
             List<VarSymbol> capturedSymbols = lambdaCaptureScanner.analyzeCaptures();
             int blockParamOffset = 0;
@@ -549,15 +548,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         /**
-         * Compute the set of local variables captured by a quotable lambda expression.
+         * Compute the set of local variables captured by a reflectable lambda expression.
          * Inspired from LambdaToMethod's LambdaCaptureScanner.
          */
-        class QuotableLambdaCaptureScanner extends CaptureScanner {
+        class ReflectableLambdaCaptureScanner extends CaptureScanner {
             boolean capturesThis;
             Set<ClassSymbol> seenClasses = new HashSet<>();
             Map<Symbol, Object> constantCaptures = new HashMap<>();
 
-            QuotableLambdaCaptureScanner(JCLambda ownerTree) {
+            ReflectableLambdaCaptureScanner(JCLambda ownerTree) {
                 super(ownerTree);
             }
 
@@ -1032,7 +1031,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         // if field symbol is a key in top.localToOp
                         // we expect that we're producing the model of a lambda
                         // we also expect that the field is a constant capture and sym was mapped to VarOp result
-                        Assert.check(isQuoted);
+                        Assert.check(isLambdaReflectable);
                         Assert.check(sym.isStatic());
                         Assert.check(sym.isFinal());
                         result = loadVar(sym);
@@ -1471,12 +1470,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // We can either be explicitly quoted or a structural quoted expression
             // within some larger reflected code
 
-            // a quotable lambda is going to have its model wrapped in QuotedOp
-            // only when we are producing the model of the lambda, thus the condition (isQuoted ...)
-            // also, a lambda contained in a quotable lambda, will not have its model wrapped in QuotedOp,
+            // a reflectable lambda is going to have its model wrapped in QuotedOp
+            // only when we are producing the model of the lambda, thus the condition (isReflectable ...)
+            // also, a lambda contained in a reflectable lambda, will not have its model wrapped in QuotedOp,
             // thus the condition (... body == tree)
-            // @@@ better name for isQuoted ?
-            boolean toQuote = (isQuoted && this.tree == tree);
+            boolean toQuote = (isLambdaReflectable && this.tree == tree);
             if (toQuote) {
                 pushBody(tree.body, CoreType.FUNCTION_TYPE_VOID);
             }

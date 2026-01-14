@@ -375,7 +375,7 @@ public class TestBytecode {
         return counter;
     }
 
-    static int consumeQuotable(int i, IntUnaryOperator f) {
+    static int consumeLambda(int i, IntUnaryOperator f) {
         Assertions.assertNotNull(Op.ofLambda(f).get());
         Assertions.assertNotNull(Op.ofLambda(f).get().op());
         Assertions.assertTrue(Op.ofLambda(f).get().op() instanceof JavaOp.LambdaOp);
@@ -383,23 +383,23 @@ public class TestBytecode {
     }
 
     @Reflect
-    static int quotableLambda(int i) {
-        return consumeQuotable(i, a -> -a);
+    static int lambda(int i) {
+        return consumeLambda(i, a -> -a);
     }
 
     @Reflect
-    static int quotableLambdaWithCapture(int i, String s) {
-        return consumeQuotable(i, a -> a + s.length());
+    static int lambdaWithCapture(int i, String s) {
+        return consumeLambda(i, a -> a + s.length());
     }
 
     @Reflect
-    static int nestedQuotableLambdasWithCaptures(int i, int j, String s) {
-        return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j - s.length()) + s.length());
+    static int nestedLambdasWithCaptures(int i, int j, String s) {
+        return consumeLambda(i, a -> consumeLambda(a, b -> a + b + j - s.length()) + s.length());
     }
 
     @Reflect
     static int methodHandle(int i) {
-        return consumeQuotable(i, Math::negateExact);
+        return consumeLambda(i, Math::negateExact);
     }
 
     int instanceMethod(int i) {
@@ -408,7 +408,7 @@ public class TestBytecode {
 
     @Reflect
     int instanceMethodHandle(int i) {
-        return consumeQuotable(i, this::instanceMethod);
+        return consumeLambda(i, this::instanceMethod);
     }
 
     static void consume(boolean b, Consumer<Object> requireNonNull) {

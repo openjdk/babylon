@@ -59,7 +59,7 @@ public final class StreamFuser {
                     throw new IllegalArgumentException("Quotable operation is not lambda operation");
                 }
                 if (!(Op.ofLambda(quotedLambda).get().capturedValues().isEmpty())) {
-                    throw new IllegalArgumentException("Quotable operation captures values");
+                    throw new IllegalArgumentException("Reflectable lambda captures values");
                 }
                 this.lambdaOp = lambdaOp;
             }
@@ -185,7 +185,7 @@ public final class StreamFuser {
                 throw new IllegalArgumentException("Quotable consumer is not lambda operation");
             }
             if (!(Op.ofLambda(quotableConsumer).get().capturedValues().isEmpty())) {
-                throw new IllegalArgumentException("Quotable consumer captures values");
+                throw new IllegalArgumentException("Reflectable consumer captures values");
             }
 
             return func("fused.forEach", CoreType.functionType(JavaType.VOID, sourceType))
@@ -212,13 +212,13 @@ public final class StreamFuser {
                 throw new IllegalArgumentException("Quotable supplier is not lambda operation");
             }
             if (!(Op.ofLambda(quotableSupplier).get().capturedValues().isEmpty())) {
-                throw new IllegalArgumentException("Quotable supplier captures values");
+                throw new IllegalArgumentException("Reflectable supplier captures values");
             }
             if (!(Op.ofLambda(quotableAccumulator).get().op() instanceof JavaOp.LambdaOp accumulator)) {
                 throw new IllegalArgumentException("Quotable accumulator is not lambda operation");
             }
             if (!(Op.ofLambda(quotableAccumulator).get().capturedValues().isEmpty())) {
-                throw new IllegalArgumentException("Quotable accumulator captures values");
+                throw new IllegalArgumentException("Reflectable accumulator captures values");
             }
 
             JavaType collectType = (JavaType) supplier.invokableType().returnType();
