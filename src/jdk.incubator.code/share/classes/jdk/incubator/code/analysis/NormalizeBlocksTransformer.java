@@ -38,10 +38,10 @@ import java.util.*;
  * Merges redundant blocks with their predecessors, those which are unconditionally
  * branched to and have only one predecessor.
  * <p>
+ * Removes unused block parameters.
+ * <p>
  * Skips intermediate conditional branches with a single constant boolean argument
  * and branches directly to the target true or false branch, based on the constant value.
- * <p>
- * Removes unused block parameters.
  */
 public final class NormalizeBlocksTransformer implements CodeTransformer {
     final Set<Block> mergedBlocks = new HashSet<>();
@@ -105,11 +105,6 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                 && cop.result().uses().stream().allMatch(cr -> cr.op() instanceof CoreOp.BranchOp bop
                         && isPureConditionalDispatchingBlock(bop.branch().targetBlock())) -> {
                 // Remove boolean ConstantOp used purelly as BranchOp successor arguments to a conditional dispatching block
-                System.err.println(cop.toText());
-            }
-            case CoreOp.ConstantOp cop -> {
-                System.err.println(cop.toText());
-                b.op(op);
             }
             case JavaOp.ExceptionRegionEnter ere -> {
                 // Cannot remove block parameters from exception handlers
