@@ -496,7 +496,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @param fiInstance a functional interface instance that is the result of a reflectable lambda expression
      *                   or method reference.
-     * @return the code model, or an empty optional the functional interface instance is not the result of a
+     * @return the code model, or an empty optional if the functional interface instance is not the result of a
      *         reflectable lambda expression or method reference.
      * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code model
      *                                       is not the same as the Java version used at runtime to load the code model.
