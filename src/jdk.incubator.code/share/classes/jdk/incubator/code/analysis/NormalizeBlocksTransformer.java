@@ -28,6 +28,7 @@ package jdk.incubator.code.analysis;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.*;
 
@@ -36,6 +37,9 @@ import java.util.*;
  * <p>
  * Merges redundant blocks with their predecessors, those which are unconditionally
  * branched to and have only one predecessor.
+ * <p>
+ * Skips intermediate conditional branches with a single constant boolean argument
+ * and branches directly to the target true or false branch, based on the constant value.
  * <p>
  * Removes unused block parameters.
  */
@@ -70,26 +74,74 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
 
     @Override
     public Block.Builder acceptOp(Block.Builder b, Op op) {
-        if (op instanceof CoreOp.BranchOp bop &&
-                bop.branch().targetBlock().predecessors().size() == 1) {
-            // Merge the successor's target block with this block, and so on
-            // The terminal branch operation is replaced with the operations in the
-            // successor's target block
-            mergeBlock(b, bop);
-            return b;
-        } else if (op instanceof JavaOp.ExceptionRegionEnter ere) {
-            // Cannot remove block parameters from exception handlers
-            removeUnusedBlockParameters(b, ere.start());
-        } else if (op instanceof JavaOp.ExceptionRegionExit ere) {
-            // Cannot remove block parameters from exception handlers
-            removeUnusedBlockParameters(b, ere.end());
-        } else if (op instanceof Op.BlockTerminating) {
-            for (Block.Reference successor : op.successors()) {
-                removeUnusedBlockParameters(b, successor);
+        switch (op) {
+            case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
+                // Merge the successor's target block with this block, and so on
+                // The terminal branch operation is replaced with the operations in the
+                // successor's target block
+                mergeBlock(b, bop);
+            }
+            case CoreOp.BranchOp bop when isPureConditionalDispatchingBlock(bop.branch().targetBlock())
+                    && bop.branch().arguments().getFirst() instanceof Op.Result or
+                    && or.op() instanceof CoreOp.ConstantOp cop -> {
+                // Skip intermediate conditional branch with constant boolean argument and re-target
+                // directly to the true or false branch, based on the constant value.
+                CoreOp.ConditionalBranchOp cbo = (CoreOp.ConditionalBranchOp)bop.branch().targetBlock().terminatingOp();
+                Block.Reference br = (Boolean)cop.value() ? cbo.trueBranch() : cbo.falseBranch();
+                if (br.targetBlock().predecessors().size() == 1) {
+                    // Merge the successor's target block with this block
+                    mergeBlock(b, br.targetBlock());
+                } else {
+                    b.op(CoreOp.branch(b.context().getSuccessorOrCreate(br)));
+                }
+
+                // Remove the conditional dispatching block if all predecessor reference args are constants
+                if (bop.branch().targetBlock().predecessorReferences().stream()
+                        .allMatch(r -> r.arguments().getFirst() instanceof Op.Result orr && orr.op() instanceof CoreOp.ConstantOp)) {
+                    mergedBlocks.add(bop.branch().targetBlock());
+                }
+            }
+            case CoreOp.ConstantOp cop when cop.resultType().equals(JavaType.BOOLEAN)
+                && cop.result().uses().stream().allMatch(cr -> cr.op() instanceof CoreOp.BranchOp bop
+                        && isPureConditionalDispatchingBlock(bop.branch().targetBlock())) -> {
+                // Remove boolean ConstantOp used purelly as BranchOp successor arguments to a conditional dispatching block
+                System.err.println(cop.toText());
+            }
+            case CoreOp.ConstantOp cop -> {
+                System.err.println(cop.toText());
+                b.op(op);
+            }
+            case JavaOp.ExceptionRegionEnter ere -> {
+                // Cannot remove block parameters from exception handlers
+                removeUnusedBlockParameters(b, ere.start());
+                b.op(op);
+            }
+            case JavaOp.ExceptionRegionExit ere -> {
+                // Cannot remove block parameters from exception handlers
+                removeUnusedBlockParameters(b, ere.end());
+                b.op(op);
+            }
+            case Op.BlockTerminating _ -> {
+                for (Block.Reference successor : op.successors()) {
+                    removeUnusedBlockParameters(b, successor);
+                }
+                b.op(op);
+            }
+            default -> {
+                b.op(op);
             }
         }
-        b.op(op);
         return b;
+    }
+
+    private static boolean isPureConditionalDispatchingBlock(Block b) {
+        return b.parameters().size() == 1
+                && b.parameters().getFirst().type().equals(JavaType.BOOLEAN)
+                && b.ops().size() == 1
+                && b.terminatingOp() instanceof CoreOp.ConditionalBranchOp cbo
+                && cbo.operands().getFirst() == b.parameters().getFirst()
+                && cbo.trueBranch().arguments().isEmpty()
+                && cbo.falseBranch().arguments().isEmpty();
     }
 
     // Remove any unused block parameters and successor arguments
@@ -160,7 +212,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
 
         // Merge non-terminal operations
         for (int i = 0; i < successor.ops().size() - 1; i++) {
-            b.op(successor.ops().get(i));
+            acceptOp(b, successor.ops().get(i));
         }
 
         // Check if subsequent successor block can be normalized

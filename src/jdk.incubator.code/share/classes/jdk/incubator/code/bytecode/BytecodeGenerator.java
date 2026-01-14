@@ -51,12 +51,12 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
 import jdk.incubator.code.bytecode.impl.ExceptionTableCompactor;
 import jdk.incubator.code.bytecode.impl.LocalsCompactor;
 import jdk.incubator.code.bytecode.impl.LoweringTransform;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.OpParser;
@@ -88,30 +88,6 @@ public final class BytecodeGenerator {
             CD_CallSite);
 
     private static final MethodTypeDesc OP_METHOD_DESC = MethodTypeDesc.of(Op.class.describeConstable().get());
-
-    /**
-     * Skip constant conditional branch transformation.
-     * This is a custom optimization focused on redundant conditional branches,
-     * particularly in lowered pattern matching for switch statements.
-     * It skips intermediate conditional branch with constant boolean argument and re-targets
-     * directly to the true or false branch, based on the argument's constant value.
-     */
-    private static CodeTransformer SKIP_CBRANCH_TRANSFORM = (block, op) -> {
-        if (op instanceof BranchOp bo
-                && bo.branch().arguments().size() == 1
-                && bo.branch().arguments().getFirst() instanceof Op.Result or
-                && or.type().equals(JavaType.BOOLEAN)
-                && or.op() instanceof ConstantOp cop
-                && bo.branch().targetBlock().ops().size() == 1
-                && bo.branch().targetBlock().terminatingOp() instanceof ConditionalBranchOp cbo
-                && ((Boolean)cop.value() ? cbo.trueBranch() : cbo.falseBranch()) instanceof Block.Reference br
-                && br.arguments().isEmpty()) {
-            block.op(CoreOp.branch(block.context().getSuccessorOrCreate(br)));
-        } else {
-            block.op(op);
-        }
-        return block;
-    };
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -197,8 +173,8 @@ public final class BytecodeGenerator {
             BitSet quotable = new BitSet();
             CodeTransformer lowering = LoweringTransform.getInstance(lookup);
             for (var e : ops.sequencedEntrySet()) {
-                O lowered = (O)e.getValue().transform(CodeContext.create(), lowering)
-                                           .transform(CodeContext.create(), SKIP_CBRANCH_TRANSFORM);
+                O lowered = NormalizeBlocksTransformer.transform(
+                        (O)e.getValue().transform(CodeContext.create(), lowering));
                 generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, quotable);
             }
             for (int i = 0; i < lambdaSink.size(); i++) {
