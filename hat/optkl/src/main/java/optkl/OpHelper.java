@@ -682,7 +682,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
             return codeElement instanceof JavaOp.LambdaOp lambdaOp? new Impl(lookup,lambdaOp): null;
         }
 
-        default Object[] getQuotedCapturedValues(Quoted quoted, Method method) {
+        default Object[] getQuotedCapturedValues(Quoted<JavaOp.LambdaOp> quoted, Method method) {
             var block = op().body().entryBlock();
             var ops = block.ops();
             Object[] varLoadNames = ops.stream()

@@ -46,7 +46,7 @@ public class TestValueCast {
             }
             return a + b;
         };
-        return (JavaOp.LambdaOp) Op.ofLambda(ibo).get().op();
+        return Op.ofLambda(ibo).get().op();
     }
 
     static Stream<Value> values(CodeElement<?, ?> r) {

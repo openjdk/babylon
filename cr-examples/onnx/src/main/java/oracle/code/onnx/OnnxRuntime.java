@@ -173,7 +173,7 @@ public final class OnnxRuntime {
                 .toList();
         List<Tensor> ret = model.session().run(arena, arguments);
 
-        var lambdaOp = ((JavaOp.LambdaOp) q.op());
+        var lambdaOp = q.op();
         TypeElement type = lambdaOp.invokableType().returnType();
         if (type instanceof ArrayType) {
             return (T) ret.toArray(Tensor[]::new);
@@ -443,12 +443,12 @@ public final class OnnxRuntime {
     static class CachedSessionClassValue extends ClassValue<SessionWithReturnType> {
 
         private MethodHandles.Lookup l;
-        private Quoted q;
+        private Quoted<JavaOp.LambdaOp> q;
         private SessionOptions options;
 
         // Static helper for cache with options
         protected SessionWithReturnType computeIfAbsent(
-                Class<?> lambdaClass, MethodHandles.Lookup l, Quoted q, SessionOptions options) {
+                Class<?> lambdaClass, MethodHandles.Lookup l, Quoted<JavaOp.LambdaOp> q, SessionOptions options) {
             try {
                 this.l = l;
                 this.q = q;

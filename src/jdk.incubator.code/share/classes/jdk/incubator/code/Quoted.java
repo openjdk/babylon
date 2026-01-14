@@ -40,8 +40,8 @@ import java.util.function.Consumer;
  * executing that code. For example passing the of a lambda expression in quoted form rather than the expression being
  * targeted to a functional interface from which it can be invoked.
  */
-public final class Quoted {
-    private final Op op;
+public final class Quoted<T extends Op> {
+    private final T op;
     private final SequencedMap<Value, Object> operandsAndCapturedValues;
 
     static final SequencedMap<Value, Object> EMPTY_SEQUENCED_MAP = new LinkedHashMap<>();
@@ -50,7 +50,7 @@ public final class Quoted {
      *
      * @param op the invokable operation.
      */
-    public Quoted(Op op) {
+    public Quoted(T op) {
         this(op, EMPTY_SEQUENCED_MAP);
     }
 
@@ -66,7 +66,7 @@ public final class Quoted {
      * @see Op#capturedValues()
      * @see Op#operands()
      */
-    public Quoted(Op op, SequencedMap<Value, Object> operandsAndCapturedValues) {
+    public Quoted(T op, SequencedMap<Value, Object> operandsAndCapturedValues) {
         // @@@ This check is potentially expensive, remove or keep ?
         // @@@ Or make Quoted an interface, with a module private implementation?
         SequencedSet<Value> s = new LinkedHashSet<>(op.operands());
@@ -83,7 +83,7 @@ public final class Quoted {
      *
      * @return the operation.
      */
-    public Op op() {
+    public T op() {
         return op;
     }
 
@@ -177,7 +177,7 @@ public final class Quoted {
         List<TypeElement> params = inputOperandsAndCaptures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
-        FunctionType ft = CoreType.functionType(CoreOp.QuotedOp.QUOTED_TYPE, params);
+        FunctionType ft = CoreType.functionType(CoreOp.QuotedOp.QUOTED_OP_TYPE, params);
 
         // Build the function that quotes the lambda
         return CoreOp.func("q", ft).body(b -> {
@@ -224,7 +224,7 @@ public final class Quoted {
      * @throws RuntimeException If {@code funcOp} isn't a valid code model
      * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
      */
-    public static Quoted extractOp(CoreOp.FuncOp funcOp, List<Object> args) {
+    public static Quoted<Op> extractOp(CoreOp.FuncOp funcOp, List<Object> args) {
         if (funcOp.body().blocks().size() != 1) {
             throw invalidQuotedModel(funcOp);
         }
@@ -324,7 +324,7 @@ public final class Quoted {
             }
         }
 
-        return new Quoted(op, m);
+        return new Quoted<>(op, m);
     }
 
     /**
@@ -341,7 +341,7 @@ public final class Quoted {
      * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
      * @see Quoted#extractOp(CoreOp.FuncOp, List)
      */
-    public static Quoted extractOp(CoreOp.FuncOp funcOp, Object... args) {
+    public static Quoted<Op> extractOp(CoreOp.FuncOp funcOp, Object... args) {
         return extractOp(funcOp, List.of(args));
     }
 }

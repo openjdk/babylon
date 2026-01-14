@@ -481,7 +481,7 @@ public final class Interpreter {
         } else if (o instanceof CoreOp.QuotedOp qo) {
             SequencedMap<Value, Object> capturedValues = qo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
-            return new Quoted(qo.quotedOp(), capturedValues);
+            return new Quoted<>(qo.quotedOp(), capturedValues);
         } else if (o instanceof JavaOp.LambdaOp lo) {
             SequencedMap<Value, Object> capturedValuesAndArguments = lo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
@@ -496,7 +496,7 @@ public final class Interpreter {
             if (lo.isReflectable()) {
                 return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
                         new InvocationHandler() {
-                            private final Quoted quoted = new Quoted(lo, capturedValuesAndArguments);
+                            private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(lo, capturedValuesAndArguments);
                             @Override
                             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                                 if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
@@ -507,7 +507,7 @@ public final class Interpreter {
                                 }
                             }
 
-                            private Quoted __internal_quoted() {
+                            private Quoted<JavaOp.LambdaOp> __internal_quoted() {
                                 return quoted;
                             }
                         });
