@@ -40,8 +40,8 @@ import java.util.*;
  * <p>
  * Removes unused block parameters.
  * <p>
- * Skips intermediate conditional branches with a single constant boolean argument
- * and branches directly to the target true or false branch, based on the constant value.
+ * Skips intermediate conditional branches that use a single constant boolean argument,
+ * directly redirecting to the target true or false branch based on the constant's value.
  */
 public final class NormalizeBlocksTransformer implements CodeTransformer {
     final Set<Block> mergedBlocks = new HashSet<>();
