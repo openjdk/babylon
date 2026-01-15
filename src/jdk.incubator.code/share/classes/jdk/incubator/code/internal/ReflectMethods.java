@@ -520,10 +520,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 capturedTypes.add(s.type);
             }
 
-            MethodType mtype = new MethodType(capturedTypes.toList(), crSyms.quotedType,
-                    com.sun.tools.javac.util.List.nil(), syms.methodClass);
-            FunctionType mtDesc = CoreType.functionType(typeToTypeElement(mtype.restype),
-                    mtype.getParameterTypes().map(ReflectMethods.this::typeToTypeElement));
+            FunctionType mtDesc = CoreType.functionType(CoreOp.QuotedOp.QUOTED_OP_TYPE,
+                    capturedTypes.toList().map(ReflectMethods.this::typeToTypeElement));
 
             this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
 

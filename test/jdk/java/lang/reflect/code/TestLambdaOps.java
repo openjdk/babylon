@@ -49,15 +49,14 @@ import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
-import static jdk.incubator.code.dialect.java.JavaType.INT;
-import static jdk.incubator.code.dialect.java.JavaType.type;
+import static jdk.incubator.code.dialect.java.JavaType.*;
 
 public class TestLambdaOps {
     static class Builder {
         static final MethodRef ACCEPT_METHOD = MethodRef.method(type(Builder.class), "accept",
-                INT, CoreOp.QuotedOp.QUOTED_TYPE);
+                INT, CoreOp.QuotedOp.QUOTED_OP_TYPE);
 
-        static int accept(Quoted l) {
+        static int accept(Quoted<?> l) {
             Assertions.assertEquals(l.capturedValues().size(), 1);
             Assertions.assertEquals(l.capturedValues().values().iterator().next(), 1);
 
@@ -156,7 +155,8 @@ public class TestLambdaOps {
         Assertions.assertTrue(top instanceof CoreOp.FuncOp);
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;
-        Assertions.assertEquals(fop.invokableType().returnType(), type(Quoted.class));
+        System.out.println(fop.toText());
+        Assertions.assertEquals(fop.invokableType().returnType(), parameterized(type(Quoted.class), type(Op.class)));
     }
 
     @Reflect
@@ -173,16 +173,16 @@ public class TestLambdaOps {
             IntSupplier op = (IntSupplier) Interpreter.invoke(MethodHandles.lookup(), g, 42);
             Assertions.assertEquals(42, op.getAsInt());
 
-            Quoted q = Op.ofLambda(op).get();
+            Quoted<LambdaOp> q = Op.ofLambda(op).get();
             System.out.println(q.op().toText());
             Assertions.assertEquals(1, q.capturedValues().size());
             Assertions.assertEquals(42, ((Var<?>)q.capturedValues().values().iterator().next()).value());
 
-            int r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+            int r = (int) Interpreter.invoke(MethodHandles.lookup(), q.op(),
                     new ArrayList<>(q.capturedValues().sequencedValues()));
             Assertions.assertEquals(42, r);
 
-            r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+            r = (int) Interpreter.invoke(MethodHandles.lookup(), q.op(),
                     List.of(CoreOp.Var.of(0)));
             Assertions.assertEquals(0, r);
         }
@@ -191,17 +191,17 @@ public class TestLambdaOps {
             IntSupplier op = quote(42);
             Assertions.assertEquals(42, op.getAsInt());
 
-            Quoted q = Op.ofLambda(op).get();
+            Quoted<LambdaOp> q = Op.ofLambda(op).get();
             System.out.println(q.op().toText());
             System.out.print(q.capturedValues().values());
             Assertions.assertEquals(1, q.capturedValues().size());
             Assertions.assertEquals(42, ((Var<?>)q.capturedValues().values().iterator().next()).value());
 
-            int r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+            int r = (int) Interpreter.invoke(MethodHandles.lookup(), q.op(),
                     new ArrayList<>(q.capturedValues().sequencedValues()));
             Assertions.assertEquals(42, r);
 
-            r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+            r = (int) Interpreter.invoke(MethodHandles.lookup(), q.op(),
                     List.of(CoreOp.Var.of(0)));
             Assertions.assertEquals(0, r);
         }
@@ -220,7 +220,7 @@ public class TestLambdaOps {
     public void testToFuncOp() {
         int a = 4, b = 3, c = 6;
         IntUnaryOperator f = (@Reflect IntUnaryOperator) (d) -> {d += 2 * a + (b % 2) + (int) Math.exp(c); return d;};
-        LambdaOp qop = (LambdaOp) Op.ofLambda(f).get().op();
+        LambdaOp qop = Op.ofLambda(f).get().op();
         FuncOp funcOp = qop.toFuncOp(null);
         int funcOpRes = (int) Interpreter.invoke(MethodHandles.lookup(), funcOp, 1, 4, 3, 6);
         int lambdaRes = f.applyAsInt(1);

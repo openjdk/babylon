@@ -51,13 +51,13 @@ public interface Queryable<T> {
 
     @SuppressWarnings("unchecked")
     default Queryable<T> where(Predicate<T> f) {
-        JavaOp.LambdaOp l = (JavaOp.LambdaOp) Op.ofLambda(f).get().op();
+        JavaOp.LambdaOp l = Op.ofLambda(f).get().op();
         return (Queryable<T>) insertQuery(elementType(), "where", l);
     }
 
     @SuppressWarnings("unchecked")
     default <R> Queryable<R> select(Function<T, R> f) {
-        JavaOp.LambdaOp l = (JavaOp.LambdaOp) Op.ofLambda(f).get().op();
+        JavaOp.LambdaOp l = Op.ofLambda(f).get().op();
         return (Queryable<R>) insertQuery((JavaType) l.invokableType().returnType(), "select", l);
     }
 
