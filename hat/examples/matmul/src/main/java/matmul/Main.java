@@ -122,10 +122,9 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MyLocalArrayFixedSize.class,
-                myPrivateArray -> myPrivateArray
-                        // It is a bound schema, so we fix the size here
-                        .withArray("array", 256));
+        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MethodHandles.lookup(),null,MyLocalArrayFixedSize.class,
+                myPrivateArray -> myPrivateArray.withArray("array", 256));// It is a bound schema, so we fix the size here
+
 
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
             return null;
@@ -187,7 +186,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
 
         static SharedMemory create(Accelerator accelerator) {
@@ -204,7 +203,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArray.class,
                 arr -> arr.withArray("array", 16));
 
         static PrivateArray create(Accelerator accelerator) {
@@ -221,7 +220,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(FlatPrivate.class,
+        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(MethodHandles.lookup(),null,FlatPrivate.class,
                 arr -> arr.withArray("array", 4));
 
         static FlatPrivate create(Accelerator accelerator) {
@@ -478,7 +477,7 @@ public class Main {
     private interface SharedMemoryHalf extends DeviceType {
         F16 array(int index);
 
-        DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(SharedMemoryHalf.class,
+        DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemoryHalf.class,
                 arr -> arr.withArray("array", 1024)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -494,7 +493,7 @@ public class Main {
     private interface PrivateArrayHalf extends DeviceType {
         F16 array(int index);
 
-        DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(PrivateArrayHalf.class,
+        DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArrayHalf.class,
                 arr -> arr.withArray("array", 16)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -510,7 +509,7 @@ public class Main {
     private interface FlatPrivateHalf extends DeviceType {
         F16 array(int index);
 
-        DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(FlatPrivateHalf.class,
+        DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(MethodHandles.lookup(),null,FlatPrivateHalf.class,
                 arr -> arr.withArray("array", 4)
                         .withDeps(F16.class, half -> half.withField("value")));
 

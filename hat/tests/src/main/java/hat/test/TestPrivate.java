@@ -47,7 +47,7 @@ public class TestPrivate {
         void array(long index, float value);
         float array(long index);
 
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArray.class,
                 myPrivateArray -> myPrivateArray
                         .withArray("array", 1));
 

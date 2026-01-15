@@ -37,7 +37,8 @@ import java.util.stream.Stream;
  *
  * @author Gary Frost
  */
-public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<T> implements CodeRenderer<T> {
+public abstract class CodeBuilder<T extends CodeBuilder<T>>
+        extends TextBuilder<T> implements CodeRenderer<T> {
 
     public T semicolon() {
         return symbol(";");
