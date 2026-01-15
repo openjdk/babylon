@@ -65,7 +65,7 @@ public class BufferTagger {
     }
 
     // inlines functions found in FuncOp f until no more inline-able functions are present
-     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Method methodOfFuncOp) {
+    public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Method methodOfFuncOp) {
         CoreOp.FuncOp ssaFunc =  SSA.transform( funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
         var changed  = StreamMutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
@@ -73,8 +73,8 @@ public class BufferTagger {
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
                 if (invoke(lookup, op) instanceof Invoke invoke  // always but pattern friendly
                         && invoke.resolvedMethodOrNull() instanceof Method method) {
-                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);        
-                    if(optionalFuncOp.isPresent() 
+                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);    
+                    if(optionalFuncOp.isPresent()
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline) {  // always we just want var in scope
 
                         var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
@@ -95,19 +95,19 @@ public class BufferTagger {
                         }
                         changed.set(true);
                         return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
-                    } else if (optionalFuncOp.isEmpty() 
+                    } else if (optionalFuncOp.isEmpty()
                                 && method.getDeclaringClass().equals(methodOfFuncOp.getDeclaringClass())) {
                             // Expect @Reflect annotation to be present on all methods called from the kernel function
                             // that are defined in the same class as the kernel function.
                             throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");
-                    }            
+                    }
                 }
                 blockbuilder.op(op);
                return blockbuilder;
             });
         }
         return ssaFunc;
-    }        
+    }    
 
     // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
