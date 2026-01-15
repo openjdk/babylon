@@ -209,16 +209,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             } else {
                 // if the method is annotated, scan it
                 BodyScanner bodyScanner = new BodyScanner(tree);
+                CoreOp.FuncOp funcOp;
                 try {
-                    CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
-                    if (dumpIR) {
-                        // dump the method IR if requested
-                        log.note(ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
-                    }
-                    // create a static method that returns the op
-                    Name methodName = methodName(symbolToMethodRef(tree.sym));
-                    opMethodDecls.add(opMethodDecl(methodName));
-                    ops.put(methodName.toString(), funcOp);
+                    funcOp = bodyScanner.scanMethod();
                 } catch (Exception e) {
                     if (reflectAll) {
                         // log as warning for debugging purposses when reflectAll enabled
@@ -228,6 +221,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     }
                     throw e;
                 }
+                if (dumpIR) {
+                    // dump the method IR if requested
+                    log.note(ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
+                }
+                // create a static method that returns the op
+                Name methodName = methodName(symbolToMethodRef(tree.sym));
+                opMethodDecls.add(opMethodDecl(methodName));
+                ops.put(methodName.toString(), funcOp);
             }
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
@@ -308,20 +309,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // quoted lambda - scan it
             BodyScanner bodyScanner = new BodyScanner(tree);
+            CoreOp.FuncOp funcOp;
             try {
-                CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
-                if (dumpIR) {
-                    // dump the method IR if requested
-                    log.note(ReflectableLambdaIrDump(funcOp.toText()));
-                }
-                // create a static method that returns the FuncOp representing the lambda
-                Name lambdaName = lambdaName();
-                JCMethodDecl opMethod = opMethodDecl(lambdaName);
-                opMethodDecls.add(opMethod);
-                ops.put(lambdaName.toString(), funcOp);
-
-                // leave the lambda in place, but also leave a trail for LambdaToMethod
-                tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
+                funcOp = bodyScanner.scanLambda();
             } catch (Exception e) {
                 if (reflectAll) {
                     log.warning(tree, ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
@@ -330,6 +320,18 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
                 throw e;
             }
+            if (dumpIR) {
+                // dump the method IR if requested
+                log.note(ReflectableLambdaIrDump(funcOp.toText()));
+            }
+            // create a static method that returns the FuncOp representing the lambda
+            Name lambdaName = lambdaName();
+            JCMethodDecl opMethod = opMethodDecl(lambdaName);
+            opMethodDecls.add(opMethod);
+            ops.put(lambdaName.toString(), funcOp);
+
+            // leave the lambda in place, but also leave a trail for LambdaToMethod
+            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
         try {
