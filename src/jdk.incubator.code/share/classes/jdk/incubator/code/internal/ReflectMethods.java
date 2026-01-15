@@ -219,7 +219,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     Name methodName = methodName(symbolToMethodRef(tree.sym));
                     opMethodDecls.add(opMethodDecl(methodName));
                     ops.put(methodName.toString(), funcOp);
-                } catch (RuntimeException e) {
+                } catch (Exception e) {
                     if (reflectAll) {
                         // log as warning for debugging purposses when reflectAll enabled
                         log.warning(tree, ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
@@ -299,7 +299,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     public void visitLambda(JCLambda tree) {
         boolean isReflectable = isReflectable(tree);
         if (isReflectable) {
-            if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
+            if (currentClassSym.type.getEnclosingType().hasTag(CLASS) || currentClassSym.isDirectlyOrIndirectlyLocal()) {
                 // Reflectable lambdas in local classes are not supported
                 log.warning(tree, ReflectableLambdaInnerClass(currentClassSym.enclClass()));
                 super.visitLambda(tree);
@@ -308,19 +308,28 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // quoted lambda - scan it
             BodyScanner bodyScanner = new BodyScanner(tree);
-            CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
-            if (dumpIR) {
-                // dump the method IR if requested
-                log.note(ReflectableLambdaIrDump(funcOp.toText()));
-            }
-            // create a static method that returns the FuncOp representing the lambda
-            Name lambdaName = lambdaName();
-            JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            opMethodDecls.add(opMethod);
-            ops.put(lambdaName.toString(), funcOp);
+            try {
+                CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
+                if (dumpIR) {
+                    // dump the method IR if requested
+                    log.note(ReflectableLambdaIrDump(funcOp.toText()));
+                }
+                // create a static method that returns the FuncOp representing the lambda
+                Name lambdaName = lambdaName();
+                JCMethodDecl opMethod = opMethodDecl(lambdaName);
+                opMethodDecls.add(opMethod);
+                ops.put(lambdaName.toString(), funcOp);
 
-            // leave the lambda in place, but also leave a trail for LambdaToMethod
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
+                // leave the lambda in place, but also leave a trail for LambdaToMethod
+                tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
+            } catch (Exception e) {
+                if (reflectAll) {
+                    log.warning(tree, ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
+                    super.visitLambda(tree);
+                    return;
+                }
+                throw e;
+            }
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
         try {
