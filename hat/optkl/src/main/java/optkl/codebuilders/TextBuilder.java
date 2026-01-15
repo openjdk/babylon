@@ -46,8 +46,6 @@ package optkl.codebuilders;
 
 
 public abstract class TextBuilder<T extends TextBuilder<T>> {
-
-
     public static class State {
         private final StringBuilder stringBuilder = new StringBuilder();
         final public boolean indenting = true;

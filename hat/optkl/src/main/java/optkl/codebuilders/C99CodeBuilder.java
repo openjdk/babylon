@@ -27,7 +27,11 @@ import jdk.incubator.code.dialect.java.ClassType;
 
 import java.util.function.Consumer;
 
-public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends JavaOrC99StyleCodeBuilder<T> {
+public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
+
+    public C99CodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
 
     public final T suffix_t(ClassType type){
         String name = type.toClassName();

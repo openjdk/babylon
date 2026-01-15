@@ -188,7 +188,7 @@ public sealed abstract class JavaOp extends Op {
                 return new LambdaOp(functionalInterface, body, isReflectable);
             }
 
-            public Builder quotable() {
+            public Builder reflectable() {
                 return new Builder(ancestorBody, funcType, functionalInterface, true);
             }
         }

@@ -99,20 +99,23 @@ public class FuncOpParams {
 
     public FuncOpParams(CoreOp.FuncOp funcOp) {
         this.funcOp = funcOp;
-        funcOp.parameters().forEach(parameter -> {
-            Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
-            optionalResult.ifPresentOrElse(result -> {
-                if (result.op() instanceof CoreOp.VarOp varOp) {
-                    parameterVarOpMap.add(parameter, varOp);
-                    add(Map.entry(parameter, varOp));
-                } else if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
-                    parameterInvokeOpMap.add(parameter, invokeOp);
-                } else {
-                    throw new IllegalStateException("What kind of parameter is this?");
-                }
-            }, () -> {
-                throw new IllegalStateException("FuncOp has unused params ");
+        if (funcOp!=null) {
+            funcOp.parameters().forEach(parameter -> {
+                Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
+                optionalResult.ifPresentOrElse(result -> {
+                    if (result.op() instanceof CoreOp.VarOp varOp) {
+                        parameterVarOpMap.add(parameter, varOp);
+                        add(Map.entry(parameter, varOp));
+                    } else if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
+                        parameterInvokeOpMap.add(parameter, invokeOp);
+                    } else {
+                        throw new IllegalStateException("What kind of parameter is this?");
+                    }
+                }, () -> {
+                    throw new IllegalStateException("FuncOp has unused params ");
+                });
+
             });
-        });
+        }
     }
 }

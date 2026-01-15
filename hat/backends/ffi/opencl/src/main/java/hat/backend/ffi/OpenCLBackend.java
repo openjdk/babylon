@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -65,7 +66,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     String createC99(KernelCallGraph kernelCallGraph,  Object[] args){
-        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(), args);
+        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
     }
 
 }

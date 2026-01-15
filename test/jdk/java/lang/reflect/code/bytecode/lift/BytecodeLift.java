@@ -48,7 +48,6 @@ import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
-import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
 import jdk.incubator.code.Block;
@@ -472,9 +471,9 @@ public final class BytecodeLift {
                         JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
-                        // if ReflectableLambdaMetafactory is used, the lambda is quotable
+                        // if ReflectableLambdaMetafactory is used, the lambda is reflectable
                         if (bsm.owner().displayName().equals("jdk.incubator.code.runtime.ReflectableLambdaMetafactory")) {
-                            lambda = lambda.quotable();
+                            lambda = lambda.reflectable();
                         }
 
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {

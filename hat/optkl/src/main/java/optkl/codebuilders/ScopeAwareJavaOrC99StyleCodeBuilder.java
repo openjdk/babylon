@@ -24,15 +24,18 @@
  */
 package optkl.codebuilders;
 
-import jdk.incubator.code.dialect.core.CoreOp;
 
-import java.lang.invoke.MethodHandles;
-
-public class CodeBuilderContext {
-    final public MethodHandles.Lookup lookup;
-    final public CoreOp.FuncOp funcOp;
-    public CodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        this.lookup = lookup;
-        this.funcOp = funcOp;
+public abstract class ScopeAwareJavaOrC99StyleCodeBuilder<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>>
+        extends JavaOrC99StyleCodeBuilder<T,ScopedCodeBuilderContext>
+        implements BabylonOpDispatcher<T,ScopedCodeBuilderContext>{
+    final ScopedCodeBuilderContext scopedCodeBuilderContext;
+    protected ScopeAwareJavaOrC99StyleCodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext){
+        if (scopedCodeBuilderContext == null){
+            throw new RuntimeException("Where did this come from ");
+        }
+        this.scopedCodeBuilderContext = scopedCodeBuilderContext;
+    }
+    final public ScopedCodeBuilderContext scopedCodeBuilderContext(){
+        return scopedCodeBuilderContext;
     }
 }

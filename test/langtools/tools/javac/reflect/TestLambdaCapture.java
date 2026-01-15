@@ -54,9 +54,9 @@ public class TestLambdaCapture {
     @MethodSource("ints")
     public void testCaptureIntParam(int x) {
         IntUnaryOperator quotable = (@Reflect IntUnaryOperator) y -> x + y;
-        Quoted quoted = Op.ofLambda(quotable).get();
+        Quoted<?> quoted = Op.ofLambda(quotable).get();
         assertEquals(1, quoted.capturedValues().size());
-        assertEquals(x, ((Var)quoted.capturedValues().values().iterator().next()).value());
+        assertEquals(x, ((Var<?>)quoted.capturedValues().values().iterator().next()).value());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
@@ -70,12 +70,12 @@ public class TestLambdaCapture {
         final int x = 100;
         String hello = "hello";
         ToIntFunction<Number> f = (@Reflect ToIntFunction<Number>)y -> y.intValue() + hashCode() + hello.length() + x;
-        Quoted quoted = Op.ofLambda(f).get();
+        Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(3, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
         assertEquals(this, it.next());
-        assertEquals(hello, ((Var)it.next()).value());
-        assertEquals(x, ((Var)it.next()).value());
+        assertEquals(hello, ((Var<?>)it.next()).value());
+        assertEquals(x, ((Var<?>)it.next()).value());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
@@ -87,7 +87,7 @@ public class TestLambdaCapture {
     @Test
     public void testCaptureThisInInvocationArg() {
         ToIntFunction<Number> f = (@Reflect ToIntFunction<Number>)y -> y.intValue() + Integer.valueOf(hashCode());
-        Quoted quoted = Op.ofLambda(f).get();
+        Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(1, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
         assertEquals(this, it.next());
@@ -104,7 +104,7 @@ public class TestLambdaCapture {
     @Test
     public void testCaptureThisInNewArg() {
         ToIntFunction<Number> f = (@Reflect ToIntFunction<Number>)y -> y.intValue() + new R(hashCode()).i;
-        Quoted quoted = Op.ofLambda(f).get();
+        Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(1, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
         assertEquals(this, it.next());
@@ -129,13 +129,13 @@ public class TestLambdaCapture {
         int i8 = ia[7] = 7;
 
         IntSupplier f = (@Reflect IntSupplier) () -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8;
-        Quoted quoted = Op.ofLambda(f).get();
+        Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(ia.length, quoted.capturedValues().size());
         assertEquals(new ArrayList<>(quoted.capturedValues().keySet()), quoted.op().capturedValues());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
         int i = 0;
         while (it.hasNext()) {
-            int actual = (int) ((Var)it.next()).value();
+            int actual = (int) ((Var<?>)it.next()).value();
             assertEquals(ia[i++], actual);
         }
     }
@@ -157,7 +157,7 @@ public class TestLambdaCapture {
     public void testCaptureIntField(int x) {
         Context context = new Context(x);
         IntUnaryOperator f = context.quotable();
-        Quoted quoted = Op.ofLambda(f).get();
+        Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(1, quoted.capturedValues().size());
         assertEquals(context, quoted.capturedValues().values().iterator().next());
         List<Object> arguments = new ArrayList<>();
@@ -177,10 +177,10 @@ public class TestLambdaCapture {
     public void testCaptureReferenceReceiver(int i) {
         int prevCount = Box.count;
         IntUnaryOperator f = (@Reflect IntUnaryOperator)new Box(i)::add;
-        Quoted quoted = Op.ofLambda(f).get();
+        Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(prevCount + 1, Box.count); // no duplicate receiver computation!
         assertEquals(1, quoted.capturedValues().size());
-        assertEquals(i, ((Box)((Var)quoted.capturedValues().values().iterator().next()).value()).i);
+        assertEquals(i, ((Box)((Var<?>)quoted.capturedValues().values().iterator().next()).value()).i);
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
