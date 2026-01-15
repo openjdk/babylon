@@ -35,6 +35,7 @@ import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -504,7 +505,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *          code model is unavailable and this method returns an empty optional.
      * @since 99
      */
-    public static Optional<Quoted> ofLambda(Object fiInstance) {
+    public static Optional<Quoted<JavaOp.LambdaOp>> ofLambda(Object fiInstance) {
         Object oq = fiInstance;
         if (Proxy.isProxyClass(oq.getClass())) {
             // @@@ The interpreter implements interpretation of
@@ -521,9 +522,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
         method.setAccessible(true);
 
-        Quoted quoted;
+        Quoted<?> q;
         try {
-            quoted = (Quoted) method.invoke(oq);
+            q = (Quoted<?>) method.invoke(oq);
         } catch (ReflectiveOperationException e) {
             // op method may throw UOE in case java compile time version doesn't match runtime version
             if (e.getCause() instanceof UnsupportedOperationException uoe) {
@@ -531,7 +532,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             }
             throw new RuntimeException(e);
         }
-        return Optional.of(quoted);
+        if (!(q.op() instanceof JavaOp.LambdaOp)) {
+            // This can only happen if the stored model is invalid
+            throw new RuntimeException("Invalid code model for lambda expression : " + q);
+        }
+        @SuppressWarnings("unchecked")
+        Quoted<JavaOp.LambdaOp> lq = (Quoted<JavaOp.LambdaOp>) q;
+        return Optional.of(lq);
     }
 
     /**

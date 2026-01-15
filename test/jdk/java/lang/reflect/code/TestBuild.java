@@ -49,7 +49,7 @@ public class TestBuild {
 
     public JavaOp.LambdaOp f() {
         IntBinaryOperator ibo = (@Reflect IntBinaryOperator) (a, b) -> a + b;
-        return SSA.transform((JavaOp.LambdaOp) Op.ofLambda(ibo).get().op());
+        return SSA.transform(Op.ofLambda(ibo).get().op());
     }
 
     @Test
