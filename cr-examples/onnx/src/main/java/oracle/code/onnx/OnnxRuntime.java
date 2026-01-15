@@ -164,7 +164,7 @@ public final class OnnxRuntime {
     }
 
     public static <T> T execute(Arena arena, MethodHandles.Lookup l, Supplier<T> codeLambda, SessionOptions options) {
-        var q = Op.ofQuotable(codeLambda).orElseThrow();
+        var q = Op.ofLambda(codeLambda).orElseThrow();
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q, options);
 

@@ -80,7 +80,7 @@ public class TestQuoteOp {
         IntUnaryOperator q = (@Reflect IntUnaryOperator) x -> x + y + z + hashCode();
 
         // access FuncOp created by javac
-        Quoted quoted = Op.ofQuotable(q).orElseThrow();
+        Quoted quoted = Op.ofLambda(q).orElseThrow();
         Op op = quoted.op();
         CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) op.ancestorOp());
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorOp());

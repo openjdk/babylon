@@ -190,7 +190,7 @@ public class LocalClassTest {
     @Reflect
     @IR("""
             func @"testImplicitInner" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<LocalClassTest::Inner>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::Inner" -> {
+                %1 : java.type:"java.util.function.Supplier<LocalClassTest::Inner>" = lambda @lambda.isReflectable=true ()java.type:"LocalClassTest::Inner" -> {
                     %2 : java.type:"LocalClassTest::Inner" = new %0 @java.ref:"LocalClassTest::Inner::(LocalClassTest)";
                     return %2;
                 };
@@ -206,7 +206,7 @@ public class LocalClassTest {
     @IR("""
             func @"testExplicitInner" (%0 : java.type:"LocalClassTest", %1 : java.type:"LocalClassTest")java.type:"void" -> {
                 %2 : Var<java.type:"LocalClassTest"> = var %1 @"test";
-                %3 : java.type:"java.util.function.Supplier<LocalClassTest::Inner>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::Inner" -> {
+                %3 : java.type:"java.util.function.Supplier<LocalClassTest::Inner>" = lambda @lambda.isReflectable=true ()java.type:"LocalClassTest::Inner" -> {
                     %4 : java.type:"LocalClassTest" = var.load %2;
                     %5 : java.type:"LocalClassTest::Inner" = new %4 @java.ref:"LocalClassTest::Inner::(LocalClassTest)";
                     return %5;
@@ -222,7 +222,7 @@ public class LocalClassTest {
     @Reflect
     @IR("""
             func @"testLocalInMethod" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<LocalClassTest::$1L>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::$1L" -> {
+                %1 : java.type:"java.util.function.Supplier<LocalClassTest::$1L>" = lambda @lambda.isReflectable=true ()java.type:"LocalClassTest::$1L" -> {
                     %2 : java.type:"LocalClassTest::$1L" = new %0 @java.ref:"LocalClassTest::$1L::(LocalClassTest)";
                     return %2;
                 };
@@ -238,7 +238,7 @@ public class LocalClassTest {
     @Reflect
     @IR("""
             func @"testLocalInLambda" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.Object>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Object" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Object>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.Object" -> {
                     %2 : java.type:"LocalClassTest::$2L" = new %0 @java.ref:"LocalClassTest::$2L::(LocalClassTest)";
                     return %2;
                 };
@@ -258,7 +258,7 @@ public class LocalClassTest {
             func @"testLocalInMethodWithCaptures" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"Foo";
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                %3 : java.type:"java.util.function.Supplier<LocalClassTest::$3L>" = lambda @lambda.isQuotable=true ()java.type:"LocalClassTest::$3L" -> {
+                %3 : java.type:"java.util.function.Supplier<LocalClassTest::$3L>" = lambda @lambda.isReflectable=true ()java.type:"LocalClassTest::$3L" -> {
                     %4 : java.type:"java.lang.String" = var.load %2;
                     %5 : java.type:"LocalClassTest::$3L" = new %0 %4 @java.ref:"LocalClassTest::$3L::(LocalClassTest, java.lang.String)";
                     return %5;
@@ -282,7 +282,7 @@ public class LocalClassTest {
             func @"testLocalInLambdaWithCaptures" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"Foo";
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                %3 : java.type:"java.util.function.Supplier<java.lang.Object>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Object" -> {
+                %3 : java.type:"java.util.function.Supplier<java.lang.Object>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.Object" -> {
                     %4 : java.type:"java.lang.String" = var.load %2;
                     %5 : java.type:"LocalClassTest::$4L" = new %0 %4 @java.ref:"LocalClassTest::$4L::(LocalClassTest, java.lang.String)";
                     return %5;

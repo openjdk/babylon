@@ -61,7 +61,7 @@ public class TestMethodRefLambda {
     @ParameterizedTest
     @MethodSource("methodRefLambdas")
     public void testIsMethodReference(Object q) {
-        Quoted quoted = Op.ofQuotable(q).get();
+        Quoted quoted = Op.ofLambda(q).get();
         JavaOp.LambdaOp lop = (JavaOp.LambdaOp) quoted.op();
         Assertions.assertTrue(lop.methodReference().isPresent());
     }

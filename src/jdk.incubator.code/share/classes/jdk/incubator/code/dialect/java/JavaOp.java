@@ -165,27 +165,27 @@ public sealed abstract class JavaOp extends Op {
             final Body.Builder ancestorBody;
             final FunctionType funcType;
             final TypeElement functionalInterface;
-            final boolean isQuotable;
+            final boolean isReflectable;
 
             Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
                 this.ancestorBody = ancestorBody;
                 this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
-                this.isQuotable = false;
+                this.isReflectable = false;
             }
 
             Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface,
-                    boolean isQuotable) {
+                    boolean isReflectable) {
                 this.ancestorBody = ancestorBody;
                 this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
-                this.isQuotable = isQuotable;
+                this.isReflectable = isReflectable;
             }
 
             public LambdaOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
-                return new LambdaOp(functionalInterface, body, isQuotable);
+                return new LambdaOp(functionalInterface, body, isReflectable);
             }
 
             public Builder quotable() {
@@ -194,20 +194,20 @@ public sealed abstract class JavaOp extends Op {
         }
 
         static final String NAME = "lambda";
-        static final String ATTRIBUTE_LAMBDA_IS_QUOTABLE = NAME + ".isQuotable";
+        static final String ATTRIBUTE_LAMBDA_IS_REFLECTABLE = NAME + ".isReflectable";
 
         final TypeElement functionalInterface;
         final Body body;
-        final boolean isQuotable;
+        final boolean isReflectable;
 
         LambdaOp(ExternalizedOp def) {
-            boolean isQuotable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_QUOTABLE,
+            boolean isReflectable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_REFLECTABLE,
                     false, v -> switch (v) {
                         case Boolean b -> b;
                         case null, default -> false;
                     });
 
-            this(def.resultType(), def.bodyDefinitions().get(0), isQuotable);
+            this(def.resultType(), def.bodyDefinitions().get(0), isReflectable);
         }
 
         LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ot) {
@@ -215,7 +215,7 @@ public sealed abstract class JavaOp extends Op {
 
             this.functionalInterface = that.functionalInterface;
             this.body = that.body.transform(cc, ot).build(this);
-            this.isQuotable = that.isQuotable;
+            this.isReflectable = that.isReflectable;
         }
 
         @Override
@@ -223,12 +223,12 @@ public sealed abstract class JavaOp extends Op {
             return new LambdaOp(this, cc, ot);
         }
 
-        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isQuotable) {
+        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isReflectable) {
             super(List.of());
 
             this.functionalInterface = functionalInterface;
             this.body = bodyC.build(this);
-            this.isQuotable = isQuotable;
+            this.isReflectable = isReflectable;
         }
 
         @Override
@@ -262,13 +262,13 @@ public sealed abstract class JavaOp extends Op {
             return functionalInterface();
         }
 
-        public boolean isQuotable() {
-            return isQuotable;
+        public boolean isReflectable() {
+            return isReflectable;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of(ATTRIBUTE_LAMBDA_IS_QUOTABLE, isQuotable);
+            return Map.of(ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable);
         }
 
         /**
@@ -5135,11 +5135,11 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param functionalInterface the lambda operation's functional interface type
      * @param body                the body of the lambda operation
-     * @param isQuotable          true if the lambda is quotable
+     * @param isReflectable       true if the lambda is reflectable
      * @return the lambda operation
      */
-    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body, boolean isQuotable) {
-        return new LambdaOp(functionalInterface, body, isQuotable);
+    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body, boolean isReflectable) {
+        return new LambdaOp(functionalInterface, body, isReflectable);
     }
 
     /**
@@ -5578,7 +5578,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the add operation
      */
-    public static BinaryOp add(Value lhs, Value rhs) {
+    public static AddOp add(Value lhs, Value rhs) {
         return new AddOp(lhs, rhs);
     }
 
@@ -5589,7 +5589,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the sub operation
      */
-    public static BinaryOp sub(Value lhs, Value rhs) {
+    public static SubOp sub(Value lhs, Value rhs) {
         return new SubOp(lhs, rhs);
     }
 
@@ -5600,7 +5600,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the mul operation
      */
-    public static BinaryOp mul(Value lhs, Value rhs) {
+    public static MulOp mul(Value lhs, Value rhs) {
         return new MulOp(lhs, rhs);
     }
 
@@ -5611,7 +5611,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the div operation
      */
-    public static BinaryOp div(Value lhs, Value rhs) {
+    public static DivOp div(Value lhs, Value rhs) {
         return new DivOp(lhs, rhs);
     }
 
@@ -5622,7 +5622,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the mod operation
      */
-    public static BinaryOp mod(Value lhs, Value rhs) {
+    public static ModOp mod(Value lhs, Value rhs) {
         return new ModOp(lhs, rhs);
     }
 
@@ -5633,7 +5633,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the or operation
      */
-    public static BinaryOp or(Value lhs, Value rhs) {
+    public static OrOp or(Value lhs, Value rhs) {
         return new OrOp(lhs, rhs);
     }
 
@@ -5644,7 +5644,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the and operation
      */
-    public static BinaryOp and(Value lhs, Value rhs) {
+    public static AndOp and(Value lhs, Value rhs) {
         return new AndOp(lhs, rhs);
     }
 
@@ -5655,7 +5655,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the xor operation
      */
-    public static BinaryOp xor(Value lhs, Value rhs) {
+    public static XorOp xor(Value lhs, Value rhs) {
         return new XorOp(lhs, rhs);
     }
 
@@ -5666,7 +5666,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the xor operation
      */
-    public static BinaryOp lshl(Value lhs, Value rhs) {
+    public static LshlOp lshl(Value lhs, Value rhs) {
         return new LshlOp(lhs, rhs);
     }
 
@@ -5677,7 +5677,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the xor operation
      */
-    public static BinaryOp ashr(Value lhs, Value rhs) {
+    public static AshrOp ashr(Value lhs, Value rhs) {
         return new AshrOp(lhs, rhs);
     }
 
@@ -5688,7 +5688,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the xor operation
      */
-    public static BinaryOp lshr(Value lhs, Value rhs) {
+    public static LshrOp lshr(Value lhs, Value rhs) {
         return new LshrOp(lhs, rhs);
     }
 
@@ -5698,7 +5698,7 @@ public sealed abstract class JavaOp extends Op {
      * @param v the operand
      * @return the neg operation
      */
-    public static UnaryOp neg(Value v) {
+    public static NegOp neg(Value v) {
         return new NegOp(v);
     }
 
@@ -5708,7 +5708,7 @@ public sealed abstract class JavaOp extends Op {
      * @param v the operand
      * @return the bitwise complement operation
      */
-    public static UnaryOp compl(Value v) {
+    public static ComplOp compl(Value v) {
         return new ComplOp(v);
     }
 
@@ -5718,7 +5718,7 @@ public sealed abstract class JavaOp extends Op {
      * @param v the operand
      * @return the not operation
      */
-    public static UnaryOp not(Value v) {
+    public static NotOp not(Value v) {
         return new NotOp(v);
     }
 
@@ -5729,7 +5729,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the equals comparison operation
      */
-    public static BinaryTestOp eq(Value lhs, Value rhs) {
+    public static EqOp eq(Value lhs, Value rhs) {
         return new EqOp(lhs, rhs);
     }
 
@@ -5740,7 +5740,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the not equals comparison operation
      */
-    public static BinaryTestOp neq(Value lhs, Value rhs) {
+    public static NeqOp neq(Value lhs, Value rhs) {
         return new NeqOp(lhs, rhs);
     }
 
@@ -5751,7 +5751,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the greater than comparison operation
      */
-    public static BinaryTestOp gt(Value lhs, Value rhs) {
+    public static GtOp gt(Value lhs, Value rhs) {
         return new GtOp(lhs, rhs);
     }
 
@@ -5762,7 +5762,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the greater than or equals to comparison operation
      */
-    public static BinaryTestOp ge(Value lhs, Value rhs) {
+    public static GeOp ge(Value lhs, Value rhs) {
         return new GeOp(lhs, rhs);
     }
 
@@ -5773,7 +5773,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the less than comparison operation
      */
-    public static BinaryTestOp lt(Value lhs, Value rhs) {
+    public static LtOp lt(Value lhs, Value rhs) {
         return new LtOp(lhs, rhs);
     }
 
@@ -5784,7 +5784,7 @@ public sealed abstract class JavaOp extends Op {
      * @param rhs the second operand
      * @return the less than or equals to comparison operation
      */
-    public static BinaryTestOp le(Value lhs, Value rhs) {
+    public static LeOp le(Value lhs, Value rhs) {
         return new LeOp(lhs, rhs);
     }
 
