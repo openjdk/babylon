@@ -48,8 +48,8 @@ public class BufferTagger {
     static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
 
     // generates a list of AccessTypes matching the given FuncOp's parameter order
-    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, Method methodOfFuncOp, CoreOp.FuncOp funcOp) {
-        CoreOp.FuncOp inlinedFunc = inlineLoop(lookup, methodOfFuncOp, funcOp);
+    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Method methodOfFuncOp) {
+        CoreOp.FuncOp inlinedFunc = inlineLoop(lookup, funcOp, methodOfFuncOp);
         buildAccessMap(lookup, inlinedFunc);
         ArrayList<AccessType> accessList = new ArrayList<>();
         for (Block.Parameter p : inlinedFunc.body().entryBlock().parameters()) {
@@ -65,51 +65,49 @@ public class BufferTagger {
     }
 
     // inlines functions found in FuncOp f until no more inline-able functions are present
-    public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, Method methodOfFuncOp, CoreOp.FuncOp funcOp) {
+     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Method methodOfFuncOp) {
         CoreOp.FuncOp ssaFunc =  SSA.transform( funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
         var changed  = StreamMutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
-                Invoke invoke  = invoke(lookup, op);
-                if (invoke != null) {
-                    Method method = invoke.resolvedMethodOrNull();
-                    if (method != null) {
-                        Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);
-                        if (optionalFuncOp.isPresent())  {
-                            if (optionalFuncOp.get() instanceof CoreOp.FuncOp inline) {
-                                var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                                var exitBlockBuilder = Inliner.inline(
-                                        blockbuilder, ssaInline,
-                                        blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
-                                            // intellij doesnt like value as var name so we use _value
-                                        if (_value == null) {
-                                        //   What is special about TestArrayView.Compute.lifePerIdx? it reaches here
-                                            // I think its because it is void ? no return type.
-                                                //   throw new IllegalStateException("inliner returned  null processing "+method);
-                                        } else{
-                                            blockbuilder.context().mapValue(invoke.op().result(), _value);
-                                        }
-                                });
-                                if (!exitBlockBuilder.parameters().isEmpty()) {
-                                    blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
-                                }
-                                changed.set(true);
-                                return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
+                if (invoke(lookup, op) instanceof Invoke invoke  // always but pattern friendly
+                        && invoke.resolvedMethodOrNull() instanceof Method method) {
+                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);        
+                    if(optionalFuncOp.isPresent() 
+                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline) {  // always we just want var in scope
+
+                        var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
+                        var exitBlockBuilder = Inliner.inline(
+                            blockbuilder, ssaInline,
+                            blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
+                                // intellij doesnt like value as var name so we use _value
+                            if (_value == null) {
+                               //   What is special about TestArrayView.Compute.lifePerIdx? it reaches here
+                                // I think its because it is void ? no return type.
+                                    //   throw new IllegalStateException("inliner returned  null processing "+method);
+                            } else{
+                                blockbuilder.context().mapValue(invoke.op().result(), _value);
                             }
-                        } else if (method.getDeclaringClass().equals(methodOfFuncOp.getDeclaringClass())) {
+                        });
+                        if (!exitBlockBuilder.parameters().isEmpty()) {
+                            blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                        }
+                        changed.set(true);
+                        return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
+                    } else if (optionalFuncOp.isEmpty() 
+                                && method.getDeclaringClass().equals(methodOfFuncOp.getDeclaringClass())) {
                             // Expect @Reflect annotation to be present on all methods called from the kernel function
                             // that are defined in the same class as the kernel function.
                             throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");
-                        }
-                    }
+                    }            
                 }
                 blockbuilder.op(op);
                return blockbuilder;
             });
         }
         return ssaFunc;
-    }
+    }        
 
     // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {

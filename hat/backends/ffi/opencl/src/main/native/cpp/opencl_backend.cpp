@@ -203,7 +203,7 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
 
     cl_int buildStatus = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
     if (buildStatus != CL_SUCCESS) {
-        std::cerr << "buildStatus = failed" << std::endl;
+        std::cerr << "buildStatus =failed" << std::endl;
     }
     size_t logLen = 0;
     OpenCLProgram *openclProgram = nullptr;
@@ -219,6 +219,8 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
             if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
                                                 nullptr)) != CL_SUCCESS) {
                 std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
+                delete[] log;
+                log = nullptr;
             } else {
                 log[logLen] = '\0';
                 if (logLen > 2) {
