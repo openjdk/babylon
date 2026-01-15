@@ -73,8 +73,8 @@ public class BufferTagger {
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
                 if (invoke(lookup, op) instanceof Invoke invoke  // always but pattern friendly
                         && invoke.resolvedMethodOrNull() instanceof Method method) {
-                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);    
-                    if(optionalFuncOp.isPresent()
+                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);
+                    if (optionalFuncOp.isPresent()
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline) {  // always we just want var in scope
 
                         var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
@@ -107,7 +107,7 @@ public class BufferTagger {
             });
         }
         return ssaFunc;
-    }    
+    }
 
     // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
