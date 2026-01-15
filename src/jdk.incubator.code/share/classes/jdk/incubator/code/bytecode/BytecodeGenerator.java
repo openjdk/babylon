@@ -51,6 +51,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
 import jdk.incubator.code.bytecode.impl.ExceptionTableCompactor;
@@ -172,7 +173,8 @@ public final class BytecodeGenerator {
             BitSet reflectableLambda = new BitSet();
             CodeTransformer lowering = LoweringTransform.getInstance(lookup);
             for (var e : ops.sequencedEntrySet()) {
-                O lowered = (O)e.getValue().transform(CodeContext.create(), lowering);
+                O lowered = NormalizeBlocksTransformer.transform(
+                        (O)e.getValue().transform(CodeContext.create(), lowering));
                 generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, reflectableLambda);
             }
             for (int i = 0; i < lambdaSink.size(); i++) {
