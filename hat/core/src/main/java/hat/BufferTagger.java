@@ -76,7 +76,6 @@ public class BufferTagger {
                     Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);
                     if (optionalFuncOp.isPresent()
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline) {  // always we just want var in scope
-
                         var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
                         var exitBlockBuilder = Inliner.inline(
                             blockbuilder, ssaInline,
@@ -86,7 +85,7 @@ public class BufferTagger {
                                //   What is special about TestArrayView.Compute.lifePerIdx? it reaches here
                                 // I think its because it is void ? no return type.
                                     //   throw new IllegalStateException("inliner returned  null processing "+method);
-                            } else{
+                            } else {
                                 blockbuilder.context().mapValue(invoke.op().result(), _value);
                             }
                         });
