@@ -35,6 +35,10 @@ import jdk.incubator.code.Value;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
+    protected OpenCLHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     public OpenCLHATKernelBuilder vstore(int dims) {
         return identifier("vstore" + dims);
     }

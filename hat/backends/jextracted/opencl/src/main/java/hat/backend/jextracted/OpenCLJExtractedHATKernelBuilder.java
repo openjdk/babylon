@@ -34,6 +34,10 @@ import jdk.incubator.code.Value;
 
 public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCLJExtractedHATKernelBuilder> {
 
+    protected OpenCLJExtractedHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     @Override
     public OpenCLJExtractedHATKernelBuilder defines() {
         return self()

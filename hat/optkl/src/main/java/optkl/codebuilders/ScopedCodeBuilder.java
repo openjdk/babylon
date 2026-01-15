@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,11 +24,20 @@
  */
 package optkl.codebuilders;
 
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
+import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.util.StreamMutable;
 
-import java.lang.invoke.MethodHandles;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
-public abstract class CodeBuilderContext implements LookupCarrier {
+/**
+ * Extends the base CodeBuilder to allow builder to track scope
+ *
+ * @author Gary Frost
+ */
+public abstract class ScopedCodeBuilder<T extends ScopedCodeBuilder<T,SCBC>, SCBC extends ScopedCodeBuilderContext>
+        extends CodeBuilder<T> implements CodeRenderer<T> {
 
 }

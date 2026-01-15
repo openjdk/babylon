@@ -101,7 +101,7 @@ public class TestMatMul {
         void array(long index, float value);
         float array(long index);
 
-        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MyLocalArrayFixedSize.class,
+        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MethodHandles.lookup(),null,MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray
                         .withArray("array", 256));
 
@@ -509,7 +509,7 @@ public class TestMatMul {
     private interface SharedMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
         static SharedMemory create(Accelerator accelerator) {
             return null;
@@ -524,7 +524,7 @@ public class TestMatMul {
     private interface PrivateArray extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArray.class,
                 arr -> arr.withArray("array", 16));
         static PrivateArray create(Accelerator accelerator) {
             return null;
@@ -537,7 +537,7 @@ public class TestMatMul {
     private interface FlatPrivate extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(FlatPrivate.class,
+        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(MethodHandles.lookup(),null,FlatPrivate.class,
                 arr -> arr.withArray("array", 4));
         static FlatPrivate create(Accelerator accelerator) {
             return null;
@@ -837,7 +837,7 @@ public class TestMatMul {
     private interface SharedMemoryHalf extends DeviceType {
         F16 array(int index);
 
-        DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(SharedMemoryHalf.class,
+        DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemoryHalf.class,
                 arr -> arr.withArray("array", 1024)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -853,7 +853,7 @@ public class TestMatMul {
     private interface PrivateArrayHalf extends DeviceType {
         F16 array(int index);
 
-        DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(PrivateArrayHalf.class,
+        DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArrayHalf.class,
                 arr -> arr.withArray("array", 16)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -869,7 +869,7 @@ public class TestMatMul {
     private interface FlatPrivateHalf extends DeviceType {
         F16 array(int index);
 
-        DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(FlatPrivateHalf.class,
+        DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(MethodHandles.lookup(),null,FlatPrivateHalf.class,
                 arr -> arr.withArray("array", 4)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -975,7 +975,7 @@ public class TestMatMul {
     private interface SharedMemoryBfloat16 extends DeviceType {
         BF16 array(int index);
 
-        DeviceSchema<SharedMemoryBfloat16> schema = DeviceSchema.of(SharedMemoryBfloat16.class,
+        DeviceSchema<SharedMemoryBfloat16> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemoryBfloat16.class,
                 arr -> arr.withArray("array", 1024)
                         .withDeps(BF16.class, half -> half.withField("value")));
 
@@ -991,7 +991,7 @@ public class TestMatMul {
     private interface PrivateArrayBfloat16 extends DeviceType {
         BF16 array(int index);
 
-        DeviceSchema<PrivateArrayBfloat16> schema = DeviceSchema.of(PrivateArrayBfloat16.class,
+        DeviceSchema<PrivateArrayBfloat16> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArrayBfloat16.class,
                 arr -> arr.withArray("array", 16)
                         .withDeps(BF16.class, half -> half.withField("value")));
 
@@ -1007,7 +1007,7 @@ public class TestMatMul {
     private interface FlatPrivateBfloat16 extends DeviceType {
         BF16 array(int index);
 
-        DeviceSchema<FlatPrivateBfloat16> schema = DeviceSchema.of(FlatPrivateBfloat16.class,
+        DeviceSchema<FlatPrivateBfloat16> schema = DeviceSchema.of(MethodHandles.lookup(),null,FlatPrivateBfloat16.class,
                 arr -> arr.withArray("array", 4)
                         .withDeps(BF16.class, half -> half.withField("value")));
 

@@ -36,6 +36,10 @@ import java.util.List;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
+    protected CudaHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     private CudaHATKernelBuilder half2float() {
         return identifier("__half2float");
     }

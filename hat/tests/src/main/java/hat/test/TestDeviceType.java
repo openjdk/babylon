@@ -32,6 +32,8 @@ import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
+import java.lang.invoke.MethodHandles;
+
 /**
  * Test to check the Intermediate Representation (IR) of {@link DeviceType} interfaces
  * in HAT.
@@ -55,7 +57,7 @@ public class TestDeviceType {
         void x(float x);
         float x();
 
-        DeviceSchema<MyDeviceArray> schema = DeviceSchema.of(MyDeviceArray.class, builder ->
+        DeviceSchema<MyDeviceArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,MyDeviceArray.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(F16.class, half -> half.withField("value"))
                         .withField("x"));
@@ -97,7 +99,7 @@ public class TestDeviceType {
         /**
          * This structure creates an 2D matrix of 2048 x 64 elements.
          */
-        DeviceSchema<MyNDRAnge> schema = DeviceSchema.of(MyNDRAnge.class, builder ->
+        DeviceSchema<MyNDRAnge> schema = DeviceSchema.of(MethodHandles.lookup(),null,MyNDRAnge.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(SubRange.class, subrange -> subrange.withArray("range", 64)));
 
@@ -140,7 +142,7 @@ public class TestDeviceType {
             }
         }
 
-        DeviceSchema<MultiDim> schema = DeviceSchema.of(MultiDim.class, builder ->
+        DeviceSchema<MultiDim> schema = DeviceSchema.of(MethodHandles.lookup(),null,MultiDim.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(_2D.class,subrange -> subrange.withArray("range2", 64)
                                                                                        .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));
@@ -180,7 +182,7 @@ public class TestDeviceType {
             }
         }
 
-        DeviceSchema<MultiDimFix> schema = DeviceSchema.of(MultiDimFix.class, builder ->
+        DeviceSchema<MultiDimFix> schema = DeviceSchema.of(MethodHandles.lookup(),null,MultiDimFix.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(_2D.class,subrange -> subrange.withArray("_range2", 64)
                                 .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));

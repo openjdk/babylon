@@ -65,6 +65,10 @@ import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
 
+    protected C99HATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     public final T HAT_KERNEL() {
         return keyword("HAT_KERNEL");
     }
@@ -329,7 +333,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        var fieldAccess = fieldAccess(buildContext.lookup,fieldLoadOp);
+        var fieldAccess = fieldAccess(buildContext.lookup(),fieldLoadOp);
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive()) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
@@ -340,13 +344,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
-        if (javaType instanceof ClassType classType && OpHelper.isAssignable(buildContext.lookup, javaType, MappableIface.class)) {
+        if (javaType instanceof ClassType classType && OpHelper.isAssignable(buildContext.lookup(), javaType, MappableIface.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(classType).asterisk();
-        } else if (OpHelper.isAssignable(buildContext.lookup, javaType,KernelContext.class)) {
+        } else if (OpHelper.isAssignable(buildContext.lookup(), javaType,KernelContext.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(KernelContext.class).asterisk();
-        } else if (OpHelper.isAssignable(buildContext.lookup, javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(buildContext.lookup(), javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().space().suffix_t(F16Impl.class).asterisk();
-        } else if (OpHelper.isAssignable(buildContext.lookup, javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(buildContext.lookup(), javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().space().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             typeName(javaType.toString());
@@ -378,14 +382,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final  T kernelEntrypoint(ScopedCodeBuilderContext buildContext) {
         nl();
-        buildContext.funcScope(buildContext.funcOp, () ->
-                kernelDeclaration(buildContext.funcOp)
+        buildContext.funcScope(buildContext.funcOp(), () ->
+                kernelDeclaration(buildContext.funcOp())
                 .parenNlIndented(_ -> commaNlSeparated(
                     buildContext.paramTable.list(),
                     param -> declareParam(buildContext,param))
                 )
                 .braceNlIndented(_ -> nlSeparated(
-                    OpHelper.Statement.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                    OpHelper.Statement.statements(buildContext.funcOp().bodies().getFirst().entryBlock()),
                     statement ->statement(buildContext,statement)
                 )
             )
@@ -727,7 +731,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
-        var invoke = invoke(buildContext.lookup,invokeOp);
+        var invoke = invoke(buildContext.lookup(),invokeOp);
         if ( invoke.refIs(MappableIface.class, HAType.class, DeviceType.class)) { // we need a common type
             if (invoke.isInstance() && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
@@ -738,7 +742,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else if (invoke.isInstance() && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
                 parenWhen(
                         invoke.operandCount() > 1
-                                && invoke(buildContext.lookup,instance.op()) instanceof Invoke invoke0
+                                && invoke(buildContext.lookup(),instance.op()) instanceof Invoke invoke0
                                 && invoke0.returnsClassType()
                         ,
                         // When we have patterns like:

@@ -24,11 +24,15 @@
  */
 package optkl.codebuilders;
 
-import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
 
-import java.lang.invoke.MethodHandles;
-
-public abstract class CodeBuilderContext implements LookupCarrier {
-
+public abstract class ScopeAwareJavaOrC99StyleCodeBuilder<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>>
+        extends JavaOrC99StyleCodeBuilder<T,ScopedCodeBuilderContext>
+        implements BabylonOpDispatcher<T,ScopedCodeBuilderContext>{
+    ScopedCodeBuilderContext scopedCodeBuilderContext;
+    protected ScopeAwareJavaOrC99StyleCodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext){
+        this.scopedCodeBuilderContext = scopedCodeBuilderContext;
+    }
+    final public ScopedCodeBuilderContext scopedCodeBuilderContext(){
+        return scopedCodeBuilderContext;
+    }
 }

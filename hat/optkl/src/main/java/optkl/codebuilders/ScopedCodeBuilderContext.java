@@ -25,7 +25,7 @@
 package optkl.codebuilders;
 
 
-import jdk.incubator.code.dialect.core.VarType;
+import optkl.util.carriers.LookupCarrier;
 import optkl.util.ops.VarLikeOp;
 
 import optkl.FuncOpParams;
@@ -39,9 +39,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ScopedCodeBuilderContext extends CodeBuilderContext {
+public class ScopedCodeBuilderContext implements LookupCarrier {
     final public FuncOpParams paramTable;
-
     public static class Scope<O extends Op> {
         public final Scope<?> parent;
         final O op;
@@ -55,8 +54,6 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
             if (value instanceof Op.Result result && result.op() instanceof CoreOp.VarOp varOp) {
                 return varOp;
             }
-
-
             if (value instanceof Op.Result result && result.op() instanceof VarLikeOp varOp) {
                 return (Op) varOp;
             }
@@ -233,10 +230,18 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         popScope();
     }
 
+    private final  MethodHandles.Lookup lookup;
+    private final CoreOp.FuncOp funcOp;
     public Scope<?> scope = null;
-
+    @Override public MethodHandles.Lookup lookup(){
+        return lookup;
+    }
+    public CoreOp.FuncOp funcOp(){
+        return funcOp;
+    }
     public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        super(lookup,funcOp);
+        this.lookup = lookup;
+        this.funcOp= funcOp;
         this.paramTable = new FuncOpParams(funcOp);
     }
 

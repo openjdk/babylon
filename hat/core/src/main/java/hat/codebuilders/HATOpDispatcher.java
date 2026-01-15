@@ -31,7 +31,7 @@ import optkl.codebuilders.JavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 /* this should not be too C99 specific but can reference HAT ops.  */
-public interface HATOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
+public interface HATOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,ScopedCodeBuilderContext>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
     T hatBarrierOp(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp);
 

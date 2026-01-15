@@ -27,14 +27,20 @@ package hat.codebuilders;
 import hat.Config;
 import hat.FFIConfigCreator;
 import optkl.codebuilders.C99CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.util.StreamMutable;
 
+import java.lang.invoke.MethodHandles;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
 
-   public final  C99HATConfigBuilder staticConstInt(String name, int padWidth, int value) {
+    public C99HATConfigBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
+    public final  C99HATConfigBuilder staticConstInt(String name, int padWidth, int value) {
         staticKeyword().space().constexprKeyword().space().s32Type().space().identifier(name, padWidth).space().equals().space().intHexValue(value).semicolon().nl();
         return this;
     }
@@ -85,8 +91,7 @@ public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
     }
 
     public static String create(){
-
-        C99HATConfigBuilder cb = new C99HATConfigBuilder();
+        C99HATConfigBuilder cb = new C99HATConfigBuilder(new ScopedCodeBuilderContext(MethodHandles.lookup(),null));
         cb.oracleCopyright();
         cb.blockComment("""
                 You probably should not edit this this file!!!

@@ -33,6 +33,10 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 
 public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends C99CodeBuilder<T> implements BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
+    protected C99HATCodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     public final T varName(HATMemoryVarOp hatLocalVarOp) {
         identifier(hatLocalVarOp.varName());
         return self();

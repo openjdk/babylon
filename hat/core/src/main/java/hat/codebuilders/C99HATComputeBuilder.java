@@ -31,12 +31,16 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 
 public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilder<T> {
 
+    protected C99HATComputeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     public final T computeDeclaration(TypeElement typeElement, String name) {
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
     public final  T compute(ScopedCodeBuilderContext buildContext) {
-        computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
+        computeDeclaration(buildContext.funcOp().resultType(), buildContext.funcOp().funcName());
         parenNlIndented(_ ->
                 commaSpaceSeparated(
                         buildContext.paramTable.list(),
@@ -46,7 +50,7 @@ public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> ex
 
         braceNlIndented(_ ->
                 nlSeparated(
-                        OpHelper.Statement.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
+                        OpHelper.Statement.statements(buildContext.funcOp().bodies().getFirst().entryBlock()),
                         statement ->statement(buildContext,statement).nl()
                 )
         );

@@ -162,7 +162,7 @@ public class TestVectorTypes {
     private interface SharedMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
         static SharedMemory create(Accelerator accelerator) {
             return null;
@@ -194,7 +194,7 @@ public class TestVectorTypes {
     private interface PrivateMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,
+        DeviceSchema<PrivateMemory> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateMemory.class,
                 arr -> arr.withArray("array", 4));
         static PrivateMemory create(Accelerator accelerator) {
             return null;
