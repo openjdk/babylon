@@ -39,19 +39,19 @@ public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> ex
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
-    public final  T compute(ScopedCodeBuilderContext buildContext) {
-        computeDeclaration(buildContext.funcOp().resultType(), buildContext.funcOp().funcName());
+    public final  T compute() {
+        computeDeclaration(scopedCodeBuilderContext().funcOp().resultType(), scopedCodeBuilderContext().funcOp().funcName());
         parenNlIndented(_ ->
                 commaSpaceSeparated(
-                        buildContext.paramTable.list(),
-                        param -> declareParam(buildContext, param)
+                        scopedCodeBuilderContext().paramTable.list(),
+                        param -> declareParam( param)
                 )
         );
 
         braceNlIndented(_ ->
                 nlSeparated(
-                        OpHelper.Statement.statements(buildContext.funcOp().bodies().getFirst().entryBlock()),
-                        statement ->statement(buildContext,statement).nl()
+                        OpHelper.Statement.statements(scopedCodeBuilderContext().funcOp().bodies().getFirst().entryBlock()),
+                        statement ->statement(statement).nl()
                 )
         );
 

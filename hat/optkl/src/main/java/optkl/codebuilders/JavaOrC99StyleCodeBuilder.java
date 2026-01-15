@@ -47,6 +47,10 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         extends ScopedCodeBuilder<T,SCBC>
         implements BabylonOpDispatcher<T,SCBC>{
 
+     ScopedCodeBuilderContext scopedCodeBuilderContext(){
+         throw new RuntimeException("we are fake. This should be removed ");
+     }
+
     public final T assign(Consumer<T> lhs, Consumer<T> rhs){
         lhs.accept(self());
         space().equals().space();
@@ -83,14 +87,14 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
 
     @Override
-    public T type(SCBC buildContext, JavaType javaType) {
+    public T type( JavaType javaType) {
         return typeName(javaType.toString());
     }
 
 
     @Override
-    public T varLoadOp(SCBC buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
+    public T varLoadOp( CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
         if (resolve instanceof CoreOp.VarOp varOp) {
             varName(varOp);
         }else if (resolve instanceof CoreOp.VarAccessOp.VarLoadOp){
@@ -100,31 +104,31 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public T varStoreOp(SCBC buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
-        Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
+    public T varStoreOp( CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
+        Op op = scopedCodeBuilderContext().resolve(varStoreOp.operands().getFirst());
         varName((CoreOp.VarOp) op);
-        equals().parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
+        equals().parenthesisIfNeeded( varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
         return self();
     }
 
 
     @Override
-    public final T varOp(SCBC buildContext, CoreOp.VarOp varOp) {
+    public final T varOp( CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
-            type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp);
+            type( (JavaType) varOp.varValueType()).space().varName(varOp);
         } else {
-            if (buildContext.isVarOpFinal(varOp)) {
+            if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
                 constKeyword().space();
             }
-            type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
+            type( (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
             var first = varOp.operands().getFirst();
             if (first instanceof Op.Result result) {
-                parenthesisIfNeeded(buildContext, varOp, result.op());
+                parenthesisIfNeeded( varOp, result.op());
             }else if (first instanceof Block.Parameter parameter) {
                var p1 =  parameter.declaringBlock().parameters().getFirst();
 
                 var r = parameter.uses().iterator().next();
-                //parenthesisIfNeeded(buildContext, varOp, r.op());
+                //parenthesisIfNeeded( varOp, r.op());
                // if (r.op() instanceof CoreOp.VarOp varOp1){
                  //   identifier(varOp1.varName());
                // }
@@ -137,14 +141,14 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T varOp(SCBC buildContext, CoreOp.VarOp varOp, ParamVar paramVar) {
+    public final T varOp( CoreOp.VarOp varOp, ParamVar paramVar) {
         varName(varOp);
         return self();
     }
 
     @Override
-    public T fieldLoadOp(SCBC buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        var fieldAccess = fieldAccess(buildContext.lookup(),fieldLoadOp);
+    public T fieldLoadOp( JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        var fieldAccess = fieldAccess(scopedCodeBuilderContext().lookup(),fieldLoadOp);
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
@@ -154,61 +158,61 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T fieldStoreOp(SCBC buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
-        var fieldAccess = fieldAccess(buildContext.lookup(),fieldStoreOp);
+    public final T fieldStoreOp( JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
+        var fieldAccess = fieldAccess(scopedCodeBuilderContext().lookup(),fieldStoreOp);
         identifier(fieldAccess.name()).space().equals().space();
-        recurse(buildContext,((Op.Result)fieldAccess.op().operands().get(0)).op());
+        recurse(((Op.Result)fieldAccess.op().operands().get(0)).op());
         dot();
-        recurse(buildContext,((Op.Result)fieldAccess.op().operands().get(1)).op());
+        recurse(((Op.Result)fieldAccess.op().operands().get(1)).op());
         return self();
     }
 
 
     @Override
-    public final  T unaryOp(SCBC buildContext, JavaOp.UnaryOp unaryOp) {
-        symbol(unaryOp).parenthesisIfNeeded(buildContext, unaryOp, ((Op.Result)unaryOp.operands().getFirst()).op());
+    public final  T unaryOp( JavaOp.UnaryOp unaryOp) {
+        symbol(unaryOp).parenthesisIfNeeded( unaryOp, ((Op.Result)unaryOp.operands().getFirst()).op());
         return self();
     }
 
     @Override
-    public final  T binaryOp(SCBC buildContext, JavaOp.BinaryOp binaryOp) {
-        parenthesisIfNeeded(buildContext, binaryOp, OpHelper.lhsResult(binaryOp).op());
+    public final  T binaryOp( JavaOp.BinaryOp binaryOp) {
+        parenthesisIfNeeded( binaryOp, OpHelper.lhsResult(binaryOp).op());
         symbol(binaryOp);
-        parenthesisIfNeeded(buildContext, binaryOp, OpHelper.rhsResult(binaryOp).op());
+        parenthesisIfNeeded( binaryOp, OpHelper.rhsResult(binaryOp).op());
         return self();
     }
 
 
     @Override
-    public final T conditionalOp(SCBC buildContext, JavaOp.JavaConditionalOp logicalOp) {
-        OpHelper.lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse(buildContext, o));
+    public final T conditionalOp( JavaOp.JavaConditionalOp logicalOp) {
+        OpHelper.lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse( o));
         space().symbol(logicalOp).space();
-        OpHelper.rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse(buildContext, o));
+        OpHelper.rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse( o));
         return self();
     }
 
     @Override
-    public final T binaryTestOp(SCBC buildContext, JavaOp.BinaryTestOp binaryTestOp) {
-        parenthesisIfNeeded(buildContext, binaryTestOp, OpHelper.lhsResult(binaryTestOp).op());
+    public final T binaryTestOp( JavaOp.BinaryTestOp binaryTestOp) {
+        parenthesisIfNeeded( binaryTestOp, OpHelper.lhsResult(binaryTestOp).op());
         symbol(binaryTestOp);
-        parenthesisIfNeeded(buildContext, binaryTestOp, OpHelper.rhsResult(binaryTestOp).op());
+        parenthesisIfNeeded( binaryTestOp, OpHelper.rhsResult(binaryTestOp).op());
         return self();
     }
 
     @Override
-    public T convOp(SCBC buildContext, JavaOp.ConvOp convOp) {
+    public T convOp( JavaOp.ConvOp convOp) {
         // TODO: I think we need to work out how to handle doubles. If I remove this OpenCL on MAC complains (no FP64)
         if (convOp.resultType() == JavaType.DOUBLE) {
-            paren(_ -> type(buildContext,JavaType.FLOAT)); // why double to float?
+            paren(_ -> type(JavaType.FLOAT)); // why double to float?
         } else {
-            paren(_ -> type(buildContext,(JavaType)convOp.resultType()));
+            paren(_ -> type((JavaType)convOp.resultType()));
         }
-        parenthesisIfNeeded(buildContext, convOp, ((Op.Result) convOp.operands().getFirst()).op());
+        parenthesisIfNeeded( convOp, ((Op.Result) convOp.operands().getFirst()).op());
         return self();
     }
 
     @Override
-    public final T constantOp(SCBC buildContext, CoreOp.ConstantOp constantOp) {
+    public final T constantOp( CoreOp.ConstantOp constantOp) {
         if (constantOp.value() == null) {
             nullConst();
         } else {
@@ -218,9 +222,9 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final  T yieldOp(SCBC buildContext, CoreOp.YieldOp yieldOp) {
+    public final  T yieldOp( CoreOp.YieldOp yieldOp) {
         if (yieldOp.operands().getFirst() instanceof Op.Result result) {
-            recurse(buildContext, result.op());
+            recurse( result.op());
         }
         return self();
     }
@@ -228,10 +232,10 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
 
     @Override
-    public final  T tupleOp(SCBC buildContext, CoreOp.TupleOp tupleOp) {
+    public final  T tupleOp( CoreOp.TupleOp tupleOp) {
         commaSpaceSeparated(tupleOp.operands(),operand->{
             if (operand instanceof Op.Result result) {
-                recurse(buildContext, result.op());
+                recurse( result.op());
             } else {
                 throw new IllegalStateException("handle tuple");
                 //comment("/* nothing to tuple */");
@@ -241,29 +245,29 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T funcCallOp(SCBC buildContext, CoreOp.FuncCallOp funcCallOp) {
+    public final T funcCallOp( CoreOp.FuncCallOp funcCallOp) {
         funcName(funcCallOp);
         paren(_ ->
                 commaSpaceSeparated(
                         funcCallOp.operands().stream().filter(e->e instanceof Op.Result ).map(e->(Op.Result)e),
-                        result -> recurse(buildContext,result.op())
+                        result -> recurse(result.op())
                 )
         );
         return self();
     }
 
     @Override
-    public final T labeledOp(SCBC buildContext, JavaOp.LabeledOp labeledOp) {
+    public final T labeledOp( JavaOp.LabeledOp labeledOp) {
         var labelNameOp = labeledOp.bodies().getFirst().entryBlock().ops().getFirst();
         CoreOp.ConstantOp constantOp = (CoreOp.ConstantOp) labelNameOp;
         literal(constantOp.value().toString()).colon().nl();
         var forLoopOp = labeledOp.bodies().getFirst().entryBlock().ops().get(1);
-        recurse(buildContext,forLoopOp);
+        recurse(forLoopOp);
         return self();
     }
 
     @Override
-    public final T breakOp(SCBC buildContext, JavaOp.BreakOp breakOp) {
+    public final T breakOp( JavaOp.BreakOp breakOp) {
         breakKeyword();
         if (!breakOp.operands().isEmpty() && breakOp.operands().getFirst() instanceof Op.Result result) {
             space();
@@ -275,13 +279,13 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T continueOp(SCBC buildContext, JavaOp.ContinueOp continueOp) {
+    public final T continueOp( JavaOp.ContinueOp continueOp) {
         if (!continueOp.operands().isEmpty()
                 && continueOp.operands().getFirst() instanceof Op.Result result
                 && result.op() instanceof CoreOp.ConstantOp c
         ) {
             continueKeyword().space().literal(c.value().toString());
-        } else if (buildContext.scope.parent instanceof SCBC.ForScope) {
+        } else if (scopedCodeBuilderContext().isInFor()) {
             // nope
         } else {
             continueKeyword();
@@ -291,8 +295,8 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T ifOp(SCBC buildContext, JavaOp.IfOp ifOp) {
-        buildContext.ifScope(ifOp, () -> {
+    public final T ifOp( JavaOp.IfOp ifOp) {
+        scopedCodeBuilderContext().ifScope(ifOp, () -> {
             var lastWasBody = StreamMutable.of(false);
             var i = StreamMutable.of(0);
             // We probably should just use a regular for loop here ;)
@@ -305,7 +309,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                         }
                         braceNlIndented(_ ->
                                 nlSeparated(OpHelper.Statement.statements(ifOp.bodies().get(idx).entryBlock()),
-                                        root-> statement(buildContext,root)
+                                        root-> statement(root)
                                 ));
                     }
                     lastWasBody.set(true);
@@ -314,7 +318,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                     ifKeyword().paren(_ ->
                             ifOp.bodies().get(idx).entryBlock()            // get the entryblock if bodies[c.value]
                                     .ops().stream().filter(o->o instanceof CoreOp.YieldOp) // we want all the yields
-                                    .forEach((yield) -> recurse(buildContext, yield))
+                                    .forEach((yield) -> recurse( yield))
                     );
                     lastWasBody.set(false);
                 }
@@ -325,35 +329,35 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T whileOp(SCBC buildContext, JavaOp.WhileOp whileOp) {
+    public final T whileOp( JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
                 OpHelper.entryBlockOfBodyN(whileOp, 0)
                         .ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
-                        .forEach(o -> recurse(buildContext, o))
+                        .forEach(o -> recurse( o))
         );
         braceNlIndented(_ ->
                 nlSeparated(OpHelper.Statement.bodyStatements(whileOp.loopBody()),
-                        statement->statement(buildContext,statement)
+                        statement->statement(statement)
                 )
         );
         return self();
     }
 
     @Override
-    public final T forOp(SCBC buildContext, JavaOp.ForOp forOp) {
-        buildContext.forScope(forOp, () ->
+    public final T forOp( JavaOp.ForOp forOp) {
+        scopedCodeBuilderContext().forScope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    forOp.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+                    forOp.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
                     semicolon().space();
-                    forOp.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+                    forOp.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
                     semicolon().space();
                     commaSpaceSeparated(
                             OpHelper.Statement.statements(forOp.update().entryBlock()),
-                            op -> recurse(buildContext, op)
+                            op -> recurse( op)
                     );
                 }).braceNlIndented(_ ->
                         nlSeparated(OpHelper.Statement.bodyStatements(forOp.loopBody()),
-                                statement ->statement(buildContext,statement)
+                                statement ->statement(statement)
                         )
                 )
         );
@@ -361,12 +365,12 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public T invokeOp(SCBC buildContext, JavaOp.InvokeOp invokeOp) {
-        var invoke = invoke(buildContext.lookup(),invokeOp);
+    public T invokeOp( JavaOp.InvokeOp invokeOp) {
+        var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
 
             funcName(invoke.op()).paren(_ ->
                     commaSpaceSeparated(invoke.op().operands(),
-                            op -> {if (op instanceof Op.Result result) {recurse(buildContext, result.op());}
+                            op -> {if (op instanceof Op.Result result) {recurse( result.op());}
                             })
             );
 
@@ -374,38 +378,38 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T conditionalExpressionOp(SCBC buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
-        OpHelper.Ternary ternary = ternary(buildContext.lookup(),ternaryOp);
-        ternary.condBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+    public final T conditionalExpressionOp( JavaOp.ConditionalExpressionOp ternaryOp) {
+        OpHelper.Ternary ternary = ternary(scopedCodeBuilderContext().lookup(),ternaryOp);
+        ternary.condBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
         questionMark();
-        ternary.thenBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        ternary.thenBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
         colon();
-        ternary.elseBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
+        ternary.elseBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
         return self();
     }
 
     /**
      * Wrap paren() of precedence of op is higher than parent.
      *
-     * @param buildContext
+
      * @param parent
      * @param child
      */
     @Override
-    public final  T parenthesisIfNeeded(SCBC buildContext, Op parent, Op child) {
-        return parenWhen(Precedence.needsParenthesis(parent,child), _ -> recurse(buildContext, child));
+    public final  T parenthesisIfNeeded( Op parent, Op child) {
+        return parenWhen(Precedence.needsParenthesis(parent,child), _ -> recurse( child));
     }
 
     @Override
-    public final  T returnOp(SCBC buildContext, CoreOp.ReturnOp returnOp) {
+    public final  T returnOp( CoreOp.ReturnOp returnOp) {
         returnKeyword().when(!returnOp.operands().isEmpty(),
-                $-> $.space().parenthesisIfNeeded(buildContext, returnOp, ((Op.Result) returnOp.operands().getFirst()).op())
+                $-> $.space().parenthesisIfNeeded( returnOp, ((Op.Result) returnOp.operands().getFirst()).op())
         );
         return self();
     }
 
-    public final  T statement(SCBC buildContext,Op op) {
-        recurse(buildContext, op);
+    public final  T statement(Op op) {
+        recurse( op);
         if (switch (op){
             case JavaOp.ForOp _ -> false;
             case JavaOp.WhileOp _ -> false;
@@ -421,13 +425,13 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return self();
     }
 
-    public final  T declareParam(SCBC buildContext, FuncOpParams.Info param){
-        return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+    public final  T declareParam( FuncOpParams.Info param){
+        return  type((JavaType) param.parameter.type()).space().varName(param.varOp);
     }
 
     @Override
-    public T newOp(SCBC buildContext, JavaOp.NewOp newOp) {
-         newKeyword().space().type(buildContext,(JavaType) newOp.type());
+    public T newOp( JavaOp.NewOp newOp) {
+         newKeyword().space().type((JavaType) newOp.type());
        if (newOp.operands().isEmpty()){
            ocparen();
        }else {
@@ -436,7 +440,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                    commaSpaceSeparated(newOp.operands(),
                            op -> {
                                if (op instanceof Op.Result result) {
-                                   recurse(buildContext, result.op());
+                                   recurse( result.op());
                                }
                            });
                });
@@ -445,7 +449,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                    commaSpaceSeparated(newOp.operands(),
                            op -> {
                                if (op instanceof Op.Result result) {
-                                   recurse(buildContext, result.op());
+                                   recurse( result.op());
                                }
                            });
                });
@@ -454,30 +458,30 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
        return self();
     }
     @Override
-    public T arrayLoadOp(SCBC buildContext, JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp){
-        recurse(buildContext,((Op.Result)arrayLoadOp.operands().get(0)).op());
-        sbrace(_-> recurse(buildContext,((Op.Result)arrayLoadOp.operands().get(1)).op()));
+    public T arrayLoadOp( JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp){
+        recurse(((Op.Result)arrayLoadOp.operands().get(0)).op());
+        sbrace(_-> recurse(((Op.Result)arrayLoadOp.operands().get(1)).op()));
         return self();
     }
 
     @Override
-    public T arrayStoreOp(SCBC buildContext, JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp){
-        recurse(buildContext,((Op.Result)arrayStoreOp.operands().get(0)).op());
-        sbrace(_-> recurse(buildContext,((Op.Result)arrayStoreOp.operands().get(1)).op()));
+    public T arrayStoreOp( JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp){
+        recurse(((Op.Result)arrayStoreOp.operands().get(0)).op());
+        sbrace(_-> recurse(((Op.Result)arrayStoreOp.operands().get(1)).op()));
         space().equals().space();
-        recurse(buildContext,((Op.Result)arrayStoreOp.operands().get(2)).op());
+        recurse(((Op.Result)arrayStoreOp.operands().get(2)).op());
         return self();
     }
 
     @Override
-    public T enhancedForOp(SCBC builderContext, JavaOp.EnhancedForOp enhancedForOp){
+    public T enhancedForOp(JavaOp.EnhancedForOp enhancedForOp){
         forKeyword().paren(_-> {
-            enhancedForOp.initialization().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
+            enhancedForOp.initialization().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
             space().colon().space().blockInlineComment("Get rid of = before this");
-            enhancedForOp.expression().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(builderContext, o));
+            enhancedForOp.expression().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
         }).braceNlIndented(_->
             nlSeparated(OpHelper.Statement.bodyStatements(enhancedForOp.loopBody()),
-                    statement ->statement(builderContext,statement)
+                    this::statement
             )
 
         );
@@ -485,27 +489,28 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public T blockOp(SCBC buildContext, JavaOp.BlockOp blockOp) {
-      return braceNlIndented(_-> nlSeparated(OpHelper.Statement.statements(blockOp.body().entryBlock()), statement ->statement(buildContext,statement)));
+    public T blockOp( JavaOp.BlockOp blockOp) {
+      return braceNlIndented(_-> nlSeparated(OpHelper.Statement.statements(blockOp.body().entryBlock()), this::statement));
     }
 
     @Override
-    public T concatOp(SCBC buildContext, JavaOp.ConcatOp concatOp) {
+    public T concatOp( JavaOp.ConcatOp concatOp) {
         return
-                recurse(buildContext, ((Op.Result)concatOp.operands().get(0)).op()).
-        add().recurse(buildContext, ((Op.Result)concatOp.operands().get(1)).op());
-      //  blockInlineComment("concat");
+                recurse( ((Op.Result)concatOp.operands().get(0)).op()).
+        add().recurse( ((Op.Result)concatOp.operands().get(1)).op());
     }
 
     @Override
-    public final T lambdaOp(SCBC buildContext, JavaOp.LambdaOp lambdaOp) {
-        braceNlIndented(_-> {
+    public final T lambdaOp( JavaOp.LambdaOp lambdaOp) {
+        scopedCodeBuilderContext().lambdaScope(lambdaOp,()->
+          braceNlIndented(_-> {
             blockInlineComment("LAMBDA");
             nlSeparated(OpHelper.Statement.bodyStatements(lambdaOp.body()),
-                    statement -> statement(buildContext, statement)
+                    this::statement
             );
             blockInlineComment("ADBMAL");
-        });
+          })
+        );
         return self();
     }
 }

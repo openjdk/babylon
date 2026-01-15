@@ -32,99 +32,99 @@ import optkl.ParamVar;
 
 /* this should not be too C99 specific also cannot reference HAT Ops. */
 public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>, SCBC extends ScopedCodeBuilderContext> {
-    T type(SCBC buildContext, JavaType javaType);
+    T type( JavaType javaType);
 
-    T varLoadOp(SCBC buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp);
+    T varLoadOp( CoreOp.VarAccessOp.VarLoadOp varLoadOp);
 
-    T varStoreOp(SCBC buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp);
+    T varStoreOp( CoreOp.VarAccessOp.VarStoreOp varStoreOp);
 
-    T varOp(SCBC buildContext, CoreOp.VarOp varOp);
+    T varOp( CoreOp.VarOp varOp);
 
-    T varOp(SCBC buildContext, CoreOp.VarOp varOp, ParamVar paramVar );
+    T varOp( CoreOp.VarOp varOp, ParamVar paramVar );
 
-    T fieldLoadOp(SCBC buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp);
+    T fieldLoadOp( JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp);
 
-    T fieldStoreOp(SCBC buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp);
+    T fieldStoreOp( JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp);
 
-    T unaryOp(SCBC buildContext, JavaOp.UnaryOp unaryOp);
+    T unaryOp( JavaOp.UnaryOp unaryOp);
 
-    T binaryOp(SCBC buildContext, JavaOp.BinaryOp binaryOp);
+    T binaryOp( JavaOp.BinaryOp binaryOp);
 
-    T conditionalOp(SCBC buildContext, JavaOp.JavaConditionalOp conditionalOp);
+    T conditionalOp( JavaOp.JavaConditionalOp conditionalOp);
 
-    T binaryTestOp(SCBC buildContext, JavaOp.BinaryTestOp binaryTestOp);
+    T binaryTestOp( JavaOp.BinaryTestOp binaryTestOp);
 
-    T convOp(SCBC buildContext, JavaOp.ConvOp convOp);
+    T convOp( JavaOp.ConvOp convOp);
 
-    T constantOp(SCBC buildContext, CoreOp.ConstantOp constantOp);
+    T constantOp( CoreOp.ConstantOp constantOp);
 
-    T yieldOp(SCBC buildContext, CoreOp.YieldOp yieldOp);
+    T yieldOp( CoreOp.YieldOp yieldOp);
 
-    T lambdaOp(SCBC buildContext, JavaOp.LambdaOp lambdaOp);
+    T lambdaOp( JavaOp.LambdaOp lambdaOp);
 
-    T tupleOp(SCBC buildContext, CoreOp.TupleOp tupleOp);
+    T tupleOp( CoreOp.TupleOp tupleOp);
 
-    T funcCallOp(SCBC buildContext, CoreOp.FuncCallOp funcCallOp);
+    T funcCallOp( CoreOp.FuncCallOp funcCallOp);
 
-    T ifOp(SCBC buildContext, JavaOp.IfOp ifOp);
+    T ifOp( JavaOp.IfOp ifOp);
 
-    T whileOp(SCBC buildContext, JavaOp.WhileOp whileOp);
+    T whileOp( JavaOp.WhileOp whileOp);
 
-    T labeledOp(SCBC buildContext, JavaOp.LabeledOp labeledOp);
+    T labeledOp( JavaOp.LabeledOp labeledOp);
 
-    T continueOp(SCBC buildContext, JavaOp.ContinueOp continueOp);
+    T continueOp( JavaOp.ContinueOp continueOp);
 
-    T breakOp(SCBC buildContext, JavaOp.BreakOp breakOp);
+    T breakOp( JavaOp.BreakOp breakOp);
 
-    T forOp(SCBC buildContext, JavaOp.ForOp forOp);
+    T forOp( JavaOp.ForOp forOp);
 
-    T invokeOp(SCBC buildContext, JavaOp.InvokeOp invokeOp);
+    T invokeOp( JavaOp.InvokeOp invokeOp);
 
-    T conditionalExpressionOp(SCBC buildContext, JavaOp.ConditionalExpressionOp ternaryOp);
+    T conditionalExpressionOp( JavaOp.ConditionalExpressionOp ternaryOp);
 
-    T parenthesisIfNeeded(SCBC buildContext, Op parent, Op child);
+    T parenthesisIfNeeded( Op parent, Op child);
 
-    T returnOp(SCBC buildContext, CoreOp.ReturnOp returnOp);
+    T returnOp( CoreOp.ReturnOp returnOp);
 
-    T newOp(SCBC buildContext, JavaOp.NewOp newOp);
-    T arrayLoadOp(SCBC buildContext, JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp);
-    T arrayStoreOp(SCBC buildContext, JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp);
-    T enhancedForOp(SCBC buildContext, JavaOp.EnhancedForOp enhancedForOp);
-    T blockOp(SCBC buildContext, JavaOp.BlockOp blockOp);
-    T concatOp(SCBC buildContext, JavaOp.ConcatOp concatOp);
-    default T recurse(SCBC buildContext, Op op) {
+    T newOp( JavaOp.NewOp newOp);
+    T arrayLoadOp( JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp);
+    T arrayStoreOp( JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp);
+    T enhancedForOp( JavaOp.EnhancedForOp enhancedForOp);
+    T blockOp( JavaOp.BlockOp blockOp);
+    T concatOp( JavaOp.ConcatOp concatOp);
+    default T recurse( Op op) {
         switch (op) {
-            case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
-            case CoreOp.VarAccessOp.VarStoreOp $ -> varStoreOp(buildContext, $);
-            case JavaOp.FieldAccessOp.FieldLoadOp $ -> fieldLoadOp(buildContext, $);
-            case JavaOp.FieldAccessOp.FieldStoreOp $ -> fieldStoreOp(buildContext, $);
-            case JavaOp.ConvOp $ -> convOp(buildContext, $);
-            case CoreOp.ConstantOp $ -> constantOp(buildContext, $);
-            case CoreOp.YieldOp $ -> yieldOp(buildContext, $);
-            case CoreOp.FuncCallOp $ -> funcCallOp(buildContext, $);
-            case JavaOp.InvokeOp $ -> invokeOp(buildContext, $);
-            case JavaOp.ConditionalExpressionOp $ -> conditionalExpressionOp(buildContext, $);
-            case CoreOp.VarOp $ when ParamVar.of($) instanceof ParamVar paramVar -> varOp(buildContext, $,paramVar);
-            case CoreOp.VarOp $ -> varOp(buildContext, $);
-            case JavaOp.LambdaOp $ -> lambdaOp(buildContext, $);
-            case CoreOp.TupleOp $ -> tupleOp(buildContext, $);
-            case JavaOp.WhileOp $ -> whileOp(buildContext, $);
-            case JavaOp.IfOp $ -> ifOp(buildContext, $);
-            case JavaOp.ForOp $ -> forOp(buildContext, $);
-            case CoreOp.ReturnOp $ -> returnOp(buildContext, $);
-            case JavaOp.LabeledOp $ -> labeledOp(buildContext, $);
-            case JavaOp.BreakOp $ -> breakOp(buildContext, $);
-            case JavaOp.ContinueOp $ -> continueOp(buildContext, $);
-            case JavaOp.BinaryTestOp $ -> binaryTestOp(buildContext, $);
-            case JavaOp.BinaryOp $ -> binaryOp(buildContext, $);
-            case JavaOp.JavaConditionalOp $ -> conditionalOp(buildContext, $);
-            case JavaOp.UnaryOp $ -> unaryOp(buildContext, $);
-            case JavaOp.NewOp $ -> newOp(buildContext, $);
-            case JavaOp.ArrayAccessOp.ArrayStoreOp  $ ->  arrayStoreOp(buildContext,$);
-            case JavaOp.ArrayAccessOp.ArrayLoadOp  $ ->  arrayLoadOp(buildContext,$);
-            case JavaOp.EnhancedForOp $ -> enhancedForOp(buildContext,$);
-            case JavaOp.BlockOp   $ -> blockOp(buildContext,$);
-            case JavaOp.ConcatOp $ -> concatOp(buildContext,$);
+            case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp( $);
+            case CoreOp.VarAccessOp.VarStoreOp $ -> varStoreOp( $);
+            case JavaOp.FieldAccessOp.FieldLoadOp $ -> fieldLoadOp( $);
+            case JavaOp.FieldAccessOp.FieldStoreOp $ -> fieldStoreOp( $);
+            case JavaOp.ConvOp $ -> convOp( $);
+            case CoreOp.ConstantOp $ -> constantOp( $);
+            case CoreOp.YieldOp $ -> yieldOp( $);
+            case CoreOp.FuncCallOp $ -> funcCallOp( $);
+            case JavaOp.InvokeOp $ -> invokeOp( $);
+            case JavaOp.ConditionalExpressionOp $ -> conditionalExpressionOp( $);
+            case CoreOp.VarOp $ when ParamVar.of($) instanceof ParamVar paramVar -> varOp( $,paramVar);
+            case CoreOp.VarOp $ -> varOp( $);
+            case JavaOp.LambdaOp $ -> lambdaOp( $);
+            case CoreOp.TupleOp $ -> tupleOp( $);
+            case JavaOp.WhileOp $ -> whileOp( $);
+            case JavaOp.IfOp $ -> ifOp( $);
+            case JavaOp.ForOp $ -> forOp( $);
+            case CoreOp.ReturnOp $ -> returnOp( $);
+            case JavaOp.LabeledOp $ -> labeledOp( $);
+            case JavaOp.BreakOp $ -> breakOp( $);
+            case JavaOp.ContinueOp $ -> continueOp( $);
+            case JavaOp.BinaryTestOp $ -> binaryTestOp( $);
+            case JavaOp.BinaryOp $ -> binaryOp( $);
+            case JavaOp.JavaConditionalOp $ -> conditionalOp( $);
+            case JavaOp.UnaryOp $ -> unaryOp( $);
+            case JavaOp.NewOp $ -> newOp( $);
+            case JavaOp.ArrayAccessOp.ArrayStoreOp  $ ->  arrayStoreOp($);
+            case JavaOp.ArrayAccessOp.ArrayLoadOp  $ ->  arrayLoadOp($);
+            case JavaOp.EnhancedForOp $ -> enhancedForOp($);
+            case JavaOp.BlockOp   $ -> blockOp($);
+            case JavaOp.ConcatOp $ -> concatOp($);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

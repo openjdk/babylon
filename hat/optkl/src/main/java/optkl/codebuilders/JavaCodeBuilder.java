@@ -32,7 +32,7 @@ import java.lang.invoke.MethodHandles;
 
 public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
     @Override
-    public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
+    public T type( JavaType javaType) {
         // lets do equiv of SimpleName
         String longName = javaType.toString();
         int lastIdx = Math.max(longName.lastIndexOf('$'),longName.lastIndexOf('.'));
@@ -46,12 +46,12 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
             parenNlIndented(_ ->
                     commaNlSeparated(
                             buildContext.paramTable.list(),
-                            param -> declareParam(buildContext, param)
+                            param -> declareParam( param)
                     )
             );
             braceNlIndented(_ -> nlSeparated(
                     OpHelper.Statement.statements(buildContext.funcOp().bodies().getFirst().entryBlock()),
-                    statement -> statement(buildContext, statement)
+                    statement -> statement( statement)
                     )
             );
         });

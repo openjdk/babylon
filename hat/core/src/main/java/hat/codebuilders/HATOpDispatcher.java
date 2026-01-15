@@ -28,88 +28,89 @@ import hat.dialect.*;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.JavaOrC99StyleCodeBuilder;
+import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 /* this should not be too C99 specific but can reference HAT ops.  */
-public interface HATOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,ScopedCodeBuilderContext>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
+public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
-    T hatBarrierOp(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp);
+    T hatBarrierOp( HATBarrierOp barrierOp);
 
-    T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATMemoryVarOp.HATLocalVarOp barrierOp);
+    T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp barrierOp);
 
-    T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
+    T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
 
-    T hatThreadIdOp(ScopedCodeBuilderContext buildContext, HATThreadOp hatThreadOp);
+    T hatThreadIdOp( HATThreadOp hatThreadOp);
 
-    T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarOp hatVectorVarOp);
+    T hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp);
 
-    T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorStoreView hatFloat4StoreOp);
+    T hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatFloat4StoreOp);
 
-    T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp);
+    T hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp);
 
-    T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorLoadOp hatVectorLoadOp);
+    T hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp);
 
-    T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp);
+    T hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp);
 
-    T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp);
+    T hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp);
 
-    T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp);
+    T hatVectorVarLoadOp( HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp);
 
-    T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16VarOp hatF16VarOp);
+    T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp);
 
-    T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16BinaryOp hatF16BinaryOp);
+    T hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp);
 
-    T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16VarLoadOp hatF16VarLoadOp);
+    T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp);
 
-    T hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16ConvOp hatF16ConvOp);
+    T hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp);
 
-    T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorOfOp hatVectorOp);
+    T hatVectorOfOps( HATVectorOp.HATVectorOfOp hatVectorOp);
 
-    T hatVectorMakeOf(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorMakeOfOp hatVectorMakeOfOp);
+    T hatVectorMakeOf( HATVectorOp.HATVectorMakeOfOp hatVectorMakeOfOp);
 
-    T hatF16ToFloatConvOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp);
+    T hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
-    T hatPrivateVarInitOp(ScopedCodeBuilderContext buildContext, HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp);
+    T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp);
 
-    T hatMemoryLoadOp(ScopedCodeBuilderContext buildContext, HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp);
+    T hatMemoryLoadOp( HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp);
 
-    T hatPtrLoadOp(ScopedCodeBuilderContext builderContext, HATPtrOp.HATPtrLoadOp hatPtrLoadOp);
+    T hatPtrLoadOp(HATPtrOp.HATPtrLoadOp hatPtrLoadOp);
 
-    T hatPtrStoreOp(ScopedCodeBuilderContext builderContext, HATPtrOp.HATPtrStoreOp hatPtrStoreOp);
+    T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp);
 
-    T hatPtrLengthOp(ScopedCodeBuilderContext builderContext, HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
+    T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
 
     @Override
-    default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
+    default T recurse( Op op) {
         if (op instanceof HATOp hatOp) {
             switch (hatOp) {
-                case HATBarrierOp $ -> hatBarrierOp(buildContext, $);
-                case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp(buildContext, $);
-                case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
-                case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp(buildContext, $);
-                case HATThreadOp $ -> hatThreadIdOp(buildContext, $);
-                case HATVectorOp.HATVectorVarOp $ -> hatVectorVarOp(buildContext, $);
-                case HATVectorOp.HATVectorStoreView $ -> hatVectorStoreOp(buildContext, $);
-                case HATVectorOp.HATVectorBinaryOp $ -> hatBinaryVectorOp(buildContext, $);
-                case HATVectorOp.HATVectorLoadOp $ -> hatVectorLoadOp(buildContext, $);
-                case HATVectorOp.HATVectorSelectLoadOp $ -> hatSelectLoadOp(buildContext, $);
-                case HATVectorOp.HATVectorSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
-                case HATVectorOp.HATVectorVarLoadOp $ -> hatVectorVarLoadOp(buildContext, $);
-                case HATVectorOp.HATVectorOfOp $ -> hatVectorOfOps(buildContext, $);
-                case HATF16Op.HATF16VarOp $ -> hatF16VarOp(buildContext, $);
-                case HATF16Op.HATF16BinaryOp $ -> hatF16BinaryOp(buildContext, $);
-                case HATF16Op.HATF16VarLoadOp $ -> hatF16VarLoadOp(buildContext, $);
-                case HATF16Op.HATF16ConvOp $ -> hatF16ConvOp(buildContext, $);
-                case HATVectorOp.HATVectorMakeOfOp $ -> hatVectorMakeOf(buildContext, $);
-                case HATPtrOp.HATPtrLoadOp $ -> hatPtrLoadOp(buildContext, $);
-                case HATPtrOp.HATPtrStoreOp $ -> hatPtrStoreOp(buildContext, $);
-                case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp(buildContext, $);
-                case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp(buildContext, $);
-                case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp(buildContext, $);
+                case HATBarrierOp $ -> hatBarrierOp( $);
+                case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp( $);
+                case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp( $);
+                case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp( $);
+                case HATThreadOp $ -> hatThreadIdOp( $);
+                case HATVectorOp.HATVectorVarOp $ -> hatVectorVarOp( $);
+                case HATVectorOp.HATVectorStoreView $ -> hatVectorStoreOp( $);
+                case HATVectorOp.HATVectorBinaryOp $ -> hatBinaryVectorOp( $);
+                case HATVectorOp.HATVectorLoadOp $ -> hatVectorLoadOp( $);
+                case HATVectorOp.HATVectorSelectLoadOp $ -> hatSelectLoadOp( $);
+                case HATVectorOp.HATVectorSelectStoreOp $ -> hatSelectStoreOp( $);
+                case HATVectorOp.HATVectorVarLoadOp $ -> hatVectorVarLoadOp( $);
+                case HATVectorOp.HATVectorOfOp $ -> hatVectorOfOps( $);
+                case HATF16Op.HATF16VarOp $ -> hatF16VarOp( $);
+                case HATF16Op.HATF16BinaryOp $ -> hatF16BinaryOp( $);
+                case HATF16Op.HATF16VarLoadOp $ -> hatF16VarLoadOp( $);
+                case HATF16Op.HATF16ConvOp $ -> hatF16ConvOp( $);
+                case HATVectorOp.HATVectorMakeOfOp $ -> hatVectorMakeOf( $);
+                case HATPtrOp.HATPtrLoadOp $ -> hatPtrLoadOp( $);
+                case HATPtrOp.HATPtrStoreOp $ -> hatPtrStoreOp( $);
+                case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp( $);
+                case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp( $);
+                case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp( $);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         }else{
-            BabylonOpDispatcher.super.recurse(buildContext, op);
+            BabylonOpDispatcher.super.recurse( op);
         }
 
         return (T) this;
