@@ -169,15 +169,15 @@ public final class BytecodeGenerator {
                                                                           SequencedMap<String, ? extends O> ops) {
         byte[] classBytes = ClassFile.of().build(clName, clb -> {
             List<LambdaOp> lambdaSink = new ArrayList<>();
-            BitSet quotable = new BitSet();
+            BitSet reflectableLambda = new BitSet();
             CodeTransformer lowering = LoweringTransform.getInstance(lookup);
             for (var e : ops.sequencedEntrySet()) {
                 O lowered = (O)e.getValue().transform(CodeContext.create(), lowering);
-                generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, quotable);
+                generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, reflectableLambda);
             }
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
-                if (quotable.get(i)) {
+                if (reflectableLambda.get(i)) {
                     // return (FuncOp) OpParser.fromOpString(opText)
                     clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
                             ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
@@ -187,7 +187,7 @@ public final class BytecodeGenerator {
                                             MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
                                     .areturn()));
                 }
-                generateMethod(lookup, clName, "lambda$" + i, lop, clb, ops, lambdaSink, quotable);
+                generateMethod(lookup, clName, "lambda$" + i, lop, clb, ops, lambdaSink, reflectableLambda);
             }
         });
 
@@ -202,7 +202,7 @@ public final class BytecodeGenerator {
                                                                      ClassBuilder clb,
                                                                      SequencedMap<String, ? extends O> functionTable,
                                                                      List<LambdaOp> lambdaSink,
-                                                                     BitSet quotable) {
+                                                                     BitSet reflectableLambda) {
         List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(
                 iop.invokableType()).insertParameterTypes(0, capturedValues.stream()
@@ -210,7 +210,7 @@ public final class BytecodeGenerator {
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor().andThen(new ExceptionTableCompactor()), cob ->
                     new BytecodeGenerator(lookup, className, capturedValues, TypeKind.from(mtd.returnType()),
-                                          iop.body().blocks(), cob, functionTable, lambdaSink, quotable).generate()));
+                                          iop.body().blocks(), cob, functionTable, lambdaSink, reflectableLambda).generate()));
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
@@ -229,7 +229,7 @@ public final class BytecodeGenerator {
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final Map<String, ? extends Invokable> functionMap;
     private final List<LambdaOp> lambdaSink;
-    private final BitSet quotable;
+    private final BitSet reflectableLambda;
     private final Map<Op, Boolean> deferCache;
     private Value oprOnStack;
     private Block[] recentCatchBlocks;
@@ -242,7 +242,7 @@ public final class BytecodeGenerator {
                               CodeBuilder cob,
                               Map<String, ? extends Invokable> functionMap,
                               List<LambdaOp> lambdaSink,
-                              BitSet quotable) {
+                              BitSet reflectableLambda) {
         this.lookup = lookup;
         this.className = className;
         this.capturedValues = capturedValues;
@@ -257,7 +257,7 @@ public final class BytecodeGenerator {
         this.singlePredecessorsValues = new IdentityHashMap<>();
         this.functionMap = functionMap;
         this.lambdaSink = lambdaSink;
-        this.quotable = quotable;
+        this.reflectableLambda = reflectableLambda;
         this.deferCache = new IdentityHashMap<>();
     }
 
@@ -943,7 +943,7 @@ public final class BytecodeGenerator {
                             if (op.isReflectable()) {
                                 lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
                                 intfMethodName = intfMethodName + "=" + "op$lambda$" + lambdaIndex;
-                                quotable.set(lambdaSink.size());
+                                reflectableLambda.set(lambdaSink.size());
                             }
                             cob.invokedynamic(DynamicCallSiteDesc.of(
                                     lambdaMetafactory,

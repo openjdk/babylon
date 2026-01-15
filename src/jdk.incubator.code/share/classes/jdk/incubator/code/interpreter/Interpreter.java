@@ -492,7 +492,7 @@ public final class Interpreter {
                     .asCollector(Object[].class, lo.parameters().size());
             Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
-            // If a quotable lambda proxy again to add method Quoted quoted()
+            // If a reflectable lambda proxy again to add method Quoted quoted()
             if (lo.isReflectable()) {
                 return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
                         new InvocationHandler() {
