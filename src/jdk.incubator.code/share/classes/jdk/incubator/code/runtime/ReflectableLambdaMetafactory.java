@@ -8,7 +8,6 @@ import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import jdk.internal.access.SharedSecrets;
 
 import java.lang.constant.ClassDesc;
-import java.lang.constant.MethodHandleDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.LambdaMetafactory;
@@ -87,7 +86,7 @@ public class ReflectableLambdaMetafactory {
                                        MethodHandle implementation,
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
-        DecodedName decodedName = findQuotableOpGetter(caller, interfaceMethodName);
+        DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
         return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
                 implementation, dynamicMethodType, decodedName.reflectableLambdaInfo);
     }
@@ -224,7 +223,7 @@ public class ReflectableLambdaMetafactory {
                                           MethodType factoryType,
                                           Object... args)
             throws LambdaConversionException {
-        DecodedName decodedName = findQuotableOpGetter(caller, interfaceMethodName);
+        DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
         return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, decodedName.reflectableLambdaInfo, args);
     }
 
@@ -232,7 +231,7 @@ public class ReflectableLambdaMetafactory {
 
     record DecodedName(String name, ReflectableLambdaInfo reflectableLambdaInfo) { }
 
-    private static DecodedName findQuotableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) throws LambdaConversionException {
+    private static DecodedName findReflectableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) throws LambdaConversionException {
         String[] implNameParts = interfaceMethodName.split("=");
         if (implNameParts.length != 2) {
             throw new LambdaConversionException("Bad method name: " + interfaceMethodName);

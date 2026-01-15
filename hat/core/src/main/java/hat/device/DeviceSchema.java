@@ -25,8 +25,11 @@
 package hat.device;
 
 import hat.types.F16;
+import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.C99CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +45,7 @@ public class DeviceSchema<T extends DeviceType> {
     private final Class<T> klass;
     private final List<List<String>> members = new ArrayList<>();
     private final Map<String, Integer> arraySize = new HashMap<>();
-    private final C99CodeBuilder<?> representationBuilder = new C99CodeBuilder<>();
+    private final C99CodeBuilder<?> representationBuilder;
     private final Set<String> visited = new HashSet<>();
 
     private static final Map<Class<?>, String> specialTypes = new HashMap<>();
@@ -51,13 +54,14 @@ public class DeviceSchema<T extends DeviceType> {
         specialTypes.put(F16.class, "half");
     }
 
-    public DeviceSchema(Class<T> klass) {
+    public DeviceSchema(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp,Class<T> klass) {
+        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(lookup,funcOp));
         this.klass = klass;
     }
     int currentLevel = 0;
 
-    public static <T extends DeviceType> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
-        DeviceSchema<T> deviceSchema =  new DeviceSchema<>(klass);
+    public static <T extends DeviceType> DeviceSchema<T> of(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp,Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
+        DeviceSchema<T> deviceSchema =  new DeviceSchema<>(lookup,funcOp,klass);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize();
         return deviceSchema;
@@ -121,7 +125,7 @@ public class DeviceSchema<T extends DeviceType> {
 
                         if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
                             // inspect the dependency and add it at the front of the string builder
-                            C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>();
+                            C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(builder.scopedCodeBuilderContext().lookup(),builder.scopedCodeBuilderContext().funcOp()));
                             depsBuilder.preformatted(builder.getText());
                             materialize(depsBuilder, returnType);
                             builder = depsBuilder;

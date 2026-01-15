@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -145,7 +145,7 @@ public class TestBFloat16Type {
 
     public interface LocalArray extends DeviceType {
         BF16 array(int index);
-        DeviceSchema<LocalArray> schema = DeviceSchema.of(LocalArray.class,
+        DeviceSchema<LocalArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,LocalArray.class,
                 builder -> builder.withArray("array", 1024)
                         .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
 
@@ -208,7 +208,7 @@ public class TestBFloat16Type {
 
     public interface PrivateArray extends DeviceType {
         BF16 array(int index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArray.class,
                 builder -> builder.withArray("array", 256)
                         .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
 
@@ -409,11 +409,7 @@ public class TestBFloat16Type {
             BF16 val = arrayC.array(i);
             float fa = BF16.bfloat162float(arrayA.array(i));
             float fb = BF16.bfloat162float(arrayB.array(i));
-            try {
-                HATAsserts.assertEquals((fa + fb + fb), BF16.bfloat162float(val), 0.01f);
-            } catch (HATAssertionError hae) {
-                throw new HATExpectedPrecisionError(hae.getMessage());
-            }
+            HATAsserts.assertEquals((fa + fb + fb), BF16.bfloat162float(val), 0.01f);
         }
     }
 
@@ -449,11 +445,7 @@ public class TestBFloat16Type {
             BF16 r4 = BF16.add(r1, r2);
             BF16 r5 = BF16.add(r4, r3);
 
-            try {
-                HATAsserts.assertEquals(BF16.bfloat162float(r5), BF16.bfloat162float(gotResult), 0.01f);
-            } catch (HATAssertionError hatAssertionError) {
-                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
-            }
+            HATAsserts.assertEquals(BF16.bfloat162float(r5), BF16.bfloat162float(gotResult), 0.01f);
         }
     }
 
@@ -644,11 +636,7 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             BF16 result = arrayC.array(i);
-            try {
-                HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)), BF16.bfloat162float(result), 0.01f);
-             } catch (HATAssertionError hatAssertionError) {
-                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
-            }
+            HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)), BF16.bfloat162float(result), 0.01f);
         }
     }
 

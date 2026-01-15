@@ -404,7 +404,12 @@ public sealed abstract class CoreOp extends Op {
             implements Op.Nested, Op.Lowerable, Op.Pure {
         static final String NAME = "quoted";
 
-        public static final JavaType QUOTED_TYPE = JavaType.type(Quoted.class);
+        /**
+         * The java type element modelling the parameterized type {@code Quoted<Op>}
+         * that is the result type of a QuotedOp instance.
+         */
+        public static final JavaType QUOTED_OP_TYPE = JavaType.parameterized(
+                JavaType.type(Quoted.class), JavaType.type(Op.class));
 
         final Body quotedBody;
 
@@ -461,7 +466,7 @@ public sealed abstract class CoreOp extends Op {
 
         @Override
         public TypeElement resultType() {
-            return QUOTED_TYPE;
+            return QUOTED_OP_TYPE;
         }
     }
 

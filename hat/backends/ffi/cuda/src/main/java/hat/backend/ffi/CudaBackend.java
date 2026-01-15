@@ -32,6 +32,7 @@ import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.analysis.SSA;
 import optkl.Trxfmr;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BoundSchema;
@@ -392,7 +393,7 @@ public class CudaBackend extends C99FFIBackend {
         compiledKernel.dispatch(kernelContext, args);
     }
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(), args);
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
     }
 
     ///   Same as OpenCL backend until here

@@ -25,23 +25,33 @@
 package optkl.codebuilders;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import optkl.OpHelper;
 
 import java.lang.invoke.MethodHandles;
 
-public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends JavaOrC99StyleCodeBuilder<T> implements BabylonOpDispatcher<T,ScopedCodeBuilderContext> {
+public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
+    @Override
+    public T type( JavaType javaType) {
+        // lets do equiv of SimpleName
+        String longName = javaType.toString();
+        int lastIdx = Math.max(longName.lastIndexOf('$'),longName.lastIndexOf('.'));
+        String shortName  = lastIdx>0?longName.substring(lastIdx+1):longName;
+        return typeName(shortName);
+    }
+
     public T createJava(ScopedCodeBuilderContext buildContext) {
-        buildContext.funcScope(buildContext.funcOp, () -> {
-            typeName(buildContext.funcOp.resultType().toString()).space().funcName(buildContext.funcOp);
+        buildContext.funcScope(buildContext.funcOp(), () -> {
+            typeName(buildContext.funcOp().resultType().toString()).space().funcName(buildContext.funcOp());
             parenNlIndented(_ ->
                     commaNlSeparated(
                             buildContext.paramTable.list(),
-                            param -> declareParam(buildContext, param)
+                            param -> declareParam( param)
                     )
             );
             braceNlIndented(_ -> nlSeparated(
-                    OpHelper.Statement.statements(buildContext.funcOp.bodies().getFirst().entryBlock()),
-                    statement -> statement(buildContext, statement)
+                    OpHelper.Statement.statements(buildContext.funcOp().bodies().getFirst().entryBlock()),
+                    statement -> statement( statement)
                     )
             );
         });
@@ -50,7 +60,7 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends JavaOrC99Styl
     MethodHandles.Lookup lookup;
     CoreOp.FuncOp funcOp;
     public JavaCodeBuilder(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp){
-        super();
+        super(new ScopedCodeBuilderContext(lookup,funcOp));
         this.lookup=lookup;
         this.funcOp = funcOp;
     }
@@ -58,5 +68,13 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends JavaOrC99Styl
     public String toText() {
         ScopedCodeBuilderContext scopedCodeBuilderContext= new ScopedCodeBuilderContext(lookup,funcOp);
         return createJava(scopedCodeBuilderContext).getText();
+    }
+
+    public static JavaCodeBuilder of(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        return new JavaCodeBuilder(lookup,funcOp);
+    }
+
+    public static String toText(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        return of(lookup,funcOp).toText();
     }
 }

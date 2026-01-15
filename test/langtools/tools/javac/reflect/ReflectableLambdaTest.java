@@ -39,7 +39,7 @@ import java.util.function.IntUnaryOperator;
 public class ReflectableLambdaTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
                     return;
                 };
                 return;
@@ -50,7 +50,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isQuotable=true ()java.type:"int" -> {
+                %0 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isReflectable=true ()java.type:"int" -> {
                     %1 : java.type:"int" = constant @1;
                     return %1;
                 };
@@ -61,7 +61,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x";
                     %3 : java.type:"int" = var.load %2;
                     return %3;
@@ -73,7 +73,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntBinaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"java.util.function.IntBinaryOperator" = lambda @lambda.isReflectable=true (%1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %1 @"x";
                     %4 : Var<java.type:"int"> = var %2 @"y";
                     %5 : java.type:"int" = var.load %3;
@@ -88,7 +88,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
                     %1 : java.type:"java.lang.AssertionError" = new @java.ref:"java.lang.AssertionError::()";
                     throw %1;
                 };
@@ -101,7 +101,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" (%0 : Var<java.type:"int">)java.type:"void" -> {
-                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"y";
                     %4 : java.type:"int" = var.load %0;
                     %5 : java.type:"int" = var.load %3;
@@ -127,7 +127,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" (%0 : java.type:"ReflectableLambdaTest$Context")java.type:"void" -> {
-                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
                     %4 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest$Context::x:int";
                     %5 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest$Context::y:int";
@@ -145,7 +145,7 @@ public class ReflectableLambdaTest {
     @IR("""
             func @"captureParam" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"x";
-                %2 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%3 : java.type:"int")java.type:"int" -> {
+                %2 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%3 : java.type:"int")java.type:"int" -> {
                     %4 : Var<java.type:"int"> = var %3 @"y";
                     %5 : java.type:"int" = var.load %1;
                     %6 : java.type:"int" = var.load %4;
@@ -165,7 +165,7 @@ public class ReflectableLambdaTest {
     @Reflect
     @IR("""
             func @"captureField" (%0 : java.type:"ReflectableLambdaTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
                     %4 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest::x:int";
                     %5 : java.type:"int" = field.load %0 @java.ref:"ReflectableLambdaTest::y:int";
@@ -187,7 +187,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
                     invoke @java.ref:"ReflectableLambdaTest::m():void";
                     return;
                 };
@@ -202,7 +202,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
                     %4 : java.type:"int" = invoke %3 @java.ref:"ReflectableLambdaTest::g(int):int";
@@ -215,7 +215,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntFunction<int[]>" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int[]" -> {
+                %0 : java.type:"java.util.function.IntFunction<int[]>" = lambda @lambda.isReflectable=true (%1 : java.type:"int")java.type:"int[]" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
                     %4 : java.type:"int[]" = new %3 @java.ref:"int[]::(int)";
@@ -238,7 +238,7 @@ public class ReflectableLambdaTest {
 
     @IR("""
             func @"f" (%0 : java.type:"ReflectableLambdaTest$ContextRef")java.type:"void" -> {
-                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"x$0";
                     %4 : java.type:"int" = var.load %3;
                     %5 : java.type:"int" = invoke %0 %4 @java.ref:"ReflectableLambdaTest$ContextRef::g(int):int";

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,17 +22,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl.codebuilders;
+package hat.dialect;
+/*
+ This is suspiciously  similar to NDRange's Dim interface.  in this case we return 0,1,2 vs 1,2,3
+ */
+ interface Dim  {
+          interface X extends Dim{}
+         interface Y extends Dim{}
+          interface Z extends Dim{}
 
-import jdk.incubator.code.dialect.core.CoreOp;
 
-import java.lang.invoke.MethodHandles;
-
-public class CodeBuilderContext {
-    final public MethodHandles.Lookup lookup;
-    final public CoreOp.FuncOp funcOp;
-    public CodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        this.lookup = lookup;
-        this.funcOp = funcOp;
+    default int dimension() {
+        return switch (Dim.this){
+            case X  _ -> 0;
+            case Y _ -> 1;
+            case Z  _ ->2;
+            default -> throw new IllegalStateException("Unexpected value: " + Dim.this);
+        };
     }
-}
+    }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,16 +23,17 @@
  * questions.
  */
 
-package jdk.incubator.code.analysis;
+package oracle.code.triton;
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+
 import java.util.*;
-import java.util.function.*;
-import java.util.stream.Gatherer;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import java.util.stream.Gatherers;
 
 /**

@@ -56,8 +56,8 @@ public final class OnnxTransformer {
 
     public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers, Map<Value, String> namesMap) {}
 
-    public static ModuleAndInitializers transform(MethodHandles.Lookup l, Quoted quotedLambda) {
-        JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quotedLambda.op();
+    public static ModuleAndInitializers transform(MethodHandles.Lookup l, Quoted<JavaOp.LambdaOp> quotedLambda) {
+        JavaOp.LambdaOp lambda = quotedLambda.op();
         assert lambda.parameters().isEmpty();
 
         List<Value> captures = lambda.capturedValues();

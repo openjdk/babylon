@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +35,7 @@ import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -45,7 +46,6 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -249,13 +249,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         @Override
-        public Set<Value> dependsOn() {
-            Set<Value> depends = new LinkedHashSet<>(op.operands());
+        public SequencedSet<Value> dependsOn() {
+            SequencedSet<Value> depends = new LinkedHashSet<>(op.operands());
             if (op instanceof Terminating) {
                 op.successors().stream().flatMap(h -> h.arguments().stream()).forEach(depends::add);
             }
 
-            return Collections.unmodifiableSet(depends);
+            return Collections.unmodifiableSequencedSet(depends);
         }
 
         /**
@@ -493,20 +493,20 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * Returns the quoted code model of the given quotable reference, if present.
+     * Returns the code model of a reflectable lambda expression or method reference.
      *
-     * @param q the quotable reference.
-     * @return the quoted code model or an empty optional if the
-     *         quoted code model is unavailable.
-     * @throws UnsupportedOperationException If The Java version used at compile time to generate and store the code model
+     * @param fiInstance a functional interface instance that is the result of a reflectable lambda expression
+     *                   or method reference.
+     * @return the code model, or an empty optional if the functional interface instance is not the result of a
+     *         reflectable lambda expression or method reference.
+     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code model
      *                                       is not the same as the Java version used at runtime to load the code model.
-     * @apiNote If the quotable reference is a proxy instance, then the
-     *          quoted code model is unavailable and this method
-     *          returns an empty optional.
+     * @apiNote if the functional interface instance is a proxy instance, then the
+     *          code model is unavailable and this method returns an empty optional.
      * @since 99
      */
-    public static Optional<Quoted> ofQuotable(Object q) {
-        Object oq = q;
+    public static Optional<Quoted<JavaOp.LambdaOp>> ofLambda(Object fiInstance) {
+        Object oq = fiInstance;
         if (Proxy.isProxyClass(oq.getClass())) {
             // @@@ The interpreter implements interpretation of
             // lambdas using a proxy whose invocation handler
@@ -522,9 +522,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
         method.setAccessible(true);
 
-        Quoted quoted;
+        Quoted<?> q;
         try {
-            quoted = (Quoted) method.invoke(oq);
+            q = (Quoted<?>) method.invoke(oq);
         } catch (ReflectiveOperationException e) {
             // op method may throw UOE in case java compile time version doesn't match runtime version
             if (e.getCause() instanceof UnsupportedOperationException uoe) {
@@ -532,15 +532,21 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             }
             throw new RuntimeException(e);
         }
-        return Optional.of(quoted);
+        if (!(q.op() instanceof JavaOp.LambdaOp)) {
+            // This can only happen if the stored model is invalid
+            throw new RuntimeException("Invalid code model for lambda expression : " + q);
+        }
+        @SuppressWarnings("unchecked")
+        Quoted<JavaOp.LambdaOp> lq = (Quoted<JavaOp.LambdaOp>) q;
+        return Optional.of(lq);
     }
 
     /**
-     * Returns the code model of the given method's body, if present.
+     * Returns the code model of a reflectable method.
      *
      * @param method the method.
-     * @return the code model of the method body.
-     * @throws UnsupportedOperationException If The Java version used at compile time to generate and store the code model
+     * @return the code model, or an empty optional if the method is not reflectable.
+     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code model
      *                                       is not the same as the Java version used at runtime to load the code model.
      * @since 99
      */

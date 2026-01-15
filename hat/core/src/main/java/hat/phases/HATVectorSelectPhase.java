@@ -87,9 +87,9 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                 .filter(invoke ->
                         invoke.named("x","y","z","w")
                                 && invoke.refIs(_V.class)
-                                && invoke.opFromFirstOperandAsResultOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
+                                && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
                 .map(invoke ->
-                        new InvokeVar(invoke.op(),invoke.varLoadOpFromFirstOperandAsResultOrNull())
+                        new InvokeVar(invoke.op(),invoke.varLoadOpFromFirstOperandOrNull())
                 )
                 .forEach(invokeVar ->{
                     ceToInvokeVar.put(invokeVar.invokeOp,invokeVar);

@@ -33,6 +33,7 @@ import jdk.incubator.code.extern.*;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
@@ -104,8 +105,10 @@ public class OpBuilder {
 
     static final JavaType EX_TYPE_ELEM = type(ExternalizedTypeElement.class);
 
-    static final MethodRef EX_TYPE_ELEM_OF_LIST = MethodRef.method(EX_TYPE_ELEM, "of",
-            EX_TYPE_ELEM, J_L_STRING, J_U_LIST);
+    static final FunctionType EXTER_TYPE_BUILDER_F_TYPE = functionType(EX_TYPE_ELEM);
+
+    static final MethodRef EX_TYPE_ELEM_OF_ARRAY = MethodRef.method(ExternalizedTypeElement.class, "of",
+            ExternalizedTypeElement.class, String.class, ExternalizedTypeElement[].class);
 
 
     static final JavaType J_C_LOCATION = type(Location.class);
@@ -187,7 +190,16 @@ public class OpBuilder {
 
     final Map<TypeElement, Value> typeElementMap;
 
-    final Block.Builder builder;
+    Block.Builder builder;
+
+    final Stack<Block.Builder> lambdaStack = new Stack<>();
+
+    // safe limit of the operations built by a single method/lambda body
+    static final int OP_LIMIT = 1000;
+    // safe limit of types / exterType calls built by a single builder method
+    static final int TYPE_LIMIT = 3000;
+
+    int opCounter = 0;
 
     /**
      * Transform the given code model to one that builds it.
@@ -210,7 +222,7 @@ public class OpBuilder {
             registeredExternalizedTypes = opBuilder.registeredExternalizedTypes;
         }
         funcs.addAll(createSupportFunctions(dialectFactoryF));
-        funcs.add(createExternTypeHelperFunc(registeredExternalizedTypes));
+        funcs.addAll(createExternTypeHelperFuncs(registeredExternalizedTypes));
         ModuleOp module = module(funcs);
         module.seal();
         return module;
@@ -343,7 +355,7 @@ public class OpBuilder {
                 func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class))).body(b -> {
                     var i = b.parameter(INT);
                     var typeElementFactory = b.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactoryF.apply(b)));
-                    var exterType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class)), i));
+                    var exterType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, i));
                     var typeElement = b.op(invoke(MethodRef.method(TypeElementFactory.class, "constructType", TypeElement.class, ExternalizedTypeElement.class), typeElementFactory, exterType));
                     b.op(return_(typeElement));
                 }),
@@ -372,7 +384,7 @@ public class OpBuilder {
         );
     }
 
-    private static FuncOp createExternTypeHelperFunc(Map<ExternalizedTypeElement, List<Integer>> registeredExterTypes) {
+    private static List<FuncOp> createExternTypeHelperFuncs(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExterTypes) {
         /*
         static private ExternalizedTypeElement $exType(int typeIndex) {
             return switch(typeIndex) {
@@ -382,55 +394,69 @@ public class OpBuilder {
             };
         }
         */
-        return func(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class))).body(b -> {
-            Block.Parameter i = b.parameter(INT);
-            List<Body.Builder> swBodies = new ArrayList<>();
-            for (Map.Entry<ExternalizedTypeElement, List<Integer>> e : registeredExterTypes.entrySet()) {
-                Body.Builder l = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
-                Block.Parameter target = l.entryBlock().parameter(INT);
-                Integer typeIndex = e.getValue().getLast();
-                Result p = l.entryBlock().op(eq(target, l.entryBlock().op(constant(INT, typeIndex))));
-                l.entryBlock().op(core_yield(p));
+        List<FuncOp> funcs = new ArrayList<>();
+        Iterator<Map.Entry<ExternalizedTypeElement, List<Integer>>> typesEnntryIterator = registeredExterTypes.sequencedEntrySet().iterator();
+        int methodCounter = 0;
+        do {
+            String followUpBuilderName = EXTER_TYPE_BUILDER_F_NAME + (methodCounter + 1);
+            funcs.add(func(EXTER_TYPE_BUILDER_F_NAME + (methodCounter > 0 ? methodCounter : ""), EXTER_TYPE_BUILDER_F_TYPE).body(b -> {
+                Block.Parameter i = b.parameter(INT);
+                List<Body.Builder> swBodies = new ArrayList<>();
+                for (int counter = 0; counter < TYPE_LIMIT && typesEnntryIterator.hasNext();) {
+                    Map.Entry<ExternalizedTypeElement, List<Integer>> e = typesEnntryIterator.next();
+                    counter += e.getValue().size();
+                    Body.Builder l = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
+                    Block.Parameter target = l.entryBlock().parameter(INT);
+                    Integer typeIndex = e.getValue().getLast();
+                    Result p = l.entryBlock().op(eq(target, l.entryBlock().op(constant(INT, typeIndex))));
+                    l.entryBlock().op(core_yield(p));
 
-                Body.Builder expr = Body.Builder.of(b.parentBody(), functionType(type(ExternalizedTypeElement.class)));
-                List<Value> args = new ArrayList<>();
-                args.add(expr.entryBlock().op(constant(J_L_STRING, e.getKey().identifier())));
-                for (int j = 0; j < e.getValue().size() - 1; j++) {
-                    Value index = expr.entryBlock().op(constant(INT, e.getValue().get(j)));
-                    Result opr = expr.entryBlock().op(funcCall(EXTER_TYPE_BUILDER_F_NAME, functionType(type(ExternalizedTypeElement.class)), index));
-                    args.add(opr);
+                    Body.Builder expr = Body.Builder.of(b.parentBody(), EXTER_TYPE_BUILDER_F_TYPE);
+                    List<Value> args = new ArrayList<>();
+                    args.add(expr.entryBlock().op(constant(J_L_STRING, e.getKey().identifier())));
+                    for (int j = 0; j < e.getValue().size() - 1; j++) {
+                        Value index = expr.entryBlock().op(constant(INT, e.getValue().get(j)));
+                        Result opr = expr.entryBlock().op(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, index));
+                        args.add(opr);
+                    }
+                    MethodRef mr;
+                    Result type;
+                    if (e.getKey().arguments().size() < 5) {
+                        List<Class<?>> params = new ArrayList<>();
+                        params.add(String.class);
+                        params.addAll(Collections.nCopies(e.getKey().arguments().size(), ExternalizedTypeElement.class));
+                        mr = MethodRef.method(ExternalizedTypeElement.class, "of", ExternalizedTypeElement.class, params);
+                        type = expr.entryBlock().op(invoke(mr, args));
+                    } else {
+                        type = expr.entryBlock().op(invoke(InvokeOp.InvokeKind.STATIC, true, EX_TYPE_ELEM, EX_TYPE_ELEM_OF_ARRAY, args));
+                    }
+                    expr.entryBlock().op(core_yield(type));
+
+                    swBodies.add(l);
+                    swBodies.add(expr);
                 }
-                MethodRef mr;
-                Result type;
-                if (e.getKey().arguments().size() < 5) {
-                    List<Class<?>> params = new ArrayList<>();
-                    params.add(String.class);
-                    params.addAll(Collections.nCopies(e.getKey().arguments().size(), ExternalizedTypeElement.class));
-                    mr = MethodRef.method(ExternalizedTypeElement.class, "of", ExternalizedTypeElement.class, params);
-                    type = expr.entryBlock().op(invoke(mr, args));
+
+                // default case
+                Body.Builder dl = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
+                dl.entryBlock().parameter(INT);
+                dl.entryBlock().op(core_yield(dl.entryBlock().op(constant(BOOLEAN, true))));
+                Body.Builder de = Body.Builder.of(b.parentBody(), EXTER_TYPE_BUILDER_F_TYPE);
+                if (typesEnntryIterator.hasNext()) {
+                    // forward to a follow-up builder method (we are over TYPE_LIMIT)
+                    de.entryBlock().op(core_yield(de.entryBlock().op(funcCall(followUpBuilderName, EXTER_TYPE_BUILDER_F_TYPE, i))));
                 } else {
-                    mr = MethodRef.method(ExternalizedTypeElement.class, "of", ExternalizedTypeElement.class,
-                            String.class, ExternalizedTypeElement[].class);
-                    type = expr.entryBlock().op(invoke(InvokeOp.InvokeKind.STATIC, true, type(ExternalizedTypeElement.class), mr, args));
+                    // throw
+                    de.entryBlock().op(throw_(de.entryBlock().op(new_(MethodRef.constructor(IllegalStateException.class)))));
                 }
-                expr.entryBlock().op(core_yield(type));
+                swBodies.add(dl);
+                swBodies.add(de);
 
-                swBodies.add(l);
-                swBodies.add(expr);
-            }
-
-            // default case
-            Body.Builder dl = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
-            Block.Parameter target = dl.entryBlock().parameter(INT);
-            dl.entryBlock().op(core_yield(dl.entryBlock().op(constant(BOOLEAN, true))));
-            Body.Builder de = Body.Builder.of(b.parentBody(), functionType(type(ExternalizedTypeElement.class)));
-            de.entryBlock().op(throw_(de.entryBlock().op(new_(MethodRef.constructor(IllegalStateException.class)))));
-            swBodies.add(dl);
-            swBodies.add(de);
-
-            var r = b.op(switchExpression(i, swBodies));
-            b.op(return_(r));
-        });
+                var r = b.op(switchExpression(i, swBodies));
+                b.op(return_(r));
+            }));
+            methodCounter++;
+        } while (typesEnntryIterator.hasNext());
+        return funcs;
     }
 
     OpBuilder(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {
@@ -452,11 +478,25 @@ public class OpBuilder {
         builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
         builder.op(return_(result));
 
+        // return from lambdas on stack
+        while (!lambdaStack.isEmpty()) {
+            var lambdaBuilder = builder;
+            builder = lambdaStack.pop();
+            var l = builder.op(lambda(JavaType.parameterized(JavaType.type(Supplier.class), JavaType.type(Op.class)), lambdaBuilder.parentBody()));
+            builder.op(return_(builder.op(cast(JavaType.type(Op.class), builder.op(invoke(MethodRef.method(Supplier.class, "get", Object.class), l))))));
+        }
+
         return func(name, builder.parentBody());
     }
 
 
     Value buildOp(Value blockBuilder, Value ancestorBody, Op inputOp) {
+        if (++opCounter == OP_LIMIT) {
+            // continue building in a lambda
+            opCounter = 0;
+            lambdaStack.push(builder);
+            builder = Body.Builder.of(builder.parentBody(), functionType(JavaType.type(Supplier.class))).entryBlock();
+        }
         List<Value> bodies = new ArrayList<>();
         for (Body inputBody : inputOp.bodies()) {
             Value body = buildBody(ancestorBody, inputBody);

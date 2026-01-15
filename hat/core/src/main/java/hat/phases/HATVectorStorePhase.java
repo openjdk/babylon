@@ -27,7 +27,6 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
-import hat.dialect.HATPhaseUtils;
 import hat.types._V;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;

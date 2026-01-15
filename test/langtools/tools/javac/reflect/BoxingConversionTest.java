@@ -265,7 +265,7 @@ public class BoxingConversionTest {
     @Reflect
     @IR("""
             func @"test13" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Integer" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.Integer" -> {
                     %2 : java.type:"int" = constant @1;
                     %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;
@@ -281,7 +281,7 @@ public class BoxingConversionTest {
     @Reflect
     @IR("""
             func @"test14" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Integer" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.Integer" -> {
                     %2 : java.type:"int" = constant @1;
                     %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;
