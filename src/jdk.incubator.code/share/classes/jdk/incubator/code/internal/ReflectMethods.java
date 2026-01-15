@@ -2798,12 +2798,19 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         JavaType.wildcard() :
                         JavaType.wildcard(wt.isExtendsBound() ? BoundKind.EXTENDS : BoundKind.SUPER, typeToTypeElement(wt.type));
             }
-            case TYPEVAR -> t.tsym.owner.kind == Kind.MTH ?
+            case TYPEVAR -> {
+                Type ub = t.getUpperBound();
+                if (ub.getTypeArguments().contains(t)) {
+                    // stop infinite recursion, ex: <E extends Enum<E>>
+                    ub = types.erasure(ub);
+                }
+                yield t.tsym.owner.kind == Kind.MTH ?
                     JavaType.typeVarRef(t.tsym.name.toString(), symbolToMethodRef(t.tsym.owner),
-                            typeToTypeElement(t.getUpperBound())) :
+                            typeToTypeElement(ub)) :
                     JavaType.typeVarRef(t.tsym.name.toString(),
                             (jdk.incubator.code.dialect.java.ClassType)symbolToErasedDesc(t.tsym.owner),
-                            typeToTypeElement(t.getUpperBound()));
+                            typeToTypeElement(ub));
+            }
             case CLASS -> {
                 Assert.check(!t.isIntersection() && !t.isUnion());
                 JavaType typ;
