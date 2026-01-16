@@ -2800,8 +2800,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
             case TYPEVAR -> {
                 Type ub = t.getUpperBound();
-                if (ub.getTypeArguments().contains(t)) {
-                    // stop infinite recursion, ex: <E extends Enum<E>>
+                if (ub.contains(t)) {
+                    // @@@ stop infinite recursion, ex: <E extends Enum<E>>
                     ub = types.erasure(ub);
                 }
                 yield t.tsym.owner.kind == Kind.MTH ?
