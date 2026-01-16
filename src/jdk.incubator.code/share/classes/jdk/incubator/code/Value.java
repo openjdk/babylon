@@ -179,7 +179,7 @@ public sealed abstract class Value implements CodeItem
     }
 
     /**
-     * Compares two values, by comparing their declaring elements.
+     * Compares two values by comparing their declaring elements.
      *
      * @apiNote
      * This method behaves is if it returns the result of the following expression but may be implemented more

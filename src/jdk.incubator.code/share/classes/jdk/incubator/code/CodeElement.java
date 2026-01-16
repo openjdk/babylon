@@ -174,7 +174,7 @@ public sealed interface CodeElement<
     List<C> children();
 
     /**
-     * Compares two code elements, by comparing their pre-order traversal positions in the tree.
+     * Compares two code elements by comparing their pre-order traversal positions in the code model.
      * <p>
      * The pre-order traversal position of a code element, {@code e} say, is equivalent to result of
      * the expression {@code root.elements().toList().indexOf(e)}, where {@code root} is the root
