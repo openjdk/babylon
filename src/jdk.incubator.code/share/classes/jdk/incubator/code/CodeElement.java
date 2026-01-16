@@ -27,8 +27,6 @@ package jdk.incubator.code;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
 import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
@@ -175,8 +173,75 @@ public sealed interface CodeElement<
      */
     List<C> children();
 
+    /**
+     * Compares two code elements, by comparing their pre-order traversal positions in the tree.
+     * <p>
+     * The pre-order traversal position of a code element, {@code e} say, is equivalent to result of
+     * the expression {@code root.elements().toList().indexOf(e)}, where {@code root} is the root
+     * code element of the code model containing {@code e}.
+     *
+     * @param a the first code element to compare
+     * @param b the second code element to compare
+     * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a}'s pre-order traversal position
+     * is less than {@code b}'s position; and {@code 1} if {@code a}'s pre-order traversal position
+     * is greater than {@code b}'s position
+     * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
+     */
+    static int compare(CodeElement<?, ?> a, CodeElement<?, ?> b) {
+        if (a == b) {
+            return 0;
+        }
+
+        // Find the common ancestor of a and b and the respective children
+        int depthA = getDepth(a);
+        int depthB = getDepth(b);
+
+        CodeElement<?, ?> childA = a;
+        CodeElement<?, ?> childB = b;
+        while (depthA > depthB) {
+            childA = a;
+            a = a.parent();
+            depthA--;
+        }
+
+        while (depthB > depthA) {
+            childB = b;
+            b = b.parent();
+            depthB--;
+        }
+
+        while (a != b) {
+            childA = a;
+            a = a.parent();
+            childB = b;
+            b = b.parent();
+        }
+
+        if (a == null) {
+            // No common ancestor, a and b are not in the same code model
+            throw new IllegalArgumentException("Comparing code elements in different code models");
+        } else if (a == childA) {
+            // a is an ancestor of b
+            return -1;
+        } else if (a == childB) {
+            // b is an ancestor of a
+            return 1;
+        } else {
+            // a and b share a common ancestor
+            List<?> children = a.children();
+            return Integer.compare(children.indexOf(childA), children.indexOf(childB));
+        }
+    }
+
+    private static int getDepth(CodeElement<?, ?> a) {
+        int depth = 0;
+        while (a.parent() != null) {
+            a = a.parent();
+            depth++;
+        }
+        return depth;
+    }
+
     // Siblings
     // Left, right
-
-    // Des
 }
