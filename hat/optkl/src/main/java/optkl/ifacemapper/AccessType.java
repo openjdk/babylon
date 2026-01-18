@@ -83,6 +83,9 @@ public enum AccessType {
             }
             return false;
         }
+        public boolean mutatesBuffer(){
+            return rw()||wo();
+        }
 
        public boolean rw() {
             for (Annotation annotation : annotations) {

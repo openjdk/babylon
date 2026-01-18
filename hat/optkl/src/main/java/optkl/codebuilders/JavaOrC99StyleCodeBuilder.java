@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.FuncOpParams;
 import optkl.OpHelper;
 import optkl.ParamVar;
-import optkl.util.StreamMutable;
+import optkl.util.Mutable;
 import optkl.util.ops.Precedence;
 
 import java.util.function.Consumer;
@@ -297,8 +297,8 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     @Override
     public final T ifOp( JavaOp.IfOp ifOp) {
         scopedCodeBuilderContext().ifScope(ifOp, () -> {
-            var lastWasBody = StreamMutable.of(false);
-            var i = StreamMutable.of(0);
+            var lastWasBody = Mutable.of(false);
+            var i = Mutable.of(0);
             // We probably should just use a regular for loop here ;)
             ifOp.bodies().forEach(b->{
                 int idx = i.get();
@@ -502,14 +502,32 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
     @Override
     public final T lambdaOp( JavaOp.LambdaOp lambdaOp) {
-        scopedCodeBuilderContext().lambdaScope(lambdaOp,()->
-          braceNlIndented(_-> {
-            blockInlineComment("LAMBDA");
-            nlSeparated(OpHelper.Statement.bodyStatements(lambdaOp.body()),
-                    this::statement
-            );
-            blockInlineComment("ADBMAL");
-          })
+        scopedCodeBuilderContext().lambdaScope(lambdaOp,()-> {
+                    var parameters = lambdaOp.body().entryBlock().parameters();
+                  //  if (parameters.isEmpty()) {
+                    //    ocparen();
+                    //}else{
+                        parenWhen(parameters.size()!=1,_->{
+                           commaSpaceSeparated(parameters,$->
+                               varName((CoreOp.VarOp)$.uses().stream().findFirst().get().op())
+                           );
+                        });
+                    //}
+                    space().rarrow().space();
+                    braceNlIndented(_ -> {
+                        nlSeparated(OpHelper.Statement.bodyStatements(lambdaOp.body()),
+                                op->{
+                                    if (op instanceof CoreOp.VarOp varOp
+                                            && varOp.operands().getFirst() instanceof Block.Parameter parameter
+                                           ){
+                                        varName(varOp);
+                                    }else {
+                                        statement(op);
+                                    }
+                                }
+                        );
+                    });
+                }
         );
         return self();
     }

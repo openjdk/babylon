@@ -32,7 +32,6 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -52,11 +51,13 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -421,9 +422,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 record Impl(MethodHandles.Lookup lookup, CoreOp.FuncOp op) implements Func {
                 }
 
-                static Func invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
+                static Func func(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
                     return codeElement instanceof CoreOp.FuncOp funcOp ? new Func.Impl(lookup, funcOp) : null;
                 }
+                static Func func(MethodHandles.Lookup lookup,Class<?> clazz,String name , Class<?> ...parameterTypes) {
+                    try {
+                        var addMethod = Op.ofMethod(clazz.getDeclaredMethod(name, parameterTypes)).orElseThrow();
+                        return func(lookup,addMethod);
+                    }catch (NoSuchMethodException nsme){
+                        throw new RuntimeException(nsme);
+                    }
+                }
+
 
             }
 
@@ -611,13 +621,56 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
     }
 
     interface Statement {
+        interface Span {
+            List<Op> ops();
+            default Op from() {
+                return ops().getFirst();
+            }
+            default Op to() {
+                return ops().getLast();
+            }
+            default boolean firstOrLast(Op op){
+                return isTo(op)||isFrom(op);
+            }
+            default boolean isTo(Op op) {
+                return to().equals(op);
+            }
+            default boolean isFrom(Op op) {
+                return from().equals(op);
+            }
+        }
 
-       private  static Op asStatementOpOrNull(CodeElement<?, ?> ce) {
+        static <T extends Span> Map<Op,T> createOpToStatementSpanMap(CoreOp.FuncOp funcOp,
+                                                                     Predicate<Op> predicate,
+                                                                     Function<List<Op>,T> factory ) {
+            Map<Op, T> opToStatementSpanMap = new LinkedHashMap<>();
+            funcOp.elements()
+                    .filter(ce -> ce instanceof Block)
+                    .map(ce -> (Block) ce)
+                    .forEach(block -> {
+                        var statementOps = new LinkedList<Op>();
+                        block.ops().forEach(op -> {
+                            statementOps.add(op);
+                            if (Statement.asStatementOpOrNull(op) != null) {
+                               if (statementOps.stream().anyMatch(predicate)) {
+                                   T span = factory.apply(new LinkedList<>(statementOps));
+                                   statementOps.forEach(opInList -> // we take a snapshot of statementOps
+                                           opToStatementSpanMap.put(opInList, span)
+                                   );
+                               }
+                                statementOps.clear(); // and then cleat for the next one
+                            }
+                        });
+                    });
+            return opToStatementSpanMap;
+        }
+
+        static Op asStatementOpOrNull(CodeElement<?, ?> ce) {
             if (ce instanceof Op op) {
                 return (
                         (
                                 (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
-                                        || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
+                                        || (op instanceof CoreOp.VarOp || (op.result() instanceof Op.Result result && result.uses().isEmpty()))
                                         || (op instanceof StatementLikeOp)
                         )
                                 && !(op instanceof CoreOp.VarOp varOp && (!varOp.isUninitialized()
@@ -635,7 +688,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
 
         }
 
-       private static boolean isStatementOp(CodeElement<?, ?> ce) {
+        static boolean isStatementOp(CodeElement<?, ?> ce) {
             return Objects.nonNull(asStatementOpOrNull(ce));
         }
 
@@ -722,6 +775,26 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
         record Impl(MethodHandles.Lookup lookup, JavaOp.BinaryOp op) implements Binary {}
         static Binary binary(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement){
             return codeElement instanceof JavaOp.BinaryOp binaryOp? new Impl(lookup,binaryOp): null;
+        }
+    }
+
+    static Block.Parameter getFuncParamOrNull(Op op, int n) {
+        while (op != null && !(op instanceof CoreOp.FuncOp)) {
+          //  System.out.println(op);
+            op = op.ancestorOp();
+        }
+        if (op instanceof CoreOp.FuncOp funcOp) {
+            return funcOp.bodies().get(0).entryBlock().parameters().get(n);
+        } else {
+            return null;
+        }
+    }
+
+    static Block.Parameter getFuncParamOrThrow(Op op, int n) {
+        if (getFuncParamOrNull(op, n) instanceof Block.Parameter parameter) {
+            return parameter;
+        } else {
+            throw new IllegalStateException("cant find func parameter parameter " + n);
         }
     }
 

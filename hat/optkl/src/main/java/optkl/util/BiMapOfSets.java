@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -22,27 +23,42 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat;
+package optkl.util;
 
-import hat.codebuilders.C99HATConfigBuilder;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+public class BiMapOfSets<From, To> {
+    private Map<From, Set<To>> fromTo = new LinkedHashMap<>();
+    private Map<To, Set<From>> toFrom = new LinkedHashMap<>();
 
-public class FFIConfigCreator {
-    public static void main(String[] args) throws IOException {
-        Path ffiInclude = Path.of("backends/ffi/shared/src/main/native/include");
-        if (!Files.isDirectory(ffiInclude)) {
-            System.out.println("No dir at " + ffiInclude);
-            System.exit(1);
-        }
-        Path configDotH = ffiInclude.resolve("config.h");
-        if (!Files.isRegularFile(configDotH)) {
-            System.out.println("Expected to replace " + configDotH + " but no file exists");
-            System.exit(1);
-        }
+    public void add(From from, To to) {
+        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
+        toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
+    }
 
-        Files.writeString(configDotH, C99HATConfigBuilder.create());
+    public Set<From> getFrom(To to) {
+        return toFrom.get(to);
+    }
+
+    public Set<To> getTo(From from) {
+        return fromTo.get(from);
+    }
+
+    public boolean containsFrom(From from) {
+        return fromTo.containsKey(from);
+    }
+
+    public boolean containsTo(To to) {
+        return toFrom.containsKey(to);
+    }
+
+    public Iterable<From> fromKeys() {
+        return fromTo.keySet();
+    }
+    public Iterable<To> toKeys() {
+        return toFrom.keySet();
     }
 }
