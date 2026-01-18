@@ -28,7 +28,7 @@ import hat.Config;
 import hat.FFIConfigCreator;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import optkl.util.StreamMutable;
+import optkl.util.Mutable;
 
 import java.lang.invoke.MethodHandles;
 import java.text.SimpleDateFormat;
@@ -102,7 +102,7 @@ public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
         final int START_BIT_INDEX = Config.bitList.stream().filter(bit -> bit.size() == 1).findFirst().get().index();
 
         cb.structKeyword().space().className().braceNlIndented((_) -> {
-            var i = StreamMutable.of(START_BIT_INDEX);
+            var i = Mutable.of(START_BIT_INDEX);
             Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit -> {
                 cb.staticConstIntShiftedOne(bit.name() + "_BIT", 32, i.get());
                 i.set(i.get() + 1);

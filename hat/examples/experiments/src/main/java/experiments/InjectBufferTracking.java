@@ -28,27 +28,33 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.S32Array;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.MappedIfaceBufferInvokeQuery;
 import optkl.MappedIfaceBufferInvokeQuery.Match;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
+import optkl.util.Mutable;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static hat.ComputeContext.WRAPPER.ACCESS;
-import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Func.*;
+import static optkl.OpHelper.Statement.createOpToStatementSpanMap;
+import static optkl.OpHelper.getFuncParamOrNull;
+
 public class InjectBufferTracking {
 
     @Reflect
@@ -60,76 +66,127 @@ public class InjectBufferTracking {
 
     @Reflect
     public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
-
-        int l = s32Array.length();
-
+        int l = 40*s32Array.length()+25;
         System.out.println("l = " + l);
-
+        s32Array.array(0,s32Array.array(0)+1);
         for (int i = 0; i < n; i++) {
             cc.dispatchKernel(NDRange.of1D(len), kc -> inc(kc, s32Array, len));
-            System.out.println(i);//s32Array.array(0));
-        }
-    }
-
-    static Block.Parameter getFuncParamOrNull(Op op, int n) {
-        while (op != null && !(op instanceof CoreOp.FuncOp)) {
-            System.out.println(op);
-            op = op.ancestorOp();
-        }
-        if (op instanceof CoreOp.FuncOp funcOp) {
-            return funcOp.bodies().get(0).entryBlock().parameters().get(n);
-        } else {
-            return null;
-        }
-    }
-
-    static Block.Parameter getFuncParamOrThrow(Op op, int n) {
-        if (getFuncParamOrNull(op, n) instanceof Block.Parameter parameter) {
-            return parameter;
-        } else {
-            throw new IllegalStateException("cant find func parameter parameter " + n);
+            System.out.println(i);
         }
     }
 
 
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
+        var func = func(lookup, InjectBufferTracking.class,"add",ComputeContext.class, S32Array.class, int.class, int.class);
+
+        record StatementSpanImpl(Set<Value> mutates, Set<Value> accesses, // Either Access or Mutate
+                                 Mutable<Value> mutableIfaceBuffer,
+                                 List<Op> ops) implements Statement.Span {
+            void put(Value value, boolean mutate){
+                if (mutate){
+                    mutates.add(value);
+                }else {
+                    accesses.add(value);
+                }
+            }
+        }
+
+        // The resulting map, maps all ops to their enclosing statements but only if the statement contains an invokeOp.
+        // Here we look for iface->set/get and add value -> access type mappings
+        Map<Op,StatementSpanImpl> opToStatementSpans = createOpToStatementSpanMap(func.op(),
+                op->op instanceof JavaOp.InvokeOp, // we only care if the statement actually contains an invoke
+                ops-> new StatementSpanImpl(new HashSet<>(), new HashSet<>(), Mutable.of(null),ops)
+        );
+
+        // This query helps locate mappedIfaceBuffer accessors or mutators
         var mappedIfaceBufferInvokeQuery = MappedIfaceBufferInvokeQuery.create(lookup);
-        Trxfmr.of(lookup,
-                        InjectBufferTracking.class,"add",ComputeContext.class, S32Array.class, int.class, int.class)
-                .toText("COMPUTE before injecting buffer tracking...")
+
+        opToStatementSpans.values().forEach(statementSpan -> {
+            statementSpan.ops().forEach(opInStatement -> {
+                if (mappedIfaceBufferInvokeQuery.matches(opInStatement) instanceof Match match) {
+                    statementSpan.put(match.helper().instance(), match.mutatesBuffer());
+                }else if (Invoke.invoke(lookup, opInStatement) instanceof Invoke invoke
+                        && invoke.isInstance() && !invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
+                    invoke.paramaterAccessList().stream()
+                            .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
+                            .forEach(typeAndAccess -> statementSpan.put(typeAndAccess.value(), typeAndAccess.mutatesBuffer()));
+                }
+            });
+        });
+
+        // Now we have enough info to transform.  We now look like statement first and last ops and inject before or after ,
+        MethodRef Println = MethodRef.method(IO.class, "println", void.class, Object.class);
+        Trxfmr.of(lookup,func.op())
+               // .toText("COMPUTE before injecting buffer tracking...")
                 .toJava("COMPUTE (Java) before injecting buffer tracking...")
-                .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    if (mappedIfaceBufferInvokeQuery.matches(c.op()) instanceof Match match) {
-                       Value computeContext = c.getValue(getFuncParamOrThrow(match.helper().op(), 0));
-                       Value ifaceMappedBuffer = c.mappedOperand(0);
-                       c.add(JavaOp.invoke(match.mutatesBuffer()? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
-                       c.retain();
-                       c.add(JavaOp.invoke(match.mutatesBuffer()? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
-                    } else if (Invoke.invoke(lookup, c.op()) instanceof Invoke invoke && !invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
-                        List<AccessType.TypeAndAccess> typeAndAccesses = invoke.paramaterAccessList();
-                        Value computeContext = c.getValue(getFuncParamOrThrow(invoke.op(), 0));// c.getValue(invoke.op().operands().getFirst());
-                        typeAndAccesses.stream()
-                                .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
-                                .forEach(typeAndAccess ->
-                                        c.add(JavaOp.invoke(
-                                                typeAndAccess.ro() ? ACCESS.pre : MUTATE.pre,
-                                                computeContext, c.getValue(typeAndAccess.value()))
-                                        )
-                                );
-                        c.retain();
-                        typeAndAccesses.stream()
-                                .filter(typeAndAccess -> OpHelper.isAssignable(lookup, typeAndAccess.javaType(), MappableIface.class))
-                                .forEach(typeAndAccess ->
-                                        c.add(JavaOp.invoke(
-                                                typeAndAccess.ro() ? ACCESS.post : MUTATE.post,
-                                                computeContext, c.getValue(typeAndAccess.value()))
-                                        )
-                                );
+                .transform((block, op) ->{
+                    if (opToStatementSpans.containsKey(op)) {
+                        var statementSpan = opToStatementSpans.get(op);
+                        if (statementSpan.firstOrLast(op)) {
+                            var computeContext = getFuncParamOrNull(op, 0);
+                            //Value mappedComputeContext = block.context().mapValue(getFuncParamOrNull(op, 0));
+                            if (!OpHelper.isAssignable(lookup, computeContext.type(), ComputeContext.class)) {
+                             //   System.out.println("ok we found the compute context");
+                            //}else {
+                                throw new RuntimeException("parameter 0 is not compute context "+computeContext.type());
+                            }
+                            if (statementSpan.isFrom(op)) {
+                                statementSpan.ops.stream()
+                                        .filter(o->o instanceof JavaOp.InvokeOp)
+                                        .map(o->Invoke.invoke(lookup,o))
+                                        .filter(Invoke::isInstance)
+                                        .forEach(invoke -> {
+                                            if (OpHelper.isAssignable(lookup,invoke.refType(),MappableIface.class)){
+                                                boolean mutates = statementSpan.mutates.contains(invoke.op().operands().getFirst());
+                                                boolean accesses  = statementSpan.accesses.contains(invoke.op().operands().getFirst());
+                                               var before = block.op(CoreOp.constant(JavaType.J_L_STRING, "The following statement "
+                                                       +(mutates?"mutates ":"")+ ((mutates&accesses)?"and ":"")+(accesses?"accesses ":"")+
+                                                       "iface mapped buffer "));
+                                               block.op(JavaOp.invoke( JavaType.VOID, Println, before));
+                                            } else {
+                                                // System.out.println("nope");
+                                                }
+
+                                    // var mappedIfaceBuffer =c.getValue(ifaceBuffer);
+                                    // c.add(JavaOp.invoke(accessOrMutateWrapper.pre, mappedComputeContext,ifaceBuffer));
+                                    //c.retain();
+                                });
+                                block.op(op);
+                            } else if (statementSpan.isTo(op)) {
+                                block.op(op);
+                                statementSpan.ops.stream()
+                                        .filter(o->o instanceof JavaOp.InvokeOp)
+                                        .map(o->Invoke.invoke(lookup,o))
+                                        .filter(Invoke::isInstance)
+                                        .forEach(invoke -> {
+                                            if (OpHelper.isAssignable(lookup,invoke.refType(),MappableIface.class)){
+                                                boolean mutates = statementSpan.mutates.contains(invoke.op().operands().getFirst());
+                                                boolean accesses  = statementSpan.accesses.contains(invoke.op().operands().getFirst());
+                                                var after = block.op(CoreOp.constant(JavaType.J_L_STRING,
+                                                        "The previous statement "
+                                                                +(mutates?"mutates ":"")+ ((mutates&accesses)?"and ":"")+(accesses?"accesses ":"")+
+                                                                "iface mapped buffer "));
+                                                block.op(JavaOp.invoke( JavaType.VOID, Println, after));
+                                            } else {
+                                                //  System.out.println("nope");
+                                            }
+                                    // var mappedIfaceBuffer =c.getValue(ifaceBuffer);
+                                    //  c.retain();
+                                    // c.add(JavaOp.invoke(accessorMutateWrapper.post, mappedComputeContext,mappedIfaceBuffer));
+                                });
+                            }
+                        }else {
+                            block.op(op);
+                        }
+                    }else {
+                        block.op(op);
                     }
+                    return block;
                 })
-                .toText("COMPUTE after injecting buffer tracking...")
-                .toJava();
+
+             //   .toText("COMPUTE after injecting buffer tracking...")
+                .toJava("COMPUTE (java) after injecting buffer tracking...");
     }
 
 }

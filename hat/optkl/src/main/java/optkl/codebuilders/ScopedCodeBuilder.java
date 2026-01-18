@@ -24,14 +24,6 @@
  */
 package optkl.codebuilders;
 
-import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.util.StreamMutable;
-
-import java.util.function.Consumer;
-import java.util.stream.Stream;
-
 /**
  * Extends the base CodeBuilder to allow builder to track scope
  *

@@ -47,7 +47,7 @@ import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
 import optkl.FuncOpParams;
 import optkl.util.Regex;
-import optkl.util.StreamMutable;
+import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -198,7 +198,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .suffix_s(ifaceType.iface.getSimpleName())
                 .braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
-                    var fieldIdx = StreamMutable.of(0);
+                    var fieldIdx = Mutable.of(0);
                     semicolonNlSeparated(
                             ifaceType.fields,
                             field -> {

@@ -27,7 +27,7 @@ package optkl.codebuilders;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.util.StreamMutable;
+import optkl.util.Mutable;
 
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -492,7 +492,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     }
 
     public <I> T separated(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
-        var first = StreamMutable.of(true);
+        var first = Mutable.of(true);
         iterable.forEach(t -> {
             if (first.get()) {
                 first.set(false);
@@ -543,7 +543,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     }
 
     public <I> T separated(Stream<I> stream, Consumer<T> separator, Consumer<I> consumer) {
-        var first = StreamMutable.of(true);
+        var first = Mutable.of(true);
         stream.forEach(t -> {
             if (first.get()) {
                 first.set(false);
