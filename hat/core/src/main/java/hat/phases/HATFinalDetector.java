@@ -29,25 +29,22 @@ import hat.types.BF16;
 import hat.types.F16;
 import optkl.OpHelper;
 import optkl.ifacemapper.MappableIface;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
 
 public record HATFinalDetector(KernelCallGraph kernelCallGraph){
     public Map<Op.Result, CoreOp.VarOp> applied(CoreOp.FuncOp funcOp) {
         final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
-        OpHelper.Named.Var.stream(kernelCallGraph.lookup(),funcOp)
-                .filter(varOpHelper->!varOpHelper.assignable(MappableIface.class, F16.class, BF16.class))
-                .forEach(varOpHelper->{
+        OpHelper.Named.Variable.stream(kernelCallGraph.lookup(),funcOp)
+                .filter(variable ->!variable.assignable(MappableIface.class, F16.class, BF16.class))
+                .forEach(variable ->{
                     // At this point the varOp DOES NOT come from a declaration of a var with MappableIface type.
                     // For those we can't generate the constant, because at this point of the analysis
                     // the only accesses left are accesses to global memory.
-                    Op.Result varResult = varOpHelper.op().result();
+                    Op.Result varResult = variable.op().result();
                     if (!varResult.uses().stream()
                             .map(use->use.op())
                             .anyMatch(op->
@@ -56,7 +53,7 @@ public record HATFinalDetector(KernelCallGraph kernelCallGraph){
                                 ||
                                     (op instanceof CoreOp.YieldOp yieldOp &&
                                             (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult)))))){
-                        finalVars.put(varResult, varOpHelper.op());
+                        finalVars.put(varResult, variable.op());
                     }
         });
         return finalVars;

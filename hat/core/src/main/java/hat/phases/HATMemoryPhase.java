@@ -72,14 +72,14 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         Set<CodeElement<?,?>> nodesInvolved = new LinkedHashSet<>();
         Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
-        OpHelper.Named.Var.stream(lookup(),funcOp)
-                .forEach(varHelper->varHelper.op().operands().stream()
+        OpHelper.Named.Variable.stream(lookup(),funcOp)
+                .forEach(variable -> variable.op().operands().stream()
                         .filter(operand -> operand instanceof Op.Result result
                                 && invoke(lookup(),result.op()) instanceof Invoke invoke
                                 && isIfaceBufferInvokeWithName(invoke))
                         .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()))
                         .findFirst().ifPresent(remove-> {
-                            nodesInvolved.add(varHelper.op());
+                            nodesInvolved.add(variable.op());
                             mapMe.add(remove);
                     })
                 );
@@ -92,8 +92,8 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                         .forEach(varOp->
                             blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(create(blockBuilder, varOp, invoke.op())))
                         );
-            } else if (OpHelper.Named.Var.var(lookup(),op) instanceof OpHelper.Named.Var varHelper && nodesInvolved.contains(varHelper.op())) {
-                blockBuilder.context().mapValue(varHelper.op().result(), blockBuilder.context().getValue(varHelper.op().operands().getFirst()));
+            } else if (OpHelper.Named.Variable.var(lookup(),op) instanceof OpHelper.Named.Variable variable && nodesInvolved.contains(variable.op())) {
+                blockBuilder.context().mapValue(variable.op().result(), blockBuilder.context().getValue(variable.op().operands().getFirst()));
             } else {
                 blockBuilder.op(op);
             }

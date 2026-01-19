@@ -62,6 +62,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+
 
 public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpHelper.Binary, OpHelper.Lambda, OpHelper.Named, OpHelper.Ternary {
     static <F extends Op, T extends Op> T copyLocation(F from, T to) {
@@ -257,7 +259,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
     }
 
     sealed interface Named<T extends Op> extends OpHelper<T>
-            permits Named.NamedStaticOrInstance, Named.Var, Named.VarAccess {
+            permits Named.NamedStaticOrInstance, Named.Variable, Named.VarAccess {
         String name();
         default boolean named(Regex regex){
             return regex.matches(name());
@@ -292,7 +294,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 return funcOp.elements().filter(ce -> ce instanceof CoreOp.VarAccessOp).map(ce -> varAccess(lookup, ce));
             }
         }
-        sealed interface Var extends Named<CoreOp.VarOp> {
+        sealed interface Variable extends Named<CoreOp.VarOp> {
             @Override
             default  String name(){
                 return op().varName();
@@ -306,11 +308,15 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 return op().resultType().valueType();
             }
 
-            record Impl(MethodHandles.Lookup lookup, CoreOp.VarOp op) implements Var {}
-            static Var var(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement) {
-                return codeElement instanceof CoreOp.VarOp varOp ? new Var.Impl(lookup, varOp) : null;
+            default NamedStaticOrInstance.Invoke firstOperandAsInvoke(){
+                return invoke(lookup(),opFromFirstOperandOrNull());
             }
-            static Stream<Var> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+
+            record Impl(MethodHandles.Lookup lookup, CoreOp.VarOp op) implements Variable {}
+            static Variable var(MethodHandles.Lookup lookup, CodeElement<?,?> codeElement) {
+                return codeElement instanceof CoreOp.VarOp varOp ? new Variable.Impl(lookup, varOp) : null;
+            }
+            static Stream<Variable> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
                 return funcOp.elements().filter(ce -> ce instanceof CoreOp.VarOp).map(ce -> var(lookup, ce));
             }
         }
@@ -592,6 +598,13 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                     return OpHelper.methodModelOrThrow(method);
                 }
 
+                default Op onlyUse(){
+                    if (op().result().uses().size()==1){
+                        return op().result().uses().iterator().next().op();
+                    }else {
+                        return null;
+                    }
+                }
 
 
                 record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Invoke {
@@ -630,12 +643,12 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                 return ops().getLast();
             }
             default boolean firstOrLast(Op op){
-                return isTo(op)||isFrom(op);
+                return isFirst(op)|| isLast(op);
             }
-            default boolean isTo(Op op) {
+            default boolean isFirst(Op op) {
                 return to().equals(op);
             }
-            default boolean isFrom(Op op) {
+            default boolean isLast(Op op) {
                 return from().equals(op);
             }
         }
@@ -663,6 +676,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier permits OpH
                         });
                     });
             return opToStatementSpanMap;
+        }
+
+        static <T extends Span> Map<Op,T> createOpToStatementSpanMap(CoreOp.FuncOp funcOp, Function<List<Op>,T> factory ) {
+            return createOpToStatementSpanMap(funcOp,_->true,factory);
         }
 
         static Op asStatementOpOrNull(CodeElement<?, ?> ce) {
