@@ -253,10 +253,11 @@ public class Trxfmr implements LookupCarrier{
                     return result;
                 }
                 public Op.Result add(Op newOne, Consumer<Mapper<?>> mapperConsumer) {
-                    handled(true);
+                    handled(true); // is this appropriate here?
                     action(Action.ADDED);
                     var result = trxfmr.opToResultOp(op(),builder().op(OpHelper.copyLocation(op(), newOne)));
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
+
                     }else{
                         mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
                     }
@@ -377,15 +378,30 @@ public class Trxfmr implements LookupCarrier{
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
-        var newFuncOp = funcOp().transform(name,(blockBuilder, op) -> {
-            if (predicate.test(op)){
-                Cursor cursor = Cursor.of(this, funcOp, blockBuilder,op);
+        var newFuncOp = funcOp().transform(name,(blockBuilder, cursorOp) -> {
+            if (predicate.test(cursorOp)){
+                Cursor cursor = Cursor.of(this, funcOp, blockBuilder,cursorOp);
                 cursorConsumer.accept(cursor);
                 if (!cursor.handled()){
-                    biMap.add(op,blockBuilder.op(op).op());
+                    var result = blockBuilder.op(cursorOp);
+                    var opFromResult= result.op();
+                    biMap.add(cursorOp,opFromResult);
                 }
             } else {
-                biMap.add(op,blockBuilder.op(op).op());
+                try {
+                    if (cursorOp instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp){
+                        //System.out.println("Is it this one? "+varLoadOp.varType());
+                        if (varLoadOp.varType().valueType() instanceof PrimitiveType primitiveType){
+                          //  System.out.println("It seems to be this primitive "+primitiveType);
+                        }
+                    }
+                    var result = blockBuilder.op(cursorOp);
+                    var opFromResult = result.op();
+                    biMap.add(cursorOp, opFromResult);
+                }catch (Throwable t){
+                    t = t;
+                    throw new RuntimeException(t);
+                }
             }
             return blockBuilder;
         });
