@@ -165,49 +165,49 @@ public sealed abstract class JavaOp extends Op {
             final Body.Builder ancestorBody;
             final FunctionType funcType;
             final TypeElement functionalInterface;
-            final boolean isQuotable;
+            final boolean isReflectable;
 
             Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
                 this.ancestorBody = ancestorBody;
                 this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
-                this.isQuotable = false;
+                this.isReflectable = false;
             }
 
             Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface,
-                    boolean isQuotable) {
+                    boolean isReflectable) {
                 this.ancestorBody = ancestorBody;
                 this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
-                this.isQuotable = isQuotable;
+                this.isReflectable = isReflectable;
             }
 
             public LambdaOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
-                return new LambdaOp(functionalInterface, body, isQuotable);
+                return new LambdaOp(functionalInterface, body, isReflectable);
             }
 
-            public Builder quotable() {
+            public Builder reflectable() {
                 return new Builder(ancestorBody, funcType, functionalInterface, true);
             }
         }
 
         static final String NAME = "lambda";
-        static final String ATTRIBUTE_LAMBDA_IS_QUOTABLE = NAME + ".isQuotable";
+        static final String ATTRIBUTE_LAMBDA_IS_REFLECTABLE = NAME + ".isReflectable";
 
         final TypeElement functionalInterface;
         final Body body;
-        final boolean isQuotable;
+        final boolean isReflectable;
 
         LambdaOp(ExternalizedOp def) {
-            boolean isQuotable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_QUOTABLE,
+            boolean isReflectable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_REFLECTABLE,
                     false, v -> switch (v) {
                         case Boolean b -> b;
                         case null, default -> false;
                     });
 
-            this(def.resultType(), def.bodyDefinitions().get(0), isQuotable);
+            this(def.resultType(), def.bodyDefinitions().get(0), isReflectable);
         }
 
         LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ot) {
@@ -215,7 +215,7 @@ public sealed abstract class JavaOp extends Op {
 
             this.functionalInterface = that.functionalInterface;
             this.body = that.body.transform(cc, ot).build(this);
-            this.isQuotable = that.isQuotable;
+            this.isReflectable = that.isReflectable;
         }
 
         @Override
@@ -223,12 +223,12 @@ public sealed abstract class JavaOp extends Op {
             return new LambdaOp(this, cc, ot);
         }
 
-        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isQuotable) {
+        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isReflectable) {
             super(List.of());
 
             this.functionalInterface = functionalInterface;
             this.body = bodyC.build(this);
-            this.isQuotable = isQuotable;
+            this.isReflectable = isReflectable;
         }
 
         @Override
@@ -262,13 +262,13 @@ public sealed abstract class JavaOp extends Op {
             return functionalInterface();
         }
 
-        public boolean isQuotable() {
-            return isQuotable;
+        public boolean isReflectable() {
+            return isReflectable;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of(ATTRIBUTE_LAMBDA_IS_QUOTABLE, isQuotable);
+            return Map.of(ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable);
         }
 
         /**
@@ -5135,11 +5135,11 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param functionalInterface the lambda operation's functional interface type
      * @param body                the body of the lambda operation
-     * @param isQuotable          true if the lambda is quotable
+     * @param isReflectable       true if the lambda is reflectable
      * @return the lambda operation
      */
-    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body, boolean isQuotable) {
-        return new LambdaOp(functionalInterface, body, isQuotable);
+    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body, boolean isReflectable) {
+        return new LambdaOp(functionalInterface, body, isReflectable);
     }
 
     /**

@@ -22,39 +22,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
-
-import jdk.incubator.code.TypeElement;
-import optkl.OpHelper;
-import optkl.codebuilders.ScopedCodeBuilderContext;
+package optkl.codebuilders;
 
 
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends C99HATCodeBuilder<T> {
-
-    protected C99HATComputeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(scopedCodeBuilderContext);
+public abstract class ScopeAwareJavaOrC99StyleCodeBuilder<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>>
+        extends JavaOrC99StyleCodeBuilder<T,ScopedCodeBuilderContext>
+        implements BabylonOpDispatcher<T,ScopedCodeBuilderContext>{
+    final ScopedCodeBuilderContext scopedCodeBuilderContext;
+    protected ScopeAwareJavaOrC99StyleCodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext){
+        if (scopedCodeBuilderContext == null){
+            throw new RuntimeException("Where did this come from ");
+        }
+        this.scopedCodeBuilderContext = scopedCodeBuilderContext;
     }
-
-    public final T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
-    }
-
-    public final  T compute() {
-        computeDeclaration(scopedCodeBuilderContext().funcOp().resultType(), scopedCodeBuilderContext().funcOp().funcName());
-        parenNlIndented(_ ->
-                commaSpaceSeparated(
-                        scopedCodeBuilderContext().paramTable.list(),
-                        param -> declareParam( param)
-                )
-        );
-
-        braceNlIndented(_ ->
-                nlSeparated(
-                        OpHelper.Statement.statements(scopedCodeBuilderContext().funcOp().bodies().getFirst().entryBlock()),
-                        statement ->statement(statement).nl()
-                )
-        );
-
-        return self();
+    final public ScopedCodeBuilderContext scopedCodeBuilderContext(){
+        return scopedCodeBuilderContext;
     }
 }

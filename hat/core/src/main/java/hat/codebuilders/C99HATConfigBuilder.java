@@ -27,14 +27,20 @@ package hat.codebuilders;
 import hat.Config;
 import hat.FFIConfigCreator;
 import optkl.codebuilders.C99CodeBuilder;
-import optkl.util.StreamMutable;
+import optkl.codebuilders.ScopedCodeBuilderContext;
+import optkl.util.Mutable;
 
+import java.lang.invoke.MethodHandles;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
 
-   public final  C99HATConfigBuilder staticConstInt(String name, int padWidth, int value) {
+    public C99HATConfigBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
+    public final  C99HATConfigBuilder staticConstInt(String name, int padWidth, int value) {
         staticKeyword().space().constexprKeyword().space().s32Type().space().identifier(name, padWidth).space().equals().space().intHexValue(value).semicolon().nl();
         return this;
     }
@@ -85,8 +91,7 @@ public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
     }
 
     public static String create(){
-
-        C99HATConfigBuilder cb = new C99HATConfigBuilder();
+        C99HATConfigBuilder cb = new C99HATConfigBuilder(new ScopedCodeBuilderContext(MethodHandles.lookup(),null));
         cb.oracleCopyright();
         cb.blockComment("""
                 You probably should not edit this this file!!!
@@ -97,7 +102,7 @@ public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
         final int START_BIT_INDEX = Config.bitList.stream().filter(bit -> bit.size() == 1).findFirst().get().index();
 
         cb.structKeyword().space().className().braceNlIndented((_) -> {
-            var i = StreamMutable.of(START_BIT_INDEX);
+            var i = Mutable.of(START_BIT_INDEX);
             Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit -> {
                 cb.staticConstIntShiftedOne(bit.name() + "_BIT", 32, i.get());
                 i.set(i.get() + 1);

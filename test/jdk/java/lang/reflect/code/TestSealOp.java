@@ -34,7 +34,7 @@ public class TestSealOp {
     @Test
     void test1() {
         IntUnaryOperator q = (@Reflect IntUnaryOperator) i -> i / 2;
-        Quoted quoted = Op.ofQuotable(q).get();
+        Quoted<?> quoted = Op.ofLambda(q).get();
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
         assertOpIsCopiedWhenAddedToBlock(funcOp);
@@ -61,7 +61,7 @@ public class TestSealOp {
         IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> {
             return a + b;
         };
-        Quoted quoted = Op.ofQuotable(q).get();
+        Quoted<?> quoted = Op.ofLambda(q).get();
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
         Assertions.assertTrue(funcOp.isSealed());

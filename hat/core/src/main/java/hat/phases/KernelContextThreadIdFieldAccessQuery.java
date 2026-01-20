@@ -27,7 +27,7 @@ package hat.phases;
 import hat.KernelContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess;
+import optkl.OpHelper.FieldAccess;
 import optkl.Query;
 import optkl.util.BiMap;
 import optkl.util.Regex;

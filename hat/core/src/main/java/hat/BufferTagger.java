@@ -34,13 +34,13 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
-import optkl.util.StreamMutable;
+import optkl.util.Mutable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
@@ -67,7 +67,7 @@ public class BufferTagger {
     // inlines functions found in FuncOp f until no more inline-able functions are present
     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         CoreOp.FuncOp ssaFunc =  SSA.transform( funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
-        var changed  = StreamMutable.of(true);
+        var changed  = Mutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {

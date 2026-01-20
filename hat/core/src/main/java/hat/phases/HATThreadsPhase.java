@@ -29,7 +29,7 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
 import jdk.incubator.code.CodeElement;
-import optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess;
+import optkl.OpHelper.FieldAccess;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;

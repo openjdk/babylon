@@ -22,7 +22,6 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -34,7 +33,6 @@ import java.util.List;
 import java.util.function.*;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.java.JavaOp.continue_;
 import static jdk.incubator.code.dialect.java.JavaOp.enhancedFor;
 import static jdk.incubator.code.dialect.java.JavaType.parameterized;
 import static jdk.incubator.code.dialect.java.JavaType.type;
@@ -55,14 +53,12 @@ public final class StreamFuser {
         static class StreamOp {
             final JavaOp.LambdaOp lambdaOp;
 
-            StreamOp(Object quotedLambda) {
-                if (!(Op.ofQuotable(quotedLambda).get().op() instanceof JavaOp.LambdaOp lambdaOp)) {
-                    throw new IllegalArgumentException("Quotable operation is not lambda operation");
+            StreamOp(Object reflectableLambda) {
+                Quoted<JavaOp.LambdaOp> quotedLambda = Op.ofLambda(reflectableLambda).orElseThrow();
+                if (!(quotedLambda.capturedValues().isEmpty())) {
+                    throw new IllegalArgumentException("Reflectable lambda captures values");
                 }
-                if (!(Op.ofQuotable(quotedLambda).get().capturedValues().isEmpty())) {
-                    throw new IllegalArgumentException("Quotable operation captures values");
-                }
-                this.lambdaOp = lambdaOp;
+                this.lambdaOp = quotedLambda.op();
             }
 
             JavaOp.LambdaOp op() {
@@ -71,20 +67,20 @@ public final class StreamFuser {
         }
 
         static class MapStreamOp extends StreamOp {
-            public MapStreamOp(Object quotedLambda) {
-                super(quotedLambda);
+            public MapStreamOp(Object reflectableLambda) {
+                super(reflectableLambda);
             }
         }
 
         static class FlatMapStreamOp extends StreamOp {
-            public FlatMapStreamOp(Object quotedLambda) {
-                super(quotedLambda);
+            public FlatMapStreamOp(Object reflectableLambda) {
+                super(reflectableLambda);
             }
         }
 
         static class FilterStreamOp extends StreamOp {
-            public FilterStreamOp(Object quotedLambda) {
-                super(quotedLambda);
+            public FilterStreamOp(Object reflectableLambda) {
+                super(reflectableLambda);
             }
         }
 
@@ -181,13 +177,12 @@ public final class StreamFuser {
             }
         }
 
-        public FuncOp forEach(Consumer<T> quotableConsumer) {
-            if (!(Op.ofQuotable(quotableConsumer).get().op() instanceof JavaOp.LambdaOp consumer)) {
-                throw new IllegalArgumentException("Quotable consumer is not lambda operation");
+        public FuncOp forEach(Consumer<T> reflectableConsumer) {
+            Quoted<JavaOp.LambdaOp> quotedConsumer = Op.ofLambda(reflectableConsumer).orElseThrow();
+            if (!(quotedConsumer.capturedValues().isEmpty())) {
+                throw new IllegalArgumentException("Reflectable consumer captures values");
             }
-            if (!(Op.ofQuotable(quotableConsumer).get().capturedValues().isEmpty())) {
-                throw new IllegalArgumentException("Quotable consumer captures values");
-            }
+            JavaOp.LambdaOp consumer = quotedConsumer.op();
 
             return func("fused.forEach", CoreType.functionType(JavaType.VOID, sourceType))
                     .body(b -> {
@@ -208,19 +203,17 @@ public final class StreamFuser {
                     });
         }
 
-        public <C> FuncOp collect(Supplier<C> quotableSupplier, BiConsumer<C, T> quotableAccumulator) {
-            if (!(Op.ofQuotable(quotableSupplier).get().op() instanceof JavaOp.LambdaOp supplier)) {
-                throw new IllegalArgumentException("Quotable supplier is not lambda operation");
+        public <C> FuncOp collect(Supplier<C> reflectableSupplier, BiConsumer<C, T> reflectableAccumulator) {
+            Quoted<JavaOp.LambdaOp> quotedSupplier = Op.ofLambda(reflectableSupplier).orElseThrow();
+            if (!(quotedSupplier.capturedValues().isEmpty())) {
+                throw new IllegalArgumentException("Reflectable supplier captures values");
             }
-            if (!(Op.ofQuotable(quotableSupplier).get().capturedValues().isEmpty())) {
-                throw new IllegalArgumentException("Quotable supplier captures values");
+            JavaOp.LambdaOp supplier = quotedSupplier.op();
+            Quoted<JavaOp.LambdaOp> quotedAccumulator = Op.ofLambda(reflectableAccumulator).orElseThrow();
+            if (!(quotedAccumulator.capturedValues().isEmpty())) {
+                throw new IllegalArgumentException("Reflectable accumulator captures values");
             }
-            if (!(Op.ofQuotable(quotableAccumulator).get().op() instanceof JavaOp.LambdaOp accumulator)) {
-                throw new IllegalArgumentException("Quotable accumulator is not lambda operation");
-            }
-            if (!(Op.ofQuotable(quotableAccumulator).get().capturedValues().isEmpty())) {
-                throw new IllegalArgumentException("Quotable accumulator captures values");
-            }
+            JavaOp.LambdaOp accumulator = quotedAccumulator.op();
 
             JavaType collectType = (JavaType) supplier.invokableType().returnType();
             return func("fused.collect", CoreType.functionType(collectType, sourceType))

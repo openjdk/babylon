@@ -30,7 +30,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import optkl.OpHelper.Invoke;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;

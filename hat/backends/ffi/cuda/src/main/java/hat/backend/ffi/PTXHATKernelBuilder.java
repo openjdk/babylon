@@ -41,10 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.FieldAccess.fieldAccess;
+import static optkl.OpHelper.Invoke;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 
 public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {

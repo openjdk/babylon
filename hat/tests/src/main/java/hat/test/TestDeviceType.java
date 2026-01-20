@@ -32,6 +32,8 @@ import hat.device.DeviceType;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
+import java.lang.invoke.MethodHandles;
+
 /**
  * Test to check the Intermediate Representation (IR) of {@link DeviceType} interfaces
  * in HAT.

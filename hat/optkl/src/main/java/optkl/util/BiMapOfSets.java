@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -22,17 +23,42 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl.codebuilders;
+package optkl.util;
 
-import jdk.incubator.code.dialect.core.CoreOp;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
-import java.lang.invoke.MethodHandles;
+public class BiMapOfSets<From, To> {
+    private Map<From, Set<To>> fromTo = new LinkedHashMap<>();
+    private Map<To, Set<From>> toFrom = new LinkedHashMap<>();
 
-public class CodeBuilderContext {
-    final public MethodHandles.Lookup lookup;
-    final public CoreOp.FuncOp funcOp;
-    public CodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        this.lookup = lookup;
-        this.funcOp = funcOp;
+    public void add(From from, To to) {
+        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
+        toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
+    }
+
+    public Set<From> getFrom(To to) {
+        return toFrom.get(to);
+    }
+
+    public Set<To> getTo(From from) {
+        return fromTo.get(from);
+    }
+
+    public boolean containsFrom(From from) {
+        return fromTo.containsKey(from);
+    }
+
+    public boolean containsTo(To to) {
+        return toFrom.containsKey(to);
+    }
+
+    public Iterable<From> fromKeys() {
+        return fromTo.keySet();
+    }
+    public Iterable<To> toKeys() {
+        return toFrom.keySet();
     }
 }

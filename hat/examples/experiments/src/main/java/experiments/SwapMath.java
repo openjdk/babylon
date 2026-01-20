@@ -28,8 +28,8 @@ package experiments;
 
 import optkl.codebuilders.JavaCodeBuilder;
 import optkl.Trxfmr;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;

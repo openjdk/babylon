@@ -36,12 +36,13 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.util.Regex;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
 
 public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
@@ -84,8 +85,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
 
         Map<CodeElement<?,?>, InvokeVar> ceToInvokeVar = new HashMap<>();
         Invoke.stream(lookup(),funcOp)
-                .filter(invoke ->
-                        invoke.named("x","y","z","w")
+                .filter(invoke -> invoke.named(Regex.of("[xyzw]"))
                                 && invoke.refIs(_V.class)
                                 && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
                 .map(invoke ->
@@ -98,10 +98,8 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
 
         return Trxfmr.of(this,funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (invoke(lookup(),op) instanceof Invoke invoke
-                    && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
-                Op newOp = invoke.returnsVoid()
-                        ?
+            if (invoke(lookup(),op) instanceof Invoke invoke && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
+                Op newOp = invoke.returnsVoid() ?
                         // Code Model Pattern:
                         //  %16 : java.type:"hat.types.Float4" = var.load %15 @loc="63:28";
                         //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.types.Float4::x():float";

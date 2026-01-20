@@ -123,9 +123,8 @@ public class Main {
         float array(long index);
 
         DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MyLocalArrayFixedSize.class,
-                myPrivateArray -> myPrivateArray
-                        // It is a bound schema, so we fix the size here
-                        .withArray("array", 256));
+                myPrivateArray -> myPrivateArray.withArray("array", 256));// It is a bound schema, so we fix the size here
+
 
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
             return null;

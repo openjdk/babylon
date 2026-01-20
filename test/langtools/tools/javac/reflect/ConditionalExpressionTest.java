@@ -103,7 +103,7 @@ public class ConditionalExpressionTest {
                         yield %8;
                     }
                     ()java.type:"java.util.function.Supplier<java.lang.Double>" -> {
-                        %9 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Double" -> {
+                        %9 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.Double" -> {
                             %10 : java.type:"int" = var.load %5;
                             %11 : java.type:"double" = conv %10;
                             %12 : java.type:"java.lang.Double" = invoke %11 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
@@ -112,7 +112,7 @@ public class ConditionalExpressionTest {
                         yield %9;
                     }
                     ()java.type:"java.util.function.Supplier<java.lang.Double>" -> {
-                        %13 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.Double" -> {
+                        %13 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.Double" -> {
                             %14 : java.type:"double" = var.load %6;
                             %15 : java.type:"java.lang.Double" = invoke %14 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
                             return %15;

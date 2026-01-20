@@ -25,7 +25,7 @@
 package optkl.codebuilders;
 
 
-import jdk.incubator.code.dialect.core.VarType;
+import optkl.util.carriers.LookupCarrier;
 import optkl.util.ops.VarLikeOp;
 
 import optkl.FuncOpParams;
@@ -39,10 +39,14 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ScopedCodeBuilderContext extends CodeBuilderContext {
+public class ScopedCodeBuilderContext implements LookupCarrier {
     final public FuncOpParams paramTable;
 
-    public static class Scope<O extends Op> {
+    public boolean isInFor() {
+        return (scope != null && scope.parent instanceof ForScope);
+    }
+
+    public static sealed abstract class Scope<O extends Op> permits ForScope, FuncScope, IfScope, LambdaScope, RootScope {
         public final Scope<?> parent;
         final O op;
 
@@ -55,8 +59,6 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
             if (value instanceof Op.Result result && result.op() instanceof CoreOp.VarOp varOp) {
                 return varOp;
             }
-
-
             if (value instanceof Op.Result result && result.op() instanceof VarLikeOp varOp) {
                 return (Op) varOp;
             }
@@ -70,7 +72,7 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         }
     }
 
-    public static class FuncScope extends Scope<CoreOp.FuncOp> {
+    public static final class FuncScope extends Scope<CoreOp.FuncOp> {
         final FuncOpParams paramTable;
         FuncScope(Scope<?> parent, CoreOp.FuncOp funcOp) {
             super(parent, funcOp);
@@ -84,7 +86,6 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
                     return paramTable.parameterVarOpMap.getTo(blockParameter);
                 } else {
                     return super.resolve(value);
-                    //throw new IllegalStateException("what ?");
                 }
             } else {
                 return super.resolve(value);
@@ -92,7 +93,7 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         }
     }
 
-    public static class ForScope extends Scope<JavaOp.ForOp> {
+    public static final class ForScope extends Scope<JavaOp.ForOp> {
         Map<Block.Parameter, CoreOp.VarOp> blockParamToVarOpMap = new HashMap<>();
         ForScope(Scope<?> parent, JavaOp.ForOp forOp) {
             super(parent, forOp);
@@ -205,9 +206,23 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         }
     }
 
-    public static class IfScope extends Scope<JavaOp.IfOp> {
+    public static final class IfScope extends Scope<JavaOp.IfOp> {
         IfScope(Scope<?> parent, JavaOp.IfOp op) {
             super(parent, op);
+        }
+    }
+
+    public static final class RootScope extends Scope<Op> {
+        RootScope() {
+            super(null,null);
+        }
+    }
+    public static final class LambdaScope extends Scope<JavaOp.LambdaOp> {
+        LambdaScope(Scope<?> parent, JavaOp.LambdaOp lambdaOp) {
+            super(parent,lambdaOp);
+        }
+        @Override public Op resolve(Value value){
+            return super.resolve(value);
         }
     }
 
@@ -217,6 +232,11 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
 
     public  void ifScope(JavaOp.IfOp ifOp, Runnable r) {
         scope = new IfScope(scope, ifOp);
+        r.run();
+        popScope();
+    }
+    public  void lambdaScope(JavaOp.LambdaOp lambdaOp, Runnable r) {
+        scope = new LambdaScope(scope, lambdaOp);
         r.run();
         popScope();
     }
@@ -233,10 +253,22 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         popScope();
     }
 
-    public Scope<?> scope = null;
+    private final  MethodHandles.Lookup lookup;
+    private final CoreOp.FuncOp funcOp;
+    private  Scope<?> scope = new RootScope();
+    @Override public MethodHandles.Lookup lookup(){
+        return lookup;
+    }
 
+    public Op resolve(Value value){
+        return scope.resolve(value);
+    }
+    public CoreOp.FuncOp funcOp(){
+        return funcOp;
+    }
     public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        super(lookup,funcOp);
+        this.lookup = lookup;
+        this.funcOp= funcOp;
         this.paramTable = new FuncOpParams(funcOp);
     }
 

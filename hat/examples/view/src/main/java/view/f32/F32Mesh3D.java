@@ -25,7 +25,7 @@
 package view.f32;
 
 
-import optkl.util.StreamMutable;
+import optkl.util.Mutable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +54,7 @@ public class F32Mesh3D {
 
 
     public void fin() {
-        var triSumIdx = StreamMutable.of(faces.getFirst().centerVec3Idx);
+        var triSumIdx = Mutable.of(faces.getFirst().centerVec3Idx);
         faces.stream().skip(1).forEach(face -> {
             triSumIdx.set(f32.add(triSumIdx.get(), face.centerVec3Idx));
         });

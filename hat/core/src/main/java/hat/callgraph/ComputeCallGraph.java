@@ -42,7 +42,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
