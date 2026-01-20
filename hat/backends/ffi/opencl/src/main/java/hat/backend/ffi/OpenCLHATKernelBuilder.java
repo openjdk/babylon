@@ -35,6 +35,10 @@ import jdk.incubator.code.Value;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
+    protected OpenCLHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     public OpenCLHATKernelBuilder vstore(int dims) {
         return identifier("vstore" + dims);
     }
@@ -81,12 +85,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
-        return identifier("atomic_inc").paren(_ -> ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name));
+    public OpenCLHATKernelBuilder atomicInc( Op.Result instanceResult, String name) {
+        return identifier("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().identifier(name));
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorStoreView hatVectorStoreView) {
+    public OpenCLHATKernelBuilder hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
@@ -94,7 +98,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .oparen();
         // if the value to be stored is an operation, recurse on the operation
         if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         } else {
             varName(hatVectorStoreView);
         }
@@ -105,13 +109,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .ampersand();
 
         if (dest instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
 
         csbrace().cparen();
@@ -119,35 +123,35 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
+    public OpenCLHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
 
         oparen();
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
 
         if (op1 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse(r.op());
         }
         space().identifier(hatVectorBinaryOp.operationType().symbol()).space();
 
         if (op2 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse(r.op());
         }
         cparen();
         return self();
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
+    public OpenCLHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         vload(hatVectorLoadOp.vectorN()).paren(_-> {
             intConstZero().comma().space().ampersand();
             if (hatVectorLoadOp.operands().get(0) instanceof Op.Result r) {
-                recurse(buildContext, r.op());
+                recurse( r.op());
             }
             either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
             identifier("array").sbrace(_ -> {
                 if (hatVectorLoadOp.operands().get(1) instanceof Op.Result r) {
-                    recurse(buildContext, r.op());
+                    recurse( r.op());
                 }
             });
         });
@@ -155,9 +159,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
+    public OpenCLHATKernelBuilder hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
         if (hatVSelectLoadOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
-            recurse(buildContext, vLoadOp);
+            recurse( vLoadOp);
         } else {
             identifier(hatVSelectLoadOp.varName());
         }
@@ -166,9 +170,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
+    public OpenCLHATKernelBuilder hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
         if (hatVSelectStoreOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
-            recurse(buildContext, vLoadOp);
+            recurse( vLoadOp);
         } else {
             identifier(hatVSelectStoreOp.varName());
         }
@@ -181,14 +185,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             // otherwise, we traverse to resolve the expression
           //  Value storeValue = hatVSelectStoreOp.operands().get(1);
             if (hatVSelectStoreOp.operands().get(1) instanceof  Op.Result r) {
-                recurse(buildContext, r.op());
+                recurse(r.op());
             }
 
         return self();
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16ConvOp hatF16ConvOp) {
+    public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
         ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
 
         paren(_->{
@@ -206,7 +210,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 builtin_float2bfloat16().oparen();
             }
             if (hatF16ConvOp.operands().getFirst()  instanceof Op.Result r) {
-                recurse(buildContext, r.op());
+                recurse( r.op());
             }
             if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
                 cparen();
@@ -216,24 +220,24 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarOp hatVectorVarOp) {
+    public OpenCLHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
         typeName(hatVectorVarOp.buildType())
                 .space()
                 .varName(hatVectorVarOp)
                 .space().equals().space();
         if (hatVectorVarOp.operands().getFirst() instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         return self();
     }
 
     @Override
-    public OpenCLHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOp.HATVectorOfOp hatVectorOfOp) {
+    public OpenCLHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
         return paren(_->identifier(hatVectorOfOp.buildType()));
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+    public OpenCLHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
 
         // Type conversions:
         // half -> float
@@ -250,7 +254,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
         Value value = hatF16ToFloatConvOp.operands().getFirst();
         if (value instanceof Op.Result r) {
-            recurse(builderContext, r.op());
+            recurse( r.op());
         }
         if (!hatF16ToFloatConvOp.isLocal()) {
             rarrow().identifier("value");

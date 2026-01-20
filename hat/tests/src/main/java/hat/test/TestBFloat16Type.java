@@ -145,7 +145,7 @@ public class TestBFloat16Type {
 
     public interface LocalArray extends DeviceType {
         BF16 array(int index);
-        DeviceSchema<LocalArray> schema = DeviceSchema.of(LocalArray.class,
+        DeviceSchema<LocalArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,LocalArray.class,
                 builder -> builder.withArray("array", 1024)
                         .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
 
@@ -208,7 +208,7 @@ public class TestBFloat16Type {
 
     public interface PrivateArray extends DeviceType {
         BF16 array(int index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArray.class,
                 builder -> builder.withArray("array", 256)
                         .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
 

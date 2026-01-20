@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,27 +22,14 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat;
+package optkl.codebuilders;
 
-import hat.codebuilders.C99HATConfigBuilder;
+/**
+ * Extends the base CodeBuilder to allow builder to track scope
+ *
+ * @author Gary Frost
+ */
+public abstract class ScopedCodeBuilder<T extends ScopedCodeBuilder<T,SCBC>, SCBC extends ScopedCodeBuilderContext>
+        extends CodeBuilder<T> implements CodeRenderer<T> {
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-public class FFIConfigCreator {
-    public static void main(String[] args) throws IOException {
-        Path ffiInclude = Path.of("backends/ffi/shared/src/main/native/include");
-        if (!Files.isDirectory(ffiInclude)) {
-            System.out.println("No dir at " + ffiInclude);
-            System.exit(1);
-        }
-        Path configDotH = ffiInclude.resolve("config.h");
-        if (!Files.isRegularFile(configDotH)) {
-            System.out.println("Expected to replace " + configDotH + " but no file exists");
-            System.exit(1);
-        }
-
-        Files.writeString(configDotH, C99HATConfigBuilder.create());
-    }
 }

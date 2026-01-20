@@ -28,7 +28,7 @@ package optkl.ifacemapper;
 
 import optkl.ifacemapper.accessor.AccessorInfo;
 import optkl.ifacemapper.accessor.Accessors;
-import optkl.util.StreamMutable;
+import optkl.util.Mutable;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.GroupLayout;
@@ -221,7 +221,7 @@ public final class MapperUtil {
      */
     static Class<?> typeOf(Class<?> iface, String name) {
         var methods = iface.getDeclaredMethods();
-        var typeStreamMutable = StreamMutable.of(null);
+        var typeStreamMutable = Mutable.of(null);
         Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
             Class<?> returnType = matchingMethod.getReturnType();
             Class<?>[] paramTypes = matchingMethod.getParameterTypes();

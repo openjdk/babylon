@@ -62,9 +62,6 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
     public abstract TypeElement invokeType();
 
     public static final  class HATLocalVarOp extends HATMemoryVarOp {
-
-        public static final String INTRINSIC_NAME = "createLocal";
-
         private final TypeElement typeElement;
         private final ClassType klassType;
         private final TypeElement invokeResultType;
@@ -110,9 +107,6 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
     }
 
     public static final class HATPrivateVarOp extends HATMemoryVarOp {
-
-        public static final String INTRINSIC_NAME = "createPrivate";
-
         private final TypeElement typeElement;
         private final ClassType klassType;
         private final TypeElement invokeResultType;
@@ -161,7 +155,6 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
     }
 
     public static final class HATPrivateInitVarOp extends HATMemoryVarOp {
-
         private final TypeElement typeElement;
         private final ClassType klassType;
         private final TypeElement invokeResultType;

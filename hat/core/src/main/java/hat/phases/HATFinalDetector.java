@@ -29,49 +29,32 @@ import hat.types.BF16;
 import hat.types.F16;
 import optkl.OpHelper;
 import optkl.ifacemapper.MappableIface;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
 
 public record HATFinalDetector(KernelCallGraph kernelCallGraph){
     public Map<Op.Result, CoreOp.VarOp> applied(CoreOp.FuncOp funcOp) {
         final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
-        Stream<CodeElement<?, ?>> elements = funcOp.elements();
-        elements.forEach(codeElement -> {
-            if (codeElement instanceof CoreOp.VarOp varOp) {
-                Op.Result varResult = varOp.result();
-                Set<Op.Result> uses = varResult.uses();
-
-                // Obtain if the varOp comes from a declaration of
-                // a var with MappableIface type. If so, we can't
-                // generate the constant, because at this point of the analysis
-                // after the dialectify, the only accesses left are accesses
-                // to global memory.
-                if (!OpHelper.isAssignable(kernelCallGraph.lookup(), varOp.resultType().valueType(),
-                        MappableIface.class, F16.class, BF16.class)) {
-                    boolean isFinalVarOp = true;
-                    for (Op.Result use : uses) {
-                        switch (use.op()) {
-                            case CoreOp.VarAccessOp.VarStoreOp storeOp when
-                                (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) ->
-                                    isFinalVarOp = false;
-                            case CoreOp.YieldOp yieldOp when
-                                 (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) ->
-                                    isFinalVarOp = false;
-                            case null, default -> {
-                            }
-                        }
+        OpHelper.Named.Variable.stream(kernelCallGraph.lookup(),funcOp)
+                .filter(variable ->!variable.assignable(MappableIface.class, F16.class, BF16.class))
+                .forEach(variable ->{
+                    // At this point the varOp DOES NOT come from a declaration of a var with MappableIface type.
+                    // For those we can't generate the constant, because at this point of the analysis
+                    // the only accesses left are accesses to global memory.
+                    Op.Result varResult = variable.op().result();
+                    if (!varResult.uses().stream()
+                            .map(use->use.op())
+                            .anyMatch(op->
+                                    (op instanceof CoreOp.VarAccessOp.VarStoreOp storeOp &&
+                                            (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))))
+                                ||
+                                    (op instanceof CoreOp.YieldOp yieldOp &&
+                                            (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult)))))){
+                        finalVars.put(varResult, variable.op());
                     }
-                    if (isFinalVarOp) {
-                        finalVars.put(varResult, varOp);
-                    }
-                }
-            }
         });
         return finalVars;
     }

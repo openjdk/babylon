@@ -24,23 +24,23 @@
  */
 package optkl.util;
 
-public class StreamMutable<R> {
+public class Mutable<R> {
     private R value;
     public R get() {
         return value;
     }
-    public StreamMutable<R> setIf(boolean iff,R value) {
+    public Mutable<R> setIf(boolean iff, R value) {
         this.value = iff?value:this.value;
         return this;
     }
-    public StreamMutable<R> set(R value) {
+    public Mutable<R> set(R value) {
       return setIf(true, value);
     }
     public boolean eq(R r){
-        return r.equals(value);
+        return value == null && r == null  || r.equals(value);
     }
-    private StreamMutable(){}
-    static public <R> StreamMutable<R> of(R value){
-        return new StreamMutable<R>().set(value);
+    private Mutable(){}
+    static public <R> Mutable<R> of(R value){
+        return new Mutable<R>().set(value);
     }
 }

@@ -46,18 +46,6 @@ import java.util.function.Predicate;
 public class TestQuoted {
     public static class TestLambdaMethodRef {
 
-        @Reflect
-        interface QuotableIntUnaryOperator extends IntUnaryOperator {
-        }
-
-        @Reflect
-        interface QuotableFunction<T, R> extends Function<T, R> {
-        }
-
-        @Reflect
-        interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R> {
-        }
-
         // @Test
         public void test() {
         /*
@@ -68,7 +56,8 @@ public class TestQuoted {
             return %3;
         };
          */
-            QuotableIntUnaryOperator f1 = TestLambdaMethodRef::m1;
+            @Reflect
+            IntUnaryOperator f1 = TestLambdaMethodRef::m1;
             isMethodRef(f1);
 
         /*
@@ -81,7 +70,8 @@ public class TestQuoted {
             return %5;
         };
          */
-            QuotableIntUnaryOperator f2 = TestLambdaMethodRef::m2;
+            @Reflect
+            IntUnaryOperator f2 = TestLambdaMethodRef::m2;
             isMethodRef(f2);
 
         /*
@@ -94,7 +84,8 @@ public class TestQuoted {
             return %5;
         };
          */
-            QuotableFunction<Integer, Integer> f3 = TestLambdaMethodRef::m1;
+            @Reflect
+            Function<Integer, Integer> f3 = TestLambdaMethodRef::m1;
             isMethodRef(f3);
 
         /*
@@ -105,7 +96,8 @@ public class TestQuoted {
             return %3;
         };
          */
-            QuotableFunction<Integer, Integer> f4 = TestLambdaMethodRef::m2;
+            @Reflect
+            Function<Integer, Integer> f4 = TestLambdaMethodRef::m2;
             isMethodRef(f4);
 
         /*
@@ -116,7 +108,8 @@ public class TestQuoted {
             return %3;
         };
          */
-            QuotableIntUnaryOperator f5 = this::m3;
+            @Reflect
+            IntUnaryOperator f5 = this::m3;
             isMethodRef(f5);
 
         /*
@@ -131,13 +124,14 @@ public class TestQuoted {
             return %8;
         };
          */
-            QuotableBiFunction<TestLambdaMethodRef, Integer, Integer> f6 = TestLambdaMethodRef::m4;
+            @Reflect
+            BiFunction<TestLambdaMethodRef, Integer, Integer> f6 = TestLambdaMethodRef::m4;
             isMethodRef(f6);
         }
 
         static void isMethodRef(Object q) {
-            Quoted quoted = Op.ofQuotable(q).orElseThrow();;
-            JavaOp.LambdaOp op = (JavaOp.LambdaOp) quoted.op();
+            Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(q).orElseThrow();;
+            JavaOp.LambdaOp op = quoted.op();
             System.out.println(isMethodRef(op));
         }
 

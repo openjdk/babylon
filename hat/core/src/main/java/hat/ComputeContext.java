@@ -48,7 +48,7 @@ import java.util.function.Consumer;
 import java.util.Optional;
 
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.getTargetInvoke;
-import static optkl.OpHelper.Lambda.lambdaOpHelper;
+import static optkl.OpHelper.Lambda.lambda;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
@@ -144,7 +144,7 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp.get());
         this.accelerator.backend.computeContextHandoff(this);
     }
-    record KernelCallSite(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
+    record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private Map<Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
 
@@ -154,12 +154,12 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
      So we cache the callsite against the location from the lambdaop.
      */
     public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
-        Quoted quoted = Op.ofQuotable(kernel).orElseThrow();
+        Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
 
         var kernelCallSite =  kernelCallSiteCache.computeIfAbsent(location, _-> {
-            JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
+            JavaOp.LambdaOp lambdaOp = quoted.op();
             MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeDescriptor();
             KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
             if (kernelCallGraph == null) {
@@ -167,7 +167,7 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
             }
             return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
         });
-        Object[] args = lambdaOpHelper(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method);
+        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method);
         KernelContext kernelContext = accelerator.range(ndRange);
         args[0] = kernelContext;
         accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);

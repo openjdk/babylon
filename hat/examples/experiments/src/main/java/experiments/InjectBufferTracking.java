@@ -28,28 +28,79 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.S32Array;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.MappedIfaceBufferInvokeQuery;
 import optkl.MappedIfaceBufferInvokeQuery.Match;
-import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
+import optkl.util.Mutable;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static hat.ComputeContext.WRAPPER.ACCESS;
-import static hat.ComputeContext.WRAPPER.MUTATE;
+import static optkl.OpHelper.Statement;
+import static optkl.OpHelper.Named.NamedStaticOrInstance.Func.func;
 import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Statement.createOpToStatementSpanMap;
+
 public class InjectBufferTracking {
+
+
+    static class IfaceBufferAccessStatementSpan implements Statement.Span{
+        enum Acc{NONE,ACCESSES,MUTATES;
+
+            public boolean accessesOrMutates() {
+                return equals(ACCESSES)|equals(MUTATES);
+            }
+        }
+        private final List<Op> ops;
+        private final Set<Value> mutates = new HashSet<>();
+        private final Set<Value> accesses = new HashSet<>();
+        private  Value ifaceBuffer;
+
+        IfaceBufferAccessStatementSpan(List<Op> ops){
+            this.ops = ops;
+        }
+        @Override public  List<Op> ops(){
+            return ops;
+        }
+
+        void put(Value value, boolean mutate) {
+            if (mutate) {
+                mutates.add(value);
+            } else {
+                accesses.add(value);
+            }
+        }
+        boolean mutates(Value value){
+            return IfaceBufferAccessStatementSpan.this.mutates.contains(value);
+        }
+        boolean accesses(Value value){
+            return IfaceBufferAccessStatementSpan.this.accesses.contains(value);
+        }
+        boolean accessesOrMutates(Value value){
+            return mutates(value)|accesses(value);
+        }
+        boolean accessesAndMutates(Value value){
+            return mutates(value)&accesses(value);
+        }
+
+        public String describe(Value value) {
+            return  (mutates(value) ? "mutates " : "") + (accessesAndMutates(value) ? "and " : "") + (accesses(value) ? "accesses " : "");
+        }
+    }
+
 
     @Reflect
     public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
@@ -60,76 +111,102 @@ public class InjectBufferTracking {
 
     @Reflect
     public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
-
-        int l = s32Array.length();
-
+        int l = 40 * s32Array.length() + 25;
+        int[] arr  = new int[2 * s32Array.length()];
         System.out.println("l = " + l);
-
+        s32Array.array(0, s32Array.array(0) + 1);
+        KernelContext kcNull = null;
+        inc(kcNull,s32Array,20);
         for (int i = 0; i < n; i++) {
             cc.dispatchKernel(NDRange.of1D(len), kc -> inc(kc, s32Array, len));
-            System.out.println(i);//s32Array.array(0));
+            s32Array.array(0,1);
+            System.out.println("Weird "+s32Array.array(0)+s32Array.length());
         }
     }
-
-    static Block.Parameter getFuncParamOrNull(Op op, int n) {
-        while (op != null && !(op instanceof CoreOp.FuncOp)) {
-            System.out.println(op);
-            op = op.ancestorOp();
-        }
-        if (op instanceof CoreOp.FuncOp funcOp) {
-            return funcOp.bodies().get(0).entryBlock().parameters().get(n);
-        } else {
-            return null;
-        }
-    }
-
-    static Block.Parameter getFuncParamOrThrow(Op op, int n) {
-        if (getFuncParamOrNull(op, n) instanceof Block.Parameter parameter) {
-            return parameter;
-        } else {
-            throw new IllegalStateException("cant find func parameter parameter " + n);
-        }
-    }
-
-
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
+        var func = func(lookup, InjectBufferTracking.class, "add", ComputeContext.class, S32Array.class, int.class, int.class);
+
+        // The resulting map, maps all ops to their enclosing statement (spans)
+        // This will be useful later as we mark these spans with information regarding how the enclosing ops access ifacemapped buffers
+        Map<Op, IfaceBufferAccessStatementSpan> opToStatementSpans = createOpToStatementSpanMap(func.op(),
+                o->o instanceof JavaOp.InvokeOp, // only care if we span an invoke of some kind.
+                IfaceBufferAccessStatementSpan::new);
+
+        // This query is useful helps locating access of mappedIfaceBuffer accessors or mutators
         var mappedIfaceBufferInvokeQuery = MappedIfaceBufferInvokeQuery.create(lookup);
-        Trxfmr.of(lookup,
-                        InjectBufferTracking.class,"add",ComputeContext.class, S32Array.class, int.class, int.class)
-                .toText("COMPUTE before injecting buffer tracking...")
+
+        // We walk over each span and determine whether it has such an invoke.
+        opToStatementSpans.values().forEach(statementSpan ->
+            statementSpan.ops().forEach(opInStatement -> {
+                if (mappedIfaceBufferInvokeQuery.matches(opInStatement) instanceof Match match) {
+                    statementSpan.put(match.helper().instance(), match.mutatesBuffer());
+                } else if (Invoke.invoke(lookup, opInStatement) instanceof Invoke invoke
+                        && invoke.isInstance() && !invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
+                    invoke.paramaterAccessList().stream()
+                            .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
+                            .forEach(typeAndAccess -> statementSpan.put(typeAndAccess.value(), typeAndAccess.mutatesBuffer()));
+                }
+            })
+        );
+
+        MethodRef Println = MethodRef.method(IO.class, "println", void.class, Object.class);
+var spinCounter = Mutable.of(0);
+        // We finally have have enough information  to transform.
+        // We are looking at the edges of statements ,
+        Trxfmr.of(lookup, func.op())
+                // .toText("COMPUTE before injecting buffer tracking...")
                 .toJava("COMPUTE (Java) before injecting buffer tracking...")
-                .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    if (mappedIfaceBufferInvokeQuery.matches(c.op()) instanceof Match match) {
-                       Value computeContext = c.getValue(getFuncParamOrThrow(match.helper().op(), 0));
-                       Value ifaceMappedBuffer = c.mappedOperand(0);
-                       c.add(JavaOp.invoke(match.mutatesBuffer()? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
-                       c.retain();
-                       c.add(JavaOp.invoke(match.mutatesBuffer()? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
-                    } else if (Invoke.invoke(lookup, c.op()) instanceof Invoke invoke && !invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
-                        List<AccessType.TypeAndAccess> typeAndAccesses = invoke.paramaterAccessList();
-                        Value computeContext = c.getValue(getFuncParamOrThrow(invoke.op(), 0));// c.getValue(invoke.op().operands().getFirst());
-                        typeAndAccesses.stream()
-                                .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
-                                .forEach(typeAndAccess ->
-                                        c.add(JavaOp.invoke(
-                                                typeAndAccess.ro() ? ACCESS.pre : MUTATE.pre,
-                                                computeContext, c.getValue(typeAndAccess.value()))
-                                        )
-                                );
+                .transform(ce -> ce instanceof Op op // only want ops the leading or trailing edge of the statement
+                        && opToStatementSpans.containsKey(op) && opToStatementSpans.get(ce).firstOrLast(op),
+                        c -> {
+                    var statementSpan = opToStatementSpans.get(c.op());
+                   // var computeContext = getFuncParamOrNull(c.op(), 0);
+                   // Value mappedComputeContext = c.getValue(getFuncParamOrNull(c.op(), 0));
+                    if (statementSpan.isFirst(c.op())) {
                         c.retain();
-                        typeAndAccesses.stream()
-                                .filter(typeAndAccess -> OpHelper.isAssignable(lookup, typeAndAccess.javaType(), MappableIface.class))
-                                .forEach(typeAndAccess ->
-                                        c.add(JavaOp.invoke(
-                                                typeAndAccess.ro() ? ACCESS.post : MUTATE.post,
-                                                computeContext, c.getValue(typeAndAccess.value()))
-                                        )
-                                );
+                    }
+                    var acc = Mutable.of(IfaceBufferAccessStatementSpan.Acc.NONE);
+                            statementSpan.ops.stream()
+                                    .map(o -> Invoke.invoke(lookup, o))
+                                    .filter(invoke -> invoke!=null && invoke.isInstance() && invoke.refIs(MappableIface.class))
+                                    .forEach(invoke -> {
+                                        acc.set(switch(acc.get()) {
+                                            case NONE -> {
+                                                if (statementSpan.mutates(invoke.instance())) {
+                                                    yield IfaceBufferAccessStatementSpan.Acc.MUTATES;
+                                                } else if (statementSpan.accesses(invoke.instance())) {
+                                                    yield IfaceBufferAccessStatementSpan.Acc.ACCESSES;
+                                                } else {
+                                                    yield acc.get();
+                                                }
+                                            }
+                                            case ACCESSES -> {
+                                                if (statementSpan.mutates(invoke.instance())) {
+                                                    yield IfaceBufferAccessStatementSpan.Acc.MUTATES;
+                                                } else {
+                                                    yield acc.get();
+                                                }
+                                            }
+                                            default -> acc.get();
+                                        });
+
+                                    });
+                            if (acc.get().accessesOrMutates()) {
+                                var msg = (statementSpan.isFirst(c.op()) ? "Prev" : "Next") + " statement " +acc.get() + " iface mapped buffer ";
+                                var constant= CoreOp.constant(JavaType.J_L_STRING, msg);
+                                System.out.println("spin "+msg+" "+spinCounter.get()+" "+constant.resultType());
+                                spinCounter.set(spinCounter.get()+1);
+                                boolean useCursorAdd = false;
+                                var msgStringResult = useCursorAdd?c.add(constant):c.builder().op(constant);
+                                c.add(JavaOp.invoke(JavaType.VOID, Println, msgStringResult));
+                            }
+                    if (statementSpan.isLast(c.op())){
+                        c.retain();
                     }
                 })
-                .toText("COMPUTE after injecting buffer tracking...")
-                .toJava();
+                //   .toText("COMPUTE after injecting buffer tracking...")
+                .toJava("COMPUTE (java) after injecting buffer tracking...");
     }
 
 }

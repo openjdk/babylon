@@ -51,7 +51,7 @@ public class TestInline {
     @Test
     public void testInline() {
         IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
-        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
+        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
 
         // functional type = (int)int
         CoreOp.FuncOp f = func("f", functionType(INT, INT))
@@ -73,7 +73,7 @@ public class TestInline {
     @Test
     public void testInlineVar() {
         IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
-        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
+        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
 
         // functional type = (int)int
         CoreOp.FuncOp f = func("f", functionType(INT, INT))
@@ -107,7 +107,7 @@ public class TestInline {
             }
             return a - b;
         };
-        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
+        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
         System.out.println(cop.toText());
         JavaOp.LambdaOp lcop = cop.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
@@ -136,7 +136,7 @@ public class TestInline {
             }
             return a - b;
         };
-        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
+        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
         System.out.println(cop.toText());
         JavaOp.LambdaOp lcop = cop.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lcop.toText());
@@ -171,7 +171,7 @@ public class TestInline {
             }
             return a - b;
         };
-        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
+        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
         System.out.println(cop.toText());
 
         CoreOp.FuncOp f = func("f", functionType(INT, INT))
@@ -198,7 +198,7 @@ public class TestInline {
             a[0] = 42;
             return;
         };
-        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
+        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
 
         // functional type = (int)int
         CoreOp.FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))

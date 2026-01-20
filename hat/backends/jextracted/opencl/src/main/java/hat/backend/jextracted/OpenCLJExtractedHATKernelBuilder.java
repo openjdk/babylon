@@ -34,6 +34,10 @@ import jdk.incubator.code.Value;
 
 public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCLJExtractedHATKernelBuilder> {
 
+    protected OpenCLJExtractedHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
     @Override
     public OpenCLJExtractedHATKernelBuilder defines() {
         return self()
@@ -67,12 +71,12 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
-        return identifier("atomic_inc").paren(_ -> ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name));
+    public OpenCLJExtractedHATKernelBuilder atomicInc( Op.Result instanceResult, String name) {
+        return identifier("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().identifier(name));
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorStoreView hatVectorStoreView) {
+    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
@@ -87,13 +91,13 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                 .ampersand();
 
         if (dest instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
 
         csbrace().cparen();
@@ -101,26 +105,26 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
+    public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
 
         oparen();
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
 
         if (op1 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         space().identifier(hatVectorBinaryOp.operationType().symbol()).space();
 
         if (op2 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         cparen();
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
+    public OpenCLJExtractedHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
@@ -132,20 +136,20 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                 .ampersand();
 
         if (source instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse(r.op());
         }
 
         either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
         if (index instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         csbrace().cparen();
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
+    public OpenCLJExtractedHATKernelBuilder hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
         identifier(hatVSelectLoadOp.varName())
                 .dot()
                 .identifier(hatVSelectLoadOp.mapLane());
@@ -153,7 +157,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
+    public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
         identifier(hatVSelectStoreOp.varName())
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
@@ -162,23 +166,23 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
             // We have detected a direct resolved result (resolved name)
             varName(hatVSelectStoreOp.resultValue());
         } else if (hatVSelectStoreOp.operands().get(1) instanceof Op.Result r) {
-                recurse(buildContext, r.op());
+                recurse( r.op());
 
         }
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16Op.HATF16ConvOp hatF16ConvOp) {
+    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
         paren(_->typeName("half"));
         if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorOp.HATVectorVarOp hatVectorVarOp) {
+    public OpenCLJExtractedHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
         typeName(hatVectorVarOp.buildType())
                 .space()
                 .varName(hatVectorVarOp)
@@ -186,18 +190,18 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
 
         Value operand = hatVectorVarOp.operands().getFirst();
         if (operand instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOp.HATVectorOfOp hatVectorOfOp) {
+    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
         return paren(_->identifier(hatVectorOfOp.buildType()));
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         return paren(_-> f16Type()).identifier(hatF16ToFloatConvOp.varName());
     }
 

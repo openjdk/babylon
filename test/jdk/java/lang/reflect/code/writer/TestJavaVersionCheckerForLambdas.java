@@ -28,6 +28,6 @@ public class TestJavaVersionCheckerForLambdas {
     @Test
     void test() throws ReflectiveOperationException, IOException {
         IntBinaryOperator l = (@Reflect IntBinaryOperator) (a, b) -> Math.max(a, b);
-        Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofQuotable(l));
+        Assertions.assertThrows(UnsupportedOperationException.class, () -> Op.ofLambda(l));
     }
 }
