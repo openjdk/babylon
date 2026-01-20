@@ -37,6 +37,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.MappedIfaceBufferInvokeQuery;
 import optkl.MappedIfaceBufferInvokeQuery.Match;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.MappableIface.RO;
@@ -49,15 +50,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static optkl.OpHelper.Statement;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Func.func;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Func.func;
+import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Statement.createOpToStatementSpanMap;
 
 public class InjectBufferTracking {
 
 
-    static class IfaceBufferAccessStatementSpan implements Statement.Span{
+    static class IfaceBufferAccessStatementSpan implements OpHelper.OpSpan {
         enum Acc{NONE,ACCESSES,MUTATES;
 
             public boolean accessesOrMutates() {

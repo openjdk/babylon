@@ -50,7 +50,7 @@ import java.util.function.Predicate;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 public  abstract class Backend implements BufferAllocator, LookupCarrier {
     private final Config config;

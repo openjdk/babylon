@@ -45,7 +45,7 @@ public class TestReductions {
         void array(long index, int value);
         int array(long index);
 
-        DeviceSchema<MySharedArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,MySharedArray.class,
+        DeviceSchema<MySharedArray> schema = DeviceSchema.of(MySharedArray.class,
                 builder -> builder.withArray("array", 16));
 
         static MySharedArray create(Accelerator accelerator) {

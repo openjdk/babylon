@@ -38,8 +38,8 @@ import jdk.incubator.code.dialect.java.*;
 import optkl.util.ops.VarLikeOp;
 
 import java.util.*;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
 import static optkl.OpHelper.opFromFirstOperandOrThrow;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;

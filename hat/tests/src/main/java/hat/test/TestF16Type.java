@@ -148,7 +148,7 @@ public class TestF16Type {
         F16 array(int index);
         //void array(int index, F16 value);
 
-        DeviceSchema<DeviceLocalArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,DeviceLocalArray.class,
+        DeviceSchema<DeviceLocalArray> schema = DeviceSchema.of(DeviceLocalArray.class,
 builder -> builder.withArray("array", 1024)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -214,7 +214,7 @@ builder -> builder.withArray("array", 1024)
         F16 array(int index);
         //void array(int index, F16 value);
 
-        DeviceSchema<DevicePrivateArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,DevicePrivateArray.class,
+        DeviceSchema<DevicePrivateArray> schema = DeviceSchema.of(DevicePrivateArray.class,
                 builder -> builder.withArray("array", 1024)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -246,7 +246,7 @@ builder -> builder.withArray("array", 1024)
         F16 array(int index);
         void array(int index, F16 value);
 
-        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(MethodHandles.lookup(),null,DevicePrivateArray2.class,
+        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(DevicePrivateArray2.class,
                 builder -> builder.withArray("array", 1024)
                         .withDeps(F16.class, half -> half.withField("value")));
 

@@ -38,8 +38,8 @@ import optkl.Trxfmr;
 
 import java.lang.invoke.MethodHandles;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 
 public class AddArbitraryBlock {

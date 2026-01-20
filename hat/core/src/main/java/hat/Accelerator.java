@@ -48,7 +48,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.getTargetInvoke;
+import static optkl.OpHelper.Invoke.getTargetInvoke;
 import static optkl.OpHelper.Lambda.lambda;
 
 

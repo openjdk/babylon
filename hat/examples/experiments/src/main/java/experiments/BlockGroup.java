@@ -38,7 +38,7 @@ import java.io.PrintStream;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import static optkl.OpHelper.Invoke;
 
 public class BlockGroup {
 

@@ -54,14 +54,14 @@ public class DeviceSchema<T extends DeviceType> {
         specialTypes.put(F16.class, "half");
     }
 
-    public DeviceSchema(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp,Class<T> klass) {
-        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(lookup,funcOp));
+    public DeviceSchema(Class<T> klass) {
+        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(),null));
         this.klass = klass;
     }
     int currentLevel = 0;
 
-    public static <T extends DeviceType> DeviceSchema<T> of(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp,Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
-        DeviceSchema<T> deviceSchema =  new DeviceSchema<>(lookup,funcOp,klass);
+    public static <T extends DeviceType> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
+        DeviceSchema<T> deviceSchema =  new DeviceSchema<>(klass);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize();
         return deviceSchema;
