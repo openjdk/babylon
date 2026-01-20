@@ -79,7 +79,6 @@ import static optkl.ifacemapper.MappableIface.WO;
 public class Main {
 
     public static final int ITERATIONS = 100;
-    private static final boolean VERBOSE = true;
 
     /**
      * Computes self-attention with HAT in a 1D parallel kernel. It fuses:
@@ -407,11 +406,13 @@ public class Main {
 
                 // compute the output value using the formula:
                 // diag(l_new)^-1 (diag(l_prev)*exp(m_prev-m_new) * O(current) + exp(m_block - m_new) * pv
-                float value = O.array(startIndex + (tileId * blockN + tid) * d + k);
+                int oldIndex = startIndex + (tileId * blockN + tid) * d + k;
+                int oIndex = (bx * blockN + tid) * d + k;
+                float value = O.array(oIndex);
                 float outVal = (float) ((l_prev * Math.exp(m_prev - m_new) * value +
                                Math.exp(m_block - m_new) * pv) / l_new);
                 // write output
-                O.array((bx * blockN + tid) * d + k, outVal);
+                O.array(oIndex, outVal);
             }
 
             // update m and l in global memory
@@ -443,7 +444,8 @@ public class Main {
 
     public static double computeAverage(List<Long> timers, int discard) {
         double sum = timers.stream().skip(discard).reduce(0L, Long::sum).doubleValue();
-        return (sum / (long) timers.size());
+        int totalCountedValues = timers.size() - discard;
+        return (sum / totalCountedValues);
     }
 
     @Reflect
@@ -452,6 +454,12 @@ public class Main {
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
+
+        boolean verbose = false;
+        if (args.length > 0) {
+            verbose = args[0].equals("verbose");
+            IO.println("Verbose mode on? " + verbose);
+        }
 
         // Configuration parameters
         final int sequenceLen = 512;   // represent the number of tokens (or words)
@@ -473,9 +481,9 @@ public class Main {
         var V = F32Array.create(accelerator, matrixSize);
         var m = F32Array.create(accelerator, matrixSize);
         var l = F32Array.create(accelerator, matrixSize);
-        var O_flash = F32Array.create(accelerator, matrixSize);
-        var O_naive = F32Array.create(accelerator, matrixSize);
-        var O_cpu = F32Array.create(accelerator, matrixSize);
+        var O_flashAttention = F32Array.create(accelerator, matrixSize);
+        var O_selfAttention = F32Array.create(accelerator, matrixSize);
+        var O_java = F32Array.create(accelerator, matrixSize);
 
         F32Array attentionMatrix = F32Array.create(accelerator, sequenceLen * sequenceLen);
 
@@ -500,14 +508,14 @@ public class Main {
 
             // reset attention
             IntStream.range(0, attentionMatrix.length()).forEach(k -> attentionMatrix.array(k, 0.0f));
-            IntStream.range(0, O_cpu.length()).forEach(k -> O_cpu.array(k, 0.0f));
+            IntStream.range(0, O_java.length()).forEach(k -> O_java.array(k, 0.0f));
 
             long start = System.nanoTime();
-            selfAttentionV2(Q, K, V, attentionMatrix, O_cpu, sequenceLen, headDim, softmaxScale);
+            selfAttentionV2(Q, K, V, attentionMatrix, O_java, sequenceLen, headDim, softmaxScale);
             long end = System.nanoTime();
             timersSelfAttentionJava.add((end-start));
 
-            if (VERBOSE) {
+            if (verbose) {
                 IO.println("Sequential elapsed time: " + (end - start) + " ns");
             }
         }
@@ -522,15 +530,15 @@ public class Main {
                             K,
                             V,
                             attentionMatrix,
-                            O_naive,
+                            O_selfAttention,
                             sequenceLen,
                             headDim,
                             softmaxScale));
 
             long end = System.nanoTime();
             timersSelfAttentionHAT.add((end - start));
-            if (VERBOSE) {
-                IO.println("Parallel-Naive elapsed time: " + (end - start) + " ns");
+            if (verbose) {
+                IO.println("HAT-Self-Attention elapsed time: " + (end - start) + " ns");
             }
         }
 
@@ -543,7 +551,7 @@ public class Main {
                             Q,
                             K,
                             V,
-                            O_flash,
+                            O_flashAttention,
                             m, l,
                             sequenceLen,
                             headDim,
@@ -552,37 +560,40 @@ public class Main {
 
             long end = System.nanoTime();
             timersFlashAttentionHAT.add((end - start));
-            if (VERBOSE) {
-                IO.println("Flash-Attention elapsed time: " + (end - start) + " ns");
+            if (verbose) {
+                IO.println("HAT-Flash-Attention elapsed time: " + (end - start) + " ns");
             }
         }
 
         // Check results
-        boolean isNaiveCorrect = checkResult(O_cpu, O_naive, matrixSize);
-        if (isNaiveCorrect) {
-            IO.println("Naive-attention Result is correct");
+        boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
+        if (isHATSelfAttentionCorrect) {
+            IO.println("HAT-Self-Attention Result is correct");
         } else {
-            IO.println("Naive-attention is wrong");
+            IO.println("HAT-Self-Attention is wrong");
         }
-        boolean isFlashAttentionCorrect = checkResult(O_cpu, O_flash, matrixSize);
+        boolean isFlashAttentionCorrect = checkResult(O_java, O_flashAttention, matrixSize);
         if (isFlashAttentionCorrect) {
-            IO.println("Flash-Attention is correct");
+            IO.println("HAT-Flash-Attention is correct");
         } else {
-            IO.println("Flash-Attention is wrong");
+            IO.println("HAT_Flash-Attention is wrong. Note: expected due to use of multiple Math.exp operations " +
+                    "not present in the self-attention version.");
         }
 
         // Perf. Metrics
-        double averageJavaTimer = computeAverage(timersSelfAttentionJava, ITERATIONS / 2);
-        double averageNaive = computeAverage(timersSelfAttentionHAT, ITERATIONS / 2);
-        double averageFlashAttention = computeAverage(timersFlashAttentionHAT, ITERATIONS / 2);
+        final int skip = ITERATIONS/2;
+        double averageJavaTimer = computeAverage(timersSelfAttentionJava, skip);
+        double averageSelfAttentionHAT = computeAverage(timersSelfAttentionHAT, skip);
+        double averageFlashAttentionHAT = computeAverage(timersFlashAttentionHAT, skip);
 
-        IO.println("Average Java: " + averageJavaTimer);
-        IO.println("Average Attention-Naive: " + averageNaive);
-        IO.println("Average FlashAttention: " + averageFlashAttention);
+        IO.println("\nAverage elapsed time:");
+        IO.println("Average Java Self-Attention: " + averageJavaTimer);
+        IO.println("Average HAT Self-Attention : " + averageSelfAttentionHAT);
+        IO.println("Average HAT Flash-Attention: " + averageFlashAttentionHAT);
 
-        IO.println("Speedups");
-        IO.println("Java / Naive = " + Math.ceil(averageJavaTimer/ averageNaive * 100) / 100);
-        IO.println("Java / FlashAttention = " + Math.ceil(averageJavaTimer/ averageFlashAttention * 100) / 100);
-        IO.println("Attention-Naive / FlashAttention = " + Math.ceil(averageNaive/ averageFlashAttention * 100) / 100);
+        IO.println("\nSpeedups:");
+        IO.println("Java / HAT-Self-Attention  = " + (Math.ceil(averageJavaTimer/ averageSelfAttentionHAT * 100) / 100) + "x");
+        IO.println("Java / HAT-Flash-Attention = " + (Math.ceil(averageJavaTimer/ averageFlashAttentionHAT * 100) / 100) + "x");
+        IO.println("HAT-Self-Attention / HAT-Flash-Attention = " + (Math.ceil(averageSelfAttentionHAT/ averageFlashAttentionHAT * 100) / 100) + "x");
     }
 }
