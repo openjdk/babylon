@@ -270,7 +270,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<SharedFloatArray> schema = DeviceSchema.of(SharedFloatArray.class,
+        DeviceSchema<SharedFloatArray> schema = DeviceSchema.of(MethodHandles.lookup(), null, SharedFloatArray.class,
                 arr -> arr
                         // final int sharedMemorySize = block_m * head_dim
                         //                + block_n * head_dim
@@ -287,7 +287,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<PrivateFloatArray> schema = DeviceSchema.of(PrivateFloatArray.class,
+        DeviceSchema<PrivateFloatArray> schema = DeviceSchema.of(MethodHandles.lookup(), null, PrivateFloatArray.class,
                 arr -> arr
                         // SIZE = HEAD_DIM (e.g., 64)
                         .withArray("array", 64));

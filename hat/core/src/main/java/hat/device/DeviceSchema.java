@@ -54,7 +54,7 @@ public class DeviceSchema<T extends DeviceType> {
         specialTypes.put(F16.class, "half");
     }
 
-    public DeviceSchema(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp,Class<T> klass) {
+    public DeviceSchema(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Class<T> klass) {
         this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(lookup,funcOp));
         this.klass = klass;
     }

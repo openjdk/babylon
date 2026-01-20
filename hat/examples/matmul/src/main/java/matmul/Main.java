@@ -122,7 +122,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MethodHandles.lookup(),null,MyLocalArrayFixedSize.class,
+        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MethodHandles.lookup(),null, MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray.withArray("array", 256));// It is a bound schema, so we fix the size here
 
 
