@@ -97,7 +97,6 @@ public interface KernelBufferContext extends Buffer {
     void biz(int biz);
 
 
-
     static KernelBufferContext createDefault(CommonCarrier cc) {
         KernelBufferContext kernelBufferContext = schema.allocate(cc);
         kernelBufferContext.dimensions(3);

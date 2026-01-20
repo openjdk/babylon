@@ -309,7 +309,7 @@ void main(String[] args) {
     var examplesDir = dir.existingDir("examples");
 
 
-    Stream.of( "blackscholes", "squares", "matmul")
+    Stream.of( "blackscholes", "squares", "matmul", "flashattention")
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
