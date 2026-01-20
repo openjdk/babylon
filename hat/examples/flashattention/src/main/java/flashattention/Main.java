@@ -113,7 +113,7 @@ public class Main {
                 // multiply by the scale factor
                 acc *= softMaxScale;
                 // store partial results in the temporary matrix for flash-attention
-                attentionMatrix.array(idx * N + j,  acc);
+                attentionMatrix.array(idx * N + j, acc);
             }
 
             // SoftMax: apply softmax function to the attention score to normalize them
@@ -142,7 +142,7 @@ public class Main {
                 for (int k = 0; k < N; k++) {
                     acc += attentionMatrix.array(idx * N + k) * V.array(k * d + j);
                 }
-                O.array(idx * d + j,  acc);
+                O.array(idx * d + j, acc);
             }
         }
     }
@@ -162,7 +162,7 @@ public class Main {
                 // multiply by the scale factor
                 acc *= softMaxScale;
                 // store partial results in the temporary matrix for flash-attention
-                attentionMatrix.array(i * N + j,  acc);
+                attentionMatrix.array(i * N + j, acc);
             }
 
             // SoftMax: apply softmax function to the attention score to normalize them
@@ -190,13 +190,14 @@ public class Main {
                 for (int k = 0; k < N; k++) {
                     acc += attentionMatrix.array(i * N + k) * V.array(k * d + j);
                 }
-                O.array(i * d + j,  acc);
+                O.array(i * d + j, acc);
             }
         }
     }
 
     /**
      * Single-head scale-dot product attention.
+     *
      * @param Q
      * @param K
      * @param V
@@ -219,7 +220,7 @@ public class Main {
                     acc += Q.array(i * d + k) * K.array(j * d + k);
                 }
                 acc *= softMaxScale;
-                attentionMatrix.array(i * N + j,  acc);
+                attentionMatrix.array(i * N + j, acc);
             }
         }
 
@@ -255,7 +256,7 @@ public class Main {
                 for (int k = 0; k < N; k++) {
                     acc += attentionMatrix.array(i * N + k) * V.array(k * d + j);
                 }
-                O.array(i * d + j,  acc);
+                O.array(i * d + j, acc);
             }
         }
     }
@@ -282,7 +283,9 @@ public class Main {
                         //                + block_m * block_n;
                         .withArray("array", 7168));
 
-        static SharedFloatArray createLocal() { return null;}
+        static SharedFloatArray createLocal() {
+            return null;
+        }
     }
 
     // Express an array of floats in private memory with HAT
@@ -296,7 +299,9 @@ public class Main {
                         // SIZE = HEAD_DIM (e.g., 64)
                         .withArray("array", 64));
 
-        static PrivateFloatArray createPrivate() {return null;}
+        static PrivateFloatArray createPrivate() {
+            return null;
+        }
     }
 
     @Reflect
@@ -382,7 +387,7 @@ public class Main {
                 float score = 0.0f;
                 for (int k = 0; k < d; k++) {
                     score += sharedArray.array((tid * d + k) + sQ_index)
-                           * sharedArray.array((t * d + k) + sK_index);
+                            * sharedArray.array((t * d + k) + sK_index);
                 }
                 score *= softmaxScale;
                 privateFloatArray.array((t) + sS_index, score);
@@ -414,7 +419,7 @@ public class Main {
                 int oIndex = (bx * blockN + tid) * d + k;
                 float value = O.array(oIndex);
                 float outVal = (float) ((l_prev * Math.exp(m_prev - m_new) * value +
-                               Math.exp(m_block - m_new) * pv) / l_new);
+                        Math.exp(m_block - m_new) * pv) / l_new);
                 // write output
                 O.array(oIndex, outVal);
             }
@@ -470,7 +475,7 @@ public class Main {
         final int headDim = 64;        // vector representation for a single token
         final int blockM = 32;         // tile size
         final int blockN = 32;         // tile size
-        final float softmaxScale = (float) (1.0f/Math.sqrt(headDim));
+        final float softmaxScale = (float) (1.0f / Math.sqrt(headDim));
 
         final int sharedMemorySize = blockM * headDim
                 + blockN * headDim
@@ -517,7 +522,7 @@ public class Main {
             long start = System.nanoTime();
             selfAttentionV2(Q, K, V, attentionMatrix, O_java, sequenceLen, headDim, softmaxScale);
             long end = System.nanoTime();
-            timersSelfAttentionJava.add((end-start));
+            timersSelfAttentionJava.add((end - start));
 
             if (verbose) {
                 IO.println("Sequential elapsed time: " + (end - start) + " ns");
@@ -585,7 +590,7 @@ public class Main {
         }
 
         // Perf. Metrics
-        final int skip = ITERATIONS/2;
+        final int skip = ITERATIONS / 2;
         double averageJavaTimer = computeAverage(timersSelfAttentionJava, skip);
         double averageSelfAttentionHAT = computeAverage(timersSelfAttentionHAT, skip);
         double averageFlashAttentionHAT = computeAverage(timersFlashAttentionHAT, skip);
@@ -596,8 +601,8 @@ public class Main {
         IO.println("Average HAT Flash-Attention: " + averageFlashAttentionHAT);
 
         IO.println("\nSpeedups:");
-        IO.println("Java / HAT-Self-Attention  = " + (Math.ceil(averageJavaTimer/ averageSelfAttentionHAT * 100) / 100) + "x");
-        IO.println("Java / HAT-Flash-Attention = " + (Math.ceil(averageJavaTimer/ averageFlashAttentionHAT * 100) / 100) + "x");
-        IO.println("HAT-Self-Attention / HAT-Flash-Attention = " + (Math.ceil(averageSelfAttentionHAT/ averageFlashAttentionHAT * 100) / 100) + "x");
+        IO.println("Java / HAT-Self-Attention  = " + (Math.ceil(averageJavaTimer / averageSelfAttentionHAT * 100) / 100) + "x");
+        IO.println("Java / HAT-Flash-Attention = " + (Math.ceil(averageJavaTimer / averageFlashAttentionHAT * 100) / 100) + "x");
+        IO.println("HAT-Self-Attention / HAT-Flash-Attention = " + (Math.ceil(averageSelfAttentionHAT / averageFlashAttentionHAT * 100) / 100) + "x");
     }
 }
