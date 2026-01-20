@@ -52,7 +52,15 @@ import static optkl.ifacemapper.MappableIface.WO;
  *
  * <p>
  * <code>
+ * # Using the OpenCL Backend:
  * java -cp hat/job.jar hat.java run ffi-opencl flashattention
+ * </code>
+ * </p>
+ *
+ * <p>
+ * <code>
+ * # Using the CUDA Backend:
+ * java -cp hat/job.jar hat.java run ffi-cuda flashattention
  * </code>
  * </p>
  *
@@ -289,7 +297,7 @@ public class Main {
     }
 
     @Reflect
-    public static int ceil(int N, int blockN) {
+    public static int ceilFunction(int N, int blockN) {
         return (N + blockN - 1) / blockN;
     }
 
@@ -345,7 +353,7 @@ public class Main {
         }
         kernelContext.barrier();
 
-        int numBlocks = ceil(N, blockN);
+        int numBlocks = ceilFunction(N, blockN);
         for (int tileId = 0; tileId < numBlocks; tileId++) {
 
             int kvTileRow = (tileId * blockN) + tid;
