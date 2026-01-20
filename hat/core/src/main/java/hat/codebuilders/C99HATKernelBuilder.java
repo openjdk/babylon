@@ -552,13 +552,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final T hatPtrLoadOp( HATPtrOp.HATPtrLoadOp hatPtrLoadOp) {
-        ptrAccess( hatPtrLoadOp);
+        ptrAccess(hatPtrLoadOp);
         return self();
     }
 
     @Override
     public final T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp) {
-        ptrAccess( hatPtrStoreOp).equals().recurse( ((Op.Result) hatPtrStoreOp.operands().getLast()).op());
+        ptrAccess(hatPtrStoreOp).equals().recurse( ((Op.Result) hatPtrStoreOp.operands().getLast()).op());
         return self();
     }
 
@@ -568,7 +568,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    private T ptrAccess(ScopedCodeBuilderContext builderContext, HATPtrOp hatPtrOp) {
+    private T ptrAccess(HATPtrOp hatPtrOp) {
         identifier(hatPtrOp.name());
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -587,7 +587,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 paren(_ -> identifier("long"));
                 paren(_ -> {
                     if (hatPtrOp.strides().size() > 1) {
-                        paren(_ -> recurse(builderContext, ((Op.Result) hatPtrOp.operands().get(2)).op()));
+                        paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(2)).op()));
                         asterisk().identifier(hatPtrOp.name());
                         either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).identifier(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
                         add().paren(_ -> recurse( ((Op.Result) hatPtrOp.operands().get(1)).op()));
