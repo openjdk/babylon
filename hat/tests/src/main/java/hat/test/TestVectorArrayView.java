@@ -221,7 +221,7 @@ public class TestVectorArrayView {
     private interface SharedMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemory.class,
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
         static SharedMemory createLocal() {
             return null;
@@ -253,7 +253,7 @@ public class TestVectorArrayView {
     private interface PrivateMemory extends DeviceType {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<PrivateMemory> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateMemory.class,
+        DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,
                 arr -> arr.withArray("array", 4));
         static PrivateMemory createPrivate() {
             return null;

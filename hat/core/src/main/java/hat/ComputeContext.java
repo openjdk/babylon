@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.Optional;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.getTargetInvoke;
+import static optkl.OpHelper.Invoke.getTargetInvoke;
 import static optkl.OpHelper.Lambda.lambda;
 
 /**

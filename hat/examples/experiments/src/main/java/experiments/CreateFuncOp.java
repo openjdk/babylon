@@ -44,8 +44,8 @@ import optkl.util.OpCodeBuilder;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 /**
  * Demonstrates how to dynamically build a new function using the code reflection API.

@@ -589,7 +589,7 @@ public class TestArrayView {
     private interface SharedMemory extends DeviceType {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedMemory.class,
+        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
 
         static SharedMemory createLocal() { return null; }
@@ -606,7 +606,7 @@ public class TestArrayView {
     public interface PrivateArray extends DeviceType {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateArray.class,
+        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
                 arr -> arr.withArray("array", 16));
 
         static PrivateArray createPrivate() { return null; }
@@ -670,7 +670,7 @@ public class TestArrayView {
     public interface SharedDeviceType extends DeviceType {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedDeviceType> schema = DeviceSchema.of(MethodHandles.lookup(),null,SharedDeviceType.class,
+        DeviceSchema<SharedDeviceType> schema = DeviceSchema.of(SharedDeviceType.class,
                 arr -> arr.withArray("array", 1024));
         static SharedDeviceType create(Accelerator accelerator) {
             return null;
@@ -687,7 +687,7 @@ public class TestArrayView {
     public interface PrivateDeviceType extends DeviceType {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateDeviceType> schema = DeviceSchema.of(MethodHandles.lookup(),null,PrivateDeviceType.class,
+        DeviceSchema<PrivateDeviceType> schema = DeviceSchema.of(PrivateDeviceType.class,
                 arr -> arr.withArray("array", 32));
         static PrivateDeviceType create(Accelerator accelerator) {
             return null;

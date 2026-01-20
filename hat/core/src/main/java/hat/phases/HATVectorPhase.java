@@ -48,8 +48,8 @@ import java.util.Set;
 import static hat.phases.HATPhaseUtils.VectorMetaData;
 import static hat.phases.HATPhaseUtils.getVectorTypeInfo;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
 
 public abstract sealed class HATVectorPhase implements HATPhase

@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;
 
 public class HATPhaseUtils {
@@ -183,7 +183,7 @@ public class HATPhaseUtils {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(lookup,varLoadOp); // recurse
             case CoreOp.VarOp varOp ->
                     varOp.operands().getFirst() instanceof Op.Result varOpResult
-                            && invoke(lookup,varOpResult.op()) instanceof OpHelper.Named.NamedStaticOrInstance.Invoke invoke && invoke.named("array");
+                            && invoke(lookup,varOpResult.op()) instanceof OpHelper.Invoke invoke && invoke.named("array");
             default -> false;
         };
     }
@@ -215,7 +215,7 @@ public class HATPhaseUtils {
         return findVarNameOrNull(varLoadOp.operands().getFirst());
     }
 
-    static public boolean is16BitFloat(OpHelper.Named.NamedStaticOrInstance.Invoke invoke, Regex methodName) {
+    static public boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
         String invokeClassName = invoke.refType().toString();
         invokeClassName = invokeClassName.replace("$", "."); // lets not compare strings here
         boolean is16BitFloatOperation = invokeClassName.startsWith(F16.class.getCanonicalName()) || invokeClassName.startsWith(BF16.class.getCanonicalName());
