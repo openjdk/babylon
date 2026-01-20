@@ -148,7 +148,9 @@ public class Main {
     }
 
 
-    public static void selfAttentionV2(F32Array Q, F32Array K, F32Array V, F32Array attentionMatrix, F32Array O, final int N, final int d, final float softMaxScale) {
+    public static void selfAttentionV2(F32Array Q, F32Array K, F32Array V,
+                                       F32Array attentionMatrix, F32Array O,
+                                       final int N, final int d, final float softMaxScale) {
 
         // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
         for (int i = 0; i < N; i++) {
@@ -204,7 +206,9 @@ public class Main {
      * @param d
      * @param softMaxScale
      */
-    public static void selfAttention(F32Array Q, F32Array K, F32Array V, F32Array attentionMatrix, F32Array O, final int N, final int d, final float softMaxScale) {
+    public static void selfAttention(F32Array Q, F32Array K, F32Array V,
+                                     F32Array attentionMatrix, F32Array O,
+                                     final int N, final int d, final float softMaxScale) {
 
         // Compute attention scores: Q @ K^T and scale it to (1/sqrt(head_dim))
         // In this example, the parameter d already computes 1/sqrt(head_dim)
