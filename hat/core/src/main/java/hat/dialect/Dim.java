@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,21 +23,26 @@
  * questions.
  */
 package hat.dialect;
+
 /*
  This is suspiciously  similar to NDRange's Dim interface.  in this case we return 0,1,2 vs 1,2,3
  */
- interface Dim  {
-          interface X extends Dim{}
-         interface Y extends Dim{}
-          interface Z extends Dim{}
+interface Dim {
+    interface X extends Dim {
+    }
 
+    interface Y extends Dim {
+    }
+
+    interface Z extends Dim {
+    }
 
     default int dimension() {
-        return switch (Dim.this){
-            case X  _ -> 0;
+        return switch (Dim.this) {
+            case X _ -> 0;
             case Y _ -> 1;
-            case Z  _ ->2;
+            case Z _ -> 2;
             default -> throw new IllegalStateException("Unexpected value: " + Dim.this);
         };
     }
-    }
+}
