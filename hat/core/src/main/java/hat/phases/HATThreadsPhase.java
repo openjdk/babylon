@@ -24,8 +24,6 @@
  */
 package hat.phases;
 
-
-
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
@@ -46,11 +44,10 @@ public record HATThreadsPhase(KernelCallGraph kernelCallGraph) implements HATPha
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
-     //   var query = KernelContextThreadIdFieldAccessQuery.create(lookup()); // This Query matches kc->[glb][is][xyz] calls
         return Trxfmr.of(this, funcOp)
-                .transform( c -> {
-                    if (fieldAccess(lookup(),c.op()) instanceof FieldAccess.Instance fieldAccess
-                        && fieldAccess.refType(KernelContext.class) && fieldAccess.named(Regex.of("[glb][is][xyz]"))){
+                .transform(c -> {
+                    if (fieldAccess(lookup(), c.op()) instanceof FieldAccess.Instance fieldAccess
+                            && fieldAccess.refType(KernelContext.class) && fieldAccess.named(Regex.of("[glb][is][xyz]"))) {
                         varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());  // the var access will be removed the next transform
                         c.replace(HATThreadOp.create(fieldAccess.name()));
                     }
