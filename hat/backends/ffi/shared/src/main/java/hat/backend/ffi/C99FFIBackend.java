@@ -31,6 +31,7 @@ import hat.KernelContext;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
+import optkl.OpHelper;
 import optkl.util.CallSite;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
@@ -238,49 +239,58 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(annotation.value());
         } else {
-            List<TypeElement> localIFaceList = new ArrayList<>();
-
-            kernelCallGraph.getModuleOp()
-                    .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
-                    .map(c -> ((HATMemoryVarOp) c).invokeType())
-                    .forEach(localIFaceList::add);
-
-            kernelCallGraph.entrypoint.funcOp()
-                    .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
-                    .map(c -> ((HATMemoryVarOp) c).invokeType())
-                    .forEach(localIFaceList::add);
-
-            // Dynamically build the schema for the user data type we are creating within the kernel.
-            // This is because no allocation was done from the host. This is kernel code, and it is reflected
-            // using the code reflection API
-            // 1. Add for struct for iface objects
             Set<String> typedefs = new HashSet<>();
 
             // Add HAT reserved types
             typedefs.add(F16.class.getName());
             typedefs.add(BF16.class.getName());
 
-            for (TypeElement typeElement : localIFaceList) {
-                try {
-                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.lookup());
-                    Field schemaField = clazz.getDeclaredField("schema");
-                    schemaField.setAccessible(true);
-                    var schema = (DeviceSchema<?>)schemaField.get(schemaField);
-                    // <1> We are creating text form of DeviceType schema
-                    String toText = schema.toText();
-                    if (toText != null) {
-                        // <2> just to then parse the text from above.
-                        // Lets get the model in a cleaner form
-                        generateDeviceTypeStructs(builder, toText, typedefs);
-                    } else {
-                        throw new RuntimeException("[ERROR] Could not find valid device schema ");
-                    }
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            /*
+             I think the kernelCallGraph module op was built before we inserted HATMemoryVarOps
+
+             So we will likely never get any matches from the module op
+
+             List<ClassType> localIFaceList = new ArrayList<>();
+             kernelCallGraph.getModuleOp()
+                    .elements()
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> (ClassType)((HATMemoryVarOp) c).invokeType())
+                    .forEach(localIFaceList::add);
+
+
+
+             However,the sentiment from above was correct as we may have kernel reachable methods that do indeed
+             have these HATMemoryVarOps.  I think if we called a method from the entrypoint with Device type accesses
+             we would miss them
+             */
+
+            // Dynamically build the schema for the user data type we are creating within the kernel.
+            // This is because no allocation was done from the host. This is kernel code, and it is reflected
+            // using the code reflection API
+            // 1. Add for struct for iface objects
+            kernelCallGraph.entrypoint.funcOp()
+                    .elements()
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> (ClassType)((HATMemoryVarOp) c).invokeType())
+                    .forEach( classType-> {
+                         try {
+                             Class<?> clazz = (Class<?>) classType.resolve(kernelCallGraph.lookup());
+                             Field schemaField = clazz.getDeclaredField("schema");
+                             schemaField.setAccessible(true);
+                             var schema = (DeviceSchema<?>)schemaField.get(schemaField);
+                             // <1> We are creating text form of DeviceType schema
+                             String toText = schema.toText();
+                             if (toText != null) {
+                                 // <2> just to then parse the text from above.
+                                 // Lets get the model in a cleaner form
+                                 generateDeviceTypeStructs(builder, toText, typedefs);
+                             } else {
+                                 throw new RuntimeException("[ERROR] Could not find valid device schema ");
+                             }
+                         } catch (ReflectiveOperationException e) {
+                             throw new RuntimeException(e);
+                         }
+            });
 
             ScopedCodeBuilderContext buildContext =
                     new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.lookup(),
