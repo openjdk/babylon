@@ -184,7 +184,7 @@ public class Trxfmr implements LookupCarrier{
         }
         static Cursor of(Trxfmr trxfmr, CoreOp.FuncOp funcOp, Block.Builder builder, Op op){
 
-            // This could be a record if we did ot have to mutate action and handled. Maybe a Set?
+            // This could be a record if we did not have to mutate action and handled. Maybe a Set?
             class Impl  implements Cursor {
                 private CoreOp.FuncOp funcOp;
                 private Op op;
@@ -259,7 +259,8 @@ public class Trxfmr implements LookupCarrier{
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
 
                     }else{
-                        mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
+                     //   System.out.println("sidestepping txfrme add mapping ");
+                   //     mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
                     }
                     return result;
                 }
@@ -389,17 +390,10 @@ public class Trxfmr implements LookupCarrier{
                 }
             } else {
                 try {
-                    if (cursorOp instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp){
-                        //System.out.println("Is it this one? "+varLoadOp.varType());
-                        if (varLoadOp.varType().valueType() instanceof PrimitiveType primitiveType){
-                          //  System.out.println("It seems to be this primitive "+primitiveType);
-                        }
-                    }
                     var result = blockBuilder.op(cursorOp);
                     var opFromResult = result.op();
                     biMap.add(cursorOp, opFromResult);
                 }catch (Throwable t){
-                    t = t;
                     throw new RuntimeException(t);
                 }
             }
