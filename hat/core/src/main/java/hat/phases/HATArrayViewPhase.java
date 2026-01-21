@@ -38,14 +38,11 @@ import jdk.incubator.code.dialect.java.*;
 import optkl.util.ops.VarLikeOp;
 
 import java.util.*;
-import static optkl.OpHelper.Invoke;
+
+import static optkl.OpHelper.*;
 import static optkl.OpHelper.Invoke.invoke;
-import static optkl.OpHelper.copyLocation;
-import static optkl.OpHelper.opFromFirstOperandOrThrow;
-import static optkl.OpHelper.resultFromFirstOperandOrNull;
 
 public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
-
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
@@ -59,13 +56,12 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                 var context = blockBuilder.context();
                 switch (op) {
                     case JavaOp.InvokeOp $ when invoke(lookup(), $) instanceof Invoke invoke -> {
-                        if (invoke.namedIgnoreCase("add","sub","mull","div")) {
+                        if (invoke.namedIgnoreCase("add","sub","mul","div")) {
                             // catching HATVectorBinaryOps not stored in VarOps
                             var hatVectorBinaryOp = invoke.copyLocationTo(HATPhaseUtils.buildVectorBinaryOp(
                                     lookup(),
                                     invoke.name(),
                                     invoke.varOpFromFirstUseOrThrow().varName(),
-                                   // varNameFromInvokeFirstUseOrThrow(invoke),
                                     invoke.returnType(),
                                     blockBuilder.context().getValues(invoke.op().operands())
                             ));
@@ -83,7 +79,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         }
                     }
                     case CoreOp.VarOp varOp -> {
-                        if (HATPhaseUtils.isBufferInitialize(varOp) && OpHelper.resultFromFirstOperandOrThrow(varOp) instanceof Op.Result result) {
+                        if (HATPhaseUtils.isBufferInitialize(varOp) && resultFromFirstOperandOrThrow(varOp) instanceof Op.Result result) {
                             // makes sure we don't process a new int[] for example
                             Op bufferLoad = replaced.get(result).op(); // gets VarLoadOp associated w/ og buffer
                             replaced.put(varOp.result(), resultFromFirstOperandOrNull(bufferLoad)); // gets VarOp associated w/ og buffer
@@ -104,7 +100,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         }
                     }
                     case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
-                        if ((HATPhaseUtils.isBufferInitialize(varLoadOp)) && OpHelper.resultFromFirstOperandOrThrow(varLoadOp) instanceof Op.Result r) {
+                        if ((HATPhaseUtils.isBufferInitialize(varLoadOp)) && resultFromFirstOperandOrThrow(varLoadOp) instanceof Op.Result r) {
                             if (r.op() instanceof CoreOp.VarOp) { // if this is the VarLoadOp after the .arrayView() InvokeOp
                                 Op.Result replacement = (HATPhaseUtils.isLocalSharedOrPrivate(varLoadOp)) ?
                                         resultFromFirstOperandOrNull((resultFromFirstOperandOrNull(r.op())).op()) :
@@ -114,8 +110,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                 // is this not just bb.op(varLoadOp)?
                                 CoreOp.VarAccessOp.VarLoadOp newVarLoad = copyLocation(varLoadOp,
                                         CoreOp.VarAccessOp.varLoad(
-                                                blockBuilder.context().getValueOrDefault(replaced.get(r), replaced.get(r)))
-                                             //   getValue(blockBuilder, replaced.get(r)))
+                                                blockBuilder.context().getValue(replaced.get(r)))
                                 );
                                 Op.Result res = blockBuilder.op(newVarLoad);
                                 context.mapValue(varLoadOp.result(), res);
@@ -130,10 +125,10 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         if (HATPhaseUtils.isBufferArray(arrayLoadOp) && resultFromFirstOperandOrNull(arrayLoadOp) instanceof Op.Result r) {
                             Op.Result buffer = replaced.getOrDefault(r, r);
                             if (HATPhaseUtils.isVectorOp(lookup(),arrayLoadOp)) {
-                                Op vop = opFromFirstOperandOrThrow(buffer.op());//resultFromFirstOperandOrNull(buffer.op())).op();
+                                Op vop = opFromFirstOperandOrThrow(buffer.op());
                                 String name = switch (vop) {
                                     case CoreOp.VarOp varOp -> varOp.varName();
-                                    case VarLikeOp varLikeOp -> varLikeOp.varName();//   HATMemoryVarOp.HATLocalVarOp &&  HATMemoryVarOp.HATPrivateVarOp
+                                    case VarLikeOp varLikeOp -> varLikeOp.varName(); // HATMemoryVarOp.HATLocalVarOp &&  HATMemoryVarOp.HATPrivateVarOp
                                     default -> throw new IllegalStateException("Unexpected value: " + vop);
                                 };
                                 var  hatVectorMetaData = HATPhaseUtils.getVectorTypeInfoWithCodeReflection(lookup(),arrayLoadOp.resultType());
@@ -150,6 +145,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                 var arrayAccessInfo = HATPhaseUtils.arrayAccessInfo(op.result(), replaced);
                                 var operands = arrayAccessInfo.bufferAndIndicesAsValues();
                                 var hatPtrLoadOp = copyLocation(arrayLoadOp,new HATPtrOp.HATPtrLoadOp(
+                                        arrayAccessInfo.bufferName(),
                                         arrayLoadOp.resultType(),
                                         (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                         context.getValues(operands)
@@ -164,12 +160,11 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         return blockBuilder;
                     }
                     case JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
-                        if (HATPhaseUtils.isBufferArray(arrayStoreOp) && OpHelper.resultFromFirstOperandOrThrow(arrayStoreOp) instanceof Op.Result r) {
+                        if (HATPhaseUtils.isBufferArray(arrayStoreOp) && resultFromFirstOperandOrThrow(arrayStoreOp) instanceof Op.Result r) {
                             Op.Result buffer = replaced.getOrDefault(r, r);
                             if (HATPhaseUtils.isVectorOp(lookup(),arrayStoreOp)) {
                                 Op varOp =
                                         HATPhaseUtils.findOpInResultFromFirstOperandsOrThrow(((Op.Result) arrayStoreOp.operands().getLast()).op(), CoreOp.VarOp.class, HATVectorOp.HATVectorVarOp.class);
-                                       // findVarOpOrHATVarOP(((Op.Result) arrayStoreOp.operands().getLast()).op());
                                 var name = (varOp instanceof HATVectorOp.HATVectorVarOp)
                                         ? ((HATVectorOp.HATVectorVarOp) varOp).varName()
                                         : ((CoreOp.VarOp) varOp).varName();
@@ -192,6 +187,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                 var operands = arrayAccessInfo.bufferAndIndicesAsValues();
                                 operands.add(arrayStoreOp.operands().getLast());
                                 HATPtrOp.HATPtrStoreOp ptrLoadOp = copyLocation(arrayStoreOp,new HATPtrOp.HATPtrStoreOp(
+                                        arrayAccessInfo.bufferName(),
                                         arrayStoreOp.resultType(),
                                         (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                         context.getValues(operands)
@@ -206,9 +202,10 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         return blockBuilder;
                     }
                     case JavaOp.ArrayLengthOp arrayLengthOp  when
-                        HATPhaseUtils.isBufferArray(arrayLengthOp) && OpHelper.resultFromFirstOperandOrThrow(arrayLengthOp) instanceof Op.Result ->{
+                        HATPhaseUtils.isBufferArray(arrayLengthOp) && resultFromFirstOperandOrThrow(arrayLengthOp) != null ->{
                             var arrayAccessInfo = HATPhaseUtils.arrayAccessInfo(op.result(), replaced);
                             var hatPtrLengthOp = copyLocation(arrayLengthOp,new HATPtrOp.HATPtrLengthOp(
+                                    arrayAccessInfo.bufferName(),
                                     arrayLengthOp.resultType(),
                                     (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                     context.getValues(List.of(arrayAccessInfo.buffer()))
@@ -227,7 +224,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
         }
     }
 
-    record ArrayAccessInfo(Op.Result buffer, List<Op.Result> indices) {
+    record ArrayAccessInfo(Op.Result buffer, String bufferName, List<Op.Result> indices) {
         public List<Value> bufferAndIndicesAsValues() {
             List<Value> operands = new ArrayList<>(List.of(buffer));
             operands.addAll(indices);
@@ -247,21 +244,30 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                 if (node.value instanceof Op.Result res &&
                         (res.op() instanceof JavaOp.ArrayAccessOp || res.op() instanceof JavaOp.ArrayLengthOp)) {
                         buffer = res;
-                        indices.addFirst(res.op() instanceof JavaOp.ArrayAccessOp ? ((Op.Result) res.op().operands().get(1)) : ((Op.Result) res.op().operands().get(0)));
-
+                        // idx location differs between ArrayAccessOp and ArrayLengthOp
+                        indices.addFirst(res.op() instanceof JavaOp.ArrayAccessOp
+                                ? resultFromOperandN(res.op(), 1)
+                                : resultFromFirstOperandOrThrow(res.op()));
                 }
-                // I think we need to comment this.  Not so obvious.
                 if (!node.edges().isEmpty()) {
-                    Node<T> next = node.edges().getFirst();
+                    Node<T> next = node.edges().getFirst(); // we only traverse through the index-related ops
                     if (!handled.contains(next)) {
                         nodeList.add(next);
                     }
                 }
             }
             buffer = replaced.get(resultFromFirstOperandOrNull(buffer.op()));
-            return new ArrayAccessInfo(buffer, indices);
+            String bufferName = hatPtrName(resultFromFirstOperandOrNull(buffer.op()).op());
+            return new ArrayAccessInfo(buffer, bufferName, indices);
         }
     }
 
-
+    public static String hatPtrName(Op op) {
+        return switch (op) {
+            case CoreOp.VarOp varOp -> varOp.varName();
+            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
+            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
+            case null, default -> "";
+        };
+    }
 }

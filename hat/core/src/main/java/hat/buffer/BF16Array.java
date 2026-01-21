@@ -46,6 +46,4 @@ public interface BF16Array extends Buffer {
     static BF16Array create(CommonCarrier cc, int length){
         return schema.allocate(cc, length);
     }
-
-    default BF16Impl[] arrayview() {return null;}
 }

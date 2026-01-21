@@ -565,13 +565,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final T hatPtrLoadOp( HATPtrOp.HATPtrLoadOp hatPtrLoadOp) {
-        ptrAccess( hatPtrLoadOp);
+        ptrAccess(hatPtrLoadOp);
         return self();
     }
 
     @Override
     public final T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp) {
-        ptrAccess( hatPtrStoreOp).equals().recurse( ((Op.Result) hatPtrStoreOp.operands().getLast()).op());
+        ptrAccess(hatPtrStoreOp).equals().recurse( ((Op.Result) hatPtrStoreOp.operands().getLast()).op());
         return self();
     }
 
@@ -581,8 +581,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public final T ptrAccess( HATPtrOp hatPtrOp) {
-        identifier(hatPtrName(hatPtrOp));
+    private T ptrAccess(HATPtrOp hatPtrOp) {
+        identifier(hatPtrOp.name());
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
@@ -600,8 +600,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 paren(_ -> identifier("long"));
                 paren(_ -> {
                     if (hatPtrOp.strides().size() > 1) {
-                        paren(_ -> recurse( ((Op.Result) hatPtrOp.operands().get(2)).op()));
-                        asterisk().identifier(hatPtrName(hatPtrOp));
+                        paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(2)).op()));
+                        asterisk().identifier(hatPtrOp.name());
                         either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).identifier(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
                         add().paren(_ -> recurse( ((Op.Result) hatPtrOp.operands().get(1)).op()));
                     } else {
@@ -611,16 +611,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             });
         }
         return self();
-    }
-
-    public final String hatPtrName(HATPtrOp hatPtrOp) {
-        Op op = ((Op.Result) ((Op.Result) (hatPtrOp.operands().getFirst())).op().operands().getFirst()).op();
-        return switch (op) {
-            case CoreOp.VarOp varOp -> varOp.varName();
-            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> hatLocalVarOp.varName();
-            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> hatPrivateVarOp.varName();
-            case null, default -> "";
-        };
     }
 
     /**
