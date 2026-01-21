@@ -73,8 +73,8 @@ public class SwapMath {
 
         System.out.println("--------------------------");
         var abs = rsqrt.transform("usingAbs", (builder,op)->{
-            if (invoke(lookup,op) instanceof Invoke ih
-                    && ih.named(Regex.of("sqrt")) && ih.isStatic() && ih.returns(double.class) && ih.receives(double.class)){
+            if (invoke(lookup,op) instanceof Invoke.Static ih
+                    && ih.named(Regex.of("sqrt")) &&  ih.returns(double.class) && ih.receives(double.class)){
                 var absStaticMethod = MethodRef.method(Math.class, "abs", double.class, double.class);
                 var absInvoke =  JavaOp.invoke(InvokeKind.STATIC, false, absStaticMethod.type().returnType(), absStaticMethod,
                         builder.context().getValue(op.operands().get(0)));
@@ -93,15 +93,12 @@ public class SwapMath {
 
         System.out.println("Now using txfmr--------------------------");
         var newAbs =Trxfmr.of(lookup,rsqrt)
-                .transform("usingAbs",ce-> invoke(lookup,ce) instanceof Invoke $
+                .transform("usingAbs", ce-> invoke(lookup,ce) instanceof Invoke.Static $
                                 && $.named("sqrt")
-                                && $.isStatic()
                                 && $.returns(double.class)
                                 && $.receives(double.class)
                         , c->
-                        c.replace(
-                                JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand( 0))
-                        )
+                        c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand( 0)))
                 )
                 .funcOp();
 

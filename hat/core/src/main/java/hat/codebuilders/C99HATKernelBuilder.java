@@ -746,13 +746,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
         if ( invoke.refIs(MappableIface.class, HAType.class, DeviceType.class)) { // we need a common type
-            if (invoke.isInstance() && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
+            if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
                             ((Regex.Match)atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
                     );
                 }
-            } else if (invoke.isInstance() && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
+            } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
                 parenWhen(
                         invoke.operandCount() > 1
                                 && invoke(scopedCodeBuilderContext().lookup(),instance.op()) instanceof Invoke invoke0

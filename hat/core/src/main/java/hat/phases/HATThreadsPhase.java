@@ -24,6 +24,9 @@
  */
 package hat.phases;
 
+
+
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
 import jdk.incubator.code.CodeElement;
@@ -31,20 +34,23 @@ import optkl.OpHelper.FieldAccess;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import hat.phases.KernelContextThreadIdFieldAccessQuery.Match;
+import optkl.util.Regex;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import static optkl.OpHelper.FieldAccess.fieldAccess;
 
 public record HATThreadsPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
-        var query = KernelContextThreadIdFieldAccessQuery.create(lookup()); // This Query matches kc->[glb][is][xyz] calls
+     //   var query = KernelContextThreadIdFieldAccessQuery.create(lookup()); // This Query matches kc->[glb][is][xyz] calls
         return Trxfmr.of(this, funcOp)
-                .transform(c -> {
-                    if (query.matches(c) instanceof Match match && match.helper() instanceof FieldAccess fieldAccess) {
+                .transform( c -> {
+                    if (fieldAccess(lookup(),c.op()) instanceof FieldAccess.Instance fieldAccess
+                        && fieldAccess.refType(KernelContext.class) && fieldAccess.named(Regex.of("[glb][is][xyz]"))){
                         varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());  // the var access will be removed the next transform
                         c.replace(HATThreadOp.create(fieldAccess.name()));
                     }

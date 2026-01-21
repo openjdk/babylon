@@ -225,6 +225,8 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         funcOp.elements()
                 .filter(ce->ce instanceof JavaOp.InvokeOp)
                 .map(ce-> invoke(lookup(),ce))
+                .filter(invoke->invoke instanceof Invoke.Static)
+                .map(invoke->(Invoke.Static)invoke)
                 .filter(invoke->(invoke.named("f16ToFloat")||invoke.named("bfloat162float")) && invoke.returnsFloat())
                 .findFirst() // only one?
                 .ifPresent(invoke -> reducedFloatsType.put(invoke.op(), categorizeReducedFloat(invoke.op())));

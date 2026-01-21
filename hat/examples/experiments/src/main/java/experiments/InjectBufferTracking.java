@@ -35,8 +35,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.MappedIfaceBufferInvokeQuery;
-import optkl.MappedIfaceBufferInvokeQuery.Match;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.ifacemapper.MappableIface;
@@ -52,6 +50,7 @@ import java.util.Set;
 
 import static optkl.OpHelper.Func.func;
 import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.Statement.createOpToStatementSpanMap;
 
 public class InjectBufferTracking {
@@ -95,10 +94,6 @@ public class InjectBufferTracking {
         boolean accessesAndMutates(Value value){
             return mutates(value)&accesses(value);
         }
-
-        public String describe(Value value) {
-            return  (mutates(value) ? "mutates " : "") + (accessesAndMutates(value) ? "and " : "") + (accesses(value) ? "accesses " : "");
-        }
     }
 
 
@@ -134,15 +129,17 @@ public class InjectBufferTracking {
                 IfaceBufferAccessStatementSpan::new);
 
         // This query is useful helps locating access of mappedIfaceBuffer accessors or mutators
-        var mappedIfaceBufferInvokeQuery = MappedIfaceBufferInvokeQuery.create(lookup);
+       // var mappedIfaceBufferInvokeQuery = MappedIfaceBufferInvokeQuery.create(lookup);
 
         // We walk over each span and determine whether it has such an invoke.
         opToStatementSpans.values().forEach(statementSpan ->
             statementSpan.ops().forEach(opInStatement -> {
-                if (mappedIfaceBufferInvokeQuery.matches(opInStatement) instanceof Match match) {
-                    statementSpan.put(match.helper().instance(), match.mutatesBuffer());
-                } else if (Invoke.invoke(lookup, opInStatement) instanceof Invoke invoke
-                        && invoke.isInstance() && !invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
+                if (invoke(lookup,opInStatement) instanceof Invoke.Virtual virtual
+                        &&  (virtual.refIs(MappableIface.class) || virtual.returnsPrimitive())
+                ) {
+                    statementSpan.put(virtual.instance(), !virtual.returnsVoid());
+                } else if (invoke(lookup, opInStatement) instanceof Invoke.Virtual invoke
+                        && !invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
                     invoke.paramaterAccessList().stream()
                             .filter(typeAndAccess -> typeAndAccess.isIface(lookup))
                             .forEach(typeAndAccess -> statementSpan.put(typeAndAccess.value(), typeAndAccess.mutatesBuffer()));
@@ -151,7 +148,6 @@ public class InjectBufferTracking {
         );
 
         MethodRef Println = MethodRef.method(IO.class, "println", void.class, Object.class);
-var spinCounter = Mutable.of(0);
         // We finally have have enough information  to transform.
         // We are looking at the edges of statements ,
         Trxfmr.of(lookup, func.op())
@@ -168,8 +164,8 @@ var spinCounter = Mutable.of(0);
                     }
                     var acc = Mutable.of(IfaceBufferAccessStatementSpan.Acc.NONE);
                             statementSpan.ops.stream()
-                                    .map(o -> Invoke.invoke(lookup, o))
-                                    .filter(invoke -> invoke!=null && invoke.isInstance() && invoke.refIs(MappableIface.class))
+                                    .filter(o -> invoke(lookup, o) instanceof Invoke.Virtual virtual && virtual.refIs(MappableIface.class))
+                                    .map(o -> (Invoke.Virtual) invoke(lookup, o))
                                     .forEach(invoke -> {
                                         acc.set(switch(acc.get()) {
                                             case NONE -> {
@@ -194,12 +190,7 @@ var spinCounter = Mutable.of(0);
                                     });
                             if (acc.get().accessesOrMutates()) {
                                 var msg = (statementSpan.isFirst(c.op()) ? "Prev" : "Next") + " statement " +acc.get() + " iface mapped buffer ";
-                                var constant= CoreOp.constant(JavaType.J_L_STRING, msg);
-                                System.out.println("spin "+msg+" "+spinCounter.get()+" "+constant.resultType());
-                                spinCounter.set(spinCounter.get()+1);
-                                boolean useCursorAdd = false;
-                                var msgStringResult = useCursorAdd?c.add(constant):c.builder().op(constant);
-                                c.add(JavaOp.invoke(JavaType.VOID, Println, msgStringResult));
+                                c.add(JavaOp.invoke(JavaType.VOID, Println, c.add(CoreOp.constant(JavaType.J_L_STRING, msg))));
                             }
                     if (statementSpan.isLast(c.op())){
                         c.retain();

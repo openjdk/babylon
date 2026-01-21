@@ -154,12 +154,12 @@ public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTrac
      So we cache the callsite against the location from the lambdaop.
      */
     public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
-        Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
+        Quoted quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
 
         var kernelCallSite =  kernelCallSiteCache.computeIfAbsent(location, _-> {
-            JavaOp.LambdaOp lambdaOp = quoted.op();
+            JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
             MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeDescriptor();
             KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
             if (kernelCallGraph == null) {
