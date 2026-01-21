@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,7 +52,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self()
                 .hashDefine("HAT_OPENCL")
                 .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
-              //  .identifier("__attribute__((noinline)").nl()
                 .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")                      // Enable Half type
@@ -75,6 +74,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_BIX", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstZero())))
                 .hashDefine("HAT_BIY", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstOne())))
                 .hashDefine("HAT_BIZ", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
+                .hashDefine("HAT_BSX", _ -> paren(_ -> identifier("get_num_groups").paren(_ -> intConstZero())))
+                .hashDefine("HAT_BSY", _ -> paren(_ -> identifier("get_num_groups").paren(_ -> intConstOne())))
+                .hashDefine("HAT_BSZ", _ -> paren(_ -> identifier("get_num_groups").paren(_ -> intConstTwo())))
                 .hashDefine("HAT_BARRIER", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen())
                 .hashDefine("BFLOAT16", _ -> keyword("ushort"))
                 .typedefSingleValueStruct("F16",  "half")

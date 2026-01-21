@@ -63,6 +63,11 @@ public class KernelContext {
     public int biy;
     public int biz;
 
+    // Specify the number of blocks
+    public int bsx;
+    public int bsy;
+    public int bsz;
+
     final int dimensions;
 
     final public NDRange<?,?> ndRange;
@@ -94,16 +99,9 @@ public class KernelContext {
         }
     }
 
-  //  public int getDimensions() {
-    //    return this.dimensions;
-   // }
+    /**
+     * Marker called by kernel code which is mapped to a barrier implementation in the target language.
+     */
+    public void barrier() { }
 
-   // public NDRange<?,?> getNDRange() {
-     //   return this.ndRange;
-   // }
-
-    // This is a marker called by kernel code which is mapped to a barrier implementatiom
-    public void barrier() {
-
-    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,6 @@
  */
 package hat.phases;
 
-
-
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATThreadOp;
@@ -42,33 +40,16 @@ import java.util.Set;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 
 public record HATThreadsPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
+
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
-     //   var query = KernelContextThreadIdFieldAccessQuery.create(lookup()); // This Query matches kc->[glb][is][xyz] calls
         return Trxfmr.of(this, funcOp)
-                .transform( c -> {
-                    if (fieldAccess(lookup(),c.op()) instanceof FieldAccess.Instance fieldAccess
-                        && fieldAccess.refType(KernelContext.class) && fieldAccess.named(Regex.of("[glb][is][xyz]"))){
+                .transform(c -> {
+                    if (fieldAccess(lookup(), c.op()) instanceof FieldAccess.Instance fieldAccess
+                            && fieldAccess.refType(KernelContext.class) && fieldAccess.named(Regex.of("[glb][is][xyz]"))) {
                         varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());  // the var access will be removed the next transform
-                        c.replace(switch (fieldAccess.name()){
-                            case "gix"->  new HATThreadOp.HAT_GI.HAT_GIX();
-                            case "giy"->  new HATThreadOp.HAT_GI.HAT_GIY();
-                            case "giz"->  new HATThreadOp.HAT_GI.HAT_GIZ();
-                            case "gsx"->  new HATThreadOp.HAT_GS.HAT_GSX();
-                            case "gsy"->  new HATThreadOp.HAT_GS.HAT_GSY();
-                            case "gsz"->  new HATThreadOp.HAT_GS.HAT_GSZ();
-                            case "lix"->  new HATThreadOp.HAT_LI.HAT_LIX();
-                            case "liy"->  new HATThreadOp.HAT_LI.HAT_LIY();
-                            case "liz"->  new HATThreadOp.HAT_LI.HAT_LIZ();
-                            case "lsx"->  new HATThreadOp.HAT_LS.HAT_LSX();
-                            case "lsy"->  new HATThreadOp.HAT_LS.HAT_LSY();
-                            case "lsz"->  new HATThreadOp.HAT_LS.HAT_LSZ();
-                            case "bix"->  new HATThreadOp.HAT_BI.HAT_BIX();
-                            case "biy"->  new HATThreadOp.HAT_BI.HAT_BIY();
-                            case "biz"->  new HATThreadOp.HAT_BI.HAT_BIZ();
-                            default -> throw  new RuntimeException("what is this ?");
-                        });
+                        c.replace(HATThreadOp.create(fieldAccess.name()));
                     }
                 })
                 .remap(varAccessesToBeRemoved)                // after this transform this set needs to be replaced with new op references

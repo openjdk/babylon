@@ -75,6 +75,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder blockIdxX() {return blockIdx().dot().identifier("x");}
     private CudaHATKernelBuilder blockIdxY() {return blockIdx().dot().identifier("y");}
     private CudaHATKernelBuilder blockIdxZ() {return blockIdx().dot().identifier("z");}
+
     @Override
     public CudaHATKernelBuilder defines() {
         return self()
@@ -98,6 +99,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BIX", _ -> blockIdxX())
                 .hashDefine("HAT_BIY", _ -> blockIdxY())
                 .hashDefine("HAT_BIZ", _ -> blockIdxZ())
+                .hashDefine("HAT_BSX", _ -> gridDimX())
+                .hashDefine("HAT_BSY", _ -> gridDimY())
+                .hashDefine("HAT_BSZ", _ -> gridDimZ())
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))

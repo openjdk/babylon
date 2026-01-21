@@ -89,65 +89,76 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return keyword("HAT_BARRIER");
     }
 
-    public final T HAT_GIX(){
+    public final T HAT_GIX() {
         return identifier("HAT_GIX");
     }
 
-    public final T HAT_GIY(){
+    public final T HAT_GIY() {
         return identifier("HAT_GIY");
     }
 
-    public final T HAT_GIZ(){
+    public final T HAT_GIZ() {
         return identifier("HAT_GIZ");
     }
 
-    public final T HAT_GSX(){
+    public final T HAT_GSX() {
         return identifier("HAT_GSX");
     }
 
-    public final T HAT_GSY(){
+    public final T HAT_GSY() {
         return identifier("HAT_GSY");
     }
 
-    public final T HAT_GSZ(){
+    public final T HAT_GSZ() {
         return identifier("HAT_GSZ");
     }
 
-    public final T HAT_LIX(){
+    public final T HAT_LIX() {
         return identifier("HAT_LIX");
     }
 
-    public final T HAT_LIY(){
+    public final T HAT_LIY() {
         return identifier("HAT_LIY");
     }
 
-    public final T HAT_LIZ(){
+    public final T HAT_LIZ() {
         return identifier("HAT_LIZ");
     }
 
-    public final T HAT_LSX(){
+    public final T HAT_LSX() {
         return identifier("HAT_LSX");
     }
 
-    public final T HAT_LSY(){
+    public final T HAT_LSY() {
         return identifier("HAT_LSY");
     }
 
-    public final T HAT_LSZ(){
+    public final T HAT_LSZ() {
         return identifier("HAT_LSZ");
     }
 
-
-    public final T HAT_BIX(){
+    public final T HAT_BIX() {
         return identifier("HAT_BIX");
     }
 
-    public final T HAT_BIY(){
+    public final T HAT_BIY() {
         return identifier("HAT_BIY");
     }
 
-    public final T HAT_BIZ(){
+    public final T HAT_BIZ() {
         return identifier("HAT_BIZ");
+    }
+
+    public final T HAT_BSX() {
+        return identifier("HAT_BSX");
+    }
+
+    public final T HAT_BSY() {
+        return identifier("HAT_BSY");
+    }
+
+    public final T HAT_BSZ() {
+        return identifier("HAT_BSZ");
     }
 
     @Override
@@ -168,8 +179,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATThreadOp.HAT_BI.HAT_BIX _ -> HAT_BIX();
             case HATThreadOp.HAT_BI.HAT_BIY _ -> HAT_BIY();
             case HATThreadOp.HAT_BI.HAT_BIZ _ -> HAT_BIZ();
+            case HATThreadOp.HAT_BS.HAT_BSX _ -> HAT_BSX();
+            case HATThreadOp.HAT_BS.HAT_BSY _ -> HAT_BSY();
+            case HATThreadOp.HAT_BS.HAT_BSZ _ -> HAT_BSZ();
         });
-
     }
 
     public final T kernelDeclaration(CoreOp.FuncOp funcOp) {
