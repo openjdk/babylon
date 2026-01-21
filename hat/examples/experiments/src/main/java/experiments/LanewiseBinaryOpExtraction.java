@@ -27,7 +27,6 @@ package experiments;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.InvokeQuery;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
@@ -36,7 +35,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Optional;
 
-
+import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.Invoke.Virtual;
 
 public class LanewiseBinaryOpExtraction {
 
@@ -121,17 +121,11 @@ public class LanewiseBinaryOpExtraction {
 
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
-        var binaryOpQuery = InvokeQuery.create(lookup);
         Trxfmr.of(lookup, LanewiseBinaryOpExtraction.class, "center", S32x2.class, S32x2.class)
                 .toJava("// (Java) before mapping", "//-------")
-                .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    if (binaryOpQuery.matches(c, $ ->// trivially look for a fluent style binary Op such as  S32x2.add(S32x2 rhs)
-                            $.isInstance() && $.returns(S32x2.class) &&  $.receives( S32x2.class)
-                    ) instanceof InvokeQuery.Match match) {
-                        c.replace(
-                                createBinaryOp(match.helper(), c.mappedOperand(0), c.mappedOperand(1))
-                        );
-                    }
+                .transform(ce -> invoke(lookup,ce) instanceof Virtual v && v.returns(S32x2.class) && v.receives(S32x2.class), c -> {
+                        c.replace(createBinaryOp(invoke(lookup,c.op()), c.mappedOperand(0), c.mappedOperand(1)));
+
                 })
                 .toJava("// (Java) after transform ", "// -------");
     }

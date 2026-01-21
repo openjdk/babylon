@@ -26,11 +26,14 @@ package experiments;
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.InvokeQuery;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
+
+import static optkl.OpHelper.Invoke.invoke;
+import optkl.OpHelper.Invoke.Virtual;
 
 public class UnpackingFluentBinaryOps {
 
@@ -44,17 +47,16 @@ public class UnpackingFluentBinaryOps {
 
     public static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
-         var mathOperatorQuery = InvokeQuery.create(lookup);
+
          Trxfmr.of(lookup, UnpackingFluentBinaryOps.class, "center", S32x2.class, S32x2.class)
                  .toText("// (Code Model) before transform", "//-------")
                  .toJava("// (Java) before mapping", "//-------")
 
                 .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    if (mathOperatorQuery.matches(c, // $ here is an Invoke helper...
-                            $ -> $.named(Regex.of("(add|mul|div|mod|sub)"))) instanceof InvokeQuery.Match match) {
+                    if (invoke(lookup,c.op()) instanceof Virtual v && v.named(Regex.of("(add|mul|div|mod|sub)"))) {
                         var lhs = c.mappedOperand(0);
                         var rhs = c.mappedOperand(1);
-                        c.replace(switch (match.helper().name()) { // we replace the call with one of ....
+                        c.replace(switch (v.name()) { // we replace the call with one of ....
                             case "add" -> JavaOp.add(lhs, rhs);
                             case "sub" -> JavaOp.sub(lhs, rhs);
                             case "mul" -> JavaOp.mul(lhs, rhs);
