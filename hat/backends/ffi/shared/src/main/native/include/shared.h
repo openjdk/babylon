@@ -386,6 +386,11 @@ public:
     int bix;
     int biy;
     int biz;
+
+    // Block sizes
+    int bsx;
+    int bsy;
+    int bsz;
 };
 
 class Backend {
