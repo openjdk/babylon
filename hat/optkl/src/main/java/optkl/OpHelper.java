@@ -650,8 +650,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return (Invoke) lambdaOp.body().entryBlock().ops().stream()
                     .filter(ce -> ce instanceof JavaOp.InvokeOp)
                     .map(ce -> invoke(lookup, ce))
-                 //   .filter(invoke->invoke instanceof Invoke.Static)
-                  //  .map(invoke->(Invoke.Static)invoke)
                     .filter(invoke -> OpHelper.isAssignable(lookup, ((Invoke)invoke).op().operands().getFirst().type(), classes))
                     .findFirst()
                     .orElseThrow();
@@ -676,16 +674,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
             record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Virtual {
             }
-           // static Virtual invokeVirtual(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
-             //   return codeElement instanceof JavaOp.InvokeOp invokeOp ? new Impl(lookup, invokeOp) : null;
-           // }
         }
         sealed interface Static extends Invoke{
             record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Static {
             }
-           // static Static invokeStatic(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
-             //   return codeElement instanceof JavaOp.InvokeOp invokeOp ? new Impl(lookup, invokeOp) : null;
-           // }
         }
     }
 
