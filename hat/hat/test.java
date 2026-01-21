@@ -187,7 +187,7 @@ void main(String[] argv) {
                 "hat.test.TestBFloat16Type",
                 "hat.test.TestDeviceType",
                 "hat.test.TestVecorArrayView",
-                "hat.test.TestGrids"
+                "hat.test.TestNumBlocks"
         };
 
         // Test the whole suite

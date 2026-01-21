@@ -42,10 +42,10 @@ import static hat.NDRange.Global1D;
 import static hat.NDRange.Local1D;
 import static hat.NDRange.NDRange1D;
 
-public class TestGrids {
+public class TestNumBlocks {
 
     @Reflect
-    private static void compute(@RO KernelContext kernelContext, @WO F32Array output) {
+    private static void kernel_numblocks_X(@RO KernelContext kernelContext, @WO F32Array output) {
         int idx = kernelContext.gix;
         int bsx = kernelContext.bsx;
         // Write the number of blocks
@@ -53,13 +53,13 @@ public class TestGrids {
     }
 
     @Reflect
-    private static void myCompute(@RO ComputeContext computeContext, @WO F32Array output, int numThreads, int localBlockSize) {
+    private static void numblocks_01(@RO ComputeContext computeContext, @WO F32Array output, int numThreads, int localBlockSize) {
         var ndRange = NDRange1D.of(Global1D.of(numThreads), Local1D.of(localBlockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> compute(kernelContext, output));
+        computeContext.dispatchKernel(ndRange, kernelContext -> kernel_numblocks_X(kernelContext, output));
     }
 
     @HatTest
-    public void testgrid_01() {
+    public void test_numblocks_01() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         final int numThreads = 128;
@@ -68,7 +68,7 @@ public class TestGrids {
         F32Array data = F32Array.create(accelerator, numThreads);
 
         accelerator.compute((@Reflect Compute) computeContext -> {
-            TestGrids.myCompute(computeContext, data, numThreads, localBlockSize);
+            TestNumBlocks.numblocks_01(computeContext, data, numThreads, localBlockSize);
         });
 
         float expectedValue = (float) numThreads / localBlockSize;
