@@ -48,7 +48,7 @@ public class TestGrids {
     private static void compute(@RO KernelContext kernelContext, @WO F32Array output) {
         int idx = kernelContext.gix;
         int bsx = kernelContext.bsx;
-        // Write the block size
+        // Write the number of blocks
         output.array(idx, bsx);
     }
 
