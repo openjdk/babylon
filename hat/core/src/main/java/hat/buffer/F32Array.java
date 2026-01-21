@@ -31,21 +31,28 @@ import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
+import java.util.stream.IntStream;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
-    @Reflect default void  schema(){array(length());}
+    @Reflect
+    default void schema() {
+        array(length());
+    }
+
     int length();
+
     float array(long idx);
+
     void array(long idx, float f);
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
     Schema<F32Array> schema = Schema.of(F32Array.class);
 
-    static F32Array create(CommonCarrier cc, int length){
+    static F32Array create(CommonCarrier cc, int length) {
         return schema.allocate(cc, length);
     }
 
@@ -54,8 +61,8 @@ public interface F32Array extends Buffer {
         return this;
     }
 
-    static F32Array createFrom(CommonCarrier cc, float[] arr){
-        return create( cc, arr.length).copyFrom(arr);
+    static F32Array createFrom(CommonCarrier cc, float[] arr) {
+        return create(cc, arr.length).copyFrom(arr);
     }
 
     default F32Array copyTo(float[] floats) {
