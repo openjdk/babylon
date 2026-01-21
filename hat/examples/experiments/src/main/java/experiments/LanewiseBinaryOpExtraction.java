@@ -72,12 +72,12 @@ public class LanewiseBinaryOpExtraction {
      *
 
      */
-    static JavaOp.BinaryOp getLaneWiseOp(OpHelper.Named.NamedStaticOrInstance.Invoke invoke) {
+    static JavaOp.BinaryOp getLaneWiseOp(OpHelper.Invoke invoke) {
         if (invoke.targetMethodModelOrThrow().elements().filter(o -> o instanceof JavaOp.BinaryOp).map(o -> (JavaOp.BinaryOp) o).findFirst()
                 instanceof Optional<JavaOp.BinaryOp> optionalBinaryOp && optionalBinaryOp.isPresent()) {
             return optionalBinaryOp.get();
         } else {
-            return  OpHelper.Named.NamedStaticOrInstance.Invoke
+            return  OpHelper.Invoke
                     .stream(invoke.lookup(),invoke.targetMethodModelOrThrow())
                     .map(LanewiseBinaryOpExtraction::getLaneWiseOp)
                     .findFirst()
@@ -95,7 +95,7 @@ public class LanewiseBinaryOpExtraction {
      * @throws RuntimeException if we can't find an Op.
      */
 
-    static JavaOp.BinaryOp createBinaryOp(OpHelper.Named.NamedStaticOrInstance.Invoke invoke, Value lhs, Value rhs) {
+    static JavaOp.BinaryOp createBinaryOp(OpHelper.Invoke invoke, Value lhs, Value rhs) {
         JavaOp.BinaryOp laneWiseBinaryOp =getLaneWiseOp(invoke);
         Class<JavaOp.BinaryOp> clazz = (Class<JavaOp.BinaryOp>) laneWiseBinaryOp.getClass();
         var optionalMethod = Arrays.stream(JavaOp.class.getDeclaredMethods()).filter(m ->

@@ -59,9 +59,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static hat.buffer.F16Array.F16Impl;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.FieldAccess.fieldAccess;
+import static optkl.OpHelper.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
 

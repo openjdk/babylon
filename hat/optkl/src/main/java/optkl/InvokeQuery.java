@@ -31,7 +31,7 @@ import optkl.util.BiMap;
 import java.lang.invoke.MethodHandles;
 import java.util.function.Predicate;
 
-import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import optkl.OpHelper.Invoke;
 
 public interface InvokeQuery extends Query<JavaOp.InvokeOp,Invoke,InvokeQuery> {
     interface Match extends SimpleMatch<JavaOp.InvokeOp, Invoke, InvokeQuery> {

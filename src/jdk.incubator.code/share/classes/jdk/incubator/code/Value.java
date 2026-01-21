@@ -25,16 +25,13 @@
 
 package jdk.incubator.code;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.SequencedSet;
+import java.util.*;
 
 /**
  * A value, that is the result of an operation or a block parameter.
  * @sealedGraph
  */
-public sealed abstract class Value implements Comparable<Value>, CodeItem
+public sealed abstract class Value implements CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
     final TypeElement type;
@@ -61,6 +58,21 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
             throw new IllegalStateException("Declaring block is partially constructed");
         }
         return block;
+    }
+
+    /**
+     * Returns this value's declaring code element.
+     * <p>If the value is an operation result, then the declaring code element is the operation.
+     * If the value is a block parameter then the declaring code element is this value's declaring block.
+     *
+     * @return the value's declaring code element.
+     * @throws IllegalStateException if the declaring block is partially built
+     */
+    public CodeElement<?, ?> declaringElement() {
+        return switch (this) {
+            case Block.Parameter _ -> block;
+            case Op.Result r -> r.op();
+        };
     }
 
     /**
@@ -166,49 +178,24 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
         }
     }
 
-
-    @Override
-    public int compareTo(Value o) {
-        return compare(this, o);
-    }
-
-    // @@@
-    public static int compare(Value v1, Value v2) {
-        if (v1 == v2) return 0;
-
-        Block b1 = v1.declaringBlock();
-        Block b2 = v2.declaringBlock();
-        if (b1 == b2) {
-            if (v1 instanceof Op.Result or1 && v2 instanceof Op.Result or2) {
-                List<Op> ops = b1.ops();
-                return Integer.compare(ops.indexOf(or1.op()), ops.indexOf(or2.op()));
-            } else if (v1 instanceof Op.Result) {
-                // v2 instanceof BlockParameter
-                return 1;
-            } else if (v2 instanceof Op.Result) {
-                // v1 instanceof BlockParameter
-                return -1;
-            } else { // v1 && v2 instanceof BlockParameter
-                assert v1 instanceof Block.Parameter && v2 instanceof Block.Parameter;
-                List<Block.Parameter> args = b1.parameters();
-                return Integer.compare(args.indexOf(v1), args.indexOf(v2));
-            }
-        }
-
-        Body r1 = b1.ancestorBody();
-        Body r2 = b2.ancestorBody();
-        if (r1 == r2) {
-            return Integer.compare(b1.index(), b2.index());
-        }
-
-        Op o1 = r1.ancestorOp();
-        Op o2 = r2.ancestorOp();
-        if (o1 == o2) {
-            List<Body> rs = o1.bodies();
-            return Integer.compare(rs.indexOf(r1), rs.indexOf(r2));
-        }
-
-        return compare(o1.result(), o2.result());
+    /**
+     * Compares two values by comparing their declaring elements.
+     *
+     * @apiNote
+     * This method behaves is if it returns the result of the following expression but may be implemented more
+     * efficiently.
+     * {@snippet :
+     * Comparator.comparing(Value::declaringElement, CodeElement::compare).compare(a, b)
+     * }
+     * @param a the first value to compare
+     * @param b the second value to compare
+     * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a} is less than {@code b}; and {@code -1}
+     * if {@code a} is greater than {@code b}.
+     * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
+     * @see CodeElement#compare
+     */
+    public static int compare(Value a, Value b) {
+        return CodeElement.compare(a.declaringElement(), b.declaringElement());
     }
 
     boolean isBound() {

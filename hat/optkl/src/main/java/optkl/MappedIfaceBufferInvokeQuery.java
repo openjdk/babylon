@@ -26,7 +26,7 @@ package optkl;
 
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
+import optkl.OpHelper.Invoke;
 import optkl.util.BiMap;
 
 import java.lang.invoke.MethodHandles;

@@ -51,8 +51,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaBackend extends C99FFIBackend {
     final int major = 7;

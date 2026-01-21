@@ -39,8 +39,8 @@ import optkl.util.ops.Precedence;
 
 import java.util.function.Consumer;
 
-import static optkl.OpHelper.Named.NamedStaticOrInstance.FieldAccess.fieldAccess;
-import static optkl.OpHelper.Named.NamedStaticOrInstance.Invoke.invoke;
+import static optkl.OpHelper.FieldAccess.fieldAccess;
+import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.Ternary.ternary;
 
 public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuilder<T,SCBC>,SCBC extends ScopedCodeBuilderContext>
