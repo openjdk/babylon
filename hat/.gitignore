@@ -22,6 +22,7 @@ wraps/cuda/target/
 extractions/cuda/target
 extractions/opencl/target
 extractions/opengl/target
+optkl/target/
 stage/
 compile_flags.txt
 remoteTesting.conf
