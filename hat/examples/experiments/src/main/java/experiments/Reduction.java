@@ -60,7 +60,7 @@ public class Reduction {
                         .array("array", 16));
 
         static MySharedArray create(Accelerator accelerator) {
-            return BoundSchema.allocate(accelerator,schema, 1);
+            return BoundSchema.of(accelerator ,schema, 1).allocate();
         }
 
         static MySharedArray createLocal() {

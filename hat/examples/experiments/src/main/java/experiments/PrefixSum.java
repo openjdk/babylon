@@ -68,7 +68,7 @@ public class PrefixSum {
         DeviceSchema<SharedS32x256Array> schema = DeviceSchema.of(SharedS32x256Array.class, $ -> $.withArray("array", 32));
 
         static SharedS32x256Array create(Accelerator accelerator) {
-           return null;// return BoundSchema.allocate(accelerator,schema); // Why would we get here?
+           return null;// return BoundSchema.of(accelerator ,schema).allocate(); // Why would we get here?
         }
 
         static SharedS32x256Array createLocal() {

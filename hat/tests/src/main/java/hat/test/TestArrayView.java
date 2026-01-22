@@ -181,7 +181,7 @@ public class TestArrayView {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return BoundSchema.allocate(accelerator,schema, width, height);
+            return BoundSchema.of(accelerator ,schema, width, height).allocate();
         }
 
         ValueLayout valueLayout = JAVA_BYTE;
@@ -211,7 +211,7 @@ public class TestArrayView {
                         control.fields("from", "to"));//, "generation", "requiredFrameRate", "maxGenerations"));
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
-            var instance = BoundSchema.allocate(accelerator,schema);
+            var instance = BoundSchema.of(accelerator ,schema).allocate();
             instance.from(cellGrid.width() * cellGrid.height());
             instance.to(0);
             return instance;

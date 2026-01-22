@@ -73,7 +73,7 @@ public class TestNbody {
                 )
         );
         static Universe create(Accelerator accelerator, int length) {
-            return BoundSchema.allocate(accelerator,schema, length);
+            return BoundSchema.of(accelerator ,schema, length).allocate();
         }
     }
 

@@ -175,7 +175,7 @@ public interface ScaleTable extends Buffer {
     );
 
     static ScaleTable create(Accelerator accelerator, int length){
-        return BoundSchema.allocate(accelerator,schema,length);
+        return BoundSchema.of(accelerator ,schema,length).allocate();
     }
 
     static ScaleTable createFrom(Accelerator accelerator, Constraints constraints){

@@ -45,6 +45,6 @@ public interface F16Array extends Buffer {
                             half -> half.fields("value")));
 
     static F16Array create(Accelerator accelerator, int length){
-        return BoundSchema.allocate(accelerator,schema, length);
+        return BoundSchema.of(accelerator,schema, length).allocate();
     }
 }

@@ -51,6 +51,6 @@ public interface XYRGBList extends Buffer {
             )
     );
     static XYRGBList create(Accelerator accelerator, Selection selection) {
-        return  BoundSchema.allocate(accelerator,schema,selection.pointList.size());
+        return  BoundSchema.of(accelerator ,schema,selection.pointList.size()).allocate();
     }
 }

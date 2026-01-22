@@ -29,12 +29,10 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.accessor.AccessorInfo;
 import optkl.ifacemapper.accessor.ValueType;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -66,7 +66,7 @@ public interface ResultTable extends Buffer {
     );
 
     static ResultTable create(Accelerator accelerator,int length){
-        return BoundSchema.allocate(accelerator,schema,length);
+        return BoundSchema.of(accelerator ,schema,length).allocate();
     }
 
 }

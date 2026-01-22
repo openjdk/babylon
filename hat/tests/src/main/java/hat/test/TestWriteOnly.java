@@ -52,7 +52,7 @@ public class TestWriteOnly {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return BoundSchema.allocate(accelerator,schema, width, height);
+            return BoundSchema.of(accelerator ,schema, width, height).allocate();
         }
 
         default byte[][] arrayView() {

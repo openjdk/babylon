@@ -162,11 +162,11 @@ public interface Cascade extends Buffer {
 
     static Cascade create(Accelerator accelerator, int width, int height,
     int features,int stages,int trees){
-        var instance  = BoundSchema.allocate(accelerator,schema,
+        var instance  = BoundSchema.of(accelerator ,schema,
                 features,
                 stages,
                 trees
-        );
+        ).allocate();
         instance.width(width);
         instance.height(height);
         return instance;

@@ -63,7 +63,7 @@ public class LocalArray {
                         .array("array", 16));
 
         static MyArray create(Accelerator accelerator) {
-            return BoundSchema.allocate(accelerator,schema, 1);
+            return BoundSchema.of(accelerator ,schema, 1).allocate();
         }
 
         static MyArray createLocal() {
