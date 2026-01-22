@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 import hat.test.exceptions.HATAssertionError;
@@ -72,7 +73,7 @@ public class TestNbody {
                 )
         );
         static Universe create(Accelerator accelerator, int length) {
-            return schema.allocate(accelerator, length);
+            return BoundSchema.allocate(accelerator,schema, length);
         }
     }
 

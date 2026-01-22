@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -53,7 +54,7 @@ public interface F32Array extends Buffer {
     Schema<F32Array> schema = Schema.of(F32Array.class);
 
     static F32Array create(CommonCarrier cc, int length) {
-        return schema.allocate(cc, length);
+        return BoundSchema.allocate(cc,schema, length);
     }
 
     default F32Array copyFrom(float[] floats) {

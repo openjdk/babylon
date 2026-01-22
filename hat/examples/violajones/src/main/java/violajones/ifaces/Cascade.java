@@ -26,6 +26,7 @@ package violajones.ifaces;
 
 import hat.Accelerator;
 
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
 import optkl.ifacemapper.Buffer;
 
@@ -161,7 +162,7 @@ public interface Cascade extends Buffer {
 
     static Cascade create(Accelerator accelerator, int width, int height,
     int features,int stages,int trees){
-        var instance  = schema.allocate(accelerator,
+        var instance  = BoundSchema.allocate(accelerator,schema,
                 features,
                 stages,
                 trees

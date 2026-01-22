@@ -25,8 +25,12 @@
 package optkl.ifacemapper;
 
 
+import optkl.ifacemapper.accessor.AccessorInfo;
+import optkl.util.carriers.CommonCarrier;
+
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -254,4 +258,36 @@ public class BoundSchema<T extends MappableIface> {
         }
 
     }
+
+
+    static public <T extends Buffer> T allocate(CommonCarrier commonCarrier, Schema<T> schema,int... boundLengths) {
+        BoundSchema<?> boundSchema = new BoundSchema<>(schema, boundLengths);
+        T instance = (T) boundSchema.allocate(commonCarrier.lookup(), commonCarrier);
+        MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
+        int[] count = new int[]{0};
+
+
+        boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {
+            boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
+                long dimOffset = dimLayout.offset();
+                int dim = boundLengths[count[0]++];
+                if (dimLayout.field instanceof Schema.FieldNode.ArrayLen arrayLen) {
+                    if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)) {
+                        throw new IllegalStateException("You have a bound array dim field " + dimLayout.field.name + " controlling size of " + boundArrayFieldLayout.field.name + "[] which has a setter ");
+                    }
+                    if (arrayLen.type == Long.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_LONG, dimOffset, dim);
+                    } else if (arrayLen.type == Integer.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_INT, dimOffset, dim);
+                    } else {
+                        throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
+                    }
+                }
+            });
+        });
+
+
+        return instance;
+    }
+
 }

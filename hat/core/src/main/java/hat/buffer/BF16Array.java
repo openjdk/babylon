@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import hat.types.BF16;
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
@@ -44,6 +45,6 @@ public interface BF16Array extends Buffer {
                      .array("array", bfloat16 -> bfloat16.fields("value")));
 
     static BF16Array create(CommonCarrier cc, int length){
-        return schema.allocate(cc, length);
+        return BoundSchema.allocate(cc,schema, length);
     }
 }

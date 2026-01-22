@@ -25,6 +25,7 @@
 package nbody;
 
 import hat.Accelerator;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import hat.types.Float4;
 import optkl.ifacemapper.Schema;
@@ -89,7 +90,7 @@ public interface Universe extends Buffer {
     );
 
     static Universe create(Accelerator accelerator, int length) {
-        return schema.allocate(accelerator, length);
+        return BoundSchema.allocate(accelerator,schema, length);
     }
 
 }

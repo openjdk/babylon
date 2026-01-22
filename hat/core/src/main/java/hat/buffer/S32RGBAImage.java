@@ -25,6 +25,7 @@
 package hat.buffer;
 
 
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Schema;
 
@@ -37,6 +38,6 @@ public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
             .arrayLen("width", "height").stride(1).array("data")
     );
     static S32RGBAImage create(CommonCarrier cc, int width, int height){
-        return schema.allocate(cc,width,height);
+        return BoundSchema.allocate(cc,schema,width,height);
     }
 }

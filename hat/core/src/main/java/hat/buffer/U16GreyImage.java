@@ -25,6 +25,7 @@
 package hat.buffer;
 
 
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Schema;
 
@@ -39,6 +40,6 @@ public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
     );
 
     static U16GreyImage create(CommonCarrier cc, int width, int height){
-        return schema.allocate(cc,width,height);
+        return BoundSchema.allocate(cc,schema,width,height);
     }
 }

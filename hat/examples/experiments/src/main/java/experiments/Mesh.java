@@ -113,7 +113,7 @@ public class Mesh {
                 .arrayLen("vertices").array("vertex", v -> v.fields("from", "to"))
         );
         static  MeshData create(Accelerator accelerator) {
-            return schema.allocate(accelerator,100,10);
+            return BoundSchema.allocate(accelerator,schema,100,10);
         }
     }
 

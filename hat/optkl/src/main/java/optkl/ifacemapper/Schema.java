@@ -69,36 +69,6 @@ public class Schema<T extends MappableIface> {
         this.rootIfaceType = rootIfaceType;
     }
 
-    public T allocate(CommonCarrier commonCarrier, int... boundLengths) {
-        BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        T instance = (T) boundSchema.allocate(commonCarrier.lookup(), commonCarrier);
-        MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
-        int[] count = new int[]{0};
-
-
-        boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {
-            boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
-                long dimOffset = dimLayout.offset();
-                int dim = boundLengths[count[0]++];
-                if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen) {
-                    if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)) {
-                        throw new IllegalStateException("You have a bound array dim field " + dimLayout.field.name + " controlling size of " + boundArrayFieldLayout.field.name + "[] which has a setter ");
-                    }
-                    if (arrayLen.type == Long.TYPE) {
-                        memorySegment.set(ValueLayout.JAVA_LONG, dimOffset, dim);
-                    } else if (arrayLen.type == Integer.TYPE) {
-                        memorySegment.set(ValueLayout.JAVA_INT, dimOffset, dim);
-                    } else {
-                        throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
-                    }
-                }
-            });
-        });
-
-
-        return instance;
-    }
-
     public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<IfaceType> parentFieldConsumer) {
         var struct = new IfaceType.Struct(null, (Class<MappableIface>) (Object) iface); // why the need for this?
         parentFieldConsumer.accept(struct);

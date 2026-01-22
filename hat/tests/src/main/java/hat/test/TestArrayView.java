@@ -32,6 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.*;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
@@ -180,7 +181,7 @@ public class TestArrayView {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return schema.allocate(accelerator, width, height);
+            return BoundSchema.allocate(accelerator,schema, width, height);
         }
 
         ValueLayout valueLayout = JAVA_BYTE;
@@ -210,7 +211,7 @@ public class TestArrayView {
                         control.fields("from", "to"));//, "generation", "requiredFrameRate", "maxGenerations"));
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
-            var instance = schema.allocate(accelerator);
+            var instance = BoundSchema.allocate(accelerator,schema);
             instance.from(cellGrid.width() * cellGrid.height());
             instance.to(0);
             return instance;

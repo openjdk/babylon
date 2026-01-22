@@ -31,6 +31,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import hat.buffer.F32Array;
 import optkl.ifacemapper.MappableIface.RO;
@@ -62,7 +63,7 @@ public class LocalArray {
                         .array("array", 16));
 
         static MyArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator, 1);
+            return BoundSchema.allocate(accelerator,schema, 1);
         }
 
         static MyArray createLocal() {

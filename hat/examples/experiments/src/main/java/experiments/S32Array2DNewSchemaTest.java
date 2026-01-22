@@ -46,7 +46,7 @@ public class S32Array2DNewSchemaTest implements Buffer {
         int array(long idx);
         void array(long idx, int i);
         static S32Arr2D create(CommonCarrier cc, int width, int height) {
-            return schema.allocate(cc, width, height);
+            return BoundSchema.allocate(cc,schema, width, height);
         }
     }
     public static void main(String[] args) {

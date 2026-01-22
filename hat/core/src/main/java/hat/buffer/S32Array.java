@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -45,7 +46,7 @@ public interface S32Array extends Buffer {
     Schema<S32Array> schema = Schema.of(S32Array.class);
 
     @Reflect static S32Array create(CommonCarrier cc, int length){
-        return schema.allocate(cc, length);
+        return BoundSchema.allocate(cc,schema, length);
     }
     @Reflect default S32Array fill(Function<Integer, Integer> filler) {
         for (int i = 0; i < length(); i++) {

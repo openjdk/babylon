@@ -26,6 +26,7 @@ package hat.buffer;
 
 import optkl.ifacemapper.AccessType;
 import hat.callgraph.KernelCallGraph;
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -250,7 +251,7 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = schema.allocate(cc,args.length,schemaStr.length() + 1);
+        ArgArray argArray = BoundSchema.allocate(cc,schema,args.length,schemaStr.length() + 1);
         byte[] schemaStrBytes = schemaStr.getBytes();
         for (int i = 0; i < schemaStrBytes.length; i++) {
             argArray.schemaBytes(i, schemaStrBytes[i]);

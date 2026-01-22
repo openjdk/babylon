@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
@@ -50,7 +51,7 @@ public interface F32Array2D extends Buffer {
     }
 
     static F32Array2D create(CommonCarrier cc, int width, int height){
-        return schema.allocate(cc, width,height);
+        return BoundSchema.allocate(cc,schema, width,height);
     }
 
     default float[][] arrayView() {

@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface.RO;
@@ -59,7 +60,7 @@ public class Reduction {
                         .array("array", 16));
 
         static MySharedArray create(Accelerator accelerator) {
-            return schema.allocate(accelerator, 1);
+            return BoundSchema.allocate(accelerator,schema, 1);
         }
 
         static MySharedArray createLocal() {

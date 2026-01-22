@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
@@ -107,7 +108,7 @@ public interface KernelBufferContext extends Buffer {
     void bsz(int bsz);
 
     static KernelBufferContext createDefault(CommonCarrier cc) {
-        KernelBufferContext kernelBufferContext = schema.allocate(cc);
+        KernelBufferContext kernelBufferContext = BoundSchema.allocate(cc,schema);
 
         // Set default value for each construct
         kernelBufferContext.dimensions(3);

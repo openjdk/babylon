@@ -25,6 +25,7 @@
 package heal;
 
 import hat.Accelerator;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
@@ -50,6 +51,6 @@ public interface XYRGBList extends Buffer {
             )
     );
     static XYRGBList create(Accelerator accelerator, Selection selection) {
-        return  schema.allocate(accelerator,selection.pointList.size());
+        return  BoundSchema.allocate(accelerator,schema,selection.pointList.size());
     }
 }

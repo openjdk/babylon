@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import optkl.ifacemapper.BoundSchema;
 import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -54,7 +55,7 @@ public interface S32Array2D extends Buffer {
     }
 
     static S32Array2D create(CommonCarrier cc, int width, int height){
-        return schema.allocate(cc, width,height);
+        return BoundSchema.allocate(cc,schema, width,height);
     }
     default S32Array2D copyFrom(int[] ints) {
         MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
