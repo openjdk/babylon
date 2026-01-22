@@ -30,19 +30,13 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.util.ops.Precedence;
+import optkl.util.ops.Precedence.LoadOrConv;
 
 import java.util.List;
 
-public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedence.LoadOrConv
-        permits HATThreadOp.HAT_BI,
-                HATThreadOp.HAT_BS,
-                HATThreadOp.HAT_GS,
-                HATThreadOp.HAT_GI,
-                HATThreadOp.HAT_LS,
-                HATThreadOp.HAT_LI {
+public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrConv {
 
-    public HATThreadOp(List<Value> operands) {
+    protected HATThreadOp(List<Value> operands) {
         super(operands);
     }
 
@@ -51,7 +45,7 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedenc
     }
 
     @Override
-    final public TypeElement resultType() {
+    public final TypeElement resultType() {
         return JavaType.INT;
     }
 
@@ -79,13 +73,13 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedenc
         };
     }
 
-    public static sealed abstract class HAT_LI extends HATThreadOp permits HAT_LI.HAT_LIX, HAT_LI.HAT_LIY, HAT_LI.HAT_LIZ {
+    public abstract static sealed class HAT_LI extends HATThreadOp {
 
-        public HAT_LI() {
+        protected HAT_LI() {
             super(List.of());
         }
 
-        public HAT_LI(HAT_LI op, CodeContext copyContext) {
+        protected HAT_LI(HAT_LI op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
@@ -135,12 +129,12 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedenc
         }
     }
 
-    public static abstract sealed class HAT_BI extends HATThreadOp {
-        public HAT_BI() {
+    public abstract static sealed class HAT_BI extends HATThreadOp {
+        protected HAT_BI() {
             super(List.of());
         }
 
-        public HAT_BI(HAT_BI op, CodeContext copyContext) {
+        protected HAT_BI(HAT_BI op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
@@ -190,13 +184,13 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedenc
         }
     }
 
-    public static abstract sealed class HAT_BS extends HATThreadOp {
+    public abstract static sealed class HAT_BS extends HATThreadOp {
 
-        public HAT_BS() {
+        protected HAT_BS() {
             super(List.of());
         }
 
-        public HAT_BS(HAT_BS op, CodeContext copyContext) {
+        protected HAT_BS(HAT_BS op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
@@ -250,13 +244,13 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedenc
         }
     }
 
-    public static abstract sealed class HAT_LS extends HATThreadOp permits HAT_LS.HAT_LSX, HAT_LS.HAT_LSY, HAT_LS.HAT_LSZ {
+    public abstract static sealed class HAT_LS extends HATThreadOp {
 
-        public HAT_LS() {
+        protected HAT_LS() {
             super(List.of());
         }
 
-        public HAT_LS(HAT_LS op, CodeContext copyContext) {
+        protected HAT_LS(HAT_LS op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
@@ -306,14 +300,13 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedenc
         }
     }
 
-    public static abstract sealed class HAT_GI extends HATThreadOp
-            permits HAT_GI.HAT_GIX, HAT_GI.HAT_GIY, HAT_GI.HAT_GIZ {
+    public abstract static sealed class HAT_GI extends HATThreadOp {
 
-        public HAT_GI() {
+        protected HAT_GI() {
             super(List.of());
         }
 
-        public HAT_GI(HAT_GI op, CodeContext copyContext) {
+        protected HAT_GI(HAT_GI op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
@@ -363,12 +356,13 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, Precedenc
         }
     }
 
-    public static abstract sealed class HAT_GS extends HATThreadOp permits HAT_GS.HAT_GSY, HAT_GS.HAT_GSX, HAT_GS.HAT_GSZ {
-        public HAT_GS() {
+    public abstract static sealed class HAT_GS extends HATThreadOp {
+
+        protected HAT_GS() {
             super(List.of());
         }
 
-        public HAT_GS(HAT_GS op, CodeContext copyContext) {
+        protected HAT_GS(HAT_GS op, CodeContext copyContext) {
             super(op, copyContext);
         }
 
