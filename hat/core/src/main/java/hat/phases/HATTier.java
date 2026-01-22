@@ -89,7 +89,13 @@ public class HATTier implements  LookupCarrier {
             try {
                 // TODO Did we just trash side tables ?
                 Function<CoreOp.FuncOp,CoreOp.FuncOp> phase = queue.take();
+                if (kernelCallGraph.config().showCompilationPhases()){
+                    System.out.println("Before PHASE" +phase.getClass().getSimpleName()+"\n"+f.toText());
+                }
                 f = phase.apply(f);
+                if (kernelCallGraph.config().showCompilationPhases()){
+                    System.out.println("After PHASE" +phase.getClass().getSimpleName()+"\n"+f.toText());
+                }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
