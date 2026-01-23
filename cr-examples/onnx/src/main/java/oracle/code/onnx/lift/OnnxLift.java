@@ -35,6 +35,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -364,7 +365,10 @@ public final class OnnxLift {
                                 default -> throw new UnsupportedOperationException(t.elementType().name() + " Constant attribute tensor type");
                             }
                         }
-                        default -> throw new UnsupportedOperationException("multidimensional Constant attribute tensor");
+                        default -> {
+                            attributes.put(OnnxOps.Constant.Attribute.value.name(), t);
+                        }
+                            //throw new UnsupportedOperationException("multidimensional Constant attribute tensor " + Arrays.toString(t.shape()));
                     }
                 }
 
@@ -432,39 +436,32 @@ public final class OnnxLift {
     private static void extractWeights(OnnxModel.ModelProto model, Path sourceFolder, Path targetFolder) throws IOException {
         targetFolder.toFile().mkdirs();
         for (OnnxModel.TensorProto i : model.graph().initializer()) {
-            Path weightFile = targetFolder.resolve(toJavaName(i.name()));
-            try (var weightStream = new FileOutputStream(weightFile.toFile())) {
-                if (i.floatData() instanceof List<float[]> fd) {
-                    for (var fa : fd) {
-                        var data = MemorySegment.ofArray(fa).toArray(ValueLayout.JAVA_BYTE);
-                        weightStream.write(data);
+            if (i.externalData() == null) {
+                Path weightFile = targetFolder.resolve(toJavaName(i.name()));
+                try (var weightStream = new FileOutputStream(weightFile.toFile())) {
+                    if (i.floatData() instanceof List<float[]> fd) {
+                        for (var fa : fd) {
+                            var data = MemorySegment.ofArray(fa).toArray(ValueLayout.JAVA_BYTE);
+                            weightStream.write(data);
+                        }
+                    } else if (i.int64Data() instanceof List<long[]> ld) {
+                        for (var la : ld) {
+                            var data = MemorySegment.ofArray(la).toArray(ValueLayout.JAVA_BYTE);
+                            weightStream.write(data);
+                        }
+                    } else if (i.int32Data() instanceof List<int[]> id) {
+                        for (var ia : id) {
+                            var data = MemorySegment.ofArray(ia).toArray(ValueLayout.JAVA_BYTE);
+                            weightStream.write(data);
+                        }
+                    } else if (i.rawData() instanceof byte[] bd) {
+                        weightStream.write(bd);
+                    } else {
+                        throw new UnsupportedOperationException();
                     }
-                } else if (i.int64Data() instanceof List<long[]> ld) {
-                    for (var la : ld) {
-                        var data = MemorySegment.ofArray(la).toArray(ValueLayout.JAVA_BYTE);
-                        weightStream.write(data);
-                    }
-                } else if (i.int32Data() instanceof List<int[]> id) {
-                    for (var ia : id) {
-                        var data = MemorySegment.ofArray(ia).toArray(ValueLayout.JAVA_BYTE);
-                        weightStream.write(data);
-                    }
-                } else if (i.rawData() instanceof byte[] bd) {
-                    weightStream.write(bd);
-                } else if (i.externalData() instanceof List<OnnxModel.StringStringEntryProto> ssep) {
-                    var map = ssep.stream().collect(Collectors.toUnmodifiableMap(OnnxModel.StringStringEntryProto::key, OnnxModel.StringStringEntryProto::value));
-                    Path dataFilePath = sourceFolder.resolve(map.get("location"));
-                    long offset = Long.parseLong(map.get("offset"));
-                    int length = Integer.parseInt(map.get("length"));
-                    try (var dataFile = new RandomAccessFile(dataFilePath.toString(), "r");Arena a = Arena.ofConfined()) {
-                        var ms = dataFile.getChannel().map(FileChannel.MapMode.READ_ONLY, offset, length, a);
-                        weightStream.write(ms.toArray(ValueLayout.JAVA_BYTE));
-                    }
-                } else {
-                    throw new UnsupportedOperationException();
                 }
+                IO.println(weightFile + " extracted.");
             }
-            IO.println(weightFile + " extracted.");
         }
     }
 
@@ -481,6 +478,7 @@ public final class OnnxLift {
 
                 IO.println(colorModelToANSI(liftedModel.toText()));
 
+                Files.createDirectories(targetFolder);
                 Path java = targetFolder.resolve(className + ".java");
                 Files.writeString(java, JavaTemplate.toJava(liftedModel, className));
                 IO.println(java + " generated.");
