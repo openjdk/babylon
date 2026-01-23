@@ -38,6 +38,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.Regex;
 
@@ -53,15 +54,13 @@ import static optkl.OpHelper.copyLocation;
 public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
 
-    static public ReducedFloatType categorizeReducedFloat(JavaOp.InvokeOp invokeOp) {
-        String invokeClassName = invokeOp.invokeDescriptor().refType().toString();
-        invokeClassName = invokeClassName.replace("$", ".");
-        if (invokeClassName.equals(F16.class.getName())) { // lets not compare strings here
-            return ReducedFloatType.HalfFloat.of();
-        } else if (invokeClassName.equals(BF16.class.getName())) { // lets not compare strings here
-            return ReducedFloatType.BFloat16.of();
-        }
-        return null;
+     static public ReducedFloatType categorizeReducedFloat(Invoke invoke) {
+         if (invoke.refIs(F16.class)){
+             return ReducedFloatType.HalfFloat.of();
+         }else if (invoke.refIs(BF16.class)){
+             return ReducedFloatType.BFloat16.of();
+         }
+         return null;
     }
 
     static public  void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
@@ -151,7 +150,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         Invoke.stream(lookup(),funcOp)
                 .filter(invoke -> HATPhaseUtils.is16BitFloat(invoke, Regex.of(binaryOpEnum.name().toLowerCase())) && !invoke.returnsVoid())
                 .forEach(invoke ->  {
-                        ReducedFloatType category = categorizeReducedFloat(invoke.op());
+                        ReducedFloatType category = categorizeReducedFloat(invoke);
                         reducedFloatsType.put(invoke.op(), category);
                         invoke.op().result().uses().stream()
                                 .filter(result -> result.op() instanceof CoreOp.VarOp)
@@ -204,7 +203,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                             .map(result -> (CoreOp.VarOp) result.op() )
                             .findFirst()
                             .ifPresent(varOp -> { // is there only one?
-                                ReducedFloatType reducedFloatType = categorizeReducedFloat(invoke.op());
+                                ReducedFloatType reducedFloatType = categorizeReducedFloat(invoke);
                                 reducedFloatsType.put(varOp, reducedFloatType);
                                 reducedFloatsType.put(invoke.op(), reducedFloatType);
                     })
@@ -229,7 +228,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                 .map(invoke->(Invoke.Static)invoke)
                 .filter(invoke->(invoke.named("f16ToFloat")||invoke.named("bfloat162float")) && invoke.returnsFloat())
                 .findFirst() // only one?
-                .ifPresent(invoke -> reducedFloatsType.put(invoke.op(), categorizeReducedFloat(invoke.op())));
+                .ifPresent(invoke -> reducedFloatsType.put(invoke.op(), categorizeReducedFloat(invoke)));
 
 
         return Trxfmr.of(this,funcOp).transform(reducedFloatsType::containsKey,(blockBuilder, op) -> {
