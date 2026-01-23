@@ -31,7 +31,7 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
@@ -41,7 +41,7 @@ import java.lang.invoke.MethodHandles;
 
 public class TestReductions {
 
-    private interface MySharedArray extends DeviceType {
+    private interface MySharedArray extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
 

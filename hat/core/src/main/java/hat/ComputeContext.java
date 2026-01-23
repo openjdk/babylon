@@ -26,8 +26,9 @@ package hat;
 
 import hat.callgraph.ComputeEntrypoint;
 import jdk.incubator.code.Location;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+import optkl.util.carriers.ArenaCarrier;
 import optkl.util.carriers.LookupCarrier;
-import optkl.ifacemapper.BufferAllocator;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
@@ -69,7 +70,7 @@ import static optkl.OpHelper.Lambda.lambda;
  *
  * @author Gary Frost
  */
-public class ComputeContext implements LookupCarrier,BufferAllocator, BufferTracker {
+public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
 
     @Override

@@ -29,12 +29,10 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.util.carriers.CommonCarrier;
 import optkl.ifacemapper.accessor.AccessorInfo;
 import optkl.ifacemapper.accessor.ValueType;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,36 +65,6 @@ public class Schema<T extends MappableIface> {
     Schema(Class<T> iface, IfaceType rootIfaceType) {
         this.iface = iface;
         this.rootIfaceType = rootIfaceType;
-    }
-
-    public T allocate(CommonCarrier commonCarrier, int... boundLengths) {
-        BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        T instance = (T) boundSchema.allocate(commonCarrier.lookup(), commonCarrier);
-        MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
-        int[] count = new int[]{0};
-
-
-        boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {
-            boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
-                long dimOffset = dimLayout.offset();
-                int dim = boundLengths[count[0]++];
-                if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen) {
-                    if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)) {
-                        throw new IllegalStateException("You have a bound array dim field " + dimLayout.field.name + " controlling size of " + boundArrayFieldLayout.field.name + "[] which has a setter ");
-                    }
-                    if (arrayLen.type == Long.TYPE) {
-                        memorySegment.set(ValueLayout.JAVA_LONG, dimOffset, dim);
-                    } else if (arrayLen.type == Integer.TYPE) {
-                        memorySegment.set(ValueLayout.JAVA_INT, dimOffset, dim);
-                    } else {
-                        throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
-                    }
-                }
-            });
-        });
-
-
-        return instance;
     }
 
     public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<IfaceType> parentFieldConsumer) {

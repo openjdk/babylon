@@ -37,7 +37,7 @@ import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
 import hat.types.Float4;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import optkl.ifacemapper.MappableIface.WO;
 import jdk.incubator.code.Reflect;
 
@@ -117,7 +117,7 @@ public class Main {
         }
     }
 
-    private interface MyLocalArrayFixedSize extends DeviceType {
+    private interface MyLocalArrayFixedSize extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -181,7 +181,7 @@ public class Main {
         matrixC.array((long) row * size + col, sum);
     }
 
-    private interface SharedMemory extends DeviceType {
+    private interface SharedMemory extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -198,7 +198,7 @@ public class Main {
         }
     }
 
-    private interface PrivateArray extends DeviceType {
+    private interface PrivateArray extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -215,7 +215,7 @@ public class Main {
         }
     }
 
-    private interface FlatPrivate extends DeviceType {
+    private interface FlatPrivate extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -474,7 +474,7 @@ public class Main {
         }
     }
 
-    private interface SharedMemoryHalf extends DeviceType {
+    private interface SharedMemoryHalf extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(SharedMemoryHalf.class,
@@ -490,7 +490,7 @@ public class Main {
         }
     }
 
-    private interface PrivateArrayHalf extends DeviceType {
+    private interface PrivateArrayHalf extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(PrivateArrayHalf.class,
@@ -506,7 +506,7 @@ public class Main {
         }
     }
 
-    private interface FlatPrivateHalf extends DeviceType {
+    private interface FlatPrivateHalf extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(FlatPrivateHalf.class,

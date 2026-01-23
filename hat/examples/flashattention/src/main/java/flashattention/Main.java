@@ -30,8 +30,9 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import jdk.incubator.code.Reflect;
+import optkl.IfaceValue;
 import optkl.ifacemapper.MappableIface.RW;
 
 import java.lang.invoke.MethodHandles;
@@ -270,7 +271,7 @@ public class Main {
     }
 
     // Express a float array in shared memory with HAT
-    private interface SharedFloatArray extends DeviceType {
+    private interface SharedFloatArray extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -289,7 +290,7 @@ public class Main {
     }
 
     // Express an array of floats in private memory with HAT
-    private interface PrivateFloatArray extends DeviceType {
+    private interface PrivateFloatArray extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);

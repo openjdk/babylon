@@ -26,8 +26,8 @@ package hat.buffer;
 
 import hat.types.Float2;
 import hat.types.Float4;
-import jdk.incubator.code.Reflect;
-import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
@@ -50,8 +50,8 @@ public interface F32ArrayPadded extends Buffer {
 
     long ARRAY_OFFSET = JAVA_INT.byteSize()+PAD_SIZE;
 
-    static F32ArrayPadded create(CommonCarrier cc, int length){
-        return schema.allocate(cc, length);
+    static F32ArrayPadded create(ArenaAndLookupCarrier cc, int length){
+        return BoundSchema.of(cc ,schema, length).allocate();
     }
 
     default F32ArrayPadded copyFrom(float[] floats) {
@@ -59,7 +59,7 @@ public interface F32ArrayPadded extends Buffer {
         return this;
     }
 
-    static F32ArrayPadded createFrom(CommonCarrier cc, float[] arr){
+    static F32ArrayPadded createFrom(ArenaAndLookupCarrier cc, float[] arr){
         return create( cc, arr.length).copyFrom(arr);
     }
 
