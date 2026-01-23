@@ -37,7 +37,7 @@ import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
 import hat.types.Float4;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
@@ -97,7 +97,7 @@ public class TestMatMul {
         }
     }
 
-    private interface MyLocalArrayFixedSize extends DeviceType {
+    private interface MyLocalArrayFixedSize extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
 
@@ -506,7 +506,7 @@ public class TestMatMul {
         }
     }
 
-    private interface SharedMemory extends DeviceType {
+    private interface SharedMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
@@ -521,7 +521,7 @@ public class TestMatMul {
         }
     }
 
-    private interface PrivateArray extends DeviceType {
+    private interface PrivateArray extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
@@ -534,7 +534,7 @@ public class TestMatMul {
         }
     }
 
-    private interface FlatPrivate extends DeviceType {
+    private interface FlatPrivate extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<FlatPrivate> schema = DeviceSchema.of(FlatPrivate.class,
@@ -834,7 +834,7 @@ public class TestMatMul {
         }
     }
 
-    private interface SharedMemoryHalf extends DeviceType {
+    private interface SharedMemoryHalf extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(SharedMemoryHalf.class,
@@ -850,7 +850,7 @@ public class TestMatMul {
         }
     }
 
-    private interface PrivateArrayHalf extends DeviceType {
+    private interface PrivateArrayHalf extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(PrivateArrayHalf.class,
@@ -866,7 +866,7 @@ public class TestMatMul {
         }
     }
 
-    private interface FlatPrivateHalf extends DeviceType {
+    private interface FlatPrivateHalf extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(FlatPrivateHalf.class,
@@ -972,7 +972,7 @@ public class TestMatMul {
         }
     }
 
-    private interface SharedMemoryBfloat16 extends DeviceType {
+    private interface SharedMemoryBfloat16 extends NonMappableIface {
         BF16 array(int index);
 
         DeviceSchema<SharedMemoryBfloat16> schema = DeviceSchema.of(SharedMemoryBfloat16.class,
@@ -988,7 +988,7 @@ public class TestMatMul {
         }
     }
 
-    private interface PrivateArrayBfloat16 extends DeviceType {
+    private interface PrivateArrayBfloat16 extends NonMappableIface {
         BF16 array(int index);
 
         DeviceSchema<PrivateArrayBfloat16> schema = DeviceSchema.of(PrivateArrayBfloat16.class,
@@ -1004,7 +1004,7 @@ public class TestMatMul {
         }
     }
 
-    private interface FlatPrivateBfloat16 extends DeviceType {
+    private interface FlatPrivateBfloat16 extends NonMappableIface {
         BF16 array(int index);
 
         DeviceSchema<FlatPrivateBfloat16> schema = DeviceSchema.of(FlatPrivateBfloat16.class,

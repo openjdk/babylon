@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.types.BF16;
 import hat.buffer.BF16Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
@@ -143,7 +143,7 @@ public class TestBFloat16Type {
         }
     }
 
-    public interface LocalArray extends DeviceType {
+    public interface LocalArray extends NonMappableIface {
         BF16 array(int index);
         DeviceSchema<LocalArray> schema = DeviceSchema.of(LocalArray.class,
                 builder -> builder.withArray("array", 1024)
@@ -206,7 +206,7 @@ public class TestBFloat16Type {
         }
     }
 
-    public interface PrivateArray extends DeviceType {
+    public interface PrivateArray extends NonMappableIface {
         BF16 array(int index);
         DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
                 builder -> builder.withArray("array", 256)

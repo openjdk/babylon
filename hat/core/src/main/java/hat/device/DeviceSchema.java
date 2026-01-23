@@ -25,7 +25,6 @@
 package hat.device;
 
 import hat.types.F16;
-import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -40,7 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public class DeviceSchema<T extends DeviceType> {
+public class DeviceSchema<T extends NonMappableIface> {
 
     private final Class<T> klass;
     private final List<List<String>> members = new ArrayList<>();
@@ -60,7 +59,7 @@ public class DeviceSchema<T extends DeviceType> {
     }
     int currentLevel = 0;
 
-    public static <T extends DeviceType> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
+    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
         DeviceSchema<T> deviceSchema =  new DeviceSchema<>(klass);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize();

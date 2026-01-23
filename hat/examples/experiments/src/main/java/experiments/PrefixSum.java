@@ -34,21 +34,18 @@ import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.codebuilders.JavaCodeBuilder;
-import optkl.ifacemapper.Buffer;
 import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * How to test?
@@ -60,7 +57,7 @@ import java.util.Map;
 
 public class PrefixSum {
     private static final int GROUP_SIZE = 32;
-    private interface SharedS32x256Array extends DeviceType {
+    private interface SharedS32x256Array extends NonMappableIface {
         void array(long index, int value);
 
         int array(long index);

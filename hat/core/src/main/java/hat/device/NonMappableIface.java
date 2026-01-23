@@ -22,7 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.types;
+package hat.device;
 
-public interface HAType {
+import optkl.IfaceValue;
+
+public interface NonMappableIface extends IfaceValue {
 }

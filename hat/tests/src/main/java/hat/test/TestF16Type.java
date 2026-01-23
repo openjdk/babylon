@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.types.F16;
 import hat.buffer.F16Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
 import hat.test.annotation.HatTest;
@@ -144,7 +144,7 @@ public class TestF16Type {
         }
     }
 
-    public interface DeviceLocalArray extends DeviceType {
+    public interface DeviceLocalArray extends NonMappableIface {
         F16 array(int index);
         //void array(int index, F16 value);
 
@@ -210,7 +210,7 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-    interface DevicePrivateArray extends DeviceType {
+    interface DevicePrivateArray extends NonMappableIface {
         F16 array(int index);
         //void array(int index, F16 value);
 
@@ -242,7 +242,7 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-    interface DevicePrivateArray2 extends DeviceType {
+    interface DevicePrivateArray2 extends NonMappableIface {
         F16 array(int index);
         void array(int index, F16 value);
 

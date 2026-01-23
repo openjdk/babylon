@@ -25,7 +25,7 @@
 package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import hat.dialect.*;
 import optkl.OpHelper;
 import optkl.Trxfmr;
@@ -48,7 +48,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         if (Invoke.stream(lookup(), funcOp).anyMatch(invoke ->
                             invoke.returnsArray()
-                        && invoke.refIs(MappableIface.class,DeviceType.class))) {
+                        && invoke.refIs(MappableIface.class, NonMappableIface.class))) {
             Map<Op.Result, Op.Result> replaced = new HashMap<>(); // maps a result to the result it should be replaced by
             Map<Op, CoreOp.VarAccessOp.VarLoadOp> bufferVarLoads = new HashMap<>();
 

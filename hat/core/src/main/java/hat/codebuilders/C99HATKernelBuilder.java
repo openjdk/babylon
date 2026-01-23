@@ -27,7 +27,6 @@ package hat.codebuilders;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.buffer.F16Array;
-import hat.device.DeviceType;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
@@ -38,7 +37,7 @@ import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types.HAType;
+import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
@@ -357,7 +356,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
-        if (javaType instanceof ClassType classType && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, MappableIface.class)) {
+        if (javaType instanceof ClassType classType && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,KernelContext.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(KernelContext.class).asterisk();
@@ -735,7 +734,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if ( invoke.refIs(MappableIface.class, HAType.class, DeviceType.class)) { // we need a common type
+        if ( invoke.refIs(IfaceValue.class /*MappableIface.class, HAType.class, DeviceType.class*/)) { // we need a common type
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
