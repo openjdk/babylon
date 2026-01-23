@@ -79,7 +79,7 @@ public class HATPhaseUtils {
         for (Value operand : value.dependsOn()) {
             if (operand instanceof Op.Result res &&
                     res.op() instanceof JavaOp.InvokeOp iop
-                    && iop.invokeDescriptor().name().toLowerCase().contains("arrayview")){
+                    && iop.invokeDescriptor().name().toLowerCase().contains("arrayview")){ // We need to find a better way
                 continue;
             }
             edges.add(expressionGraph(operand));
@@ -119,14 +119,14 @@ public class HATPhaseUtils {
 
     static public boolean isBufferArray(Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
-        return iop.invokeDescriptor().name().toLowerCase().contains("arrayview");
+        return iop.invokeDescriptor().name().toLowerCase().contains("arrayview"); // we need a better way
     }
 
     static public boolean isLocalSharedOrPrivate(Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
-        return iop.invokeDescriptor().name().toLowerCase().contains("local") ||
-                iop.invokeDescriptor().name().toLowerCase().contains("shared") ||
-                iop.invokeDescriptor().name().toLowerCase().contains("private");
+        return iop.invokeDescriptor().name().toLowerCase().contains("local") || // we need a better way
+                iop.invokeDescriptor().name().toLowerCase().contains("shared") || // also
+                iop.invokeDescriptor().name().toLowerCase().contains("private"); // also
     }
 
     static  public Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
@@ -216,12 +216,7 @@ public class HATPhaseUtils {
     }
 
     static public boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
-        String invokeClassName = invoke.refType().toString();
-        invokeClassName = invokeClassName.replace("$", "."); // lets not compare strings here
-        boolean is16BitFloatOperation = invokeClassName.startsWith(F16.class.getCanonicalName()) || invokeClassName.startsWith(BF16.class.getCanonicalName());
-        // No need because F16 element is not a Buffer type at the moment
-        // && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
-        return is16BitFloatOperation && invoke.named(methodName);// lets not compare strings here
+        return invoke.refIs(F16.class,BF16.class) && invoke.named(methodName);
     }
 
     // recursive
