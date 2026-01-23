@@ -43,7 +43,7 @@ public final class ActiveSet {
         Deque<Value> q = new ArrayDeque<>();
         q.push(fv);
 
-        Set<Value> active = new TreeSet<>();
+        Set<Value> active = new TreeSet<>(Value::compare);
         while (!q.isEmpty()) {
             Value v = q.pop();
             if (active.contains(v)) {
