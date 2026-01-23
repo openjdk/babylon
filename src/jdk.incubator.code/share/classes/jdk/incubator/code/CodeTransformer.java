@@ -92,30 +92,30 @@ public interface CodeTransformer {
     /**
      * A copying transformer that applies the operation to the block builder, and returning the block builder.
      */
-    CodeTransformer COPYING_TRANSFORMER = (block, op) -> {
-        block.op(op);
-        return block;
+    CodeTransformer COPYING_TRANSFORMER = (builder, op) -> {
+        builder.op(op);
+        return builder;
     };
 
     /**
      * A transformer that drops location information from operations.
      */
-    CodeTransformer DROP_LOCATION_TRANSFORMER = (block, op) -> {
-        Op.Result r = block.op(op);
+    CodeTransformer DROP_LOCATION_TRANSFORMER = (builder, op) -> {
+        Op.Result r = builder.op(op);
         r.op().setLocation(Location.NO_LOCATION);
-        return block;
+        return builder;
     };
 
     /**
      * A transformer that lowers operations that are {@link Op.Lowerable lowerable},
      * and copies other operations.
      */
-    CodeTransformer LOWERING_TRANSFORMER = (block, op) -> {
+    CodeTransformer LOWERING_TRANSFORMER = (builder, op) -> {
         if (op instanceof Op.Lowerable lop) {
-            return lop.lower(block, null);
+            return lop.lower(builder, null);
         } else {
-            block.op(op);
-            return block;
+            builder.op(op);
+            return builder;
         }
     };
 
@@ -190,11 +190,11 @@ public interface CodeTransformer {
      * block builder. Returns a block builder to be used for transforming further operations, such
      * as subsequent operations from the same block as the given operation.
      *
-     * @param block the block builder.
-     * @param op    the operation to transform.
-     * @return      the block builder to append to for subsequent operations.
+     * @param builder the block builder.
+     * @param op      the operation to transform.
+     * @return the block builder to append to for subsequent operations.
      */
-    Block.Builder acceptOp(Block.Builder block, Op op);
+    Block.Builder acceptOp(Block.Builder builder, Op op);
 
     /**
      * Returns a composed code transform that transforms an operation that first applies
@@ -212,7 +212,7 @@ public interface CodeTransformer {
     static CodeTransformer compose(CodeTransformer after, BiFunction<Block.Builder, Op, Block.Builder> f) {
         return after == null
                 ? f::apply
-                : (block, op) -> after.acceptOp(f.apply(block, op), op);
+                : (builder, op) -> after.acceptOp(f.apply(builder, op), op);
     }
 
     /**
@@ -230,6 +230,6 @@ public interface CodeTransformer {
     static CodeTransformer andThen(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
         return before == null
                 ? f::apply
-                : (block, op) -> f.apply(before.acceptOp(block, op), op);
+                : (builder, op) -> f.apply(before.acceptOp(builder, op), op);
     }
 }
