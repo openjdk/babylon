@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.F32ArrayPadded;
 import hat.types.Float4;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.Reflect;
@@ -159,7 +159,7 @@ public class TestVectorTypes {
         }
     }
 
-    private interface SharedMemory extends DeviceType {
+    private interface SharedMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
@@ -191,7 +191,7 @@ public class TestVectorTypes {
         }
     }
 
-    private interface PrivateMemory extends DeviceType {
+    private interface PrivateMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,

@@ -22,7 +22,14 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.types;
+package optkl;
 
-public interface HAType {
+
+public interface IfaceValue {
+
+    interface Union extends IfaceValue {
+    }
+
+    interface Struct extends IfaceValue {
+    }
 }

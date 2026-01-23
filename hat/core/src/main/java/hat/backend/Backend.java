@@ -37,9 +37,10 @@ import optkl.FuncOpParams;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.ifacemapper.AccessType;
-import optkl.ifacemapper.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.MappableIface;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+import optkl.util.carriers.ArenaCarrier;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.foreign.Arena;
@@ -52,7 +53,7 @@ import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.OpHelper.Invoke.invoke;
 
-public  abstract class Backend implements BufferAllocator, LookupCarrier {
+public  abstract class Backend implements ArenaAndLookupCarrier {
     private final Config config;
 
     public Config config(){

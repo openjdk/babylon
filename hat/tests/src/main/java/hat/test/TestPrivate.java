@@ -31,7 +31,7 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import optkl.ifacemapper.MappableIface.RO;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
@@ -43,7 +43,7 @@ import static optkl.ifacemapper.MappableIface.RW;
 
 public class TestPrivate {
 
-    private interface PrivateArray extends DeviceType {
+    private interface PrivateArray extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
 

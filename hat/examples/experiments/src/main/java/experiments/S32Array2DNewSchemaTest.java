@@ -31,7 +31,7 @@ import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
-import optkl.util.carriers.CommonCarrier;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.invoke.MethodHandles;
@@ -45,8 +45,8 @@ public class S32Array2DNewSchemaTest implements Buffer {
         int height();
         int array(long idx);
         void array(long idx, int i);
-        static S32Arr2D create(CommonCarrier cc, int width, int height) {
-            return schema.allocate(cc, width, height);
+        static S32Arr2D create(ArenaAndLookupCarrier cc, int width, int height) {
+            return BoundSchema.of(cc ,schema, width, height).allocate();
         }
     }
     public static void main(String[] args) {

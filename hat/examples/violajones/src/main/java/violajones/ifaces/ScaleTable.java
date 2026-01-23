@@ -26,6 +26,7 @@ package violajones.ifaces;
 
 
 import hat.Accelerator;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
@@ -174,7 +175,7 @@ public interface ScaleTable extends Buffer {
     );
 
     static ScaleTable create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator,length);
+        return BoundSchema.of(accelerator ,schema,length).allocate();
     }
 
     static ScaleTable createFrom(Accelerator accelerator, Constraints constraints){

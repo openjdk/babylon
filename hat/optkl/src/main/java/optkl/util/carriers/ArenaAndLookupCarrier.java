@@ -24,7 +24,6 @@
  */
 package optkl.util.carriers;
 
-import optkl.ifacemapper.BufferAllocator;
 
-public interface CommonCarrier extends BufferAllocator, LookupCarrier {
+public interface ArenaAndLookupCarrier extends ArenaCarrier,LookupCarrier {
 }

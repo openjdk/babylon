@@ -22,7 +22,14 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.device;
+package hat.types;
 
-public interface DeviceType {
+import optkl.IfaceValue;
+
+/**
+ * Common interface for F16 implementations
+ */
+public interface _F16 extends IfaceValue {
+    short value();
+    void value(short value);
 }

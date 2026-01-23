@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.MappableIface.RO;
@@ -51,7 +52,7 @@ public class TestWriteOnly {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return schema.allocate(accelerator, width, height);
+            return BoundSchema.of(accelerator ,schema, width, height).allocate();
         }
 
         default byte[][] arrayView() {

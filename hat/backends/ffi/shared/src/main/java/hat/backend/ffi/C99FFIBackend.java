@@ -31,8 +31,6 @@ import hat.KernelContext;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
-import optkl.OpHelper;
-import optkl.util.CallSite;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
