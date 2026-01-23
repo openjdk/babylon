@@ -37,6 +37,7 @@ import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types._F16;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -356,9 +357,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
-        if (javaType instanceof ClassType classType && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)) {
+        if (javaType instanceof ClassType classType
+                && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
+                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
+        ) {
             HAT_GLOBAL_MEM().space().suffix_t(classType).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,KernelContext.class)) {
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(KernelContext.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().space().suffix_t(F16Impl.class).asterisk();
