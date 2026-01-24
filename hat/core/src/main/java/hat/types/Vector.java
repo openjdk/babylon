@@ -24,13 +24,19 @@
  */
 package hat.types;
 
-import jdk.incubator.code.Reflect;
+import jdk.incubator.code.TypeElement;
 
-public interface _V4 extends _V {
-
-    @Reflect
-    @Override
-    default int width() {
-        return 4;
+public interface Vector {
+    interface Shape {
+        TypeElement typeElement();
+        int lanes();
+        static Shape of(TypeElement typeElement, int lanes) {
+            record Impl(TypeElement typeElement, int lanes) implements Shape {
+               @Override public String toString(){
+                   return typeElement.toString() + Impl.this.lanes;
+               }
+            }
+            return new Impl(typeElement, lanes);
+        }
     }
 }

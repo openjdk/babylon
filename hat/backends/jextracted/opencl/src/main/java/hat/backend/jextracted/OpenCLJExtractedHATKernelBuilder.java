@@ -80,7 +80,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
-        identifier("vstore" + hatVectorStoreView.vectorN())
+        identifier("vstore" + hatVectorStoreView.vectorShape().lanes())
                 .oparen()
                 .varName(hatVectorStoreView)
                 .comma()
@@ -128,7 +128,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-        identifier("vload" + hatVectorLoadOp.vectorN())
+        identifier("vload" + hatVectorLoadOp.vectorShape().lanes())
                 .oparen()
                 .intConstZero()
                 .comma()

@@ -175,7 +175,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse( hatVectorBinaryOp2);
         }
 
-        for (int i = 0; i < hatVectorBinaryOp.vectorN(); i++) {
+        for (int i = 0; i < hatVectorBinaryOp.vectorShape().lanes(); i++) {
 
            identifier(hatVectorBinaryOp.varName())
                    .dot()

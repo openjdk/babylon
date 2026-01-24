@@ -26,7 +26,7 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATVectorOp;
-import hat.types._V;
+import hat.types.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -86,7 +86,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
         Map<CodeElement<?,?>, InvokeVar> ceToInvokeVar = new HashMap<>();
         Invoke.stream(lookup(),funcOp)
                 .filter(invoke -> invoke.named(Regex.of("[xyzw]"))
-                                && invoke.refIs(_V.class)
+                                && invoke.refIs(Vector.class)
                                 && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
                 .map(invoke ->
                         new InvokeVar(invoke.op(),invoke.varLoadOpFromFirstOperandOrNull())
