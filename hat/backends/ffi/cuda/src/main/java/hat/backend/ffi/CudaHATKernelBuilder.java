@@ -248,9 +248,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
                 .space().equals().space();
-        if (hatVSelectStoreOp.resultValue() != null) {
+        if (hatVSelectStoreOp.resolvedName() != null) {
             // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resultValue());
+            varName(hatVSelectStoreOp.resolvedName());
         } else {
             // otherwise, we traverse to resolve the expression
             Value storeValue = hatVSelectStoreOp.operands().get(1);

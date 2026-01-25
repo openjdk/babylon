@@ -162,9 +162,9 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
                 .space().equals().space();
-        if (hatVSelectStoreOp.resultValue() != null) {
+        if (hatVSelectStoreOp.resolvedName() != null) {
             // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resultValue());
+            varName(hatVSelectStoreOp.resolvedName());
         } else if (hatVSelectStoreOp.operands().get(1) instanceof Op.Result r) {
                 recurse( r.op());
 

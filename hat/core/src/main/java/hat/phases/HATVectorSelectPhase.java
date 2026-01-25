@@ -107,7 +107,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                         new HATVectorOp.HATVectorSelectStoreOp(
                                 invokeVar.name(),
                                 invokeVar.laneIdx(),
-                                invokeVar.varOpFromOperand(1),
+                                invokeVar.varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName():null,
                                 context.getValues(invokeVar.invokeOp.operands())
                         )
                         :

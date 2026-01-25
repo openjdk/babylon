@@ -30,7 +30,6 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.ops.Precedence;
@@ -305,20 +304,18 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
     public static final class HATVectorSelectStoreOp extends HATVectorOp {
         private final int lane;
-        // TODO: We should not capture ops in other ops.
-        // We might want something captured but not the whole op.
-        private final CoreOp.VarOp resultVarOp; // This is a bad idea.
+        private final String resolvedName;
 
-        public HATVectorSelectStoreOp(String varName,  int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
-            super(varName, JavaType.VOID, Vector.Shape.of(JavaType.VOID, -1), operands);
+        public HATVectorSelectStoreOp(String varName, int lane, String resolvedName, List<Value> operands) {
+            super(varName, JavaType.VOID, Vector.Shape.of(JavaType.VOID, -1), operands); // This seems so wrong.
             this.lane = lane;
-            this.resultVarOp = resultVarOp;
+            this.resolvedName = resolvedName;
         }
 
         public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CodeContext cc) {
             super(that, cc);
             this.lane = that.lane;
-            this.resultVarOp = that.resultVarOp;
+            this.resolvedName = that.resolvedName;
         }
 
         @Override
@@ -333,10 +330,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         public String mapLane() {
             return super.mapLane(lane);
         }
-
-        public CoreOp.VarOp resultValue() {
-           // System.out.println("We should not depend on this!!!! it may have been transformed!");
-            return resultVarOp;
+        public String resolvedName(){
+            return resolvedName;
         }
 
     }
