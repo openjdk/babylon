@@ -91,14 +91,19 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
             CodeContext context = blockBuilder.context();
             if (invoke(lookup(),op) instanceof Invoke invoke) {
                 Vector.Shape vectorShape  = HATPhaseUtils.getVectorShapeFromOperandN(lookup(),invoke.op(), 1);
-                HATVectorOp storeView = new HATVectorOp.HATVectorStoreView(
-                        findNameVector(invoke.resultFromOperandNOrThrow(1)),
-                        invoke.returnType(),
-                        vectorShape.lanes(),
-                        vectorShape.typeElement(),
-                        findIsSharedOrPrivateSpace(invoke.op().operands().getFirst()),
-                        context.getValues(invoke.op().operands())
-                );
+                HATVectorOp storeView = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst())
+                        ? new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(
+                                findNameVector(invoke.resultFromOperandNOrThrow(1)),
+                                invoke.returnType(),
+                                vectorShape,
+                                //vectorShape.typeElement(),
+                                context.getValues(invoke.op().operands()))
+                        : new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(
+                                findNameVector(invoke.resultFromOperandNOrThrow(1)),
+                                invoke.returnType(),
+                                vectorShape,//.lanes(),
+                               // vectorShape.typeElement(),
+                                context.getValues(invoke.op().operands()));
                 context.mapValue(invoke.op().result(), blockBuilder.op(copyLocation(invoke.op(),storeView)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 // pass value

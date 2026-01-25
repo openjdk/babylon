@@ -175,34 +175,60 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
             }
         }
     }
+    public interface Shared{
+    }
 
-    public static final class HATVectorLoadOp extends HATVectorOp implements Precedence.LoadOrConv {
+    public interface Private{
+    }
 
-        private final boolean isSharedOrPrivate;
+    public static abstract sealed class HATVectorLoadOp extends HATVectorOp implements Precedence.LoadOrConv permits HATVectorLoadOp.HATPrivateVectorLoadOp, HATVectorLoadOp.HATSharedVectorLoadOp {
 
-        public HATVectorLoadOp(String varName, TypeElement typeElement, Vector.Shape vectorShape, boolean isShared, List<Value> operands) {
+
+        protected HATVectorLoadOp(String varName, TypeElement typeElement, Vector.Shape vectorShape,  List<Value> operands) {
             super(varName, typeElement, vectorShape, operands);
-
-            this.isSharedOrPrivate = isShared;
         }
 
-        public HATVectorLoadOp(HATVectorLoadOp op, CodeContext copyContext) {
+        protected HATVectorLoadOp(HATVectorLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.isSharedOrPrivate = op.isSharedOrPrivate;
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorLoadOp(this, copyContext);
-        }
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.vectorLoadView." + varName(), resultType());
-        }
+        public static final class HATPrivateVectorLoadOp extends HATVectorLoadOp implements Private{
+            public HATPrivateVectorLoadOp(String varName, TypeElement typeElement, Vector.Shape vectorShape,  List<Value> operands) {
+                super(varName, typeElement, vectorShape,  operands);
+            }
+            public HATPrivateVectorLoadOp(HATPrivateVectorLoadOp op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
 
-        public boolean isSharedOrPrivate() {
-            return this.isSharedOrPrivate;
+
+            @Override
+            public Op transform(CodeContext cc, CodeTransformer ot) {
+                return new HATPrivateVectorLoadOp(this, cc);
+            }
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect.vectorPrivateLoad." + varName(), resultType());
+            }
+        }
+        public static final class HATSharedVectorLoadOp extends HATVectorLoadOp implements Shared{
+            public HATSharedVectorLoadOp(String varName, TypeElement typeElement, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, typeElement, vectorShape, operands);
+            }
+            public HATSharedVectorLoadOp(HATSharedVectorLoadOp op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+
+
+            @Override
+            public Op transform(CodeContext cc, CodeTransformer ot) {
+                return new HATSharedVectorLoadOp(this,cc);
+            }
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect.vectorSharedLoad." + varName(), resultType());
+            }
+
         }
     }
 
@@ -315,32 +341,57 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
     }
 
-    public static final class HATVectorStoreView extends HATVectorOp {
+    public static abstract sealed class HATVectorStoreView extends HATVectorOp
+            permits HATVectorStoreView.HATPrivateVectorStoreView, HATVectorStoreView.HATSharedVectorStoreView {
 
-        private final boolean isSharedOrPrivate;
-
-        public HATVectorStoreView(String varName, TypeElement resultType, int storeN, TypeElement vectorElementType, boolean isSharedOrPrivate, List<Value> operands) {
-            super(varName, resultType, Vector.Shape.of(vectorElementType, storeN), operands);
-            this.isSharedOrPrivate = isSharedOrPrivate;
+        protected HATVectorStoreView(String varName, TypeElement resultType, Vector.Shape vectorShape, /* boolean isSharedOrPrivate*/ List<Value> operands) {
+            super(varName, resultType, vectorShape, operands);
         }
 
-        public HATVectorStoreView(HATVectorStoreView op, CodeContext copyContext) {
+        protected HATVectorStoreView(HATVectorStoreView op, CodeContext copyContext) {
             super(op, copyContext);
-            this.isSharedOrPrivate = op.isSharedOrPrivate;
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorStoreView(this, copyContext);
-        }
+        public static final class HATSharedVectorStoreView extends HATVectorStoreView implements Shared{
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect." + vectorShape().typeElement() + "StoreView." + varName(), resultType());
-        }
+            public HATSharedVectorStoreView(String varName, TypeElement resultType, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, resultType, vectorShape, operands);
+            }
 
-        public boolean isSharedOrPrivate() {
-            return this.isSharedOrPrivate;
+            public HATSharedVectorStoreView(HATSharedVectorStoreView op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HATSharedVectorStoreView(this, copyContext);
+            }
+
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect." + vectorShape().typeElement() + "SharedStoreView." + varName(), resultType());
+            }
+
+        }
+        public static final class HATPrivateVectorStoreView extends HATVectorStoreView implements Private{
+
+            public HATPrivateVectorStoreView(String varName, TypeElement resultType, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, resultType, vectorShape, operands);
+            }
+
+            public HATPrivateVectorStoreView(HATPrivateVectorStoreView op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HATPrivateVectorStoreView(this, copyContext);
+            }
+
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect." + vectorShape().typeElement() + "PrivateStoreView." + varName(), resultType());
+            }
         }
 
     }
@@ -364,14 +415,10 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         public Map<String, Object> externalize() {
             return Map.of("hat.dialect.vectorVarLoadOp." + varName(), resultType());
         }
-
     }
 
     public static final class HATVectorVarOp extends HATVectorOp implements StatementLikeOp {
         public HATVectorVarOp(String varName, VarType resultType,  Vector.Shape vectorShape, List<Value> operands) {
-            if (!resultType.equals(vectorShape.typeElement())){
-            //    System.out.println("Differ ");
-            }
             super(varName, resultType, vectorShape, operands);
         }
 
