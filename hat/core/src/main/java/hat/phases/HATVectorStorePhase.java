@@ -27,7 +27,7 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
-import hat.types._V;
+import hat.types.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -82,7 +82,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
         Invoke.stream(lookup(),funcOp).forEach(invoke->{
               if ( invoke.named(storeViewName())
                    && varAccess(lookup(),invoke.opFromOperandNOrNull(1)) instanceof VarAccess varAccess
-                   && varAccess.isLoad() && varAccess.isAssignable( _V.class)){
+                   && varAccess.isLoad() && varAccess.isAssignable( Vector.class)){
                    nodesInvolved.add(invoke.op());
               }
         });
@@ -90,12 +90,12 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
         return Trxfmr.of(this,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (invoke(lookup(),op) instanceof Invoke invoke) {
-                HATPhaseUtils.VectorMetaData vectorMetaData  = HATPhaseUtils.getVectorTypeInfo(lookup(),invoke.op(), 1);
+                Vector.Shape vectorShape  = HATPhaseUtils.getVectorShapeFromOperandN(lookup(),invoke.op(), 1);
                 HATVectorOp storeView = new HATVectorOp.HATVectorStoreView(
                         findNameVector(invoke.resultFromOperandNOrThrow(1)),
                         invoke.returnType(),
-                        vectorMetaData.lanes(),
-                        vectorMetaData.vectorTypeElement(),
+                        vectorShape.lanes(),
+                        vectorShape.typeElement(),
                         findIsSharedOrPrivateSpace(invoke.op().operands().getFirst()),
                         context.getValues(invoke.op().operands())
                 );

@@ -96,7 +96,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
-        vstore(hatVectorStoreView.vectorN())
+        vstore(hatVectorStoreView.vectorShape().lanes())
                 .oparen();
         // if the value to be stored is an operation, recurse on the operation
         if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
@@ -145,7 +145,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
-        vload(hatVectorLoadOp.vectorN()).paren(_-> {
+        vload(hatVectorLoadOp.vectorShape().lanes()).paren(_-> {
             intConstZero().comma().space().ampersand();
             if (hatVectorLoadOp.operands().get(0) instanceof Op.Result r) {
                 recurse( r.op());
