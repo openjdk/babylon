@@ -89,13 +89,12 @@ public class HATPhaseUtils {
         return node;
     }
 
-    static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(MethodHandles.Lookup lookup, String opType, String varName, TypeElement resultType, List<Value> outputOperands) {
-        var vectorShape = getVectorShape(lookup,resultType);
+    static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String opType, Vector.Shape vectorShape, List<Value> outputOperands) {
         return switch (opType) {
-            case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, resultType, vectorShape, outputOperands);
-            case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName, resultType, vectorShape, outputOperands);
-            case "mul" -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName, resultType, vectorShape, outputOperands);
-            case "div" -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName, resultType, vectorShape, outputOperands);
+            case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(  vectorShape, outputOperands);
+            case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(  vectorShape, outputOperands);
+            case "mul" -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(  vectorShape, outputOperands);
+            case "div" -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(  vectorShape, outputOperands);
             default -> throw new IllegalStateException("Unexpected value: " + opType);
         };
     }
@@ -219,21 +218,6 @@ public class HATPhaseUtils {
         return invoke.refIs(F16.class,BF16.class) && invoke.named(methodName);
     }
 
-    // recursive
-    public static TypeElement findVectorTypeElementOrNull(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findVectorTypeElementOrNull(varLoadOp); // recurse
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-            return hatVectorOp.vectorShape().typeElement();
-        }return null;
-
-    }
-
-    // recursive
-    public static TypeElement findVectorTypeElementOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVectorTypeElementOrNull(varLoadOp.operands().getFirst());
-    }
-
     //recursive
     public static Vector.Shape getVectorShapeOrNullFromVarLoad(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return getVectorShapeOrNull(varLoadOp.operands().getFirst());
@@ -246,22 +230,6 @@ public class HATPhaseUtils {
         }
         return null;
     }
-
-    //recursive
-    public static int getVectorWidthFromVarLoad(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return getVectorWidth(varLoadOp.operands().getFirst());
-    }
-
-    //recursive
-    private static int getVectorWidth(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return getVectorWidthFromVarLoad(varLoadOp);
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.vectorShape().lanes();
-        }
-        return -1;
-    }
-
     //recursive
     public static boolean isSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isSharedOrPrivate(varLoadOp.operands().getFirst());
@@ -305,19 +273,6 @@ public class HATPhaseUtils {
 
     public static Vector.Shape getVectorShapeFromInvokeReturnType(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return getVectorShape(lookup,invokeOp.resultType());
-    }
-    public static TypeElement getVectorElementType(String primitive) {
-        return switch (primitive) {
-            case "float" -> JavaType.FLOAT;
-            case "double" -> JavaType.DOUBLE;
-            case "int" -> JavaType.INT;
-            case "long" -> JavaType.LONG;
-            case "short" -> JavaType.SHORT;
-            case "byte" -> JavaType.BYTE;
-            case "char" -> JavaType.CHAR;
-            case "boolean" -> JavaType.BOOLEAN;
-            default -> null;
-        };
     }
 
     /**

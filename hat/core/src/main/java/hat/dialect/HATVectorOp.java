@@ -53,6 +53,9 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         this.varName = varName;
         this.resultType = resultType;
         this.vectorShape = vectorShape;
+      //  if (!vectorShape.typeElement().equals(resultType)){
+        //    System.out.println("resulttype = "+resultType+ " vectorshape.typeElement = "+vectorShape.typeElement());
+       // }
     }
 
     protected HATVectorOp(HATVectorOp that, CodeContext cc) {
@@ -93,8 +96,11 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
             permits HATVectorBinaryOp.HATVectorAddOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorDivOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorMulOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorSubOp {
 
         private final BinaryOpEnum operationType;
-        public HATVectorBinaryOp(String varName, TypeElement resultType, BinaryOpEnum operationType, Vector.Shape vectorShape, List<Value> operands) {
-            super(varName, resultType, vectorShape, operands);
+        public HATVectorBinaryOp( BinaryOpEnum operationType, Vector.Shape vectorShape, List<Value> operands) {
+            super(  "null" /* this is clearly wrong binary ops have no name */,
+                    vectorShape.typeElement(), // also why does the base type need this twice?
+                    vectorShape,
+                    operands);
             this.operationType = operationType;
         }
 
@@ -108,8 +114,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         }
 
         public static final class HATVectorAddOp extends HATVectorBinaryOp implements Precedence.Additive {
-            public HATVectorAddOp(String varName, TypeElement typeElement, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.ADD, vectorShape, operands);
+            public HATVectorAddOp(Vector.Shape vectorShape, List<Value> operands) {
+                super( BinaryOpEnum.ADD, vectorShape, operands);
             }
 
             public HATVectorAddOp(HATVectorAddOp op, CodeContext copyContext) {
@@ -123,8 +129,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         }
 
         public static final class HATVectorDivOp extends HATVectorBinaryOp implements Precedence.Multiplicative {
-            public HATVectorDivOp(String varName, TypeElement typeElement, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.DIV, vectorShape, operands);
+            public HATVectorDivOp( Vector.Shape vectorShape, List<Value> operands) {
+                super(BinaryOpEnum.DIV, vectorShape, operands);
             }
 
             public HATVectorDivOp(HATVectorDivOp op, CodeContext copyContext) {
@@ -139,8 +145,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
         public static final class HATVectorMulOp extends HATVectorBinaryOp implements Precedence.Multiplicative {
 
-            public HATVectorMulOp(String varName, TypeElement typeElement, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.MUL, vectorShape, operands);
+            public HATVectorMulOp( Vector.Shape vectorShape, List<Value> operands) {
+                super( BinaryOpEnum.MUL, vectorShape, operands);
             }
 
             public HATVectorMulOp(HATVectorMulOp op, CodeContext copyContext) {
@@ -155,8 +161,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
         public static final class HATVectorSubOp extends HATVectorBinaryOp implements Precedence.Additive {
 
-            public HATVectorSubOp(String varName, TypeElement typeElement, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.SUB, vectorShape, operands);
+            public HATVectorSubOp( Vector.Shape vectorShape, List<Value> operands) {
+                super(BinaryOpEnum.SUB, vectorShape, operands);
             }
 
             public HATVectorSubOp(HATVectorSubOp op, CodeContext copyContext) {
@@ -341,8 +347,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
     public static final class HATVectorVarLoadOp extends HATVectorOp {
 
-        public HATVectorVarLoadOp(String varName, TypeElement resultType, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-            super(varName, resultType, Vector.Shape.of(vectorElementType, vectorWidth), operands);
+        public HATVectorVarLoadOp(String varName, TypeElement resultType, Vector.Shape vectorShape,  List<Value> operands) {
+            super(varName, resultType, vectorShape, operands);
         }
 
         public HATVectorVarLoadOp(HATVectorVarLoadOp op, CodeContext copyContext) {
@@ -362,8 +368,11 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
     }
 
     public static final class HATVectorVarOp extends HATVectorOp implements StatementLikeOp {
-        public HATVectorVarOp(String varName, VarType resultType, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-            super(varName, resultType, Vector.Shape.of(vectorElementType, vectorWidth), operands);
+        public HATVectorVarOp(String varName, VarType resultType,  Vector.Shape vectorShape, List<Value> operands) {
+            if (!resultType.equals(vectorShape.typeElement())){
+            //    System.out.println("Differ ");
+            }
+            super(varName, resultType, vectorShape, operands);
         }
 
         public HATVectorVarOp(HATVectorVarOp op, CodeContext copyContext) {
