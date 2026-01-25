@@ -131,7 +131,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse( r.op());
         }
 
-        either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
@@ -222,7 +222,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (source instanceof Op.Result r) {
             recurse( r.op());
         }
-        either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
@@ -248,9 +248,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
                 .space().equals().space();
-        if (hatVSelectStoreOp.resultValue() != null) {
+        if (hatVSelectStoreOp.resolvedName() != null) {
             // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resultValue());
+            varName(hatVSelectStoreOp.resolvedName());
         } else {
             // otherwise, we traverse to resolve the expression
             Value storeValue = hatVSelectStoreOp.operands().get(1);

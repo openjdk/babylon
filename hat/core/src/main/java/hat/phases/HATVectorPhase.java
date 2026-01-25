@@ -108,12 +108,17 @@ public abstract sealed class HATVectorPhase implements HATPhase
             if (Invoke.invoke(lookup(),op) instanceof Invoke invoke) {
                 var varOp = invokeToVar.get(invoke.op());
                 Vector.Shape shape = HATPhaseUtils.getVectorShapeFromInvokeReturnType(lookup(),invoke.op());
-                HATVectorOp memoryViewOp = new HATVectorOp.HATVectorLoadOp(
-                        varOp.varName(),
-                        varOp.resultType(),
-                        shape,
-                        HATPhaseUtils.isSharedOrPrivate(invoke.resultFromFirstOperandOrNull()),
-                        blockBuilder.context().getValues(invoke.op().operands())
+                HATVectorOp memoryViewOp =  HATPhaseUtils.isSharedOrPrivate(invoke.resultFromFirstOperandOrNull())
+                        ? new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(
+                                varOp.varName(),
+                                varOp.resultType(),
+                                shape,
+                                blockBuilder.context().getValues(invoke.op().operands()))
+                        : new HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp(
+                                varOp.varName(),
+                                varOp.resultType(),
+                                shape,
+                                blockBuilder.context().getValues(invoke.op().operands())
                 );
                 blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(copyLocation(varOp,memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
@@ -148,15 +153,12 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         return Trxfmr.of(this,funcOp).transform( vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var varOp = invokeToVar.get(invokeOp);
-                var vectorShape = vectorShapeMap.get(invokeOp);
                 HATVectorOp memoryViewOp =  buildVectorBinaryOp(
                         BinaryOpEnum.of(invokeOp),
-                      //  invokeOp.resultType(),
-                        vectorShape,
+                        vectorShapeMap.get(invokeOp),
                         blockBuilder.context().getValues(invokeOp.operands())
                 );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(varOp,memoryViewOp)));
+                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeToVar.get(invokeOp),memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp));
             }
@@ -240,8 +242,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
            return Trxfmr.of(this,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                  if (op instanceof JavaOp.InvokeOp invokeOp) {
                      HATVectorOp memoryViewOp = buildVectorBinaryOp(
-                             BinaryOpEnum.of(invokeOp), // it looks like not all of these ops have varName maybe we need another class in the dialect
-                           //  invokeOp.resultType(),
+                             BinaryOpEnum.of(invokeOp),
                              HATPhaseUtils.getVectorShapeFromInvokeReturnType(lookup(),invokeOp),
                              blockBuilder.context().getValues(invokeOp.operands())
                      );

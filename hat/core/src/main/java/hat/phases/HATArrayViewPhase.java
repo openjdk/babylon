@@ -129,14 +129,19 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                     default -> throw new IllegalStateException("Unexpected value: " + vop);
                                 };
                                 var  vectorShape = getVectorShape(lookup(),arrayLoadOp.resultType());
-                                HATVectorOp.HATVectorLoadOp vLoadOp = copyLocation(arrayLoadOp,new HATVectorOp.HATVectorLoadOp(
-                                        name,
-                                        CoreType.varType(((ArrayType) OpHelper.firstOperandOrThrow(arrayLoadOp).type()).componentType()),
-                                        vectorShape, // seems like we might pass the hatVectorMetaData here...?
-                                        HATPhaseUtils.isLocalSharedOrPrivate(arrayLoadOp),
-                                        context.getValues(List.of(buffer, arrayLoadOp.operands().getLast()))
-                                ));
-                                context.mapValue(arrayLoadOp.result(), blockBuilder.op(vLoadOp));
+                                HATVectorOp.HATVectorLoadOp vLoadOp = HATPhaseUtils.isLocalSharedOrPrivate(arrayLoadOp)
+                                        ? new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(
+                                                name,
+                                                CoreType.varType(((ArrayType) OpHelper.firstOperandOrThrow(arrayLoadOp).type()).componentType()),
+                                                vectorShape,
+                                                context.getValues(List.of(buffer, arrayLoadOp.operands().getLast())))
+                                        :new HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp(
+                                                name,
+                                                CoreType.varType(((ArrayType) OpHelper.firstOperandOrThrow(arrayLoadOp).type()).componentType()),
+                                                vectorShape,
+                                                context.getValues(List.of(buffer, arrayLoadOp.operands().getLast()))
+                                        );
+                                context.mapValue(arrayLoadOp.result(), blockBuilder.op(copyLocation(arrayLoadOp,vLoadOp)));
                             } else if (OpHelper.firstOperandOrThrow(op).type() instanceof ArrayType arrayType && arrayType.dimensions() == 1) { // we only use the last array load
                                 var arrayAccessInfo = HATPhaseUtils.arrayAccessInfo(op.result(), replaced);
                                 var operands = arrayAccessInfo.bufferAndIndicesAsValues();
@@ -168,16 +173,20 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                         ? (varOp).resultType()
                                         : ((CoreOp.VarOp) varOp).resultType();
                                 var classType = ((ClassType) ((ArrayType) OpHelper.firstOperandOrThrow(arrayStoreOp).type()).componentType());
-                                var vectorMetaData = getVectorShape(lookup(),classType);
-                                HATVectorOp.HATVectorStoreView vStoreOp = copyLocation(arrayStoreOp,new HATVectorOp.HATVectorStoreView(
-                                        name,
-                                        resultType,
-                                        vectorMetaData.lanes(),
-                                        vectorMetaData.typeElement(),
-                                        HATPhaseUtils.isLocalSharedOrPrivate(arrayStoreOp),
-                                        context.getValues(List.of(buffer, arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)))
-                                ));
-                                context.mapValue(arrayStoreOp.result(), blockBuilder.op(vStoreOp));
+                                var vectorShape = getVectorShape(lookup(),classType);
+                                HATVectorOp.HATVectorStoreView vStoreOp = HATPhaseUtils.isLocalSharedOrPrivate(arrayStoreOp)
+                                        ? new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(
+                                                name,
+                                                resultType,
+                                                vectorShape,
+                                                context.getValues(List.of(buffer, arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1))))
+                                        : new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(
+                                                name,
+                                                resultType,
+                                                vectorShape,
+                                                context.getValues(List.of(buffer, arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)))
+                                        );
+                                context.mapValue(arrayStoreOp.result(), blockBuilder.op(copyLocation(arrayStoreOp,vStoreOp)));
                             } else if (((ArrayType) OpHelper.firstOperandOrThrow(op).type()).dimensions() == 1) { // we only use the last array load
                                 var arrayAccessInfo = HATPhaseUtils.arrayAccessInfo(op.result(), replaced);
                                 var operands = arrayAccessInfo.bufferAndIndicesAsValues();
