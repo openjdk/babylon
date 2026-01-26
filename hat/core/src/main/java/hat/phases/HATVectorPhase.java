@@ -129,13 +129,13 @@ public abstract sealed class HATVectorPhase implements HATPhase
     }
 
 
-    private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(BinaryOpEnum opType,
+    private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, BinaryOpEnum opType,
                                                               Vector.Shape vectorShape, List<Value> outputOperands) {
         return switch (opType) {
-            case ADD -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp( vectorShape, outputOperands);
-            case SUB -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(  vectorShape, outputOperands);
-            case MUL -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(  vectorShape, outputOperands);
-            case DIV -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(  vectorShape, outputOperands);
+            case ADD -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, vectorShape, outputOperands);
+            case SUB -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName,  vectorShape, outputOperands);
+            case MUL -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName,  vectorShape, outputOperands);
+            case DIV -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName,  vectorShape, outputOperands);
         };
     }
 
@@ -153,7 +153,9 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
         return Trxfmr.of(this,funcOp).transform( vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
+                var varOp = invokeToVar.get(invokeOp);
                 HATVectorOp memoryViewOp =  buildVectorBinaryOp(
+                        varOp.varName(),
                         BinaryOpEnum.of(invokeOp),
                         vectorShapeMap.get(invokeOp),
                         blockBuilder.context().getValues(invokeOp.operands())
@@ -242,6 +244,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
            return Trxfmr.of(this,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                  if (op instanceof JavaOp.InvokeOp invokeOp) {
                      HATVectorOp memoryViewOp = buildVectorBinaryOp(
+                             HATPhaseUtils.findVectorVarNameOrNull(invokeOp.operands().getFirst()),
                              BinaryOpEnum.of(invokeOp),
                              HATPhaseUtils.getVectorShapeFromInvokeReturnType(lookup(),invokeOp),
                              blockBuilder.context().getValues(invokeOp.operands())
