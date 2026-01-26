@@ -1,1 +1,1 @@
--cp hat/job.jar --enable-preview --source 26 hat.java test-suite ffi-opencl 
+-cp hat/job.jar --enable-preview --source 26 hat.java test-suite

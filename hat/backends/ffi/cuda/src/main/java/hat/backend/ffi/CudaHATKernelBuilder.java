@@ -176,7 +176,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         for (int i = 0; i < hatVectorBinaryOp.vectorShape().lanes(); i++) {
-
+// this is where varName is null
            identifier(hatVectorBinaryOp.varName())
                    .dot()
                    .identifier(hatVectorBinaryOp.mapLane(i))
@@ -222,7 +222,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (source instanceof Op.Result r) {
             recurse( r.op());
         }
-        either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
+        either( hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {

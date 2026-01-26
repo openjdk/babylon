@@ -59,6 +59,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                     case JavaOp.InvokeOp $ when invoke(lookup(), $) instanceof Invoke invoke -> {
                         if (invoke.nameMatchesRegex("(add|sub|mul|div)")){
                             var hatVectorBinaryOp = HATPhaseUtils.buildVectorBinaryOp(
+                                    invoke.varOpFromFirstUseOrThrow().varName(),
                                     invoke.name(),// so mul, sub etc
                                     getVectorShape(lookup(),invoke.returnType()),
                                     blockBuilder.context().getValues(invoke.op().operands())
