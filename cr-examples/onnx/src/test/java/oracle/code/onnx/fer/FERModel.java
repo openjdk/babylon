@@ -265,6 +265,7 @@ public class FERModel {
         return Identity(dropout.output());
     }
 
+    @Reflect
     public float[] classify(float[] imageData, OnnxRuntime.SessionOptions options, boolean isCondensed) {
         var imageTensor = Tensor.ofShape(arena, new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
         Tensor<Float> predictionTensor;
