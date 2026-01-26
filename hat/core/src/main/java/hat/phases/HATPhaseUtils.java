@@ -30,6 +30,7 @@ import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.Vector;
+import hat.types._F16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -42,16 +43,11 @@ import optkl.OpHelper;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
 
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;
@@ -215,7 +211,7 @@ public class HATPhaseUtils {
     }
 
     static public boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
-        return invoke.refIs(F16.class,BF16.class) && invoke.named(methodName);
+        return invoke.refIs(_F16.class) && invoke.nameMatchesRegex(methodName);
     }
 
     //recursive

@@ -59,7 +59,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -104,11 +103,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     }
 
     T op();
-
-    default <TO extends Op> TO copyLocationTo(TO to) {
-        to.setLocation(op().location());
-        return to;
-    }
 
     static Type classTypeToTypeOrThrow(MethodHandles.Lookup lookup, ClassType classType) {
         try {
@@ -278,31 +272,28 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         boolean isLoad();
 
         boolean isStore();
-
     }
-
 
     sealed interface Named<T extends Op> extends OpHelper<T>
             permits FieldAccess, Func, Invoke, VarAccess, Variable {
         String name();
 
-        default boolean named(Regex regex) {
+        default boolean nameMatchesRegex(Regex regex) {
             return regex.matches(name());
+        }
+        default boolean nameMatchesRegex(String regexStr) {
+            return nameMatchesRegex(Regex.of(regexStr));
         }
 
         default boolean named(String... names) {
-            return named(Set.of(names));
-        }
-
-        default boolean namedIgnoreCase(String... names) {
-            return Set.of(names).stream().map(String::toLowerCase).collect(Collectors.toSet()).contains(name().toLowerCase());
+            return nameInSet(Set.of(names));
         }
 
         default boolean named(Predicate<String> predicate) {
             return predicate.test(name());
         }
 
-        default boolean named(Set<String> set) {
+        default boolean nameInSet(Set<String> set) {
             return set.contains(name());
         }
     }

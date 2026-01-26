@@ -31,7 +31,6 @@ import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Trxfmr;
 import optkl.codebuilders.JavaCodeBuilder;
-import optkl.util.Regex;
 
 
 import java.io.PrintStream;
@@ -68,7 +67,7 @@ public class BlockGroup {
         Invoke.stream(lookup,mModel.body().entryBlock()) // So this yields a stream of Invoke helpers
                 .filter(invoke->// it's easier to check if is in fact println
                         invoke.refIs(PrintStream.class)
-                                && invoke.named(Regex.of("print(ln|)"))
+                                && invoke.nameMatchesRegex("print(ln|)")
                                 && invoke.returns(void.class))
                 .forEach(invoke -> opsToGroup.addAll(List.of(
                                 invoke.opFromOperandNOrThrow(0),// instead of op.operands().get(0).result().op()

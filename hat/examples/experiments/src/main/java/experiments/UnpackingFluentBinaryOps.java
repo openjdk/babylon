@@ -26,9 +26,7 @@ package experiments;
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaOp;
-import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
 
@@ -53,7 +51,7 @@ public class UnpackingFluentBinaryOps {
                  .toJava("// (Java) before mapping", "//-------")
 
                 .transform(ce -> ce instanceof JavaOp.InvokeOp, c -> {
-                    if (invoke(lookup,c.op()) instanceof Virtual v && v.named(Regex.of("(add|mul|div|mod|sub)"))) {
+                    if (invoke(lookup,c.op()) instanceof Virtual v && v.nameMatchesRegex("(add|mul|div|mod|sub)")) {
                         var lhs = c.mappedOperand(0);
                         var rhs = c.mappedOperand(1);
                         c.replace(switch (v.name()) { // we replace the call with one of ....
