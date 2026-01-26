@@ -77,7 +77,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
 
     private void createF16ConvOP(Invoke invoke, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
         blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.op(invoke.copyLocationTo(new HATF16Op.HATF16ConvOp(
+                blockBuilder.op(copyLocation(invoke.op(),new HATF16Op.HATF16ConvOp(
                                 JavaType.VOID,
                                 reducedFloatType,
                                 blockBuilder.context().getValues(invoke.op().operands()))
@@ -102,7 +102,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                 && varLoadOp.resultType().equals(JavaType.FLOAT);
 
         blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.op(invoke.copyLocationTo(new HATF16Op.HATF16ToFloatConvOp(
+                blockBuilder.op(copyLocation(invoke.op(),new HATF16Op.HATF16ToFloatConvOp(
                                 JavaType.FLOAT,
                                 reducedFloatType,
                                 HATPhaseUtils.isF16Local(invoke.op().operands().getFirst()),

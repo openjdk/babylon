@@ -168,7 +168,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
             Invoke.stream(lookup(),funcOp)
-                    .filter(invoke->invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.named(reservedMethods))
+                    .filter(invoke->invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(reservedMethods))
                     .forEach(invoke -> invoke.op().result().uses().stream()
                            .filter(use->use.op() instanceof CoreOp.VarOp)
                            .map(use->(CoreOp.VarOp)use.op())
@@ -182,7 +182,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             return Trxfmr.of(this,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                if (invoke(lookup(),op) instanceof Invoke invoke) {
                    blockBuilder.context().mapValue(invoke.op().result(),
-                           blockBuilder.op(invoke.copyLocationTo(
+                           blockBuilder.op(copyLocation(invoke.op(),
                                    new HATMemoryDefOp.HATMemoryLoadOp(invoke.returnType(),
                                            invoke.refType(),
                                            invoke.name(),

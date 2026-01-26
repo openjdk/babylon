@@ -36,7 +36,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.util.Regex;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -85,7 +84,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
 
         Map<CodeElement<?,?>, InvokeVar> ceToInvokeVar = new HashMap<>();
         Invoke.stream(lookup(),funcOp)
-                .filter(invoke -> invoke.named(Regex.of("[xyzw]"))
+                .filter(invoke -> invoke.nameMatchesRegex("[xyzw]")
                                 && invoke.refIs(Vector.class)
                                 && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
                 .map(invoke ->

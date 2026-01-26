@@ -42,7 +42,6 @@ import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
-import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
 import optkl.FuncOpParams;
@@ -738,8 +737,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if ( invoke.refIs(IfaceValue.class /*MappableIface.class, HAType.class, DeviceType.class*/)) { // we need a common type
-            if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
+        if ( invoke.refIs(IfaceValue.class )) {
+            if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
                             ((Regex.Match)atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
