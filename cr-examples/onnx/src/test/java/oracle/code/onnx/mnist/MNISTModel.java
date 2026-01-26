@@ -78,6 +78,7 @@ public class MNISTModel {
     }
 
     // Invoked every time to predict a number
+    @Reflect
     public float[] classify(float[] imageData) {
         // Manage per-execution data in a confined arena
         try (Arena arena = Arena.ofConfined()) {
