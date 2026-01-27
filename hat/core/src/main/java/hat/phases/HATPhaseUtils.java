@@ -267,9 +267,9 @@ public class HATPhaseUtils {
         return null;
     }
 
-    public static Vector.Shape getVectorShapeFromInvokeReturnType(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return getVectorShape(lookup,invokeOp.resultType());
-    }
+    //public static Vector.Shape getVectorShapeFromInvokeReturnType(OpHelper.Invoke invoke) {
+       // return ;
+    //}
 
     /**
      *

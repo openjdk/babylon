@@ -69,6 +69,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         return to;
     }
 
+
+
+    default Op opFromOnlyUseOrNull() {
+        return onlyUseOrNull() instanceof Op.Result result?result.op():null;
+    }
+    default Op.Result onlyUseOrNull() {
+        if (op().result().uses().size() == 1) {
+            return op().result().uses().iterator().next();
+        } else {
+            return null;
+        }
+    }
     static Value firstOperandOrNull(Op op) {
         if (!op.operands().isEmpty()) {
             return op.operands().getFirst();
@@ -94,11 +106,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     }
 
     static CoreOp.FuncOp methodModelOrThrow(Method method) {
-
         if (methodModelOrNull(method) instanceof CoreOp.FuncOp funcOp) {
             return funcOp;
         } else {
-            throw new RuntimeException("No funcop/method model for " + method + " did you forget @Reflec");
+            throw new RuntimeException("No funcop/method model for " + method + " did you forget @Reflect");
         }
     }
 
@@ -147,7 +158,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     default Op.Result resultFromFirstOperandOrNull() {
         return resultFromOperandNOrNull(0);
     }
-
 
     default Op.Result resultFromOperandNOrThrow(int i) {
         if (resultFromOperandNOrNull(i) instanceof Op.Result result) {
@@ -198,8 +208,24 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     }
 
     default CoreOp.VarAccessOp.VarLoadOp varLoadOpFromFirstOperandOrNull() {
-        return opFromFirstOperandOrThrow()
-                instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ? varLoadOp : null;
+        return opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ? varLoadOp : null;
+    }
+    default CoreOp.VarOp varOpFromFirstOperandOrNull() {
+        return opFromFirstOperandOrNull() instanceof CoreOp.VarOp varOp ? varOp : null;
+    }
+    default CoreOp varAccessOrVarOpFromFirstOperandOrNull() {
+        return switch (opFromFirstOperandOrNull()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> varLoadOp;
+            case CoreOp.VarOp varOp -> varOp;
+            default -> null;
+        };
+    }
+    default String varNameFromFirstOperandOrNull() {
+        return switch (varAccessOrVarOpFromFirstOperandOrNull()){
+            case CoreOp.VarOp varOp->varOp.varName();
+            case CoreOp.VarAccessOp varAccessOp->varAccessOp.varOp().varName();
+            default -> null;
+        };
     }
 
     static Block entryBlockOfBodyN(Op op, int idx) {
@@ -618,13 +644,8 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return OpHelper.methodModelOrThrow(method);
         }
 
-        default Op onlyUse() {
-            if (op().result().uses().size() == 1) {
-                return op().result().uses().iterator().next().op();
-            } else {
-                return null;
-            }
-        }
+
+
         static <I extends Invoke>I invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
             return codeElement instanceof JavaOp.InvokeOp invokeOp ?
                     invokeOp.invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC)
