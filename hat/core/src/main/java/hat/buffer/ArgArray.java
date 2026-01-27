@@ -293,13 +293,12 @@ public interface ArgArray extends Buffer {
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
-                    buf.access(accessType.value);
-                    assert bufferAccessList.get(i).value == accessType.value: "buffer tagging mismatch: "
-                                + kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
-                                + " in " + kernelCallGraph.entrypoint.getMethod().getName()
-                                + " annotated as " + AccessType.of(accessType.value)
-                                + " but tagged as " + bufferAccessList.get(i).name();
-
+                    buf.access(bufferAccessList.get(i).value); // buf.access(accessType.value);
+                    assert bufferAccessList.get(i).value == accessType.value :
+                            (kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
+                                    + " in " + kernelCallGraph.entrypoint.getMethod().getName()
+                                    + ": buffertagger " + bufferAccessList.get(i).value
+                                    + " doesn't match " + accessType.value);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }

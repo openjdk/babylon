@@ -26,6 +26,7 @@
 package hat;
 
 import jdk.incubator.code.analysis.SSA;
+import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
@@ -103,6 +104,14 @@ public class BufferTagger {
         return ssaFunc;
     }
 
+    public static boolean isReference(Invoke ioh) {
+        return ioh.returns(IfaceValue.class)
+                && ioh.opFromOnlyUseOrNull() instanceof JavaOp.InvokeOp nextInvoke
+                && invoke(ioh.lookup(), nextInvoke) instanceof Invoke nextIoh
+                && nextIoh.refIs(IfaceValue.class)
+                && nextIoh.returnsVoid();
+    }
+
     // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         // build blockParams so that we can map params to "root" params later
@@ -121,9 +130,14 @@ public class BufferTagger {
                 case JavaOp.InvokeOp invokeOp -> {
                     var ioh =  invoke(lookup,invokeOp);
                     // we have to deal with  array views  too
-                    if ( ioh.refIs(MappableIface.class)) {
-                        updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
-                        if (ioh.refIs(Buffer.class) && (ioh.returns(MappableIface.class) || ioh.returnsArray())) {
+                    if ( ioh.refIs(IfaceValue.class)) {
+                        // updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
+                        // if the invokeOp retrieves an element that is only written to, don't update the access type
+                        // (i.e. the only use is an invoke, the invoke is of MappableIface/HAType class, and is a write)
+                        if (!isReference(ioh)) { //     value retrieved and not just referenced?
+                            updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
+                        }
+                        if (ioh.refIs(IfaceValue.class) && (ioh.returns(IfaceValue.class) || ioh.returnsArray())) {
                             // if we access a struct/union from a buffer, we map the struct/union to the buffer root
                             remappedVals.put(invokeOp.result(), getRootValue(invokeOp));
                         }
