@@ -143,6 +143,12 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
         return nl();
     }
 
+    public final T macro(String name, Consumer<T> consumer) {
+        hashDefineKeyword().space().identifier(name);
+        consumer.accept(self());
+        return nl();
+    }
+
     public final T pragma(String name, String... values) {
         hash().pragmaKeyword().space().identifier(name);
         for (String value : values) {

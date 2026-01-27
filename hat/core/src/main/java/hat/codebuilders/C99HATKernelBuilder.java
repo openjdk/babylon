@@ -30,6 +30,7 @@ import hat.buffer.F16Array;
 import hat.device.DeviceType;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
+import hat.dialect.HATMathLibOp;
 import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
@@ -56,6 +57,7 @@ import optkl.codebuilders.CodeBuilder;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.IntStream;
 
 import static hat.buffer.F16Array.F16Impl;
 
@@ -422,6 +424,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final T bf16Type() {
         return suffix_t(BF16.class);
+    }
+
+    public final T genReducedType(ReducedFloatType reducedFloatType) {
+        return (switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> f16Type();
+            case ReducedFloatType.BFloat16 _ -> bf16Type();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        });
     }
 
     @Override
@@ -808,4 +818,43 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    public static final String VALUE = "value";
+
+    private void genFieldAccess(HATMathLibOp hatMathLibOp, int operandIndex) {
+        if (Boolean.TRUE.equals(hatMathLibOp.references().get(operandIndex))) {
+            rarrow().identifier(VALUE);
+        } else if (!OpHelper.isPrimitiveResult(hatMathLibOp.operands().get(operandIndex))) {
+            dot().identifier(VALUE);
+        }
+    }
+
+    @Override
+    public T hatMathLibOp(HATMathLibOp hatMathLibOp) {
+        ReducedFloatType reducedFloatType = hatMathLibOp.getReducedFloatType();
+        if (reducedFloatType != null) {
+            // If special type, then we need to build the type
+            // For now this applies to F16 and bFloat16
+            paren(_ -> genReducedType(reducedFloatType)).obrace();
+        }
+        identifier(hatMathLibOp.name());
+        paren( _ -> {
+            int numArgs = hatMathLibOp.numArguments();
+            IntStream.range(0, numArgs).forEach(i -> {
+                recurse(OpHelper.asResultOrThrow(hatMathLibOp.operands().get(i)).op());
+                if (reducedFloatType != null) {
+                    genFieldAccess(hatMathLibOp, i);
+                }
+
+                // Don't generate the comma after the last argument
+                if (i != numArgs - 1) {
+                    comma();
+                }
+
+            });
+        });
+        if (reducedFloatType != null) {
+            cbrace();
+        }
+        return self();
+    }
 }

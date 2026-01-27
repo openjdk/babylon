@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.HATMath;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
@@ -290,6 +291,12 @@ public class HATPhaseUtils {
             }
             return null;
         }
+    }
+
+    public static boolean isMathLib(OpHelper.Invoke invoke) {
+        String invokeClassName = invoke.refType().toString();
+        invokeClassName = invokeClassName.replace("$", ".");
+        return invokeClassName.startsWith(HATMath.class.getCanonicalName());
     }
 
     public record VectorMetaData(TypeElement vectorTypeElement, int lanes) {

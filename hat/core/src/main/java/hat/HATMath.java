@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,19 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.phases;
+package hat;
 
-import hat.callgraph.KernelCallGraph;
-import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
+import hat.types.F16;
 
-import java.lang.invoke.MethodHandles;
-import java.util.function.Function;
+public class HATMath {
 
-public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
-        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
-    KernelCallGraph kernelCallGraph();
-    @Override default MethodHandles.Lookup lookup(){
-        return kernelCallGraph().lookup();
+    // Binary Operations
+    public static float max(float a, float b) {
+        return Math.max(a, b);
     }
+
+    public static F16 max(F16 a, F16 b) {
+        float fa = F16.f16ToFloat(a);
+        float fb = F16.f16ToFloat(b);
+        return F16.floatToF16(Math.max(fa, fb));
+    }
+
+    // Unary operations
+    public static F16 exp(F16 a) {
+        float fa = F16.f16ToFloat(a);
+        return F16.floatToF16((float) Math.exp(fa));
+    }
+
+    private HATMath() {}
 }

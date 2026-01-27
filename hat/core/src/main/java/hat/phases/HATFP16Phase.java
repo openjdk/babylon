@@ -52,9 +52,7 @@ import static optkl.OpHelper.copyLocation;
 
 public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
-
-    static public ReducedFloatType categorizeReducedFloat(JavaOp.InvokeOp invokeOp) {
-        String invokeClassName = invokeOp.invokeDescriptor().refType().toString();
+    private static ReducedFloatType categorizeReducedFloat(String invokeClassName) {
         invokeClassName = invokeClassName.replace("$", ".");
         if (invokeClassName.equals(F16.class.getName())) { // lets not compare strings here
             return ReducedFloatType.HalfFloat.of();
@@ -64,7 +62,17 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
         return null;
     }
 
-    static public  void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
+    public static ReducedFloatType categorizeReducedFloat(JavaOp.InvokeOp invokeOp) {
+        String invokeClassName = invokeOp.invokeDescriptor().refType().toString();
+        return categorizeReducedFloat(invokeClassName);
+    }
+
+    public static ReducedFloatType categorizeReducedFloatFromResult(JavaOp.InvokeOp invokeOp) {
+        String invokeClassName = invokeOp.resultType().toString();
+        return categorizeReducedFloat(invokeClassName);
+    }
+
+    public static  void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
            blockBuilder.context().mapValue(varOp.result(),
                 blockBuilder.op(copyLocation(varOp,
                        new HATF16Op.HATF16VarOp(
@@ -182,7 +190,7 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                         }
                 });
 
-        return  Trxfmr.of(this,funcOp).transform(ce->nodesInvolved.contains(ce),(blockBuilder, op) -> {
+        return Trxfmr.of(this,funcOp).transform(ce->nodesInvolved.contains(ce),(blockBuilder, op) -> {
            if (op instanceof JavaOp.InvokeOp invokeOp) {
                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.context().getValue(invokeOp.operands().getFirst()));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
