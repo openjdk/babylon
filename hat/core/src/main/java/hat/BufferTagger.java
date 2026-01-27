@@ -130,6 +130,7 @@ public class BufferTagger {
                 case JavaOp.InvokeOp invokeOp -> {
                     var ioh =  invoke(lookup,invokeOp);
                     // we have to deal with  array views  too
+                    // should .arrayview() calls be marked as reads?
                     if ( ioh.refIs(IfaceValue.class)) {
                         // updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
                         // if the invokeOp retrieves an element that is only written to, don't update the access type
