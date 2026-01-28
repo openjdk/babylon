@@ -295,6 +295,26 @@ public final class OnnxRuntime {
                 ret)).reinterpret(arena, value -> OrtApi.ReleaseValue.invoke(OrtApi.ReleaseValue(runtimeAddress), value));
     }
 
+    public MemorySegment createStringTensor(Arena arena, String[] data, long[] shape) {
+        var allocatorInfo = retAddr(OrtApi.AllocatorGetInfo.invoke(OrtApi.AllocatorGetInfo(runtimeAddress), defaultAllocatorAddress, ret));
+        MemorySegment flatDataPlacholder = arena.allocate(data.length * 24L); // @@@ calling of CreateTensorAsOrtValue crashes
+        var tensor = retAddr(OrtApi.CreateTensorWithDataAsOrtValue.invoke(
+                OrtApi.CreateTensorWithDataAsOrtValue(runtimeAddress),
+                allocatorInfo,
+                flatDataPlacholder, flatDataPlacholder.byteSize(),
+                autoShape(arena, shape, data.length), (long) shape.length,
+                Tensor.ElementType.STRING.id,
+                ret));
+        for (int i = 0; i < data.length; i++) {
+            checkStatus(OrtApi.FillStringTensorElement.invoke(
+                    OrtApi.FillStringTensorElement(runtimeAddress),
+                    tensor,
+                    arena.allocateFrom(data[i]),
+                    (long)i));
+        }
+        return tensor.reinterpret(arena, value -> OrtApi.ReleaseValue.invoke(OrtApi.ReleaseValue(runtimeAddress), value));
+    }
+
     public Tensor.ElementType tensorElementType(MemorySegment tensorAddr) {
         var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape.invoke(OrtApi.GetTensorTypeAndShape(runtimeAddress), tensorAddr, ret));
         return Tensor.ElementType.fromOnnxId(retInt(OrtApi.GetTensorElementType.invoke(OrtApi.GetTensorElementType(runtimeAddress), infoAddr, ret)));
@@ -307,6 +327,20 @@ public final class OnnxRuntime {
             var shape = arena.allocate(C_LONG_LONG, dims);
             checkStatus(OrtApi.GetDimensions.invoke(OrtApi.GetDimensions(runtimeAddress), infoAddr, shape, dims));
             return shape.toArray(C_LONG_LONG);
+        }
+    }
+
+    public long tensorShapeElementCount(MemorySegment tensorAddr) {
+        var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape.invoke(OrtApi.GetTensorTypeAndShape(runtimeAddress), tensorAddr, ret));
+        return retLong(OrtApi.GetTensorShapeElementCount.invoke(OrtApi.GetTensorShapeElementCount(runtimeAddress), infoAddr, ret));
+    }
+
+    public String stringTensorElement(MemorySegment tensorAddr, long elementIndex) {
+        try (var arena = Arena.ofConfined()) {
+            long elemLen = retLong(OrtApi.GetStringTensorElementLength.invoke(OrtApi.GetStringTensorElementLength(runtimeAddress), tensorAddr, elementIndex, ret));
+            var buf = arena.allocate(ValueLayout.JAVA_BYTE, elemLen + 1);
+            checkStatus(OrtApi.GetStringTensorElement.invoke(OrtApi.GetStringTensorElement(runtimeAddress), tensorAddr, elemLen, elementIndex, buf));
+            return buf.getString(0);
         }
     }
 
