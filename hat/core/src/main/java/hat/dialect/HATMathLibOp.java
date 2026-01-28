@@ -73,7 +73,7 @@
 
      @Override
      public Map<String, Object> externalize() {
-         return Map.of("hat.dialect.MathLib.", JavaOp.InvokeOp.InvokeKind.INSTANCE);
+         return Map.of("hat.dialect.MathLib." + name, JavaOp.InvokeOp.InvokeKind.INSTANCE);
      }
 
      public String name() {
@@ -86,10 +86,6 @@
 
      public ReducedFloatType getReducedFloatType() {
          return reducedFloatType;
-     }
-
-     public List<Boolean> getReferenceList() {
-         return referenceList;
      }
 
      public int numArguments() {
