@@ -33,6 +33,8 @@ import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
+import java.util.List;
+
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
     protected OpenCLHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
@@ -77,7 +79,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_BSX", _ -> paren(_ -> identifier("get_num_groups").paren(_ -> intConstZero())))
                 .hashDefine("HAT_BSY", _ -> paren(_ -> identifier("get_num_groups").paren(_ -> intConstOne())))
                 .hashDefine("HAT_BSZ", _ -> paren(_ -> identifier("get_num_groups").paren(_ -> intConstTwo())))
-                .macro("MAX_HAT", _-> identifier("(a, b) (((a) > (b))? (a): (b))"))
+                .maxMacro("MAX_HAT")
+                .minMacro("MIN_HAT")
                 .hashDefine("HAT_BARRIER", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen())
                 .hashDefine("BFLOAT16", _ -> keyword("ushort"))
                 .typedefSingleValueStruct("F16",  "half")

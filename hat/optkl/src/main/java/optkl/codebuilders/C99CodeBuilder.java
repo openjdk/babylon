@@ -25,6 +25,7 @@
 package optkl.codebuilders;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
@@ -143,10 +144,53 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
         return nl();
     }
 
-    public final T macro(String name, Consumer<T> consumer) {
+    public final T macro(String name, List<String> params, Consumer<T> body) {
         hashDefineKeyword().space().identifier(name);
-        consumer.accept(self());
+        paren( _ -> {
+            int last = params.size() - 1;
+            for (int i = 0; i < last; i++) {
+                identifier(params.get(i)).comma().space();
+            }
+            identifier(params.get(last));
+        }).space();
+        paren( _ -> body.accept(self()));
         return nl();
+    }
+
+    public final T maxMacro(String name) {
+        List<String> params = List.of("a", "b");
+        return macro(name, params, _ -> maxMacroBody(params));
+    }
+
+    public final T minMacro(String name) {
+        List<String> params = List.of("a", "b");
+        return macro(name, params, _ -> minMacroBody(params));
+    }
+
+    public final T maxMacroBody(List<String> params) {
+        final String a = params.getFirst();
+        final String b = params.get(1);
+        paren(_ -> paren(_ -> identifier(a))
+                .gt()
+                .paren(_ -> identifier(b)));
+        questionMark()
+                .paren(_ -> identifier(a))
+                .colon()
+                .paren(_ -> identifier(b));
+        return self();
+    }
+
+    public final T minMacroBody(List<String> params) {
+        final String a = params.getFirst();
+        final String b = params.get(1);
+        paren(_ -> paren( _ -> identifier(a))
+                .lt()
+                .paren( _ -> identifier(b)));
+        questionMark()
+                .paren( _ -> identifier(a))
+                .colon()
+                .paren( _ -> identifier(b));
+        return self();
     }
 
     public final T pragma(String name, String... values) {
