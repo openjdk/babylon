@@ -29,6 +29,7 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
@@ -203,6 +204,20 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         return paren(_-> f16Type()).identifier(hatF16ToFloatConvOp.varName());
+    }
+
+    @Override
+    protected String mapMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
+        switch (hatMathIntrinsicName) {
+            case "exp" -> {
+                if (reducedFloatType != null) {
+                    return "half_exp";
+                } else {
+                    return "exp";
+                }
+            }
+        }
+        return hatMathIntrinsicName;
     }
 
 }

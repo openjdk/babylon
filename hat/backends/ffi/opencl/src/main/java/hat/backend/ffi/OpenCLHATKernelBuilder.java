@@ -33,8 +33,6 @@ import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.List;
-
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
     protected OpenCLHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
@@ -271,5 +269,19 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             cparen();
         }
         return self();
+    }
+
+    @Override
+    protected String mapMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
+        switch (hatMathIntrinsicName) {
+            case "exp" -> {
+                if (reducedFloatType != null) {
+                    return "half_exp";
+                } else {
+                    return "exp";
+                }
+            }
+        }
+        return hatMathIntrinsicName;
     }
 }

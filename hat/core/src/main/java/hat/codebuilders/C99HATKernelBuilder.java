@@ -836,7 +836,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             // For now this applies to F16 and bFloat16
             paren(_ -> genReducedType(reducedFloatType)).obrace();
         }
-        identifier(hatMathLibOp.name());
+        identifier(mapMathIntrinsic(reducedFloatType, hatMathLibOp.name()));
         paren( _ -> {
             int numArgs = hatMathLibOp.numArguments();
             IntStream.range(0, numArgs).forEach(i -> {
@@ -857,4 +857,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
+    protected abstract String mapMathIntrinsic(ReducedFloatType reducedFloatType, String name);
 }

@@ -26,10 +26,8 @@ package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
-import hat.dialect.HATMathLibOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
-import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
@@ -37,7 +35,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.List;
-import java.util.stream.IntStream;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -397,7 +394,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private String mapCUDAMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
+    @Override
+    protected String mapMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
         switch (hatMathIntrinsicName) {
             case "exp" -> {
                 if (reducedFloatType != null) {
@@ -408,35 +406,5 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }
         }
         return hatMathIntrinsicName;
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatMathLibOp(HATMathLibOp hatMathLibOp) {
-        ReducedFloatType reducedFloatType = hatMathLibOp.getReducedFloatType();
-        if (reducedFloatType != null) {
-            // If special type, then we need to build the type
-            // For now this applies to F16 and bFloat16
-            paren(_ -> genReducedType(reducedFloatType)).obrace();
-        }
-        identifier(mapCUDAMathIntrinsic(reducedFloatType, hatMathLibOp.name()));
-        paren( _ -> {
-            int numArgs = hatMathLibOp.numArguments();
-            IntStream.range(0, numArgs).forEach(i -> {
-                recurse(OpHelper.asResultOrThrow(hatMathLibOp.operands().get(i)).op());
-                if (reducedFloatType != null) {
-                    genFieldAccess(hatMathLibOp, i);
-                }
-
-                // Don't generate the comma after the last argument
-                if (i != numArgs - 1) {
-                    comma();
-                }
-
-            });
-        });
-        if (reducedFloatType != null) {
-            cbrace();
-        }
-        return self();
     }
 }
