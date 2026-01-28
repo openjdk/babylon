@@ -98,9 +98,38 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
         }).funcOp();
     }
 
+    // At this point, we already have the main HATMathOp in place, which stores the operation either in a
+    // VarOp or VarStoreOp. This phase is used to detect when a HATMathOp uses as operands (VarLoadOp)
+    // variables that come from other HATMathOp. In this way, we will allow composition of HATMath functions.
+    private CoreOp.FuncOp transformConcatenationHATMathOps(CoreOp.FuncOp funcOp) {
+        Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
+        funcOp.elements()
+                .filter(HATMathLibOp.class::isInstance)
+                .forEach( opElement -> {
+                    Op.Result result = ((HATMathLibOp) opElement).result();
+                    HATMathLibOp hatMathLibOp = (HATMathLibOp) result.op();
+                    List<Value> operands = hatMathLibOp.operands();
+                    // for each of the operands, check where they are coming from
+                    for (Value value: operands) {
+                        OpHelper.Invoke.stream(lookup(), value.result().op())
+                                .filter(invoke -> !invoke.returnsVoid() && HATPhaseUtils.isMathLib(invoke))
+                                .forEach(invoke -> {
+                                    ReducedFloatType reducedFloatType =  HATFP16Phase.categorizeReducedFloatFromResult(invoke.op());
+                                    setTypeMap.put(invoke.op(), reducedFloatType);
+                                });
+                    }
+                });
+
+        return Trxfmr.of(this, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
+            transformHATMathWithVarOp(blockBuilder, op, setTypeMap);
+            return blockBuilder;
+        }).funcOp();
+    }
+
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         funcOp = transformHATMathWithVarOp(funcOp);
+        funcOp = transformConcatenationHATMathOps(funcOp);
         return funcOp;
     }
 }

@@ -845,9 +845,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return args;
 
         }
-
     }
-
 
     sealed interface Binary extends OpHelper<JavaOp.BinaryOp> {
         default <T> boolean isAssignable(Class<T> clazz) {
