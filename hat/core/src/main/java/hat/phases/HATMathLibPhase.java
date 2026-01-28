@@ -82,11 +82,31 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
         Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
         OpHelper.Invoke.stream(lookup(), funcOp)
                 .filter(invoke -> !invoke.returnsVoid() && HATPhaseUtils.isMathLib(invoke))
-                .forEach(invoke ->
+                .map(invoke -> {
+                    // Inspection of all MathLib invokes.
+                    // If operands depend on other Invoke of the same library, then we add them
+                    // in the hash map to transform these invoke nodes with the corresponding HATMathLibOp.
+                    List<Value> operands = invoke.op().operands();
+
+                    // for each of the operands, check whether the operand is of type invoke with a HATMath operation.
+                    // This detects composition of math operations.
+                    operands.forEach((Value value) -> OpHelper.Invoke.stream(lookup(), value.result().op())
+                            .filter(invokeInner -> !invokeInner.returnsVoid() && HATPhaseUtils.isMathLib(invokeInner))
+                            .forEach(invokeInner -> {
+                                ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloatFromResult(invokeInner.op());
+                                setTypeMap.put(invokeInner.op(), reducedFloatType);
+                            }));
+                    return invoke;
+                }).forEach(invoke ->
+                        // This detects a HATMathLib is stored either in a VarOp or a VarStoreOp
                         invoke.op().result().uses().stream()
                                 .filter(result -> (result.op() instanceof CoreOp.VarOp) || (result.op() instanceof CoreOp.VarAccessOp.VarStoreOp))
                                 .findFirst()
                                 .ifPresent(result -> {
+                                    // Special attention to HATTypes. This is some metadata associated with the invoke
+                                    // to pass to the cogen to do further processing (e.g., build a new type or typecast).
+                                    // An alternative is to insert a `stub`, or a code snippet that insert new nodes in the
+                                    // IR
                                     ReducedFloatType reducedFloatType =  HATFP16Phase.categorizeReducedFloatFromResult(invoke.op());
                                     setTypeMap.put(result.op(), reducedFloatType);
                                     setTypeMap.put(invoke.op(), reducedFloatType);
@@ -98,7 +118,7 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
         }).funcOp();
     }
 
-    // At this point, we already have the main HATMathOp in place, which stores the operation either in a
+    // At this point, we already have the main HATMathOp in place, which stores the HATMath operation either in a
     // VarOp or VarStoreOp. This phase is used to detect when a HATMathOp uses as operands (VarLoadOp)
     // variables that come from other HATMathOp. In this way, we will allow composition of HATMath functions.
     private CoreOp.FuncOp transformConcatenationHATMathOps(CoreOp.FuncOp funcOp) {
@@ -129,7 +149,7 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         funcOp = transformHATMathWithVarOp(funcOp);
-        funcOp = transformConcatenationHATMathOps(funcOp);
+        //funcOp = transformConcatenationHATMathOps(funcOp);
         return funcOp;
     }
 }
