@@ -25,14 +25,19 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATMathLibOp;
+import hat.dialect.HATVectorOp;
+import hat.dialect.ReducedFloatType;
+import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.*;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -103,6 +108,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BSY", _ -> gridDimY())
                 .hashDefine("HAT_BSZ", _ -> gridDimZ())
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
+                .macro("MAX_HAT", _-> identifier("(a, b) (((a) > (b))? (a): (b))"))
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
@@ -265,7 +271,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
         oparen();
         ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
-        generateReduceFloatType(reducedFloatType);
+        genReducedType(reducedFloatType);
         cparen().obrace();
 
         buildReducedFloatType(reducedFloatType);
@@ -328,7 +334,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Boolean> references = hatF16BinaryOp.references();
         byte f32Mixed = hatF16BinaryOp.getByteFloatRepresentation();
 
-        paren( _-> generateReduceFloatType(reducedFloatType)).obrace().oparen();
+        paren( _-> genReducedType(reducedFloatType)).obrace().oparen();
 
         if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
             generateReducedFloatConversionToFloat(reducedFloatType).oparen();
@@ -381,20 +387,54 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private CudaHATKernelBuilder generateReduceFloatType(ReducedFloatType reducedFloatType) {
-        switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> f16Type();
-            case ReducedFloatType.BFloat16 _ -> bf16Type();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        }
-        return self();
-    }
-
     private CudaHATKernelBuilder generateReducedFloatConversionToFloat(ReducedFloatType reducedFloatType) {
         switch (reducedFloatType) {
             case ReducedFloatType.HalfFloat _ ->  half2float();
             case ReducedFloatType.BFloat16 _ ->  __bfloat162float();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        }
+        return self();
+    }
+
+    private String mapCUDAMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
+        switch (hatMathIntrinsicName) {
+            case "exp" -> {
+                if (reducedFloatType != null) {
+                    return "hexp";
+                } else {
+                    return "expf";
+                }
+            }
+        }
+        return hatMathIntrinsicName;
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatMathLibOp(HATMathLibOp hatMathLibOp) {
+        ReducedFloatType reducedFloatType = hatMathLibOp.getReducedFloatType();
+        if (reducedFloatType != null) {
+            // If special type, then we need to build the type
+            // For now this applies to F16 and bFloat16
+            paren(_ -> genReducedType(reducedFloatType)).obrace();
+        }
+        identifier(mapCUDAMathIntrinsic(reducedFloatType, hatMathLibOp.name()));
+        paren( _ -> {
+            int numArgs = hatMathLibOp.numArguments();
+            IntStream.range(0, numArgs).forEach(i -> {
+                recurse(OpHelper.asResultOrThrow(hatMathLibOp.operands().get(i)).op());
+                if (reducedFloatType != null) {
+                    genFieldAccess(hatMathLibOp, i);
+                }
+
+                // Don't generate the comma after the last argument
+                if (i != numArgs - 1) {
+                    comma();
+                }
+
+            });
+        });
+        if (reducedFloatType != null) {
+            cbrace();
         }
         return self();
     }

@@ -426,7 +426,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return suffix_t(BF16.class);
     }
 
-    public final T genReducedType(ReducedFloatType reducedFloatType) {
+    protected final T genReducedType(ReducedFloatType reducedFloatType) {
         return (switch (reducedFloatType) {
             case ReducedFloatType.HalfFloat _ -> f16Type();
             case ReducedFloatType.BFloat16 _ -> bf16Type();
@@ -820,7 +820,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public static final String VALUE = "value";
 
-    private void genFieldAccess(HATMathLibOp hatMathLibOp, int operandIndex) {
+    protected void genFieldAccess(HATMathLibOp hatMathLibOp, int operandIndex) {
         if (Boolean.TRUE.equals(hatMathLibOp.references().get(operandIndex))) {
             rarrow().identifier(VALUE);
         } else if (!OpHelper.isPrimitiveResult(hatMathLibOp.operands().get(operandIndex))) {
