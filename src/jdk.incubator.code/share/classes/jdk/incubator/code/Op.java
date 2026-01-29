@@ -52,12 +52,26 @@ import java.util.*;
 import java.util.function.BiFunction;
 
 /**
- * An operation modelling a unit of functionality.
+ * An operation modelling a unit of program behaviour.
  * <p>
- * An operation might model the addition of two 32-bit integers, or a Java method call.
- * Alternatively an operation may model something more complex like method bodies, lambda bodies, or
- * try/catch/finally statements. In this case such an operation will contain one or more bodies modelling
- * the nested structure.
+ * An operation might model the addition of two integers, or a method invocation expression.
+ * Alternatively an operation may model something more complex like method declarations, lambda expressions, or
+ * try statements. In such cases an operation will contain one or more bodies modelling the nested structure.
+ * <p>
+ * An instance of an operation when initially constructed is referred to as an unbound operation.
+ * An unbound operation's state and descendants are all immutable but its {@link #result result} and
+ * {@link #parent parent} have yet to be assigned (both methods return {@code null}).
+ * Since an unbound operation has no parent it can also be considered an unbound root operation.
+ * <p>
+ * An unbound operation becomes a bound operation if it is explicitly bound as a root operation, or
+ * is bound to a parent block that is being built by {@link Block.Builder#op(Op) appending} it to the block's
+ * {@link Block.Builder}. Once an operation is bound it cannot be unbound and so its {@link #result result} and
+ * {@link #parent parent} will no longer change. A bound operation is therefore fully immutable either as a bound root
+ * operation, the root of a code model, or as some operation within a code model (that is built or in the process of
+ * being built).
+ * <p>
+ * When an operation is bound to a parent block that is being built that block is not accessible as a {@link #parent()}
+ * until the block is fully built.
  */
 public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
@@ -71,6 +85,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * An operation characteristic indicating the operation has one or more bodies.
      */
     public interface Nested {
+        /**
+         * {@return the bodies of the nested operation.}
+         */
         List<Body> bodies();
     }
 
@@ -78,19 +95,21 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * An operation characteristic indicating the operation represents a loop
      */
     public interface Loop extends Nested {
+        /**
+         * {@return the body of the loop operation.}
+         */
         Body loopBody();
     }
 
     /**
      * An operation characteristic indicating the operation has one or more bodies,
-     * all of which are isolated.
+     * all of which are isolated and capture no values.
      */
     public interface Isolated extends Nested {
     }
 
     /**
-     * An operation characteristic indicating the operation is invokable, so the operation may be interpreted
-     * or compiled.
+     * An operation characteristic indicating the operation is invokable.
      */
     public interface Invokable extends Nested {
         /**
@@ -226,13 +245,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public static final class Result extends Value {
 
         /**
-         * If assigned to an operation result, it indicates the operation is sealed
+         * If assigned to an operation result, it indicates the operation is a bound root operation
         */
-        private static final Result SEALED_RESULT = new Result();
+        private static final Result BOUND_ROOT_RESULT = new Result();
 
         final Op op;
 
         private Result() {
+            // Constructor for instance of BOUND_ROOT_RESULT
             super(null, null);
             this.op = null;
         }
@@ -259,9 +279,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         /**
-         * Returns the result's operation.
-         *
-         * @return the result's operation.
+         * {@return the result's declaring operation.}
          */
         public Op op() {
             return op;
@@ -297,13 +315,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * Copies this operation and transforms its bodies, if any.
      * <p>
      * Bodies are {@link Body#transform(CodeContext, CodeTransformer) transformed} with the given code context and
-     * operation transformer.
+     * code transformer.
      * @apiNote
      * To copy an operation use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
      *
      * @param cc the code context.
-     * @param ot the operation transformer.
+     * @param ot the code transformer.
      * @return the transformed operation.
+     * @see CodeTransformer#COPYING_TRANSFORMER
      */
     public abstract Op transform(CodeContext cc, CodeTransformer ot);
 
@@ -317,14 +336,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Sets the originating source location of this operation, if unbound.
+     * Sets the originating source location of this operation, if unbound or the parent block is partially built.
      *
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
-     * @throws IllegalStateException if this operation is bound or sealed
+     * @throws IllegalStateException if this operation is bound.
      */
     public final void setLocation(Location l) {
         // @@@ Fail if location != null?
-        if (isSealed() || (result != null && result.block.isBound())) {
+        if (isBoundAsRoot() || (result != null && result.block.isBound())) {
             throw new IllegalStateException();
         }
 
@@ -339,13 +358,15 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if the operation is unbound or sealed.
+     * Returns this operation's parent block, otherwise {@code null} if the operation is
+     * a root operation (either bound or unbound).
      *
-     * @return operation's parent block, or {@code null} if the operation is unbound or sealed.
+     * @return operation's parent block, or {@code null} if the operation is a root operation.
+     * @throws IllegalStateException if the parent block is partially built
      */
     @Override
     public final Block parent() {
-        if (isSealed() || result == null) {
+        if (isBoundAsRoot() || result == null) {
             return null;
         }
 
@@ -364,6 +385,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return the operation's bodies, as an unmodifiable list}
      * @implSpec this implementation returns an unmodifiable empty list.
+     * @see #children()
      */
     public List<Body> bodies() {
         return List.of();
@@ -374,13 +396,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public abstract TypeElement resultType();
 
+
     /**
-     * Returns the operation's result, otherwise {@code null} if the operation is unbound or sealed.
+     * Returns the operation's result, otherwise {@code null} if the operation is unbound.
      *
-     * @return the operation's result, or {@code null} if unbound or sealed.
+     * @return the operation's result, or {@code null} if unbound.
      */
     public final Result result() {
-        return result == Result.SEALED_RESULT ? null : result;
+        return result == Result.BOUND_ROOT_RESULT ? null : result;
     }
 
     /**
@@ -401,7 +424,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Returns the operation's function type.
      * <p>
-     * The function type's result type is the operation's result type and the function type's parameter types are the
+     * The function type's result type is the operation's result type and its parameter types are the
      * operation's operand types, in order.
      *
      * @return the function type
@@ -412,8 +435,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Computes values captured by this operation. A captured value is a value that dominates
-     * this operation and is used by a descendant operation.
+     * Computes values captured by this operation. A captured value is a value that is used
+     * but not declared by any descendant operation of this operation.
      * <p>
      * The order of the captured values is first use encountered in depth
      * first search of this operation's descendant operations.
@@ -432,37 +455,46 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Seals this operation. After this operation is sealed its {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
+     * Binds this operation to become a bound root operation. After this operation is bound its
+     * {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
      * <p>
-     * If a sealed operation is {@link Block.Builder#op appended} to a {@link Block.Builder} then it is
-     * treated as if the operation is bound, and therefore the sealed operation will be transformed.
-     * <p>
-     * Sealing is idempotent if the operation is already sealed.
+     * This method is idempotent.
      *
-     * @throws IllegalStateException if this operation is bound.
+     * @throws IllegalStateException if this operation a bound to a parent block.
+     * @see #isBoundAsRoot()
      */
-    public final void seal() {
-        if (result == Result.SEALED_RESULT) {
+    public final void bindAsRoot() {
+        if (result == Result.BOUND_ROOT_RESULT) {
             return;
         }
         if (result != null) {
-            throw new IllegalStateException("Operation cannot be sealed since it bound to a parent block");
+            throw new IllegalStateException("Operation is bound to a parent block");
         }
-        result = Result.SEALED_RESULT;
+        result = Result.BOUND_ROOT_RESULT;
     }
 
     /**
-     * Returns {@code true} if this operation is sealed.
-     * @return {@code true} if this operation is sealed.
-     * @see #seal()
+     * {@return {@code true} if this operation is a bound root operation.}
+     * @see #bindAsRoot()
+     * @see #isBound()
      * */
-    public final boolean isSealed() {
-        return result == Result.SEALED_RESULT;
+    public final boolean isBoundAsRoot() {
+        return result == Result.BOUND_ROOT_RESULT;
+    }
+
+    /**
+     * {@return {@code true} if this operation is a bound operation.}
+     * @see #bindAsRoot()
+     * @see #isBoundAsRoot()
+     * */
+    public final boolean isBound() {
+        return result != null;
     }
 
     /**
      * Externalizes this operation's name as a string.
      * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
+     *
      * @return the operation name
      */
     public String externalizeOpName() {
@@ -495,15 +527,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Returns the code model of a reflectable lambda expression or method reference.
      *
-     * @param fiInstance a functional interface instance that is the result of a reflectable lambda expression
-     *                   or method reference.
+     * @param fiInstance a functional interface instance that is the result of a reflectable lambda expression or
+     *                   method reference.
      * @return the code model, or an empty optional if the functional interface instance is not the result of a
-     *         reflectable lambda expression or method reference.
-     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code model
-     *                                       is not the same as the Java version used at runtime to load the code model.
-     * @apiNote if the functional interface instance is a proxy instance, then the
-     *          code model is unavailable and this method returns an empty optional.
-     * @since 99
+     * reflectable lambda expression or method reference.
+     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code
+     * model is not the same as the Java version used at runtime to load the code model.
+     * @apiNote if the functional interface instance is a proxy instance, then the code model is unavailable and this
+     * method returns an empty optional.
      */
     public static Optional<Quoted<JavaOp.LambdaOp>> ofLambda(Object fiInstance) {
         Object oq = fiInstance;
@@ -546,9 +577,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @param method the method.
      * @return the code model, or an empty optional if the method is not reflectable.
-     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code model
-     *                                       is not the same as the Java version used at runtime to load the code model.
-     * @since 99
+     * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code
+     * model is not the same as the Java version used at runtime to load the code model.
      */
     // @@@ Make caller sensitive with the same access control as invoke
     // and throwing IllegalAccessException
@@ -594,10 +624,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * {@code java.lang.reflect.code.op.CoreOps.FuncOp}.
      * Note: due to circular dependencies we cannot refer to the type explicitly.
      *
-     * @implSpec The default implementation unconditionally returns an empty optional.
      * @param e the executable element.
      * @return the code model of the provided executable element (if any).
-     * @since 99
      */
     public static Optional<FuncOp> ofElement(ProcessingEnvironment processingEnvironment, ExecutableElement e) {
         if (e.getModifiers().contains(Modifier.ABSTRACT) ||

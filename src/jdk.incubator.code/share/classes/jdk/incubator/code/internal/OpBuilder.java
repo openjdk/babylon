@@ -224,7 +224,7 @@ public class OpBuilder {
         funcs.addAll(createSupportFunctions(dialectFactoryF));
         funcs.addAll(createExternTypeHelperFuncs(registeredExternalizedTypes));
         ModuleOp module = module(funcs);
-        module.seal();
+        module.bindAsRoot();
         return module;
     }
 
@@ -474,8 +474,8 @@ public class OpBuilder {
         // check if java version at compile time matches the java version at runtime
         builder.op(funcCall(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID));
         Value result = buildOp(null, ancestorBody, op);
-        // seal op
-        builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
+        // bind as bound root op
+        builder.op(invoke(MethodRef.method(Op.class, "bindAsRoot", void.class), result));
         builder.op(return_(result));
 
         // return from lambdas on stack

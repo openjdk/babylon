@@ -127,7 +127,7 @@ public sealed abstract class Value implements CodeItem
      * an operand or as an argument of a block reference that is a successor.
      *
      * @return the uses of this value, as an unmodifiable sequenced set. The encouncter order is unspecified
-     * and determined by the order in which operations are built.
+     * and determined by the order in which operations are built into blocks.
      * @throws IllegalStateException if the declaring block is partially built
      */
     public SequencedSet<Op.Result> uses() {
@@ -192,6 +192,7 @@ public sealed abstract class Value implements CodeItem
      * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a} is less than {@code b}; and {@code -1}
      * if {@code a} is greater than {@code b}.
      * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
+     * @throws IllegalStateException if a declaring block is partially built
      * @see CodeElement#compare
      */
     public static int compare(Value a, Value b) {
