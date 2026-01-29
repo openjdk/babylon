@@ -405,7 +405,7 @@ public final class Body implements CodeElement<Body, Block> {
 
     /**
      * Computes values captured by this body. A captured value is a value that is used
-     * but not declared by any descendant operation of this body.
+     * but not declared by any descendant block or operation of this body.
      * <p>
      * The order of the captured values is first use encountered in depth
      * first search of this body's descendant operations.

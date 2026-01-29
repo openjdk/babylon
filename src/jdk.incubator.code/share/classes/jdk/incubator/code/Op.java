@@ -336,7 +336,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Sets the originating source location of this operation, if unbound or the parent block is partially built.
+     * Sets the originating source location of this operation, if unbound or the parent block is not yet built.
      *
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
      * @throws IllegalStateException if this operation is bound.
@@ -362,7 +362,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * a root operation (either bound or unbound).
      *
      * @return operation's parent block, or {@code null} if the operation is a root operation.
-     * @throws IllegalStateException if the parent block is partially built
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     @Override
     public final Block parent() {
@@ -371,7 +371,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         if (!result.block.isBound()) {
-            throw new IllegalStateException("Parent block is partially constructed");
+            throw new IllegalStateException("Parent block is not built");
         }
 
         return result.block;

@@ -126,11 +126,11 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the target block.}
-         * @throws IllegalStateException if the target block is partially built
+         * @throws IllegalStateException if an unbuilt block is encountered.
          */
         public Block targetBlock() {
             if (!isBound()) {
-                throw new IllegalStateException("Target block is partially built");
+                throw new IllegalStateException("Target block is not built");
             }
 
             return target;
@@ -161,7 +161,7 @@ public final class Block implements CodeElement<Block, Op> {
 
     // Reverse postorder index
     // Set when block's body has sorted its blocks and therefore set when built
-    // Block is inoperable when < 0 i.e., when partially built
+    // Block is inoperable when < 0 i.e., when not built
     int index = -1;
 
     Block(Body parentBody) {
