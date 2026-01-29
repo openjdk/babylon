@@ -59,6 +59,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
 
@@ -892,4 +893,58 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             throw new IllegalStateException("cant find func parameter parameter " + n);
         }
     }
+
+
+
+     static <T, R> Gatherer<T, ?, R> instanceOf(Class<R> type) {
+        Objects.requireNonNull(type, "type");
+        return Gatherer.of((_, element, downstream) -> {
+            if (type.isInstance(element)) {
+                return downstream.push(type.cast(element));
+            }
+            return true;
+        });
+    }
+
+    /*
+      Instead of
+       invoke.op().result().uses().stream()
+           .filter(result -> result.op() instanceof CoreOp.VarOp)
+           .map(result -> (CoreOp.VarOp)result.op())
+           .forEach(...);
+
+      invoke.op().result().uses().stream()
+            .gather(OpHelper.opIs(CoreOp.VarOp.class))
+            .forEach(...);
+     */
+     static <T, R> Gatherer<T, ?, R> opIs(Class<R> type) {
+        Objects.requireNonNull(type, "type");
+        return Gatherer.of((_, element, downstream) -> {
+            if (element instanceof Op.Result result && type.isInstance(result.op())) {
+                return downstream.push(type.cast(result.op()));
+            }
+            return true;
+        });
+    }
+
+    /*
+       Instead of
+       invoke.op().result().uses().stream()
+           .filter(result -> result.op() instanceof CoreOp.VarOp)
+           .map(result -> (CoreOp.VarOp)result.op())
+           .forEach(...);
+
+        This enables
+        invoke.op().result().uses().stream()
+              .flatMap(OpHelper.resultsOpIs(CoreOp.VarOp.class))
+              .forEach(...)
+
+
+    static <E, T> Function<E, Stream<T>> opIs(Class<T> type) {
+        return e -> e instanceof Op.Result result && type.isInstance(result.op())
+                ? Stream.of(type.cast(result.op()))
+                : Stream.empty();
+    }
+*/
+
 }
