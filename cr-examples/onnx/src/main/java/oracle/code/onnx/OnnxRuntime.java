@@ -591,6 +591,10 @@ public final class OnnxRuntime {
             setInterOpNumThreads(1);
         }
 
+        public void registerCustomOpsLibrary(MemorySegment path) {
+            checkStatus(OrtApi.RegisterCustomOpsLibrary_V2.invoke(OrtApi.RegisterCustomOpsLibrary_V2(runtimeAddress), sessionOptionsAddress, path));
+        }
+
         public void setInterOpNumThreads(int numThreads) {
             checkStatus(OrtApi.SetInterOpNumThreads.invoke(OrtApi.SetInterOpNumThreads(runtimeAddress), sessionOptionsAddress, numThreads));
         }
