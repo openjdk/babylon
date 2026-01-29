@@ -130,8 +130,8 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
 
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp funcOp) {
-        super(computeContext, new ComputeEntrypoint(null, method, funcOp));
-        entrypoint.callGraph = this;
+        super(computeContext, new ComputeEntrypoint(computeContext.lookup(),null, method, funcOp));
+        entrypoint.callGraph = this; // This is bad we should be able to do better
         setModuleOp(createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp()));
     }
 
@@ -139,7 +139,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     @Override
     public boolean filterCalls(CoreOp.FuncOp funcOp, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
         var invoke = invoke(computeContext.lookup(),invokeOp);
-        if (entrypoint.method.getDeclaringClass().equals(invoke.classOrThrow())
+        if (entrypoint.method().getDeclaringClass().equals(invoke.classOrThrow())
                 && isValidKernelDispatch(computeContext.lookup(),method, funcOp)) {
             // TODO this side effect is not good.  we should do this when we construct !
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->

@@ -79,7 +79,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     }
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, MethodRef methodRef, Method method, CoreOp.FuncOp funcOp) {
-        super(computeCallGraph.computeContext, new KernelEntrypoint(null, methodRef, method, funcOp));
+        super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(),null, methodRef, method, funcOp));
         this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
         this.traits = new Traits(BufferTagger.getAccessList(computeContext.lookup(), entrypoint.funcOp()));

@@ -27,14 +27,29 @@ package hat.callgraph;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
 public class KernelEntrypoint extends KernelCallGraph.KernelReachableResolvedMethodCall implements Entrypoint {
-    public KernelEntrypoint(CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method, CoreOp.FuncOp funcOp) {
-        super(callGraph, targetMethodRef, method, funcOp);
+    private final MethodHandles.Lookup lookup;
+    @Override
+    public MethodHandles.Lookup lookup() {
+        return lookup;
     }
+    public KernelEntrypoint(MethodHandles.Lookup lookup,CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method, CoreOp.FuncOp funcOp) {
+        super(callGraph, targetMethodRef, method, funcOp);
+        this.lookup = lookup;
+    }
+/*
+    @Override
+    public MethodRef methodRef() {
+        return methodRef;
+    }
+
     @Override
     public Method getMethod() {
        return  this.method;
-    }
+    } */
+
 }

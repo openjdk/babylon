@@ -24,11 +24,14 @@
  */
 package hat.callgraph;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Method;
-import java.util.List;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.util.carriers.LookupCarrier;
 
-public interface Entrypoint {
-     Method getMethod();
+import java.lang.reflect.Method;
+
+public interface Entrypoint extends LookupCarrier {
+     CoreOp.FuncOp funcOp();
+     MethodRef methodRef();
+     Method method();
 }

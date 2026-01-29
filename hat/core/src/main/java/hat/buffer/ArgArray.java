@@ -262,7 +262,7 @@ public interface ArgArray extends Buffer {
     }
 
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
-        Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
+        Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.method().getParameterAnnotations();
         var bufferAccessList = kernelCallGraph.traits.bufferAccessList;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
@@ -295,8 +295,8 @@ public interface ArgArray extends Buffer {
                     buf.bytes(segment.byteSize());
                     buf.access(accessType.value);
                     assert bufferAccessList.get(i).value == accessType.value: "buffer tagging mismatch: "
-                                + kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
-                                + " in " + kernelCallGraph.entrypoint.getMethod().getName()
+                                + kernelCallGraph.entrypoint.method().getParameters()[i].toString()
+                                + " in " + kernelCallGraph.entrypoint.method().getName()
                                 + " annotated as " + AccessType.of(accessType.value)
                                 + " but tagged as " + bufferAccessList.get(i).name();
 

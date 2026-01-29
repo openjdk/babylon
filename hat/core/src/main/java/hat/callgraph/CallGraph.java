@@ -144,14 +144,24 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
     public abstract static class MethodCall {
         public CallGraph<?> callGraph;
-        public final Method method;
-        public final MethodRef targetMethodRef;
+        private final Method method;
+        private final MethodRef methodRef;
 
-        MethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method) {
+        MethodCall(CallGraph<?> callGraph, MethodRef methodRef, Method method) {
             this.callGraph = callGraph;
-            this.targetMethodRef = targetMethodRef;
+            this.methodRef = methodRef;
             this.method = method;
         }
+
+        public MethodRef methodRef() {
+            return methodRef;
+        }
+
+
+        public Method method() {
+            return  this.method;
+        }
+
     }
 
     public abstract static class ResolvedMethodCall extends MethodCall implements Resolved {
