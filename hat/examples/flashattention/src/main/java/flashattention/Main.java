@@ -56,20 +56,22 @@ import static optkl.ifacemapper.MappableIface.WO;
  * <p>
  * <code>
  * # Using the OpenCL Backend:
- * java -cp hat/job.jar hat.java run ffi-opencl flashattention
+ * java -cp hat/job.jar hat.java run ffi-opencl flashattention <--verbose> <--size=SEQ_SIZE>
  * </code>
  * </p>
  *
  * <p>
  * <code>
  * # Using the CUDA Backend:
- * java -cp hat/job.jar hat.java run ffi-cuda flashattention
+ * java -cp hat/job.jar hat.java run ffi-cuda flashattention <--verbose> <--size=SEQ_SIZE>
  * </code>
  * </p>
  *
  * <p>
  * This version of FlashAttention corresponds with a simplification of version 1 for the forward pass only from the
- * original article presented in this paper: {@url https://arxiv.org/pdf/2205.14135}.
+ * original article presented in this paper:
+ * <a href="https://arxiv.org/pdf/2205.14135">FlashAttention: Fast and Memory-Efficient Exact Attention
+ * with IO-Awareness</a>.
  * </p>
  *
  * <p>
@@ -150,7 +152,6 @@ public class Main {
         }
     }
 
-
     public static void selfAttentionV2(F32Array Q, F32Array K, F32Array V,
                                        F32Array attentionMatrix, F32Array O,
                                        final int N, final int d, final float softMaxScale) {
@@ -196,6 +197,54 @@ public class Main {
                 O.array(i * d + j, acc);
             }
         }
+    }
+
+    public static void selfAttentionStreamsV2(F32Array Q, F32Array K, F32Array V,
+                                       F32Array attentionMatrix, F32Array O,
+                                       final int N, final int d, final float softMaxScale) {
+
+        // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
+        IntStream.range(0, N).parallel().forEach(i -> {
+        //for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                float acc = 0.0f;
+                for (int k = 0; k < d; k++) {
+                    acc += Q.array(i * d + k) * K.array(j * d + k);
+                }
+                // multiply by the scale factor
+                acc *= softMaxScale;
+                // store partial results in the temporary matrix for flash-attention
+                attentionMatrix.array(i * N + j, acc);
+            }
+
+            // SoftMax: apply softmax function to the attention score to normalize them
+            float max = Float.MIN_VALUE;
+            // Compute max
+            for (int j = 0; j < N; j++) {
+                max = Math.max(max, attentionMatrix.array(i * N + j));
+            }
+            float sum = 0.0f;
+            // Compute exp()
+            for (int j = 0; j < N; j++) {
+                float p = (float) Math.exp(attentionMatrix.array(i * N + j) - max);
+                attentionMatrix.array(i * N + j, p);
+                sum += p;
+            }
+            // normalization by the sum compute in the prev. step
+            for (int j = 0; j < N; j++) {
+                float val = attentionMatrix.array(i * N + j) / sum;
+                attentionMatrix.array(i * N + j, val);
+            }
+
+            // Final matmul: O = attention * V
+            for (int j = 0; j < d; j++) {
+                float acc = 0.0f;
+                for (int k = 0; k < N; k++) {
+                    acc += attentionMatrix.array(i * N + k) * V.array(k * d + j);
+                }
+                O.array(i * d + j, acc);
+            }
+        });
     }
 
     /**
@@ -631,6 +680,10 @@ public class Main {
         return (sum / totalCountedValues);
     }
 
+    private static double computeSpeedup(double baseline, double measured) {
+        return (Math.ceil(baseline / measured * 100) / 100);
+    }
+
     @Reflect
     static void main(String[] args) {
         IO.println("Example of Flash-Attention in HAT");
@@ -639,13 +692,25 @@ public class Main {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         boolean verbose = false;
-        if (args.length > 0) {
-            verbose = args[0].equals("verbose");
-            IO.println("Verbose mode on? " + verbose);
+        int size = 512;
+        // process parameters
+        for (String arg : args) {
+            if (arg.equals("--verbose")) {
+                verbose = true;
+                IO.println("Verbose mode on? " + verbose);
+            } else if (arg.startsWith("--size=")) {
+                String number = arg.split("=")[1];
+                try {
+                    size = Integer.parseInt(number);
+                } catch (NumberFormatException _) {
+                }
+            }
         }
+        IO.println("Sequence Length = " + size);
 
         // Configuration parameters
-        final int sequenceLen = 512;   // represent the number of tokens (or words)
+        final int sequenceLen = size;   // represent the number of tokens (or words)
+        //final int sequenceLen = 16384;   // represent the number of tokens (or words)
         final int headDim = 64;        // vector representation for a single token
         final int blockM = 32;         // tile size
         final int blockN = 32;         // tile size
@@ -656,6 +721,7 @@ public class Main {
                 + blockN * headDim
                 + blockM * blockN;
         IO.println("Shared Array Size: " + sharedMemorySize);
+        IO.println("");
 
         // Inputs preparation
         final int matrixSize = sequenceLen * headDim;
@@ -664,9 +730,10 @@ public class Main {
         var V = F32Array.create(accelerator, matrixSize);
         var m = F32Array.create(accelerator, matrixSize);
         var l = F32Array.create(accelerator, matrixSize);
-        var O_flashAttention = F32Array.create(accelerator, matrixSize);
-        var O_selfAttention = F32Array.create(accelerator, matrixSize);
         var O_java = F32Array.create(accelerator, matrixSize);
+        var O_streams = F32Array.create(accelerator, matrixSize);
+        var O_selfAttention = F32Array.create(accelerator, matrixSize);
+        var O_flashAttention = F32Array.create(accelerator, matrixSize);
 
         var Q16 = F16Array.create(accelerator, matrixSize);
         var K16 = F16Array.create(accelerator, matrixSize);
@@ -698,24 +765,30 @@ public class Main {
         IntStream.range(0, m.length()).forEach(k -> l16.array(k).value(F16.of(1.0f).value()));
 
         List<Long> timersSelfAttentionJava = new ArrayList<>();
+        List<Long> timersSelfAttentionStream = new ArrayList<>();
         List<Long> timersSelfAttentionHAT = new ArrayList<>();
         List<Long> timersFlashAttentionHAT = new ArrayList<>();
         List<Long> timersFlashAttentionHAT16 = new ArrayList<>();
 
         // Run the CPU version with Java:
         for (int i = 0; i < ITERATIONS; i++) {
-
-            // reset attention
-            IntStream.range(0, attentionMatrix.length()).forEach(k -> attentionMatrix.array(k, 0.0f));
-            IntStream.range(0, O_java.length()).forEach(k -> O_java.array(k, 0.0f));
-
             long start = System.nanoTime();
             selfAttentionV2(Q, K, V, attentionMatrix, O_java, sequenceLen, headDim, softmaxScale);
             long end = System.nanoTime();
             timersSelfAttentionJava.add((end - start));
-
             if (verbose) {
-                IO.println("Sequential elapsed time: " + (end - start) + " ns");
+                IO.println("Java Sequential elapsed time: " + (end - start) + " ns");
+            }
+        }
+
+        // Run the Parallel Stream version with Java:
+        for (int i = 0; i < ITERATIONS; i++) {
+            long start = System.nanoTime();
+            selfAttentionStreamsV2(Q, K, V, attentionMatrix, O_streams, sequenceLen, headDim, softmaxScale);
+            long end = System.nanoTime();
+            timersSelfAttentionStream.add((end - start));
+            if (verbose) {
+                IO.println("Java Parallel-Stream elapsed time: " + (end - start) + " ns");
             }
         }
 
@@ -788,13 +861,20 @@ public class Main {
         }
 
         // Check results
+        boolean isStreamsCorrect          = checkResult(O_java, O_streams, matrixSize);
         boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
+        boolean isFlashAttentionCorrect   = checkResult(O_java, O_flashAttention, matrixSize);
+
+        if (isStreamsCorrect) {
+            IO.println("Self-Attention Parallel Stream is correct");
+        } else {
+            IO.println("Self-Attention Parallel Stream  is wrong");
+        }
         if (isHATSelfAttentionCorrect) {
             IO.println("HAT-Self-Attention Result is correct");
         } else {
             IO.println("HAT-Self-Attention is wrong");
         }
-        boolean isFlashAttentionCorrect = checkResult(O_java, O_flashAttention, matrixSize);
         if (isFlashAttentionCorrect) {
             IO.println("HAT-Flash-Attention is correct");
         } else {
@@ -805,21 +885,31 @@ public class Main {
         // Perf. Metrics
         final int skip = ITERATIONS / 2;
         double averageJavaTimer = computeAverage(timersSelfAttentionJava, skip);
+        double averageStreamTimer = computeAverage(timersSelfAttentionStream, skip);
         double averageSelfAttentionHAT = computeAverage(timersSelfAttentionHAT, skip);
         double averageFlashAttentionHAT = computeAverage(timersFlashAttentionHAT, skip);
         double averageFlashAttentionHAT16 = computeAverage(timersFlashAttentionHAT16, skip);
 
         IO.println("\nAverage elapsed time:");
         IO.println("Average Java Self-Attention       : " + averageJavaTimer);
+        IO.println("Average Stream Self-Attention     : " + averageStreamTimer);
         IO.println("Average HAT Self-Attention        : " + averageSelfAttentionHAT);
         IO.println("Average HAT Flash-Attention       : " + averageFlashAttentionHAT);
         IO.println("Average HAT Flash-Attention (FP16): " + averageFlashAttentionHAT16);
 
-        IO.println("\nSpeedups:");
-        IO.println("Java / HAT-Self-Attention         = " + (Math.ceil(averageJavaTimer / averageSelfAttentionHAT * 100) / 100) + "x");
-        IO.println("Java / HAT-Flash-Attention        = " + (Math.ceil(averageJavaTimer / averageFlashAttentionHAT * 100) / 100) + "x");
-        IO.println("Java / HAT-Flash-Attention (FP16) = " + (Math.ceil(averageJavaTimer / averageFlashAttentionHAT16 * 100) / 100) + "x");
-        IO.println("HAT-Self-Attention / HAT-Flash-Attention = " + (Math.ceil(averageSelfAttentionHAT / averageFlashAttentionHAT * 100) / 100) + "x");
-        IO.println("HAT-Self-Attention / HAT-Flash-Attention (FP16) = " + (Math.ceil(averageSelfAttentionHAT / averageFlashAttentionHAT16 * 100) / 100) + "x");
+        IO.println("\nSpeedups vs Java:");
+        IO.println("Java / Java Parallel Stream       = " + computeSpeedup(averageJavaTimer, averageStreamTimer) + "x");
+        IO.println("Java / HAT-Self-Attention         = " + computeSpeedup(averageJavaTimer, averageSelfAttentionHAT) + "x");
+        IO.println("Java / HAT-Flash-Attention        = " + computeSpeedup(averageJavaTimer, averageFlashAttentionHAT) + "x");
+        IO.println("Java / HAT-Flash-Attention (FP16) = " + computeSpeedup(averageJavaTimer, averageFlashAttentionHAT16) + "x");
+
+        IO.println("\nSpeedups vs Streams:");
+        IO.println("Java Streams / HAT-Self-Attention         = " + computeSpeedup(averageStreamTimer, averageSelfAttentionHAT) + "x");
+        IO.println("Java Streams / HAT-Flash-Attention        = " + computeSpeedup(averageStreamTimer, averageFlashAttentionHAT) + "x");
+        IO.println("Java Streams / HAT-Flash-Attention (FP16) = " + computeSpeedup(averageStreamTimer, averageFlashAttentionHAT16) + "x");
+
+        IO.println("\nSpeedups vs HAT-Self-Attention:");
+        IO.println("HAT-Self-Attention / HAT-Flash-Attention = " + computeSpeedup(averageSelfAttentionHAT, averageFlashAttentionHAT) + "x");
+        IO.println("HAT-Self-Attention / HAT-Flash-Attention (FP16) = " + computeSpeedup(averageSelfAttentionHAT, averageFlashAttentionHAT16) + "x");
     }
 }
