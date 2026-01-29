@@ -384,7 +384,7 @@ public class CudaBackend extends C99FFIBackend {
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.method().getName());
+                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.name());
                 return new CompiledKernel(this, kernelCallGraph,  kernel, args);
             } else {
                 throw new IllegalStateException("cuda failed to compile ");

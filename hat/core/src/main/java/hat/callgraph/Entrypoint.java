@@ -34,4 +34,7 @@ public interface Entrypoint extends LookupCarrier {
      CoreOp.FuncOp funcOp();
      MethodRef methodRef();
      Method method();
+     default String name(){
+         return method().getName();
+     }
 }

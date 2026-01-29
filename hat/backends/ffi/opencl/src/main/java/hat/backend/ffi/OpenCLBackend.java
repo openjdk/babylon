@@ -55,7 +55,7 @@ public class OpenCLBackend extends C99FFIBackend {
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.method().getName());
+                var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.name());
                 return new CompiledKernel(this, kernelCallGraph, kernel, args);
             } else {
                 // TODO: We should capture the log from OpenCL and provide as exception message

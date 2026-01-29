@@ -296,7 +296,7 @@ public interface ArgArray extends Buffer {
                     buf.access(accessType.value);
                     assert bufferAccessList.get(i).value == accessType.value: "buffer tagging mismatch: "
                                 + kernelCallGraph.entrypoint.method().getParameters()[i].toString()
-                                + " in " + kernelCallGraph.entrypoint.method().getName()
+                                + " in " + kernelCallGraph.entrypoint.name()
                                 + " annotated as " + AccessType.of(accessType.value)
                                 + " but tagged as " + bufferAccessList.get(i).name();
 
