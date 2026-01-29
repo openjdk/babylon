@@ -248,7 +248,7 @@ public class Main {
     }
 
     /**
-     * Single-head scale-dot product attention.
+     * Single-head scale-dot product attention. It is currently not invoked. We just keep it as a reference.
      *
      * @param Q
      * @param K
