@@ -220,16 +220,16 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     });
                 });
 
-        var annotation = kernelCallGraph.entrypoint.method.getAnnotation(Kernel.class);
+        var annotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
         if (annotation!=null){
-            var typedef = kernelCallGraph.entrypoint.method.getAnnotation(TypeDef.class);
+            var typedef = kernelCallGraph.entrypoint.method().getAnnotation(TypeDef.class);
             if (typedef!=null){
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
                 builder.typedefKeyword().space().structKeyword().space().suffix_s(typedef.name()).braceNlIndented(_->
                         builder.preformatted(typedef.body())
                 ).suffix_t(typedef.name()).semicolon().nl();
             }
-            var preformatted = kernelCallGraph.entrypoint.method.getAnnotation(Preformatted.class);
+            var preformatted = kernelCallGraph.entrypoint.method().getAnnotation(Preformatted.class);
             if (preformatted!=null){
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformatted.value());

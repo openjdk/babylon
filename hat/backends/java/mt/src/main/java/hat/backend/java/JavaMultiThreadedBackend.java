@@ -43,7 +43,7 @@ public class JavaMultiThreadedBackend extends JavaBackend {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
                 a[0] = kc;
-                kernelEntrypoint.method.invoke(null, a);
+                kernelEntrypoint.method().invoke(null, a);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             } catch (InvocationTargetException e) {
