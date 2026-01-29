@@ -46,17 +46,16 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
-
     @Override
     public final MethodHandles.Lookup lookup() {
         return computeContext.lookup();
     }
 
-
     public final ComputeContext computeContext;
     public final E entrypoint;
-    public final Set<MethodCall> calls = new HashSet<>();
-    public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
+    public final Set<AbstractMethodCall> calls = new HashSet<>();
+    public final Map<MethodRef, AbstractMethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
+
     private CoreOp.ModuleOp moduleOp;
     public CoreOp.ModuleOp getModuleOp(){
         return this.moduleOp;
@@ -65,7 +64,6 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public void setModuleOp(CoreOp.ModuleOp moduleOp){
         this.moduleOp = moduleOp;
     }
-
 
      CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,
                                                         CoreOp.FuncOp entry) {
@@ -142,33 +140,27 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public interface Unresolved {
     }
 
-    public abstract static class MethodCall {
+    public abstract static class AbstractMethodCall implements MethodCall{
         public CallGraph<?> callGraph;
         private final Method method;
-        private final MethodRef methodRef;
 
-        MethodCall(CallGraph<?> callGraph, MethodRef methodRef, Method method) {
+        AbstractMethodCall(CallGraph<?> callGraph, Method method) {
             this.callGraph = callGraph;
-            this.methodRef = methodRef;
             this.method = method;
-        }
-
-        public MethodRef methodRef() {
-            return methodRef;
         }
 
 
         public Method method() {
-            return  this.method;
+            return this.method;
         }
 
     }
 
-    public abstract static class ResolvedMethodCall extends MethodCall implements Resolved {
+    public abstract static class ResolvedMethodCall extends AbstractMethodCall implements Resolved {
         private CoreOp.FuncOp funcOp;
 
-        ResolvedMethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method,  CoreOp.FuncOp funcOp) {
-            super(callGraph, targetMethodRef, method);
+        ResolvedMethodCall(CallGraph<?> callGraph,  Method method,  CoreOp.FuncOp funcOp) {
+            super(callGraph, method);
             this.funcOp = funcOp;
         }
 
@@ -184,9 +176,9 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     }
 
 
-    public abstract static class UnresolvedMethodCall extends MethodCall implements Unresolved {
-        UnresolvedMethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method) {
-            super(callGraph, targetMethodRef, method);
+    public abstract static class UnresolvedMethodCall extends AbstractMethodCall implements Unresolved {
+        UnresolvedMethodCall(CallGraph<?> callGraph,  Method method) {
+            super(callGraph, method);
         }
     }
 

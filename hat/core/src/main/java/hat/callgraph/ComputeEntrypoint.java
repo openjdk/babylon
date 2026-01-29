@@ -44,7 +44,7 @@ public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolved
     private MethodHandle bytecodeGeneratedMethodHandle;
 
     public ComputeEntrypoint(MethodHandles.Lookup lookup,CallGraph<ComputeEntrypoint> callGraph, Method method, CoreOp.FuncOp funcOp) {
-        super(callGraph, null, method, funcOp);
+        super(callGraph,  method, funcOp);
         this.lookup = lookup;
     }
 

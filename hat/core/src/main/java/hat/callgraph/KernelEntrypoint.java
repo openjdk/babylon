@@ -37,19 +37,9 @@ public class KernelEntrypoint extends KernelCallGraph.KernelReachableResolvedMet
     public MethodHandles.Lookup lookup() {
         return lookup;
     }
-    public KernelEntrypoint(MethodHandles.Lookup lookup,CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method, CoreOp.FuncOp funcOp) {
-        super(callGraph, targetMethodRef, method, funcOp);
+    public KernelEntrypoint(MethodHandles.Lookup lookup,CallGraph<KernelEntrypoint> callGraph,  Method method, CoreOp.FuncOp funcOp) {
+        super(callGraph,  method, funcOp);
         this.lookup = lookup;
     }
-/*
-    @Override
-    public MethodRef methodRef() {
-        return methodRef;
-    }
-
-    @Override
-    public Method getMethod() {
-       return  this.method;
-    } */
 
 }

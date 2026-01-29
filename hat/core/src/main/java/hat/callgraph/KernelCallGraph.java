@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
-    public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
+    public final Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
     public static class Traits{
         public final List<AccessType> bufferAccessList;
         public boolean usesArrayView;
@@ -53,21 +53,21 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     }
 
     public static class KernelReachableResolvedMethodCall extends ResolvedMethodCall implements KernelReachable {
-        public KernelReachableResolvedMethodCall(CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method, CoreOp.FuncOp funcOp) {
-            super(callGraph, targetMethodRef, method, funcOp);
+        public KernelReachableResolvedMethodCall(CallGraph<KernelEntrypoint> callGraph,  Method method, CoreOp.FuncOp funcOp) {
+            super(callGraph, method, funcOp);
         }
     }
 
     public static class KernelReachableUnresolvedMethodCall extends UnresolvedMethodCall implements KernelReachable {
-        KernelReachableUnresolvedMethodCall(CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method) {
-            super(callGraph, targetMethodRef, method);
+        KernelReachableUnresolvedMethodCall(CallGraph<KernelEntrypoint> callGraph,  Method method) {
+            super(callGraph,  method);
         }
     }
 
 
     public static class KernelReachableUnresolvedIfaceMappedMethodCall extends KernelReachableUnresolvedMethodCall {
-        KernelReachableUnresolvedIfaceMappedMethodCall(CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method) {
-            super(callGraph, targetMethodRef, method);
+        KernelReachableUnresolvedIfaceMappedMethodCall(CallGraph<KernelEntrypoint> callGraph,  Method method) {
+            super(callGraph,  method);
         }
     }
 
@@ -78,8 +78,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 .map(kernelReachable -> (KernelReachableResolvedMethodCall) kernelReachable);
     }
 
-    KernelCallGraph(ComputeCallGraph computeCallGraph, MethodRef methodRef, Method method, CoreOp.FuncOp funcOp) {
-        super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(),null, methodRef, method, funcOp));
+    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp funcOp) {
+        super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(),null,  method, funcOp));
         this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
         this.traits = new Traits(BufferTagger.getAccessList(computeContext.lookup(), entrypoint.funcOp()));
@@ -104,7 +104,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
             // TODO this side effect seems scary
             bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                    new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, method)
+                    new KernelReachableUnresolvedIfaceMappedMethodCall(this,  method)
             );
         } else {
             return false;
