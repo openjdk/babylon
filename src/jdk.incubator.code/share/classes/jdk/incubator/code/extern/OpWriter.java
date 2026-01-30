@@ -426,10 +426,10 @@ public final class OpWriter {
         }
 
         if (!dropLocation) {
-            Location location = op.location();
+            Op.Location location = op.location();
             if (location != null) {
                 write(" ");
-                writeAttribute(ATTRIBUTE_LOCATION, op.location());
+                writeLocation(location);
             }
         }
         Map<String, Object> attributes = op.externalize();
@@ -462,6 +462,15 @@ public final class OpWriter {
         }
 
         write(";");
+    }
+
+    void writeLocation(Op.Location location) {
+        StringBuilder s = new StringBuilder();
+        s.append(location.line()).append(":").append(location.column());
+        if (location.sourceRef() != null) {
+            s.append(":").append(location.sourceRef());
+        }
+        writeAttribute(ATTRIBUTE_LOCATION, s);
     }
 
     void writeSuccessor(Block.Reference successor) {

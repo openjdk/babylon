@@ -286,6 +286,31 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
+    /**
+     * Source location information for an operation.
+     *
+     * @param sourceRef the reference to the source, {@code null} if absent
+     * @param line the line in the source
+     * @param column the column in the source
+     */
+    public record Location(String sourceRef, int line, int column) {
+
+        /**
+         * The location value, {@code null}, indicating no location information.
+         */
+        public static final Location NO_LOCATION = null;
+
+        /**
+         * Constructions a location with line and column only.
+         *
+         * @param line the line in the source
+         * @param column the column in the source
+         */
+        public Location(int line, int column) {
+            this(null, line, column);
+        }
+    }
+
     // Set when op is bound to block, otherwise null when unbound
     // @@@ stable value?
     Result result;

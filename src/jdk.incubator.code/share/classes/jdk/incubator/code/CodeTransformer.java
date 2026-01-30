@@ -102,7 +102,7 @@ public interface CodeTransformer {
      */
     CodeTransformer DROP_LOCATION_TRANSFORMER = (builder, op) -> {
         Op.Result r = builder.op(op);
-        r.op().setLocation(Location.NO_LOCATION);
+        r.op().setLocation(Op.Location.NO_LOCATION);
         return builder;
     };
 

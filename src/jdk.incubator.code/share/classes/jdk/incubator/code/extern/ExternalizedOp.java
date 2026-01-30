@@ -21,7 +21,7 @@ import java.util.function.Function;
  * thereby separating the specifics of deserializing from construction.
  */
 public record ExternalizedOp(String name,
-                             Location location,
+                             Op.Location location,
                              List<Value> operands,
                              List<Block.Reference> successors,
                              TypeElement resultType,

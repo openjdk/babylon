@@ -111,7 +111,7 @@ public class OpBuilder {
             ExternalizedTypeElement.class, String.class, ExternalizedTypeElement[].class);
 
 
-    static final JavaType J_C_LOCATION = type(Location.class);
+    static final JavaType J_C_LOCATION = type(Op.Location.class);
 
     static final FunctionType EXTERNALIZED_OP_F_TYPE = functionType(
             J_C_E_EXTERNALIZED_OP,
@@ -342,7 +342,7 @@ public class OpBuilder {
                     b.op(return_(b.op(funcCall(OP_BUILDER_F_NAME_2, OP_BUILDER_F_OVERRIDE_2,
                             args.get(0),
                             args.get(1),
-                            b.op(new_(MethodRef.constructor(Location.class, int.class, int.class), args.get(2), args.get(3))),
+                            b.op(new_(MethodRef.constructor(Op.Location.class, int.class, int.class), args.get(2), args.get(3))),
                             args.get(4),
                             args.get(5),
                             args.get(6),
@@ -543,7 +543,7 @@ public class OpBuilder {
     Value buildOp(Value blockBuilder,
                   Op inputOp,
                   String name,
-                  Location location,
+                  Op.Location location,
                   List<Value> operands,
                   List<Value> successors,
                   TypeElement resultType,
@@ -582,11 +582,11 @@ public class OpBuilder {
         };
     }
 
-    Value buildLocation(Location l) {
+    Value buildLocation(Op.Location l) {
         if (l == null) {
             return builder.op(constant(J_C_LOCATION, null));
         } else {
-            return builder.op(new_(MethodRef.constructor(Location.class, String.class, int.class, int.class),
+            return builder.op(new_(MethodRef.constructor(Op.Location.class, String.class, int.class, int.class),
                     builder.op(constant(J_L_STRING, l.sourceRef())),
                     builder.op(constant(INT, l.line())),
                     builder.op(constant(INT, l.column()))));

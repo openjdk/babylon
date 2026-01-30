@@ -668,19 +668,19 @@ public class ReflectMethods extends TreeTranslatorPrev {
             return append(op, generateLocation(pos(), false), stack);
         }
 
-        private Op.Result append(Op op, Location l) {
+        private Op.Result append(Op op, Op.Location l) {
             return append(op, l, stack);
         }
 
-        private Op.Result append(Op op, Location l, BodyStack stack) {
+        private Op.Result append(Op op, Op.Location l, BodyStack stack) {
             lastOp = op;
             op.setLocation(l);
             return stack.block.op(op);
         }
 
-        Location generateLocation(DiagnosticPosition pos, boolean includeSourceReference) {
+        Op.Location generateLocation(DiagnosticPosition pos, boolean includeSourceReference) {
             if (!lineDebugInfo) {
-                return Location.NO_LOCATION;
+                return Op.Location.NO_LOCATION;
             }
 
             int startPos = pos.getStartPosition();
@@ -692,7 +692,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             } else {
                 path = null;
             }
-            return new Location(path, line, col);
+            return new Op.Location(path, line, col);
         }
 
         private void appendReturnOrUnreachable(JCTree body) {

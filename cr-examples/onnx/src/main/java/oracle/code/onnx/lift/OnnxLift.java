@@ -47,7 +47,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -371,7 +370,7 @@ public final class OnnxLift {
                 // get the op
                 ExternalizedOp extOp = new ExternalizedOp(
                         opType,
-                        Location.NO_LOCATION,
+                        Op.Location.NO_LOCATION,
                         inputs,
                         List.of(),
                         new OnnxType.TensorType(null),
@@ -385,7 +384,7 @@ public final class OnnxLift {
                         : CoreType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
                 extOp = new ExternalizedOp(
                         extOp.name(),
-                        Location.NO_LOCATION,
+                        Op.Location.NO_LOCATION,
                         extOp.operands(),
                         extOp.successors(),
                         returnType,
