@@ -289,7 +289,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Source location information for an operation.
      *
-     * @param sourceRef the reference to the source
+     * @param sourceRef the reference to the source, {@code null} if absent
      * @param line the line in the source
      * @param column the column in the source
      */
@@ -300,35 +300,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
          */
         public static final Location NO_LOCATION = null;
 
+        /**
+         * Constructions a location with line and column only.
+         *
+         * @param line the line in the source
+         * @param column the column in the source
+         */
         public Location(int line, int column) {
             this(null, line, column);
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder s = new StringBuilder();
-            s.append(line).append(":").append(column);
-            if (sourceRef != null) {
-                s.append(":").append(sourceRef);
-            }
-            return s.toString();
-        }
-
-        public static Location fromString(String s) {
-            String[] split = s.split(":", 3);
-            if (split.length < 2) {
-                throw new IllegalArgumentException();
-            }
-
-            int line = Integer.parseInt(split[0]);
-            int column = Integer.parseInt(split[1]);
-            String sourceRef;
-            if (split.length == 3) {
-                sourceRef = split[2];
-            } else {
-                sourceRef = null;
-            }
-            return new Location(sourceRef, line, column);
         }
     }
 

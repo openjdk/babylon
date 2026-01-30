@@ -618,7 +618,7 @@ static class JavaTypeUtils{
         if (!dropLocation) {
             Op.Location location = op.location();
             if (location != null) {
-                space().writeAttribute(ATTRIBUTE_LOCATION, op.location());
+                space().writeLocation(location);
             }
         }
         Map<String, Object> attributes = op.externalize();
@@ -647,6 +647,15 @@ static class JavaTypeUtils{
         }
         semicolon();
         return this;
+    }
+
+    OpCodeBuilder writeLocation(Op.Location location) {
+        StringBuilder s = new StringBuilder();
+        s.append(location.line()).append(":").append(location.column());
+        if (location.sourceRef() != null) {
+            s.append(":").append(location.sourceRef());
+        }
+        return writeAttribute(ATTRIBUTE_LOCATION, s);
     }
 
     OpCodeBuilder writeSuccessor(Block.Reference successor) {

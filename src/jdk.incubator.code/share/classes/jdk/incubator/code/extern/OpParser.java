@@ -268,7 +268,7 @@ public final class OpParser {
         if (!opNode.attributes.isEmpty()) {
             Object v = opNode.attributes.remove(OpWriter.ATTRIBUTE_LOCATION);
             location = switch (v) {
-                case String s -> Op.Location.fromString(s);
+                case String s -> parseLocation(s);
                 case Op.Location loc -> loc;
                 case null -> null;
                 default -> throw new UnsupportedOperationException("Unsupported location value:" + v);
@@ -281,6 +281,23 @@ public final class OpParser {
                 c.typeFactory.constructType(rtype),
                 inflateAttributes(opNode.attributes, c.typeFactory),
                 bodies);
+    }
+
+    static Op.Location parseLocation(String s) {
+        String[] split = s.split(":", 3);
+        if (split.length < 2) {
+            throw new IllegalArgumentException();
+        }
+
+        int line = Integer.parseInt(split[0]);
+        int column = Integer.parseInt(split[1]);
+        String sourceRef;
+        if (split.length == 3) {
+            sourceRef = split[2];
+        } else {
+            sourceRef = null;
+        }
+        return new Op.Location(sourceRef, line, column);
     }
 
     static Map<String, Object> inflateAttributes(Map<String, Object> attributes, TypeElementFactory typeFactory) {
