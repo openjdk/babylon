@@ -294,6 +294,7 @@ final class JavaTemplate {
                     case OnnxType.Int32Type _ -> "Integer";
                     case OnnxType.UInt8Type _ -> "Byte";
                     case OnnxType.BoolType _ -> "Boolean";
+                    case OnnxType.StringType _ -> "String";
                     default -> throw new UnsupportedOperationException(t.toString());
                 } + ">";
             default -> "var";
