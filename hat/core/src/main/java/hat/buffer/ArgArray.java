@@ -295,8 +295,8 @@ public interface ArgArray extends Buffer {
                     buf.bytes(segment.byteSize());
                     buf.access(bufferAccessList.get(i).value); // buf.access(accessType.value);
                     assert bufferAccessList.get(i).value == accessType.value :
-                            (kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
-                                    + " in " + kernelCallGraph.entrypoint.getMethod().getName()
+                            (kernelCallGraph.entrypoint.method().getParameters()[i].toString()
+                                    + " in " + kernelCallGraph.entrypoint.method().getName()
                                     + ": buffertagger " + bufferAccessList.get(i).value
                                     + " doesn't match " + accessType.value);
                 }
