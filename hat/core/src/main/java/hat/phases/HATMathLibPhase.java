@@ -55,11 +55,11 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
                         .collect(Collectors.toList());
 
                 HATMathLibOp hatMathLibOp = new HATMathLibOp(
-                        invokeOp.resultType(),
+                        invokeOp.resultType(),               // result type from the math operation
                         invokeOp.invokeDescriptor().name(),  // intrinsic name
-                        setTypeMap.get(invokeOp),
-                        referenceList,
-                        operands);
+                        setTypeMap.get(invokeOp),            // special type associated with the result (if any)
+                        referenceList,                       // Flags to indicate if any of the operands must be addressed by reference
+                        operands);                           // list of operands for the new Op
 
                 Op.Result hatMathLibOpResult = blockBuilder.op(hatMathLibOp);
                 blockBuilder.context().mapValue(invokeOp.result(), hatMathLibOpResult);
@@ -72,13 +72,15 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
                 } else {
                     // Add the special type as a VarOp
                     HATFP16Phase.createF16VarOp(varOp, blockBuilder, setTypeMap.get(varOp));
+                    // If we add HATMath ops for other special types in HAT (e.g., Vectors),
+                    // we may need to also add the new <X>HATVarOps here as well.
                 }
             }
             default -> blockBuilder.op(op);
         }
     }
 
-    private CoreOp.FuncOp transformHATMathWithVarOp(CoreOp.FuncOp funcOp) {
+    private Map<Op, ReducedFloatType> analyseIRForInvokeHATMath(CoreOp.FuncOp funcOp) {
         Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
         OpHelper.Invoke.stream(lookup(), funcOp)
                 .filter(invoke -> !invoke.returnsVoid() && HATPhaseUtils.isMathLib(invoke))
@@ -111,7 +113,11 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
                                     setTypeMap.put(result.op(), reducedFloatType);
                                     setTypeMap.put(invoke.op(), reducedFloatType);
                                 }));
+        return setTypeMap;
+    }
 
+    private CoreOp.FuncOp transformHATMathWithVarOp(CoreOp.FuncOp funcOp) {
+        Map<Op, ReducedFloatType> setTypeMap = analyseIRForInvokeHATMath(funcOp);
         return Trxfmr.of(this, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
             transformHATMathWithVarOp(blockBuilder, op, setTypeMap);
             return blockBuilder;
@@ -120,7 +126,6 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        funcOp = transformHATMathWithVarOp(funcOp);
-        return funcOp;
+        return transformHATMathWithVarOp(funcOp);
     }
 }
