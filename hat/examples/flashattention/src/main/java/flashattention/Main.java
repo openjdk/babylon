@@ -38,10 +38,8 @@ import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface.RW;
 
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
@@ -711,12 +709,8 @@ public class Main {
         builder.append(System.lineSeparator());
 
         IO.println("[INFO] Saving results into file: " + fileName);
-        try(BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(
-                        new FileOutputStream(fileName)))) {
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
             writer.append(builder.toString());
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -968,9 +962,9 @@ public class Main {
                         timersSelfAttentionHAT,
                         timersFlashAttentionHAT,
                         timersFlashAttentionHAT16),
-                List.of("Java",
-                        "Streams",
-                        "HAT-Self-Attention",
+                List.of("Java-fp32",
+                        "Streams-fp32",
+                        "HAT-Self-Attention-fp32",
                         "HAT-Flash-Attention-fp32",
                         "HAT-Flash-Attenttion-fp16"),
                 "table-flash-attention-" + size + ".csv");
