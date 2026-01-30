@@ -37,6 +37,11 @@ import hat.types.F16;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface.RW;
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
@@ -674,6 +679,49 @@ public class Main {
         return true;
     }
 
+    public static void dumpStatsToCSVFile(List<List<Long>> listOfTimers, List<String> header, final String fileName) {
+        final int numColumns = listOfTimers.size();
+        if (numColumns != header.size()) {
+            throw new RuntimeException("Header size and List of timers need to be the same size");
+        }
+        StringBuilder builder = new StringBuilder();
+        IntStream.range(0, header.size()).forEach(i -> {
+            builder.append(header.get(i));
+            if (i != header.size() - 1) {
+                builder.append(",");
+            }
+        });
+        builder.append(System.lineSeparator());
+
+        final int numRows = listOfTimers.getFirst().size();
+        for (int row = 0; row < numRows; row++) {
+            for (int col = 0; col < numColumns; col++) {
+                // all lists must be of the same size:
+                if (listOfTimers.get(col).size() != numRows) {
+                    throw new RuntimeException("[ERROR] Result List: " + col + " has a different size");
+                }
+                Long timer = listOfTimers.get(col).get(row);
+                builder.append(timer);
+                if (col != header.size() - 1) {
+                    builder.append(",");
+                }
+            }
+            builder.append(System.lineSeparator());
+        }
+        builder.append(System.lineSeparator());
+
+        IO.println("[INFO] Saving results into file: " + fileName);
+        try(BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(
+                        new FileOutputStream(fileName)))) {
+            writer.append(builder.toString());
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static double computeAverage(List<Long> timers, int discard) {
         double sum = timers.stream().skip(discard).reduce(0L, Long::sum).doubleValue();
         int totalCountedValues = timers.size() - discard;
@@ -777,7 +825,7 @@ public class Main {
             long end = System.nanoTime();
             timersSelfAttentionJava.add((end - start));
             if (verbose) {
-                IO.println("Java Sequential elapsed time: " + (end - start) + " ns");
+                IO.println("Java-Sequential (FP32) elapsed time: " + (end - start) + " ns");
             }
         }
 
@@ -788,7 +836,7 @@ public class Main {
             long end = System.nanoTime();
             timersSelfAttentionStream.add((end - start));
             if (verbose) {
-                IO.println("Java Parallel-Stream elapsed time: " + (end - start) + " ns");
+                IO.println("Java-Parallel-Stream (FP32) elapsed time: " + (end - start) + " ns");
             }
         }
 
@@ -810,7 +858,7 @@ public class Main {
             long end = System.nanoTime();
             timersSelfAttentionHAT.add((end - start));
             if (verbose) {
-                IO.println("HAT-Self-Attention elapsed time: " + (end - start) + " ns");
+                IO.println("HAT-Self-Attention (FP32) elapsed time: " + (end - start) + " ns");
             }
         }
 
@@ -833,7 +881,7 @@ public class Main {
             long end = System.nanoTime();
             timersFlashAttentionHAT.add((end - start));
             if (verbose) {
-                IO.println("HAT-Flash-Attention elapsed time: " + (end - start) + " ns");
+                IO.println("HAT-Flash-Attention (FP32) elapsed time: " + (end - start) + " ns");
             }
         }
 
@@ -856,7 +904,7 @@ public class Main {
             long end = System.nanoTime();
             timersFlashAttentionHAT16.add((end - start));
             if (verbose) {
-                IO.println("HAT-Flash-Attention elapsed time: " + (end - start) + " ns");
+                IO.println("HAT-Flash-Attention (FP16) elapsed time: " + (end - start) + " ns");
             }
         }
 
@@ -882,7 +930,9 @@ public class Main {
                     "not present in the self-attention version.");
         }
 
-        // Perf. Metrics
+        // Print Performance Metrics
+        // skip 50% of first timers -> we evaluate in peak,
+        // or closed to peak, performance.
         final int skip = ITERATIONS / 2;
         double averageJavaTimer = computeAverage(timersSelfAttentionJava, skip);
         double averageStreamTimer = computeAverage(timersSelfAttentionStream, skip);
@@ -911,5 +961,18 @@ public class Main {
         IO.println("\nSpeedups vs HAT-Self-Attention:");
         IO.println("HAT-Self-Attention / HAT-Flash-Attention = " + computeSpeedup(averageSelfAttentionHAT, averageFlashAttentionHAT) + "x");
         IO.println("HAT-Self-Attention / HAT-Flash-Attention (FP16) = " + computeSpeedup(averageSelfAttentionHAT, averageFlashAttentionHAT16) + "x");
+
+        // Write CSV table with all results
+        dumpStatsToCSVFile(List.of(timersSelfAttentionJava,
+                        timersSelfAttentionStream,
+                        timersSelfAttentionHAT,
+                        timersFlashAttentionHAT,
+                        timersFlashAttentionHAT16),
+                List.of("Java",
+                        "Streams",
+                        "HAT-Self-Attention",
+                        "HAT-Flash-Attention-fp32",
+                        "HAT-Flash-Attenttion-fp16"),
+                "table-flash-attention-" + size + ".csv");
     }
 }
