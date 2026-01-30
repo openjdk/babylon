@@ -102,9 +102,11 @@ public final class OnnxLift {
             }
         }
 
-        for (OnnxModel.TensorProto init : g.initializer()) {
-            if (dedup.add(init.name())) {
-                paramTypes.add(toTensorType(init.dataType()));
+        if (g.initializer() instanceof List<OnnxModel.TensorProto> inits) {
+            for (OnnxModel.TensorProto init : inits) {
+                if (dedup.add(init.name())) {
+                    paramTypes.add(toTensorType(init.dataType()));
+                }
             }
         }
         var returnType = g.output().size() == 1
@@ -278,8 +280,10 @@ public final class OnnxLift {
                 for (OnnxModel.ValueInfoProto input : g.input()) {
                     valueMap.put(input.name(), params.next());
                 }
-                for (OnnxModel.TensorProto init : g.initializer()) {
-                    valueMap.computeIfAbsent(init.name(), _ -> params.next());
+                if (g.initializer() instanceof List<OnnxModel.TensorProto> inits) {
+                    for (OnnxModel.TensorProto init : inits) {
+                        valueMap.computeIfAbsent(init.name(), _ -> params.next());
+                    }
                 }
             }
 
@@ -416,7 +420,8 @@ public final class OnnxLift {
                 fb.op(CoreOp.return_(ret));
             }
         });
-        return new LiftedModelWrapper(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)), g.initializer());
+        return new LiftedModelWrapper(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)),
+                                            g.initializer() instanceof List<OnnxModel.TensorProto> inits ? inits : List.of());
     }
 
     static String toJavaName(String name) {
@@ -474,6 +479,7 @@ public final class OnnxLift {
             String className = args.length > 2 ? args[2] : "Model";
             try (var in = new RandomAccessFile(source.toFile(), "r")) {
                 OnnxModel.ModelProto protoModel = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
+                System.out.println(protoModel.toText(true));
                 LiftedModelWrapper liftedModel = lift(protoModel.graph());
 
                 IO.println(colorModelToANSI(liftedModel.toText()));
@@ -483,7 +489,9 @@ public final class OnnxLift {
                 Files.writeString(java, JavaTemplate.toJava(liftedModel, className));
                 IO.println(java + " generated.");
 
-                extractWeights(protoModel, source.getParent(), targetFolder);
+                if (protoModel.graph().initializer() != null) {
+                    extractWeights(protoModel, source.getParent(), targetFolder);
+                }
             }
         }
     }
