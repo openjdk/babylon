@@ -105,8 +105,8 @@ public class FERModel {
         parameter656 = modelData.nextTensor(Tensor.ElementType.FLOAT, 256, 1, 1);
         parameter676 = modelData.nextTensor(Tensor.ElementType.FLOAT, 256, 1, 1);
         parameter696 = modelData.nextTensor(Tensor.ElementType.FLOAT, 256, 1, 1);
-        dropout612_reshape0_shape = Tensor.ofShape(new long[]{2}, 1, 4096);
-        parameter1367_reshape1_shape = Tensor.ofShape(new long[]{2}, 4096, 1024);
+        dropout612_reshape0_shape = Tensor.ofShape(new long[]{2}, 1L, 4096);
+        parameter1367_reshape1_shape = Tensor.ofShape(new long[]{2}, 4096L, 1024);
         parameter1368 = modelData.nextTensor(Tensor.ElementType.FLOAT, 1024);
         parameter1404 = modelData.nextTensor(Tensor.ElementType.FLOAT, 1024);
         parameter1694 = modelData.nextTensor(Tensor.ElementType.FLOAT, 8);

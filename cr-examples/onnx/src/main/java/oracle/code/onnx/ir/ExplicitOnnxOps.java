@@ -569,7 +569,134 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         return new SkipSimplifiedLayerNormalization(resultType, optionalOutputs, input, skip, gamma, bias, epsilon);
     }
 
+    // @@@ this should be generated from onnxruntime-extensions
+    @OpFactoryHelper.OpDeclaration(CLIPTokenizer.NAME)
+    public static final class CLIPTokenizer extends OnnxOp {
+        public static final String NAME = "ai.onnx.contrib.CLIPTokenizer";
 
+        public enum Attribute implements OnnxAttribute {
+            vocab(String.class, false, null),
+            merges(String.class, false, null),
+            padding_length(Long.class, true, -1),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint.None { }
+
+        public enum InputParameter implements OnnxParameter {
+            input_text(OnnxType.TENSOR_STRING, Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            input_ids(OnnxType.TENSOR_INT64, Quantifier.REQUIRED),
+            attention_mask(OnnxType.TENSOR_INT64, Quantifier.OPTIONAL),
+            offset_mapping(OnnxType.TENSOR_INT64, Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public CLIPTokenizer(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        CLIPTokenizer(CLIPTokenizer that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public CLIPTokenizer transform(CodeContext cc, CodeTransformer ot) {
+            return new CLIPTokenizer(this, cc);
+        }
+
+        CLIPTokenizer(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(input_text), List.of(vocab, merges, padding_length));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(input_text()));
+        }
+
+        public Value input_text() {
+            return operands().get(0);
+        }
+    }
+
+    public static CLIPTokenizer CLIPTokenizer(TypeElement resultType, Set<CLIPTokenizer.OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
+        return new CLIPTokenizer(resultType, optionalOutputs, input_text, vocab, merges, padding_length);
+    }
 
 
     @OpFactoryHelper.OpDeclaration(If.NAME)

@@ -83,10 +83,10 @@ public class WalkTheMazeTest {
 
         _true = Tensor.ofScalar(arena, true);
         homePos = Tensor.ofFlat(arena, 20l, 1); // bottom left corner
-        directionNorth = Tensor.ofFlat(arena, '^');
-        directionSouth = Tensor.ofFlat(arena, 'v');
-        directionEast = Tensor.ofFlat(arena, '>');
-        directionWest = Tensor.ofFlat(arena, '<');
+        directionNorth = Tensor.ofFlat(arena, (long)'^');
+        directionSouth = Tensor.ofFlat(arena, (long)'v');
+        directionEast = Tensor.ofFlat(arena, (long)'>');
+        directionWest = Tensor.ofFlat(arena, (long)'<');
         oneOne = Tensor.ofFlat(arena, 1l, 1);
         three = Tensor.ofFlat(arena, 3l);
         limit = Tensor.ofFlat(arena, 1000l);
@@ -95,7 +95,7 @@ public class WalkTheMazeTest {
         stepEast = Tensor.ofFlat(arena, 0l, 1);
         stepWest = Tensor.ofFlat(arena, 0l, -1);
         scalarShape = Tensor.ofFlat(arena, new long[0]);
-        wall = Tensor.ofScalar(arena, '#');
+        wall = Tensor.ofScalar(arena, (long)'#');
     }
 
     @Reflect
