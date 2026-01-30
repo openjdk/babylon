@@ -608,7 +608,7 @@ public final class MLIRGenerator {
             Op.Location location = op.location();
             if (location != null) {
                 write(" ");
-                writeAttribute("loc", op.location());
+                writeLocation(location);
             }
         }
         Map<String, Object> attributes = op.externalize();
@@ -629,6 +629,15 @@ public final class MLIRGenerator {
         writeCommaSeparatedList(op.operands(), this::writeValueType);
         write(") -> ");
         writeType(op.resultType());
+    }
+
+    void writeLocation(Op.Location location) {
+        StringBuilder s = new StringBuilder();
+        s.append(location.line()).append(":").append(location.column());
+        if (location.sourceRef() != null) {
+            s.append(":").append(location.sourceRef());
+        }
+        writeAttribute("loc", s);
     }
 
     void writeSuccessor(Block.Reference successor) {

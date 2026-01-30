@@ -429,7 +429,7 @@ public final class OpWriter {
             Op.Location location = op.location();
             if (location != null) {
                 write(" ");
-                writeLocation(op.location());
+                writeLocation(location);
             }
         }
         Map<String, Object> attributes = op.externalize();
