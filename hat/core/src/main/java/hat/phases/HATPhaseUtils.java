@@ -29,7 +29,8 @@ import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types._V;
+import hat.types.Vector;
+import hat.types._F16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -42,16 +43,11 @@ import optkl.OpHelper;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
 
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;
@@ -89,13 +85,12 @@ public class HATPhaseUtils {
         return node;
     }
 
-    static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(MethodHandles.Lookup lookup, String opType, String varName, TypeElement resultType, List<Value> outputOperands) {
-        VectorMetaData md = getVectorTypeInfoWithCodeReflection(lookup,resultType);
+    static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, String opType, Vector.Shape vectorShape, List<Value> outputOperands) {
         return switch (opType) {
-            case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, resultType, md.vectorTypeElement(), md.lanes(), outputOperands);
-            case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName, resultType, md.vectorTypeElement(), md.lanes(), outputOperands);
-            case "mul" -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName, resultType, md.vectorTypeElement(), md.lanes(), outputOperands);
-            case "div" -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName, resultType, md.vectorTypeElement(), md.lanes(), outputOperands);
+            case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName,  vectorShape, outputOperands);
+            case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName,  vectorShape, outputOperands);
+            case "mul" -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName,  vectorShape, outputOperands);
+            case "div" -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName,  vectorShape, outputOperands);
             default -> throw new IllegalStateException("Unexpected value: " + opType);
         };
     }
@@ -108,7 +103,7 @@ public class HATPhaseUtils {
            }
            if (type instanceof ClassType ct) {
                try {
-                   return _V.class.isAssignableFrom((Class<?>) ct.resolve(lookup));
+                   return Vector.class.isAssignableFrom((Class<?>) ct.resolve(lookup));
                } catch (ReflectiveOperationException e) {
                    throw new RuntimeException(e);
               }
@@ -216,45 +211,21 @@ public class HATPhaseUtils {
     }
 
     static public boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
-        return invoke.refIs(F16.class,BF16.class) && invoke.named(methodName);
-    }
-
-    // recursive
-    public static TypeElement findVectorTypeElement(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findVectorTypeElement(varLoadOp); // recurse
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.vectorElementType();
-            }
-            return null;
-        }
-    }
-
-    // recursive
-    public static TypeElement findVectorTypeElement(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVectorTypeElement(varLoadOp.operands().getFirst());
+        return invoke.refIs(_F16.class) && invoke.nameMatchesRegex(methodName);
     }
 
     //recursive
-    public static int getVectorWidth(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return getVectorWidth(varLoadOp.operands().getFirst());
+    public static Vector.Shape getVectorShapeOrNullFromVarLoad(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return getVectorShapeOrNull(varLoadOp.operands().getFirst());
     }
-
-    //recursive
-    private static int getVectorWidth(Value v) {
+    private static Vector.Shape getVectorShapeOrNull(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return getVectorWidth(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.vectorN();
-            }
-            return -1;
+            return getVectorShapeOrNullFromVarLoad(varLoadOp);
+        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
+            return hatVectorOp.vectorShape();
         }
+        return null;
     }
-
     //recursive
     public static boolean isSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isSharedOrPrivate(varLoadOp.operands().getFirst());
@@ -287,77 +258,37 @@ public class HATPhaseUtils {
         }
     }
 
-    public record VectorMetaData(TypeElement vectorTypeElement, int lanes) {
-    }
 
-    public static VectorMetaData getVectorTypeInfo(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int param) {
+    public static Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int param) {
         Value varValue = invokeOp.operands().get(param);
         if (varValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return getVectorTypeInfoWithCodeReflection(lookup,varLoadOp.resultType());
+            return getVectorShape(lookup,varLoadOp.resultType());
         }
         return null;
     }
 
-    public static VectorMetaData getVectorTypeInfo(MethodHandles.Lookup lookup,JavaOp.InvokeOp invokeOp) {
-        return getVectorTypeInfoWithCodeReflection(lookup,invokeOp.resultType());
-    }
-    public static TypeElement getVectorElementType(String primitive) {
-        return switch (primitive) {
-            case "float" -> JavaType.FLOAT;
-            case "double" -> JavaType.DOUBLE;
-            case "int" -> JavaType.INT;
-            case "long" -> JavaType.LONG;
-            case "short" -> JavaType.SHORT;
-            case "byte" -> JavaType.BYTE;
-            case "char" -> JavaType.CHAR;
-            case "boolean" -> JavaType.BOOLEAN;
-            default -> null;
-        };
-    }
+    //public static Vector.Shape getVectorShapeFromInvokeReturnType(OpHelper.Invoke invoke) {
+       // return ;
+    //}
 
     /**
-     * This method inspects the Vector Type Methods to obtain two methods for code-model:
-     * 1) Method `type` to obtain the primitive base type of the vector type.
-     * 2) Method `width` to obtain the number of lanes.
      *
      * @param typeElement
      *  {@link TypeElement}
      * @return
-     * {@link VectorMetaData}
+     * {@link Vector.Shape}
      */
-    public static VectorMetaData getVectorTypeInfoWithCodeReflection(MethodHandles.Lookup lookup,TypeElement typeElement) {
-        Class<?> clazz = (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) typeElement);
-        CoreOp.FuncOp codeModelType = buildCodeModelFor(clazz, "type");
-        AtomicReference<TypeElement> vectorElement = new AtomicReference<>();
-        codeModelType.elements().forEach(codeElement -> {
-            if (codeElement instanceof CoreOp.ReturnOp returnOp) {
-                Value v = returnOp.operands().getFirst();
-                if (v instanceof Op.Result r && r.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-                    String primitiveTypeName = fieldLoadOp.fieldDescriptor().name();
-                    vectorElement.set(getVectorElementType(primitiveTypeName.toLowerCase()));
-                }
+    public static Vector.Shape getVectorShape(MethodHandles.Lookup lookup, TypeElement typeElement) {
+            Class<?> clazz = (Class<?>)OpHelper.classTypeToTypeOrThrow(lookup,(ClassType) typeElement);
+            try {
+                var field = clazz.getField("shape"); // we can't use DeclaredField because some of these are Impl's
+                var shape = (Vector.Shape)field.get(null);
+                return shape;
+            }catch (NoSuchFieldException nsf){
+                throw new RuntimeException(nsf);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
-        });
-
-        AtomicInteger lanes = new AtomicInteger(1);
-        CoreOp.FuncOp codeModelWidth = buildCodeModelFor(clazz, "width");
-        codeModelWidth.elements().forEach(codeElement -> {
-            if (codeElement instanceof CoreOp.ReturnOp returnOp) {
-                Value v = returnOp.operands().getFirst();
-                if (v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constantOp) {
-                    lanes.set((Integer) constantOp.value());
-                }
-            }
-        });
-        return new VectorMetaData(vectorElement.get(), lanes.get());
-    }
-
-
-    private static CoreOp.FuncOp buildCodeModelFor(Class<?> klass, String methodName) {
-        Optional<Method> methodFunction = Stream.of(klass.getMethods())
-                .filter(m -> m.getName().equals(methodName))
-                .findFirst();
-        return Op.ofMethod(methodFunction.get()).get();
     }
 
 }

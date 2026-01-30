@@ -24,20 +24,52 @@
  */
 package hat.callgraph;
 
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
 public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolvedMethodCall implements Entrypoint {
-    public CoreOp.FuncOp lowered;
-    public MethodHandle mh;
-
-    public ComputeEntrypoint(CallGraph<ComputeEntrypoint> callGraph, Method method, CoreOp.FuncOp funcOp) {
-        super(callGraph, null, method, funcOp);
-    }
+    private final MethodHandles.Lookup lookup;
     @Override
-    public Method getMethod() {
-        return  this.method;
+    public MethodHandles.Lookup lookup() {
+        return lookup;
     }
+    private CoreOp.FuncOp lowered;
+    private MethodHandle bytecodeGeneratedMethodHandle;
+
+    public ComputeEntrypoint(MethodHandles.Lookup lookup,CallGraph<ComputeEntrypoint> callGraph, Method method, CoreOp.FuncOp funcOp) {
+        super(callGraph,  method, funcOp);
+        this.lookup = lookup;
+    }
+
+
+
+    public CoreOp.FuncOp lazyLower(){
+        if (lowered == null) {
+            lowered =funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+        }
+        return lowered;
+    }
+
+    public void interpretWithArgs( Object[] args) {
+        Interpreter.invoke(lookup, lazyLower(), args);
+    }
+
+    public void invokeWithArgs(Object[] args) {
+        try {
+            if (bytecodeGeneratedMethodHandle == null) {
+                bytecodeGeneratedMethodHandle = BytecodeGenerator.generate(lookup,lazyLower());
+            }
+            bytecodeGeneratedMethodHandle.invokeWithArguments(args);
+        }catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

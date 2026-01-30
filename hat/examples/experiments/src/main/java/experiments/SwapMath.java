@@ -74,7 +74,7 @@ public class SwapMath {
         System.out.println("--------------------------");
         var abs = rsqrt.transform("usingAbs", (builder,op)->{
             if (invoke(lookup,op) instanceof Invoke.Static ih
-                    && ih.named(Regex.of("sqrt")) &&  ih.returns(double.class) && ih.receives(double.class)){
+                    && ih.named("sqrt") &&  ih.returns(double.class) && ih.receives(double.class)){
                 var absStaticMethod = MethodRef.method(Math.class, "abs", double.class, double.class);
                 var absInvoke =  JavaOp.invoke(InvokeKind.STATIC, false, absStaticMethod.type().returnType(), absStaticMethod,
                         builder.context().getValue(op.operands().get(0)));

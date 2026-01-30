@@ -24,9 +24,19 @@
  */
 package hat.types;
 
-import jdk.incubator.code.dialect.java.PrimitiveType;
+import jdk.incubator.code.TypeElement;
 
-public interface _V {
-    PrimitiveType type();
-    int width();
+public interface Vector {
+    interface Shape {
+        TypeElement typeElement();
+        int lanes();
+        static Shape of(TypeElement typeElement, int lanes) {
+            record Impl(TypeElement typeElement, int lanes) implements Shape {
+               @Override public String toString(){
+                   return typeElement.toString() + Impl.this.lanes;
+               }
+            }
+            return new Impl(typeElement, lanes);
+        }
+    }
 }

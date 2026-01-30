@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,15 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.types;
-
-import jdk.incubator.code.Reflect;
-
-public interface _V4 extends _V {
-
-    @Reflect
-    @Override
-    default int width() {
-        return 4;
-    }
+package hat.callgraph;
+import java.lang.reflect.Method;
+public interface MethodCall {
+     Method method();
+     default String name(){
+         return method().getName();
+     }
 }
