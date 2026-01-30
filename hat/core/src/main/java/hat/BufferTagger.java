@@ -48,8 +48,8 @@ public class BufferTagger {
     static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
 
     // generates a list of AccessTypes matching the given FuncOp's parameter order
-    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        CoreOp.FuncOp inlinedFunc = inlineLoop(lookup, funcOp);
+    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Method methodOfFuncOp) {
+        CoreOp.FuncOp inlinedFunc = inlineLoop(lookup, funcOp, methodOfFuncOp);
         buildAccessMap(lookup, inlinedFunc);
         ArrayList<AccessType> accessList = new ArrayList<>();
         for (Block.Parameter p : inlinedFunc.body().entryBlock().parameters()) {
@@ -65,20 +65,19 @@ public class BufferTagger {
     }
 
     // inlines functions found in FuncOp f until no more inline-able functions are present
-    public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Method methodOfFuncOp) {
         CoreOp.FuncOp ssaFunc =  SSA.transform( funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
         var changed  = Mutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
             ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
-                if (invoke(lookup, op) instanceof Invoke invoke                         // always but pattern friendly
-                        && invoke.resolvedMethodOrNull() instanceof Method method
-                        && Op.ofMethod(method) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
-                        && optionalFuncOp.isPresent()
-                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
-                ){
-                    var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                    var exitBlockBuilder = Inliner.inline(
+                if (invoke(lookup, op) instanceof Invoke invoke  // always but pattern friendly
+                        && invoke.resolvedMethodOrNull() instanceof Method method) {
+                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(method);
+                    if (optionalFuncOp.isPresent()
+                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline) {  // always we just want var in scope
+                        var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
+                        var exitBlockBuilder = Inliner.inline(
                             blockbuilder, ssaInline,
                             blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
                                 // intellij doesnt like value as var name so we use _value
@@ -86,15 +85,21 @@ public class BufferTagger {
                                //   What is special about TestArrayView.Compute.lifePerIdx? it reaches here
                                 // I think its because it is void ? no return type.
                                     //   throw new IllegalStateException("inliner returned  null processing "+method);
-                            }else{
+                            } else {
                                 blockbuilder.context().mapValue(invoke.op().result(), _value);
                             }
-                    });
-                    if (!exitBlockBuilder.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                        });
+                        if (!exitBlockBuilder.parameters().isEmpty()) {
+                            blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                        }
+                        changed.set(true);
+                        return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
+                    } else if (optionalFuncOp.isEmpty()
+                                && method.getDeclaringClass().equals(methodOfFuncOp.getDeclaringClass())) {
+                            // Expect @Reflect annotation to be present on all methods called from the kernel function
+                            // that are defined in the same class as the kernel function.
+                            throw new RuntimeException("Failed to inline "+ method.getName() + ". Did you miss @Reflect annotation?");
                     }
-                    changed.set(true);
-                    return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
                 }
                 blockbuilder.op(op);
                return blockbuilder;
@@ -119,9 +124,9 @@ public class BufferTagger {
                     mapBranch(lookup, cb.falseBranch()); // handle false branch
                 }
                 case JavaOp.InvokeOp invokeOp -> {
-                    var ioh =  invoke(lookup,invokeOp);
+                    var ioh = invoke(lookup,invokeOp);
                     // we have to deal with  array views  too
-                    if ( ioh.refIs(MappableIface.class)) {
+                    if (ioh.refIs(MappableIface.class)) {
                         updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
                         if (ioh.refIs(Buffer.class) && (ioh.returns(MappableIface.class) || ioh.returnsArray())) {
                             // if we access a struct/union from a buffer, we map the struct/union to the buffer root
@@ -132,14 +137,14 @@ public class BufferTagger {
                 case CoreOp.VarOp vop -> { // map the new VarOp to the "root" param
                     if (OpHelper.isAssignable(lookup,  vop.resultType().valueType(), Buffer.class)) {
                         remappedVals.put(vop.initOperand(), getRootValue(vop));
-                    }else{
+                    } else {
                         // or else maybe CoreOp.VarOp vop when ??? ->
                     }
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flop -> {
                     if (OpHelper.isAssignable(lookup,  flop.fieldDescriptor().refType(), KernelContext.class)) {
                         updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
-                    }else{
+                    } else {
                         // or else
                     }
                 }
@@ -163,10 +168,10 @@ public class BufferTagger {
                     if (value instanceof Block.Parameter) {
                         value = remappedVals.getOrDefault(value, value);
                     }
-                }else{
+                } else {
                     // or else
                 }
-            }else{
+            } else {
                // or else?
             }
             remappedVals.put(key, value);
@@ -185,7 +190,7 @@ public class BufferTagger {
             op = result.op(); // we are changing our  par here I assume intended
             if (op.operands().isEmpty()) { // if the "root op" is an invoke
                 return op.result();
-            }else{
+            } else {
                 // or else
             }
         }
