@@ -85,9 +85,9 @@ public class TestBindOp {
     @Test
     void test6() {
         CoreOp.ConstantOp cop = CoreOp.constant(JavaType.LONG, 1L);
-        cop.setLocation(Location.NO_LOCATION);
+        cop.setLocation(Op.Location.NO_LOCATION);
         cop.bindAsRoot();
-        Assertions.assertThrows(IllegalStateException.class, () -> cop.setLocation(Location.NO_LOCATION));
+        Assertions.assertThrows(IllegalStateException.class, () -> cop.setLocation(Op.Location.NO_LOCATION));
     }
 
     void assertOpIsCopiedWhenAddedToBlock(Op op) {

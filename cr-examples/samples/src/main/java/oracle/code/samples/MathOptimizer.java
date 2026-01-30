@@ -25,7 +25,6 @@
 package oracle.code.samples;
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -220,7 +219,7 @@ public class MathOptimizer {
 
                 // Maybe Location should throw a new exception instead of the NPE,
                 // since it is possible we don't have a location after a transformation has been done.
-                Location location = invokeOp.location();
+                Op.Location location = invokeOp.location();
                 if (location != null) {
                     int line = location.line();
                     System.out.println("Line " + line);

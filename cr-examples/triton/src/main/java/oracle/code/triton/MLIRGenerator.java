@@ -605,7 +605,7 @@ public final class MLIRGenerator {
         }
 
         if (!dropLocation) {
-            Location location = op.location();
+            Op.Location location = op.location();
             if (location != null) {
                 write(" ");
                 writeAttribute("loc", op.location());

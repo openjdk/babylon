@@ -264,12 +264,12 @@ public final class OpParser {
                 .map(n -> nodeToSuccessor(n, c)).toList();
         List<Body.Builder> bodies = opNode.bodies.stream()
                 .map(n -> nodeToBody(n, c.fork(false), ancestorBody)).toList();
-        Location location = null;
+        Op.Location location = null;
         if (!opNode.attributes.isEmpty()) {
             Object v = opNode.attributes.remove(OpWriter.ATTRIBUTE_LOCATION);
             location = switch (v) {
-                case String s -> Location.fromString(s);
-                case Location loc -> loc;
+                case String s -> Op.Location.fromString(s);
+                case Op.Location loc -> loc;
                 case null -> null;
                 default -> throw new UnsupportedOperationException("Unsupported location value:" + v);
             };

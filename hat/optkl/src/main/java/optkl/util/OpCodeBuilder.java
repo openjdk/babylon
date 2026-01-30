@@ -616,7 +616,7 @@ static class JavaTypeUtils{
         }
 
         if (!dropLocation) {
-            Location location = op.location();
+            Op.Location location = op.location();
             if (location != null) {
                 space().writeAttribute(ATTRIBUTE_LOCATION, op.location());
             }

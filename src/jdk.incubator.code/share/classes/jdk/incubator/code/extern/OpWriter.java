@@ -426,7 +426,7 @@ public final class OpWriter {
         }
 
         if (!dropLocation) {
-            Location location = op.location();
+            Op.Location location = op.location();
             if (location != null) {
                 write(" ");
                 writeAttribute(ATTRIBUTE_LOCATION, op.location());
