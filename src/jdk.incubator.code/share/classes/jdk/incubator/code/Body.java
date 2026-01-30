@@ -32,18 +32,21 @@ import java.util.*;
 /**
  * A body containing a sequence of (basic) blocks.
  * <p>
- * The sequence of blocks form a graph. The last operation in a block, a terminating operation,
- * may refer to other blocks in the sequence as successors, thus forming the graph. Otherwise, the last
- * operation defines how the body passes control flow back to the parent operation, and in doing so may optionally
- * yield a value.
- * <p>
+ * The sequence of blocks form a graph topologically sorted in reserve postorder.
  * The first block in the sequence is the entry block, and no other blocks refer to it as a successor.
+ * The last operation in a block, a terminating operation, may refer to other blocks in the sequence as successors,
+ * thus forming the graph. Otherwise, the last operation defines how the body passes control flow back to the parent
+ * operation, and in doing so may optionally yield a value.
  * <p>
  * A body has a function type whose return type is the body's yield type and whose parameter types are the entry
  * block's parameters types, in order.
  * The function type describes the sequence of input parameters types for arguments that are passed to the
  * body when control flow is passed to it, and describes the return type of values that are returned when body passes
  * control back to its parent operation.
+ * <p>
+ * A body is built using a {@link Body.Builder body builder} that creates and exposes an entry block
+ * {@link Block.Builder builder} from which further blocks in the body may be
+ * {@link Block.Builder#block(TypeElement...) built}.
  */
 public final class Body implements CodeElement<Body, Block> {
     // Parent operation
@@ -242,7 +245,7 @@ public final class Body implements CodeElement<Body, Block> {
 
     /**
      * A synthetic block representing the post dominator of all blocks
-     * when two or more blocks have no successors.
+     * when two or more blocks in the body have no successors.
      * <p>
      * Computing the immediate post dominators requires a single exit point,
      * one block that has no successors. When there are two or more blocks
@@ -401,8 +404,8 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Computes values captured by this body. A captured value is a value that dominates
-     * this body and is used by a descendant operation of this body.
+     * Computes values captured by this body. A captured value is a value that is used
+     * but not declared by any descendant block or operation of this body.
      * <p>
      * The order of the captured values is first use encountered in depth
      * first search of this body's descendant operations.
@@ -453,7 +456,7 @@ public final class Body implements CodeElement<Body, Block> {
         /**
          * Creates a body build with a new context, and a copying transformer.
          *
-         * @param ancestorBody the nearest ancestor body builder
+         * @param ancestorBody the nearest ancestor body builder, may be null if isolated
          * @param bodyType     the body's function type
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
@@ -467,7 +470,7 @@ public final class Body implements CodeElement<Body, Block> {
         /**
          * Creates a body build with a copying transformer.
          *
-         * @param ancestorBody the nearest ancestor body builder
+         * @param ancestorBody the nearest ancestor body builder, may be null if isolated
          * @param bodyType     the body's function type
          * @param cc           the context
          * @return the body builder
@@ -491,8 +494,8 @@ public final class Body implements CodeElement<Body, Block> {
          * the function type's parameter types.
          * <p>
          * If the ancestor body is null then the created body builder is isolated and descendant operations may only
-         * refer to values declared within the created body builder. Otherwise, operations
-         * may refer to values declared in the ancestor body builders (outside the created body builder).
+         * use values declared within the created body builder. Otherwise, operations
+         * may use reachable values declared in the ancestor body builders (outside the created body builder).
          *
          * @param ancestorBody the nearest ancestor body builder, may be null if isolated
          * @param bodyType     the body's function type
@@ -542,14 +545,13 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Builds the body and its blocks, associating the body with a parent operation.
+         * Builds the body and its child blocks, associating the body with a parent operation.
          * <p>
-         * Structurally, any descendant body builders must be built before this body builder is built,
+         * Structurally, any descendant body builders must be built before this body is built,
          * otherwise an {@code IllegalStateException} will occur.
          * <p>
-         * Blocks are sorted in reserve postorder.
-         * <p>
-         * Any unreferenced empty blocks are removed. An unreferenced block is a non-entry block with no predecessors.
+         * Any unreferenced empty blocks are ignored and do not become children of the body. An unreferenced block is
+         * a non-entry block with no predecessors.
          *
          * @param op the parent operation
          * @return the build body
@@ -557,8 +559,17 @@ public final class Body implements CodeElement<Body, Block> {
          * @throws IllegalStateException if any descendant body builders are not built
          * @throws IllegalStateException if a block has no terminal operation, unless unreferenced and empty
          */
-        // @@@ Validation
-        // e.g., every operand dominates the operation result (potentially expensive)
+        // @@@ Check every operand dominates the operation result.
+        //     An operation in block B that uses a value declared in block B requires no special checks, since an
+        //     operation result does not exist until an operation is appended to a block, and B's parameters always
+        //     occur before any of its operations.
+        //     Similarly, when an operation uses a value declared in an ancestor no special checks are required due to
+        //     structural checks and reachability checks when building.
+        //     Therefore, a body with only one entry block requires no special checks when building.
+        //     A body with two or more blocks requires dominance checks. An operation in block C that uses a value
+        //     declared in block B, where C and B are siblings, requires that B dominates C.
+        //     Since blocks are already sorted in reverse postorder the work to compute the immediate dominator map
+        //     is incremental and can it be represented efficiently as an integer array of block indexes.
         public Body build(Op op) {
             // Structural check
             // This body should not be closed
