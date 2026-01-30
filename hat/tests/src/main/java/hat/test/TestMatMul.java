@@ -47,15 +47,14 @@ import jdk.incubator.code.Reflect;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static optkl.ifacemapper.MappableIface.RO;
-import static optkl.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.*;
 
 public class TestMatMul {
 
     private static final int SIZE = 256;
 
     @Reflect
-    public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
@@ -68,7 +67,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
@@ -81,7 +80,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F16Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 F16 acc = F16.of(0.0f);
@@ -115,7 +114,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
 
         final int tileSize = 16;
         MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal();
@@ -166,7 +165,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
@@ -179,7 +178,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);
@@ -189,7 +188,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
+    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
         cc.dispatchKernel(NDRange.of1D(globalSize,16),
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -198,21 +197,21 @@ public class TestMatMul {
     final static int BLOCK_SIZE = 16;
 
     @Reflect
-    public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
         cc.dispatchKernel(NDRange.of1D(size),
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @Reflect
-    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
         cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
-    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
           cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -226,7 +225,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
           cc.dispatchKernel(NDRange.of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -549,7 +548,7 @@ public class TestMatMul {
 
     // Code ported from the HAT example module.
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -651,7 +650,7 @@ public class TestMatMul {
 
     // Code ported from the HAT example module.
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW F32ArrayPadded matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -751,14 +750,14 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, final int size) {
+    public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO  F32Array matrixC, final int size) {
         cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @Reflect
-    public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, final int size) {
+    public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO  F32ArrayPadded matrixC, final int size) {
         cc.dispatchKernel(NDRange.of2D(256, 256,16, 16),
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, size)
         );
@@ -884,7 +883,7 @@ public class TestMatMul {
 
     // Taking from the HAT Examples module
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F16Array matrixC, int size) {
         final int BM = 64;
         final int BN = 64;
         final int BK = 16;
@@ -1021,7 +1020,7 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingBFloat16(@RO KernelContext kc, @RO BF16Array matrixA, @RO BF16Array matrixB, @RW BF16Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingBFloat16(@RO KernelContext kc, @RO BF16Array matrixA, @RO BF16Array matrixB, @WO BF16Array matrixC, int size) {
         final int BM = 64;
         final int BN = 64;
         final int BK = 16;

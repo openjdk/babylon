@@ -66,7 +66,7 @@ public class TestReductions {
      * @param partialSums
      */
     @Reflect
-    private static void reduceGlobal(@MappableIface.RO KernelContext context, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
+    private static void reduceGlobal(@MappableIface.RO KernelContext context, @MappableIface.RW S32Array input, @MappableIface.WO S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
         int blockId = context.bix;
@@ -95,7 +95,7 @@ public class TestReductions {
      * @param partialSums
      */
     @Reflect
-    private static void reduceLocal(@MappableIface.RO KernelContext context, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
+    private static void reduceLocal(@MappableIface.RO KernelContext context, @MappableIface.RO S32Array input, @MappableIface.WO S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
         int blockId = context.bix;
@@ -122,13 +122,13 @@ public class TestReductions {
     private static final int BLOCK_SIZE = 16;
 
     @Reflect
-    private static void reduceGlobal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
+    private static void reduceGlobal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.WO S32Array partialSums) {
         // 2 groups of 16 threads each
         cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceGlobal(kc, input, partialSums));
     }
 
     @Reflect
-    private static void reduceLocal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
+    private static void reduceLocal(@MappableIface.RO ComputeContext cc, @MappableIface.RO S32Array input, @MappableIface.WO S32Array partialSums) {
         // 2 groups of 16 threads each
         cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceLocal(kc, input, partialSums));
     }
