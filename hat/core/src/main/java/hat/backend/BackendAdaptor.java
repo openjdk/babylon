@@ -48,7 +48,7 @@ public abstract class BackendAdaptor extends Backend {
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         try {
-            computeContext.computeCallGraph().entrypoint.method.invoke(null, args);
+            computeContext.computeCallGraph().entrypoint.method().invoke(null, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
@@ -60,7 +60,7 @@ public abstract class BackendAdaptor extends Backend {
         for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
                 args[0] = kernelContext;
-                kernelEntrypoint.method.invoke(null, args);
+                kernelEntrypoint.method().invoke(null, args);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             } catch (InvocationTargetException e) {

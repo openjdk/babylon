@@ -15,9 +15,9 @@ import java.util.function.IntUnaryOperator;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run junit TestSealOp
+ * @run junit TestBindOp
  */
-public class TestSealOp {
+public class TestBindOp {
 
     @Reflect
     static List<Integer> f(int i) {
@@ -43,7 +43,7 @@ public class TestSealOp {
     @Test
     void test2() {
         CoreOp.ConstantOp constant = CoreOp.constant(JavaType.INT, 7);
-        constant.seal();
+        constant.bindAsRoot();
         assertOpIsCopiedWhenAddedToBlock(constant);
     }
 
@@ -52,8 +52,12 @@ public class TestSealOp {
         CoreOp.FuncOp funcOp = CoreOp.func("f", FunctionType.FUNCTION_TYPE_VOID).body(b -> {
             b.op(CoreOp.return_());
         });
-        funcOp.seal();
-        funcOp.seal();
+        Assertions.assertFalse(funcOp.isBoundAsRoot());
+        Assertions.assertFalse(funcOp.isBound());
+        funcOp.bindAsRoot();
+        Assertions.assertTrue(funcOp.isBoundAsRoot());
+        Assertions.assertTrue(funcOp.isBound());
+        funcOp.bindAsRoot();
     }
 
     @Test
@@ -64,7 +68,8 @@ public class TestSealOp {
         Quoted<?> quoted = Op.ofLambda(q).get();
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
-        Assertions.assertTrue(funcOp.isSealed());
+        Assertions.assertTrue(funcOp.isBoundAsRoot());
+        Assertions.assertTrue(funcOp.isBound());
         assertOpIsCopiedWhenAddedToBlock(funcOp);
     }
 
@@ -72,14 +77,16 @@ public class TestSealOp {
     void test5() { // freezing an already bound op should throw
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         Op.Result r = body.entryBlock().op(CoreOp.constant(JavaType.DOUBLE, 1d));
-        Assertions.assertThrows(IllegalStateException.class, () -> r.op().seal());
+        Assertions.assertThrows(IllegalStateException.class, () -> r.op().bindAsRoot());
+        Assertions.assertFalse(r.op().isBoundAsRoot());
+        Assertions.assertTrue(r.op().isBound());
     }
 
     @Test
     void test6() {
         CoreOp.ConstantOp cop = CoreOp.constant(JavaType.LONG, 1L);
         cop.setLocation(Location.NO_LOCATION);
-        cop.seal();
+        cop.bindAsRoot();
         Assertions.assertThrows(IllegalStateException.class, () -> cop.setLocation(Location.NO_LOCATION));
     }
 

@@ -23,11 +23,10 @@
  * questions.
  */
 package hat.callgraph;
-
-
-import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
-
-public interface Entrypoint extends MethodCall, LookupCarrier {
-    CoreOp.FuncOp funcOp();
+import java.lang.reflect.Method;
+public interface MethodCall {
+     Method method();
+     default String name(){
+         return method().getName();
+     }
 }

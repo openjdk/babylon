@@ -26,6 +26,8 @@ package hat;
 
 import hat.callgraph.ComputeEntrypoint;
 import jdk.incubator.code.Location;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.interpreter.Interpreter;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.util.carriers.ArenaCarrier;
 import optkl.util.carriers.LookupCarrier;
@@ -91,8 +93,17 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         return accelerator().config();
     }
 
+    public void invokeWithArgs(Object[] args) {
+        computeEntrypoint().invokeWithArgs(args);
+
+    }
+
+    public void interpretWithArgs(Object[] args) {
+        computeEntrypoint().interpretWithArgs( args);
+    }
+
     public enum WRAPPER {
-        MUTATE("Mutate"), ACCESS("Access");//, ESCAPE("Escape");
+        MUTATE("Mutate"), ACCESS("Access");
         final public MethodRef pre;
         final public MethodRef post;
 
@@ -159,16 +170,22 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
         var location = quoted.op().location();
 
-        var kernelCallSite =  kernelCallSiteCache.computeIfAbsent(location, _-> {
-            JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-            MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeDescriptor();
-            KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-            if (kernelCallGraph == null) {
-                throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
-            }
-            return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
-        });
-        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method);
+        KernelCallSite kernelCallSite;
+        if (kernelCallSiteCache.containsKey(location)) {
+            var oldKernelCallSite = kernelCallSiteCache.get(location);
+            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
+        } else {
+            kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
+                JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
+                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeDescriptor();
+                KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+                if (kernelCallGraph == null) {
+                    throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+                }
+                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
+            });
+        }
+        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method());
         KernelContext kernelContext = accelerator.range(ndRange);
         args[0] = kernelContext;
         accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);
