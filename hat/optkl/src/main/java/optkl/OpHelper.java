@@ -645,6 +645,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return OpHelper.methodModelOrThrow(method);
         }
 
+        default CoreOp.FuncOp targetMethodModelOrNull() {
+            Method method = resolveMethodOrNull();
+            return OpHelper.methodModelOrNull(method);
+        }
 
 
         static <I extends Invoke>I invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
