@@ -26,9 +26,7 @@ package hat.callgraph;
 
 import hat.ComputeContext;
 import hat.Config;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper.Invoke;
 import optkl.util.carriers.LookupCarrier;
@@ -45,6 +43,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.copyLocation;
+
 public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     @Override
     public final MethodHandles.Lookup lookup() {
@@ -57,76 +58,52 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public final Map<MethodRef, AbstractMethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
 
     private CoreOp.ModuleOp moduleOp;
-    public CoreOp.ModuleOp getModuleOp(){
+
+    public CoreOp.ModuleOp getModuleOp() {
         return this.moduleOp;
     }
 
-    public void setModuleOp(CoreOp.ModuleOp moduleOp){
+    public void setModuleOp(CoreOp.ModuleOp moduleOp) {
         this.moduleOp = moduleOp;
     }
 
-     CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,
-                                                        CoreOp.FuncOp entry) {
-        LinkedHashSet<MethodRef> funcsVisited = new LinkedHashSet<>();
-        List<CoreOp.FuncOp> funcs = new ArrayList<>();
-        record RefAndFunc(MethodRef r, CoreOp.FuncOp f) {}
+    CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup, Method entryMethod, CoreOp.FuncOp entry) {
+        record RefAndFunc(MethodRef methodRef, CoreOp.FuncOp funcOp) {
+        }
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
 
-        Invoke.stream(lookup,entry)
-                .forEach(invoke -> {
-                Class<?> javaRefTypeClass = invoke.classOrThrow();
-                try {
-                    var method = invoke.op().invokeDescriptor().resolveToMethod(lookup);
-                    CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-                    // TODO filter calls has side effects we may need another call. We might just check the map.
-
-                    if (f != null && !filterCalls(f, invoke.op(), method, invoke.op().invokeDescriptor(), javaRefTypeClass)) {
-                        work.push(new RefAndFunc(invoke.op().invokeDescriptor(),  f));
-                    }
-                } catch (ReflectiveOperationException _) {
-                    throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                }
+        Invoke.stream(lookup, entry).forEach(invoke -> {
+            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp && !filterCalls(funcOp, invoke)) {
+                work.push(new RefAndFunc(invoke.op().invokeDescriptor(), funcOp));
+            }
         });
 
-        while (!work.isEmpty()) {
-            RefAndFunc rf = work.pop();
-            if (funcsVisited.add(rf.r)) {
-                // TODO:is this really transforming? it seems to be creating a new funcop.. Oh I guess for the new ModuleOp?
-                CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
-                    if (op instanceof JavaOp.InvokeOp iop) {
-                        try {
-                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(lookup);
-                            if (invokeOpCalledMethod instanceof Method m) {
-                                CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
-                                if (f != null) {
-                                    RefAndFunc call = new RefAndFunc(iop.invokeDescriptor(), f);
-                                    work.push(call);
-                                    Op.Result result = blockBuilder.op(CoreOp.funcCall(
-                                            call.r.name(),
-                                            call.f.invokableType(),
-                                            blockBuilder.context().getValues(iop.operands())));
-                                    blockBuilder.context().mapValue(op.result(), result);
-                                    return blockBuilder;
-                                }
-                            }
-                        } catch (ReflectiveOperationException _) {
-                            throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                        }
-                    }
+        List<CoreOp.FuncOp> moduleFuncOps = new ArrayList<>();
+        LinkedHashSet<MethodRef> setOfVisitedMethodRefs = new LinkedHashSet<>();
+        while (!work.isEmpty() && work.pop() instanceof RefAndFunc refAndFunc && setOfVisitedMethodRefs.add(refAndFunc.methodRef)) {
+            CoreOp.FuncOp tf = refAndFunc.funcOp.transform(refAndFunc.methodRef.name(), (blockBuilder, op) -> {
+                if (invoke(lookup, op) instanceof Invoke iop && iop.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
+                    RefAndFunc call = new RefAndFunc(iop.op().invokeDescriptor(), funcOp);
+                    work.push(call);
+                    blockBuilder.context().mapValue(op.result(), blockBuilder.op(copyLocation(funcOp, CoreOp.funcCall(
+                            call.methodRef.name(),
+                            call.funcOp.invokableType(),
+                            blockBuilder.context().getValues(iop.op().operands())))));
+                } else {
+                    assert op != null;
                     blockBuilder.op(op);
-                    return blockBuilder;
-                });
-
-                funcs.addFirst(tf);
-            }
+                }
+                return blockBuilder;
+            });
+            moduleFuncOps.addFirst(tf);
         }
 
-        return CoreOp.module(funcs);
+        return CoreOp.module(moduleFuncOps);
     }
 
 
-    public abstract boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);
+    public abstract boolean filterCalls(CoreOp.FuncOp f, Invoke invoke);
 
     public Config config() {
         return computeContext.config();
@@ -134,13 +111,14 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
     public interface Resolved {
         CoreOp.FuncOp funcOp();
+
         void funcOp(CoreOp.FuncOp funcOp);
     }
 
     public interface Unresolved {
     }
 
-    public abstract static class AbstractMethodCall implements MethodCall{
+    public abstract static class AbstractMethodCall implements MethodCall {
         public CallGraph<?> callGraph;
         private final Method method;
 
@@ -159,7 +137,7 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public abstract static class ResolvedMethodCall extends AbstractMethodCall implements Resolved {
         private CoreOp.FuncOp funcOp;
 
-        ResolvedMethodCall(CallGraph<?> callGraph,  Method method,  CoreOp.FuncOp funcOp) {
+        ResolvedMethodCall(CallGraph<?> callGraph, Method method, CoreOp.FuncOp funcOp) {
             super(callGraph, method);
             this.funcOp = funcOp;
         }
@@ -177,7 +155,7 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
 
     public abstract static class UnresolvedMethodCall extends AbstractMethodCall implements Unresolved {
-        UnresolvedMethodCall(CallGraph<?> callGraph,  Method method) {
+        UnresolvedMethodCall(CallGraph<?> callGraph, Method method) {
             super(callGraph, method);
         }
     }

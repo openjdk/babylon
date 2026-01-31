@@ -132,13 +132,15 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp funcOp) {
         super(computeContext, new ComputeEntrypoint(computeContext.lookup(),null, method, funcOp));
         entrypoint.callGraph = this; // This is bad we should be able to do better
-        setModuleOp(createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp()));
+        setModuleOp(createTransitiveInvokeModule(computeContext.lookup(), method, entrypoint.funcOp()));
     }
 
 
     @Override
-    public boolean filterCalls(CoreOp.FuncOp funcOp, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        var invoke = invoke(computeContext.lookup(),invokeOp);
+    public boolean filterCalls(CoreOp.FuncOp funcOp, OpHelper.Invoke invoke) {
+        Method method = invoke.resolveMethodOrThrow();
+        var methodRef = invoke.op().invokeDescriptor();
+        Class<?> javaRefTypeClass = invoke.classOrThrow();
         if (entrypoint.method().getDeclaringClass().equals(invoke.classOrThrow())
                 && isValidKernelDispatch(computeContext.lookup(),method, funcOp)) {
             // TODO this side effect is not good.  we should do this when we construct !
