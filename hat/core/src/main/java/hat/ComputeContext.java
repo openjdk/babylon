@@ -25,7 +25,6 @@
 package hat;
 
 import hat.callgraph.ComputeEntrypoint;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.interpreter.Interpreter;
 import optkl.util.carriers.ArenaAndLookupCarrier;
