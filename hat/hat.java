@@ -157,6 +157,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var example_mandel = hat.jar("example{s}-mandel", example_shared);
         var example_life = hat.jar("example{s}-life", example_shared);
         var example_heal = hat.jar("example{s}-heal", example_shared);
+        var example_shade = hat.jar("example{s}-shade", example_shared);
         var example_violajones = hat.jar("example{s}-violajones", example_shared);
 
         // experiments include code that expects an opencl backend, this is not idea, but we can accomodate
