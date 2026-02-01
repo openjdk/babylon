@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 public class Main {
-
+    // inspired by https://www.shadertoy.com/view/Md23DV
     public static void main(String[] args) throws IOException {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -46,6 +46,7 @@ public class Main {
             rgbimage.getGraphics().drawImage(image, 0, 0, null);
             image=rgbimage;
         }
+
         new Viewer(accelerator, image);
     }
 

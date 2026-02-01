@@ -223,9 +223,6 @@ public  class Viewer extends JFrame {
         }
     }
     public static class Controls{
-        JTextField search;
-       // JTextField mask;
-       // JTextField heal;
         JMenuBar menuBar;
         SevenSegmentDisplay sevenSegmentDisplay;
         Controls(){
@@ -235,16 +232,7 @@ public  class Viewer extends JFrame {
             menuBar.add(new JLabel("Search"));
             sevenSegmentDisplay = (SevenSegmentDisplay) menuBar.add(
                     new SevenSegmentDisplay(4,20, menuBar.getForeground(),menuBar.getBackground()));
-          // search = create ("Search ms");
-           // mask = create ("Mask ms");
-           // heal = create ("Heal ms");
         }
-        /* JTextField create (String name){
-             menuBar.add(new JLabel(name));
-             JTextField textField = (JTextField) menuBar.add(new JTextField("",5));
-             textField.setEditable(false);
-             return textField;
-         } */
     }
 
     Viewer(Accelerator accelerator, BufferedImage image) {
@@ -257,7 +245,6 @@ public  class Viewer extends JFrame {
         setContentPane(mainPanel);
         validate();
         setVisible(true);
-
     }
 
 }

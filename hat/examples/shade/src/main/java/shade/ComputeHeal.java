@@ -238,6 +238,7 @@ public class ComputeHeal {
                                      @RO Box searchArea,
                                      @RO Box selectionBox,
                                      @RO XYRGBList xyrgbList,
+                                     @RO Uniforms uniforms,
                                      @RO F32Array sumArray) {
         bestFitCore(kc.gix, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
@@ -251,9 +252,10 @@ public class ComputeHeal {
                                        @RO XYRGBList xyrgbList){
 
         F32Array sumArrayF32 = F32Array.create(cc.accelerator(), searchArea.area());
+        Uniforms uniforms = Uniforms.create(cc.accelerator());
 
         cc.dispatchKernel(NDRange.of1D(searchArea.area()),
-                kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
+                kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, uniforms,sumArrayF32)
         );
 
         float[] sumArray = new float[searchArea.area()];
