@@ -50,7 +50,7 @@ import java.util.*;
  */
 public final class Body implements CodeElement<Body, Block> {
     // Parent operation
-    // Non-null when body is built, and therefore bound to operation
+    // Non-null when body is built, and therefore child of an operation
     Op parentOp;
 
     // The ancestor body, when null the body is isolated and cannot refer to values defined outside
@@ -450,7 +450,8 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * A builder of a body.
      * <p>
-     * When the body builder is built any associated block builders are also considered built.
+     * When the body builder is {@link Body.Builder#build(Op) built} all associated {@link Block.Builder block builders}
+     * are also built and their blocks become children of the body.
      */
     public final class Builder {
         /**
