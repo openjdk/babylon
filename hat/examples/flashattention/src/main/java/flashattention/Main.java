@@ -208,7 +208,6 @@ public class Main {
 
         // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
         IntStream.range(0, N).parallel().forEach(i -> {
-        //for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 float acc = 0.0f;
                 for (int k = 0; k < d; k++) {
@@ -612,7 +611,6 @@ public class Main {
             // Update m and l with the new values
             F16 m_new = HATMath.max(m_prev, m_block);
 
-            //F16 l_new = (float) (HATMath.exp(m_prev - m_new) * l_prev + HATMath.exp(m_block - m_new) * l_block);
             F16 exp1 = HATMath.exp(F16.sub(m_prev , m_new));
             F16 mul1 = F16.mul(exp1, l_prev);
             F16 exp2 = HATMath.exp(F16.sub(m_block , m_new));
@@ -634,8 +632,6 @@ public class Main {
                 // diag(l_new)^-1 (diag(l_prev)*exp(m_prev-m_new) * O(current) + exp(m_block - m_new) * pv
                 int oIndex = (bx * blockN + tid) * d + k;
                 F16 value = O.array(oIndex);
-
-                //F16 outVal = ((l_prev * Math.exp(m_prev - m_new) * value + Math.exp(m_block - m_new) * pv) / l_new);
 
                 F16 expOut1 = HATMath.exp(F16.sub(m_prev, m_new));
                 F16 multOut1 = F16.mul(l_prev, expOut1);

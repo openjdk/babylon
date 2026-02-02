@@ -45,9 +45,6 @@
      public HATMathLibOp(TypeElement typeElement, String name, ReducedFloatType reducedFloatType, List<Boolean> referenceList, List<Value> operands) {
          super(operands);
          this.typeElement = typeElement;
-         if (reducedFloatType != null && (name.equals("max") || name.equals("min"))) {
-             name = name.toUpperCase() + "_HAT";
-         }
          this.name = name;
          this.reducedFloatType = reducedFloatType;
          this.referenceList = referenceList;
