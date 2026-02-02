@@ -28,6 +28,8 @@ import hat.types.F16;
 
 public class HATMath {
 
+    public static final float PI = (float) Math.PI;
+
     // Binary Operations
     public static float max(float a, float b) {
         return Math.max(a, b);
