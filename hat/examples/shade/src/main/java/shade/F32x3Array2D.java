@@ -25,55 +25,53 @@
 package shade;
 
 import hat.Accelerator;
+import hat.buffer.S08x3RGBImage;
+import hat.buffer.S32Array2D;
+import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 
-public interface Uniforms extends Buffer {
-    interface ivec2 extends ivec2Value.Mutable, Struct {
-        void x(int x);
-        void y(int y);
-    }
+public interface F32x3Array2D extends Buffer {
+ //   @Reflect
+   // default void schema(){array(width()*height()*depth());};  we need to accept more than one *....
+   // Schema<F32x3Array2D> schema = Schema.of(F32x3Array2D.class);
 
-    interface vec2 extends vec2Value, Struct {
-        void x(float x);
-        void y(float y);
-    }
+    long width();
+    long height();
 
-    interface vec3 extends vec3Value, Struct {
-        void x(float x);
-        void y(float y);
-        void z(float z);
-    }
-
-    interface vec4 extends vec4Value.Mutable, Struct {
-        void x(float x);
-        void y(float y);
-        void z(float z);
-        void w(float w);
-    }
-
-    vec2 fragCoord();
-
-    vec4 fragColor();
-
-    ivec2 iResolution();
-
-    Schema<Uniforms> schema = Schema.of(Uniforms.class, uniforms -> uniforms
-            .field("fragCoord", fragCoord -> fragCoord.fields("x", "y"))
-            .field("fragColor", fragColor -> fragColor.fields("x", "y", "z", "w"))
-            .field("iResolution", iResolution -> iResolution.fields("x", "y"))
+    float array(long idx);
+    void array(long idx, float f);
+    Schema<F32x3Array2D> schema = Schema.of(F32x3Array2D.class, s -> s
+            .arrayLen("width", "height").stride(3).array("array")
     );
-
-   default void setFragColor(vec4Value f){
-       vec4 fragColor = fragColor();
-       fragColor.x(f.x());
-       fragColor.y(f.y());
-       fragColor.z(f.z());
-       fragColor.w(f.w());
+    static F32x3Array2D create(Accelerator accelerator, int width, int height) {
+        return  BoundSchema.of(accelerator ,schema,width,height,3).allocate();
     }
 
-    static Uniforms create(Accelerator accelerator) {
-        return BoundSchema.of(accelerator, schema).allocate();
+
+    default float r(int x, int y){
+        return array(3*(y*width()+x+0));
     }
+    default float g(int x, int y){
+        return array(3*(y*width()+x+1));
+    }
+    default float b(int x, int y){
+        return array(3*(y*width()+x+2));
+    }
+    default void r(int x, int y, float r){
+        array(3*(y*width()+x+0),r);
+    }
+    default void g(int x, int y, float g){
+        array(3*(y*width()+x+1),g);
+    }
+    default void b(int x, int y, float b){
+        array(3*(y*width()+x+2),b);
+    }
+
+    default void clear(){
+        MappableIface.getMemorySegment(this).fill((byte)0);
+    }
+
 }

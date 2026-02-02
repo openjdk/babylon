@@ -25,55 +25,72 @@
 package shade;
 
 import hat.Accelerator;
+import hat.types.Float4;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
-public interface Uniforms extends Buffer {
-    interface ivec2 extends ivec2Value.Mutable, Struct {
-        void x(int x);
-        void y(int y);
+public interface Universe extends Buffer {
+    int length();
+    default Float4[] posArrView(){
+        return null;
     }
-
-    interface vec2 extends vec2Value, Struct {
-        void x(float x);
-        void y(float y);
+    default Float4[] velArrView(){
+        return null;
     }
+    interface Body extends Struct {
+        float x();
 
-    interface vec3 extends vec3Value, Struct {
+        float y();
+
+        float z();
+
+        float vx();
+
+        float vy();
+
+        float vz();
+
         void x(float x);
+
         void y(float y);
+
         void z(float z);
+
+        void vx(float vx);
+
+        void vy(float vy);
+
+        void vz(float vz);
     }
 
-    interface vec4 extends vec4Value.Mutable, Struct {
-        void x(float x);
-        void y(float y);
-        void z(float z);
-        void w(float w);
-    }
+    Body body(long idx);
 
-    vec2 fragCoord();
+    /*
+    typedef struct Body_s{
+        float x;
+        float y;
+        float y;
+        float vx;
+        float vy;
+        float y;
+    } Body_t;
 
-    vec4 fragColor();
+    typedef struct Universe_s{
+       int length;
+       Body_t body[1];
+    }Universe_t;
 
-    ivec2 iResolution();
+     */
+    Schema<Universe> schema = Schema.of(Universe.class, resultTable -> resultTable
 
-    Schema<Uniforms> schema = Schema.of(Uniforms.class, uniforms -> uniforms
-            .field("fragCoord", fragCoord -> fragCoord.fields("x", "y"))
-            .field("fragColor", fragColor -> fragColor.fields("x", "y", "z", "w"))
-            .field("iResolution", iResolution -> iResolution.fields("x", "y"))
+            .arrayLen("length").array("body", array -> array
+                    .fields("x", "y", "z", "vx", "vy", "vz")
+            )
     );
 
-   default void setFragColor(vec4Value f){
-       vec4 fragColor = fragColor();
-       fragColor.x(f.x());
-       fragColor.y(f.y());
-       fragColor.z(f.z());
-       fragColor.w(f.w());
+    static Universe create(Accelerator accelerator, int length) {
+        return BoundSchema.of(accelerator ,schema, length).allocate();
     }
 
-    static Uniforms create(Accelerator accelerator) {
-        return BoundSchema.of(accelerator, schema).allocate();
-    }
 }

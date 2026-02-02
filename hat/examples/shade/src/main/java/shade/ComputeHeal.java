@@ -63,6 +63,8 @@ import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
 import optkl.ifacemapper.MappableIface.WO;
 
+import static shade.vec4Value.vec4;
+
 public class ComputeHeal {
     /*
      * Original renderscript
@@ -253,6 +255,20 @@ public class ComputeHeal {
 
         F32Array sumArrayF32 = F32Array.create(cc.accelerator(), searchArea.area());
         Uniforms uniforms = Uniforms.create(cc.accelerator());
+        var fc= uniforms.fragColor();
+        var resolution = uniforms.iResolution();
+        System.out.println("fc "+fc);
+        System.out.println("resolution "+resolution);
+        resolution.of(resolution.add(2));
+        System.out.println("resolution "+resolution);
+        vec4Value color = vec4(1f,2f,3f,4f);
+        System.out.println("color = "+color);
+     //   fc.of(1f,1f,1f,1f);
+
+        fc.of(fc.add(color).div(2f));//vec4Value.of(2f)));//vec4Value.add(fc,vec4Value.of(2f,2f,2f,2f)));
+       // uniforms.setFragColor(color);
+        System.out.println("fc "+fc);
+        System.exit(1);
 
         cc.dispatchKernel(NDRange.of1D(searchArea.area()),
                 kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, uniforms,sumArrayF32)
