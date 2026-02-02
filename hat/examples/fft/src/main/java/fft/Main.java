@@ -201,7 +201,6 @@ public class Main {
         IO.println("Input Size = " + size);
 
         // Let's first compute the DFT (Discrete Fourier Transform)
-
         ArrayComplex input = ArrayComplex.create(accelerator, size);
         ArrayComplex outputSeq = ArrayComplex.create(accelerator, size);
         ArrayComplex outputStreams = ArrayComplex.create(accelerator, size);
