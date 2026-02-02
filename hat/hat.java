@@ -145,14 +145,15 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var backend_seq_java = hat.jar("backend{s}-java-seq", core);
         var example_squares = hat.jar("example{s}-squares", core);
         var example_matmul = hat.jar("example{s}-matmul", core);
-        var example_flash_attention = hat.jar("example{s}-flashattention", core);
-        var example_fft = hat.jar("example{s}-fft", core);
         var example_blackscholes = hat.jar("example{s}-blackscholes", core);
         var example_view = hat.jar("example{s}-view", core);
         var example_normmap = hat.jar("example{s}-normmap", core); // will probabvly need shared when we hatify
 
         // example_shared allows us to break out common UI functions, views, even loops etc
         var example_shared = hat.jar("example{s}-shared", ui, core);
+
+        var example_flash_attention = hat.jar("example{s}-flashattention", core, example_shared);
+        var example_fft = hat.jar("example{s}-fft", core, example_shared);
 
         // These examples use example_shared, so they are UI based
         var example_mandel = hat.jar("example{s}-mandel", example_shared);

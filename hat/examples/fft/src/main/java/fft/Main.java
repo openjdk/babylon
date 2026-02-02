@@ -39,14 +39,16 @@ import optkl.ifacemapper.MappableIface.RW;
 import optkl.ifacemapper.MappableIface.WO;
 import optkl.ifacemapper.Schema;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
+
+import static hat.examples.common.StatUtils.computeAverage;
+import static hat.examples.common.StatUtils.computeSpeedup;
+import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
+import static hat.examples.common.StatUtils.printCheckResult;
 
 /**
  * How to run?
@@ -161,17 +163,6 @@ public class Main {
         });
     }
 
-    // Since we do not have a common package for the examples (all of them are isolated), we need
-    // to duplicate a few utility methods.
-    public static double computeAverage(List<Long> timers, int discard) {
-        double sum = timers.stream().skip(discard).reduce(0L, Long::sum).doubleValue();
-        int totalCountedValues = timers.size() - discard;
-        return (sum / totalCountedValues);
-    }
-
-    private static double computeSpeedup(double baseline, double measured) {
-        return (Math.ceil(baseline / measured * 100) / 100);
-    }
 
     private static boolean checkResult(ArrayComplex outputSeq, ArrayComplex outputHAT) {
         boolean isResultCorrect = true;
@@ -184,49 +175,6 @@ public class Main {
             }
         }
         return isResultCorrect;
-    }
-
-    private static void printCheckResult(boolean isCorrect, String version) {
-        IO.println(isCorrect ? version + " is correct" : version + " is wrong");
-    }
-
-    public static void dumpStatsToCSVFile(List<List<Long>> listOfTimers, List<String> header, final String fileName) {
-        final int numColumns = listOfTimers.size();
-        if (numColumns != header.size()) {
-            throw new RuntimeException("Header size and List of timers need to be the same size");
-        }
-        StringBuilder builder = new StringBuilder();
-        IntStream.range(0, header.size()).forEach(i -> {
-            builder.append(header.get(i));
-            if (i != header.size() - 1) {
-                builder.append(",");
-            }
-        });
-        builder.append(System.lineSeparator());
-
-        final int numRows = listOfTimers.getFirst().size();
-        for (int row = 0; row < numRows; row++) {
-            for (int col = 0; col < numColumns; col++) {
-                // all lists must be of the same size:
-                if (listOfTimers.get(col).size() != numRows) {
-                    throw new RuntimeException("[ERROR] Result List: " + col + " has a different size");
-                }
-                Long timer = listOfTimers.get(col).get(row);
-                builder.append(timer);
-                if (col != header.size() - 1) {
-                    builder.append(",");
-                }
-            }
-            builder.append(System.lineSeparator());
-        }
-        builder.append(System.lineSeparator());
-
-        IO.println("[INFO] Saving results into file: " + fileName);
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-            writer.append(builder.toString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     static void main(String[] args) {

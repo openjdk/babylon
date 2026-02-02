@@ -37,9 +37,6 @@ import hat.types.F16;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface.RW;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +47,9 @@ import static hat.Accelerator.Compute;
 import static hat.NDRange.Global1D;
 import static hat.NDRange.Local1D;
 import static hat.NDRange.NDRange1D;
+import static hat.examples.common.StatUtils.computeAverage;
+import static hat.examples.common.StatUtils.computeSpeedup;
+import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 import static optkl.ifacemapper.MappableIface.RO;
 import static optkl.ifacemapper.MappableIface.WO;
 
@@ -671,55 +671,6 @@ public class Main {
             }
         }
         return true;
-    }
-
-    public static void dumpStatsToCSVFile(List<List<Long>> listOfTimers, List<String> header, final String fileName) {
-        final int numColumns = listOfTimers.size();
-        if (numColumns != header.size()) {
-            throw new RuntimeException("Header size and List of timers need to be the same size");
-        }
-        StringBuilder builder = new StringBuilder();
-        IntStream.range(0, header.size()).forEach(i -> {
-            builder.append(header.get(i));
-            if (i != header.size() - 1) {
-                builder.append(",");
-            }
-        });
-        builder.append(System.lineSeparator());
-
-        final int numRows = listOfTimers.getFirst().size();
-        for (int row = 0; row < numRows; row++) {
-            for (int col = 0; col < numColumns; col++) {
-                // all lists must be of the same size:
-                if (listOfTimers.get(col).size() != numRows) {
-                    throw new RuntimeException("[ERROR] Result List: " + col + " has a different size");
-                }
-                Long timer = listOfTimers.get(col).get(row);
-                builder.append(timer);
-                if (col != header.size() - 1) {
-                    builder.append(",");
-                }
-            }
-            builder.append(System.lineSeparator());
-        }
-        builder.append(System.lineSeparator());
-
-        IO.println("[INFO] Saving results into file: " + fileName);
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-            writer.append(builder.toString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static double computeAverage(List<Long> timers, int discard) {
-        double sum = timers.stream().skip(discard).reduce(0L, Long::sum).doubleValue();
-        int totalCountedValues = timers.size() - discard;
-        return (sum / totalCountedValues);
-    }
-
-    private static double computeSpeedup(double baseline, double measured) {
-        return (Math.ceil(baseline / measured * 100) / 100);
     }
 
     @Reflect
