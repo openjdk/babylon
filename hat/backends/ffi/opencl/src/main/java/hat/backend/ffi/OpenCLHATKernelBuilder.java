@@ -275,21 +275,21 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     protected String mapMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
         switch (hatMathIntrinsicName.toLowerCase()) {
             case "max" -> {
-                return "MAX_HAT";
+                if (reducedFloatType != null) {
+                    return "MAX_HAT";
+                }
             }
             case "min" -> {
-                return "MIN_HAT";
+                if (reducedFloatType != null) {
+                    return "MIN_HAT";
+                }
             }
             case "exp" -> {
                 if (reducedFloatType != null) {
                     return "half_exp";
-                } else {
-                    return "exp";
                 }
             }
-            default -> {
-                return hatMathIntrinsicName;
-            }
         }
+        return hatMathIntrinsicName;
     }
 }

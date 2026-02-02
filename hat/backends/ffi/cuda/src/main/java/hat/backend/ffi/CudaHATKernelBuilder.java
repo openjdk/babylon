@@ -398,10 +398,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     protected String mapMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
         switch (hatMathIntrinsicName) {
             case "max" -> {
-                return "MAX_HAT";
+                if (reducedFloatType != null) {
+                    return "MAX_HAT";
+                }
             }
             case "min" -> {
-                return "MIN_HAT";
+                if (reducedFloatType != null) {
+                    return "MIN_HAT";
+                }
             }
             case "exp" -> {
                 if (reducedFloatType != null) {
@@ -410,9 +414,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     return "expf";
                 }
             }
-            default -> {
-                return hatMathIntrinsicName;
-            }
         }
+        return hatMathIntrinsicName;
     }
 }
