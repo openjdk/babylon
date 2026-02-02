@@ -59,10 +59,15 @@ import java.util.stream.IntStream;
  * </p>
  *
  * <p>
-   With the CUDA Backend:
+ * With the CUDA Backend:
  * <code>
  *      java -cp hat/job.jar hat.java run ffi-cuda fft
  * </code>
+ *
+ * <p>
+ * Link to DFT: <a href="https://en.wikipedia.org/wiki/Discrete_Fourier_transform">link</a>
+ * </p>
+ *
  * </p>
  */
 public class Main {
