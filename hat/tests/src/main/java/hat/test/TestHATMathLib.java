@@ -157,6 +157,67 @@ public class TestHATMathLib {
                 kernelContext -> TestHATMathLib.testMathLib06(kernelContext, a, b));
     }
 
+    @Reflect
+    private static void testMathLib07(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+        if (kc.gix < kc.gsx) {
+            float fa = a.array(kc.gix);
+            float result = HATMath.cos(fa);
+            b.array(kc.gix, result);
+        }
+    }
+
+    @Reflect
+    private static void computeMathLib07(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()),
+                kernelContext -> TestHATMathLib.testMathLib07(kernelContext, a, b));
+    }
+
+    @Reflect
+    private static void testMathLib08(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+        if (kc.gix < kc.gsx) {
+            float fa = a.array(kc.gix);
+            float result = HATMath.sin(fa);
+            b.array(kc.gix, result);
+        }
+    }
+
+    @Reflect
+    private static void computeMathLib08(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()),
+                kernelContext -> TestHATMathLib.testMathLib08(kernelContext, a, b));
+    }
+
+    @Reflect
+    private static void testMathLib09(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+        if (kc.gix < kc.gsx) {
+            float fa = a.array(kc.gix);
+            float result = HATMath.tan(fa);
+            b.array(kc.gix, result);
+        }
+    }
+
+    @Reflect
+    private static void computeMathLib09(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()),
+                kernelContext -> TestHATMathLib.testMathLib09(kernelContext, a, b));
+    }
+
+    @Reflect
+    private static void testMathLib10(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+        if (kc.gix < kc.gsx) {
+            float fa = a.array(kc.gix);
+            float result = HATMath.sqrt(fa);
+            b.array(kc.gix, result);
+        }
+    }
+
+    @Reflect
+    private static void computeMathLib10(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()),
+                kernelContext -> TestHATMathLib.testMathLib10(kernelContext, a, b));
+    }
+
+
     @HatTest
     @Reflect
     public void testMathLib01() {
@@ -318,5 +379,87 @@ public class TestHATMathLib {
         }
     }
 
+    @HatTest
+    @Reflect
+    public void testMathLib07() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
+        final int size = 512;
+        F32Array arrayA = F32Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+
+        Random random = new Random();
+        IntStream.range(0, arrayA.length()).forEach(i -> arrayA.array(i, random.nextFloat()));
+
+        accelerator.compute(computeContext -> TestHATMathLib.computeMathLib07(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            float val = arrayB.array(i);
+            float fa = (float) Math.cos(arrayA.array(i));
+            HATAsserts.assertEquals(fa, val, 0.001f);
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void testMathLib08() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 512;
+        F32Array arrayA = F32Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+
+        Random random = new Random();
+        IntStream.range(0, arrayA.length()).forEach(i -> arrayA.array(i, random.nextFloat()));
+
+        accelerator.compute(computeContext -> TestHATMathLib.computeMathLib08(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            float val = arrayB.array(i);
+            float fa = (float) Math.sin(arrayA.array(i));
+            HATAsserts.assertEquals(fa, val, 0.001f);
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void testMathLib09() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 512;
+        F32Array arrayA = F32Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+
+        Random random = new Random();
+        IntStream.range(0, arrayA.length()).forEach(i -> arrayA.array(i, random.nextFloat()));
+
+        accelerator.compute(computeContext -> TestHATMathLib.computeMathLib09(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            float val = arrayB.array(i);
+            float fa = (float) Math.tan(arrayA.array(i));
+            HATAsserts.assertEquals(fa, val, 0.001f);
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void testMathLib10() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 512;
+        F32Array arrayA = F32Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+
+        Random random = new Random();
+        IntStream.range(0, arrayA.length()).forEach(i -> arrayA.array(i, random.nextFloat()));
+
+        accelerator.compute(computeContext -> TestHATMathLib.computeMathLib10(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            float val = arrayB.array(i);
+            float fa = (float) Math.sqrt(arrayA.array(i));
+            HATAsserts.assertEquals(fa, val, 0.001f);
+        }
+    }
 }

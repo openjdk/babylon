@@ -39,10 +39,60 @@ public class HATMath {
         return F16.floatToF16(Math.max(fa, fb));
     }
 
+    public static float min(float a, float b) {
+        return Math.min(a, b);
+    }
+
+    public static F16 min(F16 a, F16 b) {
+        float fa = F16.f16ToFloat(a);
+        float fb = F16.f16ToFloat(b);
+        return F16.floatToF16(Math.min(fa, fb));
+    }
+
     // Unary operations
+    public static float cos(float a) {
+        return (float) Math.cos(a);
+    }
+
+    public static double cos(double a) {
+        return Math.cos(a);
+    }
+
+    public static float exp(float a) {
+        return (float) Math.exp(a);
+    }
+
+    public static double exp(double a) {
+        return Math.exp(a);
+    }
+
     public static F16 exp(F16 a) {
         float fa = F16.f16ToFloat(a);
         return F16.floatToF16((float) Math.exp(fa));
+    }
+
+    public static float sqrt(float a) {
+        return (float) Math.sqrt(a);
+    }
+
+    public static float sin(float a) {
+        return (float) Math.sin(a);
+    }
+
+    public static double sin(double a) {
+        return Math.sin(a);
+    }
+
+    public static double sqrt(double a) {
+        return Math.sqrt(a);
+    }
+
+    public static float tan(float a) {
+        return (float) Math.tan(a);
+    }
+
+    public static double tan(double a) {
+        return Math.tan(a);
     }
 
     private HATMath() {}
