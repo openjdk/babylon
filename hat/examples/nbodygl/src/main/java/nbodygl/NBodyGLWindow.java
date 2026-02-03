@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package nbody;
+package nbodygl;
 
 import wrap.Wrap;
 import wrap.opengl.GLTexture;
@@ -72,7 +72,7 @@ public abstract class NBodyGLWindow extends GLWindow {
     protected final Mode mode;
 
     public NBodyGLWindow(Arena arena, int width, int height, GLTexture particle, int bodyCount, Mode mode) {
-        super(arena, width, height, "nbody", GLUT_DOUBLE() | GLUT_RGB() | GLUT_DEPTH(), particle);
+        super(arena, width, height, "nbodygl", GLUT_DOUBLE() | GLUT_RGB() | GLUT_DEPTH(), particle);
         this.particle = particle;
         this.bodyCount = bodyCount;
         this.xyzPosFloatArr = Wrap.Float4Arr.of(arena, bodyCount);

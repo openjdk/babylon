@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package nbody.opencl;
+package nbodygl.opencl;
 
 
 import hat.Accelerator;
@@ -33,9 +33,9 @@ import hat.types.Float4;
 import optkl.ifacemapper.BufferState;
 import hat.NDRange;
 import jdk.incubator.code.Reflect;
-import nbody.Mode;
-import nbody.NBodyGLWindow;
-import nbody.Universe;
+import nbodygl.Mode;
+import nbodygl.NBodyGLWindow;
+import nbodygl.Universe;
 import wrap.opencl.CLPlatform;
 import wrap.opencl.CLWrapComputeContext;
 import wrap.opengl.GLTexture;
@@ -288,7 +288,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
                 default -> throw new IllegalStateException();
             };
             var program = context.buildProgram(code);
-            kernel = program.getKernel("nbody");
+            kernel = program.getKernel("nbodygl");
         }
     }
 

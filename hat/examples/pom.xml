@@ -53,13 +53,14 @@ questions.
         <module>flashattention</module>
         <module>view</module>
         <module>life</module>
+        <module>nbody</module>
         <module>experiments</module>
     </modules>
     <profiles>
         <profile>
             <id>opengl</id>
             <modules>
-               <module>nbody</module>
+               <module>nbodygl</module>
             </modules>
         </profile>
     </profiles>
