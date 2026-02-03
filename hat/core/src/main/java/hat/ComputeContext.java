@@ -25,7 +25,6 @@
 package hat;
 
 import hat.callgraph.ComputeEntrypoint;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.interpreter.Interpreter;
 import optkl.util.carriers.ArenaAndLookupCarrier;
@@ -158,7 +157,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     }
     record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
-    private Map<Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+    private Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
 
     /** Creating the kernel callsite involves
          walking the code model of the lambda
@@ -166,7 +165,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
      So we cache the callsite against the location from the lambdaop.
      */
     public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
-        Quoted quoted = Op.ofLambda(kernel).orElseThrow();
+        Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
 
@@ -176,7 +175,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
         } else {
             kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
-                JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
+                JavaOp.LambdaOp lambdaOp = quoted.op();
                 MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeDescriptor();
                 KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
                 if (kernelCallGraph == null) {

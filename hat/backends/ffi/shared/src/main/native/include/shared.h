@@ -211,17 +211,28 @@ struct BufferState {
         // Sanity check the buffers
         // These sanity check finds errors passing memory segments which are not Buffers
         if (bufferState->ptr != arg->value.buffer.memorySegment) {
-            std::cerr << "bufferState->ptr !=  arg->value.buffer.memorySegment" << std::endl;
+             std::cerr << "Error:  Unexpected initial state for buffer "
+                            << " idx=" << arg->idx
+                            << " bufferState->ptr=0x"<<std::hex<<((long)bufferState->ptr)<<std::dec
+                              << " bufferState->length=0x"<<std::hex<<((long)bufferState->length)<<std::dec
+                            << " arg->value.buffer.memorySegment=0x"<<std::hex<<((long)arg->value.buffer.memorySegment)<<std::dec
+                            << " state=" << bufferState->state << " '"
+                            << stateNames[bufferState->state] << "'"
+                            << " vendorPtr" << bufferState->vendorPtr << std::endl;
+            std::cerr << "The ptr (bufferState->ptr) does not appear to be a arg->value.buffer.memorySegment" << std::endl;
 
-            // A bit brutal to stop the VM? We can throw an exception and handle it in the Java side?
+            // This is A bit brutal to stop the VM? We can throw an exception and handle it in the Java side?
             std::exit(1);
         }
 
         if ((bufferState->vendorPtr == nullptr) && (bufferState->state != NEW_STATE)) {
             std::cerr << "Warning:  Unexpected initial state for buffer "
+                    << " idx=" << arg->idx
                     << " state=" << bufferState->state << " '"
                     << stateNames[bufferState->state] << "'"
                     << " vendorPtr" << bufferState->vendorPtr << std::endl;
+            // This is A bit brutal to stop the VM? We can throw an exception and handle it in the Java side?
+            //std::exit(1);
         }
         // End of sanity checks
         return bufferState;

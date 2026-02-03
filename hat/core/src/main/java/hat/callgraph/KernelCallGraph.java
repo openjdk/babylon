@@ -24,6 +24,7 @@
  */
 package hat.callgraph;
 
+import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import hat.BufferTagger;
 import optkl.ifacemapper.Buffer;
@@ -90,7 +91,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         entrypoint.funcOp(initialEntrypointFuncOp);
         List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
 
-        CoreOp.ModuleOp initialModuleOp = createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp());
+        CoreOp.ModuleOp initialModuleOp = createTransitiveInvokeModule(computeContext.lookup(), method,entrypoint.funcOp());
 
         initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
                 initialFuncOps.add( tier.apply(accessableFuncOp))
@@ -100,16 +101,19 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     }
 
     @Override
-    public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
+    public boolean filterCalls(CoreOp.FuncOp f, OpHelper.Invoke invoke) {
+        var methodRef = invoke.op().invokeDescriptor();
+        Class<?> javaRefTypeClass = invoke.classOrThrow();
         if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
-            // TODO this side effect seems scary
+            // TODO this side effect seems scary lets do this in a separate pass
             bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                    new KernelReachableUnresolvedIfaceMappedMethodCall(this,  method)
+                    new KernelReachableUnresolvedIfaceMappedMethodCall(this, invoke.resolveMethodOrThrow())
             );
         } else {
             return false;
         }
         return true;
     }
+
 
 }
