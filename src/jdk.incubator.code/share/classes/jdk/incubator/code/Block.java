@@ -592,7 +592,7 @@ public final class Block implements CodeElement<Block, Op> {
         /**
          * Creates an unbuilt block reference to this block that can be used as a successor of a terminating operation.
          *
-         * @param args the block arguments
+         * @param args the unbuilt block arguments
          * @return the reference to this block
          * @throws IllegalStateException if this block builder is associated with the entry block.
          * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
@@ -604,10 +604,10 @@ public final class Block implements CodeElement<Block, Op> {
         /**
          * Creates an unbuilt block reference to this block that can be used as a successor of a terminating operation.
          *
-         * @param args the block arguments
+         * @param args the unbuilt block arguments
          * @return the reference to this block
          * @throws IllegalStateException if this block builder is associated with the entry block.
-         * @throws IllegalArgumentException if a block argument's declaring block is built
+         * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
          */
         public Reference successor(List<? extends Value> args) {
             if (isEntryBlock()) {
@@ -679,8 +679,8 @@ public final class Block implements CodeElement<Block, Op> {
          * If the operation is unbuilt, then the operation is appended and bound to this block to become unbuilt-bound.
          * Otherwise, if the operation is built or unbuilt-bound, the operation is first
          * {@link Op#transform(CodeContext, CodeTransformer) transformed} with this builder's context and
-         * code transformer, the resulting unbuilt transformed operation is appended, and the
-         * operation's result mapped to the transformed operation's result, using the builder's context.
+         * code transformer, the resulting transformed unbuilt operation is appended, and the
+         * operation's result mapped to the transformed operation's unbuilt result, using the builder's context.
          * <p>
          * If the unbuilt operation (transformed, or otherwise) is structurally invalid then an
          * {@code IllegalStateException} is thrown. An unbuilt operation is structurally invalid if:

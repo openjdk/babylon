@@ -65,19 +65,19 @@ import java.util.function.BiFunction;
  * An unbuilt operation transitions to a built operation in one of two ways:
  * <ol>
  * <li>
- * {@link #buildAsRoot() binding} the unbuilt operation to become a built {@link #isRoot() root} operation. The
+ * {@link #buildAsRoot() building} the unbuilt operation to become a built {@link #isRoot() root} operation. The
  * operation's {@link #result result} and {@link #parent parent} are always {@code null}.
  * </li>
  * <li>
  * {@link Block.Builder#op(Op) appending} the unbuilt operation to a block builder to first become an unbuilt-bound
  * operation that is bound to an operation result and parent block.
  * The unbuilt-bound operation has a non-{@code null} unbuilt {@link #result result} that never changes, an unbuilt
- * value that be used by subsequent constructed operations.
+ * value that can be used by subsequent constructed operations.
  * An unbuilt-bound operation transitions to a built bound operation when the block builder it was appended to builds
  * the block, after which the built bound operation has a non-{@code null} {@link #parent parent} that never changes and
  * a built {@link #result}.
- * Before then the unbuilt-bound operation's {@link #parent parent} is inaccessible, as is also the case if the same
- * block is accessed via the unbuilt result's {@link Value#declaringBlock() declaring block}).
+ * Before then the unbuilt-bound operation's {@link #parent parent} is inaccessible, as is unbuilt result's
+ * {@link Value#declaringBlock() declaring block}) (since both refer to the same block).
  * </li>
  * A built operation is fully immutable either as a root operation, the root of a code model, or as a bound operation
  * within a code model.
