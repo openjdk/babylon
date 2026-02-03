@@ -30,48 +30,48 @@ import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
 public interface Uniforms extends Buffer {
-    interface ivec2 extends ivec2Value.Mutable, Struct {
+    interface ivec2Field extends ivec2.Field, Struct {
         void x(int x);
         void y(int y);
     }
 
-    interface vec2 extends vec2Value, Struct {
+    interface vec2Field extends vec2.Field, Struct {
         void x(float x);
         void y(float y);
     }
 
-    interface vec3 extends vec3Value, Struct {
+    interface vec3Field extends vec3.Field, Struct {
         void x(float x);
         void y(float y);
         void z(float z);
     }
 
-    interface vec4 extends vec4Value.Mutable, Struct {
+    interface vec4Field extends vec4.Field, Struct {
         void x(float x);
         void y(float y);
         void z(float z);
         void w(float w);
     }
 
-    vec2 fragCoord();
+    vec2Field fragCoord();
 
-    vec4 fragColor();
+    vec4Field fragColor();
 
-    ivec2 iResolution();
+    ivec2Field iResolution();
 
+    long iTime();
+    void iTime(long iTime);
+    ivec2Field iMouse();
+    long iFrame();
+    void iFrame(long iFrame);
     Schema<Uniforms> schema = Schema.of(Uniforms.class, uniforms -> uniforms
             .field("fragCoord", fragCoord -> fragCoord.fields("x", "y"))
             .field("fragColor", fragColor -> fragColor.fields("x", "y", "z", "w"))
             .field("iResolution", iResolution -> iResolution.fields("x", "y"))
+            .field("iMouse", iMouse -> iMouse.fields("x", "y"))
+            .field("iTime")
+            .field("iFrame")
     );
-
-   default void setFragColor(vec4Value f){
-       vec4 fragColor = fragColor();
-       fragColor.x(f.x());
-       fragColor.y(f.y());
-       fragColor.z(f.z());
-       fragColor.w(f.w());
-    }
 
     static Uniforms create(Accelerator accelerator) {
         return BoundSchema.of(accelerator, schema).allocate();

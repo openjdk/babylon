@@ -63,8 +63,8 @@ import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
 import optkl.ifacemapper.MappableIface.WO;
 
-import static shade.vec4Value.vec4;
-
+import static shade.vec4.vec4;
+import static shade.ivec2.ivec2;
 public class ComputeHeal {
     /*
      * Original renderscript
@@ -261,13 +261,24 @@ public class ComputeHeal {
         System.out.println("resolution "+resolution);
         resolution.of(resolution.add(2));
         System.out.println("resolution "+resolution);
-        vec4Value color = vec4(1f,2f,3f,4f);
+        vec4 color = vec4(1f,2f,3f,4f);
         System.out.println("color = "+color);
      //   fc.of(1f,1f,1f,1f);
 
         fc.of(fc.add(color).div(2f));//vec4Value.of(2f)));//vec4Value.add(fc,vec4Value.of(2f,2f,2f,2f)));
        // uniforms.setFragColor(color);
         System.out.println("fc "+fc);
+        uniforms.iTime(0L);
+        System.out.println("iTime = "+uniforms.iTime());
+        uniforms.iTime(2L);
+        System.out.println("iTime = "+uniforms.iTime());
+        uniforms.iFrame(0L);
+        System.out.println("iFrame = "+uniforms.iFrame());
+        uniforms.iFrame(1L);
+        System.out.println("iFrame = "+uniforms.iFrame());
+        var iMouse = uniforms.iMouse();
+        System.out.println("iMouse "+iMouse);
+        iMouse.of(ivec2(0,1));
         System.exit(1);
 
         cc.dispatchKernel(NDRange.of1D(searchArea.area()),

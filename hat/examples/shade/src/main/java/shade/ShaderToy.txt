@@ -1,6 +1,7 @@
 /*
  From https://www.shadertoy.com/view/Md23DV shader toy tutorials
-
+See also
+https://gist.github.com/markknol/d06c0167c75ab5c6720fe9083e4319e1
 by Uğur Güney. March 8, 2014.
 
 Hi! I started learning GLSL a month ago. The speedup gained by using
