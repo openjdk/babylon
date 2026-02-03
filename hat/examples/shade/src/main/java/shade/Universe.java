@@ -25,55 +25,72 @@
 package shade;
 
 import hat.Accelerator;
+import hat.types.Float4;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
-public interface Uniforms extends Buffer {
-    interface ivec2Field extends ivec2.Field, Struct {
-        void x(int x);
-        void y(int y);
+public interface Universe extends Buffer {
+    int length();
+    default Float4[] posArrView(){
+        return null;
     }
-
-    interface vec2Field extends vec2.Field, Struct {
-        void x(float x);
-        void y(float y);
+    default Float4[] velArrView(){
+        return null;
     }
+    interface Body extends Struct {
+        float x();
 
-    interface vec3Field extends vec3.Field, Struct {
+        float y();
+
+        float z();
+
+        float vx();
+
+        float vy();
+
+        float vz();
+
         void x(float x);
+
         void y(float y);
+
         void z(float z);
+
+        void vx(float vx);
+
+        void vy(float vy);
+
+        void vz(float vz);
     }
 
-    interface vec4Field extends vec4.Field, Struct {
-        void x(float x);
-        void y(float y);
-        void z(float z);
-        void w(float w);
-    }
+    Body body(long idx);
 
-    vec2Field fragCoord();
+    /*
+    typedef struct Body_s{
+        float x;
+        float y;
+        float y;
+        float vx;
+        float vy;
+        float y;
+    } Body_t;
 
-    vec4Field fragColor();
+    typedef struct Universe_s{
+       int length;
+       Body_t body[1];
+    }Universe_t;
 
-    ivec2Field iResolution();
+     */
+    Schema<Universe> schema = Schema.of(Universe.class, resultTable -> resultTable
 
-    long iTime();
-    void iTime(long iTime);
-    ivec2Field iMouse();
-    long iFrame();
-    void iFrame(long iFrame);
-    Schema<Uniforms> schema = Schema.of(Uniforms.class, uniforms -> uniforms
-            .field("fragCoord", fragCoord -> fragCoord.fields("x", "y"))
-            .field("fragColor", fragColor -> fragColor.fields("x", "y", "z", "w"))
-            .field("iResolution", iResolution -> iResolution.fields("x", "y"))
-            .field("iMouse", iMouse -> iMouse.fields("x", "y"))
-            .field("iTime")
-            .field("iFrame")
+            .arrayLen("length").array("body", array -> array
+                    .fields("x", "y", "z", "vx", "vy", "vz")
+            )
     );
 
-    static Uniforms create(Accelerator accelerator) {
-        return BoundSchema.of(accelerator, schema).allocate();
+    static Universe create(Accelerator accelerator, int length) {
+        return BoundSchema.of(accelerator ,schema, length).allocate();
     }
+
 }
