@@ -124,7 +124,7 @@ public interface CodeTransformer {
      *
      * @implSpec
      * The default implementation {@link #acceptBlock(Block.Builder, Block) accepts} a block builder
-     * and a block for each block of the body, in order, using this operation transformer.
+     * and a block for each block of the body, in order, using this code transformer.
      * The following sequence of actions is performed:
      * <ol>
      * <li>
@@ -137,7 +137,7 @@ public interface CodeTransformer {
      * <li>
      * for each (input) block in the body (in order) the (input) block is transformed
      * by {@link #acceptBlock(Block.Builder, Block) accepting} the mapped (output) builder and
-     * (input) block, using this operation transformer.
+     * (input) block, using this code transformer.
      * </ol>
      *
      * @param builder the block builder
@@ -170,7 +170,7 @@ public interface CodeTransformer {
      *
      * @implSpec
      * The default implementation {@link #acceptOp(Block.Builder, Op) accepts} a block builder
-     * and an operation for each operation of the block, in order, using this operation transformer.
+     * and an operation for each operation of the block, in order, using this code transformer.
      * On first iteration the block builder that is applied is block builder passed as an argument
      * to this method.
      * On second and subsequent iterations the block builder that is applied is the resulting

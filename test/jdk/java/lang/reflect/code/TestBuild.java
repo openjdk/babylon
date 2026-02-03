@@ -56,15 +56,10 @@ public class TestBuild {
     public void testBoundValueAsOperand() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
-        var block = body.entryBlock();
-
         var a = f.body().entryBlock().parameters().get(0);
         var b = f.body().entryBlock().parameters().get(1);
         // Passing bound values as operands to a new unbound operation
-        var addop = JavaOp.add(a, b);
-
-        Assertions.assertThrows(IllegalStateException.class, () -> block.op(addop));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> JavaOp.add(a, b));
     }
 
     @Test
@@ -79,9 +74,7 @@ public class TestBuild {
         var b = f.body().entryBlock().parameters().get(1);
         // Passing bound values as header arguments of a header
         // that is the successor of a terminal operation
-        var brop = branch(anotherBlock.successor(a, b));
-
-        Assertions.assertThrows(IllegalStateException.class, () -> block.op(brop));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> branch(anotherBlock.successor(a, b)));
     }
 
     @Test

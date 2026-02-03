@@ -42,11 +42,11 @@ import static java.util.stream.Collectors.toList;
  * implicitly when an operation is transformed by copying, and can be explicitly defined when a transformation
  * removes operations or adds new operations.
  * <p>
- * Associating an input code item to its corresponding output requires that the output be part of an unbuilt code model,
- * specifically blocks connected to the output are unbuilt. An output value is a value whose declaring block is unbuilt.
- * An output block builder is a block builder that is unbuilt and therefore its block is unbuilt. An
- * output block reference is a block reference whose target block is unbuilt and whose arguments declaring blocks are
- * unbuilt.
+ * Associating an input code item to its corresponding output requires that the output be unbuilt, specifically blocks
+ * connected to the output are unbuilt. An output value is an unbuilt value whose declaring block is
+ * unbuilt. An output block builder is a block builder that is unbuilt and therefore its block is unbuilt. An
+ * output block reference is an unbuilt block reference whose target block is unbuilt with unbuilt arguments whose
+ * declaring blocks are unbuilt.
  * <p>
  * Unless otherwise specified the passing of a {@code null} argument to the methods of this interface results in a
  * {@code NullPointerException}.

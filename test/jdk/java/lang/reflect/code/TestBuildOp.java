@@ -15,9 +15,9 @@ import java.util.function.IntUnaryOperator;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run junit TestBindOp
+ * @run junit TestBuildOp
  */
-public class TestBindOp {
+public class TestBuildOp {
 
     @Reflect
     static List<Integer> f(int i) {
@@ -43,7 +43,7 @@ public class TestBindOp {
     @Test
     void test2() {
         CoreOp.ConstantOp constant = CoreOp.constant(JavaType.INT, 7);
-        constant.bindAsRoot();
+        constant.buildAsRoot();
         assertOpIsCopiedWhenAddedToBlock(constant);
     }
 
@@ -52,12 +52,12 @@ public class TestBindOp {
         CoreOp.FuncOp funcOp = CoreOp.func("f", FunctionType.FUNCTION_TYPE_VOID).body(b -> {
             b.op(CoreOp.return_());
         });
-        Assertions.assertFalse(funcOp.isBoundAsRoot());
+        Assertions.assertFalse(funcOp.isRoot());
         Assertions.assertFalse(funcOp.isBound());
-        funcOp.bindAsRoot();
-        Assertions.assertTrue(funcOp.isBoundAsRoot());
-        Assertions.assertTrue(funcOp.isBound());
-        funcOp.bindAsRoot();
+        funcOp.buildAsRoot();
+        Assertions.assertTrue(funcOp.isRoot());
+        Assertions.assertFalse(funcOp.isBound());
+        funcOp.buildAsRoot();
     }
 
     @Test
@@ -68,8 +68,8 @@ public class TestBindOp {
         Quoted<?> quoted = Op.ofLambda(q).get();
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
-        Assertions.assertTrue(funcOp.isBoundAsRoot());
-        Assertions.assertTrue(funcOp.isBound());
+        Assertions.assertTrue(funcOp.isRoot());
+        Assertions.assertFalse(funcOp.isBound());
         assertOpIsCopiedWhenAddedToBlock(funcOp);
     }
 
@@ -77,8 +77,11 @@ public class TestBindOp {
     void test5() { // freezing an already bound op should throw
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         Op.Result r = body.entryBlock().op(CoreOp.constant(JavaType.DOUBLE, 1d));
-        Assertions.assertThrows(IllegalStateException.class, () -> r.op().bindAsRoot());
-        Assertions.assertFalse(r.op().isBoundAsRoot());
+        body.entryBlock().op(CoreOp.return_());
+        Assertions.assertThrows(IllegalStateException.class, () -> r.op().buildAsRoot());
+        Assertions.assertFalse(r.op().isRoot());
+        Assertions.assertTrue(r.op().isBound());
+        CoreOp.func("f", body);
         Assertions.assertTrue(r.op().isBound());
     }
 
@@ -86,7 +89,7 @@ public class TestBindOp {
     void test6() {
         CoreOp.ConstantOp cop = CoreOp.constant(JavaType.LONG, 1L);
         cop.setLocation(Op.Location.NO_LOCATION);
-        cop.bindAsRoot();
+        cop.buildAsRoot();
         Assertions.assertThrows(IllegalStateException.class, () -> cop.setLocation(Op.Location.NO_LOCATION));
     }
 

@@ -46,9 +46,11 @@ import java.util.*;
  * <p>
  * A body is built using a {@link Body.Builder body builder} that creates and exposes an entry block
  * {@link Block.Builder builder} from which further blocks in the body may be
- * {@link Block.Builder#block(TypeElement...) built}.
+ * {@link Block.Builder#block(TypeElement...) built}. When a body is {@link Body.Builder#build(Op) built} all blocks
+ * in the body are also built.
  */
 public final class Body implements CodeElement<Body, Block> {
+    // @Stable?
     // Parent operation
     // Non-null when body is built, and therefore child of an operation
     Op parentOp;
