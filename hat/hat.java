@@ -252,7 +252,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             var test_reports_txt = Paths.get("test_report.txt");
                             Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
                             var commonTestSuiteJavaOpts = commonJavaOpts.with(o -> o
-                                    .command(false).collectVmOpts(args).mainClass(testEnginePackage, testEngineClassName) 
+                                    .command(false).collectVmOpts(args).mainClass(testEnginePackage, testEngineClassName)
                                 //  note no app args as add them below
                             );
 
