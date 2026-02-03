@@ -15,9 +15,9 @@ import java.util.function.IntUnaryOperator;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run junit TestBindOp
+ * @run junit TestBuildOp
  */
-public class TestBindOp {
+public class TestBuildOp {
 
     @Reflect
     static List<Integer> f(int i) {
@@ -25,69 +25,82 @@ public class TestBindOp {
     }
 
     @Test
-    void test0() throws NoSuchMethodException {
+    void testCopyFromMethod() throws NoSuchMethodException {
         Method m = this.getClass().getDeclaredMethod("f", int.class);
         CoreOp.FuncOp f = Op.ofMethod(m).get();
+
         assertOpIsCopiedWhenAddedToBlock(f);
     }
 
     @Test
-    void test1() {
+    void testCopyFromLambda() {
         IntUnaryOperator q = (@Reflect IntUnaryOperator) i -> i / 2;
         Quoted<?> quoted = Op.ofLambda(q).get();
-        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
-        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
-        assertOpIsCopiedWhenAddedToBlock(funcOp);
+        assert quoted.capturedValues().isEmpty();
+
+        assertOpIsCopiedWhenAddedToBlock(quoted.op());
     }
 
     @Test
-    void test2() {
+    void testCopyFromOp() {
         CoreOp.ConstantOp constant = CoreOp.constant(JavaType.INT, 7);
-        constant.bindAsRoot();
+        constant.buildAsRoot();
+
         assertOpIsCopiedWhenAddedToBlock(constant);
     }
 
     @Test
-    void test3() {
+    void testBuildAsRoot() {
         CoreOp.FuncOp funcOp = CoreOp.func("f", FunctionType.FUNCTION_TYPE_VOID).body(b -> {
             b.op(CoreOp.return_());
         });
-        Assertions.assertFalse(funcOp.isBoundAsRoot());
+
+        Assertions.assertFalse(funcOp.isRoot());
         Assertions.assertFalse(funcOp.isBound());
-        funcOp.bindAsRoot();
-        Assertions.assertTrue(funcOp.isBoundAsRoot());
-        Assertions.assertTrue(funcOp.isBound());
-        funcOp.bindAsRoot();
+        funcOp.buildAsRoot();
+
+        Assertions.assertTrue(funcOp.isRoot());
+        Assertions.assertFalse(funcOp.isBound());
+        funcOp.buildAsRoot();
     }
 
     @Test
-    void test4() {
-        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> {
-            return a + b;
-        };
-        Quoted<?> quoted = Op.ofLambda(q).get();
-        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
-        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
-        Assertions.assertTrue(funcOp.isBoundAsRoot());
-        Assertions.assertTrue(funcOp.isBound());
-        assertOpIsCopiedWhenAddedToBlock(funcOp);
+    void testBuiltLambdaRoot() {
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
+        Quoted<?> quoted = Op.ofLambda(q).orElseThrow();
+
+        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorOp();
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorOp();
+
+        Assertions.assertTrue(funcOp.isRoot());
+        Assertions.assertFalse(funcOp.isBound());
     }
 
     @Test
-    void test5() { // freezing an already bound op should throw
+    void testOpBound() {
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         Op.Result r = body.entryBlock().op(CoreOp.constant(JavaType.DOUBLE, 1d));
-        Assertions.assertThrows(IllegalStateException.class, () -> r.op().bindAsRoot());
-        Assertions.assertFalse(r.op().isBoundAsRoot());
+        body.entryBlock().op(CoreOp.return_());
+
+        Assertions.assertThrows(IllegalStateException.class, () -> r.op().buildAsRoot());
+        Assertions.assertTrue(r.op().isBound());
+        Assertions.assertFalse(r.op().isRoot());
+
+        CoreOp.func("f", body);
         Assertions.assertTrue(r.op().isBound());
     }
 
     @Test
-    void test6() {
+    void testSetLocation() {
         CoreOp.ConstantOp cop = CoreOp.constant(JavaType.LONG, 1L);
         cop.setLocation(Op.Location.NO_LOCATION);
-        cop.bindAsRoot();
+        cop.buildAsRoot();
+
         Assertions.assertThrows(IllegalStateException.class, () -> cop.setLocation(Op.Location.NO_LOCATION));
+
+        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
+        Quoted<?> quoted = Op.ofLambda(q).orElseThrow();
+        Assertions.assertThrows(IllegalStateException.class, () -> quoted.op().setLocation(Op.Location.NO_LOCATION));
     }
 
     void assertOpIsCopiedWhenAddedToBlock(Op op) {

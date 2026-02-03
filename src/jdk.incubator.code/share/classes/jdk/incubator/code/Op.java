@@ -58,20 +58,32 @@ import java.util.function.BiFunction;
  * Alternatively an operation may model something more complex like method declarations, lambda expressions, or
  * try statements. In such cases an operation will contain one or more bodies modelling the nested structure.
  * <p>
- * An instance of an operation when initially constructed is referred to as an unbound operation.
- * An unbound operation's state and descendants are all immutable but its {@link #result result} and
- * {@link #parent parent} have yet to be assigned (both methods return {@code null}).
- * Since an unbound operation has no parent it can also be considered an unbound root operation.
+ * An instance of an operation when initially constructed is referred to as an unbuilt operation.
+ * An unbuilt operation's state and descendants are all immutable except for its {@link #result result} and
+ * {@link #parent parent}, which are initially set to {@code null}.
  * <p>
- * An unbound operation becomes a bound operation if it is explicitly bound as a root operation, or
- * is bound to a parent block that is being built by {@link Block.Builder#op(Op) appending} it to the block's
- * {@link Block.Builder}. Once an operation is bound it cannot be unbound and so its {@link #result result} and
- * {@link #parent parent} will no longer change. A bound operation is therefore fully immutable either as a bound root
- * operation, the root of a code model, or as some operation within a code model (that is built or unbuilt).
+ * An unbuilt operation transitions to a built operation in one of two ways:
+ * <ol>
+ * <li>
+ * {@link #buildAsRoot() building} the unbuilt operation to become a built {@link #isRoot() root} operation. The
+ * operation's {@link #result result} and {@link #parent parent} are always {@code null}.
+ * </li>
+ * <li>
+ * {@link Block.Builder#op(Op) appending} the unbuilt operation to a block builder to first become an unbuilt-bound
+ * operation that is bound to an operation result and parent block.
+ * The unbuilt-bound operation has a non-{@code null} unbuilt {@link #result result} that never changes, an unbuilt
+ * value that can be used by subsequent constructed operations.
+ * An unbuilt-bound operation transitions to a built bound operation when the block builder it was appended to builds
+ * the block, after which the built bound operation has a non-{@code null} {@link #parent parent} that never changes and
+ * a built {@link #result}.
+ * Before then the unbuilt-bound operation's {@link #parent parent} is inaccessible, as is unbuilt result's
+ * {@link Value#declaringBlock() declaring block}) (since both refer to the same block).
+ * </li>
+ * A built operation is fully immutable either as a root operation, the root of a code model, or as a bound operation
+ * within a code model.
  * <p>
- * Access to the bound operation's {@link #parent()} block is inaccessible until it is built by its block builder.
- * The same applies if the parent block is accessed indirectly via the operation result's
- * {@link Value#declaringBlock() declaring block}.
+ * An operation can only be constructed with unbuilt values as operands (if any) and unbuilt block references as
+ * successors (if any), otherwise construction fails with an exception.
  */
 public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
@@ -245,14 +257,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public static final class Result extends Value {
 
         /**
-         * If assigned to an operation result, it indicates the operation is a bound root operation
+         * If assigned to an operation result, it indicates the operation is a root operation
         */
-        private static final Result BOUND_ROOT_RESULT = new Result();
+        private static final Result ROOT_RESULT = new Result();
 
         final Op op;
 
         private Result() {
-            // Constructor for instance of BOUND_ROOT_RESULT
+            // Constructor for instance of ROOT_RESULT
             super(null, null);
             this.op = null;
         }
@@ -311,7 +323,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
-    // Set when op is bound to block, otherwise null when unbound
+    // Set when op is unbuilt-bound or root, otherwise null when unbuilt
     // @@@ stable value?
     Result result;
 
@@ -332,7 +344,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @param cc   the code context.
      */
     protected Op(Op that, CodeContext cc) {
-        this(cc.getValues(that.operands));
+        List<Value> outputOperands = cc.getValues(that.operands);
+        // Values should be guaranteed to connect to unbuilt blocks since
+        // the context only allows such mappings, assert for clarity
+        assert outputOperands.stream().noneMatch(Value::isBuilt);
+        this.operands = List.copyOf(outputOperands);
         this.location = that.location;
     }
 
@@ -355,21 +371,27 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * Constructs an operation with a list of operands.
      *
      * @param operands the list of operands, a copy of the list is performed if required.
+     * @throws IllegalArgumentException if an operand is built because its declaring block is built.
      */
     protected Op(List<? extends Value> operands) {
+        for (Value operand : operands) {
+            if (operand.isBuilt()) {
+                throw new IllegalArgumentException("Operand's declaring block is built: " + operand);
+            }
+        }
         this.operands = List.copyOf(operands);
     }
 
     /**
-     * Sets the originating source location of this operation, if unbound or the parent block is not yet built.
+     * Sets the originating source location of this operation, if this operation is not built.
      *
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
-     * @throws IllegalStateException if this operation is bound.
+     * @throws IllegalStateException if this operation is built.
      */
     public final void setLocation(Location l) {
         // @@@ Fail if location != null?
-        if (isBoundAsRoot() || (result != null && result.block.isBuilt())) {
-            throw new IllegalStateException();
+        if (isRoot() || (result != null && result.block.isBuilt())) {
+            throw new IllegalStateException("Built operation");
         }
 
         location = l;
@@ -383,23 +405,22 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if the operation is
-     * a root operation (either bound or unbound).
+     * Returns this operation's parent block, otherwise {@code null} if this operation is unbuilt or a root.
      * <p>
      * The operation's parent block is the same as the operation result's {@link Value#declaringBlock declaring block}.
      *
-     * @return operation's parent block, or {@code null} if the operation is a root operation.
-     * @throws IllegalStateException if the parent block is unbuilt.
+     * @return operation's parent block, or {@code null} if this operation is unbuilt or a root.
+     * @throws IllegalStateException if this operation is unbuilt-bound.
      * @see Value#declaringBlock()
      */
     @Override
     public final Block parent() {
-        if (isBoundAsRoot() || result == null) {
+        if (isRoot() || result == null) {
             return null;
         }
 
         if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Parent block is unbuilt");
+            throw new IllegalStateException("Unbuilt-bound operation");
         }
 
         return result.block;
@@ -426,12 +447,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * Returns the operation's result, otherwise {@code null} if the operation is unbound.
+     * Returns the operation's result, otherwise {@code null} if this operation is unbuilt or a
+     * root.
      *
-     * @return the operation's result, or {@code null} if unbound.
+     * @return the operation's result, or {@code null} if this operation is unbuilt or a root.
      */
     public final Result result() {
-        return result == Result.BOUND_ROOT_RESULT ? null : result;
+        return result == Result.ROOT_RESULT ? null : result;
     }
 
     /**
@@ -483,40 +505,40 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Binds this operation to become a bound root operation. After this operation is bound its
-     * {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
+     * Builds this operation to become a built root operation. After this operation is built its
+     * {@link #result result} and {@link #parent parent} will always be {@code null}.
      * <p>
      * This method is idempotent.
      *
-     * @throws IllegalStateException if this operation a bound to a parent block.
-     * @see #isBoundAsRoot()
+     * @throws IllegalStateException if this operation is unbuilt-bound.
+     * @see #isRoot()
      */
-    public final void bindAsRoot() {
-        if (result == Result.BOUND_ROOT_RESULT) {
+    public final void buildAsRoot() {
+        if (result == Result.ROOT_RESULT) {
             return;
         }
         if (result != null) {
-            throw new IllegalStateException("Operation is bound to a parent block");
+            throw new IllegalStateException("Operation is unbuilt-bound to a parent block");
         }
-        result = Result.BOUND_ROOT_RESULT;
+        result = Result.ROOT_RESULT;
     }
 
     /**
-     * {@return {@code true} if this operation is a bound root operation.}
-     * @see #bindAsRoot()
+     * {@return {@code true} if this operation is a root operation.}
+     * @see #buildAsRoot()
      * @see #isBound()
      * */
-    public final boolean isBoundAsRoot() {
-        return result == Result.BOUND_ROOT_RESULT;
+    public final boolean isRoot() {
+        return result == Result.ROOT_RESULT;
     }
 
     /**
-     * {@return {@code true} if this operation is a bound operation.}
-     * @see #bindAsRoot()
-     * @see #isBoundAsRoot()
+     * {@return {@code true} if this operation is a bound to a result and parent block.}
+     * @see #buildAsRoot()
+     * @see #isRoot()
      * */
     public final boolean isBound() {
-        return result != null;
+        return !isRoot() && result != null;
     }
 
     /**
