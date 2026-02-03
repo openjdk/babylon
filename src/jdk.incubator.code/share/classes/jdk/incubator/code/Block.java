@@ -126,11 +126,11 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the target block.}
-         * @throws IllegalStateException if an unbuilt block is encountered.
+         * @throws IllegalStateException if the target block unbuilt.
          */
         public Block targetBlock() {
-            if (!isBound()) {
-                throw new IllegalStateException("Target block is not built");
+            if (!isBuilt()) {
+                throw new IllegalStateException("Target block is unbuilt");
             }
 
             return target;
@@ -143,8 +143,8 @@ public final class Block implements CodeElement<Block, Op> {
             return arguments;
         }
 
-        boolean isBound() {
-            return target.isBound();
+        boolean isBuilt() {
+            return target.isBuilt();
         }
     }
 
@@ -464,9 +464,10 @@ public final class Block implements CodeElement<Block, Op> {
     /**
      * A builder of a block.
      * <p>
-     * When the parent body builder is built this block builder is also built. If a built builder
-     * is operated on to append a block parameter, append an operation, or add a block, then
-     * an {@code IllegalStateException} is thrown.
+     * A block builder is built when its {@link #parent() parent} body builder is {@link Body.Builder#build(Op) built}.
+     * <p>
+     * If a built builder is operated on to append a block parameter, append an operation, build a sibling block,
+     * then an {@code IllegalStateException} is thrown.
      */
     public final class Builder {
         final Body.Builder parentBody;
@@ -769,7 +770,7 @@ public final class Block implements CodeElement<Block, Op> {
                 throw new IllegalStateException(
                         String.format("Operand of operation %s is not defined in tree: %s", op, v));
             }
-            assert !v.isBound();
+            assert !v.isBuilt();
         }
 
         for (Reference s : op.successors()) {
@@ -782,7 +783,7 @@ public final class Block implements CodeElement<Block, Op> {
                     throw new IllegalStateException(
                             String.format("Argument of block reference %s of terminating operation %s is not defined in tree: %s", s, op, v));
                 }
-                assert !v.isBound();
+                assert !v.isBuilt();
             }
         }
 
@@ -815,7 +816,7 @@ public final class Block implements CodeElement<Block, Op> {
 
     //
 
-    boolean isBound() {
+    boolean isBuilt() {
         return index >= 0;
     }
 }

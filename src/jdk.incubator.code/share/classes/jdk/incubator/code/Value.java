@@ -51,11 +51,11 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring block is the block declaring the parameter.
      *
      * @return the value's declaring block.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if the declaring block is unbuilt.
      */
     public Block declaringBlock() {
-        if (!isBound()) {
-            throw new IllegalStateException("Declaring block is not built");
+        if (!isBuilt()) {
+            throw new IllegalStateException("Declaring block is unbuilt");
         }
         return block;
     }
@@ -131,8 +131,8 @@ public sealed abstract class Value implements CodeItem
      * @throws IllegalStateException if an unbuilt block is encountered.
      */
     public SequencedSet<Op.Result> uses() {
-        if (!isBound()) {
-            throw new IllegalStateException("Users are are not built");
+        if (!isBuilt()) {
+            throw new IllegalStateException("Users are are unbuilt");
         }
 
         return Collections.unmodifiableSequencedSet(uses);
@@ -199,7 +199,7 @@ public sealed abstract class Value implements CodeItem
         return CodeElement.compare(a.declaringElement(), b.declaringElement());
     }
 
-    boolean isBound() {
-        return block.isBound();
+    boolean isBuilt() {
+        return block.isBuilt();
     }
 }

@@ -67,11 +67,11 @@ import java.util.function.BiFunction;
  * is bound to a parent block that is being built by {@link Block.Builder#op(Op) appending} it to the block's
  * {@link Block.Builder}. Once an operation is bound it cannot be unbound and so its {@link #result result} and
  * {@link #parent parent} will no longer change. A bound operation is therefore fully immutable either as a bound root
- * operation, the root of a code model, or as some operation within a code model (that is built or in the process of
- * being built).
+ * operation, the root of a code model, or as some operation within a code model (that is built or unbuilt).
  * <p>
- * When an operation is bound to a parent block that is being built that block is not accessible as a {@link #parent()}
- * until the block is fully built.
+ * Access to the bound operation's {@link #parent()} block is inaccessible until it is built by its block builder.
+ * The same applies if the parent block is accessed indirectly via the operation result's
+ * {@link Value#declaringBlock() declaring block}.
  */
 public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
@@ -368,7 +368,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public final void setLocation(Location l) {
         // @@@ Fail if location != null?
-        if (isBoundAsRoot() || (result != null && result.block.isBound())) {
+        if (isBoundAsRoot() || (result != null && result.block.isBuilt())) {
             throw new IllegalStateException();
         }
 
@@ -385,9 +385,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Returns this operation's parent block, otherwise {@code null} if the operation is
      * a root operation (either bound or unbound).
+     * <p>
+     * The operation's parent block is the same as the operation result's {@link Value#declaringBlock declaring block}.
      *
      * @return operation's parent block, or {@code null} if the operation is a root operation.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if the parent block is unbuilt.
+     * @see Value#declaringBlock()
      */
     @Override
     public final Block parent() {
@@ -395,8 +398,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             return null;
         }
 
-        if (!result.block.isBound()) {
-            throw new IllegalStateException("Parent block is not built");
+        if (!result.block.isBuilt()) {
+            throw new IllegalStateException("Parent block is unbuilt");
         }
 
         return result.block;
