@@ -34,49 +34,46 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /**
- * The quoted form of an operation.
- * <p>
- * The quoted form is utilized when the code model of some code is to be obtained rather than obtaining the result of
- * executing that code. For example passing the of a lambda expression in quoted form rather than the expression being
- * targeted to a functional interface from which it can be invoked.
+ * An operation and a mapping from the operation's {@link Op#operands() operands} and
+ * {@link Op#capturedValues() captured values} to runtime values. This pair is referred
+ * to as the quoted form of an operation, and represents an operation in a runtime context
+ * independent of its surrounding code model.
+ *
  * @param <T> the type of operation that is quoted
  */
 public final class Quoted<T extends Op> {
     private final T op;
     private final SequencedMap<Value, Object> operandsAndCapturedValues;
 
-    static final SequencedMap<Value, Object> EMPTY_SEQUENCED_MAP = new LinkedHashMap<>();
     /**
      * Constructs the quoted form of a given operation.
-     *
-     * @param op the invokable operation.
-     */
-    public Quoted(T op) {
-        this(op, EMPTY_SEQUENCED_MAP);
-    }
-
-    /**
-     * Constructs the quoted form of a given operation.
-     * <p>
-     * The {@code operandsAndCapturedValues} key set must be equal to
-     * the sequenced set of operation's operands + captured values, in order.
      *
      * @param op                        the operation.
-     * @param operandsAndCapturedValues sequenced map of {@link Value} to {@link Object}, with the requirement defined above
-     * @throws IllegalArgumentException If {@code operandsAndCapturedValues} doesn't satisfy the requirement described above
+     * @param operandsAndCapturedValues map containing the operation's operands and captured values to runtime values
+     * @throws IllegalArgumentException if the map's key set does not contain set consisting of operation's operands
+     *                                  and the captured values
      * @see Op#capturedValues()
      * @see Op#operands()
      */
-    public Quoted(T op, SequencedMap<Value, Object> operandsAndCapturedValues) {
-        // @@@ This check is potentially expensive, remove or keep ?
-        // @@@ Or make Quoted an interface, with a module private implementation?
-        SequencedSet<Value> s = new LinkedHashSet<>(op.operands());
-        s.addAll(op.capturedValues());
-        if (!s.stream().toList().equals(operandsAndCapturedValues.keySet().stream().toList())) {
-            throw new IllegalArgumentException("The map key set isn't equal to the sequenced set of operands + captured values");
+    public Quoted(T op, Map<Value, Object> operandsAndCapturedValues) {
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value value : op.operands()) {
+            m.put(value, runtimeValue(operandsAndCapturedValues, value));
         }
+        for (Value value : op.capturedValues()) {
+            m.put(value, runtimeValue(operandsAndCapturedValues, value));
+        }
+
         this.op = op;
-        this.operandsAndCapturedValues = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(operandsAndCapturedValues));
+        this.operandsAndCapturedValues = Collections.unmodifiableSequencedMap(m);
+    }
+
+    static Object runtimeValue(Map<Value, Object> operandsAndCapturedValues, Value value) {
+        Object runtimeValue = operandsAndCapturedValues.get(value);
+        if (runtimeValue == null) {
+            throw new IllegalArgumentException("Value is not present as a key in the map of values");
+        }
+        return runtimeValue;
     }
 
     /**
@@ -89,7 +86,7 @@ public final class Quoted<T extends Op> {
     }
 
     /**
-     * Returns the captured values.
+     * Returns the map of captured values to runtime values.
      * <p>
      * The captured values key set has the same elements and same encounter order as
      * operation's captured values, specifically the following expression evaluates to true:
@@ -97,7 +94,7 @@ public final class Quoted<T extends Op> {
      * op().capturedValues().equals(new ArrayList<>(capturedValues().keySet()));
      * }
      *
-     * @return the captured values.
+     * @return the mapping of captured values.
      */
     public SequencedMap<Value, Object> capturedValues() {
         SequencedMap<Value, Object> m = new LinkedHashMap<>();
@@ -108,15 +105,15 @@ public final class Quoted<T extends Op> {
     }
 
     /**
-     * Returns the operands.
+     * Returns the map of operands to runtime values.
      * <p>
-     * The result key set has the same elements and same encounter order as the sequenced set of operation's operands,
+     * The  key set has the same elements and same encounter order as the sequenced set of operation's operands,
      * specifically the following expression evaluates to true:
      * {@snippet lang = java:
-     * new LinkedHashSet<>(op.operands()).equals(operands().keySet());
+     * op.operands().equals(new ArrayList<>(operands().keySet()))
      *}
      *
-     * @return the operands.
+     * @return the map of operands.
      */
     public SequencedMap<Value, Object> operands() {
         SequencedMap<Value, Object> m = new LinkedHashMap<>();
@@ -128,44 +125,45 @@ public final class Quoted<T extends Op> {
     }
 
     /**
-     * Returns the operands and captured values.
-     * The result key set is equal to the sequenced set of operands + captured values.
+     * Returns the map of operands and captured values to runtime values.
+     * <p>
+     * The map's key set is equal to the sequenced set of the quoted operation's
+     * operands and captured values.
      *
-     * @return the operands + captured values, as an unmodifiable map.
+     * @return the map of operands and captured values, as an unmodifiable map.
      */
     public SequencedMap<Value, Object> operandsAndCapturedValues() {
         return operandsAndCapturedValues;
     }
 
     /**
-     * Embeds the given {@code op}, copying it from its original context to a new one,
-     * where its operands and captured values will be parameters.
+     * Embeds the given operation into a quoting code model whose behaviour quotes the operation.
      * <p>
-     * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp FuncOp}
+     * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp func operation}
      * that has one body with one block (<i>fblock</i>).
      * <br>
-     * <i>fblock</i> will have a parameter for every element in the sequenced set of {@code op}'s operands + captured values.
-     * If the operand or capture is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp},
-     * <i>fblock</i> will have a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp}
-     * whose initial value is the parameter.
+     * <i>fblock</i> will have a block parameter, in order, for every value in the key set of the map of operands and
+     * captured values.
+     * If the value is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp var operation} then the
+     * parameter's type element is the var operation's value type, and <i>fblock</i> will have a var operation whose
+     * operand is the block parameter.
+     * Otherwise, the parameter's type element is the value's type element.
      * <br>
-     * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp QuotedOp}
-     * that has one body with one block (<i>qblock</i>).
-     * Inside <i>qblock</i> we find a copy of {@code op}
-     * and a {@link jdk.incubator.code.dialect.core.CoreOp.YieldOp YieldOp}
-     * whose yield value is the result of the {@code op}'s copy.
+     * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp quoted operation}
+     * that has one body with one block (<i>qblock</i>). Inside <i>qblock</i> there is a copy of {@code op}
+     * and a {@link jdk.incubator.code.dialect.core.CoreOp.YieldOp yield operation} whose operand is the operation
+     * result of {@code op}'s copy.
      * <br>
-     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp ReturnOp},
-     * the returned value is the result of the {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp QuotedOp}
-     * object described previously.
+     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp return operation},
+     * whose operand is the operation result of the quoted op.
      *
-     * @param op The operation to embed
-     * @return The model that represent the quoting of {@code op}
-     * @throws IllegalArgumentException if {@code op} is not bound
+     * @param op the operation
+     * @return the quoting code model.
+     * @throws IllegalArgumentException if {@code op} is unbuilt.
      */
     public static CoreOp.FuncOp embedOp(Op op) {
         if (op.result() == null) {
-            throw new IllegalArgumentException("Op not bound");
+            throw new IllegalArgumentException("Op is unbuilt");
         }
 
         // if we don't remove duplicate operands we will have unused params in the new model
@@ -208,22 +206,23 @@ public final class Quoted<T extends Op> {
         });
     }
 
-    private static RuntimeException invalidQuotedModel(CoreOp.FuncOp model) {
-        return new RuntimeException("Invalid code model for quoted operation : " + model);
+    private static IllegalArgumentException invalidQuotedModel(CoreOp.FuncOp model) {
+        return new IllegalArgumentException("Invalid code model for quoted operation : " + model);
     }
 
     /**
-     * Extracts the quoted operation from {@code funcOp}
-     * and map its operands and captured values to the runtime values in {@code args}.
+     * Extracts the quoted operation from a quoting code model with the given runtime arguments.
      * <p>
-     * {@code funcOp} must have the same structure as if it's produced by {@link #embedOp(Op)}.
+     * This method behaves as if the quoting code model is executed with the runtime arguments by interpreting the
+     * behaviour of the code elements, as specified, in the code model, but it may be implemented more efficiently.
      *
-     * @param funcOp Model to extract the quoted op from
-     * @param args   Runtime values for {@code funcOp} parameters
-     * @return Quoted instance that wraps the quoted operation,
-     * plus the mapping of its operands and captured values to the given runtime values
-     * @throws RuntimeException If {@code funcOp} isn't a valid code model
-     * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
+     * @param funcOp the quoting code model
+     * @param args   the runtime arguments
+     * @return quoted form of the extracted operation
+     * @throws IllegalArgumentException if the quoting code model is invalid and does not conform to that specified
+     * the method {@link #embedOp(Op)}.
+     * @throws IllegalArgumentException if the quoting code model's parameters differ in arity from the
+     * runtime arguments.
      */
     public static Quoted<Op> extractOp(CoreOp.FuncOp funcOp, List<Object> args) {
         if (funcOp.body().blocks().size() != 1) {
