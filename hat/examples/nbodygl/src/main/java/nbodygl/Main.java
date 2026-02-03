@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -22,23 +23,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package nbody;
+package nbodygl;
+import nbodygl.opencl.OpenCLNBodyGLWindow;
+import wrap.opengl.GLTexture;
 
-public enum Mode {
-    HAT, OpenCL, Cuda, OpenCL4, Cuda4, JavaSeq, JavaMT, JavaSeq4, JavaMT4;
+import java.lang.foreign.Arena;
 
-    public static Mode of(String s) {
-        return switch (s) {
-            case "HAT" -> Mode.HAT;
-            case "OpenCL" -> Mode.OpenCL;
-            case "Cuda" -> Mode.Cuda;
-            case "JavaSeq" -> Mode.JavaSeq;
-            case "JavaMT" -> Mode.JavaMT;
-            case "JavaSeq4" -> Mode.JavaSeq4;
-            case "JavaMT4" -> Mode.JavaMT4;
-            case "OpenCL4" -> Mode.OpenCL4;
-            case "Cuda4" -> Mode.Cuda4;
-            default -> throw new IllegalStateException("No mode " + s);
-        };
+public class Main {
+    public static void main(String[] args)  {
+        for (var arg : args) {
+            System.out.println("arg = "+arg);
+        }
+        int particleCount = args.length > 2 ? Integer.parseInt(args[2]) : 32768;
+        Mode mode = Mode.of(args.length > 3 ? args[3] : Mode.HAT.toString());
+        try (var arena = mode.equals(Mode.JavaMT4) || mode.equals(Mode.JavaMT) ? Arena.ofShared() : Arena.ofConfined()) {
+            var particleTexture = new GLTexture(arena, Main.class.getResourceAsStream("/particle.png"));
+            new OpenCLNBodyGLWindow( arena, 1000, 1000, particleTexture, particleCount, mode).bindEvents().mainLoop();
+        }
     }
 }

@@ -55,8 +55,9 @@ static void help(){
 
              run:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ...] runnable  args
                       run ffi-opencl mandel
-                      run ffi-opencl nbody 4096
-                      run ffi-opencl -DHAT=SHOW_CODE nbody 4096
+                      run ffi-opencl nbody HAT
+                      run ffi-opencl nbodygl 4096
+                      run ffi-opencl -DHAT=SHOW_CODE nbodygl 4096
                       run ffi-opencl -DHAT=SHOW_KERNEL_MODEL heal
                       run ffi-opencl -DHAT=MINIMIZE_BUFFERS life
 
@@ -152,6 +153,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         // example_shared allows us to break out common UI functions, views, even loops etc
         var example_shared = hat.jar("example{s}-shared", ui, core);
+        var example_nbody = hat.jar("example{s}-nbody", ui, core);
 
         // These examples use example_shared, so they are UI based
         var example_mandel = hat.jar("example{s}-mandel", example_shared);
@@ -163,7 +165,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         // experiments include code that expects an opencl backend, this is not idea, but we can accomodate
         var example_experiments = hat.jar("example{s}-experiments", core);
 
-        // Now we have the more complex nonsense for nbody (which needs opengl and opencl extracted)
+        // Now we have the more complex nonsense for nbodygl (which needs opengl and opencl extracted)
         var wrapped_shared = hat.jar("wrap{s}-shared");
         var jextracted_opencl = hat.jextract("extract{ions|ed}-opencl", jextract, openclCmakeInfo, core);
         var wrapped_jextracted_opencl = hat.jar("wrap{s}-opencl", jextracted_opencl, wrapped_shared);
@@ -177,8 +179,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         var wrapped_jextracted_opengl = hat.jar("wrap{s}-opengl", Set.of(excludedOpenGLWrapSrc), jextracted_opengl, wrapped_shared);
 
-        // Finally we have everything needed for nbody
-        var example_nbody = hat.jar("example{s}-nbody", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
+        // Finally we have everything needed for nbodygl
+        var example_nbodygl = hat.jar("example{s}-nbodygl", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
 
         var testEnginePackage = "hat.test.engine";
         var testEngineClassName = "HATTestEngine";
@@ -224,7 +226,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                         if (hat.get(backendName) instanceof Jar backend) {
                             var javaOpts = commonJavaOpts.with(o -> o
                                     .collectVmOpts(args).mainClass(args.removeFirst(), "Main")
-                                    .startOnFirstThreadIf(o.packageName().equals("nbody") && mac.isAvailable()).collectArgs(args)
+                                    .startOnFirstThreadIf(o.packageName().equals("nbodygl") && mac.isAvailable()).collectArgs(args)
                             );
                             if (hat.get(javaOpts.packageName()) instanceof Jar runnable) {
                                 runnable.run(javaOpts, runnable, backend);
@@ -250,7 +252,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             var test_reports_txt = Paths.get("test_report.txt");
                             Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
                             var commonTestSuiteJavaOpts = commonJavaOpts.with(o -> o
-                                    .command(false).collectVmOpts(args).mainClass(testEnginePackage, testEngineClassName) //  note no app args as add them below
+                                    .command(false).collectVmOpts(args).mainClass(testEnginePackage, testEngineClassName)
+                                //  note no app args as add them below
                             );
 
                             tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_, matcher) ->
