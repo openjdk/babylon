@@ -69,11 +69,10 @@ public final class Quoted<T extends Op> {
     }
 
     static Object runtimeValue(Map<Value, Object> operandsAndCapturedValues, Value value) {
-        Object runtimeValue = operandsAndCapturedValues.get(value);
-        if (runtimeValue == null) {
+        if (!operandsAndCapturedValues.containsKey(value)) {
             throw new IllegalArgumentException("Value is not present as a key in the map of values");
         }
-        return runtimeValue;
+        return operandsAndCapturedValues.get(value);
     }
 
     /**
