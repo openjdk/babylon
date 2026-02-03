@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package shade;
 
 import hat.Accelerator;
@@ -25,7 +49,7 @@ import java.util.stream.IntStream;
 import static shade.vec4.vec4;
 
 public class NBodySansGL extends JFrame implements Runnable {
-
+    public enum Mode {HAT,JavaMt, JavaSeq}
     public static class DirectRasterPanel extends JPanel {
         private BufferedImage bufferedImage;
         private WritableRaster writableRaster;
@@ -49,6 +73,7 @@ public class NBodySansGL extends JFrame implements Runnable {
     }
 
     final Accelerator acc;
+    final Mode mode;
 
     final float delT = .9f;
     final int width;
@@ -62,8 +87,9 @@ public class NBodySansGL extends JFrame implements Runnable {
     final F32Array xyzVelFloatArr;
     DirectRasterPanel panel;
 
-    public NBodySansGL(Accelerator acc, int bodyCount, int width, int height) {
+    public NBodySansGL(Accelerator acc, Mode mode,  int bodyCount, int width, int height) {
         super("NBody Sans OpenGL");
+        this.mode = mode;
         this.acc = acc;
         this.bodies = bodyCount;
         this.width = width;
@@ -215,11 +241,11 @@ public class NBodySansGL extends JFrame implements Runnable {
     }
 
 
+
+
     public void run() {
         while (true) {
             long startNs = System.nanoTime();
-
-
             float cmass = mass;
             float cdelT = delT;
             float cespSqr = espSqr;
@@ -228,15 +254,22 @@ public class NBodySansGL extends JFrame implements Runnable {
             F32Array cxyzPosFloatArr = xyzPosFloatArr;
             F32Array cxyzVelFloatArr = xyzVelFloatArr;
             S32RGBAImage cimage = panel.image;
-            boolean useHAT = false;
-            if (useHAT) {
-                acc.compute((@Reflect Compute)
-                        cc -> nbodyCompute(cc, cbodies, cxyzPosFloatArr, cxyzVelFloatArr, cimage, cimageWidth, cmass, cdelT, cespSqr));
-            }else {
-                MappableIface.getMemorySegment(panel.image).fill((byte) 0x00); // Dont do this if using HAT! ;)
-                //var memorySegment = MappableIface.getMemorySegment(panel.image);
+
+            switch (mode){
+                case HAT -> {
+                    acc.compute((@Reflect Compute)
+                            cc -> nbodyCompute(cc, cbodies, cxyzPosFloatArr, cxyzVelFloatArr, cimage, cimageWidth, cmass, cdelT, cespSqr));
+                }
+                case JavaMt -> {
+                    MappableIface.getMemorySegment(panel.image).fill((byte) 0x00); // Dont do this if using HAT! ;)
+                    IntStream.range(0, bodies).parallel().forEach(
+                            i -> run(i, cbodies, cxyzPosFloatArr, cxyzVelFloatArr, cimage, cimageWidth, cmass, cdelT, cespSqr));
+                }
+                case JavaSeq -> {
+                    MappableIface.getMemorySegment(panel.image).fill((byte) 0x00); // Dont do this if using HAT! ;)
                     IntStream.range(0, bodies).forEach(
-                         i -> run(i, cbodies, cxyzPosFloatArr, cxyzVelFloatArr, cimage, cimageWidth,  cmass, cdelT, cespSqr));
+                            i -> run(i, cbodies, cxyzPosFloatArr, cxyzVelFloatArr, cimage, cimageWidth, cmass, cdelT, cespSqr));
+                }
             }
             panel.image.syncToRasterDataBuffer(panel.dataBuffer);
 
@@ -251,7 +284,15 @@ public class NBodySansGL extends JFrame implements Runnable {
     }
 
     static void main(String[] args) {
-        var app = new NBodySansGL(new Accelerator(MethodHandles.lookup()), 4096*2 , 1024, 1024);
+        new NBodySansGL(new Accelerator(MethodHandles.lookup()),
+                args.length>0?
+                        switch (args[0]){
+                            case "HAT"->Mode.HAT;
+                            case "JavaMT"->Mode.JavaMt;
+                            case "JavaSeq"->Mode.JavaSeq;
+                            default -> throw new IllegalStateException("No such mode as "+args[0]);
+                        }:Mode.HAT
+                , 4096*4 , 1024, 1024);
 
     }
 
