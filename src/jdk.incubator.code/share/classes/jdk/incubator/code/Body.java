@@ -35,13 +35,13 @@ import java.util.*;
  * The sequence of blocks form a graph topologically sorted in reserve postorder.
  * The first block in the sequence is the entry block, and no other blocks refer to it as a successor.
  * The last operation in a block, a terminating operation, may refer to other blocks in the sequence as successors,
- * thus forming the graph. Otherwise, the last operation defines how the body passes control flow back to the parent
+ * thus forming the graph. Otherwise, the last operation defines how the body passes control back to the parent
  * operation, and in doing so may optionally yield a value.
  * <p>
  * A body has a function type whose return type is the body's yield type and whose parameter types are the entry
  * block's parameters types, in order.
  * The function type describes the sequence of input parameters types for arguments that are passed to the
- * body when control flow is passed to it, and describes the return type of values that are returned when body passes
+ * body when control is passed to it, and describes the return type of values that are yielded when the body passes
  * control back to its parent operation.
  * <p>
  * A body is built using a {@link Body.Builder body builder} that creates and exposes an entry block
