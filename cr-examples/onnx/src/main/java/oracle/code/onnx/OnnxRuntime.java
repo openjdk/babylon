@@ -40,6 +40,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import jdk.incubator.code.*;
 
@@ -168,7 +169,8 @@ public final class OnnxRuntime {
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q, options);
 
-        List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
+        List<Tensor> arguments = Stream.concat(q.capturedValues().sequencedValues().stream(),
+                                               model.bypassedInitValues().stream())
                 .mapMulti(OnnxRuntime::expandArg)
                 .toList();
         List<Tensor> ret = model.session().run(arena, arguments);
@@ -471,7 +473,7 @@ public final class OnnxRuntime {
         }
     }
 
-    record SessionWithReturnType(Session session, TypeElement returnType) {
+    record SessionWithReturnType(Session session, TypeElement returnType, List<Object> bypassedInitValues) {
     }
 
     static class CachedSessionClassValue extends ClassValue<SessionWithReturnType> {
@@ -501,7 +503,9 @@ public final class OnnxRuntime {
             OnnxTransformer.ModuleAndInitializers mi = OnnxTransformer.transform(l, q);
 
             String domainName = type.getSimpleName().split("\\$")[0];
-            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues()));
+            boolean bypassInits = options != null && options.bypassInitilizers;
+            List<Object> initValues = getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues());
+            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), bypassInits ? List.of() : initValues);
 
             if (DEBUG) {
                 System.out.println(mi.module().toText());
@@ -521,7 +525,8 @@ public final class OnnxRuntime {
 
             return new SessionWithReturnType(
                     session,
-                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType());
+                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType(),
+                    bypassInits ? initValues : List.of());
 
 
         }
@@ -586,6 +591,8 @@ public final class OnnxRuntime {
 
         private final MemorySegment sessionOptionsAddress;
 
+        boolean bypassInitilizers = false;
+
         public SessionOptions(MemorySegment sessionOptionsAddress) {
             this.sessionOptionsAddress = sessionOptionsAddress;
             setInterOpNumThreads(1);
@@ -609,6 +616,10 @@ public final class OnnxRuntime {
 
         public MemorySegment getSessionOptionsAddress() {
             return sessionOptionsAddress;
+        }
+
+        public void bypassInitizers() {
+            bypassInitilizers = true;
         }
     }
 }
