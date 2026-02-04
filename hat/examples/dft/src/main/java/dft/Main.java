@@ -90,10 +90,10 @@ public class Main {
 
         Complex complex(long index);
 
-        Schema<ComplexArray> schema = Schema.of(ComplexArray.class, complex -> {
-            complex.arrayLen("length")
-                    .array("complex", array -> array.fields("real", "imag"));
-        });
+        Schema<ComplexArray> schema = Schema.of(ComplexArray.class, complex ->
+                complex.arrayLen("length")
+                        .array("complex",
+                                array -> array.fields("real", "imag")));
 
         static ComplexArray create(Accelerator accelerator, int length) {
             return schema.allocate(accelerator, length);
@@ -235,6 +235,7 @@ public class Main {
         boolean verbose = false;
         int size = 32768;
         int iterations = 100;
+        boolean skipSequential = false;
         // process parameters
         for (String arg : args) {
             if (arg.equals("--verbose")) {
@@ -251,6 +252,8 @@ public class Main {
                     iterations = Integer.parseInt(number);
                 } catch (NumberFormatException _) {
                 }
+            } else if (arg.startsWith("--skip-sequential")) {
+                skipSequential = true;
             }
         }
         IO.println("Input Size     = " + size);
@@ -261,6 +264,7 @@ public class Main {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         ComplexArray input = ComplexArray.create(accelerator, size);
         ComplexArray outputSeq = ComplexArray.create(accelerator, size);
+        ComplexArray.create(accelerator, size);
         ComplexArray outputStreams = ComplexArray.create(accelerator, size);
         ComplexArray outputHAT = ComplexArray.create(accelerator, size);
 
@@ -285,13 +289,15 @@ public class Main {
         List<Long> timersDFTHatFlatten = new ArrayList<>();
 
         // Run Java sequential version, DFT
-        for (int i = 0; i < iterations; i++) {
-            long start = System.nanoTime();
-            dftJava(input, outputSeq);
-            long end = System.nanoTime();
-            timersJavaDFT.add((end-start));
-            if (verbose) {
-                IO.println("[Timer] Java DFT: " + (end-start));
+        if (!skipSequential) {
+            for (int i = 0; i < iterations; i++) {
+                long start = System.nanoTime();
+                dftJava(input, outputSeq);
+                long end = System.nanoTime();
+                timersJavaDFT.add((end - start));
+                if (verbose) {
+                    IO.println("[Timer] Java DFT: " + (end - start));
+                }
             }
         }
 
@@ -322,16 +328,17 @@ public class Main {
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute) computeContext -> dftPlainCompute(computeContext, inReal, inImag, outReal, outImag));
             long end = System.nanoTime();
-            timersDFTHatFlatten.add((end-start));
+            timersDFTHatFlatten.add((end - start));
             if (verbose) {
-                IO.println("[Timer] HAT-Plain: " + (end-start));
+                IO.println("[Timer] HAT-Plain: " + (end - start));
             }
         }
 
         // Check results
-        boolean isStreamCorrect = checkResult(outputSeq, outputStreams);
-        boolean isHATCorrect = checkResult(outputSeq, outputHAT);
-        boolean isHATPlainCorrect = checkResult(outputSeq, outReal, outImag);
+        ComplexArray baseline = skipSequential ? outputStreams : outputSeq;
+        boolean isStreamCorrect = checkResult(baseline, outputStreams);
+        boolean isHATCorrect = checkResult(baseline, outputHAT);
+        boolean isHATPlainCorrect = checkResult(baseline, outReal, outImag);
         printCheckResult(isStreamCorrect, "Java-Stream");
         printCheckResult(isHATCorrect, "HAT-Naive");
         printCheckResult(isHATPlainCorrect, "HAT-Plain");
@@ -349,25 +356,28 @@ public class Main {
         IO.println("Average HAT DFT                : " + averageHATTimers);
         IO.println("Average HAT DFT (Flatten)      : " + averageHATTimersFlatten);
 
-        IO.println("\nSpeedups vs Java:");
-        IO.println("Java / Java Parallel Stream    : " + computeSpeedup(averageJavaTimer, averageJavaStreamTimer) + "x");
-        IO.println("Java / HAT                     : " + computeSpeedup(averageJavaTimer, averageHATTimers) + "x");
-        IO.println("Java / HAT-Flatten             : " + computeSpeedup(averageJavaTimer, averageHATTimersFlatten) + "x");
+        if (!skipSequential) {
+            IO.println("\nSpeedups vs Java:");
+            IO.println("Java / Java Parallel Stream    : " + computeSpeedup(averageJavaTimer, averageJavaStreamTimer) + "x");
+            IO.println("Java / HAT                     : " + computeSpeedup(averageJavaTimer, averageHATTimers) + "x");
+            IO.println("Java / HAT-Flatten             : " + computeSpeedup(averageJavaTimer, averageHATTimersFlatten) + "x");
+        }
+
+        IO.println("\nSpeedups vs Java Parallel Streams:");
+        IO.println("Java / HAT                     : " + computeSpeedup(averageJavaStreamTimer, averageHATTimers) + "x");
+        IO.println("Java / HAT-Flatten             : " + computeSpeedup(averageJavaStreamTimer, averageHATTimersFlatten) + "x");
 
         IO.println("\nSpeedups vs HAT-DFT:");
         IO.println("HAT / HAT-Flatten              : " + computeSpeedup(averageHATTimers, averageHATTimersFlatten) + "x");
 
         // Write CSV table with all results
-        dumpStatsToCSVFile(
-                List.of(
-                    timersJavaDFT,
-                    timersStreams,
-                    timersDFTHat,
-                    timersDFTHatFlatten),
-                List.of("Java-fp32",
-                        "Streams-fp32",
-                        "HAT-Naive-fp32",
-                        "HAT-Plain-fp32"),
-                "table-results-dft-" + size + ".csv");
+        List<List<Long>> timers = List.of(timersJavaDFT, timersStreams, timersDFTHat, timersDFTHatFlatten);
+        List<String> header = List.of("Java-fp32-" + size, "Streams-fp32-" + size, "HAT-UDT-fp32-" + size, "HAT-Plain-fp32-" + size);
+        String fileName = "table-results-dft-" + size + ".csv";
+        if (skipSequential) {
+            timers = List.of(timersStreams, timersDFTHat, timersDFTHatFlatten);
+            header = List.of("Streams-fp32-" + size, "HAT-UDT-fp32-" + size, "HAT-Plain-fp32-" + size);
+        }
+        dumpStatsToCSVFile(timers, header, fileName);
     }
 }
