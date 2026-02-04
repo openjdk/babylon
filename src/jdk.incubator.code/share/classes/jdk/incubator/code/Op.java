@@ -79,6 +79,7 @@ import java.util.function.BiFunction;
  * Before then the unbuilt-bound operation's {@link #parent parent} is inaccessible, as is unbuilt result's
  * {@link Value#declaringBlock() declaring block}) (since both refer to the same block).
  * </li>
+ * </ol>
  * A built operation is fully immutable either as a root operation, the root of a code model, or as a bound operation
  * within a code model.
  * <p>
