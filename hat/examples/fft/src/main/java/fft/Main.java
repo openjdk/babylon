@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Random;
 
 import static hat.examples.common.StatUtils.computeAverage;
-import static hat.examples.common.StatUtils.computeSpeedup;
 import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 
 /**
