@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -256,9 +257,22 @@ public class Schema<T extends MappableIface> {
             }
         }
 
-        public void visitTypes(int depth, Consumer<IfaceType> ifaceTypeNodeConsumer) {
-            ifaceTypes.forEach(t -> t.visitTypes(depth + 1, ifaceTypeNodeConsumer));
+      //  public void visitTypes(int depth, Consumer<IfaceType> ifaceTypeNodeConsumer) {
+        //    ifaceTypes.forEach(t -> t.visitTypes(depth + 1, ifaceTypeNodeConsumer));
+          //  ifaceTypeNodeConsumer.accept(this);
+       // }
+        private void visitUniqueTypes(Set<Class<?>> classSet, int depth, Consumer<IfaceType> ifaceTypeNodeConsumer) {
+            ifaceTypes.forEach(t -> {
+                if (!classSet.contains(t.iface)) {
+                    classSet.add(t.iface);
+                    t.visitUniqueTypes(classSet,  depth + 1, ifaceTypeNodeConsumer);
+                }
+            });
             ifaceTypeNodeConsumer.accept(this);
+        }
+        public void visitUniqueTypes(Consumer<IfaceType> ifaceTypeNodeConsumer) {
+
+            visitUniqueTypes(new HashSet<>(),0,ifaceTypeNodeConsumer);
         }
 
 

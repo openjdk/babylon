@@ -41,6 +41,7 @@ import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -79,16 +80,16 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
          builder.defines().types();
-        Set<Schema.IfaceType> already = new LinkedHashSet<>();
+
+        var visitedAlready  = new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
-                        if (!already.contains(t)) {
+                    boundSchema.schema().rootIfaceType.visitUniqueTypes(t -> {
+                        if (visitedAlready.add(t)) {
                             builder.typedef(boundSchema, t);
-                            already.add(t);
                         }
                     });
                 });

@@ -22,18 +22,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.buffer.S08x3RGBImage;
 import hat.buffer.S32Array2D;
 import hat.buffer.S32RGBAImage;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.Box;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.awt.image.WritableRaster;
@@ -55,18 +60,6 @@ public class DirectRasterFrame extends JPanel implements Runnable {
     static int FAR = 700;
     static int MID = 300;
     static int NEAR = 100;
-
-    @Reflect
-    public static void  compute(@MappableIface.RO ComputeContext cc,
-                                       @MappableIface.WO Point bestMatchOffset,
-                                       @MappableIface.RO S32Array2D s32Array2D,
-                                       @MappableIface.RO Box searchArea,
-                                       @MappableIface.RO Box selectionBox,
-                                       @MappableIface.RO XYRGBList xyrgbList){
-
-    }
-
-
 
     public DirectRasterFrame(Accelerator acc, boolean usePixels) {
         this.acc = acc;

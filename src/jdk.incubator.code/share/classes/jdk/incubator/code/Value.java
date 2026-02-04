@@ -29,6 +29,10 @@ import java.util.*;
 
 /**
  * A value, that is the result of an operation or a block parameter.
+ * <p>
+ * A value is considered unbuilt if it's {@link #declaringBlock() declaring block} is unbuilt and
+ * therefore is inaccessible. A value is considered built when the declaring block is built and
+ * therefore is accessible.
  * @sealedGraph
  */
 public sealed abstract class Value implements CodeItem
@@ -51,7 +55,7 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring block is the block declaring the parameter.
      *
      * @return the value's declaring block.
-     * @throws IllegalStateException if the declaring block is unbuilt.
+     * @throws IllegalStateException if this value is unbuilt because its declaring block is unbuilt.
      */
     public Block declaringBlock() {
         if (!isBuilt()) {
@@ -66,7 +70,8 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring code element is this value's declaring block.
      *
      * @return the value's declaring code element.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if this value is a a block parameter and is unbuilt because its declaring block is
+     * unbuilt.
      */
     public CodeElement<?, ?> declaringElement() {
         return switch (this) {

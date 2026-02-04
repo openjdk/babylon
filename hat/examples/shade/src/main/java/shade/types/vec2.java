@@ -22,7 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package shade.types;
+
+import jdk.incubator.code.Reflect;
 
 public interface vec2 {
     float x();
@@ -30,6 +32,8 @@ public interface vec2 {
     float y();
     // A mutable form needed for interface mapping.
     interface Field extends vec2 {
+        @Reflect
+        default void schema(){x();y();}
         void x(float x);
         void y(float y);
         default vec2 of(float x, float y){
