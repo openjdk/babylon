@@ -22,12 +22,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package shade.types;
 
 import hat.Accelerator;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 
 public interface Uniforms extends Buffer {
     interface ivec2Field extends ivec2.Field, Struct {
@@ -73,7 +74,7 @@ public interface Uniforms extends Buffer {
             .field("iFrame")
     );
 
-    static Uniforms create(Accelerator accelerator) {
-        return BoundSchema.of(accelerator, schema).allocate();
+    static Uniforms create(ArenaAndLookupCarrier arenaAndLookupCarrier) {
+        return BoundSchema.of(arenaAndLookupCarrier, schema).allocate();
     }
 }

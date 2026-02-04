@@ -25,5 +25,12 @@
 package optkl.util.carriers;
 
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
+
 public interface ArenaAndLookupCarrier extends ArenaCarrier,LookupCarrier {
+    static ArenaAndLookupCarrier of(MethodHandles.Lookup lookup, Arena arena){
+        record carrier(MethodHandles.Lookup lookup, Arena arena) implements ArenaAndLookupCarrier{}
+        return new carrier(lookup,arena);
+    }
 }

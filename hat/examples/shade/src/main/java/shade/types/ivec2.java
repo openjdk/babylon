@@ -22,7 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package shade.types;
+
+import jdk.incubator.code.Reflect;
 
 // This is immutable
 public interface ivec2 {
@@ -31,6 +33,7 @@ public interface ivec2 {
 
     // A mutable form needed for interface mapping.
     interface Field extends ivec2 {
+        @Reflect default void schema(){x();y();}
         void x(int x);
         void y(int y);
         default ivec2 of(int x, int y){
