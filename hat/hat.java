@@ -153,6 +153,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var example_shared = hat.jar("example{s}-shared", ui, core);
 
         var example_flash_attention = hat.jar("example{s}-flashattention", core, example_shared);
+        var example_dft = hat.jar("example{s}-dft", core, example_shared);
         var example_fft = hat.jar("example{s}-fft", core, example_shared);
 
         // These examples use example_shared, so they are UI based

@@ -24,32 +24,21 @@
  */
 package fft;
 
-import fft.Main.ArrayComplex.Complex;
+import fft.Main.ComplexArray.Complex;
 import hat.Accelerator;
-import hat.Accelerator.Compute;
-import hat.ComputeContext;
 import hat.HATMath;
-import hat.KernelContext;
-import hat.NDRange;
 import hat.backend.Backend;
-import hat.buffer.F32Array;
-import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 import optkl.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.IntStream;
 
 import static hat.examples.common.StatUtils.computeAverage;
 import static hat.examples.common.StatUtils.computeSpeedup;
 import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
-import static hat.examples.common.StatUtils.printCheckResult;
 
 /**
  * How to run?
@@ -57,28 +46,28 @@ import static hat.examples.common.StatUtils.printCheckResult;
  * <p>
  * With the OpenCL Backend:
  * <code>
- *     java -cp hat/job.jar hat.java run ffi-opencl fft --size=<size> --verbose
+ *     java -cp hat/job.jar hat.java run ffi-opencl fft --size=<size> --iterations=<iterations> -verbose
  * </code>
  * </p>
  *
  * <p>
  * With the CUDA Backend:
  * <code>
- *      java -cp hat/job.jar hat.java run ffi-cuda fft --size=<size> --verbose
+ *      java -cp hat/job.jar hat.java run ffi-cuda fft --size=<size> --iterations=<iterations> --verbose
  * </code>
  *
  * <p>
- * Link to DFT: <a href="https://en.wikipedia.org/wiki/Discrete_Fourier_transform">link</a>
+ * Link to FFT: <a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm"">link</a>
  * </p>
  *
  * </p>
  */
 public class Main {
 
-    public static final int ITERATIONS = 10;
+    public static final float DELTA = 0.001f;
 
     // Use a custom data structure for dealing with Array of Complex Numbers
-    public interface ArrayComplex extends Buffer {
+    public interface ComplexArray extends Buffer {
         int length();
 
         interface Complex extends Struct {
@@ -90,164 +79,140 @@ public class Main {
 
         Complex complex(long index);
 
-        Schema<ArrayComplex> schema = Schema.of(ArrayComplex.class, complex -> {
+        Schema<ComplexArray> schema = Schema.of(ComplexArray.class, complex -> {
             complex.arrayLen("length")
                     .array("complex", array -> array.fields("real", "imag"));
         });
 
-        static ArrayComplex create(Accelerator accelerator, int length) {
+        static ComplexArray create(Accelerator accelerator, int length) {
             return schema.allocate(accelerator, length);
         }
     }
 
-    @Reflect
-    private static void dftKernel(@RW KernelContext kc, @RO ArrayComplex input, @WO ArrayComplex output) {
-        int size = input.length();
-        if (kc.gix < kc.gsx) {
-            for (int i = 0; i < size; i++) {
-                float sumReal = 0.0f;
-                float sumImag = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    float angle = 2 * HATMath.PI * k * i / size;
-                    Complex complexInput = input.complex(k);
-                    sumReal += complexInput.real() * HATMath.cos(angle) + complexInput.imag() * HATMath.sin(angle);
-                    sumImag += -complexInput.real() * HATMath.sin(angle) + complexInput.imag() * HATMath.cos(angle);
+    /**
+     * Initial version of FFT in Java.
+     *
+     * Trying to map the algorithm explain from Wikipedia into Java. It might need some refining.
+     *
+     * <p>
+     * Link: <a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm">Cooley–Tukey_FFT_algorithm</a>
+     * </p>
+     *
+     * @param input
+     * @param output
+     */
+    private static void fftJava(ComplexArray input, ComplexArray output) {
+        final int size = input.length();
+
+        // We need to add +1 to avoid the use of input.length() as index
+        int maxValue = Integer.numberOfLeadingZeros(size) + 1;
+
+        // Reverse indexes
+        for (int i = 0; i < size; i++) {
+            int reverse = Integer.reverse(i) >>> maxValue;
+            if (i < reverse) {
+                // swap i <-> reverse
+                // We can use the output since we do not need to compute in-place
+                output.complex(i).real(input.complex(reverse).real());
+                output.complex(i).imag(input.complex(reverse).imag());
+
+                output.complex(reverse).real(input.complex(i).real());
+                output.complex(reverse).imag(input.complex(i).imag());
+            } else {
+                // if not, copy directly from the input
+                output.complex(i).real(input.complex(i).real());
+                output.complex(i).imag(input.complex(i).imag());
+            }
+        }
+
+        // m <- 2^s
+        for (int s = 2; s <= size; s *= 2) {
+            for (int k = 0; k < size; k += s) {
+                // ωm <- exp(−2πi/m)
+                float angle = 2 * HATMath.PI * k / s;
+                float wmReal = HATMath.cos(angle);
+                float wmImag = -HATMath.sin(angle);
+
+                // w <- 1
+                float wReal = 1.0f;
+                float wImag = 0.0f;
+
+                for (int j = 0; j < s/2; j++) {
+                    // t <- ω A[k + j + m/2]
+                    Complex A = output.complex(j + k + s/2);
+                    float tReal = (wReal * A.real()) - (wImag * A.imag());
+                    float tImag = (wReal * A.imag()) + (wImag * A.real());
+
+                    // u <- A[k + j]
+                    Complex u = output.complex(j + k);
+
+                    // A[k + j] <- u + t
+                    output.complex(j + k).real(u.real() + tReal);
+                    output.complex(j + k).imag(u.imag() + tImag);
+
+                    // A[k + j + m/2] <- u – t
+                    output.complex(j + k + s/2).real(u.real() - tReal);
+                    output.complex(j + k + s/2).imag(u.imag() - tImag);
+
+                    // update w
+                    // ω <- ω ωm
+                    wReal = (wReal * wmReal) - (wImag * wmImag);
+                    wImag  = (wReal * wmImag) + (wImag * wmReal);
                 }
-                Complex complexOutput = output.complex(i);
-                complexOutput.real(sumReal);
-                complexOutput.imag(sumImag);
             }
         }
     }
 
-    @Reflect
-    private static void dftCompute(@RW ComputeContext cc, @RO ArrayComplex input, @WO ArrayComplex output) {
-        var range = NDRange.of1D(input.length(), 256);
-        cc.dispatchKernel(range, kernelContext -> dftKernel(kernelContext, input, output));
-    }
-
-
-    @Reflect
-    private static void dftPlainKernel(@RW KernelContext kc, @RO F32Array inReal, @RO F32Array inImag, @WO F32Array outReal, @WO F32Array outImag) {
-        int size = inReal.length();
-        if (kc.gix < kc.gsx) {
-            for (int i = 0; i < size; i++) {
-                float sumReal = 0.0f;
-                float sumImag = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    float angle = 2 * HATMath.PI * k * i / size;
-                    sumReal += inReal.array(k) * HATMath.cos(angle) + inImag.array(k) * HATMath.sin(angle);
-                    sumImag += -inReal.array(k) * HATMath.sin(angle) + inImag.array(k) * HATMath.cos(angle);
-                }
-                outReal.array(i, sumReal);
-                outImag.array(i, sumImag);
-            }
-        }
-    }
-
-    @Reflect
-    private static void dftPlainCompute(@RW ComputeContext cc, @RO F32Array inReal, @RO F32Array inImag, @WO F32Array outReal, @WO F32Array outImag) {
-        var range = NDRange.of1D(inReal.length(), 256);
-        cc.dispatchKernel(range, kernelContext -> dftPlainKernel(kernelContext, inReal, inImag, outReal, outImag));
-    }
-
-    private static void dftJava(ArrayComplex input, ArrayComplex output) {
-        int size = input.length();
-        for (int j = 0; j < size; j++) {
-            for (int i = 0; i < size; i++) {
-                float sumReal = 0.0f;
-                float sumImag = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    float angle = 2 * HATMath.PI * k * i / size;
-                    Complex complexInput = input.complex(k);
-                    sumReal += complexInput.real() * HATMath.cos(angle) + complexInput.imag() * HATMath.sin(angle);
-                    sumImag += -complexInput.real() * HATMath.sin(angle) + complexInput.imag() * HATMath.cos(angle);
-                }
-                Complex complexOutput = output.complex(i);
-                complexOutput.real(sumReal);
-                complexOutput.imag(sumImag);
-            }
-        }
-    }
-
-    private static void dftJavaStreams(ArrayComplex input, ArrayComplex output) {
-        int size = input.length();
-        IntStream.range(0, size).parallel().forEach(j -> {
-            for (int i = 0; i < size; i++) {
-                float sumReal = 0.0f;
-                float sumImag = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    float angle = 2 * HATMath.PI * k * i / size;
-                    Complex complexInput = input.complex(k);
-                    sumReal += complexInput.real() * HATMath.cos(angle) + complexInput.imag() * HATMath.sin(angle);
-                    sumImag += -complexInput.real() * HATMath.sin(angle) + complexInput.imag() * HATMath.cos(angle);
-                }
-                Complex complexOutput = output.complex(i);
-                complexOutput.real(sumReal);
-                complexOutput.imag(sumImag);
-            }
-        });
-    }
-
-    private static boolean checkResult(ArrayComplex outputSeq, ArrayComplex outputHAT) {
-        boolean isResultCorrect = true;
-        for (int i = 0; i < outputSeq.length(); i++) {
-            if (Math.abs(outputSeq.complex(i).real() - outputHAT.complex(i).real()) > 0.001f) {
+    private static boolean checkResult(ComplexArray expected, ComplexArray obtained) {
+        for (int i = 0; i < expected.length(); i++) {
+            if (Math.abs(expected.complex(i).real() - obtained.complex(i).real()) > DELTA) {
+                IO.println(expected.complex(i).real() + " vs " + obtained.complex(i).real());
                 return false;
             }
-            if (Math.abs(outputSeq.complex(i).imag() - outputHAT.complex(i).imag()) > 0.001f) {
+            if (Math.abs(expected.complex(i).imag() - obtained.complex(i).imag()) > DELTA) {
+                IO.println(expected.complex(i).imag() + " vs " + obtained.complex(i).imag());
                 return false;
             }
         }
-        return isResultCorrect;
-    }
-
-    private static boolean checkResult(ArrayComplex outputSeq, F32Array outReal, F32Array outImag) {
-        boolean isResultCorrect = true;
-        for (int i = 0; i < outputSeq.length(); i++) {
-            if (Math.abs(outputSeq.complex(i).real() - outReal.array(i)) > 0.001f) {
-                return false;
-            }
-            if (Math.abs(outputSeq.complex(i).imag() - outImag.array(i)) > 0.001f) {
-                return false;
-            }
-        }
-        return isResultCorrect;
+        return true;
     }
 
     static void main(String[] args) {
+        IO.println("=====================================");
         IO.println("Example: Fast Fourier Transform (FFT)");
+        IO.println("=====================================");
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         boolean verbose = false;
-        int size = 4096;
+        int size = 32768;
+        int iterations = 100;
+
         // process parameters
         for (String arg : args) {
             if (arg.equals("--verbose")) {
                 verbose = true;
-                IO.println("Verbose mode on? " + verbose);
             } else if (arg.startsWith("--size=")) {
                 String number = arg.split("=")[1];
                 try {
                     size = Integer.parseInt(number);
                 } catch (NumberFormatException _) {
                 }
+            } else if (arg.startsWith("--iterations=")) {
+                String number = arg.split("=")[1];
+                try {
+                    iterations = Integer.parseInt(number);
+                } catch (NumberFormatException _) {
+                }
             }
         }
-        IO.println("Input Size = " + size);
+        IO.println("Input Size     = " + size);
+        IO.println("Num Iterations = " + iterations);
 
         // Let's first compute the DFT (Discrete Fourier Transform)
-        ArrayComplex input = ArrayComplex.create(accelerator, size);
-        ArrayComplex outputSeq = ArrayComplex.create(accelerator, size);
-        ArrayComplex outputStreams = ArrayComplex.create(accelerator, size);
-        ArrayComplex outputHAT = ArrayComplex.create(accelerator, size);
-
-        F32Array inReal = F32Array.create(accelerator, size);
-        F32Array inImag = F32Array.create(accelerator, size);
-        F32Array outReal = F32Array.create(accelerator, size);
-        F32Array outImag = F32Array.create(accelerator, size);
+        ComplexArray input = ComplexArray.create(accelerator, size);
+        ComplexArray outputSeq = ComplexArray.create(accelerator, size);
 
         // Initialize
         Random r = new Random(71);
@@ -255,99 +220,32 @@ public class Main {
             Complex c = input.complex(i);
             c.real(r.nextFloat());
             c.imag(r.nextFloat());
-            inReal.array(i, c.real());
-            inImag.array(i, c.imag());
         }
 
-        List<Long> timersJava = new ArrayList<>();
-        List<Long> timersStreams = new ArrayList<>();
-        List<Long> timersDFTHat = new ArrayList<>();
-        List<Long> timersDFTHatFlatten = new ArrayList<>();
+        List<Long> timersJavaFFT = new ArrayList<>();
 
-        // Run Java sequential version, DFT
-        for (int i = 0; i < ITERATIONS; i++) {
+        // Run Java sequential version: FFT
+        for (int i = 0; i < iterations; i++) {
             long start = System.nanoTime();
-            dftJava(input, outputSeq);
+            fftJava(input, outputSeq);
             long end = System.nanoTime();
-            timersJava.add((end-start));
+            timersJavaFFT.add((end-start));
             if (verbose) {
-                IO.println("[Timer] seq: " + (end-start));
+                IO.println("[Timer] Java FFT : " + (end-start));
             }
         }
-
-        // Run Java Parallel Stream Version of the DFT
-        for (int i = 0; i < ITERATIONS; i++) {
-            long start = System.nanoTime();
-            dftJavaStreams(input, outputStreams);
-            long end = System.nanoTime();
-            timersStreams.add((end-start));
-            if (verbose) {
-                IO.println("[Timer] seq: " + (end-start));
-            }
-        }
-
-        // HAT: Initial version (DFT)
-        for (int i = 0; i < ITERATIONS; i++) {
-            long start = System.nanoTime();
-            accelerator.compute((@Reflect Compute) computeContext -> dftCompute(computeContext, input, outputHAT));
-            long end = System.nanoTime();
-            timersDFTHat.add((end-start));
-            if (verbose) {
-                IO.println("[Timer] hat: " + (end-start));
-            }
-        }
-
-        // HAT: DFT using plain arrays instead of a custom data structure
-        for (int i = 0; i < ITERATIONS; i++) {
-            long start = System.nanoTime();
-            accelerator.compute((@Reflect Compute) computeContext -> dftPlainCompute(computeContext, inReal, inImag, outReal, outImag));
-            long end = System.nanoTime();
-            timersDFTHatFlatten.add((end-start));
-            if (verbose) {
-                IO.println("[Timer] hat: " + (end-start));
-            }
-        }
-
-        // Check results
-        boolean isStreamCorrect = checkResult(outputSeq, outputStreams);
-        boolean isHATCorrect = checkResult(outputSeq, outputHAT);
-        boolean isHATPlainCorrect = checkResult(outputSeq, outReal, outImag);
-        printCheckResult(isStreamCorrect, "Java-Stream");
-        printCheckResult(isHATCorrect, "HAT-Naive");
-        printCheckResult(isHATPlainCorrect, "HAT-Plain");
 
         // Print Performance Metrics
-        final int skip = ITERATIONS / 2;
-        double averageJavaTimer = computeAverage(timersJava, skip);
-        double averageJavaStreamTimer = computeAverage(timersStreams, skip);
-        double averageHATTimers = computeAverage(timersDFTHat, skip);
-        double averageHATTimersFlatten = computeAverage(timersDFTHatFlatten, skip);
+        final int skip = iterations / 2;
+        double averageJavaTimer = computeAverage(timersJavaFFT, skip);
 
         IO.println("\nAverage elapsed time:");
         IO.println("Average Java-Seq DFT           : " + averageJavaTimer);
-        IO.println("Average Java-Streams DFT       : " + averageJavaStreamTimer);
-        IO.println("Average HAT DFT                : " + averageHATTimers);
-        IO.println("Average HAT DFT (Flatten)      : " + averageHATTimersFlatten);
-
-        IO.println("\nSpeedups vs Java:");
-        IO.println("Java / Java Parallel Stream    : " + computeSpeedup(averageJavaTimer, averageJavaStreamTimer) + "x");
-        IO.println("Java / HAT                     : " + computeSpeedup(averageJavaTimer, averageHATTimers) + "x");
-        IO.println("Java / HAT-Flatten             : " + computeSpeedup(averageJavaTimer, averageHATTimersFlatten) + "x");
-
-        IO.println("\nSpeedups vs HAT-DFT:");
-        IO.println("HAT / HAT-Flatten              : " + computeSpeedup(averageHATTimers, averageHATTimersFlatten) + "x");
 
         // Write CSV table with all results
         dumpStatsToCSVFile(
-                List.of(
-                    timersJava,
-                    timersStreams,
-                    timersDFTHat,
-                    timersDFTHatFlatten),
-                List.of("Java-fp32",
-                        "Streams-fp32",
-                        "HAT-Naive-fp32",
-                        "HAT-Plain-fp32"),
+                List.of(timersJavaFFT),
+                List.of("Java-FFT-SEQ"),
                 "table-results-fft-" + size + ".csv");
     }
 }

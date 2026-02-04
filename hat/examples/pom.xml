@@ -49,6 +49,7 @@ questions.
         <module>violajones</module>
         <module>squares</module>
         <module>matmul</module>
+        <module>dft</module>
         <module>fft</module>
         <module>flashattention</module>
         <module>view</module>

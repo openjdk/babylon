@@ -73,39 +73,42 @@ public class TestDFT {
                                   @RO ArrayComplex input,
                                   @WO ArrayComplex output) {
         int size = input.length();
-        if (kc.gix < kc.gsx) {
-            for (int i = 0; i < size; i++) {
-                float sumReal = 0.0f;
-                float sumImag = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    float angle = 2 * HATMath.PI * k * i / size;
-                    Complex complexInput = input.complex(k);
-                    sumReal += complexInput.real() * HATMath.cos(angle) + complexInput.imag() * HATMath.sin(angle);
-                    sumImag += -complexInput.real() * HATMath.sin(angle) + complexInput.imag() * HATMath.cos(angle);
-                }
-                Complex complexOutput = output.complex(i);
-                complexOutput.real(sumReal);
-                complexOutput.imag(sumImag);
+        int idx = kc.gix;
+        if (idx < kc.gsx) {
+            float sumReal = 0.0f;
+            float sumImag = 0.0f;
+            for (int k = 0; k < size; k++) {
+                float angle = -2 * HATMath.PI * ((k * idx) % size) / size;
+                Complex complexInput = input.complex(k);
+                float cReal = HATMath.cos(angle);
+                float cImag = HATMath.sin(angle);
+                sumReal += (complexInput.real() * cReal) - (complexInput.imag() * cImag);
+                sumImag += (complexInput.real() * cImag) + (complexInput.imag() * cReal);
             }
+            Complex complexOutput = output.complex(idx);
+            complexOutput.real(sumReal);
+            complexOutput.imag(sumImag);
         }
     }
 
     private static void dftJava(ArrayComplex input, ArrayComplex output) {
         int size = input.length();
-        for (int j = 0; j < size; j++) {
-            for (int i = 0; i < size; i++) {
-                float sumReal = 0.0f;
-                float sumImag = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    float angle = 2 * HATMath.PI * k * i / size;
-                    Complex complexInput = input.complex(k);
-                    sumReal += complexInput.real() * HATMath.cos(angle) + complexInput.imag() * HATMath.sin(angle);
-                    sumImag += -complexInput.real() * HATMath.sin(angle) + complexInput.imag() * HATMath.cos(angle);
-                }
-                Complex complexOutput = output.complex(i);
-                complexOutput.real(sumReal);
-                complexOutput.imag(sumImag);
+        for (int k = 0; k < size; k++) {
+            Complex complexOutput = output.complex(k);
+            complexOutput.real(0.0f);
+            complexOutput.imag(0.0f);
+            float sumReal = 0.0f;
+            float sumImag = 0.0f;
+            for (int j = 0; j < size; j++) {
+                float angle = -2 * HATMath.PI * ((j * k) % size) / size;
+                Complex complexInput = input.complex(j);
+                float cReal = HATMath.cos(angle);
+                float cImag = HATMath.sin(angle);
+                sumReal += (complexInput.real() * cReal) - (complexInput.imag() * cImag);
+                sumImag += (complexInput.real() * cImag) + (complexInput.imag() * cReal);
             }
+            complexOutput.real(sumReal);
+            complexOutput.imag(sumImag);
         }
     }
 
@@ -119,19 +122,14 @@ public class TestDFT {
 
     @HatTest
     public void testDFTWithOwnDS() {
-
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        final int size = 256;
-
+        final int size = 8192;
         ArrayComplex input = ArrayComplex.create(accelerator, size);
         ArrayComplex outputSeq = ArrayComplex.create(accelerator, size);
         ArrayComplex outputHAT = ArrayComplex.create(accelerator, size);
-
         accelerator.compute((@Reflect Compute) computeContext -> dftCompute(computeContext, input, outputHAT));
-
         dftJava(input, outputSeq);
-
         for (int i = 0; i < outputSeq.length(); i++) {
             HATAsserts.assertEquals(outputSeq.complex(i).real(), outputHAT.complex(i).real(), 0.001f);
             HATAsserts.assertEquals(outputSeq.complex(i).imag(), outputHAT.complex(i).imag(), 0.001f);
