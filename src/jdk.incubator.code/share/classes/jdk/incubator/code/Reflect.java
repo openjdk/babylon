@@ -29,26 +29,49 @@ import java.lang.annotation.*;
 import java.lang.reflect.Method;
 
 /**
- * A program element annotated with this annotation enables code reflection in the annotated program element,
- * or in one or more program elements contained within the annotated program element.
+ * An annotation that is used to declare reflectable methods, lambda expressions, and method references. Declaration
+ * of such reflectable program elements enables access to their code as a code model.
  * <p>
- * The program elements for which code reflection is enabled are said to be a <em>reflectable</em> program elements.
- * There are three kinds of reflectable program elements: methods, lambda expressions and method references.
- * Code models for reflectable methods can be obtained using the {@link Op#ofMethod(Method)} method. Code
- * models for reflectable lambdas and method references can be obtained using the {@link Op#ofLambda(Object)} method.
+ * The code model of a reflectable method is accessed by invoking {@link Op#ofMethod(Method)} with an argument
+ * that is a {@link Method} instance (retrieved using core reflection) representing the reflectable method. The result
+ * is an optional value that contains a root operation modeling the method.
  * <p>
- * This annotation only has effect on the program elements listed below:
+ * The code model of a reflectable lambda expression (or method reference) is accessed by invoking
+ * {@link Op#ofLambda(Object)} with an argument that is an instance of a functional interface associated with the
+ * reflectable lambda expression. The result is an optional value that contains a {@link Quoted quoted} instance, from
+ * which may be retrieved the operation modelling the lambda expression. In addition, it is possible to retrieve a
+ * mapping of run time values to items in the code model that model final, or effectively final, variables used but not
+ * declared in the lambda expression.
+ * <p>
+ * There are four syntactic locations where {@code @Reflect} can appear that governs, in increasing scope, what is
+ * declared reflectable.
  * <ul>
- * <li>When a method is annotated with this annotation, the method becomes reflectable, and all the lambda expressions
- * and method references enclosed in it also become reflectable.</li>
- * <li>When a variable declaration (a field, or a local variable) is annotated with this annotation, all lambda expressions
- * and method references enclosed in the variable initializer (if present) also become reflectable.</li>
- * <li>When the type of a cast expression is annotated with this annotation, the lambda expression
- * or method reference the cast refers to (if any) becomes reflectable.</li>
+ * <li>
+ * If the annotation appears in a cast expression of a lambda expression (or method reference), annotating the use of
+ * the type in the cast operator of the cast expression, then the lambda expression is declared reflectable.
+ * </li>
+ * <li>
+ * If the annotation appears as a modifier for a field declaration or a local variable declaration, annotating the
+ * field or local variable, then any lambda expressions (or method references) in the variable initializer expression
+ * (if present) are declared reflectable. This is useful when cast expressions become verbose and/or types become hard
+ * to reason about. For example, with fluent stream-like expressions where many reflectable lambda expressions are
+ * passed as arguments.
+ * </li>
+ * <li>
+ * Finally, if the annotation appears as a modifier for a non-abstract method declaration, annotating the method, then
+ * the method and any lambda expressions (or method references) it contains are declared reflectable.
+ * </li>
  * </ul>
+ * The annotation is ignored if it appears in any other valid syntactic location.
+ * <p>
+ * Declaring a reflectable lambda expression or method does not implicitly broaden the scope of what is reflectable to
+ * methods they invoke. Furthermore, declaring a reflectable lambda expression does broaden the scope to the surrounding
+ * code of final, or effectively final, variables used but not declared in the lambda expression.
+ * Declaring a reflectable method reference does not implicitly broaden the scope to the referenced method.
+ * A reflectable method reference's code model is the same as the code model of an equivalent reflectable lambda
+ * expression whose body invokes the referenced method.
  */
-@Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD,
-         ElementType.METHOD, ElementType.TYPE_USE})
+@Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.METHOD, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Reflect {
 }
