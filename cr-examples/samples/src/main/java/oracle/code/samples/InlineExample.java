@@ -27,9 +27,9 @@ package oracle.code.samples;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.interpreter.Interpreter;
 

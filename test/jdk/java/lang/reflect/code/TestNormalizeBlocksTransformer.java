@@ -28,7 +28,7 @@
  */
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
+import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
 import org.junit.jupiter.api.Assertions;
