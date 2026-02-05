@@ -53,7 +53,9 @@ public interface vec2 {
         return new Impl(x, y);
     }
 
+
     static vec2 vec2(vec2 vec2) {return vec2(vec2.x(), vec2.y());}
+    static vec2 vec2(ivec2 ivec2) {return vec2(ivec2.x(), ivec2.y());}
     static vec2 vec2(float scalar) {return vec2(scalar,scalar);}
 
     static vec2 add(vec2 l, vec2 r) {return vec2(l.x()+r.x(),l.y()+r.y());}

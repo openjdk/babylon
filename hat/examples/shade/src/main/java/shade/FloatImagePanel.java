@@ -65,19 +65,10 @@ public class FloatImagePanel extends JPanel implements Runnable {
     final Uniforms uniforms;
     volatile boolean running;
 
-    static long runShader(FloatImage floatImage, Uniforms uniforms, Shader shader) {
-        long start = System.nanoTime();
-        IntStream.range(0, floatImage.channels() / 3).parallel().forEach(i -> {
-            int x = i % floatImage.width();
-            int y = i % floatImage.height();
-            vec2 fragCoord = vec2.vec2((float) x / floatImage.width(), (float) y / floatImage.height());
-            vec4 inFragColor = vec4.vec4(0);
-            vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
-            floatImage.set(i, outFragColor);
-        });
-        floatImage.sync();
-        return System.nanoTime() - start;
-    }
+
+    //static long runShader(FloatImage floatImage, Uniforms uniforms, Shader shader) {
+
+   // }
 
 
     public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, Shader shader) {
@@ -90,7 +81,7 @@ public class FloatImagePanel extends JPanel implements Runnable {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e)) {
+             /*  if (SwingUtilities.isLeftMouseButton(e)) {
                     Timer t = new Timer(1000, new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
@@ -102,11 +93,12 @@ public class FloatImagePanel extends JPanel implements Runnable {
                     t.setRepeats(false);
                     t.start();
                     repaint();
-                }
+                }*/
             }
 
             @Override
             public void mousePressed(MouseEvent e) {
+                /*
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     try {
                         var ptDst = transform.inverseTransform(e.getPoint(), null);
@@ -121,17 +113,18 @@ public class FloatImagePanel extends JPanel implements Runnable {
                     } catch (NoninvertibleTransformException e1) {
                         e1.printStackTrace();
                     }
-                }
+                } */
             }
 
         });
         addMouseWheelListener(e -> {
-            zoom = zoom * (1 + e.getWheelRotation() / 10f);
-            repaint();
+          /*  zoom = zoom * (1 + e.getWheelRotation() / 10f);
+            repaint(); */
         });
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
+                /*
                 if (SwingUtilities.isRightMouseButton(e)) {
                     Point rightButonPoint = e.getPoint();
                     Dimension offsetFromInitialMousePress = new Dimension(rightButonPoint.x - mousePressedPosition.x, rightButonPoint.y - mousePressedPosition.y);
@@ -159,7 +152,13 @@ public class FloatImagePanel extends JPanel implements Runnable {
                         // TODO Auto-generated catch block
                         e1.printStackTrace();
                     }
-                }
+                }*/
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                uniforms.iMouse().x(e.getX());
+                uniforms.iMouse().y(e.getY());
             }
         });
     }
@@ -185,16 +184,25 @@ public class FloatImagePanel extends JPanel implements Runnable {
             long now = System.nanoTime();
             delta += (now - lastTimeNs) / nsPerTick;
             lastTimeNs = now;
-
+            uniforms.iResolution().x(floatImage.width());
+            uniforms.iResolution().y(floatImage.height());
             // Fixed Update Loop
             while (delta >= 1) {
                 long diff = lastTimeNs - startTimeNs;
                 long diffMs = diff / 1000000;
                 uniforms.iFrame(uniforms.iFrame() + 1);
                 uniforms.iTime(diffMs);
-                uniforms.iMouse().x(0);
-                uniforms.iMouse().y(0);
-                controls.shaderUs((int) (runShader(floatImage, uniforms, shader) / 1000))
+
+                long startNs = System.nanoTime();
+                IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
+                    vec2 fragCoord = vec2.vec2(i % floatImage.width(), (float)( i / floatImage.width()));
+                    vec4 inFragColor = vec4.vec4(0);
+                    vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
+                    floatImage.set(i, outFragColor);
+                });
+                floatImage.sync();
+                long endNs = System.nanoTime();
+                controls.shaderUs((int)(endNs-startNs)/1000)
                         .fps((int) (uniforms.iFrame() * 1000 / diffMs))
                         .frame((int) uniforms.iFrame())
                         .elapsedMs((int) diffMs);

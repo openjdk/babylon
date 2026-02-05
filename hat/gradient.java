@@ -12,7 +12,9 @@ import shade.Main;
 static void main(String[] args) throws IOException {
     var acc =  new Accelerator(MethodHandles.lookup(), Backend.FIRST);
     Shader shader = (uniforms, inFragColor, fragCoord) -> {
-            return vec4(fragCoord.x(),fragCoord.y(),1f-fragCoord.y(), 0.f);
+            var uv = fragCoord.div(vec2(uniforms.iResolution()));  // normalize between 0->1 vec2 uv = fragCoord/iResolution.xy
+            float frame= Math.max(uniforms.iFrame()/1000f,1f);
+            return vec4(uv.x(),uv.y(),frame,0f);
     };
     new Main(acc, 1024, 1024, shader);
 }
