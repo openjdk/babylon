@@ -43,6 +43,7 @@ import java.awt.image.WritableRaster;
 record FloatImage(
         int width,
         int height,
+        int widthXHeight,
         int channels,
         ColorSpace colorSpace,
         ColorModel colorModel,
@@ -80,7 +81,7 @@ record FloatImage(
 
         F32Array f32Array = F32Array.create(arenaAndLookupCarrier, channels);
 
-        return new FloatImage(width,height,channels,
+        return new FloatImage(width,height,width*height,channels,
                 colorSpace, colorModel, sampleModel, dataBufferFloat, data, raster, bufferedImage, f32Array);
     }
 
