@@ -39,7 +39,7 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 
 /**
- * A type-variable reference.
+ * A type variable type
  */
 public final class TypeVariableType implements JavaType {
 
@@ -137,7 +137,7 @@ public final class TypeVariableType implements JavaType {
     }
 
     /**
-     * The owner of a type-variable - either a class or a method.
+     * The owner of a type variable, either a class or a method.
      */
     public sealed interface Owner extends TypeElement permits ClassType, MethodRef { }
 }
