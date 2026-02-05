@@ -1,0 +1,5 @@
+--add-modules=jdk.incubator.code
+--enable-native-access=ALL-UNNAMED
+-cp build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-example-shared-1.0.jar:build/hat-example-shade-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar
+-Djava.library.path=./build
+
