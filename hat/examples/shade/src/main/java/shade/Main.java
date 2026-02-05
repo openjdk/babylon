@@ -34,6 +34,7 @@ import shade.types.vec2;
 import shade.types.vec4;
 import static shade.types.vec4.*;
 import static shade.types.vec2.*;
+import static shade.types.ivec2.*;
 
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
@@ -125,7 +126,7 @@ public class Main extends JFrame {
             float[] data = buffer.getData();
             int iFrame = frame;
             int iTime = time;
-            var iMouse = shade.types.ivec2.ivec2(mouseX,mouseY);
+            var iMouse = ivec2(mouseX,mouseY);
             int width = image.getWidth();
             int height = image.getHeight();
 
@@ -310,15 +311,11 @@ public class Main extends JFrame {
         Controls() {
             menu = new Menu(new JMenuBar())
                     .exit()
-                    .space(40)
+                    //.space(40)
                     .label("Shader Time (us)").sevenSegment(6, 15, $ -> shaderMicroSeconds = $).space(20)
                     .label("Frame ").sevenSegment(6, 15, $ -> frame = $).space(20)
                     .label("Elapsed (ms)").sevenSegment(6, 15, $ -> elapsedMs = $).space(20)
                     .label("Frames (per sec)").sevenSegment(4, 15, $ -> framesPerSecond = $).space(20)
-
-                    //    .slider(0, 100, 0, n -> sevenSegmentDisplay.set(n))
-                   // .combo(List.of("One", "Two", "Three"), "One", System.out::println)
-                   // .hradio(List.of("JavaMt", "JavaSeq", "HAT"), $ -> System.out.println($.value()))
                     .space(40);
         }
     }
@@ -331,8 +328,6 @@ public class Main extends JFrame {
         setBounds(new Rectangle(width + 100, height + 200));
         setContentPane(imagePanel);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // pack();
-        // validate();
         setVisible(true);
         this.imagePanel.start();
     }
@@ -342,11 +337,11 @@ public class Main extends JFrame {
         var shader = new Shader() {
             @Override
             public vec4 mainImage(vec4 inFragColor, vec2 fragCoord, int iTime, int iFrame, ivec2 iMouse) {
-              //  if (fragCoord.x()>.2f && fragCoord.y()<.8f){
-                    return vec4(fragCoord.x()*iFrame,.5f,fragCoord.y()*iFrame, 0.f);
-               // }else{
-                 //   return vec4(1f,1f,1f,0f);
-                //}
+                if ((fragCoord.x()>.2f && fragCoord.x()<.8f) ||(fragCoord.y()>.2f && fragCoord.y()<.8f)) {
+                    return vec4(fragCoord.x(), .0f, fragCoord.y(), 0.f);
+                }else{
+                    return vec4(0f,0f,.5f,0f);
+                }
             }
         };
         new Main(acc, 1024, 1024, shader);
