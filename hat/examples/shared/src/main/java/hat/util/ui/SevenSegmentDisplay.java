@@ -127,10 +127,11 @@ public class SevenSegmentDisplay extends JComponent {
         if (n>0) {
             while (n > 0) {
                 if (pos<0){
-                    throw new IllegalArgumentException("too many digits");
+                 //   throw new IllegalArgumentException("too many digits");
+                }else {
+                    digits[pos--] = digits0to9[n % 10];
+                    n /= 10;
                 }
-                digits[pos--] = digits0to9[n % 10];
-                n /= 10;
             }
         }else if (n==0){
             digits[pos] = digits0to9[0];

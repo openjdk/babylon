@@ -118,8 +118,8 @@ public class FloatImagePanel extends JPanel implements Runnable {
 
         });
         addMouseWheelListener(e -> {
-          /*  zoom = zoom * (1 + e.getWheelRotation() / 10f);
-            repaint(); */
+            zoom = zoom * (1 + e.getWheelRotation() / 10f);
+          //  repaint(); */
         });
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
@@ -170,54 +170,51 @@ public class FloatImagePanel extends JPanel implements Runnable {
         interpolationThread = new Thread(this);
         interpolationThread.start();
     }
-    private float renderInterpolation = 0;
+
 
     @Override
     public void run() {
         long startTimeNs = System.nanoTime();
 
-        double nsPerTick = 1000000000.0 / 30.0; // 60 Fixed Updates per second
+        double nsPerTick = 1000000000.0 / 60.0; // 60 Fixed Updates per second
         double delta = 0;
         long lastTimeNs = System.nanoTime();
-
         while (running) {
             long now = System.nanoTime();
             delta += (now - lastTimeNs) / nsPerTick;
             lastTimeNs = now;
             uniforms.iResolution().x(floatImage.width());
             uniforms.iResolution().y(floatImage.height());
-            // Fixed Update Loop
+
             while (delta >= 1) {
                 long diff = lastTimeNs - startTimeNs;
                 long diffMs = diff / 1000000;
-                uniforms.iFrame(uniforms.iFrame() + 1);
                 uniforms.iTime(diffMs);
-
                 long startNs = System.nanoTime();
-                IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
-                    vec2 fragCoord = vec2.vec2(i % floatImage.width(), (float)( i / floatImage.width()));
-                    vec4 inFragColor = vec4.vec4(0);
-                    vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
-                    floatImage.set(i, outFragColor);
-                });
-                floatImage.sync();
+                if (controls.running()) {
+                    uniforms.iFrame(uniforms.iFrame() + 1);
+                    IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
+                        vec2 fragCoord = vec2.vec2(i % floatImage.width(), (float)( i / floatImage.width()));
+                        vec4 inFragColor = vec4.vec4(0);
+                        vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
+                        floatImage.set(i, outFragColor);
+                    });
+                    floatImage.sync();
+                }
                 long endNs = System.nanoTime();
                 controls.shaderUs((int)(endNs-startNs)/1000)
                         .fps((int) (uniforms.iFrame() * 1000 / diffMs))
                         .frame((int) uniforms.iFrame())
                         .elapsedMs((int) diffMs);
-                delta--;
+                delta-=1f;
             }
-
-            // Calculate Interpolation for rendering
-            renderInterpolation = (float) delta;
 
             // Schedule Render on EDT
             SwingUtilities.invokeLater(this::repaint);
 
             // Cap the loop to save CPU
             try {
-                Thread.sleep(1);
+                Thread.sleep(10);
             } catch (InterruptedException e) {
             }
         }
