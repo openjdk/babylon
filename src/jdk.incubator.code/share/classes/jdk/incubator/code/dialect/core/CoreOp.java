@@ -46,11 +46,11 @@ import java.util.function.Function;
  */
 public sealed abstract class CoreOp extends Op {
 
-    protected CoreOp(Op that, CodeContext cc) {
+    CoreOp(Op that, CodeContext cc) {
         super(that, cc);
     }
 
-    protected CoreOp(List<? extends Value> operands) {
+    CoreOp(List<? extends Value> operands) {
         super(operands);
     }
 
@@ -68,6 +68,9 @@ public sealed abstract class CoreOp extends Op {
     public static final class FuncOp extends CoreOp
             implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
+        /**
+         * Builder for function operations.
+         */
         public static class Builder {
             final Body.Builder ancestorBody;
             final String funcName;
@@ -79,6 +82,12 @@ public sealed abstract class CoreOp extends Op {
                 this.funcType = funcType;
             }
 
+            /**
+             * Builds a function operation using a block builder.
+             *
+             * @param c consumer that populates the function body using a block builder
+             * @return the function operation
+             */
             public FuncOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
@@ -87,6 +96,10 @@ public sealed abstract class CoreOp extends Op {
         }
 
         static final String NAME = "func";
+
+        /**
+         * The externalized attribute modelling the function name
+         */
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
@@ -125,10 +138,24 @@ public sealed abstract class CoreOp extends Op {
             return new FuncOp(this, cc, ot);
         }
 
+        /**
+         * Transforms a function operation using the given code transformer and a new context.
+         *
+         * @param ot code transformer to apply to the function operation
+         * @return the transformed function operation
+         */
         public FuncOp transform(CodeTransformer ot) {
             return new FuncOp(this, CodeContext.create(), ot);
         }
 
+        /**
+         * Transforms a function operation using the given function name, code transformer,
+         * and a new context.
+         *
+         * @param funcName the new function name
+         * @param ot code transformer to apply to the function operation
+         * @return the transformed function operation
+         */
         public FuncOp transform(String funcName, CodeTransformer ot) {
             return new FuncOp(this, funcName, CodeContext.create(), ot);
         }
@@ -155,6 +182,9 @@ public sealed abstract class CoreOp extends Op {
             return body.bodyType();
         }
 
+        /**
+         * {@return the function name}
+         */
         public String funcName() {
             return funcName;
         }
@@ -185,6 +215,10 @@ public sealed abstract class CoreOp extends Op {
     @OpDeclaration(FuncCallOp.NAME)
     public static final class FuncCallOp extends CoreOp {
         static final String NAME = "func.call";
+
+        /**
+         * The externalized attribute modelling the name of the invoked function
+         */
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
@@ -224,6 +258,9 @@ public sealed abstract class CoreOp extends Op {
             return Map.of("", funcName);
         }
 
+        /**
+         * {@return the function name}
+         */
         public String funcName() {
             return funcName;
         }
@@ -279,6 +316,12 @@ public sealed abstract class CoreOp extends Op {
             return new ModuleOp(this, cc, ot);
         }
 
+        /**
+         * Transforms a module operation using the given code transformer and a new context.
+         *
+         * @param ot code transformer to apply to the module operation
+         * @return the transformed module operation
+         */
         public ModuleOp transform(CodeTransformer ot) {
             return new ModuleOp(this, CodeContext.create(), ot);
         }
@@ -306,6 +349,9 @@ public sealed abstract class CoreOp extends Op {
             return List.of(body);
         }
 
+        /**
+         * {@return a symbol table of function name to function}
+         */
         public SequencedMap<String, FuncOp> functionTable() {
             return table;
         }
@@ -331,8 +377,13 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * Returns a moduleOp with the given funcOp as the root.
-         * The funcOps in the moduleOp functionTable are returned in the order encountered within the funcOp.
+         * Creates a module operation using a root function operation, collecting all reachable function operations.
+         * The symbol table of the returned module operation lists function operations in the order encountered within the
+         * root function operation, preceded by the function obtained from the root function itself.
+         *
+         * @param root the root function operation
+         * @param l the lookup used to resolve method references nested in the root function
+         * @return a module operation containing the root and reachable functions
          */
         public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp root, MethodHandles.Lookup l) {
             SequencedSet<FuncOp> visited = new LinkedHashSet<>();
@@ -384,8 +435,14 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * Returns a moduleOp with a root funcOp representing the given lambdaOp.
-         * The funcOps in the moduleOp functionTable are returned in the order encountered within the lambdaOp.
+         * Creates a module operation using a lambda operation, method handles lookup, and a name for the root lambda.
+         * The symbol table of the returned module operation lists function operations in the order encountered within the
+         * root lambda operation, preceded by the function obtained from the provided lambda operation.
+         *
+         * @param lambdaOp the lambda operation
+         * @param l the lookup used to resolve method references nested in the lambda operation
+         * @param lambdaName the name to use for the root function (or {@code null})
+         * @return a module operation containing a root function (obtained from {@code lambdaOp}) and reachable functions
          */
         public static CoreOp.ModuleOp ofLambdaOp(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, String lambdaName) {
             if (lambdaName == null) lambdaName = "";
@@ -452,6 +509,9 @@ public sealed abstract class CoreOp extends Op {
             return List.of(quotedBody);
         }
 
+        /**
+         * {@return the quoted operation}
+         */
         public Op quotedOp() {
             return quotedOp;
         }
@@ -501,6 +561,9 @@ public sealed abstract class CoreOp extends Op {
             super(operand == null ? List.of() : List.of(operand));
         }
 
+        /**
+         * {@return the value returned by this return operation, or null if absent}
+         */
         public Value returnValue() {
             if (operands().size() == 1) {
                 return operands().get(0);
@@ -589,6 +652,9 @@ public sealed abstract class CoreOp extends Op {
             super(operands);
         }
 
+        /**
+         * {@return the value yielded by this yield operation, or null if absent}
+         */
         public Value yieldValue() {
             if (operands().size() == 1) {
                 return operands().get(0);
@@ -646,6 +712,9 @@ public sealed abstract class CoreOp extends Op {
             return List.of(b);
         }
 
+        /**
+         * {@return The branch target}
+         */
         public Block.Reference branch() {
             return b;
         }
@@ -703,14 +772,23 @@ public sealed abstract class CoreOp extends Op {
             return List.of(t, f);
         }
 
+        /**
+         * {@return the branch condition}
+         */
         public Value predicate() {
             return operands().get(0);
         }
 
+        /**
+         * {@return the branch target when the condition is true}
+         */
         public Block.Reference trueBranch() {
             return t;
         }
 
+        /**
+         * {@return the branch target when the condition is false}
+         */
         public Block.Reference falseBranch() {
             return f;
         }
@@ -729,6 +807,9 @@ public sealed abstract class CoreOp extends Op {
             implements Op.Pure, JavaOp.JavaExpression {
         static final String NAME = "constant";
 
+        /**
+         * The externalized attribute modelling the constant value
+         */
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
@@ -799,6 +880,9 @@ public sealed abstract class CoreOp extends Op {
             return Map.of("", value == null ? ExternalizedOp.NULL_ATTRIBUTE_VALUE : value);
         }
 
+        /**
+         * {@return the constant value modeled by this constant operation}
+         */
         public Object value() {
             return value;
         }
@@ -842,6 +926,10 @@ public sealed abstract class CoreOp extends Op {
     public static final class VarOp extends CoreOp
             implements JavaOp.JavaStatement {
         static final String NAME = "var";
+
+        /**
+         * The externalized attribute modelling the variable name
+         */
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
         final String varName;
@@ -895,6 +983,11 @@ public sealed abstract class CoreOp extends Op {
             return isUnnamedVariable() ? Map.of() : Map.of("", varName);
         }
 
+        /**
+         * {@return the initial value assigned to this variable}
+         * @throws IllegalStateException if this variable doesn't have an initial value,
+         *                               that is, if it models an uninitialized variable
+         */
         public Value initOperand() {
             if (operands().isEmpty()) {
                 throw new IllegalStateException("Uninitialized variable");
@@ -902,10 +995,16 @@ public sealed abstract class CoreOp extends Op {
             return operands().getFirst();
         }
 
+        /**
+         * {@return the variable name}
+         */
         public String varName() {
             return varName;
         }
 
+        /**
+         * {@return the variable type}
+         */
         public TypeElement varValueType() {
             return resultType.valueType();
         }
@@ -915,10 +1014,16 @@ public sealed abstract class CoreOp extends Op {
             return resultType;
         }
 
+        /**
+         * {@return true if this variable operation models an unnamed variable}
+         */
         public boolean isUnnamedVariable() {
             return varName.isEmpty();
         }
 
+        /**
+         * {@return true if this variable operation models an uninitialized variable}
+         */
         public boolean isUninitialized() {
             return operands().isEmpty();
         }
@@ -938,14 +1043,23 @@ public sealed abstract class CoreOp extends Op {
             super(operands);
         }
 
+        /**
+         * {@return the accessed variable}
+         */
         public Value varOperand() {
             return operands().getFirst();
         }
 
+        /**
+         * {@return the type of the accessed variable}
+         */
         public VarType varType() {
             return (VarType) varOperand().type();
         }
 
+        /**
+         * {@return the variable operation associated with this access operation}
+         */
         public VarOp varOp() {
             if (!(varOperand() instanceof Result varValue)) {
                 throw new IllegalStateException("Variable access to block parameter: " + varOperand());
@@ -971,7 +1085,7 @@ public sealed abstract class CoreOp extends Op {
                 implements JavaOp.JavaExpression {
             static final String NAME = "var.load";
 
-            public VarLoadOp(ExternalizedOp opdef) {
+            VarLoadOp(ExternalizedOp opdef) {
                 if (opdef.operands().size() != 1) {
                     throw new IllegalArgumentException("Operation must have one operand");
                 }
@@ -1008,7 +1122,7 @@ public sealed abstract class CoreOp extends Op {
                 implements JavaOp.JavaExpression, JavaOp.JavaStatement {
             static final String NAME = "var.store";
 
-            public VarStoreOp(ExternalizedOp opdef) {
+            VarStoreOp(ExternalizedOp opdef) {
                 if (opdef.operands().size() != 2) {
                     throw new IllegalArgumentException("Operation must have two operands");
                 }
@@ -1035,6 +1149,9 @@ public sealed abstract class CoreOp extends Op {
                 super(List.of(varValue, v));
             }
 
+            /**
+             * {@return the value being stored to the variable}
+             */
             public Value storeOperand() {
                 return operands().get(1);
             }
@@ -1084,6 +1201,10 @@ public sealed abstract class CoreOp extends Op {
     @OpDeclaration(TupleLoadOp.NAME)
     public static final class TupleLoadOp extends CoreOp {
         static final String NAME = "tuple.load";
+
+        /**
+         * The externalized attribute modelling the tuple index
+         */
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
@@ -1124,6 +1245,12 @@ public sealed abstract class CoreOp extends Op {
             return Map.of("", index);
         }
 
+        /**
+         * {@return the component index of this tuple load operation}
+         */
+        /**
+         * {@return the component index of this tuple load operation}
+         */
         public int index() {
             return index;
         }
@@ -1142,6 +1269,10 @@ public sealed abstract class CoreOp extends Op {
     @OpDeclaration(TupleWithOp.NAME)
     public static final class TupleWithOp extends CoreOp {
         static final String NAME = "tuple.with";
+
+        /**
+         * The externalized attribute modelling the tuple index
+         */
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
@@ -1183,6 +1314,9 @@ public sealed abstract class CoreOp extends Op {
             return Map.of("", index);
         }
 
+        /**
+         * {@return the component index of this tuple with operation}
+         */
         public int index() {
             return index;
         }

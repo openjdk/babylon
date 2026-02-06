@@ -44,6 +44,10 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
+/**
+ * A code model interpreter that sequentially executes operations contained in an
+ * {@link Op.Invokable} operation, such as a function operation.
+ */
 public final class Interpreter {
     private Interpreter() {
     }
@@ -137,6 +141,9 @@ public final class Interpreter {
     }
 
 
+    /**
+     * Exception thrown by the interpreter when execution fails.
+     */
     @SuppressWarnings("serial")
     public static final class InterpreterException extends RuntimeException {
         private InterpreterException(Throwable cause) {
@@ -423,10 +430,8 @@ public final class Interpreter {
         oc.successor(cb, bValues);
     }
 
-
-
     @SuppressWarnings("unchecked")
-    public static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
+    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
         throw (E) e;
     }
 
