@@ -161,6 +161,9 @@ public sealed abstract class JavaOp extends Op {
     public static final class LambdaOp extends JavaOp
             implements Invokable, Lowerable, JavaExpression {
 
+        /**
+         * A builder for constructing a lambda operation.
+         */
         public static class Builder {
             final Body.Builder ancestorBody;
             final FunctionType funcType;
@@ -182,12 +185,23 @@ public sealed abstract class JavaOp extends Op {
                 this.isReflectable = isReflectable;
             }
 
+            /**
+             * Builds a lambda operation with the provided function body.
+             *
+             * @param c a consumer to populate the lambda function body
+             * @return the completed lambda operation
+             */
             public LambdaOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new LambdaOp(functionalInterface, body, isReflectable);
             }
 
+            /**
+             * Marks the constructed lambda operation as reflectable.
+             * @return this builder
+             * @see Reflect
+             */
             public Builder reflectable() {
                 return new Builder(ancestorBody, funcType, functionalInterface, true);
             }
@@ -241,6 +255,9 @@ public sealed abstract class JavaOp extends Op {
             return body.bodyType();
         }
 
+        /**
+         * {@return the functional interface type modeled by this lambda operation}
+         */
         public TypeElement functionalInterface() {
             return functionalInterface;
         }
@@ -262,6 +279,10 @@ public sealed abstract class JavaOp extends Op {
             return functionalInterface();
         }
 
+        /**
+         * {@return whether this lambda operation is reflectable}
+         * @see Reflect
+         */
         public boolean isReflectable() {
             return isReflectable;
         }
@@ -363,6 +384,12 @@ public sealed abstract class JavaOp extends Op {
             return Optional.of(methodRefInvokeOp);
         }
 
+        /**
+         * Converts this lambda operation to an equivalent function operation.
+         *
+         * @param lambdaName the name to use for the resulting function (may be empty, or {@code null})
+         * @return a function operation that models this lambda
+         */
         public CoreOp.FuncOp toFuncOp(String lambdaName) {
             if (lambdaName == null) lambdaName = "";
             List<TypeElement> parameters = new ArrayList<>(this.invokableType().parameterTypes());
@@ -488,6 +515,9 @@ public sealed abstract class JavaOp extends Op {
             super(List.of(e));
         }
 
+        /**
+         * {@return the value being thrown}
+         */
         public Value argument() {
             return operands().get(0);
         }
@@ -861,7 +891,13 @@ public sealed abstract class JavaOp extends Op {
             implements ReflectiveOp, JavaExpression, JavaStatement {
 
         static final String NAME = "new";
+        /**
+         * The externalized attribute key for a constructor descriptor in a new operation.
+         */
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
+        /**
+         * The externalized attribute key indicating a varargs constructor in a new operation.
+         */
         public static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
         final boolean isVarArgs;
@@ -932,14 +968,25 @@ public sealed abstract class JavaOp extends Op {
             return Collections.unmodifiableMap(m);
         }
 
+        // Indicates whether this instance creation uses a variable argument (varargs) constructor.
+        /**
+         * {@return {@code true}, if this instance creation operation is a varargs constructor call}
+         */
         public boolean isVarargs() {
             return isVarArgs;
         }
 
+        // Retrieves the resulting type produced by this instance creation operation.
+        /**
+         * {@return the resulting type of this instance creation operation}
+         */
         public TypeElement type() {
             return opType().returnType();
         } // @@@ duplication, same as resultType()
 
+        /**
+         * {@return the constructor descriptor for this instance creation operation}
+         */
         public MethodRef constructorDescriptor() {
             return constructorDescriptor;
         }
@@ -1536,11 +1583,11 @@ public sealed abstract class JavaOp extends Op {
      */
     public sealed static abstract class TestOperation extends JavaOp
             implements Pure, JavaExpression {
-        protected TestOperation(TestOperation that, CodeContext cc) {
+        TestOperation(TestOperation that, CodeContext cc) {
             super(that, cc);
         }
 
-        protected TestOperation(List<Value> operands) {
+        TestOperation(List<Value> operands) {
             super(operands);
         }
     }
@@ -1577,11 +1624,11 @@ public sealed abstract class JavaOp extends Op {
      * The unary arithmetic operation.
      */
     public sealed static abstract class UnaryOp extends ArithmeticOperation {
-        protected UnaryOp(UnaryOp that, CodeContext cc) {
+        UnaryOp(UnaryOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        protected UnaryOp(Value v) {
+        UnaryOp(Value v) {
             super(List.of(v));
         }
 
@@ -2300,6 +2347,9 @@ public sealed abstract class JavaOp extends Op {
             super(operand == null ? List.of() : List.of(operand));
         }
 
+        /**
+         * {@return the yielded value, or {@code null} if there is no yielded value}
+         */
         public Value yieldValue() {
             if (operands().size() == 1) {
                 return operands().get(0);
@@ -2479,10 +2529,16 @@ public sealed abstract class JavaOp extends Op {
             return List.of(expr, blockBody);
         }
 
+        /**
+         * {@return the expression body whose result is the monitor object for synchronization}
+         */
         public Body expr() {
             return expr;
         }
 
+        /**
+         * {@return the body that is executed within the synchronized block}
+         */
         public Body blockBody() {
             return blockBody;
         }
@@ -2695,7 +2751,7 @@ public sealed abstract class JavaOp extends Op {
             /**
              * Begins an if-branch with the given predicate builder.
              * @param c a consumer for the predicate body
-             * {@return a then-branch builder to complete the if operation}
+             * @return a then-branch builder to complete the if operation
              */
             public ThenBuilder if_(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
@@ -2721,7 +2777,7 @@ public sealed abstract class JavaOp extends Op {
             /**
              * Adds a then-branch with the given body.
              * @param c a consumer for the then-branch body
-             * {@return a builder for further else-if-/else-branches}
+             * @return a builder for further else-if-/else-branches
              */
             public ElseIfBuilder then(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -2733,7 +2789,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Adds a then-branch with an empty body.
-             * {@return a builder for further else-if-/else-branches}
+             * @return a builder for further else-if-/else-branches
              */
             public ElseIfBuilder then() {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -2757,9 +2813,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an else-if-branch to the operation.
+             * Adds an else-if-branch to the if operation.
              * @param c a consumer for the else-if predicate
-             * {@return a then-branch builder for the else-if body}
+             * @return a then-branch builder for the else-if body
              */
             public ThenBuilder elseif(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
@@ -2772,7 +2828,7 @@ public sealed abstract class JavaOp extends Op {
             /**
              * Adds an else-branch with the given body.
              * @param c a consumer for the else-branch body
-             * {@return the completed if operation}
+             * @return the completed if operation
              */
             public IfOp else_(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -2784,7 +2840,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Adds an else-branch with an empty body.
-             * {@return the completed if operation}
+             * @return the completed if operation
              */
             public IfOp else_() {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -3243,7 +3299,7 @@ public sealed abstract class JavaOp extends Op {
             /**
              * Builds the initialization step for a for-loop.
              * @param c a consumer to model the code initializing the loop variables
-             * {@return a conditional builder for the loop condition}
+             * @return a conditional builder for the loop condition
              */
             public ForOp.CondBuilder init(Consumer<Block.Builder> c) {
                 Body.Builder init = Body.Builder.of(ancestorBody,
@@ -3271,9 +3327,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the predicate step for a for-loop.
+             * Builds the predicate body for the loop.
              * @param c a consumer to model the for-loop condition
-             * {@return an update builder for building the update phase}
+             * @return an update builder for building the update phase
              */
             public ForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder cond = Body.Builder.of(ancestorBody,
@@ -3303,9 +3359,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the update step for a for-loop.
-             * @param c a consumer to model the update (increment/decrement etc)
-             * {@return a body builder for constructing the loop body}
+             * Builds the update logic to be run after each for-loop iteration.
+             * @param c a consumer for the update logic
+             * @return a body builder for constructing the loop body
              */
             public ForOp.BodyBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder update = Body.Builder.of(ancestorBody,
@@ -3337,9 +3393,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the main body of the for-loop.
-             * @param c a consumer to populate the loop body
-             * {@return the completed for-loop operation}
+             * Builds the loop body for the for-loop.
+             * @param c a consumer for the main logic to run in the for-loop
+             * @return the completed for-loop operation
              */
             public ForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
@@ -3597,7 +3653,7 @@ public sealed abstract class JavaOp extends Op {
             /**
              * Completes the construction of the enhanced-for loop operation with the body obtained from the provided builder.
              * @param c a consumer that populates the block for the enhanced-for loop body
-             * {@return the completed enhanced-for operation}
+             * @return the completed enhanced-for operation
              */
             public EnhancedForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
@@ -3780,6 +3836,9 @@ public sealed abstract class JavaOp extends Op {
     public static final class WhileOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
+        /**
+         * A builder for specifying the predicate (loop condition) of a while loop operation.
+         */
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
 
@@ -3787,6 +3846,12 @@ public sealed abstract class JavaOp extends Op {
                 this.ancestorBody = ancestorBody;
             }
 
+            /**
+             * Builds the predicate (loop condition) body for the while operation.
+             *
+             * @param c a consumer to populate the block for the predicate
+             * @return a builder for the main loop body
+             */
             public WhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
@@ -3795,6 +3860,9 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
+        /**
+         * A builder for specifying the main body of a while loop operation.
+         */
         public static class BodyBuilder {
             final Body.Builder ancestorBody;
             private final Body.Builder predicate;
@@ -3804,6 +3872,12 @@ public sealed abstract class JavaOp extends Op {
                 this.predicate = predicate;
             }
 
+            /**
+             * Builds the main logic body for the while loop operation.
+             *
+             * @param c a consumer to populate the block for the loop body
+             * @return the completed while loop operation
+             */
             public WhileOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(body.entryBlock());
@@ -3864,6 +3938,9 @@ public sealed abstract class JavaOp extends Op {
             return bodies;
         }
 
+        /**
+         * {@return the loop condition body}
+         */
         public Body predicateBody() {
             return bodies.get(0);
         }
@@ -3925,9 +4002,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the loop predicate for a do-while operation.
-             * @param c a consumer that populates the block modeling the do-while predicate
-             * {@return a completed do-while operation with this predicate}
+             * Completes the construction of a do-while operation with the predicate obtained from the provided builder.
+             * @param c a consumer that populates the block modelling the do-while predicate
+             * @return a completed do-while operation with the provided predicate
              */
             public DoWhileOp predicate(Consumer<Block.Builder> c) {
                 Body.Builder predicate = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
@@ -3948,9 +4025,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the body of a do-while loop and returns a predicate builder.
+             * Builds the body of a do-while loop.
              * @param c a consumer that populates the block modeling the body of the loop
-             * {@return a predicate builder for configuring this do-while operation}
+             * @return a predicate builder for configuring this do-while operation
              */
             public DoWhileOp.PredicateBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
@@ -4381,6 +4458,9 @@ public sealed abstract class JavaOp extends Op {
     public static final class TryOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
+        /**
+         * A builder for specifying the main body of a try operation.
+         */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
             final List<? extends TypeElement> resourceTypes;
@@ -4392,6 +4472,12 @@ public sealed abstract class JavaOp extends Op {
                 this.resources = resources;
             }
 
+            /**
+             * Builds the main body of the try operation.
+             *
+             * @param c a consumer to populate the main body of the try block
+             * @return a builder for catch and finalizer clauses
+             */
             public CatchBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
                         CoreType.functionType(VOID, resourceTypes));
@@ -4401,6 +4487,9 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
+        /**
+         * A builder for specifying the catch clauses and finalizer for a try operation.
+         */
         public static final class CatchBuilder {
             final Body.Builder ancestorBody;
             final Body.Builder resources;
@@ -4415,6 +4504,13 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // @@@ multi-catch
+            /**
+             * Adds a catch clause for handling exceptions of a specific type.
+             *
+             * @param exceptionType the type of exception handled
+             * @param c a consumer to populate the catch body
+             * @return this builder
+             */
             public CatchBuilder catch_(TypeElement exceptionType, Consumer<Block.Builder> c) {
                 Body.Builder _catch = Body.Builder.of(ancestorBody,
                         CoreType.functionType(VOID, exceptionType));
@@ -4424,6 +4520,12 @@ public sealed abstract class JavaOp extends Op {
                 return this;
             }
 
+            /**
+             * Adds a finalizer clause to the try operation.
+             *
+             * @param c a consumer to populate the finalizer body
+             * @return the complete try operation with finalizer
+             */
             public TryOp finally_(Consumer<Block.Builder> c) {
                 Body.Builder _finally = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(_finally.entryBlock());
@@ -4431,6 +4533,11 @@ public sealed abstract class JavaOp extends Op {
                 return new TryOp(resources, body, catchers, _finally);
             }
 
+            /**
+             * Completes the try operation without a finalizer clause.
+             *
+             * @return the complete try operation without finalizer
+             */
             public TryOp noFinalizer() {
                 return new TryOp(resources, body, catchers, null);
             }
@@ -4554,18 +4661,30 @@ public sealed abstract class JavaOp extends Op {
             return bodies;
         }
 
+        /**
+         * {@return the resources body, or {@code null} if this try operation has no resources}
+         */
         public Body resources() {
             return resources;
         }
 
+        /**
+         * {@return the body of the try operation}
+         */
         public Body body() {
             return body;
         }
 
+        /**
+         * {@return the catch clause bodies}
+         */
         public List<Body> catchers() {
             return catchers;
         }
 
+        /**
+         * {@return the finalizer body, or {@code null} if this try operation has no finalizer}
+         */
         public Body finalizer() {
             return finalizer;
         }
@@ -4804,6 +4923,9 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
+        /**
+         * A synthetic match-all pattern type representing an unconditional pattern.
+         */
         final class MatchAll implements Pattern {
             MatchAll() {
             }
@@ -4811,24 +4933,42 @@ public sealed abstract class JavaOp extends Op {
 
         // @@@ Pattern types
 
+        /** The synthetic type of a type test pattern. */
         JavaType PATTERN_BINDING_TYPE = JavaType.type(Type.class);
 
+        /** The synthetic type of a record pattern. */
         JavaType PATTERN_RECORD_TYPE = JavaType.type(Record.class);
 
+        /** The synthetic type of an unconditional pattern. */
         JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(MatchAll.class);
 
+        /**
+         * {@return a synthetic type for a type test pattern with the provided type}
+         * @param t the type of the type test pattern
+         */
         static JavaType bindingType(TypeElement t) {
             return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);
         }
 
+        /**
+         * {@return a synthetic type for a record pattern with the provided record type}
+         * @param t the record type
+         */
         static JavaType recordType(TypeElement t) {
             return parameterized(PATTERN_RECORD_TYPE, (JavaType) t);
         }
 
+        /**
+         * {@return a synthetic type for an unconditional pattern}
+         */
         static JavaType matchAllType() {
             return PATTERN_MATCH_ALL_TYPE;
         }
 
+        /**
+         * {@return the type bound by a synthetic type test/record pattern}
+         * @param t the synthetic pattern type
+         */
         static TypeElement targetType(TypeElement t) {
             return ((ClassType) t).typeArguments().get(0);
         }
@@ -4855,12 +4995,15 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * The binding pattern operation, that can model Java language type patterns.
+         * The binding pattern operation, that can model Java language type test patterns.
          */
         @OpDeclaration(TypePatternOp.NAME)
         public static final class TypePatternOp extends PatternOp {
             static final String NAME = "pattern.type";
 
+            /**
+             * The externalized attribute key for a pattern binding name in a type pattern operation.
+             */
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
             final TypeElement resultType;
@@ -4903,10 +5046,16 @@ public sealed abstract class JavaOp extends Op {
                 return bindingName == null ? Map.of() : Map.of("", bindingName);
             }
 
+            /**
+             * {@return the variable name bound by this type test pattern, or {@code null} if none}
+             */
             public String bindingName() {
                 return bindingName;
             }
 
+            /**
+             * {@return the type matched by this type test pattern}
+             */
             public TypeElement targetType() {
                 return Pattern.targetType(resultType());
             }
@@ -4924,6 +5073,9 @@ public sealed abstract class JavaOp extends Op {
         public static final class RecordPatternOp extends PatternOp {
             static final String NAME = "pattern.record";
 
+            /**
+             * The externalized attribute key for a record descriptor in a record pattern operation.
+             */
             public static final String ATTRIBUTE_RECORD_DESCRIPTOR = NAME + ".descriptor";
 
             final RecordTypeRef recordDescriptor;
@@ -4963,10 +5115,16 @@ public sealed abstract class JavaOp extends Op {
                 return Map.of("", recordDescriptor());
             }
 
+            /**
+             * {@return the record descriptor associated with this record pattern}
+             */
             public RecordTypeRef recordDescriptor() {
                 return recordDescriptor;
             }
 
+            /**
+             * {@return the type matched by this record pattern}
+             */
             public TypeElement targetType() {
                 return Pattern.targetType(resultType());
             }
@@ -4977,6 +5135,9 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
+        /**
+         * A pattern operation representing a match-all (unconditional) pattern.
+         */
         @OpDeclaration(MatchAllPatternOp.NAME)
         public static final class MatchAllPatternOp extends PatternOp {
 
@@ -5047,14 +5208,26 @@ public sealed abstract class JavaOp extends Op {
                 return List.of(pattern, match);
             }
 
+            /**
+             * Returns the pattern body for this match operation.
+             * @return the pattern body
+             */
             public Body pattern() {
                 return pattern;
             }
 
+            /**
+             * Returns the match body for this match operation.
+             * @return the match body
+             */
             public Body match() {
                 return match;
             }
 
+            /**
+             * Returns the target value being matched in this match operation.
+             * @return the match target value
+             */
             public Value target() {
                 return operands().get(0);
             }

@@ -40,6 +40,9 @@ public final class StringConcatTransformer implements CodeTransformer {
     private static final MethodRef SB_TO_STRING_REF = MethodRef.method(
             J_L_STRING_BUILDER, "toString", JavaType.J_L_STRING);
 
+    /**
+     * Creates a new string concatenation transformer.
+     */
     public StringConcatTransformer() {}
 
     @Override

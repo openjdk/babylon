@@ -35,6 +35,9 @@ import java.util.stream.Stream;
  */
 public sealed interface RecordTypeRef extends JavaRef
         permits RecordTypeRefImpl {
+    /**
+     * {@return the type of the record class modeled by this reference}
+     */
     TypeElement recordType();
 
     /**
@@ -44,12 +47,23 @@ public sealed interface RecordTypeRef extends JavaRef
      */
     record ComponentRef(TypeElement type, String name) {}
 
+    /**
+     * {@return the components of the record class modeled by this reference}
+     */
     List<ComponentRef> components();
 
+    /**
+     * {@return a method reference for the i-th component getter}
+     * @param i the zero-based component index
+     */
     MethodRef methodForComponent(int i);
 
     // Factories
 
+    /**
+     * {@return a record type reference for the given record class}
+     * @param c the record class
+     */
     static RecordTypeRef recordType(Class<? extends Record> c) {
         List<ComponentRef> components = Stream.of(c.getRecordComponents())
                 .map(rc -> new ComponentRef(JavaType.type(rc.getType()), rc.getName()))
@@ -57,10 +71,20 @@ public sealed interface RecordTypeRef extends JavaRef
         return recordType(JavaType.type(c), components);
     }
 
+    /**
+     * {@return a record type reference for the given record type and components}
+     * @param recordType the record type
+     * @param components the components of the record
+     */
     static RecordTypeRef recordType(TypeElement recordType, ComponentRef... components) {
         return recordType(recordType, List.of(components));
     }
 
+    /**
+     * {@return a record type reference for the given record type and components}
+     * @param recordType the record type
+     * @param components the components of the record as a list
+     */
     static RecordTypeRef recordType(TypeElement recordType, List<ComponentRef> components) {
         return new RecordTypeRefImpl(recordType, components);
     }
