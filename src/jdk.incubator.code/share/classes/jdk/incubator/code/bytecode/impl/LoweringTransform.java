@@ -310,6 +310,9 @@ public final class LoweringTransform {
         });
         Object res;
         try {
+            // @@@ workaround until JDK-8376974 Evaluate constant expressions
+            // Exposed evaluation of constant expressions should simplify this process.
+            // Then we can expose the computation of constant case values on the switch ops.
             res = BytecodeGenerator.generate(lookup, funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)).invoke();
         } catch (Throwable t) {
             throw new IllegalStateException(t);
