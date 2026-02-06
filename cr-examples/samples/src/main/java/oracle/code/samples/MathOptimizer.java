@@ -33,7 +33,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -110,7 +109,7 @@ public class MathOptimizer {
         }
     }
 
-    static void main(String[] args) throws Throwable {
+    static void main() { //throws Throwable {
 
         Optional<Method> myFunction = Stream.of(MathOptimizer.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("myFunction"))
@@ -126,8 +125,12 @@ public class MathOptimizer {
         // has been transformed.
         MethodHandle mhNewTransform = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
-        var resultBC = mhNewTransform.invoke( 10);
-        System.out.println("Result after BC generation: " + resultBC);
+        try {
+            var resultBC = mhNewTransform.invoke(10);
+            System.out.println("Result after BC generation: " + resultBC);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
 
         System.out.println("\nLet's transform the code");
         codeModel = codeModel.transform((blockBuilder, op) -> {
@@ -206,11 +209,6 @@ public class MathOptimizer {
         System.out.println("After Lowering: ");
         System.out.println(codeModel.toText());
 
-        System.out.println("\nEvaluate");
-        // The Interpreter Invoke should launch new exceptions
-        var result = Interpreter.invoke(MethodHandles.lookup(), codeModel, 10);
-        System.out.println(result);
-
         // Select invocation calls and display the lines
         System.out.println("\nPlaying with Traverse");
         codeModel.elements().forEach(e -> {
@@ -239,8 +237,12 @@ public class MathOptimizer {
         // has been transformed.
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
-        var resultBC2 = methodHandle.invoke( 10);
-        System.out.println("Result after BC generation: " + resultBC2);
+        try {
+            var resultBC2 = methodHandle.invoke(10);
+            System.out.println("Result after BC generation: " + resultBC2);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // Goal: obtain and check the value of the function parameters.

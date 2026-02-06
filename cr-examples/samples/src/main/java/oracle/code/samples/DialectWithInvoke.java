@@ -141,10 +141,6 @@ public class DialectWithInvoke {
         CoreOp.FuncOp ssaDialect = SSA.transform(dialectModel);
         System.out.println("Model with new OpNodes for SsaDialect: ");
         System.out.println(ssaDialect.toText());
-
-        // Currently, we can't interpreter a code model with dialect ops
-        //var result = Interpreter.invoke(MethodHandles.lookup(), ssaDialect,  10, 20);
-        //System.out.println("Result: " + result);
     }
 
     static void main() {
