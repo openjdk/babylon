@@ -2805,9 +2805,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     ub = types.erasure(ub);
                 }
                 yield t.tsym.owner.kind == Kind.MTH ?
-                    JavaType.typeVarRef(t.tsym.name.toString(), symbolToMethodRef(t.tsym.owner),
+                    JavaType.typeVar(t.tsym.name.toString(), symbolToMethodRef(t.tsym.owner),
                             typeToTypeElement(ub)) :
-                    JavaType.typeVarRef(t.tsym.name.toString(),
+                    JavaType.typeVar(t.tsym.name.toString(),
                             (jdk.incubator.code.dialect.java.ClassType)symbolToErasedDesc(t.tsym.owner),
                             typeToTypeElement(ub));
             }
