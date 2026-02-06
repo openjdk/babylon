@@ -206,10 +206,6 @@ public class DialectFMAOp {
 
         // 12. Transform to SSA and print the code model
         System.out.println(SSA.transform(dialectModel).toText());
-
-        // Currently, we can't interpreter a code model with dialect ops
-        //var result = Interpreter.invoke(MethodHandles.lookup(), dialectModel,  10, 20);
-        //System.out.println("Result: ");
     }
 
     static void main() {

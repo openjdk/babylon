@@ -34,7 +34,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -73,7 +72,7 @@ import java.util.List;
  */
 public class DynamicFunctionBuild {
 
-    static void main(String[] args) {
+    static void main() {
 
         CoreOp.FuncOp myFunction = CoreOp.func("rsqrt",
                 // Define the signature of our new method
@@ -120,15 +119,11 @@ public class DynamicFunctionBuild {
         // Print the code model for the function we have just created
         System.out.println(myFunction.toText());
 
-        // Run the new function in the Code Reflection's interpreter
-        Object result = Interpreter.invoke(MethodHandles.lookup(), myFunction, 100);
-        System.out.println("Evaluation in the Code Reflection's Interpreter: 1/sqrt(100) = " + result);
-
-        // Run in the Java Bytecode interpreter
+        // Generate bytecode
         MethodHandle generate = BytecodeGenerator.generate(MethodHandles.lookup(), myFunction);
         try {
-            Object resultFromBCInterpreter = generate.invoke(100);
-            System.out.println("Evaluation in the Java Bytecode Interpreter: 1/sqrt(100) = " + resultFromBCInterpreter);
+            Object result = generate.invoke(100);
+            System.out.println("Result of bytecode executions: 1/sqrt(100) = " + result);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
