@@ -27,6 +27,8 @@ package shade.types;
 import jdk.incubator.code.Reflect;
 
 public interface vec3 {
+
+
     float x();
 
     float y();
@@ -74,4 +76,20 @@ public interface vec3 {
     static vec3 div(vec3 l, vec3 r) {return vec3(l.x()/r.x(),l.y()/r.y(), l.z()/r.z());}
     default vec3 div(float scalar) {return div(this, vec3(scalar));}
     default vec3 div(vec3 rhs){return div(this,rhs);}
+    static float length(vec3 vec3){
+        return (float)Math.sqrt(vec3.x()*vec3.x()+vec3.y()*vec3.y()+vec3.z()*vec3.z());
+    }
+    default float length(){
+        return length(this);
+    }
+    static vec3 mix(vec3 l, vec3 r, float a) {
+        return vec3(
+                F32.mix(l.x(),r.x(),a),
+                F32.mix(l.y(),r.y(),a),
+                F32.mix(l.y(),r.y(),a)
+        );
+    }
+
+
+
 }

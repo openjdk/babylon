@@ -28,6 +28,7 @@ import hat.util.ui.Menu;
 import hat.util.ui.SevenSegmentDisplay;
 
 import javax.swing.JMenuBar;
+import javax.swing.JToggleButton;
 
 public class Controls {
     Menu menu;
@@ -35,6 +36,7 @@ public class Controls {
     private SevenSegmentDisplay fps7Seg;
     private SevenSegmentDisplay frame7Seg;
     private SevenSegmentDisplay elapsedMs7Seg;
+    private JToggleButton running;
 
     Controls() {
         menu = new Menu(new JMenuBar())
@@ -43,12 +45,17 @@ public class Controls {
                 .label("Frame ").sevenSegment(6, 15, $ -> frame7Seg = $).space(20)
                 .label("Elapsed (ms)").sevenSegment(6, 15, $ -> elapsedMs7Seg = $).space(20)
                 .label("Frames (per sec)").sevenSegment(4, 15, $ -> fps7Seg = $).space(20)
+                .toggle("Stop","Go",true, $->running=$,_->{})
                 .space(40);
     }
 
     Controls shaderUs(int v) {
         shaderUs7Seg.set(v);
         return this;
+    }
+
+    boolean running() {
+        return running.isSelected();
     }
 
     Controls fps(int v) {

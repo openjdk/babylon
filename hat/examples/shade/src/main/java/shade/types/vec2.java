@@ -26,6 +26,7 @@ package shade.types;
 
 import jdk.incubator.code.Reflect;
 
+
 public interface vec2 {
     float x();
 
@@ -59,6 +60,7 @@ public interface vec2 {
     static vec2 vec2(float scalar) {return vec2(scalar,scalar);}
 
     static vec2 add(vec2 l, vec2 r) {return vec2(l.x()+r.x(),l.y()+r.y());}
+    default vec2 add(float x, float y){return vec2(this.x()+x,this.y()+y);}
     default vec2 add(vec2 rhs){return add(this,rhs);}
     default vec2 add(float scalar){return add(this,vec2(scalar));}
 
@@ -69,8 +71,23 @@ public interface vec2 {
     static vec2 mul(vec2 l, vec2 r) {return vec2(l.x()*r.x(),l.y()*r.y());}
     default vec2 mul(float scalar) {return mul(this, vec2(scalar));}
     default vec2 mul(vec2 rhs){return mul(this,rhs);}
-
+    default vec2 mul(mat2 rhs){return add(this.x()*rhs._00()+this.x()+rhs._01(),this.y()*rhs._10()+this.y()+rhs._11());}
     static vec2 div(vec2 l, vec2 r) {return vec2(l.x()/r.x(),l.y()/r.y());}
     default vec2 div(float scalar) {return div(this, vec2(scalar));}
     default vec2 div(vec2 rhs){return div(this,rhs);}
+
+    static float length(vec2 vec2) {
+        return (float) F32.sqrt(vec2.x() * vec2.x() + vec2.y() * vec2.y());
+    }
+    default float length(){
+        return length(this);
+    }
+
+    default float mod(){
+        return F32.mod(x(),y());
+    }
+    default vec2 mod(float f){
+        return vec2(F32.mod(x(),f),F32.mod(y(),f));
+    }
+
 }

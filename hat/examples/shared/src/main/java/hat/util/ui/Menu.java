@@ -34,6 +34,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSlider;
+import javax.swing.JToggleButton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -52,6 +53,21 @@ public record Menu(JMenuBar menuBar) {
     public  Menu label(String text) {
         menuBar.add(new JLabel(text));
         return this;
+    }
+
+    public Menu toggle(String selected,String unselected, boolean sel, Consumer<JToggleButton> jToggleButtonConsumer,Consumer<Boolean> stateConsumer){
+        JToggleButton toggleButton = (JToggleButton) menuBar.add(new JToggleButton(unselected));
+        toggleButton.setSelected(sel);
+        jToggleButtonConsumer.accept(toggleButton);
+        toggleButton.addChangeListener(e -> {
+                    stateConsumer.accept(toggleButton.isSelected());
+                    toggleButton.setText(toggleButton.isSelected()?selected:unselected);
+                }
+        );
+        return this;
+    }
+    public Menu toggle(String selected,String unselected, boolean sel, Consumer<Boolean> stateConsumer){
+        return toggle(selected,unselected,sel,_->{}, stateConsumer);
     }
 
     public Menu slider(int min, int max, int value, Consumer<JSlider> sliderConsumer, Consumer<Integer> valueConsumer) {
