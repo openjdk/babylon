@@ -32,20 +32,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Stream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.internal.BranchTarget;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
@@ -309,7 +308,12 @@ public final class LoweringTransform {
             }
             block.op(CoreOp.return_(last));
         });
-        Object res = Interpreter.invoke(lookup, funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER));
+        Object res;
+        try {
+            res = BytecodeGenerator.generate(lookup, funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)).invoke();
+        } catch (Throwable t) {
+            throw new IllegalStateException(t);
+        }
         return switch (res) {
             case Byte b -> Integer.valueOf(b);
             case Short s -> Integer.valueOf(s);
