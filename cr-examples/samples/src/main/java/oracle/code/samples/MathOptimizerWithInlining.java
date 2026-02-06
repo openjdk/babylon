@@ -112,7 +112,7 @@ public class MathOptimizerWithInlining {
         return funcOp;
     }
 
-    public static void main() {
+    static void main() {
 
         // Obtain the code model for the annotated method
         CoreOp.FuncOp codeModel = buildCodeModelForMethod(MathOptimizerWithInlining.class, "myFunction");

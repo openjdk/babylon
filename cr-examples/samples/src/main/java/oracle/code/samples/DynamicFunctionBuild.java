@@ -119,11 +119,11 @@ public class DynamicFunctionBuild {
         // Print the code model for the function we have just created
         System.out.println(myFunction.toText());
 
-        // Run in the Java Bytecode interpreter
+        // Generate bytecode
         MethodHandle generate = BytecodeGenerator.generate(MethodHandles.lookup(), myFunction);
         try {
-            Object resultFromBCInterpreter = generate.invoke(100);
-            System.out.println("Evaluation in the Java Bytecode Interpreter: 1/sqrt(100) = " + resultFromBCInterpreter);
+            Object result = generate.invoke(100);
+            System.out.println("Result of bytecode executions: 1/sqrt(100) = " + result);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

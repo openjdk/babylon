@@ -126,8 +126,8 @@ public class MathOptimizer {
         MethodHandle mhNewTransform = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
         try {
-            var resultBC = mhNewTransform.invoke(10);
-            System.out.println("Result after BC generation: " + resultBC);
+            var result = mhNewTransform.invoke(10);
+            System.out.println("Result after BC generation: " + result);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -238,8 +238,8 @@ public class MathOptimizer {
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
         try {
-            var resultBC2 = methodHandle.invoke(10);
-            System.out.println("Result after BC generation: " + resultBC2);
+            var result = methodHandle.invoke(10);
+            System.out.println("Result after BC generation: " + result);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
