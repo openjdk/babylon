@@ -249,6 +249,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * control to one of those blocks.
      */
     public interface BlockTerminating extends Terminating {
+        /**
+         * {@return the list of successor blocks associated with this block terminating operation}
+         */
         List<Block.Reference> successors();
     }
 
@@ -675,6 +678,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * {@code java.lang.reflect.code.op.CoreOps.FuncOp}.
      * Note: due to circular dependencies we cannot refer to the type explicitly.
      *
+     * @param processingEnvironment the annotation processing environment
      * @param e the executable element.
      * @return the code model of the provided executable element (if any).
      */
