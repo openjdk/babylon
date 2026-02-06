@@ -32,14 +32,12 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
-
-import static optkl.ifacemapper.MappableIface.RW;
 
 public class TestPrivate {
 
@@ -61,7 +59,7 @@ public class TestPrivate {
     }
 
     @Reflect
-    private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
+    private static void compute(@RO KernelContext kernelContext, @WO F32Array data) {
         PrivateArray privateArray = PrivateArray.createPrivate();
         int lix = kernelContext.lix;
         int blockId = kernelContext.bix;
@@ -71,7 +69,7 @@ public class TestPrivate {
     }
 
     @Reflect
-    private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
+    private static void myCompute(@RO ComputeContext computeContext, @WO F32Array data) {
         computeContext.dispatchKernel(NDRange.of1D(32),
                 kernelContext -> compute(kernelContext, data)
         );

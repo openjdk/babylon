@@ -38,9 +38,7 @@ import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
+import optkl.ifacemapper.MappableIface.*;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -249,11 +247,9 @@ public class TestArrayView {
     public static class Compute {
         @Reflect
         // TODO: switch cellGridRes to WO
-        public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
+        public static void lifePerIdx(int idx, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
             int w = cellGrid.width();
             int h = cellGrid.height();
-           // int from = control.from();
-           // int to = control.to();
             int x = idx % w;
             int y = idx / w;
 
@@ -294,16 +290,16 @@ public class TestArrayView {
         }
 
         @Reflect
-        public static void life(@RO KernelContext kc, @RO Control control, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
+        public static void life(@RO KernelContext kc, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
             if (kc.gix < kc.gsx) {
-                Compute.lifePerIdx(kc.gix, control, cellGrid, cellGridRes);
+                Compute.lifePerIdx(kc.gix, cellGrid, cellGridRes);
             }
         }
 
         @Reflect
-        static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RO CellGrid grid, @RW CellGrid gridRes) {
+        static public void compute(final @RO ComputeContext cc, @RO CellGrid grid, @RW CellGrid gridRes) {
             int range = grid.width() * grid.height();
-            cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, ctrl, grid, gridRes));
+            cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, grid, gridRes));
         }
     }
 
@@ -358,9 +354,9 @@ public class TestArrayView {
             }
         }
 
-        Control control = Control.create(accelerator, cellGrid);
+        // Control control = Control.create(accelerator, cellGrid);
 
-        accelerator.compute(cc -> Compute.compute(cc, control, cellGrid, cellGridRes));
+        accelerator.compute(cc -> Compute.compute(cc, cellGrid, cellGridRes));
 
         byte[][] resultGrid = lifeCheck(cellGrid);
 
@@ -464,8 +460,8 @@ public class TestArrayView {
      */
     @Reflect
     public static void blackScholesKernel(@RO KernelContext kc,
-                                          @WO F32Array call,
-                                          @WO F32Array put,
+                                          @RW F32Array call,
+                                          @RW F32Array put,
                                           @RO F32Array sArray,
                                           @RO F32Array xArray,
                                           @RO F32Array tArray,
@@ -518,7 +514,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
+    public static void blackScholes(@RO ComputeContext cc, @RW F32Array call, @RW F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );

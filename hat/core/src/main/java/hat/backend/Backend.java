@@ -25,11 +25,13 @@
 package hat.backend;
 
 
+import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -116,9 +118,14 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
                         if (invoke.isMappableIface() && (invoke.returns(MappableIface.class) || invoke.returnsPrimitive())) {
                             Value computeContext = c.getValue(paramTable.list().getFirst().parameter);
                             Value ifaceMappedBuffer = c.mappedOperand(0);
-                            c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
-                            c.retain();
-                            c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
+                            // if the "ifaceMappedBuffer" is an accelerator, we don't insert the pre/post mutate/access - e.g. ComputeHeal::bestFitCompute()
+                            if (((Op.Result) ifaceMappedBuffer).op() instanceof JavaOp.InvokeOp invokeOp && invoke(lookup, invokeOp).returns(Accelerator.class)) {
+                                c.retain();
+                            } else {
+                                c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.pre : ACCESS.pre, computeContext, ifaceMappedBuffer));
+                                c.retain();
+                                c.add(JavaOp.invoke(invoke.returnsVoid() ? MUTATE.post : ACCESS.post, computeContext, ifaceMappedBuffer));
+                            }
                         } else if (!invoke.refIs(ComputeContext.class) && invoke.operandCount() > 0) {
                             List<AccessType.TypeAndAccess> typeAndAccesses = invoke.paramaterAccessList();
                             Value computeContext = c.getValue(paramTable.list().getFirst().parameter);
