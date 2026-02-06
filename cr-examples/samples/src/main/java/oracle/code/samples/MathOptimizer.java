@@ -109,7 +109,7 @@ public class MathOptimizer {
         }
     }
 
-    static void main() { //throws Throwable {
+    static void main() {
 
         Optional<Method> myFunction = Stream.of(MathOptimizer.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("myFunction"))
