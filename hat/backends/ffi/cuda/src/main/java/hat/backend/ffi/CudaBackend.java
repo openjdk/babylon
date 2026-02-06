@@ -30,7 +30,6 @@ import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.analysis.SSA;
 import optkl.Trxfmr;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.util.CallSite;
@@ -44,6 +43,7 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.SSA;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;

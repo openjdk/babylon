@@ -25,7 +25,7 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
