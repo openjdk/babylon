@@ -1248,9 +1248,6 @@ public sealed abstract class CoreOp extends Op {
         /**
          * {@return the component index of this tuple load operation}
          */
-        /**
-         * {@return the component index of this tuple load operation}
-         */
         public int index() {
             return index;
         }
