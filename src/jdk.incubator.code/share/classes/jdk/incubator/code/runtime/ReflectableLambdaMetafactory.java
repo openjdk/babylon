@@ -16,6 +16,10 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.SerializedLambda;
 
+/**
+ * Provides runtime support for creating reflectable lambdas.
+ * @see LambdaMetafactory
+ */
 public class ReflectableLambdaMetafactory {
 
     private ReflectableLambdaMetafactory() {

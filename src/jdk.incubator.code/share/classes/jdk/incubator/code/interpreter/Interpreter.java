@@ -592,11 +592,11 @@ public final class Interpreter {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.AssertOp _assert) {
-            Body testBody = _assert.bodies.get(0);
+            Body testBody = _assert.bodies().get(0);
             boolean testResult = (boolean) interpretBody(l, testBody, oc, List.of());
             if (!testResult) {
-                if (_assert.bodies.size() > 1) {
-                    Body messageBody = _assert.bodies.get(1);
+                if (_assert.bodies().size() > 1) {
+                    Body messageBody = _assert.bodies().get(1);
                     String message = String.valueOf(interpretBody(l, messageBody, oc, List.of()));
                     throw new AssertionError(message);
                 } else {
