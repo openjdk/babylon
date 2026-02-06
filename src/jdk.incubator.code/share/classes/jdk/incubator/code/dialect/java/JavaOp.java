@@ -1596,21 +1596,11 @@ public sealed abstract class JavaOp extends Op {
      * The binary arithmetic operation.
      */
     public sealed static abstract class BinaryOp extends ArithmeticOperation {
-        /**
-         * Constructs a binary operation from another binary operation and code context.
-         * @param that the source binary operation
-         * @param cc the code context
-         */
-        protected BinaryOp(BinaryOp that, CodeContext cc) {
+        BinaryOp(BinaryOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        /**
-         * Constructs a binary operation with the given operands.
-         * @param lhs the first operand
-         * @param rhs the second operand
-         */
-        protected BinaryOp(Value lhs, Value rhs) {
+        BinaryOp(Value lhs, Value rhs) {
             super(List.of(lhs, rhs));
         }
 
@@ -1642,21 +1632,11 @@ public sealed abstract class JavaOp extends Op {
      * The binary test operation.
      */
     public sealed static abstract class BinaryTestOp extends TestOperation {
-        /**
-         * Constructs a binary test operation from another binary test operation and code context.
-         * @param that the source binary test operation
-         * @param cc the code context
-         */
-        protected BinaryTestOp(BinaryTestOp that, CodeContext cc) {
+        BinaryTestOp(BinaryTestOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        /**
-         * Constructs a binary test operation with left-hand side and right-hand side values.
-         * @param lhs left-hand side value
-         * @param rhs right-hand side value
-         */
-        protected BinaryTestOp(Value lhs, Value rhs) {
+        BinaryTestOp(Value lhs, Value rhs) {
             super(List.of(lhs, rhs));
         }
 
@@ -2739,10 +2719,6 @@ public sealed abstract class JavaOp extends Op {
             final Body.Builder ancestorBody;
             final List<Body.Builder> bodies;
 
-            /**
-             * Constructs an if operation.
-             * @param ancestorBody the block context to use
-             */
             IfBuilder(Body.Builder ancestorBody) {
                 this.ancestorBody = ancestorBody;
                 this.bodies = new ArrayList<>();
