@@ -479,7 +479,6 @@ public final class OnnxLift {
             String className = args.length > 2 ? args[2] : "Model";
             try (var in = new RandomAccessFile(source.toFile(), "r")) {
                 OnnxModel.ModelProto protoModel = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
-                System.out.println(protoModel.toText(true));
                 LiftedModelWrapper liftedModel = lift(protoModel.graph());
 
                 IO.println(colorModelToANSI(liftedModel.toText()));
