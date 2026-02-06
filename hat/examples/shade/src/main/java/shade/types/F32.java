@@ -42,10 +42,15 @@ public interface F32 {
         return x<edge?0f:1f;
     }
 
+    static float abs(float f){return (float)Math.abs(f);}
+
 
     static float mod(float x, float y){
         return x - y * F32.floor(x/y);
     }
 
 
+    static float fract(float f) {
+        return f - floor(f);
+    }
 }
