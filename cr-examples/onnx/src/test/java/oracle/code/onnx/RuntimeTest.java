@@ -205,4 +205,20 @@ public class RuntimeTest {
             SimpleTest.assertEquals(a, customFunction.run(arena, List.of(a)).getFirst());
         }
     }
+
+    @Test
+    public void testStringTensor() throws Exception {
+        var ort = OnnxRuntime.getInstance();
+        try (Arena arena = Arena.ofConfined()) {
+            var a = Tensor.ofFlat("Hello ");
+            var b = Tensor.ofFlat("A", "B", "C", "D", "E", "F", "G");
+            var concat = ort.createSession(arena, buildModel(
+                    List.of(),
+                    List.of(tensorInfo("x", STRING.id), tensorInfo("y", STRING.id)),
+                    List.of(node("StringConcat", List.of("x", "y"), List.of("z"), Map.of())),
+                    List.of("z")));
+            assertEquals(List.of("Hello A", "Hello B", "Hello C", "Hello D", "Hello E", "Hello F", "Hello G"),
+                         concat.run(arena, List.of(a, b)).getFirst().dataAsStrings());
+        }
+    }
 }
