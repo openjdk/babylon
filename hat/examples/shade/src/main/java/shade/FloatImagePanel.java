@@ -176,7 +176,7 @@ public class FloatImagePanel extends JPanel implements Runnable {
     public void run() {
         long startTimeNs = System.nanoTime();
 
-        double nsPerTick = 1000000000.0 / 60.0; // 60 Fixed Updates per second
+        double nsPerTick = 1000000000.0 / 30.0; // 30 Fixed Updates per second
         double delta = 0;
         long lastTimeNs = System.nanoTime();
         while (running) {

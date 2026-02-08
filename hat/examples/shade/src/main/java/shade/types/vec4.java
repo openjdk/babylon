@@ -57,11 +57,9 @@ public interface vec4 {
         }
     }
 
-    record Impl(float x, float y, float z, float w) implements vec4 {
-    }
-
-
     static vec4 vec4(float x, float y, float z, float w) {
+        record Impl(float x, float y, float z, float w) implements vec4 {
+        }
         return new Impl(x, y, z, w);
     }
     static vec4 vec4(vec4 vec4) {return vec4(vec4.x(), vec4.y(), vec4.z(), vec4.w());}
@@ -84,10 +82,28 @@ public interface vec4 {
     static vec4 div(vec4 l, vec4 r) {return vec4(l.x()/r.x(),l.y()/r.y(), l.z()/r.z(),l.w()/r.w());}
     default vec4 div(float scalar) {return div(this, vec4(scalar));}
     default vec4 div(vec4 rhs){return div(this,rhs);}
+
     static vec4 clamp(vec4 rhs,float min, float max){
         return vec4(Math.clamp(rhs.x(),min,max),Math.clamp(rhs.y(),min,max),Math.clamp(rhs.z(),min,max),Math.clamp(rhs.w(),min,max));
     }
     default vec4 clamp(float min, float max){
         return clamp(this,min,max);
+    }
+
+
+    static vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 vec4){
+        return vec4(
+                F32.smoothstep(edge0.x(),edge1.x(), vec4.x()),
+                F32.smoothstep(edge0.y(),edge1.y(), vec4.y()),
+                F32.smoothstep(edge0.z(),edge1.z(), vec4.z()),
+                F32.smoothstep(edge0.w(),edge1.w(), vec4.w())
+        );
+    }
+
+    static vec4 cos(vec4 vec4){
+        return vec4(F32.cos(vec4.x()), F32.cos(vec4.y()),F32.cos(vec4.z()) ,F32.cos(vec4.w()));
+    }
+    static vec4 sin(vec4 vec4){
+        return vec4(F32.sin(vec4.x()), F32.sin(vec4.y()),F32.sin(vec4.z()) ,F32.sin(vec4.w()));
     }
 }

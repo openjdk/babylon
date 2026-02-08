@@ -46,16 +46,10 @@ public interface ivec2 {
         }
     }
 
-    record Impl(int x, int y) implements ivec2 {
-    }
-
-    //static ivec2 of(int x, int y) {
-     //   return new Impl(x, y);
-   // }
-
 
     static ivec2 ivec2(int x, int y) {
-        return new ivec2.Impl(x, y);
+        record Impl(int x, int y) implements ivec2 { }
+        return new Impl(x, y);
     }
     static ivec2 ivec2(ivec2 ivec2) {return ivec2(ivec2.x(), ivec2.y());}
     static ivec2 ivec2(int scalar) {return ivec2(scalar,scalar);}
