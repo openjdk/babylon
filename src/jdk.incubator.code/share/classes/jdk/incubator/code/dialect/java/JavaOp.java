@@ -2702,7 +2702,16 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The if operation, that can model Java language if, if-then, and if-then-else statements.
+     * The if operation, that can model Java language if statements (JLS 14.9).
+     * <p>
+     * If operations feature multiple nested bodies. Some bodies, called <em>predicate bodies</em>,
+     * are used to model predicates which determines which execution
+     * path the evaluation of the if operation should take. Other bodies, called <em>statements bodies</em>
+     * are used to model the actual list of statements to be executed should the predicate associated with that body
+     * be satisfied.
+     * <p>
+     * Predicate bodies should accept no argument and return a {@link JavaType#BOOLEAN} value.
+     * Statements bodies similarly accept no arguments, and return {@linkplain JavaType#VOID no value}.
      */
     @OpDeclaration(IfOp.NAME)
     public static final class IfOp extends JavaOp
@@ -2713,7 +2722,7 @@ public sealed abstract class JavaOp extends Op {
         static final FunctionType ACTION_TYPE = CoreType.FUNCTION_TYPE_VOID;
 
         /**
-         * Builder for the initial condition branch of an if operation.
+         * Builder for the initial predicate body of an if operation.
          */
         public static class IfBuilder {
             final Body.Builder ancestorBody;
@@ -2725,9 +2734,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Begins an if-branch with the given predicate builder.
-             * @param c a consumer for the predicate body
-             * @return a then-branch builder to complete the if operation
+             * Begins an if operation from a predicate body obtained using the provided builder.
+             * @param c a consumer for the predicate body builder
+             * @return a builder to add a statements body to the if operation
              */
             public ThenBuilder if_(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
@@ -2739,7 +2748,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the then-branch of an if operation.
+         * Builder for the statements body of an if operation.
          */
         public static class ThenBuilder {
             final Body.Builder ancestorBody;
@@ -2751,9 +2760,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a then-branch with the given body.
-             * @param c a consumer for the then-branch body
-             * @return a builder for further else-if-/else-branches
+             * Adds a statements body to the if operation obtained using the provided builder.
+             * @param c a consumer for the statements body builder
+             * @return a builder for further predicate and statements bodies
              */
             public ElseIfBuilder then(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -2764,8 +2773,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a then-branch with an empty body.
-             * @return a builder for further else-if-/else-branches
+             * Adds an empty statements body to the if operation
+             * @return a builder for further predicate and statements bodies
              */
             public ElseIfBuilder then() {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -2777,7 +2786,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for additional else-if-/else-branches of an if operation.
+         * Builder for additional predicate and statements bodies of an if operation.
          */
         public static class ElseIfBuilder {
             final Body.Builder ancestorBody;
@@ -2789,9 +2798,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an else-if-branch to the if operation.
-             * @param c a consumer for the else-if predicate
-             * @return a then-branch builder for the else-if body
+             * Adds a predicate body to the if operation obtained using the provided builder.
+             * @param c a consumer for the predicate body builder
+             * @return a builder to add a statements body to the if operation
              */
             public ThenBuilder elseif(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
@@ -2802,8 +2811,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an else-branch with the given body.
-             * @param c a consumer for the else-branch body
+             * Complete the if operation with the statements body obtained using the provided builder
+             * @param c a consumer for the statements body builder
              * @return the completed if operation
              */
             public IfOp else_(Consumer<Block.Builder> c) {
@@ -2815,7 +2824,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an else-branch with an empty body.
+             * Complete the if operation with an empty statements body
              * @return the completed if operation
              */
             public IfOp else_() {
