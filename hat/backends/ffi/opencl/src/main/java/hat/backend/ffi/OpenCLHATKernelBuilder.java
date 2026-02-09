@@ -289,6 +289,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     return "half_exp";
                 }
             }
+            case "cosf" -> {
+                return "cos";
+            }
+            case "sinf" -> {
+                return "sin";
+            }
         }
         return hatMathIntrinsicName;
     }

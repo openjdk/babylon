@@ -40,6 +40,7 @@ import hat.dialect.ReducedFloatType;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.HAType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
@@ -351,6 +352,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         var fieldAccess = fieldAccess(scopedCodeBuilderContext().lookup(),fieldLoadOp);
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive()) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
+
+            // Experiment: if it is float, then generate "f"
+            PrimitiveType primitiveType = (PrimitiveType) fieldLoadOp.resultType();
+            if (primitiveType.toBasicType() == JavaType.FLOAT) {
+                emitText("f");
+            }
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOp);
         }
