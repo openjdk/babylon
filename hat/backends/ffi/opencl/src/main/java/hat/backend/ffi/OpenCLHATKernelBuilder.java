@@ -295,6 +295,18 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             case "sinf" -> {
                 return "sin";
             }
+            case "tanf" -> {
+                return "tan";
+            }
+            case "native_cosf" -> {
+                return "native_cos";
+            }
+            case "native_sinf" -> {
+                return "native_sin";
+            }
+            case "native_tanf" -> {
+                return "native_tan";
+            }
         }
         return hatMathIntrinsicName;
     }

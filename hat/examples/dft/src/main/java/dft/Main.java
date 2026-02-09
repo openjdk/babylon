@@ -111,8 +111,8 @@ public class Main {
             for (int k = 0; k < size; k++) {
                 float angle = -2 * HATMath.PI * ((k * idx) % size) / size;
                 Complex complexInput = input.complex(k);
-                float cReal = HATMath.cosf(angle);
-                float cImag = HATMath.sinf(angle);
+                float cReal = HATMath.native_cosf(angle);
+                float cImag = HATMath.native_sinf(angle);
                 sumReal += (complexInput.real() * cReal) - (complexInput.imag() * cImag);
                 sumImag += (complexInput.real() * cImag) + (complexInput.imag() * cReal);
             }
@@ -137,8 +137,8 @@ public class Main {
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {
                 float angle = -2 * HATMath.PI * ((idx * k) % size) / size;
-                float cReal = HATMath.cosf(angle);
-                float cImag = HATMath.sinf(angle);
+                float cReal = HATMath.native_cosf(angle);
+                float cImag = HATMath.native_sinf(angle);
                 sumReal += (inReal.array(k) * cReal) - (inImag.array(k) * cImag);
                 sumImag += (inReal.array(k) * cImag) + (inImag.array(k) * cReal);
             }

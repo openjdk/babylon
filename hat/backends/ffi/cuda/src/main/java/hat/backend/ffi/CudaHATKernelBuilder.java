@@ -414,6 +414,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     return "expf";
                 }
             }
+            case "native_cosf" -> {
+                return "__cosf";
+            }
+            case "native_sinf" -> {
+                return "__sinf";
+            }
+            case "native_tanf" -> {
+                return "__tanf";
+            }
         }
         return hatMathIntrinsicName;
     }

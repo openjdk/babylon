@@ -60,6 +60,10 @@ public class HATMath {
         return Math.cos(a);
     }
 
+    public static float native_cosf(float a) {
+        return (float) Math.cos(a);
+    }
+
     public static float exp(float a) {
         return (float) Math.exp(a);
     }
@@ -85,16 +89,24 @@ public class HATMath {
         return Math.sin(a);
     }
 
+    public static float native_sinf(float a) {
+        return (float) Math.sin(a);
+    }
+
     public static double sqrt(double a) {
         return Math.sqrt(a);
     }
 
-    public static float tan(float a) {
+    public static float tanf(float a) {
         return (float) Math.tan(a);
     }
 
     public static double tan(double a) {
         return Math.tan(a);
+    }
+
+    public static float native_tanf(float a) {
+        return (float) Math.tan(a);
     }
 
     private HATMath() {}

@@ -191,7 +191,7 @@ public class TestHATMathLib {
     private static void testMathLib09(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
-            float result = HATMath.tan(fa);
+            float result = HATMath.tanf(fa);
             b.array(kc.gix, result);
         }
     }
