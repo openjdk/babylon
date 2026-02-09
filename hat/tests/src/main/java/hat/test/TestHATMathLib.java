@@ -161,7 +161,7 @@ public class TestHATMathLib {
     private static void testMathLib07(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
-            float result = HATMath.cos(fa);
+            float result = HATMath.cosf(fa);
             b.array(kc.gix, result);
         }
     }
@@ -176,7 +176,7 @@ public class TestHATMathLib {
     private static void testMathLib08(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
-            float result = HATMath.sin(fa);
+            float result = HATMath.sinf(fa);
             b.array(kc.gix, result);
         }
     }

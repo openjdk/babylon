@@ -132,8 +132,8 @@ public class Main {
             for (int k = 0; k < size; k += s) {
                 // ωm <- exp(−2πi/m)
                 float angle = 2 * HATMath.PI * k / s;
-                float wmReal = HATMath.cos(angle);
-                float wmImag = -HATMath.sin(angle);
+                float wmReal = HATMath.cosf(angle);
+                float wmImag = -HATMath.sinf(angle);
 
                 // w <- 1
                 float wReal = 1.0f;

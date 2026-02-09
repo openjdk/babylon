@@ -52,7 +52,7 @@ public class HATMath {
     }
 
     // Unary operations
-    public static float cos(float a) {
+    public static float cosf(float a) {
         return (float) Math.cos(a);
     }
 
@@ -77,7 +77,7 @@ public class HATMath {
         return (float) Math.sqrt(a);
     }
 
-    public static float sin(float a) {
+    public static float sinf(float a) {
         return (float) Math.sin(a);
     }
 
