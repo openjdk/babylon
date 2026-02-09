@@ -25,6 +25,7 @@
 
 package hat;
 
+import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
