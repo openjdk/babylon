@@ -23,17 +23,16 @@
  * questions.
  */
 
-package jdk.incubator.code.analysis;
+package jdk.incubator.code.dialect.java;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.java.*;
 
 import java.util.*;
 
 /**
- * StringConcatTransformer is an {@link CodeTransformer} that removes concatenation operations
- * from blocks and replaces them with equivalent {@link java.lang.StringBuilder} operations. This provides a pathway
- * to remove {@link jdk.incubator.code.dialect.java.JavaOp.ConcatOp} for easier lowering to Bytecode.
+ * A {@link CodeTransformer code transformer} that replaces
+ * {@link jdk.incubator.code.dialect.java.JavaOp.ConcatOp string concatenation operations}
+ * with equivalent {@link java.lang.StringBuilder} operations.
  */
 public final class StringConcatTransformer implements CodeTransformer {
 
@@ -41,6 +40,9 @@ public final class StringConcatTransformer implements CodeTransformer {
     private static final MethodRef SB_TO_STRING_REF = MethodRef.method(
             J_L_STRING_BUILDER, "toString", JavaType.J_L_STRING);
 
+    /**
+     * Creates a new string concatenation transformer.
+     */
     public StringConcatTransformer() {}
 
     @Override
@@ -105,6 +107,4 @@ public final class StringConcatTransformer implements CodeTransformer {
         MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, type);
         return JavaOp.invoke(methodDesc, builder, arg);
     }
-
-
 }

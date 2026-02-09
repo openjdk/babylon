@@ -27,12 +27,13 @@ package oracle.code.samples;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.Inliner;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.interpreter.Interpreter;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -71,7 +72,7 @@ public class InlineExample {
         return funcOp;
     }
 
-    public static void main(String[] args) {
+    static void main() {
 
         // 1. Build the code model for the fma static method of this class.
         CoreOp.FuncOp fmaCodeModel = buildCodeModelForMethod(InlineExample.class, "fma");
@@ -101,9 +102,13 @@ public class InlineExample {
         // 3. Print the resulting code model
         System.out.println(f.toText());
 
-        // 4. Evaluate the code model using the Code Reflection Interpreter
-        var result = Interpreter.invoke(MethodHandles.lookup(), f, 10.f, 20.f);
-        // We expect: 10 * 50 + 20 => 520.0f
-        System.out.println("Result: " + result);
+        // 4. Generate bytecodes from the code model.
+        MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), f);
+        try {
+            var res = methodHandle.invoke(10.f, 20.f);
+            System.out.println("Result from bytecode generation: " + res);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 }

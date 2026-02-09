@@ -28,6 +28,8 @@ package oracle.code.onnx;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.List;
+import java.util.stream.LongStream;
 
     /*
 class DataType(enum.IntEnum):
@@ -97,12 +99,19 @@ public class Tensor<T> extends OnnxNumber {
         return ofShape(arena, SCALAR_SHAPE, f);
     }
 
-
     public static Tensor<Byte> ofFlat(byte... values) {
         return ofShape(new long[]{values.length}, values);
     }
 
     public static Tensor<Byte> ofFlat(Arena arena, byte... values) {
+        return ofShape(arena, new long[]{values.length}, values);
+    }
+
+    public static Tensor<Integer> ofFlat(int... values) {
+        return ofShape(new long[]{values.length}, values);
+    }
+
+    public static Tensor<Integer> ofFlat(Arena arena, int... values) {
         return ofShape(arena, new long[]{values.length}, values);
     }
 
@@ -122,12 +131,28 @@ public class Tensor<T> extends OnnxNumber {
         return ofShape(arena, new long[]{values.length}, values);
     }
 
+    public static Tensor<String> ofFlat(String... s) {
+        return ofShape(new long[]{s.length}, s);
+    }
+
+    public static Tensor<String> ofFlat(Arena arena, String... s) {
+        return ofShape(arena, new long[]{s.length}, s);
+    }
+
     public static Tensor<Byte> ofShape(long[] shape, byte... values) {
         return ofShape(Arena.ofAuto(), shape, values);
     }
 
     public static Tensor<Byte> ofShape(Arena arena, long[] shape, byte... values) {
         return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_BYTE, values), ElementType.UINT8, shape);
+    }
+
+    public static Tensor<Integer> ofShape(long[] shape, int... values) {
+        return ofShape(Arena.ofAuto(), shape, values);
+    }
+
+    public static Tensor<Integer> ofShape(Arena arena, long[] shape, int... values) {
+        return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_INT, values), ElementType.INT32, shape);
     }
 
     public static Tensor<Long> ofShape(long[] shape, long... values) {
@@ -154,6 +179,15 @@ public class Tensor<T> extends OnnxNumber {
         return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_BYTE, rawData), elementType, shape);
     }
 
+    public static Tensor<String> ofShape(long[] shape, String... values) {
+        return ofShape(Arena.ofAuto(), shape, values);
+    }
+
+    public static Tensor<String> ofShape(Arena arena, long[] shape, String... values) {
+        MemorySegment tensorAddr = OnnxRuntime.getInstance().createStringTensor(arena, values, shape);
+        return new Tensor(OnnxRuntime.getInstance().tensorData(tensorAddr), tensorAddr);
+    }
+
     // Mandatory reference to dataAddr to avoid its garbage colletion
     private final MemorySegment dataAddr;
     final MemorySegment tensorAddr;
@@ -177,6 +211,14 @@ public class Tensor<T> extends OnnxNumber {
 
     public MemorySegment data() {
         return dataAddr;
+    }
+
+    public List<String> dataAsStrings() {
+        if (elementType() != ElementType.STRING) {
+            throw new IllegalStateException("Not a String tensor.");
+        }
+        return LongStream.range(0, OnnxRuntime.getInstance().tensorShapeElementCount(tensorAddr))
+                .mapToObj(i -> OnnxRuntime.getInstance().stringTensorElement(tensorAddr, i)).toList();
     }
 
     public enum ElementType {
@@ -228,7 +270,7 @@ public class Tensor<T> extends OnnxNumber {
                 case UINT32, INT32, FLOAT -> 32;
                 case UINT64, INT64, DOUBLE, COMPLEX64 -> 64;
                 case COMPLEX128 -> 128;
-                case STRING -> -1;
+                case STRING -> 192; // @@@ a magic number?
             };
         }
 

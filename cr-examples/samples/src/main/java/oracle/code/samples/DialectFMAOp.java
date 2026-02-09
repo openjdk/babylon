@@ -31,8 +31,8 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
@@ -206,10 +206,6 @@ public class DialectFMAOp {
 
         // 12. Transform to SSA and print the code model
         System.out.println(SSA.transform(dialectModel).toText());
-
-        // Currently, we can't interpreter a code model with dialect ops
-        //var result = Interpreter.invoke(MethodHandles.lookup(), dialectModel,  10, 20);
-        //System.out.println("Result: ");
     }
 
     static void main() {

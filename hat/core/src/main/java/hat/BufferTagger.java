@@ -25,15 +25,14 @@
 
 package hat;
 
-import jdk.incubator.code.analysis.SSA;
-import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.*;
-import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.Inliner;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.*;
 import optkl.util.Mutable;
 

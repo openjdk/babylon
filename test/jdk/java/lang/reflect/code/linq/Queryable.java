@@ -22,7 +22,7 @@
  */
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.Inliner;
+import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,35 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
 
-import hat.Accelerator;
-import optkl.ifacemapper.BoundSchema;
-import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.Schema;
-
-public interface XYRGBList extends Buffer {
-    interface XYRGB extends Buffer.Struct{
-        int x();
-        int y();
-        void y(int y);
-        void x(int x);
-        int r();
-        int g();
-        int b();
-        void r(int r);
-        void g(int g);
-        void b(int b);
-    }
-    int length();
-    XYRGB xyrgb(long idx);
-    Schema<XYRGBList> schema= Schema.of(XYRGBList.class, s->s
-            .arrayLen("length")
-            .array("xyrgb", xy->xy
-                    .fields("x","y","r","g","b")
-            )
-    );
-    static XYRGBList create(Accelerator accelerator, Selection selection) {
-        return  BoundSchema.of(accelerator ,schema,selection.pointList.size()).allocate();
-    }
-}
+/**
+ * Low-level runtime support for code models
+ */
+package jdk.incubator.code.runtime;

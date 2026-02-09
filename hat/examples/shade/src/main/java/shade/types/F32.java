@@ -22,8 +22,35 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package shade.types;
 
-/**
- * Functionality for analysing code models.
- */
-package jdk.incubator.code.analysis;
+public interface F32 {
+    float PI = (float)Math.PI;
+    float E = (float)Math.E;
+    static float sqrt(float f){return (float)Math.sqrt(f);}
+    static float cos(float f){return (float)Math.cos(f);}
+    static float sin(float f){return (float)Math.sin(f);}
+    static float tan(float f){return (float)Math.tan(f);}
+    static float floor(float f){return (float)Math.floor(f);}
+    static float mix(float x, float y, float a){return x*(1f-a)+y*a; }
+    static float pow(float x, float pow){return (float)Math.pow(x,pow); }
+    static float smoothstep(float edge0, float edge1, float x ){
+        float t = (float)Math.clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+        return t * t * (3.0f - 2.0f * t);
+    }
+    static float step(float edge, float x ){
+        return x<edge?0f:1f;
+    }
+
+    static float abs(float f){return (float)Math.abs(f);}
+
+
+    static float mod(float x, float y){
+        return x - y * F32.floor(x/y);
+    }
+
+
+    static float fract(float f) {
+        return f - floor(f);
+    }
+}

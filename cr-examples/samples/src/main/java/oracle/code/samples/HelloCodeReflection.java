@@ -28,10 +28,9 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.dialect.core.SSA;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -78,7 +77,7 @@ public class HelloCodeReflection {
         return Math.pow(this.value, 2);
     }
 
-    static void main(String[] args) {
+    static void main() {
 
         System.out.println("Hello Code Reflection!");
 
@@ -106,19 +105,13 @@ public class HelloCodeReflection {
         System.out.println("SSA Representation of a code model");
         System.out.println(ssaCodeModel.toText());
 
-        // 4. Evaluate a code model
-        // Note: because it is an instance method, the first parameter refers to `this`.
-        var result = Interpreter.invoke(MethodHandles.lookup(), ssaCodeModel, obj, 10);
-        System.out.println("Evaluate a code model");
-        System.out.println(result);
-
-        // 5. We can obtain parameters to the method
+        // 4. We can obtain parameters to the method
         Block.Parameter _this = ssaCodeModel.body().entryBlock().parameters().get(0);
         System.out.println("First parameter: " + _this);
         Block.Parameter _second = ssaCodeModel.body().entryBlock().parameters().get(1);
         System.out.println("Second parameter: " + _second);
 
-        // 6. Generate bytecodes from the lowered code model.
+        // 5. Generate bytecodes from the lowered code model.
         // Note: The BytecodeGenerator.generate method receives a code model, and returns
         // a method handle to be able to invoke the code.
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), ssaCodeModel);
@@ -129,7 +122,7 @@ public class HelloCodeReflection {
             throw new RuntimeException(e);
         }
 
-        // 7. AST Printer
+        // 6. AST Printer
         // Just for illustration purposes, this is another way to print a code model,
         // traversing each element until we reach the parent
         codeModel.elements().forEach(codeElement -> {

@@ -22,50 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
-
-import hat.Accelerator;
-import optkl.ifacemapper.BoundSchema;
-import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.Schema;
-
-public interface Box extends Buffer {
-    int x1();
-
-    int y1();
-
-    void y1(int y1);
-
-    void x1(int x1);
-
-    int x2();
-
-    int y2();
-
-    void y2(int y2);
-
-    void x2(int x2);
-
-
-    void width(int width);
-    void height(int height);
-    int width();
-    int height();
-    int area();
-    void area(int area);
-    Schema<Box> schema = Schema.of(Box.class, s ->
-            s.fields("x1", "y1", "x2", "y2", "width", "height", "area")
-    );
-
-    static Box create(Accelerator accelerator, int x1, int y1, int x2, int y2) {
-        Box box = BoundSchema.of(accelerator ,schema).allocate();
-        box.x1(x1);
-        box.y1(y1);
-        box.x2(x2);
-        box.y2(y2);
-        box.width(x2-x1);
-        box.height(y2-y1);
-        box.area(box.width()* box.height());
-        return box;
-    }
+package shade.types;
+@FunctionalInterface
+public interface Shader {
+    vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord);
 }

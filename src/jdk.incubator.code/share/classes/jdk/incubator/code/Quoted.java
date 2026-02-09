@@ -341,6 +341,6 @@ public final class Quoted<T extends Op> {
      * @see Quoted#extractOp(CoreOp.FuncOp, List)
      */
     public static Quoted<Op> extractOp(CoreOp.FuncOp funcOp, Object... args) {
-        return extractOp(funcOp, List.of(args));
+        return extractOp(funcOp, Arrays.asList(args));
     }
 }

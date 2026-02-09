@@ -23,17 +23,16 @@
  * questions.
  */
 
-package jdk.incubator.code.analysis;
+package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.*;
 
 /**
- * A model transformer that normalizes blocks.
+ * A code model transformer that normalizes blocks.
  * <p>
  * Merges redundant blocks with their predecessors, those which are unconditionally
  * branched to and have only one predecessor.

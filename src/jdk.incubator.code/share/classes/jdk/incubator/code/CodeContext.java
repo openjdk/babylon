@@ -393,6 +393,8 @@ public final class CodeContext {
      * <p>
      * The returned context only queries its own block and block reference mappings
      * and does not query the mappings in any ancestor context.
+     *
+     * @param parent the parent code context
      */
     public static CodeContext create(CodeContext parent) {
         return new CodeContext(parent);

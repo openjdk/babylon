@@ -30,8 +30,8 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
@@ -141,10 +141,6 @@ public class DialectWithInvoke {
         CoreOp.FuncOp ssaDialect = SSA.transform(dialectModel);
         System.out.println("Model with new OpNodes for SsaDialect: ");
         System.out.println(ssaDialect.toText());
-
-        // Currently, we can't interpreter a code model with dialect ops
-        //var result = Interpreter.invoke(MethodHandles.lookup(), ssaDialect,  10, 20);
-        //System.out.println("Result: " + result);
     }
 
     static void main() {

@@ -29,13 +29,14 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.Inliner;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class MathOptimizerWithInlining {
         return funcOp;
     }
 
-    static void main(String[] args) {
+    static void main() {
 
         // Obtain the code model for the annotated method
         CoreOp.FuncOp codeModel = buildCodeModelForMethod(MathOptimizerWithInlining.class, "myFunction");
@@ -246,10 +247,15 @@ public class MathOptimizerWithInlining {
         System.out.println("After Lowering: ");
         System.out.println(codeModel.toText());
 
-        System.out.println("\nEvaluate with Interpreter.invoke");
-        // The Interpreter Invoke should launch new exceptions
-        var result = Interpreter.invoke(MethodHandles.lookup(), codeModel, 10);
-        System.out.println(result);
+        System.out.println("\nGenerate bytecode and execute");
+        MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
+        try {
+            var result = methodHandle.invoke(10);
+            System.out.println(result);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     // Utility methods

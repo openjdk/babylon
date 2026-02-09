@@ -55,7 +55,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
+import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

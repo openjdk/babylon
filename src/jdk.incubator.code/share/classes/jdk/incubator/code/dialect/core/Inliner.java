@@ -1,7 +1,6 @@
-package jdk.incubator.code.analysis;
+package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +11,7 @@ import static jdk.incubator.code.dialect.core.CoreOp.branch;
 import static jdk.incubator.code.dialect.core.CoreOp.return_;
 
 /**
- * Functionality for inlining code.
+ * Functionality for inlining code models.
  */
 public final class Inliner {
 
