@@ -28,6 +28,7 @@ import fft.Main.ComplexArray.Complex;
 import hat.Accelerator;
 import hat.HATMath;
 import hat.backend.Backend;
+import hat.examples.common.ParseArgs;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
@@ -62,6 +63,8 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
  * </p>
  */
 public class Main {
+
+    public static final int ITERATIONS = 100;
 
     public static final float DELTA = 0.001f;
 
@@ -184,30 +187,18 @@ public class Main {
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
-        boolean verbose = false;
-        int size = 32768;
-        int iterations = 100;
+        final int defaultSize = 512;
+        int iterations = ITERATIONS;
+        ParseArgs parseArgs = new ParseArgs(args);
+        ParseArgs.Options options = parseArgs.parseWithDefaults(defaultSize, iterations);
 
-        // process parameters
-        for (String arg : args) {
-            if (arg.equals("--verbose")) {
-                verbose = true;
-            } else if (arg.startsWith("--size=")) {
-                String number = arg.split("=")[1];
-                try {
-                    size = Integer.parseInt(number);
-                } catch (NumberFormatException _) {
-                }
-            } else if (arg.startsWith("--iterations=")) {
-                String number = arg.split("=")[1];
-                try {
-                    iterations = Integer.parseInt(number);
-                } catch (NumberFormatException _) {
-                }
-            }
-        }
+        boolean verbose = options.verbose();
+        int size = options.size();
+        iterations = options.iterations();
+
         IO.println("Input Size     = " + size);
         IO.println("Num Iterations = " + iterations);
+        IO.println("Sequence Length = " + size);
 
         // Let's first compute the DFT (Discrete Fourier Transform)
         ComplexArray input = ComplexArray.create(accelerator, size);

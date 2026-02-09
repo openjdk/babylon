@@ -33,6 +33,7 @@ import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
 import hat.device.DeviceType;
+import hat.examples.common.ParseArgs;
 import hat.types.F16;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface.RW;
@@ -680,26 +681,21 @@ public class Main {
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
-        boolean verbose = false;
-        int size = 512;
-        // process parameters
-        for (String arg : args) {
-            if (arg.equals("--verbose")) {
-                verbose = true;
-                IO.println("Verbose mode on? " + verbose);
-            } else if (arg.startsWith("--size=")) {
-                String number = arg.split("=")[1];
-                try {
-                    size = Integer.parseInt(number);
-                } catch (NumberFormatException _) {
-                }
-            }
-        }
+        final int defaultSize = 512;
+        int iterations = ITERATIONS;
+        ParseArgs parseArgs = new ParseArgs(args);
+        ParseArgs.Options options = parseArgs.parseWithDefaults(defaultSize, iterations);
+
+        boolean verbose = options.verbose();
+        int size = options.size();
+        iterations = options.iterations();
+
+        IO.println("Input Size     = " + size);
+        IO.println("Num Iterations = " + iterations);
         IO.println("Sequence Length = " + size);
 
         // Configuration parameters
         final int sequenceLen = size;   // represent the number of tokens (or words)
-        //final int sequenceLen = 16384;   // represent the number of tokens (or words)
         final int headDim = 64;        // vector representation for a single token
         final int blockM = 32;         // tile size
         final int blockN = 32;         // tile size

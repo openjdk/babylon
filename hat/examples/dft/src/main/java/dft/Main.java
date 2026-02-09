@@ -33,6 +33,7 @@ import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
+import hat.examples.common.ParseArgs;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface.RO;
@@ -232,33 +233,17 @@ public class Main {
         IO.println("Example: Discrete Fourier Transform (DFT)");
         IO.println("=========================================");
 
-        boolean verbose = false;
         int size = 32768;
         int iterations = 100;
-        boolean skipSequential = false;
-        // process parameters
-        for (String arg : args) {
-            if (arg.equals("--verbose")) {
-                verbose = true;
-            } else if (arg.startsWith("--size=")) {
-                String number = arg.split("=")[1];
-                try {
-                    size = Integer.parseInt(number);
-                } catch (NumberFormatException _) {
-                }
-            } else if (arg.startsWith("--iterations=")) {
-                String number = arg.split("=")[1];
-                try {
-                    iterations = Integer.parseInt(number);
-                } catch (NumberFormatException _) {
-                }
-            } else if (arg.startsWith("--skip-sequential")) {
-                skipSequential = true;
-            }
-        }
+        ParseArgs parseArgs = new ParseArgs(args);
+        ParseArgs.Options options = parseArgs.parseWithDefaults(size, iterations);
+
+        boolean verbose = options.verbose();
+        size = options.size();
+        iterations = options.iterations();
+        boolean skipSequential = options.skipSequential();
         IO.println("Input Size     = " + size);
         IO.println("Num Iterations = " + iterations);
-
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
