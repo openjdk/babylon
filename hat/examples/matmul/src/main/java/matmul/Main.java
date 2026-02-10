@@ -828,7 +828,6 @@ public class Main {
      */
     static void main(String[] args) {
 
-
         final int defaultSize = 1024;
         ParseArgs parseArgs = new ParseArgs(args);
         ParseArgs.Options options = parseArgs.parseWithDefaults(defaultSize, 100);
@@ -836,7 +835,6 @@ public class Main {
         final boolean verbose = options.verbose();
         final int size = options.size();
         final int iterations = options.iterations();
-        final boolean skipSequential = options.skipSequential();
         final boolean checkResult = options.checkResult();
 
         // process configuration (extra parameter for this example)
@@ -904,7 +902,6 @@ public class Main {
             }
         }
 
-
         F32Array resultSeq = null;
         F16Array resultSeqHalf = null;
         if (configuration == Configuration._2DREGISTER_TILING_FP16) {
@@ -913,7 +910,7 @@ public class Main {
             resultSeq = F32Array.create(accelerator, size * size);
         }
 
-        if (!skipSequential || checkResult) {
+        if (checkResult) {
             // Run the sequential version for reference
             switch (configuration) {
                 case Configuration._2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
@@ -923,7 +920,6 @@ public class Main {
         }
 
         List<Long> timers = new ArrayList<>();
-
         for (int it = 0; it < iterations; it++) {
             long start = System.nanoTime();
             switch (configuration) {
@@ -991,7 +987,7 @@ public class Main {
         }
 
         // Write CSV table with all results
-        List<String> header = List.of("Java-" + configuration.toName() + "-" + + size);
+        List<String> header = List.of(configuration.toName() + "-" + + size);
         String fileName = "table-results-mxm-" + configuration.toName() + "-" + size + ".csv";
         dumpStatsToCSVFile(List.of(timers), header, fileName);
     }
