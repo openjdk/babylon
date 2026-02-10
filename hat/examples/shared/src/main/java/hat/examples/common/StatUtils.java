@@ -92,4 +92,6 @@ public class StatUtils {
             throw new HATExampleException(e.getMessage());
         }
     }
+
+    private StatUtils() {}
 }

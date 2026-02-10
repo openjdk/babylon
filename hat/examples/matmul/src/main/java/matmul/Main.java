@@ -52,8 +52,6 @@ import java.util.stream.IntStream;
 import static hat.NDRange.NDRange2D;
 import static hat.NDRange.of1D;
 import static hat.NDRange.of2D;
-import static hat.examples.common.StatUtils.computeAverage;
-import static hat.examples.common.StatUtils.computeSpeedup;
 import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 import static optkl.ifacemapper.MappableIface.RO;
 
