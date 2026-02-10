@@ -31,6 +31,8 @@ import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
 import hat.backend.Backend;
+import hat.examples.common.HATExampleException;
+import hat.examples.common.ParseArgs;
 import hat.types.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -42,12 +44,17 @@ import optkl.ifacemapper.MappableIface.WO;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 
 import static hat.NDRange.NDRange2D;
 import static hat.NDRange.of1D;
 import static hat.NDRange.of2D;
+import static hat.examples.common.StatUtils.computeAverage;
+import static hat.examples.common.StatUtils.computeSpeedup;
+import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 import static optkl.ifacemapper.MappableIface.RO;
 
 /**
@@ -68,10 +75,6 @@ import static optkl.ifacemapper.MappableIface.RO;
  * </p>
  */
 public class Main {
-
-    private static final boolean CHECK_RESULT = true;
-
-    private static final int NUM_ITERATIONS = 10;
 
     /**
      * Naive Matrix Multiplication implemented in 2D.
@@ -786,7 +789,35 @@ public class Main {
         _2DTILING,
         _2DREGISTER_TILING,
         _2DREGISTER_TILING_VECTORIZED,
-        _2DREGISTER_TILING_FP16,
+        _2DREGISTER_TILING_FP16;
+
+        String toName() {
+            return this.name().substring(1);
+        }
+    }
+
+    // Process extra parameter to obtain kernel algorithm to run
+    private static Configuration getConfiguration(String[] args) {
+        Configuration configuration = Configuration._2DTILING;
+        for (String arg : args) {
+            if (arg.startsWith("--kernel=")) {
+                String kernel = arg.split("=")[1];
+                IO.println("KERNEL SET: " + kernel);
+                configuration = switch (kernel) {
+                    case "MT" -> Configuration._MT;
+                    case "1D" -> Configuration._1D;
+                    case "1DFC" -> Configuration._1DFC;
+                    case "2D" -> Configuration._2D;
+                    case "2DLI" -> Configuration._2DLI;
+                    case "2DTILING" -> Configuration._2DTILING;
+                    case "2DREGISTERTILING" -> Configuration._2DREGISTER_TILING;
+                    case "2DREGISTERTILING_V" -> Configuration._2DREGISTER_TILING_VECTORIZED;
+                    case "2DREGISTERTILING_FP16" -> Configuration._2DREGISTER_TILING_FP16;
+                    default -> configuration;
+                };
+            }
+        }
+        return configuration;
     }
 
     /**
@@ -796,30 +827,29 @@ public class Main {
      *
      */
     static void main(String[] args) {
-        Configuration configuration = Configuration._2DTILING;
-        if (args.length > 0) {
-            configuration = switch (args[0]) {
-                case "MT" -> Configuration._MT;
-                case "1D" -> Configuration._1D;
-                case "1DFC" -> Configuration._1DFC;
-                case "2D" -> Configuration._2D;
-                case "2DLI" -> Configuration._2DLI;
-                case "2DTILING" -> Configuration._2DTILING;
-                case "2DREGISTERTILING" -> Configuration._2DREGISTER_TILING;
-                case "2DREGISTERTILING_V" -> Configuration._2DREGISTER_TILING_VECTORIZED;
-                case "2DREGISTERTILING_FP16" -> Configuration._2DREGISTER_TILING_FP16;
-                default -> configuration;
-            };
-        }
 
-        System.out.println("[INFO] NDRangeConfiguration: " + configuration);
+
+        final int defaultSize = 1024;
+        ParseArgs parseArgs = new ParseArgs(args);
+        ParseArgs.Options options = parseArgs.parseWithDefaults(defaultSize, 100);
+
+        final boolean verbose = options.verbose();
+        final int size = options.size();
+        final int iterations = options.iterations();
+        final boolean skipSequential = options.skipSequential();
+        final boolean checkResult = options.checkResult();
+
+        // process configuration (extra parameter for this example)
+        Configuration configuration = getConfiguration(args);
+        IO.println("[INFO] Input Size     : " + size + "x" + size);
+        IO.println("[INFO] Check Result:  : " + checkResult);
+        IO.println("[INFO] Num Iterations : " + iterations);
+        IO.println("[INFO] NDRangeConfiguration: " + configuration);
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        System.out.println(accelerator);
+        IO.println(accelerator);
 
-        final int size = 1024;
-        IO.println("[INFO] Starting Matrix Multiplication with size: " + size + "x" + size);
         F32Array matrixA;
         F32Array matrixB;
         F32Array matrixC;
@@ -883,16 +913,18 @@ public class Main {
             resultSeq = F32Array.create(accelerator, size * size);
         }
 
-        // Run Seq for reference
-        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
-            runSequential(matrixAPad, matrixBPad, resultSeq, size);
-        } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
-            runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
-        } else {
-            runSequential(matrixA, matrixB, resultSeq, size);
+        if (!skipSequential || checkResult) {
+            // Run the sequential version for reference
+            switch (configuration) {
+                case Configuration._2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
+                case Configuration._2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
+                default -> runSequential(matrixA, matrixB, resultSeq, size);
+            }
         }
 
-        for (int it = 0; it < NUM_ITERATIONS; it++) {
+        List<Long> timers = new ArrayList<>();
+
+        for (int it = 0; it < iterations; it++) {
             long start = System.nanoTime();
             switch (configuration) {
                 case _MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
@@ -912,15 +944,16 @@ public class Main {
                         matrixMultiply2DRegisterTilingVectorizedAccesses(cc, matrixAPad, matrixBPad, matrixCPad, size));
                 case _2DREGISTER_TILING_FP16 -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DRegisterTilingHalf(cc, matrixAHalf, matrixBHalf, matrixCHalf, size));
-                default -> throw new RuntimeException("Unknown configuration: " + configuration);
+                default -> throw new HATExampleException("Unknown configuration: " + configuration);
+            }
+            long end = System.nanoTime();
+            timers.add((end-start));
+            if (verbose) {
+                IO.println("Elapsed Time: " + (end - start) + " ns");
             }
 
-            long end = System.nanoTime();
-            System.out.println("Elapsed Time: " + (end - start) + " ns");
-
-            // If the check is ON, then check first and lat iterations
-            if (it == 0 || it == (NUM_ITERATIONS - 1) && CHECK_RESULT) {
-                // Check result for the first iteration
+            // If the check is ON, then check first and last iterations
+            if (checkResult && (it == 0 || it == (iterations - 1))) {
                 boolean isCorrect = true;
                 for (int i = 0; i < size; i++) {
                     for (int j = 0; j < size; j++) {
@@ -950,23 +983,30 @@ public class Main {
                 }
 
                 if (isCorrect) {
-                    System.out.println("Result is correct!");
+                    IO.println("Result is correct!");
                 } else {
-                    System.out.println("Result is wrong!");
+                    IO.println("Result is wrong!");
                 }
             }
         }
+
+        // Write CSV table with all results
+        List<String> header = List.of("Java-" + configuration.toName() + "-" + + size);
+        String fileName = "table-results-mxm-" + configuration.toName() + "-" + size + ".csv";
+        dumpStatsToCSVFile(List.of(timers), header, fileName);
     }
 
     private static void runMultiThreadedWithStreams(F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        IntStream.range(0, size).parallel().forEach(i -> {
-            IntStream.range(0, size).parallel().forEach(j -> {
-                float sum = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    sum += matrixA.array(i * size + k) * matrixB.array(k * size + j);
-                }
-                matrixC.array(i * size + j, sum);
-            });
-        });
+        IntStream.range(0, size)
+                .parallel()
+                .forEach(i -> IntStream.range(0, size)
+                        .parallel()
+                        .forEach(j -> {
+                            float sum = 0.0f;
+                            for (int k = 0; k < size; k++) {
+                                sum += matrixA.array(i * size + k) * matrixB.array(k * size + j);
+                            }
+                            matrixC.array(i * size + j, sum);
+                        }));
     }
 }

@@ -40,8 +40,9 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat-core</artifactId>
+            <artifactId>hat-example-shared</artifactId>
             <version>1.0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 

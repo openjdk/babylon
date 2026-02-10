@@ -37,10 +37,13 @@ public class ParseArgs {
         int size = defaultSize;
         int iterations = defaultIterations;
         boolean skipSequential = false;
+        boolean checkResult = false;
         // process parameters
         for (String arg : arguments) {
             if (arg.equals("--verbose")) {
                 verbose = true;
+            } else if (arg.equals("--check")) {
+                checkResult = true;
             } else if (arg.startsWith("--size=")) {
                 String number = arg.split("=")[1];
                 try {
@@ -57,8 +60,8 @@ public class ParseArgs {
                 skipSequential = true;
             }
         }
-        return new Options(verbose, size, iterations, skipSequential);
+        return new Options(verbose, size, iterations, skipSequential, checkResult);
     }
 
-    public record Options(boolean verbose, int size, int iterations, boolean skipSequential) {}
+    public record Options(boolean verbose, int size, int iterations, boolean skipSequential, boolean checkResult) {}
 }

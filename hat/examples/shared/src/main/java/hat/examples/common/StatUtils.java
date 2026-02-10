@@ -84,4 +84,12 @@ public class StatUtils {
             throw new HATExampleException(e.getMessage());
         }
     }
+
+    public static void sleep10Sec() {
+        try {
+            Thread.sleep(10_000);
+        } catch (InterruptedException e) {
+            throw new HATExampleException(e.getMessage());
+        }
+    }
 }
