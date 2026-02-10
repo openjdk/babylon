@@ -33,9 +33,7 @@ import hat.buffer.S32Array;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
+import optkl.ifacemapper.MappableIface.*;
 
 import java.lang.invoke.MethodHandles;
 
@@ -44,7 +42,7 @@ public class TestConstants {
     public static final int CONSTANT = 100;
 
     @Reflect
-    public static void vectorWithConstants(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+    public static void vectorWithConstants(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
         final int BM = 100;
         if (kc.gix < kc.gsx) {
             final int valueA = arrayA.array(kc.gix);
@@ -54,7 +52,7 @@ public class TestConstants {
     }
 
     @Reflect
-    public static void vectorWithConstants(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+    public static void vectorWithConstants(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
         cc.dispatchKernel(NDRange.of1D(arrayA.length()), kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
     }
 
@@ -94,7 +92,7 @@ public class TestConstants {
     }
 
     @Reflect
-    public static void vectorWithConstants2(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+    public static void vectorWithConstants2(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
         if (kc.gix < kc.gsx) {
             final int valueA = arrayA.array(kc.gix);
             final int valueB = arrayB.array(kc.gix);
@@ -104,7 +102,7 @@ public class TestConstants {
     }
 
     @Reflect
-    public static void vectorWithConstants2(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+    public static void vectorWithConstants2(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
         cc.dispatchKernel(NDRange.of1D(arrayA.length()), kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));
     }
 
