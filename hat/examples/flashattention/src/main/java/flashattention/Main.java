@@ -905,11 +905,11 @@ public class Main {
                         timersSelfAttentionHAT,
                         timersFlashAttentionHAT,
                         timersFlashAttentionHAT16),
-                List.of("Java-fp32",
-                        "Streams-fp32",
-                        "HAT-Self-Attention-fp32",
-                        "HAT-Flash-Attention-fp32",
-                        "HAT-Flash-Attenttion-fp16"),
+                List.of("Java-fp32-" + size,
+                        "Streams-fp32-" + size,
+                        "HAT-Self-Attention-fp32-" + size,
+                        "HAT-Flash-Attention-fp32-" + size,
+                        "HAT-Flash-Attenttion-fp16-" + size),
                 "table-flash-attention-" + size + ".csv");
     }
 }
