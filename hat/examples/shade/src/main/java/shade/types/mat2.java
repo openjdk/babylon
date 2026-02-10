@@ -55,12 +55,11 @@ public interface mat2 {
         }
     }
 
-    record Impl(float _00, float _01, float _10, float _11) implements mat2 {
-    }
 
-
-    static mat2 mat2(float _00, float _01, float _10, float w) {
-        return new Impl(_00, _01, _10, w);
+    static mat2 mat2(float _00, float _01, float _10, float _11) {
+        record Impl(float _00, float _01, float _10, float _11) implements mat2 {
+        }
+        return new Impl(_00, _01, _10, _11);
     }
     static mat2 mat2(mat2 mat2) {return mat2(mat2._00(), mat2._01(), mat2._10(), mat2._11());}
     static mat2 mat2(float scalar) {return mat2(scalar,scalar,scalar,scalar);}
