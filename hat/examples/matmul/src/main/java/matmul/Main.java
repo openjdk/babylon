@@ -64,13 +64,13 @@ import static optkl.ifacemapper.MappableIface.RO;
  *
  * <p>For 2D Configuration:
  * <code>
- * java @hat/run ffi-opencl matmul 2D
+ * java @hat/run ffi-opencl matmul --kernel=2D
  * </code>
  * </p>
  *
  * <p> For 1D Configuration
  * <code>
- * java @hat/run ffi-opencl matmul 1D
+ * java @hat/run ffi-opencl matmul --kernel=1D
  * </code>
  * </p>
  */
