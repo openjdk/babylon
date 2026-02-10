@@ -64,7 +64,7 @@ public class HATMath {
         return (float) Math.cos(a);
     }
 
-    public static float exp(float a) {
+    public static float expf(float a) {
         return (float) Math.exp(a);
     }
 
@@ -77,9 +77,10 @@ public class HATMath {
         return F16.floatToF16((float) Math.exp(fa));
     }
 
-    public static float sqrt(float a) {
-        return (float) Math.sqrt(a);
+    public static float native_exp(float a) {
+        return (float) Math.exp(a);
     }
+
 
     public static float sinf(float a) {
         return (float) Math.sin(a);
@@ -93,6 +94,9 @@ public class HATMath {
         return (float) Math.sin(a);
     }
 
+    public static float sqrtf(float a) {
+        return (float) Math.sqrt(a);
+    }
     public static double sqrt(double a) {
         return Math.sqrt(a);
     }

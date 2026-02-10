@@ -307,6 +307,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             case "native_tanf" -> {
                 return "native_tan";
             }
+            case "native_expf" -> {
+                return "native_exp";
+            }
+            case "sqrtf" -> {
+                return "sqrt";
+            }
         }
         return hatMathIntrinsicName;
     }

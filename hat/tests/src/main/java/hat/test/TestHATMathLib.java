@@ -206,7 +206,7 @@ public class TestHATMathLib {
     private static void testMathLib10(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
-            float result = HATMath.sqrt(fa);
+            float result = HATMath.sqrtf(fa);
             b.array(kc.gix, result);
         }
     }
