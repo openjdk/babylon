@@ -3819,13 +3819,21 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The while operation, that can model a Java language while statement.
+     * <p>
+     * While operations feature two bodies. The <em>predicate body</em> models the loop condition.
+     * The <em>loop body</em> models the statements to execute.
+     * <p>
+     * The predicate body should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
+     * The loop body should accept no arguments, and yield {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.12 The while Statement
      */
     @OpDeclaration(WhileOp.NAME)
     public static final class WhileOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * A builder for specifying the predicate (loop condition) of a while loop operation.
+         * Builder for the predicate body of a while operation.
          */
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -3835,10 +3843,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the predicate (loop condition) body for the while operation.
+             * Builds the predicate body of a while operation.
              *
-             * @param c a consumer to populate the block for the predicate
-             * @return a builder for the main loop body
+             * @param c a consumer that populates the predicate body
+             * @return a builder for specifying the loop body
              */
             public WhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
@@ -3849,7 +3857,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * A builder for specifying the main body of a while loop operation.
+         * Builder for the loop body of a while operation.
          */
         public static class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -3861,10 +3869,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the main logic body for the while loop operation.
+             * Completes the construction of a while operation by adding the loop body.
              *
-             * @param c a consumer to populate the block for the loop body
-             * @return the completed while loop operation
+             * @param c a consumer that populates the loop body
+             * @return the completed while operation
              */
             public WhileOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
