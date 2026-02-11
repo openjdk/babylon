@@ -779,38 +779,38 @@ public class Main {
      * 1D range or 2D range.
      */
     private enum Configuration {
-        _MT,  // Runs the Multi-thread Java code on the host side (no HAT)
-        _1D,   //
-        _1DFC, // 1D with multiple function calls: This is just for testing
-        _2D,   //
-        _2DLI,
-        _2DTILING,
-        _2DREGISTER_TILING,
-        _2DREGISTER_TILING_VECTORIZED,
-        _2DREGISTER_TILING_FP16;
+        ALG_MT,  // Runs the Multi-thread Java code on the host side (no HAT)
+        ALG_1D,   //
+        ALG_1DFC, // 1D with multiple function calls: This is just for testing
+        ALG_2D,   //
+        ALG_2DLI,
+        ALG_2DTILING,
+        ALG_2DREGISTER_TILING,
+        ALG_2DREGISTER_TILING_VECTORIZED,
+        ALG_2DREGISTER_TILING_FP16;
 
         String toName() {
-            return this.name().substring(1);
+            return this.name().substring(4);
         }
     }
 
     // Process extra parameter to obtain kernel algorithm to run
     private static Configuration getConfiguration(String[] args) {
-        Configuration configuration = Configuration._2DTILING;
+        Configuration configuration = Configuration.ALG_2DTILING;
         for (String arg : args) {
             if (arg.startsWith("--kernel=")) {
                 String kernel = arg.split("=")[1];
                 IO.println("KERNEL SET: " + kernel);
                 configuration = switch (kernel) {
-                    case "MT" -> Configuration._MT;
-                    case "1D" -> Configuration._1D;
-                    case "1DFC" -> Configuration._1DFC;
-                    case "2D" -> Configuration._2D;
-                    case "2DLI" -> Configuration._2DLI;
-                    case "2DTILING" -> Configuration._2DTILING;
-                    case "2DREGISTERTILING" -> Configuration._2DREGISTER_TILING;
-                    case "2DREGISTERTILING_V" -> Configuration._2DREGISTER_TILING_VECTORIZED;
-                    case "2DREGISTERTILING_FP16" -> Configuration._2DREGISTER_TILING_FP16;
+                    case "MT" -> Configuration.ALG_MT;
+                    case "1D" -> Configuration.ALG_1D;
+                    case "1DFC" -> Configuration.ALG_1DFC;
+                    case "2D" -> Configuration.ALG_2D;
+                    case "2DLI" -> Configuration.ALG_2DLI;
+                    case "2DTILING" -> Configuration.ALG_2DTILING;
+                    case "2DREGISTERTILING" -> Configuration.ALG_2DREGISTER_TILING;
+                    case "2DREGISTERTILING_V" -> Configuration.ALG_2DREGISTER_TILING_VECTORIZED;
+                    case "2DREGISTERTILING_FP16" -> Configuration.ALG_2DREGISTER_TILING_FP16;
                     default -> configuration;
                 };
             }
@@ -840,7 +840,7 @@ public class Main {
         IO.println("[INFO] Input Size     : " + size + "x" + size);
         IO.println("[INFO] Check Result:  : " + checkResult);
         IO.println("[INFO] Num Iterations : " + iterations);
-        IO.println("[INFO] NDRangeConfiguration: " + configuration);
+        IO.println("[INFO] NDRangeConfiguration: " + configuration.toName());
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
@@ -857,7 +857,7 @@ public class Main {
         F16Array matrixCHalf;
 
         Random r = new Random(19);
-        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
+        if (configuration == Configuration.ALG_2DREGISTER_TILING_VECTORIZED) {
             matrixBHalf = null;
             matrixAHalf = null;
             matrixCHalf = null;
@@ -875,7 +875,7 @@ public class Main {
             matrixCPad = null;
             matrixBPad = null;
             matrixAPad = null;
-            if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+            if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
                 matrixC = null;
                 matrixB = null;
                 matrixA = null;
@@ -902,7 +902,7 @@ public class Main {
 
         F32Array resultSeq = null;
         F16Array resultSeqHalf = null;
-        if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+        if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
             resultSeqHalf = F16Array.create(accelerator, size * size);
         } else {
             resultSeq = F32Array.create(accelerator, size * size);
@@ -911,8 +911,8 @@ public class Main {
         if (checkResult) {
             // Run the sequential version for reference
             switch (configuration) {
-                case Configuration._2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
-                case Configuration._2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
+                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
+                case Configuration.ALG_2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
                 default -> runSequential(matrixA, matrixB, resultSeq, size);
             }
         }
@@ -921,22 +921,22 @@ public class Main {
         for (int it = 0; it < iterations; it++) {
             long start = System.nanoTime();
             switch (configuration) {
-                case _MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
-                case _1D -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
+                case ALG_1D -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
-                case _1DFC -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_1DFC -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
-                case _2D -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2D -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
-                case _2DLI -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DLI -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
-                case _2DTILING -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DTILING -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
-                case _2DREGISTER_TILING -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DREGISTER_TILING -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DRegisterTiling(cc, matrixA, matrixB, matrixC, size));
-                case _2DREGISTER_TILING_VECTORIZED -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DREGISTER_TILING_VECTORIZED -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DRegisterTilingVectorizedAccesses(cc, matrixAPad, matrixBPad, matrixCPad, size));
-                case _2DREGISTER_TILING_FP16 -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DREGISTER_TILING_FP16 -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DRegisterTilingHalf(cc, matrixAHalf, matrixBHalf, matrixCHalf, size));
                 default -> throw new HATExampleException("Unknown configuration: " + configuration);
             }
@@ -952,15 +952,15 @@ public class Main {
                 for (int i = 0; i < size; i++) {
                     for (int j = 0; j < size; j++) {
                         float expectedValue;
-                        if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+                        if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
                             expectedValue = F16.f16ToFloat(resultSeqHalf.array(i * size + j));
                         } else {
                             expectedValue = resultSeq.array(i * size + j);
                         }
                         float gotValue;
-                        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
+                        if (configuration == Configuration.ALG_2DREGISTER_TILING_VECTORIZED) {
                             gotValue = matrixCPad.array(i * size + j);
-                        } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+                        } else if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
                             gotValue = F16.f16ToFloat(matrixCHalf.array(i * size + j));
                         } else {
                             gotValue = matrixC.array(i * size + j);
