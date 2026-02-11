@@ -179,7 +179,7 @@ public class HATPhaseUtils {
     }
 
     //recursive
-    static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
+    public static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(lookup,varLoadOp); // recurse
             case CoreOp.VarOp varOp ->

@@ -37,9 +37,12 @@ import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
+import hat.phases.HATFP16Phase;
+import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.HAType;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -58,10 +61,12 @@ import optkl.codebuilders.CodeBuilder;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static hat.buffer.F16Array.F16Impl;
 
+import static java.lang.invoke.MethodHandles.lookup;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
@@ -827,36 +832,44 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public static final String VALUE = "value";
 
-    protected void genFieldAccess(HATMathLibOp hatMathLibOp, int operandIndex) {
-        if (Boolean.TRUE.equals(hatMathLibOp.references().get(operandIndex))) {
+    protected void genFieldAccess(Value operand, boolean isReference) {
+        if (isReference) {
             rarrow().identifier(VALUE);
-        } else if (!OpHelper.isPrimitiveResult(hatMathLibOp.operands().get(operandIndex))) {
+        } else if (!OpHelper.isPrimitiveResult(operand)) {
             dot().identifier(VALUE);
         }
     }
 
     @Override
     public T hatMathLibOp(HATMathLibOp hatMathLibOp) {
-        ReducedFloatType reducedFloatType = hatMathLibOp.getReducedFloatType();
+
+        // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
+        ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloat(hatMathLibOp.resultType().toString());
         if (reducedFloatType != null) {
             // If special type, then we need to build the type
             // For now this applies to F16 and bFloat16
             paren(_ -> genReducedType(reducedFloatType)).obrace();
         }
         identifier(mapMathIntrinsic(reducedFloatType, hatMathLibOp.name()));
+
+        // For each operand, obtain if it is a reference from global memory or device memory.
+        // Important: when the code-tree has its own lowering, the way to place this information
+        // would be in a C99 lowered tree. Thus, we will avoid code-analysis during code-gen.
+        List<Boolean> referenceList = IntStream.range(0, hatMathLibOp.operands().size())
+                .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), hatMathLibOp.operands().get(i)))
+                .collect(Collectors.toList());
+
         paren( _ -> {
             int numArgs = hatMathLibOp.numArguments();
             IntStream.range(0, numArgs).forEach(i -> {
                 recurse(OpHelper.asResultOrThrow(hatMathLibOp.operands().get(i)).op());
                 if (reducedFloatType != null) {
-                    genFieldAccess(hatMathLibOp, i);
+                    genFieldAccess(hatMathLibOp.operands().get(i), referenceList.get(i));
                 }
-
                 // Don't generate the comma after the last argument
                 if (i != numArgs - 1) {
                     comma();
                 }
-
             });
         });
         if (reducedFloatType != null) {

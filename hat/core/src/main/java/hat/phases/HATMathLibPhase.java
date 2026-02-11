@@ -49,16 +49,9 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
                 // Invoke Op is replaced with a HATMathLibOp
                 List<Value> operands = blockBuilder.context().getValues(invokeOp.operands());
 
-                // For each operand, obtain if it is a reference from global memory or device memory:
-                List<Boolean> referenceList = IntStream.range(0, operands.size())
-                        .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), invokeOp.operands().get(i)))
-                        .collect(Collectors.toList());
-
                 HATMathLibOp hatMathLibOp = new HATMathLibOp(
                         invokeOp.resultType(),               // result type from the math operation
                         invokeOp.invokeDescriptor().name(),  // intrinsic name
-                        setTypeMap.get(invokeOp),            // special type associated with the result (if any)
-                        referenceList,                       // Flags to indicate if any of the operands must be addressed by reference
                         operands);                           // list of operands for the new Op
 
                 Op.Result hatMathLibOpResult = blockBuilder.op(hatMathLibOp);

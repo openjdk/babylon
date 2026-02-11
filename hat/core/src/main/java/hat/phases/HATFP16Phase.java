@@ -52,7 +52,7 @@ import static optkl.OpHelper.copyLocation;
 
 public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
-    private static ReducedFloatType categorizeReducedFloat(String invokeClassName) {
+    public static ReducedFloatType categorizeReducedFloat(String invokeClassName) {
         invokeClassName = invokeClassName.replace("$", ".");
         if (invokeClassName.equals(F16.class.getName())) { // lets not compare strings here
             return ReducedFloatType.HalfFloat.of();

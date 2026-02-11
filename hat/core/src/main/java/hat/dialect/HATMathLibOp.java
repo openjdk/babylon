@@ -39,23 +39,17 @@
 
      private final TypeElement typeElement;
      private final String name;
-     private final ReducedFloatType reducedFloatType;
-     private final List<Boolean> referenceList;
 
-     public HATMathLibOp(TypeElement typeElement, String name, ReducedFloatType reducedFloatType, List<Boolean> referenceList, List<Value> operands) {
+     public HATMathLibOp(TypeElement typeElement, String name, List<Value> operands) {
          super(operands);
          this.typeElement = typeElement;
          this.name = name;
-         this.reducedFloatType = reducedFloatType;
-         this.referenceList = referenceList;
      }
 
      public HATMathLibOp(HATMathLibOp hatMathBinaryOp, CodeContext codeContext) {
          super(hatMathBinaryOp, codeContext);
          this.typeElement = hatMathBinaryOp.typeElement;
          this.name = hatMathBinaryOp.name;
-         this.reducedFloatType = hatMathBinaryOp.reducedFloatType;
-         this.referenceList = hatMathBinaryOp.referenceList;
      }
 
      @Override
@@ -75,14 +69,6 @@
 
      public String name() {
          return name;
-     }
-
-     public List<Boolean> references() {
-         return referenceList;
-     }
-
-     public ReducedFloatType getReducedFloatType() {
-         return reducedFloatType;
      }
 
      public int numArguments() {
