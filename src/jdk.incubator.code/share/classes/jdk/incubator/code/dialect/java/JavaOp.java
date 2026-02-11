@@ -3265,14 +3265,28 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The for operation, that can model a Java language for statement.
+     * The for operation, that can model a Java language basic for statement.
+     * <p>
+     * For operations feature four bodies that model a basic {@code for} statement:
+     * an <em>initialization body</em>, a <em>predicate body</em>, an <em>update body</em>, and a <em>loop body</em>.
+     * <p>
+     * The initialization body accepts no arguments and yields the loop state, of type {@code S}. For instance,
+     * a loop with a single loop variable of type {@code T} might use a loop state of type {@code T}.
+     * A loop with two loop variables of type {@code X} and {@code Y} might use a loop state whose type is
+     * a {@linkplain TupleType tuple type}, such as {@code (X, Y)}. A loop with no loop variables might use
+     * a loop state of type {@link JavaType#VOID}, and have its initialization body yield no value.
+     * <p>
+     * The predicate body accepts an argument of type {@code S} and yields a {@link JavaType#BOOLEAN} value.
+     * The update and loop bodies accept an argument of type {@code S} and yield {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.14.1 The basic for Statement
      */
     @OpDeclaration(ForOp.NAME)
     public static final class ForOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for the initialization phase of a for-loop.
+         * Builder for the initialization body of a for operation.
          */
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
@@ -3285,9 +3299,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the initialization step for a for-loop.
-             * @param c a consumer to model the code initializing the loop variables
-             * @return a conditional builder for the loop condition
+             * Builds the initialization body of a for-loop.
+             *
+             * @param c a consumer that populates the initialization body
+             * @return a builder for specifying the loop predicate body
              */
             public ForOp.CondBuilder init(Consumer<Block.Builder> c) {
                 Body.Builder init = Body.Builder.of(ancestorBody,
@@ -3299,7 +3314,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the condition (predicate) phase of a for-loop.
+         * Builder for the predicate body of a for operation.
          */
         public static final class CondBuilder {
             final Body.Builder ancestorBody;
@@ -3315,9 +3330,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the predicate body for the loop.
-             * @param c a consumer to model the for-loop condition
-             * @return an update builder for building the update phase
+             * Builds the predicate body of a for-loop.
+             *
+             * @param c a consumer that populates the predicate body
+             * @return a builder for specifying the update body
              */
             public ForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder cond = Body.Builder.of(ancestorBody,
@@ -3329,7 +3345,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the update phase of a for-loop (executed after each iteration).
+         * Builder for the update body of a for operation.
          */
         public static final class UpdateBuilder {
             final Body.Builder ancestorBody;
@@ -3347,11 +3363,12 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the update logic to be run after each for-loop iteration.
-             * @param c a consumer for the update logic
-             * @return a body builder for constructing the loop body
+             * Builds the update body of a for-loop.
+             *
+             * @param c a consumer that populates the update body
+             * @return a builder for specifying the loop body
              */
-            public ForOp.BodyBuilder cond(Consumer<Block.Builder> c) {
+            public ForOp.BodyBuilder update(Consumer<Block.Builder> c) {
                 Body.Builder update = Body.Builder.of(ancestorBody,
                         CoreType.functionType(VOID, initTypes));
                 c.accept(update.entryBlock());
@@ -3381,8 +3398,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the loop body for the for-loop.
-             * @param c a consumer for the main logic to run in the for-loop
+             * Completes the construction of a for-loop operation by adding the loop body.
+             *
+             * @param c a consumer that populates the loop body
              * @return the completed for-loop operation
              */
             public ForOp body(Consumer<Block.Builder> c) {
