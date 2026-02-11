@@ -3565,13 +3565,24 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The enhanced for operation, that can model a Java language enhanced for statement.
+     * <p>
+     * Enhanced-for operations feature three bodies. The <em>expression body</em> models the expression to be
+     * iterated. The <em>definition body</em> models the definition of the loop variable. The <em>loop body</em>
+     * models the statements to execute.
+     * <p>
+     * The expression body accepts no arguments and yields a value of type {@code I}, corresponding to the type of the
+     * expression to be iterated. The definition body accepts one argument of type {@code E}, corresponding to an element
+     * type derived from {@code I}, and yields a value of type {@code V}, the type of the loop variable. Finally, the loop
+     * body accepts that value and yields {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.14.2 The enhanced for statement
      */
     @OpDeclaration(EnhancedForOp.NAME)
     public static final class EnhancedForOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for the iterable expression in an enhanced-for loop.
+         * Builder for the expression body of an enhanced-for operation.
          */
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
@@ -3586,9 +3597,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the iterable expression for an enhanced-for loop.
-             * @param c a consumer that populates the block modelling the iterable expression
-             * @return a definition builder, for specifying the variable definition in the loop
+             * Builds the expression body of an enhanced-for operation.
+             *
+             * @param c a consumer that populates the expression body
+             * @return a builder for specifying the definition body
              */
             public DefinitionBuilder expression(Consumer<Block.Builder> c) {
                 Body.Builder expression = Body.Builder.of(ancestorBody,
@@ -3600,7 +3612,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the iteration variable definition in an enhanced-for loop.
+         * Builder for the definition body of an enhanced-for operation.
          */
         public static final class DefinitionBuilder {
             final Body.Builder ancestorBody;
@@ -3615,20 +3627,22 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Defines the loop variable for the enhanced-for operation, using a type
-             * derived from the iterable expression.
-             * @param c a consumer that populates the block defining the loop variable
-             * @return a body builder for the loop body
+             * Builds the definition body of an enhanced-for operation, using a type derived from the type
+             * of the loop expression.
+             *
+             * @param c a consumer that populates the definition body
+             * @return a builder for specifying the loop body
              */
             public BodyBuilder definition(Consumer<Block.Builder> c) {
                 return definition(elementType, c);
             }
 
             /**
-             * Defines the loop variable for the enhanced-for operation with the provided type.
-             * @param bodyElementType the type to use for the variable in the loop body
-             * @param c a consumer that populates the block defining the loop variable
-             * @return a body builder for the loop body
+             * Builds the definition body of an enhanced-for operation with the provided type.
+             *
+             * @param bodyElementType the type to provide to the loop body
+             * @param c a consumer that populates the definition body
+             * @return a builder for specifying the loop body
              */
             public BodyBuilder definition(TypeElement bodyElementType, Consumer<Block.Builder> c) {
                 Body.Builder definition = Body.Builder.of(ancestorBody,
@@ -3640,7 +3654,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for an enhanced-for operation body.
+         * Builder for the loop body of an enhanced-for operation.
          */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -3657,8 +3671,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of the enhanced-for loop operation with the body obtained from the provided builder.
-             * @param c a consumer that populates the block for the enhanced-for loop body
+             * Completes the construction of the enhanced-for operation by adding the loop body.
+             *
+             * @param c a consumer that populates the loop body
              * @return the completed enhanced-for operation
              */
             public EnhancedForOp body(Consumer<Block.Builder> c) {
