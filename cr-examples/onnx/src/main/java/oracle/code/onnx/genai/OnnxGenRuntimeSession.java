@@ -167,6 +167,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
 
     /**
      * Builds Onnx model from the provided Java model instance and loads it into a constructs the Onnx Generate API session.
+     * @param l lookup
      * @param codeReflectionModelInstance Instance of a class representing Onnx LLM model.
      * @param methodName Main model method name.
      * @param targetOnnxModelDir Target folder for generation of Onnx model and external tensor data file.
@@ -175,9 +176,8 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
      * @return a live session instance
      * @throws IOException In case of any IO problems during model generation.
      */
-    public static OnnxGenRuntimeSession buildFromCodeReflection(Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
+    public static OnnxGenRuntimeSession buildFromCodeReflection(MethodHandles.Lookup l, Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
         Method method = Stream.of(codeReflectionModelInstance.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(methodName)).findFirst().orElseThrow();
-        MethodHandles.Lookup l = MethodHandles.lookup();
         CoreOp.FuncOp javaModel = OnnxTransformer.evaluate(l, Op.ofMethod(method).orElseThrow());
         OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(l, javaModel);
         List<Object> initializers = OnnxRuntime.getInitValues(l, onnxModel.initializers(), List.of(codeReflectionModelInstance));
