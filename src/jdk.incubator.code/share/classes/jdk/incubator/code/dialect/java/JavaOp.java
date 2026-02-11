@@ -2982,6 +2982,17 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * An operation modeling a Java switch statement or expression.
+     * <p>
+     * Switch operations are parameterized by a selector value.
+     * They feature a sequence of case bodies, each modelled as a pair of bodies: a <em>predicate body</em> and an
+     * <em>action body</em>.
+     * <p>
+     * Each predicate body accepts one argument, the selector value, and yields a {@link JavaType#BOOLEAN} value.
+     * Each action body yields a value of the same type {@code T}. For switch statement operations, {@code T} is
+     * {@code void}. For switch expression operations, {@code T} is the switch expression type.
+     *
+     * @jls 14.11 The switch Statement
+     * @jls 15.28 {@code switch} Expressions
      */
     public abstract static sealed class JavaSwitchOp extends JavaOp implements Op.Nested, Op.Lowerable
             permits SwitchStatementOp, SwitchExpressionOp {
@@ -3167,6 +3178,11 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The switch expression operation, that can model Java language switch expressions.
+     * <p>
+     * For switch expression operations, action bodies yield a value of type {@code T}, where {@code T} is also the
+     * type of the switch expression operation.
+     *
+     * @jls 15.28 {@code switch} Expressions
      */
     @OpDeclaration(SwitchExpressionOp.NAME)
     public static final class SwitchExpressionOp extends JavaSwitchOp
@@ -3204,6 +3220,10 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The switch statement operation, that can model Java language switch statement.
+     * <p>
+     * For switch statement operations, action bodies yield {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.11 The switch Statement
      */
     @OpDeclaration(SwitchStatementOp.NAME)
     public static final class SwitchStatementOp extends JavaSwitchOp
@@ -6439,6 +6459,10 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * Creates a switch statement operation.
+     * <p>
+     * Case bodies are provided as pairs of bodies, where the first body of each pair is the predicate body and the
+     * second is the corresponding action body.
+     *
      * @param target the switch target value
      * @param bodies the body builders of the operation to be built and become its children
      * @return the switch statement operation
