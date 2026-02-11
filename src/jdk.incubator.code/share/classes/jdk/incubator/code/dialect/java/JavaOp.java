@@ -2458,6 +2458,13 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The synchronized operation, that can model Java synchronized statements.
+     * <p>
+     * Synchronized operations feature two bodies. The <em>expression body</em> accepts no arguments
+     * and yields a value, the object associated with the monitor that will be acquired by the synchronized
+     * operation. The <em>block body</em> models the statements to execute while holding the monitor,
+     * and yields {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.19 The synchronized Statement
      */
     @OpDeclaration(SynchronizedOp.NAME)
     public static final class SynchronizedOp extends JavaOp
@@ -2484,6 +2491,7 @@ public sealed abstract class JavaOp extends Op {
             return new SynchronizedOp(this, cc, ot);
         }
 
+        // @@@: builder?
         SynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
             super(List.of());
 
@@ -2612,6 +2620,14 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The labeled operation, that can model Java language labeled statements.
+     * <p>
+     * Labeled operations feature one body, the labeled body. The labeled body accepts no arguments and
+     * yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The entry block of the labeled body always begins with a {@linkplain ConstantOp} constant modelling
+     * the label associated with the labeled statement, followed by the statement being labeled.
+     *
+     * @jls 14.7 Labeled Statements
      */
     @OpDeclaration(LabeledOp.NAME)
     public static final class LabeledOp extends JavaOp
@@ -6363,7 +6379,7 @@ public sealed abstract class JavaOp extends Op {
      * Creates a labeled operation.
      *
      * @param body the body builder of the operation to be built and become its child
-     * @return the block operation
+     * @return the labeled operation
      */
     public static LabeledOp labeled(Body.Builder body) {
         return new LabeledOp(body);
