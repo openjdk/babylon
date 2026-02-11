@@ -2702,16 +2702,19 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The if operation, that can model Java language if statements (JLS 14.9).
+     * The if operation, that can model Java language if statements.
      * <p>
-     * If operations feature multiple nested bodies. Some bodies, called <em>predicate bodies</em>,
-     * are used to model predicates that determine which execution
-     * path the evaluation of the if operation should take. Other bodies, called <em>action bodies</em>,
-     * model the list of statements to be executed should the predicate associated with that body
-     * be satisfied.
+     * If operations feature multiple bodies. Some bodies, called <em>predicate bodies</em>, model conditions that
+     * determine which execution path the evaluation of the if operation should take. Other bodies, called
+     * <em>action bodies</em>, model the statements to be executed when the preceding predicate is satisfied.
      * <p>
-     * Predicate bodies should accept no argument and return a {@link JavaType#BOOLEAN} value.
-     * Statements bodies similarly accept no arguments, and return {@linkplain JavaType#VOID no value}.
+     * Each predicate body has a corresponding action body, and there may be a trailing action body with no
+     * predicate, modelling the code after the Java {@code else} keyword.
+     * <p>
+     * Predicate bodies should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
+     * Action bodies similarly accept no arguments, and yield {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.9 The if Statement
      */
     @OpDeclaration(IfOp.NAME)
     public static final class IfOp extends JavaOp
@@ -3968,6 +3971,14 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The do-while operation, that can model a Java language do statement.
+     * <p>
+     * Do-while operations feature two bodies. The <em>loop body</em> models the statements to execute.
+     * The <em>predicate body</em> models the loop condition.
+     * <p>
+     * The loop body should accept no arguments, and yield {@linkplain JavaType#VOID no value}. The predicate body
+     * should accept no arguments, and yield a {@link JavaType#BOOLEAN} value.
+     *
+     * @jls 14.13 The do Statement
      */
     // @@@ Unify JavaDoWhileOp and JavaWhileOp with common abstract superclass
     @OpDeclaration(DoWhileOp.NAME)
@@ -3975,7 +3986,7 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for a do-while predicate.
+         * Builder for the predicate body of a do-while operation.
          */
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -3987,9 +3998,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of a do-while operation with the predicate obtained from the provided builder.
-             * @param c a consumer that populates the block modelling the do-while predicate
-             * @return a completed do-while operation with the provided predicate
+             * Completes the construction of a do-while operation by adding the predicate body.
+             *
+             * @param c a consumer that populates the predicate body
+             * @return the completed do-while operation
              */
             public DoWhileOp predicate(Consumer<Block.Builder> c) {
                 Body.Builder predicate = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
@@ -4000,7 +4012,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for a do-while body.
+         * Builder for the loop body of a do-while operation.
          */
         public static class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -4010,9 +4022,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the body of a do-while loop.
-             * @param c a consumer that populates the block modeling the body of the loop
-             * @return a predicate builder for configuring this do-while operation
+             * Builds the loop body of a do-while operation.
+             *
+             * @param c a consumer that populates the loop body
+             * @return a builder for specifying the predicate body
              */
             public DoWhileOp.PredicateBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
