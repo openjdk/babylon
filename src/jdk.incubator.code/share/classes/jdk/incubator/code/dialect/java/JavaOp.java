@@ -3398,7 +3398,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of a for-loop operation by adding the loop body.
+             * Completes for operation by adding the loop body.
              *
              * @param c a consumer that populates the loop body
              * @return the completed for-loop operation
@@ -3671,7 +3671,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of the enhanced-for operation by adding the loop body.
+             * Completes the enhanced-for operation by adding the loop body.
              *
              * @param c a consumer that populates the loop body
              * @return the completed enhanced-for operation
@@ -3902,7 +3902,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of a while operation by adding the loop body.
+             * Completes the while operation by adding the loop body.
              *
              * @param c a consumer that populates the loop body
              * @return the completed while operation
@@ -4039,7 +4039,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of a do-while operation by adding the predicate body.
+             * Completes the do-while operation by adding the predicate body.
              *
              * @param c a consumer that populates the predicate body
              * @return the completed do-while operation
@@ -4492,13 +4492,30 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The try operation, that can model Java language try statements.
+     * <p>
+     * Try operations feature a <em>try body</em>, zero or more <em>catch bodies</em>, and an optional
+     * <em>finalizer body</em>. Try operations may also feature an optional <em>resources body</em>, modelling a
+     * try-with-resources statement.
+     * <p>
+     * The resources body, if present, accepts no arguments and yields a value of type {@code R}.
+     * For instance, a try-with-resources statement with two resources of type {@code X} and {@code Y},
+     * {@code R} is a {@linkplain TupleType tuple type}, such as {@code (X, Y)}.
+     * <p>
+     * The try body yields {@linkplain JavaType#VOID no value}. If a resources body is present then the try body should
+     * accept an argument of type {@code R}, otherwise it accepts no arguments.
+     * <p>
+     * Each catch body should accept an exception value and yield {@linkplain JavaType#VOID no value}. The
+     * finalizer body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.20 The try statement
+     * @jls 14.20.3 The try-with-resources statement
      */
     @OpDeclaration(TryOp.NAME)
     public static final class TryOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
         /**
-         * A builder for specifying the main body of a try operation.
+         * Builder for the try body of a try operation.
          */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -4512,10 +4529,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the main body of the try operation.
+             * Builds the try body of the try operation.
              *
-             * @param c a consumer to populate the main body of the try block
-             * @return a builder for catch and finalizer clauses
+             * @param c a consumer that populates the try body
+             * @return a builder for specifying catch bodies and an optional finalizer
              */
             public CatchBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
@@ -4527,7 +4544,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * A builder for specifying the catch clauses and finalizer for a try operation.
+         * Builder for specifying catch bodies and an optional finalizer body of a try operation.
          */
         public static final class CatchBuilder {
             final Body.Builder ancestorBody;
@@ -4544,10 +4561,10 @@ public sealed abstract class JavaOp extends Op {
 
             // @@@ multi-catch
             /**
-             * Adds a catch clause for handling exceptions of a specific type.
+             * Adds a catch body for handling exceptions of a specific type.
              *
              * @param exceptionType the type of exception handled
-             * @param c a consumer to populate the catch body
+             * @param c a consumer that populates the catch body
              * @return this builder
              */
             public CatchBuilder catch_(TypeElement exceptionType, Consumer<Block.Builder> c) {
@@ -4560,10 +4577,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a finalizer clause to the try operation.
+             * Completes the try operation by adding the finalizer body.
              *
-             * @param c a consumer to populate the finalizer body
-             * @return the complete try operation with finalizer
+             * @param c a consumer that populates the finalizer body
+             * @return the completed try operation
              */
             public TryOp finally_(Consumer<Block.Builder> c) {
                 Body.Builder _finally = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
@@ -4573,9 +4590,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the try operation without a finalizer clause.
+             * Completes the try operation without a finalizer body.
              *
-             * @return the complete try operation without finalizer
+             * @return the completed try operation
              */
             public TryOp noFinalizer() {
                 return new TryOp(resources, body, catchers, null);
@@ -4715,7 +4732,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the catch clause bodies}
+         * {@return the catch bodies}
          */
         public List<Body> catchers() {
             return catchers;
@@ -6662,11 +6679,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a try or try-with-resources operation.
      *
-     * @param resources the try body builder of the operation to be built and become its child,
-     *                  may be null
+     * @param resources the resources body builder of the operation to be built and become its child,
+     *                  may be {@code null}
      * @param body      the try body builder of the operation to be built and become its child
      * @param catchers  the catch body builders of the operation to be built and become its children
-     * @param finalizer the finalizer body builder of the operation to be built and become its child
+     * @param finalizer the finalizer body builder of the operation to be built and become its child,
+     *                  may be {@code null}
      * @return the try or try-with-resources operation
      */
     public static TryOp try_(Body.Builder resources,
