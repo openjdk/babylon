@@ -43,6 +43,7 @@ questions.
         <module>blackscholes</module>
         <module>mandel</module>
         <module>heal</module>
+        <module>shade</module>
         <module>normmap</module>
         <module>violajones</module>
         <module>squares</module>
@@ -52,13 +53,14 @@ questions.
         <module>flashattention</module>
         <module>view</module>
         <module>life</module>
+        <module>nbody</module>
         <module>experiments</module>
     </modules>
     <profiles>
         <profile>
             <id>opengl</id>
             <modules>
-               <module>nbody</module>
+               <module>nbodygl</module>
             </modules>
         </profile>
     </profiles>

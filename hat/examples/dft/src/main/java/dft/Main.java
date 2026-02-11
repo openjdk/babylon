@@ -35,6 +35,7 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.examples.common.ParseArgs;
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
@@ -97,7 +98,7 @@ public class Main {
                                 array -> array.fields("real", "imag")));
 
         static ComplexArray create(Accelerator accelerator, int length) {
-            return schema.allocate(accelerator, length);
+            return BoundSchema.of(accelerator, schema, length).allocate();
         }
     }
 

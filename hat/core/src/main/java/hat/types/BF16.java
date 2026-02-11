@@ -24,11 +24,9 @@
  */
 package hat.types;
 
-public interface BF16 extends HAType {
-
+public interface BF16 extends _F16{
     short value();
     void value(short value);
-
     static BF16 of(float value) {
         return new BF16() {
             @Override

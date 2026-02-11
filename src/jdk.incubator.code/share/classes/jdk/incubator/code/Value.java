@@ -29,6 +29,10 @@ import java.util.*;
 
 /**
  * A value, that is the result of an operation or a block parameter.
+ * <p>
+ * A value is considered unbuilt if it's {@link #declaringBlock() declaring block} is unbuilt and
+ * therefore is inaccessible. A value is considered built when the declaring block is built and
+ * therefore is accessible.
  * @sealedGraph
  */
 public sealed abstract class Value implements CodeItem
@@ -51,11 +55,11 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring block is the block declaring the parameter.
      *
      * @return the value's declaring block.
-     * @throws IllegalStateException if the declaring block is partially built
+     * @throws IllegalStateException if this value is unbuilt because its declaring block is unbuilt.
      */
     public Block declaringBlock() {
-        if (!isBound()) {
-            throw new IllegalStateException("Declaring block is partially constructed");
+        if (!isBuilt()) {
+            throw new IllegalStateException("Declaring block is unbuilt");
         }
         return block;
     }
@@ -66,7 +70,8 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring code element is this value's declaring block.
      *
      * @return the value's declaring code element.
-     * @throws IllegalStateException if the declaring block is partially built
+     * @throws IllegalStateException if this value is a a block parameter and is unbuilt because its declaring block is
+     * unbuilt.
      */
     public CodeElement<?, ?> declaringElement() {
         return switch (this) {
@@ -127,12 +132,12 @@ public sealed abstract class Value implements CodeItem
      * an operand or as an argument of a block reference that is a successor.
      *
      * @return the uses of this value, as an unmodifiable sequenced set. The encouncter order is unspecified
-     * and determined by the order in which operations are built.
-     * @throws IllegalStateException if the declaring block is partially built
+     * and determined by the order in which operations are built into blocks.
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     public SequencedSet<Op.Result> uses() {
-        if (!isBound()) {
-            throw new IllegalStateException("Users are partially constructed");
+        if (!isBuilt()) {
+            throw new IllegalStateException("Users are are unbuilt");
         }
 
         return Collections.unmodifiableSequencedSet(uses);
@@ -154,7 +159,7 @@ public sealed abstract class Value implements CodeItem
      *
      * @param dom the dominating value
      * @return {@code true} if this value is dominated by the given value {@code dom}.
-     * @throws IllegalStateException if the declaring block is partially built
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     public boolean isDominatedBy(Value dom) {
         if (this == dom) {
@@ -192,13 +197,14 @@ public sealed abstract class Value implements CodeItem
      * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a} is less than {@code b}; and {@code -1}
      * if {@code a} is greater than {@code b}.
      * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
+     * @throws IllegalStateException if an unbuilt block is encountered.
      * @see CodeElement#compare
      */
     public static int compare(Value a, Value b) {
         return CodeElement.compare(a.declaringElement(), b.declaringElement());
     }
 
-    boolean isBound() {
-        return block.isBound();
+    boolean isBuilt() {
+        return block.isBuilt();
     }
 }

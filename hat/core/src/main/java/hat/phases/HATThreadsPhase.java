@@ -32,7 +32,6 @@ import optkl.OpHelper.FieldAccess;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.Regex;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -47,7 +46,7 @@ public record HATThreadsPhase(KernelCallGraph kernelCallGraph) implements HATPha
         return Trxfmr.of(this, funcOp)
                 .transform(c -> {
                     if (fieldAccess(lookup(), c.op()) instanceof FieldAccess.Instance fieldAccess
-                            && fieldAccess.refType(KernelContext.class) && fieldAccess.named(Regex.of("[glb][is][xyz]"))) {
+                            && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("[glb][is][xyz]")) {
                         varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());  // the var access will be removed the next transform
                         c.replace(HATThreadOp.create(fieldAccess.name()));
                     }

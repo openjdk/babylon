@@ -24,6 +24,7 @@
 package oracle.code.onnx.lift;
 
 import java.lang.reflect.Method;
+import java.lang.foreign.ValueLayout;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,7 +49,7 @@ import oracle.code.onnx.proto.OnnxModel;
 final class JavaTemplate {
 
     private static final String WEIGHT_FIELD_TEMPLATE = """
-            final %s %s = load("%2$s", %s%s);
+            final %s %s = load("%s", %dL, %d, %s%s);
         """;
 
     private static final String TEMPLATE = """
@@ -69,16 +70,16 @@ final class JavaTemplate {
 
             final Arena arena = Arena.ofAuto();
 
-            MemorySegment mmap(String pathname) {
+            MemorySegment mmap(String pathname, long offset, long length) {
                 try (var f = new RandomAccessFile(pathname, "r")) {
-                    return f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena);
+                    return f.getChannel().map(FileChannel.MapMode.READ_ONLY, offset, length < 0 ? f.length() : length, arena);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
 
-            <T> Tensor<T> load(String path, Tensor.ElementType type, long... shape) {
-                return new Tensor<>(arena, mmap(path), type, shape);
+            <T> Tensor<T> load(String path, long offset, long length, Tensor.ElementType type, long... shape) {
+                return new Tensor<>(arena, mmap(path, offset, length), type, shape);
             }
 
         %s
@@ -111,7 +112,20 @@ final class JavaTemplate {
             OnnxModel.TensorProto w = wMap.get(namer.apply(wp));
             String name = OnnxLift.toJavaName(w.name());
             long[] dims = OnnxLift.joinLongArray(w.dims());
-            out.append(WEIGHT_FIELD_TEMPLATE.formatted(toJavaType(wp.type()), name, Tensor.ElementType.fromOnnxId(w.dataType()).name(), dims.length > 0 ? (", " + longJoin(dims)) : ""));
+            String location;
+            long offset;
+            int length;
+            if (w.externalData() instanceof List<OnnxModel.StringStringEntryProto> ssep) {
+                var map = ssep.stream().collect(Collectors.toUnmodifiableMap(OnnxModel.StringStringEntryProto::key, OnnxModel.StringStringEntryProto::value));
+                location = map.get("location");
+                offset = Long.parseLong(map.get("offset"));
+                length = Integer.parseInt(map.get("length"));
+            } else {
+                location = name;
+                offset = 0;
+                length = -1;
+            }
+            out.append(WEIGHT_FIELD_TEMPLATE.formatted(toJavaType(wp.type()), name, location, offset, length, Tensor.ElementType.fromOnnxId(w.dataType()).name(), dims.length > 0 ? (", " + longJoin(dims)) : ""));
         }
         return out.toString();
     }
@@ -203,8 +217,16 @@ final class JavaTemplate {
             case Long l -> l.toString() + "L";
             case Float f -> f.toString() + "F";
             case String s -> "\"" + s + "\"";
-            case Tensor _ -> throw new UnsupportedOperationException();
+            case Tensor t -> "Tensor.ofShape(" + newArray(t.shape()) + ", " + toString(getData(t)) + ")";
             default -> o.toString();
+        };
+    }
+
+    private static Object getData(Tensor t) {
+        return switch (t.elementType()) {
+            case FLOAT -> t.data().toArray(ValueLayout.JAVA_FLOAT);
+            case INT64 -> t.data().toArray(ValueLayout.JAVA_LONG);
+            default -> throw new UnsupportedOperationException(t.elementType().name() + " tensor type");
         };
     }
 
@@ -272,6 +294,7 @@ final class JavaTemplate {
                     case OnnxType.Int32Type _ -> "Integer";
                     case OnnxType.UInt8Type _ -> "Byte";
                     case OnnxType.BoolType _ -> "Boolean";
+                    case OnnxType.StringType _ -> "String";
                     default -> throw new UnsupportedOperationException(t.toString());
                 } + ">";
             default -> "var";

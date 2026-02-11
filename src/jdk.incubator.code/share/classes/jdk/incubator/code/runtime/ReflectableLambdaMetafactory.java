@@ -13,9 +13,15 @@ import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
-import java.lang.invoke.SerializedLambda;
 
+/**
+ * Provides runtime support for creating reflectable lambdas. A reflectable lambda is a lambda whose
+ * code model can be inspected using {@link Op#ofLambda(Object)}.
+ * @see LambdaMetafactory
+ * @see Op#ofLambda(Object)
+ */
 public class ReflectableLambdaMetafactory {
 
     private ReflectableLambdaMetafactory() {
@@ -23,61 +29,43 @@ public class ReflectableLambdaMetafactory {
     }
 
     /**
-     * Facilitates the creation of simple "function objects" that implement one
-     * or more interfaces by delegation to a provided {@link MethodHandle},
-     * after appropriate type adaptation and partial evaluation of arguments.
-     * Typically used as a <em>bootstrap method</em> for {@code invokedynamic}
-     * call sites, to support the <em>lambda expression</em> and <em>method
-     * reference expression</em> features of the Java Programming Language.
+     * Metafactory used to create a reflectable lambda.
+     * <p>
+     * The functionality provided by this metafactory is identical to that in
+     * {@link LambdaMetafactory#metafactory(Lookup, String, MethodType, MethodType, MethodHandle, MethodType)}
+     * with one important difference: this metafactory expects the provided name to be encoded in the following form:
+     * <code>
+     *     lambdaName=opMethodName
+     * </code>
+     * The {@code lambdaName} part of the name is passed to the regular metafactory method, along with all the other
+     * parameters unchanged. The {@code opMethod} part of the name is used to locate a method in the
+     * {@linkplain Lookup#lookupClass() lookup class} associated with the provided lookup. This method is expected
+     * to accept no parameters and return a {@link Op}, namely the model of the reflectable lambda.
+     * <p>
+     * This means the clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
+     * to access the code model of the lambda expression dynamically.
      *
-     * <p>This is the standard, streamlined metafactory; additional flexibility
-     * is provided by {@link #altMetafactory(MethodHandles.Lookup, String, MethodType, Object...)}.
-     * A general description of the behavior of this method is provided
-     * {@link LambdaMetafactory above}.
-     *
-     * <p>When the target of the {@code CallSite} returned from this method is
-     * invoked, the resulting function objects are instances of a class which
-     * implements the interface named by the return type of {@code factoryType},
-     * declares a method with the name given by {@code interfaceMethodName} and the
-     * signature given by {@code interfaceMethodType}.  It may also override additional
-     * methods from {@code Object}.
-     *
-     * @param caller Represents a lookup context with the accessibility
-     *               privileges of the caller.  Specifically, the lookup context
-     *               must have {@linkplain MethodHandles.Lookup#hasFullPrivilegeAccess()
-     *               full privilege access}.
-     *               When used with {@code invokedynamic}, this is stacked
-     *               automatically by the VM.
-     * @param interfaceMethodName The name of the method to implement.  When used with
-     *                            {@code invokedynamic}, this is provided by the
-     *                            {@code NameAndType} of the {@code InvokeDynamic}
-     *                            structure and is stacked automatically by the VM.
-     * @param factoryType The expected signature of the {@code CallSite}.  The
-     *                    parameter types represent the types of capture variables;
-     *                    the return type is the interface to implement.   When
-     *                    used with {@code invokedynamic}, this is provided by
-     *                    the {@code NameAndType} of the {@code InvokeDynamic}
-     *                    structure and is stacked automatically by the VM.
+     * @param caller The lookup
+     * @param interfaceMethodName The name of the method to implement.
+     *                            This is encoded in the format described above.
+     * @param factoryType The expected signature of the {@code CallSite}.
      * @param interfaceMethodType Signature and return type of method to be
      *                            implemented by the function object.
      * @param implementation A direct method handle describing the implementation
-     *                       method which should be called (with suitable adaptation
-     *                       of argument types and return types, and with captured
-     *                       arguments prepended to the invocation arguments) at
-     *                       invocation time.
+     *                       method which should be called at invocation time.
      * @param dynamicMethodType The signature and return type that should
      *                          be enforced dynamically at invocation time.
-     *                          In simple use cases this is the same as
-     *                          {@code interfaceMethodType}.
      * @return a CallSite whose target can be used to perform capture, generating
-     *         instances of the interface named by {@code factoryType}
-     * @throws LambdaConversionException If {@code caller} does not have full privilege
-     *         access, or if {@code interfaceMethodName} is not a valid JVM
-     *         method name, or if the return type of {@code factoryType} is not
-     *         an interface, or if {@code implementation} is not a direct method
-     *         handle referencing a method or constructor, or if the linkage
-     *         invariants are violated, as defined {@link LambdaMetafactory above}.
+     *         a reflectable lambda instance implementing the interface named by {@code factoryType}.
+     *         The code model for such instance can be inspected using {@link Op#ofLambda(Object)}.
+     *
+     * @throws LambdaConversionException If, after the lambda name is decoded,
+     *         the parameters of the call are invalid for
+     *         {@link LambdaMetafactory#metafactory(Lookup, String, MethodType, MethodType, MethodHandle, MethodType)}
      * @throws NullPointerException If any argument is {@code null}.
+     *
+     * @see LambdaMetafactory#metafactory(Lookup, String, MethodType, MethodType, MethodHandle, MethodType)
+     * @see Op#ofLambda(Object)
      */
     public static CallSite metafactory(MethodHandles.Lookup caller,
                                        String interfaceMethodName,
@@ -92,131 +80,44 @@ public class ReflectableLambdaMetafactory {
     }
 
     /**
-     * Facilitates the creation of simple "function objects" that implement one
-     * or more interfaces by delegation to a provided {@link MethodHandle},
-     * after appropriate type adaptation and partial evaluation of arguments.
-     * Typically used as a <em>bootstrap method</em> for {@code invokedynamic}
-     * call sites, to support the <em>lambda expression</em> and <em>method
-     * reference expression</em> features of the Java Programming Language.
+     * Metafactory used to create a reflectable lambda.
+     * <p>
+     * The functionality provided by this metafactory is identical to that in
+     * {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}
+     * with one important difference: this metafactory expects the provided name to be encoded in the following form:
+     * <code>
+     *     lambdaName=opMethodName
+     * </code>
+     * The {@code lambdaName} part of the name is passed to the regular metafactory method, along with all the other
+     * parameters unchanged. The {@code opMethod} part of the name is used to locate a method in the
+     * {@linkplain Lookup#lookupClass() lookup class} associated with the provided lookup. This method is expected
+     * to accept no parameters and return a {@link Op}, namely the model of the reflectable lambda.
+     * <p>
+     * This means the clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
+     * to access the code model of the lambda expression dynamically.
      *
-     * <p>This is the general, more flexible metafactory; a streamlined version
-     * is provided by {@link #metafactory(java.lang.invoke.MethodHandles.Lookup,
-     * String, MethodType, MethodType, MethodHandle, MethodType)}.
-     * A general description of the behavior of this method is provided
-     * {@link LambdaMetafactory above}.
-     *
-     * <p>The argument list for this method includes three fixed parameters,
-     * corresponding to the parameters automatically stacked by the VM for the
-     * bootstrap method in an {@code invokedynamic} invocation, and an {@code Object[]}
-     * parameter that contains additional parameters.  The declared argument
-     * list for this method is:
-     *
-     * <pre>{@code
-     *  CallSite altMetafactory(MethodHandles.Lookup caller,
-     *                          String interfaceMethodName,
-     *                          MethodType factoryType,
-     *                          Object... args)
-     * }</pre>
-     *
-     * <p>but it behaves as if the argument list is as follows:
-     *
-     * <pre>{@code
-     *  CallSite altMetafactory(MethodHandles.Lookup caller,
-     *                          String interfaceMethodName,
-     *                          MethodType factoryType,
-     *                          MethodType interfaceMethodType,
-     *                          MethodHandle implementation,
-     *                          MethodType dynamicMethodType,
-     *                          int flags,
-     *                          int altInterfaceCount,        // IF flags has MARKERS set
-     *                          Class... altInterfaces,       // IF flags has MARKERS set
-     *                          int altMethodCount,           // IF flags has BRIDGES set
-     *                          MethodType... altMethods      // IF flags has BRIDGES set
-     *                          )
-     * }</pre>
-     *
-     * <p>Arguments that appear in the argument list for
-     * {@link #metafactory(MethodHandles.Lookup, String, MethodType, MethodType, MethodHandle, MethodType)}
-     * have the same specification as in that method.  The additional arguments
-     * are interpreted as follows:
-     * <ul>
-     *     <li>{@code flags} indicates additional options; this is a bitwise
-     *     OR of desired flags.  Defined flags are {@link LambdaMetafactory#FLAG_BRIDGES},
-     *     {@link LambdaMetafactory#FLAG_MARKERS}, and {@link LambdaMetafactory#FLAG_SERIALIZABLE}.</li>
-     *     <li>{@code altInterfaceCount} is the number of additional interfaces
-     *     the function object should implement, and is present if and only if the
-     *     {@code FLAG_MARKERS} flag is set.</li>
-     *     <li>{@code altInterfaces} is a variable-length list of additional
-     *     interfaces to implement, whose length equals {@code altInterfaceCount},
-     *     and is present if and only if the {@code FLAG_MARKERS} flag is set.</li>
-     *     <li>{@code altMethodCount} is the number of additional method signatures
-     *     the function object should implement, and is present if and only if
-     *     the {@code FLAG_BRIDGES} flag is set.</li>
-     *     <li>{@code altMethods} is a variable-length list of additional
-     *     methods signatures to implement, whose length equals {@code altMethodCount},
-     *     and is present if and only if the {@code FLAG_BRIDGES} flag is set.</li>
-     * </ul>
-     *
-     * <p>Each class named by {@code altInterfaces} is subject to the same
-     * restrictions as {@code Rd}, the return type of {@code factoryType},
-     * as described {@link LambdaMetafactory above}.  Each {@code MethodType}
-     * named by {@code altMethods} is subject to the same restrictions as
-     * {@code interfaceMethodType}, as described {@link LambdaMetafactory above}.
-     *
-     * <p>When FLAG_SERIALIZABLE is set in {@code flags}, the function objects
-     * will implement {@code Serializable}, and will have a {@code writeReplace}
-     * method that returns an appropriate {@link SerializedLambda}.  The
-     * {@code caller} class must have an appropriate {@code $deserializeLambda$}
-     * method, as described in {@link SerializedLambda}.
-     *
-     * <p>When the target of the {@code CallSite} returned from this method is
-     * invoked, the resulting function objects are instances of a class with
-     * the following properties:
-     * <ul>
-     *     <li>The class implements the interface named by the return type
-     *     of {@code factoryType} and any interfaces named by {@code altInterfaces}</li>
-     *     <li>The class declares methods with the name given by {@code interfaceMethodName},
-     *     and the signature given by {@code interfaceMethodType} and additional signatures
-     *     given by {@code altMethods}</li>
-     *     <li>The class may override methods from {@code Object}, and may
-     *     implement methods related to serialization.</li>
-     * </ul>
-     *
-     * @param caller Represents a lookup context with the accessibility
-     *               privileges of the caller.  Specifically, the lookup context
-     *               must have {@linkplain MethodHandles.Lookup#hasFullPrivilegeAccess()
-     *               full privilege access}.
-     *               When used with {@code invokedynamic}, this is stacked
-     *               automatically by the VM.
-     * @param interfaceMethodName The name of the method to implement.  When used with
-     *                            {@code invokedynamic}, this is provided by the
-     *                            {@code NameAndType} of the {@code InvokeDynamic}
-     *                            structure and is stacked automatically by the VM.
-     * @param factoryType The expected signature of the {@code CallSite}.  The
-     *                    parameter types represent the types of capture variables;
-     *                    the return type is the interface to implement.   When
-     *                    used with {@code invokedynamic}, this is provided by
-     *                    the {@code NameAndType} of the {@code InvokeDynamic}
-     *                    structure and is stacked automatically by the VM.
-     * @param  args An array of {@code Object} containing the required
+     * @param caller The lookup
+     * @param interfaceMethodName The name of the method to implement.
+     *                            This is encoded in the format described above.
+     * @param factoryType The expected signature of the {@code CallSite}.
+     * @param args An array of {@code Object} containing the required
      *              arguments {@code interfaceMethodType}, {@code implementation},
      *              {@code dynamicMethodType}, {@code flags}, and any
-     *              optional arguments, as described above
+     *              optional arguments, as required by {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}
      * @return a CallSite whose target can be used to perform capture, generating
-     *         instances of the interface named by {@code factoryType}
-     * @throws LambdaConversionException If {@code caller} does not have full privilege
-     *         access, or if {@code interfaceMethodName} is not a valid JVM
-     *         method name, or if the return type of {@code factoryType} is not
-     *         an interface, or if any of {@code altInterfaces} is not an
-     *         interface, or if {@code implementation} is not a direct method
-     *         handle referencing a method or constructor, or if the linkage
-     *         invariants are violated, as defined {@link LambdaMetafactory above}.
+     *         a reflectable lambda instance implementing the interface named by {@code factoryType}.
+     *         The code model for such instance can be inspected using {@link Op#ofLambda(Object)}.
+     *
+     * @throws LambdaConversionException If, after the lambda name is decoded,
+     *         the parameters of the call are invalid for
+     *         {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}
      * @throws NullPointerException If any argument, or any component of {@code args},
      *         is {@code null}.
-     * @throws IllegalArgumentException If the number or types of the components
-     *         of {@code args} do not follow the above rules, or if
-     *         {@code altInterfaceCount} or {@code altMethodCount} are negative
-     *         integers.
+     * @throws IllegalArgumentException If {@code args} are invalid for
+     *         {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}
+     *
+     * @see LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)
+     * @see Op#ofLambda(Object)
      */
     public static CallSite altMetafactory(MethodHandles.Lookup caller,
                                           String interfaceMethodName,

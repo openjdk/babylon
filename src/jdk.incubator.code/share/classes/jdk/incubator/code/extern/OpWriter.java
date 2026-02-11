@@ -233,6 +233,7 @@ public final class OpWriter {
      *
      * @param out the output stream
      * @param op the code model
+     * @param options writer options
      */
     public static void writeTo(OutputStream out, Op op, Option... options) {
         writeTo(new OutputStreamWriter(out, StandardCharsets.UTF_8), op, options);
@@ -259,9 +260,9 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model (an operation) to a string.
+     * {@return the textual representation of the code model operation}
      *
-     * @param op the code model
+     * @param op the code model operation
      * @param options the writer options
      */
     public static String toText(Op op, OpWriter.Option... options) {
@@ -282,14 +283,25 @@ public final class OpWriter {
     public sealed interface CodeItemNamerOption extends Option
             permits NamerOptionImpl {
 
+        /**
+         * {@return an code item naming option with the provided function}
+         *
+         * @param named the function used to name code items
+         */
         static CodeItemNamerOption of(Function<CodeItem, String> named) {
             return new NamerOptionImpl(named);
         }
 
+        /**
+         * {@return the default code item naming option}
+         */
         static CodeItemNamerOption defaultValue() {
             return of(new GlobalValueBlockNaming());
         }
 
+        /**
+         * {@return the associated naming function for code items}
+         */
         Function<CodeItem, String> namer();
     }
     private record NamerOptionImpl(Function<CodeItem, String> namer) implements CodeItemNamerOption {
@@ -304,6 +316,9 @@ public final class OpWriter {
         /** Drops location */
         DROP_LOCATION;
 
+        /**
+         * {@return the default location option}
+         */
         public static LocationOption defaultValue() {
             return WRITE_LOCATION;
         }
@@ -318,6 +333,9 @@ public final class OpWriter {
         /** Drops descendants of an operation, if any */
         DROP_DESCENDANTS;
 
+        /**
+         * {@return the default writing option for descendant operations}
+         */
         public static OpDescendantsOption defaultValue() {
             return WRITE_DESCENDANTS;
         }
@@ -332,6 +350,9 @@ public final class OpWriter {
         /** Drops void operation result */
         DROP_VOID;
 
+        /**
+         * {@return the default option for writing operation results}
+         */
         public static VoidOpResultOption defaultValue() {
             return DROP_VOID;
         }
@@ -426,10 +447,10 @@ public final class OpWriter {
         }
 
         if (!dropLocation) {
-            Location location = op.location();
+            Op.Location location = op.location();
             if (location != null) {
                 write(" ");
-                writeAttribute(ATTRIBUTE_LOCATION, op.location());
+                writeLocation(location);
             }
         }
         Map<String, Object> attributes = op.externalize();
@@ -462,6 +483,15 @@ public final class OpWriter {
         }
 
         write(";");
+    }
+
+    void writeLocation(Op.Location location) {
+        StringBuilder s = new StringBuilder();
+        s.append(location.line()).append(":").append(location.column());
+        if (location.sourceRef() != null) {
+            s.append(":").append(location.sourceRef());
+        }
+        writeAttribute(ATTRIBUTE_LOCATION, s);
     }
 
     void writeSuccessor(Block.Reference successor) {

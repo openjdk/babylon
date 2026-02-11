@@ -26,7 +26,8 @@ package hat.buffer;
 
 import optkl.ifacemapper.AccessType;
 import hat.callgraph.KernelCallGraph;
-import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
@@ -226,7 +227,7 @@ public interface ArgArray extends Buffer {
     );
 
 
-    static ArgArray create(CommonCarrier cc, KernelCallGraph kernelCallGraph, Object... args) {
+    static ArgArray create(ArenaAndLookupCarrier cc, KernelCallGraph kernelCallGraph, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -250,7 +251,7 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = schema.allocate(cc,args.length,schemaStr.length() + 1);
+        ArgArray argArray = BoundSchema.of(cc ,schema,args.length,schemaStr.length()+1).allocate();
         byte[] schemaStrBytes = schemaStr.getBytes();
         for (int i = 0; i < schemaStrBytes.length; i++) {
             argArray.schemaBytes(i, schemaStrBytes[i]);
@@ -261,7 +262,7 @@ public interface ArgArray extends Buffer {
     }
 
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
-        Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
+        Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.method().getParameterAnnotations();
         var bufferAccessList = kernelCallGraph.traits.bufferAccessList;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
@@ -292,13 +293,12 @@ public interface ArgArray extends Buffer {
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
-                    buf.access(accessType.value);
-                    assert bufferAccessList.get(i).value == accessType.value: "buffer tagging mismatch: "
-                                + kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
-                                + " in " + kernelCallGraph.entrypoint.getMethod().getName()
-                                + " annotated as " + AccessType.of(accessType.value)
-                                + " but tagged as " + bufferAccessList.get(i).name();
-
+                    buf.access(bufferAccessList.get(i).value); // buf.access(accessType.value);
+                    assert bufferAccessList.get(i).value == accessType.value :
+                            (kernelCallGraph.entrypoint.method().getParameters()[i].toString()
+                                    + " in " + kernelCallGraph.entrypoint.method().getName()
+                                    + ": buffertagger " + bufferAccessList.get(i).value
+                                    + " doesn't match " + accessType.value);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }

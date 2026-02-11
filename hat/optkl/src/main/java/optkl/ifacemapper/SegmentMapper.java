@@ -26,6 +26,7 @@ package optkl.ifacemapper;
 
 
 
+import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.util.carriers.ArenaCarrier;
 import optkl.util.carriers.LookupCarrier;
 
@@ -304,7 +305,7 @@ import java.util.stream.Stream;
 //       This can be fixed using double-buffering. Maybe provide a scratch segment somehow that tracks where writes
 //       has been made (via a separate class BufferedMapper?)
 //       -> Fixed via TestInterfaceMapper::doubleBuffered
-public interface SegmentMapper<T>  extends ArenaCarrier, LookupCarrier {
+public interface SegmentMapper<T>  extends ArenaAndLookupCarrier {
 
     /**
      * {@return the type that this mapper is mapping to and from}

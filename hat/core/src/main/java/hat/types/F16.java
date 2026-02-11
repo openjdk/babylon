@@ -24,12 +24,13 @@
  */
 package hat.types;
 
+import optkl.IfaceValue;
+
 // Interface for Floating Point numbers of 16-bits
 // Values are stored in a short format.
-public interface F16 extends HAType {
+public interface F16 extends _F16 {
     short value();
     void value(short value);
-
     /**
      * Intrinsic for the HAT compiler to create a new half.
      */

@@ -113,7 +113,7 @@ public class Mesh {
                 .arrayLen("vertices").array("vertex", v -> v.fields("from", "to"))
         );
         static  MeshData create(Accelerator accelerator) {
-            return schema.allocate(accelerator,100,10);
+            return BoundSchema.of(accelerator ,schema,100,10).allocate();
         }
     }
 
@@ -140,9 +140,7 @@ public class Mesh {
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
-
-        var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
-        var meshDataNew = boundSchema.allocate(accelerator.lookup(),accelerator);
+        var meshDataNew = BoundSchema.of(accelerator ,MeshData.schema,100,100).allocate();
         var meshDataOld = MeshData.create(accelerator);
 
         String layoutNew = MappableIface.getLayout(meshDataNew).toString();

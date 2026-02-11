@@ -29,6 +29,7 @@ import hat.Accelerator;
 import hat.HATMath;
 import hat.backend.Backend;
 import hat.examples.common.ParseArgs;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
@@ -87,7 +88,7 @@ public class Main {
         });
 
         static ComplexArray create(Accelerator accelerator, int length) {
-            return schema.allocate(accelerator, length);
+            return BoundSchema.of(accelerator, schema, length).allocate();
         }
     }
 

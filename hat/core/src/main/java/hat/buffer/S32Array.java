@@ -25,7 +25,8 @@
 package hat.buffer;
 
 import jdk.incubator.code.Reflect;
-import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
@@ -44,8 +45,8 @@ public interface S32Array extends Buffer {
     long ARRAY_OFFSET = JAVA_INT.byteSize();
     Schema<S32Array> schema = Schema.of(S32Array.class);
 
-    @Reflect static S32Array create(CommonCarrier cc, int length){
-        return schema.allocate(cc, length);
+    @Reflect static S32Array create(ArenaAndLookupCarrier cc, int length){
+        return BoundSchema.of(cc ,schema, length).allocate();
     }
     @Reflect default S32Array fill(Function<Integer, Integer> filler) {
         for (int i = 0; i < length(); i++) {
@@ -53,10 +54,10 @@ public interface S32Array extends Buffer {
         }
         return this;
     }
-    @Reflect static S32Array create(CommonCarrier cc, int length, Function<Integer,Integer> filler){
+    @Reflect static S32Array create(ArenaAndLookupCarrier cc, int length, Function<Integer,Integer> filler){
         return create(cc,length).fill(filler);
     }
-    static S32Array createFrom(CommonCarrier cc, int[] arr){
+    static S32Array createFrom(ArenaAndLookupCarrier cc, int[] arr){
         return create( cc, arr.length).copyfrom(arr);
     }
     @Reflect default S32Array copyfrom(int[] ints) {

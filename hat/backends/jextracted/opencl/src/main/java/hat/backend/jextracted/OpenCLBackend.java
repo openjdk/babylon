@@ -74,7 +74,7 @@ public class OpenCLBackend extends C99JExtractedBackend {
             System.out.println(code);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {
-                long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
+                long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.name());
                 return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
             } else {
                 throw new IllegalStateException("opencl failed to compile ");

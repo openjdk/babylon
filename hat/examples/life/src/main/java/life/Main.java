@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
@@ -71,7 +72,7 @@ public class Main {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return schema.allocate(accelerator, width, height);
+            return BoundSchema.of(accelerator ,schema, width, height).allocate();
         }
 
         ValueLayout valueLayout = JAVA_BYTE;
@@ -108,7 +109,7 @@ public class Main {
                         control.fields("from", "to"));//, "generation", "requiredFrameRate", "maxGenerations"));
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
-            var instance = schema.allocate(accelerator);
+            var instance = BoundSchema.of(accelerator ,schema).allocate();
             instance.from(cellGrid.width() * cellGrid.height());
             instance.to(0);
             return instance;

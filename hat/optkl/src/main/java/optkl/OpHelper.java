@@ -59,7 +59,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
 
@@ -70,6 +70,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         return to;
     }
 
+
+
+    default Op opFromOnlyUseOrNull() {
+        return onlyUseOrNull() instanceof Op.Result result?result.op():null;
+    }
+    default Op.Result onlyUseOrNull() {
+        if (op().result().uses().size() == 1) {
+            return op().result().uses().iterator().next();
+        } else {
+            return null;
+        }
+    }
     static Value firstOperandOrNull(Op op) {
         if (!op.operands().isEmpty()) {
             return op.operands().getFirst();
@@ -95,20 +107,14 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     }
 
     static CoreOp.FuncOp methodModelOrThrow(Method method) {
-
         if (methodModelOrNull(method) instanceof CoreOp.FuncOp funcOp) {
             return funcOp;
         } else {
-            throw new RuntimeException("No funcop/method model for " + method + " did you forget @Reflec");
+            throw new RuntimeException("No funcop/method model for " + method + " did you forget @Reflect");
         }
     }
 
     T op();
-
-    default <TO extends Op> TO copyLocationTo(TO to) {
-        to.setLocation(op().location());
-        return to;
-    }
 
     static Type classTypeToTypeOrThrow(MethodHandles.Lookup lookup, ClassType classType) {
         try {
@@ -153,7 +159,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     default Op.Result resultFromFirstOperandOrNull() {
         return resultFromOperandNOrNull(0);
     }
-
 
     default Op.Result resultFromOperandNOrThrow(int i) {
         if (resultFromOperandNOrNull(i) instanceof Op.Result result) {
@@ -204,8 +209,24 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     }
 
     default CoreOp.VarAccessOp.VarLoadOp varLoadOpFromFirstOperandOrNull() {
-        return opFromFirstOperandOrThrow()
-                instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ? varLoadOp : null;
+        return opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ? varLoadOp : null;
+    }
+    default CoreOp.VarOp varOpFromFirstOperandOrNull() {
+        return opFromFirstOperandOrNull() instanceof CoreOp.VarOp varOp ? varOp : null;
+    }
+    default CoreOp varAccessOrVarOpFromFirstOperandOrNull() {
+        return switch (opFromFirstOperandOrNull()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> varLoadOp;
+            case CoreOp.VarOp varOp -> varOp;
+            default -> null;
+        };
+    }
+    default String varNameFromFirstOperandOrNull() {
+        return switch (varAccessOrVarOpFromFirstOperandOrNull()){
+            case CoreOp.VarOp varOp->varOp.varName();
+            case CoreOp.VarAccessOp varAccessOp->varAccessOp.varOp().varName();
+            default -> null;
+        };
     }
 
     static Block entryBlockOfBodyN(Op op, int idx) {
@@ -278,31 +299,28 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         boolean isLoad();
 
         boolean isStore();
-
     }
-
 
     sealed interface Named<T extends Op> extends OpHelper<T>
             permits FieldAccess, Func, Invoke, VarAccess, Variable {
         String name();
 
-        default boolean named(Regex regex) {
+        default boolean nameMatchesRegex(Regex regex) {
             return regex.matches(name());
+        }
+        default boolean nameMatchesRegex(String regexStr) {
+            return nameMatchesRegex(Regex.of(regexStr));
         }
 
         default boolean named(String... names) {
-            return named(Set.of(names));
-        }
-
-        default boolean namedIgnoreCase(String... names) {
-            return Set.of(names).stream().map(String::toLowerCase).collect(Collectors.toSet()).contains(name().toLowerCase());
+            return nameInSet(Set.of(names));
         }
 
         default boolean named(Predicate<String> predicate) {
             return predicate.test(name());
         }
 
-        default boolean named(Set<String> set) {
+        default boolean nameInSet(Set<String> set) {
             return set.contains(name());
         }
     }
@@ -627,13 +645,12 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return OpHelper.methodModelOrThrow(method);
         }
 
-        default Op onlyUse() {
-            if (op().result().uses().size() == 1) {
-                return op().result().uses().iterator().next().op();
-            } else {
-                return null;
-            }
+        default CoreOp.FuncOp targetMethodModelOrNull() {
+            Method method = resolveMethodOrNull();
+            return OpHelper.methodModelOrNull(method);
         }
+
+
         static <I extends Invoke>I invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
             return codeElement instanceof JavaOp.InvokeOp invokeOp ?
                     invokeOp.invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC)
@@ -814,7 +831,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return codeElement instanceof JavaOp.LambdaOp lambdaOp ? new Impl(lookup, lambdaOp) : null;
         }
 
-        default Object[] getQuotedCapturedValues(Quoted quoted, Method method) {
+        default Object[] getQuotedCapturedValues(Quoted<?> quoted, Method method) {
             var block = op().body().entryBlock();
             var ops = block.ops();
             Object[] varLoadNames = ops.stream()
@@ -878,4 +895,58 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             throw new IllegalStateException("cant find func parameter parameter " + n);
         }
     }
+
+
+
+     static <T, R> Gatherer<T, ?, R> instanceOf(Class<R> type) {
+        Objects.requireNonNull(type, "type");
+        return Gatherer.of((_, element, downstream) -> {
+            if (type.isInstance(element)) {
+                return downstream.push(type.cast(element));
+            }
+            return true;
+        });
+    }
+
+    /*
+      Instead of
+       invoke.op().result().uses().stream()
+           .filter(result -> result.op() instanceof CoreOp.VarOp)
+           .map(result -> (CoreOp.VarOp)result.op())
+           .forEach(...);
+
+      invoke.op().result().uses().stream()
+            .gather(OpHelper.opIs(CoreOp.VarOp.class))
+            .forEach(...);
+     */
+     static <T, R> Gatherer<T, ?, R> opIs(Class<R> type) {
+        Objects.requireNonNull(type, "type");
+        return Gatherer.of((_, element, downstream) -> {
+            if (element instanceof Op.Result result && type.isInstance(result.op())) {
+                return downstream.push(type.cast(result.op()));
+            }
+            return true;
+        });
+    }
+
+    /*
+       Instead of
+       invoke.op().result().uses().stream()
+           .filter(result -> result.op() instanceof CoreOp.VarOp)
+           .map(result -> (CoreOp.VarOp)result.op())
+           .forEach(...);
+
+        This enables
+        invoke.op().result().uses().stream()
+              .flatMap(OpHelper.resultsOpIs(CoreOp.VarOp.class))
+              .forEach(...)
+
+
+    static <E, T> Function<E, Stream<T>> opIs(Class<T> type) {
+        return e -> e instanceof Op.Result result && type.isInstance(result.op())
+                ? Stream.of(type.cast(result.op()))
+                : Stream.empty();
+    }
+*/
+
 }

@@ -35,18 +35,20 @@ public class TestQuoteOp {
 
         CoreOp.FuncOp funcOp = Quoted.embedOp(lop);
 
-        Object[] args = new Object[]{1, "a", this};
-        Quoted<?> quoted = Quoted.extractOp(funcOp, args);
-        // op must have the same structure as lop
-        // for the moment, we don't have utility to check that
+        for (String stringArg : new String[] {"a", null}) {
+            Object[] args = new Object[] {1, stringArg, this};
+            Quoted<?> quoted = Quoted.extractOp(funcOp, args);
+            // op must have the same structure as lop
+            // for the moment, we don't have utility to check that
 
-        Assertions.assertTrue(lop.getClass().isInstance(quoted.op()));
+            Assertions.assertTrue(lop.getClass().isInstance(quoted.op()));
 
-        Iterator<Object> iterator = quoted.capturedValues().values().iterator();
+            Iterator<Object> iterator = quoted.capturedValues().values().iterator();
 
-        Assertions.assertEquals(args[0], ((CoreOp.Var<?>) iterator.next()).value());
-        Assertions.assertEquals(args[1], ((CoreOp.Var<?>) iterator.next()).value());
-        Assertions.assertEquals(args[2], iterator.next());
+            Assertions.assertEquals(args[0], ((CoreOp.Var<?>) iterator.next()).value());
+            Assertions.assertEquals(args[1], ((CoreOp.Var<?>) iterator.next()).value());
+            Assertions.assertEquals(args[2], iterator.next());
+        }
     }
 
     @Reflect

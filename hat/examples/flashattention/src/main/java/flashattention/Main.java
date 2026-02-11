@@ -32,9 +32,9 @@ import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
 import hat.examples.common.ParseArgs;
 import hat.types.F16;
+import hat.device.NonMappableIface;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface.RW;
 
@@ -325,7 +325,7 @@ public class Main {
     }
 
     // Express a float array in shared memory with HAT
-    private interface SharedFloatArray extends DeviceType {
+    private interface SharedFloatArray extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -344,7 +344,7 @@ public class Main {
     }
 
     // Express an array of floats in private memory with HAT
-    private interface PrivateFloatArray extends DeviceType {
+    private interface PrivateFloatArray extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -496,7 +496,7 @@ public class Main {
         computeContext.dispatchKernel(ndRange, kernelContext -> flashAttention(kernelContext, Q, K, V, O, m, l, N, d, scale));
     }
 
-    private interface SharedF16Array extends DeviceType {
+    private interface SharedF16Array extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<SharedF16Array> schema = DeviceSchema.of(SharedF16Array.class,
@@ -512,7 +512,7 @@ public class Main {
         }
     }
 
-    private interface PrivateF16Array extends DeviceType {
+    private interface PrivateF16Array extends NonMappableIface {
 
         F16 array(int index);
 

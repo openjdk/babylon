@@ -25,10 +25,13 @@
 package optkl.ifacemapper;
 
 
+import optkl.ifacemapper.accessor.AccessorInfo;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +39,7 @@ import static optkl.ifacemapper.BoundSchema.BoundSchemaNode.getBoundGroupLayout;
 
 
 public class BoundSchema<T extends MappableIface> {
+    final private ArenaAndLookupCarrier arenaAndLookupCarrier;
     final private List<BoundArrayFieldLayout> boundArrayFields = new ArrayList<>();
     final private int[] arrayLengths;
     final private Schema<T> schema;
@@ -103,7 +107,8 @@ public class BoundSchema<T extends MappableIface> {
             }
         }
     }
-    public BoundSchema(Schema<T> schema, int... arrayLengths) {
+    public BoundSchema(ArenaAndLookupCarrier arenaAndLookupCarrier, Schema<T> schema, int... arrayLengths) {
+        this.arenaAndLookupCarrier = arenaAndLookupCarrier;
         this.schema = schema;
         this.arrayLengths = arrayLengths;
         this.rootBoundSchemaNode = new BoundSchemaNode<>((BoundSchema) this, null, this.schema.rootIfaceType);
@@ -115,9 +120,9 @@ public class BoundSchema<T extends MappableIface> {
         return arrayLengths[boundArrayFields.size()];
     }
 
-    public T allocate(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator) {
-        return bufferAllocator.allocates(SegmentMapper.of(bufferAllocator.arena(),lookup, schema.iface, groupLayout, this), this);
-    }
+
+
+
 
     public Schema<T> schema() {
         return schema;
@@ -254,4 +259,40 @@ public class BoundSchema<T extends MappableIface> {
         }
 
     }
+
+    static public <T extends Buffer> BoundSchema<T> of (ArenaAndLookupCarrier arenaAndLookupCarrier, Schema<T> schema, int... boundLengths){
+        return new BoundSchema<>(arenaAndLookupCarrier,schema, boundLengths);
+    }
+
+
+      public T allocate() {
+        var segmentMapper = SegmentMapper.of(arenaAndLookupCarrier.arena(), arenaAndLookupCarrier.lookup(), schema.iface, groupLayout, this);
+        T instance =  segmentMapper.allocate(this);
+        MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
+        int[] count = new int[]{0};
+
+
+        boundArrayFields().forEach(boundArrayFieldLayout -> {
+            boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
+                long dimOffset = dimLayout.offset();
+                int dim = arrayLengths[count[0]++];
+                if (dimLayout.field instanceof Schema.FieldNode.ArrayLen arrayLen) {
+                    if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)) {
+                        throw new IllegalStateException("You have a bound array dim field " + dimLayout.field.name + " controlling size of " + boundArrayFieldLayout.field.name + "[] which has a setter ");
+                    }
+                    if (arrayLen.type == Long.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_LONG, dimOffset, dim);
+                    } else if (arrayLen.type == Integer.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_INT, dimOffset, dim);
+                    } else {
+                        throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
+                    }
+                }
+            });
+        });
+
+
+        return instance;
+    }
+
 }

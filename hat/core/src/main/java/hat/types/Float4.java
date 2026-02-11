@@ -24,25 +24,18 @@
  */
 package hat.types;
 
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-public interface Float4 extends _V4 {
+public interface Float4 extends Vector {
+    Shape shape = Shape.of(JavaType.FLOAT,4);
 
     float x();
     float y();
     float z();
     float w();
-
-    @Reflect
-    @Override
-    default PrimitiveType type() {
-        return JavaType.FLOAT;
-    }
 
     record MutableImpl(float x, float y, float z, float w) implements Float4 {
         public void x(float x) {}

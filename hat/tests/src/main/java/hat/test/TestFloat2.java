@@ -32,9 +32,8 @@ import hat.backend.Backend;
 import hat.buffer.F32ArrayPadded;
 import hat.types.Float2;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
+import hat.device.NonMappableIface;
+import optkl.ifacemapper.MappableIface.*;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
@@ -45,7 +44,7 @@ import java.util.Random;
 public class TestFloat2 {
 
     @Reflect
-    public static void vectorOps01(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
+    public static void vectorOps01(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -56,7 +55,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
+    public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2.MutableImpl vA = a.float2View(index * 2);
@@ -67,7 +66,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps03(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
+    public static void vectorOps03(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
 
@@ -88,7 +87,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
+    public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2.MutableImpl vA = a.float2View(index * 2);
@@ -99,7 +98,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps05(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
+    public static void vectorOps05(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -110,7 +109,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps06(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
+    public static void vectorOps06(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -122,7 +121,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps07(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
+    public static void vectorOps07(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -133,7 +132,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps08(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
+    public static void vectorOps08(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -144,7 +143,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps09(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
+    public static void vectorOps09(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
         // Checking composition
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -155,7 +154,7 @@ public class TestFloat2 {
         }
     }
 
-    private interface SharedArray extends DeviceType {
+    private interface SharedArray extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<SharedArray> schema = DeviceSchema.of(SharedArray.class,
@@ -174,7 +173,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps10(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
+    public static void vectorOps10(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
         SharedArray sm = SharedArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -187,7 +186,7 @@ public class TestFloat2 {
         }
     }
 
-    private interface PrivateMemory extends DeviceType {
+    private interface PrivateMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,
@@ -206,7 +205,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps11(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
+    public static void vectorOps11(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
         PrivateMemory pm = PrivateMemory.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -219,7 +218,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps12(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
+    public static void vectorOps12(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
         SharedArray sm = SharedArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -246,7 +245,7 @@ public class TestFloat2 {
 
 
     @Reflect
-    public static void vectorOps15(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
+    public static void vectorOps15(@RO KernelContext kernelContext, @WO F32ArrayPadded a) {
         // in this sample, we don't perform the vload, but rather the vstore directly
         // from a new float2.
         if (kernelContext.gix < kernelContext.gsx) {
@@ -257,74 +256,74 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
+    public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2,128), kernelContext -> TestFloat2.vectorOps01(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
+    public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @WO F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps02(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
+    public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @WO F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps03(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
+    public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @WO F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps04(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
+    public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps05(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
+    public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps06(kernelContext, a, b, c));
     }
 
 
     @Reflect
-    public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
+    public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps07(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
+    public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps08(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
+    public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps09(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
+    public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @WO F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps10(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
+    public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @WO F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps11(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
+    public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @WO F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps12(kernelContext, a, b));
     }
@@ -336,7 +335,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void computeGraph15(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
+    public static void computeGraph15(@RO ComputeContext cc, @WO F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
         cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps15(kernelContext, a));
     }

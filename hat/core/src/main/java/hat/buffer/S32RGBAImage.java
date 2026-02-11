@@ -25,7 +25,8 @@
 package hat.buffer;
 
 
-import optkl.util.carriers.CommonCarrier;
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.Schema;
 
 public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
@@ -36,7 +37,7 @@ public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
     Schema<S32RGBAImage> schema = Schema.of(S32RGBAImage.class, s -> s
             .arrayLen("width", "height").stride(1).array("data")
     );
-    static S32RGBAImage create(CommonCarrier cc, int width, int height){
-        return schema.allocate(cc,width,height);
+    static S32RGBAImage create(ArenaAndLookupCarrier cc, int width, int height){
+        return BoundSchema.of(cc ,schema,width,height).allocate();
     }
 }

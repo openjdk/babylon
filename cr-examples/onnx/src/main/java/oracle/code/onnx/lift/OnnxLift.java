@@ -35,6 +35,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,7 +48,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -101,9 +101,11 @@ public final class OnnxLift {
             }
         }
 
-        for (OnnxModel.TensorProto init : g.initializer()) {
-            if (dedup.add(init.name())) {
-                paramTypes.add(toTensorType(init.dataType()));
+        if (g.initializer() instanceof List<OnnxModel.TensorProto> inits) {
+            for (OnnxModel.TensorProto init : inits) {
+                if (dedup.add(init.name())) {
+                    paramTypes.add(toTensorType(init.dataType()));
+                }
             }
         }
         var returnType = g.output().size() == 1
@@ -277,8 +279,10 @@ public final class OnnxLift {
                 for (OnnxModel.ValueInfoProto input : g.input()) {
                     valueMap.put(input.name(), params.next());
                 }
-                for (OnnxModel.TensorProto init : g.initializer()) {
-                    valueMap.computeIfAbsent(init.name(), _ -> params.next());
+                if (g.initializer() instanceof List<OnnxModel.TensorProto> inits) {
+                    for (OnnxModel.TensorProto init : inits) {
+                        valueMap.computeIfAbsent(init.name(), _ -> params.next());
+                    }
                 }
             }
 
@@ -364,14 +368,17 @@ public final class OnnxLift {
                                 default -> throw new UnsupportedOperationException(t.elementType().name() + " Constant attribute tensor type");
                             }
                         }
-                        default -> throw new UnsupportedOperationException("multidimensional Constant attribute tensor");
+                        default -> {
+                            attributes.put(OnnxOps.Constant.Attribute.value.name(), t);
+                        }
+                            //throw new UnsupportedOperationException("multidimensional Constant attribute tensor " + Arrays.toString(t.shape()));
                     }
                 }
 
                 // get the op
                 ExternalizedOp extOp = new ExternalizedOp(
                         opType,
-                        Location.NO_LOCATION,
+                        Op.Location.NO_LOCATION,
                         inputs,
                         List.of(),
                         new OnnxType.TensorType(null),
@@ -385,7 +392,7 @@ public final class OnnxLift {
                         : CoreType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
                 extOp = new ExternalizedOp(
                         extOp.name(),
-                        Location.NO_LOCATION,
+                        Op.Location.NO_LOCATION,
                         extOp.operands(),
                         extOp.successors(),
                         returnType,
@@ -412,7 +419,8 @@ public final class OnnxLift {
                 fb.op(CoreOp.return_(ret));
             }
         });
-        return new LiftedModelWrapper(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)), g.initializer());
+        return new LiftedModelWrapper(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)),
+                                            g.initializer() instanceof List<OnnxModel.TensorProto> inits ? inits : List.of());
     }
 
     static String toJavaName(String name) {
@@ -432,39 +440,32 @@ public final class OnnxLift {
     private static void extractWeights(OnnxModel.ModelProto model, Path sourceFolder, Path targetFolder) throws IOException {
         targetFolder.toFile().mkdirs();
         for (OnnxModel.TensorProto i : model.graph().initializer()) {
-            Path weightFile = targetFolder.resolve(toJavaName(i.name()));
-            try (var weightStream = new FileOutputStream(weightFile.toFile())) {
-                if (i.floatData() instanceof List<float[]> fd) {
-                    for (var fa : fd) {
-                        var data = MemorySegment.ofArray(fa).toArray(ValueLayout.JAVA_BYTE);
-                        weightStream.write(data);
+            if (i.externalData() == null) {
+                Path weightFile = targetFolder.resolve(toJavaName(i.name()));
+                try (var weightStream = new FileOutputStream(weightFile.toFile())) {
+                    if (i.floatData() instanceof List<float[]> fd) {
+                        for (var fa : fd) {
+                            var data = MemorySegment.ofArray(fa).toArray(ValueLayout.JAVA_BYTE);
+                            weightStream.write(data);
+                        }
+                    } else if (i.int64Data() instanceof List<long[]> ld) {
+                        for (var la : ld) {
+                            var data = MemorySegment.ofArray(la).toArray(ValueLayout.JAVA_BYTE);
+                            weightStream.write(data);
+                        }
+                    } else if (i.int32Data() instanceof List<int[]> id) {
+                        for (var ia : id) {
+                            var data = MemorySegment.ofArray(ia).toArray(ValueLayout.JAVA_BYTE);
+                            weightStream.write(data);
+                        }
+                    } else if (i.rawData() instanceof byte[] bd) {
+                        weightStream.write(bd);
+                    } else {
+                        throw new UnsupportedOperationException();
                     }
-                } else if (i.int64Data() instanceof List<long[]> ld) {
-                    for (var la : ld) {
-                        var data = MemorySegment.ofArray(la).toArray(ValueLayout.JAVA_BYTE);
-                        weightStream.write(data);
-                    }
-                } else if (i.int32Data() instanceof List<int[]> id) {
-                    for (var ia : id) {
-                        var data = MemorySegment.ofArray(ia).toArray(ValueLayout.JAVA_BYTE);
-                        weightStream.write(data);
-                    }
-                } else if (i.rawData() instanceof byte[] bd) {
-                    weightStream.write(bd);
-                } else if (i.externalData() instanceof List<OnnxModel.StringStringEntryProto> ssep) {
-                    var map = ssep.stream().collect(Collectors.toUnmodifiableMap(OnnxModel.StringStringEntryProto::key, OnnxModel.StringStringEntryProto::value));
-                    Path dataFilePath = sourceFolder.resolve(map.get("location"));
-                    long offset = Long.parseLong(map.get("offset"));
-                    int length = Integer.parseInt(map.get("length"));
-                    try (var dataFile = new RandomAccessFile(dataFilePath.toString(), "r");Arena a = Arena.ofConfined()) {
-                        var ms = dataFile.getChannel().map(FileChannel.MapMode.READ_ONLY, offset, length, a);
-                        weightStream.write(ms.toArray(ValueLayout.JAVA_BYTE));
-                    }
-                } else {
-                    throw new UnsupportedOperationException();
                 }
+                IO.println(weightFile + " extracted.");
             }
-            IO.println(weightFile + " extracted.");
         }
     }
 
@@ -481,11 +482,14 @@ public final class OnnxLift {
 
                 IO.println(colorModelToANSI(liftedModel.toText()));
 
+                Files.createDirectories(targetFolder);
                 Path java = targetFolder.resolve(className + ".java");
                 Files.writeString(java, JavaTemplate.toJava(liftedModel, className));
                 IO.println(java + " generated.");
 
-                extractWeights(protoModel, source.getParent(), targetFolder);
+                if (protoModel.graph().initializer() != null) {
+                    extractWeights(protoModel, source.getParent(), targetFolder);
+                }
             }
         }
     }

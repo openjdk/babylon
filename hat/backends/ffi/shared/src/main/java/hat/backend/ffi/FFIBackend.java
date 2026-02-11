@@ -41,22 +41,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        if (computeContext.computeEntrypoint().lowered == null) {
-            computeContext.computeEntrypoint().lowered =
-                    computeContext.computeEntrypoint().funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
-        }
+
         backendBridge.computeStart();
         if (config().interpret()) {
-            Interpreter.invoke(computeContext.lookup(), computeContext.computeEntrypoint().lowered, args);
+            computeContext.interpretWithArgs(args);
         } else {
-            try {
-                if (computeContext.computeEntrypoint().mh == null) {
-                    computeContext.computeEntrypoint().mh = BytecodeGenerator.generate(computeContext.lookup(), computeContext.computeEntrypoint().lowered);
-                }
-                computeContext.computeEntrypoint().mh.invokeWithArguments(args);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
+            computeContext.invokeWithArgs(args);
         }
         backendBridge.computeEnd();
     }

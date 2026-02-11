@@ -36,7 +36,10 @@ import java.util.stream.Collectors;
  * same parent body, by way of its {@link Op#successors() successors}, or exit the parent body and optionally
  * yield a result.
  * <p>
- * Blocks may declare one or more block parameters.
+ * Blocks declare zero or more block parameters.
+ * <p>
+ * A block is built using a {@link Block.Builder block builder} that is used to append operations to the block
+ * being built.
  */
 public final class Block implements CodeElement<Block, Op> {
 
@@ -105,6 +108,10 @@ public final class Block implements CodeElement<Block, Op> {
      * A terminating operation may refer, via a block reference, to one or more blocks as its successors.
      * When control is passed from a block to a successor block the values of the block reference's arguments are
      * assigned, in order, to the successor block's parameters.
+     * <p>
+     * A block reference is considered unbuilt if it's {@link #targetBlock() target block} is unbuilt and
+     * is therefore in accessible. A block reference is considered built when the target block is built
+     * and therefore is accessible.
      */
     public static final class Reference implements CodeItem {
         final Block target;
@@ -123,11 +130,11 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the target block.}
-         * @throws IllegalStateException if the target block is partially built
+         * @throws IllegalStateException if this block reference is unbuilt because its target block is unbuilt.
          */
         public Block targetBlock() {
-            if (!isBound()) {
-                throw new IllegalStateException("Target block is partially built");
+            if (!isBuilt()) {
+                throw new IllegalStateException("Target block is unbuilt");
             }
 
             return target;
@@ -140,8 +147,8 @@ public final class Block implements CodeElement<Block, Op> {
             return arguments;
         }
 
-        boolean isBound() {
-            return target.isBound();
+        boolean isBuilt() {
+            return target.isBuilt();
         }
     }
 
@@ -158,7 +165,7 @@ public final class Block implements CodeElement<Block, Op> {
 
     // Reverse postorder index
     // Set when block's body has sorted its blocks and therefore set when built
-    // Block is inoperable when < 0 i.e., when partially built
+    // Block is inoperable when < 0 i.e., when not built
     int index = -1;
 
     Block(Body parentBody) {
@@ -269,6 +276,7 @@ public final class Block implements CodeElement<Block, Op> {
      *
      * @param op the operation
      * @return the next operation after the given operation.
+     * @throws IllegalArgumentException if the operation is not a child of this block
      */
     public Op nextOp(Op op) {
         int i = ops.indexOf(op);
@@ -282,7 +290,7 @@ public final class Block implements CodeElement<Block, Op> {
      * Returns the set of predecessors, the set containing each block in the parent
      * body that refers to this block as a successor.
      *
-     * @return the set of predecessors, as an unmodifiable sequenced set. The encouncter order is unspecified
+     * @return the set of predecessors, as an unmodifiable sequenced set. The encounter order is unspecified
      * and determined by the order in which operations are built.
      * @apiNote A block may refer to itself as a successor and therefore also be its predecessor.
      */
@@ -295,8 +303,8 @@ public final class Block implements CodeElement<Block, Op> {
      * <p>
      * This method behaves is if it returns the result of the following expression:
      * {@snippet lang = java:
-     * predecessors.stream().flatMap(p->successors().stream())
-     *    .filter(r->r.targetBlock() == this)
+     * predecessors.stream().flatMap(p -> successors().stream())
+     *    .filter(r -> r.targetBlock() == this)
      *    .toList();
      *}
      *
@@ -340,7 +348,8 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns true if this block is an entry block.
+     * Returns true if this block is an entry block, the first block occurring
+     * in the parent body's list of blocks.
      *
      * @return true if this block is an entry block.
      */
@@ -355,7 +364,7 @@ public final class Block implements CodeElement<Block, Op> {
      * {@code dom}.
      * <p>
      * If this block, {@code b} say, and {@code dom} are not in the same parent body,
-     * then {@code b} becomes the nearest ancestor block, result of {@code b.parentBody().parentOp().parentBlock()},
+     * then {@code b} becomes the nearest ancestor block, result of {@code b.ancestorBlock()},
      * and so on until either:
      * {@code b} is {@code null}, therefore {@code b} is <b>not</b> dominated by {@code dom} and this method
      * returns {@code false}; or
@@ -370,7 +379,6 @@ public final class Block implements CodeElement<Block, Op> {
      * @param dom the dominating block
      * @return {@code true} if this block is dominated by the given block.
      */
-    // @@@ Should this be reversed and named dominates(Block b)
     public boolean isDominatedBy(Block dom) {
         Block b = findBlockForDomBody(this, dom.ancestorBody());
         if (b == null) {
@@ -460,9 +468,10 @@ public final class Block implements CodeElement<Block, Op> {
     /**
      * A builder of a block.
      * <p>
-     * When the parent body builder is built this block builder is also built. If a built builder
-     * is operated on to append a block parameter, append an operation, or add a block, then
-     * an {@code IllegalStateException} is thrown.
+     * A block builder is built when its {@link #parent() parent} body builder is {@link Body.Builder#build(Op) built}.
+     * <p>
+     * If a built builder is operated on to append a block parameter, append an operation, build a sibling block,
+     * then an {@code IllegalStateException} is thrown.
      */
     public final class Builder {
         final Body.Builder parentBody;
@@ -570,7 +579,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends a block parameter to the block's parameters.
+         * Appends an unbuilt block parameter to the block's parameters.
          *
          * @param p the parameter type
          * @return the appended block parameter
@@ -581,37 +590,44 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Creates a reference to this block that can be used as a successor of a terminating operation.
+         * Creates an unbuilt block reference to this block that can be used as a successor of a terminating operation.
          *
-         * @param args the block arguments
+         * @param args the unbuilt block arguments
          * @return the reference to this block
          * @throws IllegalStateException if this block builder is associated with the entry block.
+         * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
          */
         public Reference successor(Value... args) {
             return successor(List.of(args));
         }
 
         /**
-         * Creates a reference to this block that can be used as a successor of a terminating operation.
+         * Creates an unbuilt block reference to this block that can be used as a successor of a terminating operation.
          *
-         * @param args the block arguments
+         * @param args the unbuilt block arguments
          * @return the reference to this block
          * @throws IllegalStateException if this block builder is associated with the entry block.
+         * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
          */
         public Reference successor(List<? extends Value> args) {
             if (isEntryBlock()) {
                 throw new IllegalStateException("Entry block cannot be referred to as a successor");
+            }
+            for (Value operand : args) {
+                if (operand.isBuilt()) {
+                    throw new IllegalArgumentException("Operand's declaring block is built: " + operand);
+                }
             }
 
             return new Reference(Block.this, List.copyOf(args));
         }
 
         /**
-         * Transforms a body starting from this block builder, using an operation transformer.
+         * Transforms a body starting from this block builder, using a code transformer.
          * <p>
          * This method first rebinds this builder with a child context created from
          * this builder's context and the given operation transformer, and then
-         * transforms the body using the operation transformer by
+         * transforms the body using the code transformer by
          * {@link CodeTransformer#acceptBody(Builder, Body, List) accepting}
          * the rebound builder, the body, and the values.
          *
@@ -658,29 +674,30 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends an operation to this block builder, first transforming the operation if bound.
+         * Appends an operation to this block builder, first transforming the operation if it is built or unbuilt-bound.
          * <p>
-         * If the operation is not bound to a block, then the operation is appended and bound to this block.
-         * Otherwise, if the operation is bound, the operation is first
+         * If the operation is unbuilt, then the operation is appended and bound to this block to become unbuilt-bound.
+         * Otherwise, if the operation is built or unbuilt-bound, the operation is first
          * {@link Op#transform(CodeContext, CodeTransformer) transformed} with this builder's context and
-         * operation transformer, the resulting unbound transformed operation is appended, and the
-         * operation's result mapped to the transformed operation's result, using the builder's context.
+         * code transformer, the resulting transformed unbuilt operation is appended, and the
+         * operation's result mapped to the transformed operation's unbuilt result, using the builder's context.
          * <p>
-         * If the unbound operation (transformed, or otherwise) is structurally invalid then an
-         * {@code IllegalStateException} is thrown. An unbound operation is structurally invalid if:
+         * If the unbuilt operation (transformed, or otherwise) is structurally invalid then an
+         * {@code IllegalStateException} is thrown. An unbuilt operation is structurally invalid if:
          * <ul>
          * <li>any of its bodies does not have the same ancestor body as this block's parent body.
          * <li>any of its operands (values) is not reachable from this block.
          * <li>any of its successors is not a sibling of this block.
          * <li>any of its successors arguments (values) is not reachable from this block.
+         * <li>it's a terminating operation and a terminating operation is already appended.
          * </ul>
          * A value is reachable from this block if there is a path from this block's parent body,
-         * via its ancestor bodies, to the value's block's parent body. (Note this structural check
-         * ensures values are only used from the same tree being built, but it is weaker than a
-         * dominance check that may be performed when the parent body is built.)
+         * via its ancestor bodies, to the value's declaring block's parent body. (Note this structural check
+         * ensures values are only used from the same code model tree being built, but it is weaker than a
+         * dominance check that can only be performed when the parent body is built.)
          *
          * @param op the operation to append
-         * @return the operation result of the appended operation
+         * @return the unbuilt operation result of the appended operation
          * @throws IllegalStateException if the operation is structurally invalid
          */
         public Op.Result op(Op op) {
@@ -689,7 +706,7 @@ public final class Block implements CodeElement<Block, Op> {
             final Op.Result oprToTransform = op.result();
 
             Op transformedOp = op;
-            if (op.isSealed() || oprToTransform != null) {
+            if (op.isRoot() || oprToTransform != null) {
                 // If operation is assigned to block, or it's sealed, then copy it and transform its contents
                 transformedOp = op.transform(cc, ot);
                 assert transformedOp.result == null;
@@ -764,7 +781,7 @@ public final class Block implements CodeElement<Block, Op> {
                 throw new IllegalStateException(
                         String.format("Operand of operation %s is not defined in tree: %s", op, v));
             }
-            assert !v.isBound();
+            assert !v.isBuilt();
         }
 
         for (Reference s : op.successors()) {
@@ -777,7 +794,7 @@ public final class Block implements CodeElement<Block, Op> {
                     throw new IllegalStateException(
                             String.format("Argument of block reference %s of terminating operation %s is not defined in tree: %s", s, op, v));
                 }
-                assert !v.isBound();
+                assert !v.isBuilt();
             }
         }
 
@@ -810,7 +827,7 @@ public final class Block implements CodeElement<Block, Op> {
 
     //
 
-    boolean isBound() {
+    boolean isBuilt() {
         return index >= 0;
     }
 }

@@ -35,6 +35,7 @@ import hat.test.TestDFT.ArrayComplex.Complex;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
@@ -64,7 +65,7 @@ public class TestDFT {
                                         array -> array.fields("real", "imag")));
 
         static ArrayComplex create(Accelerator accelerator, int length) {
-            return schema.allocate(accelerator, length);
+            return BoundSchema.of(accelerator, schema, length).allocate();
         }
     }
 

@@ -24,6 +24,8 @@
  */
 package optkl.ifacemapper;
 
+import optkl.IfaceValue;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -37,7 +39,7 @@ import static optkl.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
 import static optkl.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static optkl.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
-public interface MappableIface  {
+public interface MappableIface extends IfaceValue {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.PARAMETER)
     @interface RW  {}
@@ -47,12 +49,6 @@ public interface MappableIface  {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.PARAMETER)
     @interface WO {}
-
-    interface Union extends MappableIface {
-    }
-
-    interface Struct extends MappableIface {
-    }
 
 
     default int getState(){

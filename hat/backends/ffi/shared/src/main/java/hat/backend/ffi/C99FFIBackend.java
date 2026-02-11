@@ -31,8 +31,6 @@ import hat.KernelContext;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
-import optkl.OpHelper;
-import optkl.util.CallSite;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
@@ -208,30 +206,29 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
-        Set<Schema.IfaceType> already = new LinkedHashSet<>();
+        var visitedAlready=  new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
-                        if (!already.contains(t)) {
+                    boundSchema.schema().rootIfaceType.visitUniqueTypes( t -> {
+                        if (visitedAlready.add(t)) { // true first time we see this type
                             builder.typedef(boundSchema, t);
-                            already.add(t);
                         }
                     });
                 });
 
-        var annotation = kernelCallGraph.entrypoint.method.getAnnotation(Kernel.class);
+        var annotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
         if (annotation!=null){
-            var typedef = kernelCallGraph.entrypoint.method.getAnnotation(TypeDef.class);
+            var typedef = kernelCallGraph.entrypoint.method().getAnnotation(TypeDef.class);
             if (typedef!=null){
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
                 builder.typedefKeyword().space().structKeyword().space().suffix_s(typedef.name()).braceNlIndented(_->
                         builder.preformatted(typedef.body())
                 ).suffix_t(typedef.name()).semicolon().nl();
             }
-            var preformatted = kernelCallGraph.entrypoint.method.getAnnotation(Preformatted.class);
+            var preformatted = kernelCallGraph.entrypoint.method().getAnnotation(Preformatted.class);
             if (preformatted!=null){
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformatted.value());
@@ -292,9 +289,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                          }
             });
 
-            ScopedCodeBuilderContext buildContext =
-                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.lookup(),
-                            kernelCallGraph.entrypoint.funcOp());
+            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.entrypoint.funcOp());
 
             kernelCallGraph.getModuleOp().functionTable()
                     .forEach((_, funcOp) -> {
@@ -310,6 +305,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // Why are we doing this here we should not be mutating the kernel callgraph at this point
             HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph);
             buildContext.setFinals(hatFinalDetector.applied(kernelCallGraph.entrypoint.funcOp()));
+
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {

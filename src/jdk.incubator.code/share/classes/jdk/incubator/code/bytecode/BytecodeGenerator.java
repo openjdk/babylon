@@ -51,7 +51,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
+import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
 import jdk.incubator.code.bytecode.impl.ExceptionTableCompactor;

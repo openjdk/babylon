@@ -99,6 +99,12 @@ public class ReflectableLambdaTest {
         throw new AssertionError();
     };
 
+    static class ParamContext {
+        IntUnaryOperator captureContext(int x) {
+            return (@Reflect IntUnaryOperator) y -> x + y;
+        }
+    }
+
     @IR("""
             func @"f" (%0 : Var<java.type:"int">)java.type:"void" -> {
                 %1 : java.type:"java.util.function.IntUnaryOperator" = lambda @lambda.isReflectable=true (%2 : java.type:"int")java.type:"int" -> {
@@ -111,11 +117,7 @@ public class ReflectableLambdaTest {
                 return;
             };
             """)
-    static final IntUnaryOperator QUOTED_CAPTURE_PARAM = new Object() {
-        IntUnaryOperator captureContext(int x) {
-            return (@Reflect IntUnaryOperator) y -> x + y;
-        }
-    }.captureContext(42);
+    static final IntUnaryOperator QUOTED_CAPTURE_PARAM = new ParamContext().captureContext(42);
 
     static class Context {
         int x, y;

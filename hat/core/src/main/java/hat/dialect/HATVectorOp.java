@@ -24,12 +24,12 @@
  */
 package hat.dialect;
 
+import hat.types.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.ops.Precedence;
@@ -45,29 +45,29 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
     // TODO all these fields should be final
     private  String varName;
     private final TypeElement resultType;
-    private final int vectorN;
-    private final TypeElement vectorElementType;
+    private final Vector.Shape vectorShape;
 
-    public HATVectorOp(String varName, TypeElement resultType, TypeElement vectorElementType, int vectorN, List<Value> operands) {
+    public HATVectorOp(String varName, TypeElement resultType, Vector.Shape vectorShape, List<Value> operands) {
         super(operands);
         this.varName = varName;
         this.resultType = resultType;
-        this.vectorN = vectorN;
-        this.vectorElementType = vectorElementType;
+        this.vectorShape = vectorShape;
+      //  if (!vectorShape.typeElement().equals(resultType)){
+        //    System.out.println("resulttype = "+resultType+ " vectorshape.typeElement = "+vectorShape.typeElement());
+       // }
     }
 
     protected HATVectorOp(HATVectorOp that, CodeContext cc) {
         super(that, cc);
         this.varName = that.varName;
         this.resultType = that.resultType;
-        this.vectorN = that.vectorN;
-        this.vectorElementType = that.vectorElementType;
+        this.vectorShape = that.vectorShape;
     }
     @Override
     final public String varName() {
         return varName;
     }
-    final public TypeElement vectorElementType(){return vectorElementType;}
+    final public Vector.Shape vectorShape(){return vectorShape;}
 
     //TODO all these fields should be final why do we allow this to be mutated.
     public void varName(String varName) {
@@ -88,22 +88,19 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         return resultType;
     }
     public String buildType() {
-        return vectorElementType.toString() + vectorN;
-    }
-
-    public int vectorN() {
-        return vectorN;
+        return vectorShape.typeElement().toString() + vectorShape.lanes();
     }
 
     public abstract sealed static class HATVectorBinaryOp extends HATVectorOp
             permits HATVectorBinaryOp.HATVectorAddOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorDivOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorMulOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorSubOp {
 
         private final BinaryOpEnum operationType;
-
-        public HATVectorBinaryOp(String varName, TypeElement resultType, BinaryOpEnum operationType, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-            super(varName, resultType, vectorElementType, vectorWidth, operands);
+        public HATVectorBinaryOp(String varName,  BinaryOpEnum operationType, Vector.Shape vectorShape, List<Value> operands) {
+            super(  varName /* this is clearly wrong binary ops have no name */,
+                    vectorShape.typeElement(), // also why does the base type need this twice?
+                    vectorShape,
+                    operands);
             this.operationType = operationType;
-
         }
 
         public HATVectorBinaryOp(HATVectorBinaryOp op, CodeContext copyContext) {
@@ -116,8 +113,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         }
 
         public static final class HATVectorAddOp extends HATVectorBinaryOp implements Precedence.Additive {
-            public HATVectorAddOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.ADD, vectorElementType, vectorWidth, operands);
+            public HATVectorAddOp(String varName, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, BinaryOpEnum.ADD, vectorShape, operands);
             }
 
             public HATVectorAddOp(HATVectorAddOp op, CodeContext copyContext) {
@@ -131,9 +128,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         }
 
         public static final class HATVectorDivOp extends HATVectorBinaryOp implements Precedence.Multiplicative {
-
-            public HATVectorDivOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.DIV, vectorElementType, vectorWidth, operands);
+            public HATVectorDivOp(String varName, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName,BinaryOpEnum.DIV, vectorShape, operands);
             }
 
             public HATVectorDivOp(HATVectorDivOp op, CodeContext copyContext) {
@@ -148,8 +144,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
         public static final class HATVectorMulOp extends HATVectorBinaryOp implements Precedence.Multiplicative {
 
-            public HATVectorMulOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.MUL, vectorElementType, vectorWidth, operands);
+            public HATVectorMulOp(String varName, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, BinaryOpEnum.MUL, vectorShape, operands);
             }
 
             public HATVectorMulOp(HATVectorMulOp op, CodeContext copyContext) {
@@ -164,8 +160,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
         public static final class HATVectorSubOp extends HATVectorBinaryOp implements Precedence.Additive {
 
-            public HATVectorSubOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-                super(varName, typeElement, BinaryOpEnum.SUB, vectorElementType, vectorWidth, operands);
+            public HATVectorSubOp(String varName, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, BinaryOpEnum.SUB, vectorShape, operands);
             }
 
             public HATVectorSubOp(HATVectorSubOp op, CodeContext copyContext) {
@@ -178,49 +174,70 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
             }
         }
     }
+    public interface Shared{
+    }
 
-    public static final class HATVectorLoadOp extends HATVectorOp implements Precedence.LoadOrConv {
+    public interface Private{
+    }
 
-        private final boolean isSharedOrPrivate;
+    public static abstract sealed class HATVectorLoadOp extends HATVectorOp implements Precedence.LoadOrConv permits HATVectorLoadOp.HATPrivateVectorLoadOp, HATVectorLoadOp.HATSharedVectorLoadOp {
 
-        public HATVectorLoadOp(String varName, TypeElement typeElement, TypeElement vectorType, int vectorWidth, boolean isShared, List<Value> operands) {
-            super(varName, typeElement, vectorType, vectorWidth, operands);
 
-            this.isSharedOrPrivate = isShared;
+        protected HATVectorLoadOp(String varName, TypeElement typeElement, Vector.Shape vectorShape,  List<Value> operands) {
+            super(varName, typeElement, vectorShape, operands);
         }
 
-        public HATVectorLoadOp(HATVectorLoadOp op, CodeContext copyContext) {
+        protected HATVectorLoadOp(HATVectorLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
-
-            this.isSharedOrPrivate = op.isSharedOrPrivate;
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorLoadOp(this, copyContext);
-        }
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.vectorLoadView." + varName(), resultType());
-        }
+        public static final class HATPrivateVectorLoadOp extends HATVectorLoadOp implements Private{
+            public HATPrivateVectorLoadOp(String varName, TypeElement typeElement, Vector.Shape vectorShape,  List<Value> operands) {
+                super(varName, typeElement, vectorShape,  operands);
+            }
+            public HATPrivateVectorLoadOp(HATPrivateVectorLoadOp op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
 
-        public boolean isSharedOrPrivate() {
-            return this.isSharedOrPrivate;
+
+            @Override
+            public Op transform(CodeContext cc, CodeTransformer ot) {
+                return new HATPrivateVectorLoadOp(this, cc);
+            }
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect.vectorPrivateLoad." + varName(), resultType());
+            }
+        }
+        public static final class HATSharedVectorLoadOp extends HATVectorLoadOp implements Shared{
+            public HATSharedVectorLoadOp(String varName, TypeElement typeElement, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, typeElement, vectorShape, operands);
+            }
+            public HATSharedVectorLoadOp(HATSharedVectorLoadOp op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+
+
+            @Override
+            public Op transform(CodeContext cc, CodeTransformer ot) {
+                return new HATSharedVectorLoadOp(this,cc);
+            }
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect.vectorSharedLoad." + varName(), resultType());
+            }
+
         }
     }
 
     public static final class HATVectorOfOp extends HATVectorOp {
-
-
-        public HATVectorOfOp(TypeElement resultType, TypeElement vectorTypeElement, int vectorWidth, List<Value> operands) {
-            super("", resultType, vectorTypeElement, vectorWidth, operands);
-
+        public HATVectorOfOp(TypeElement resultType, Vector.Shape vectorShape, List<Value> operands) {
+            super("", resultType, vectorShape, operands);
         }
 
         public HATVectorOfOp(HATVectorOfOp op, CodeContext copyContext) {
             super(op, copyContext);
-
         }
 
         @Override
@@ -236,9 +253,8 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
     }
 
     public static final class HATVectorMakeOfOp extends HATVectorOp {
-
         public HATVectorMakeOfOp(String varName, TypeElement resultType, int vectorWidth, List<Value> operands) {
-            super(varName, resultType, resultType, vectorWidth, operands);
+            super(varName, resultType,  Vector.Shape.of(resultType,vectorWidth), operands);
         }
 
         public HATVectorMakeOfOp(HATVectorMakeOfOp op, CodeContext copyContext) {
@@ -261,7 +277,7 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         private final int lane;
 
         public HATVectorSelectLoadOp(String varName, TypeElement resultType, int lane, List<Value> operands) {
-            super(varName, resultType, resultType, -1, operands);
+            super(varName, resultType, Vector.Shape.of(JavaType.VOID, -1), operands); // looks like we have a hiearchy mixup
             this.lane = lane;
         }
 
@@ -288,18 +304,18 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
     public static final class HATVectorSelectStoreOp extends HATVectorOp {
         private final int lane;
-        private final CoreOp.VarOp resultVarOp;
+        private final String resolvedName;
 
-        public HATVectorSelectStoreOp(String varName,  int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
-            super(varName, JavaType.VOID, JavaType.VOID, -1, operands);
+        public HATVectorSelectStoreOp(String varName, int lane, String resolvedName, List<Value> operands) {
+            super(varName, JavaType.VOID, Vector.Shape.of(JavaType.VOID, -1), operands); // This seems so wrong.
             this.lane = lane;
-            this.resultVarOp = resultVarOp;
+            this.resolvedName = resolvedName;
         }
 
         public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CodeContext cc) {
             super(that, cc);
             this.lane = that.lane;
-            this.resultVarOp = that.resultVarOp;
+            this.resolvedName = that.resolvedName;
         }
 
         @Override
@@ -314,47 +330,71 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         public String mapLane() {
             return super.mapLane(lane);
         }
-
-        public CoreOp.VarOp resultValue() {
-            return resultVarOp;
+        public String resolvedName(){
+            return resolvedName;
         }
 
     }
 
-    public static final class HATVectorStoreView extends HATVectorOp {
+    public static abstract sealed class HATVectorStoreView extends HATVectorOp
+            permits HATVectorStoreView.HATPrivateVectorStoreView, HATVectorStoreView.HATSharedVectorStoreView {
 
-        private final boolean isSharedOrPrivate;
-
-        public HATVectorStoreView(String varName, TypeElement resultType, int storeN, TypeElement vectorElementType, boolean isSharedOrPrivate, List<Value> operands) {
-            super(varName, resultType, vectorElementType, storeN, operands);
-            this.isSharedOrPrivate = isSharedOrPrivate;
+        protected HATVectorStoreView(String varName, TypeElement resultType, Vector.Shape vectorShape, /* boolean isSharedOrPrivate*/ List<Value> operands) {
+            super(varName, resultType, vectorShape, operands);
         }
 
-        public HATVectorStoreView(HATVectorStoreView op, CodeContext copyContext) {
+        protected HATVectorStoreView(HATVectorStoreView op, CodeContext copyContext) {
             super(op, copyContext);
-            this.isSharedOrPrivate = op.isSharedOrPrivate;
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorStoreView(this, copyContext);
-        }
+        public static final class HATSharedVectorStoreView extends HATVectorStoreView implements Shared{
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect." + vectorElementType().toString() + vectorN() + "StoreView." + varName(), resultType());
-        }
+            public HATSharedVectorStoreView(String varName, TypeElement resultType, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, resultType, vectorShape, operands);
+            }
 
-        public boolean isSharedOrPrivate() {
-            return this.isSharedOrPrivate;
+            public HATSharedVectorStoreView(HATSharedVectorStoreView op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HATSharedVectorStoreView(this, copyContext);
+            }
+
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect." + vectorShape().typeElement() + "SharedStoreView." + varName(), resultType());
+            }
+
+        }
+        public static final class HATPrivateVectorStoreView extends HATVectorStoreView implements Private{
+
+            public HATPrivateVectorStoreView(String varName, TypeElement resultType, Vector.Shape vectorShape, List<Value> operands) {
+                super(varName, resultType, vectorShape, operands);
+            }
+
+            public HATPrivateVectorStoreView(HATPrivateVectorStoreView op, CodeContext copyContext) {
+                super(op, copyContext);
+            }
+
+            @Override
+            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+                return new HATPrivateVectorStoreView(this, copyContext);
+            }
+
+            @Override
+            public Map<String, Object> externalize() {
+                return Map.of("hat.dialect." + vectorShape().typeElement() + "PrivateStoreView." + varName(), resultType());
+            }
         }
 
     }
 
     public static final class HATVectorVarLoadOp extends HATVectorOp {
 
-        public HATVectorVarLoadOp(String varName, TypeElement resultType, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-            super(varName, resultType, vectorElementType, vectorWidth, operands);
+        public HATVectorVarLoadOp(String varName, TypeElement resultType, Vector.Shape vectorShape,  List<Value> operands) {
+            super(varName, resultType, vectorShape, operands);
         }
 
         public HATVectorVarLoadOp(HATVectorVarLoadOp op, CodeContext copyContext) {
@@ -370,15 +410,11 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         public Map<String, Object> externalize() {
             return Map.of("hat.dialect.vectorVarLoadOp." + varName(), resultType());
         }
-
     }
 
     public static final class HATVectorVarOp extends HATVectorOp implements StatementLikeOp {
-
-
-
-        public HATVectorVarOp(String varName, VarType resultType, TypeElement vectorElementType, int vectorWidth, List<Value> operands) {
-            super(varName, resultType, vectorElementType, vectorWidth, operands);
+        public HATVectorVarOp(String varName, VarType resultType,  Vector.Shape vectorShape, List<Value> operands) {
+            super(varName, resultType, vectorShape, operands);
         }
 
         public HATVectorVarOp(HATVectorVarOp op, CodeContext copyContext) {
@@ -394,6 +430,5 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         public Map<String, Object> externalize() {
             return Map.of("hat.dialect.vectorVarOp." + varName(), resultType());
         }
-
     }
 }

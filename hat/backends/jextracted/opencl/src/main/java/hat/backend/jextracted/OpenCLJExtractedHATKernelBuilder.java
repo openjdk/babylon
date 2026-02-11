@@ -81,7 +81,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
-        identifier("vstore" + hatVectorStoreView.vectorN())
+        identifier("vstore" + hatVectorStoreView.vectorShape().lanes())
                 .oparen()
                 .varName(hatVectorStoreView)
                 .comma()
@@ -94,7 +94,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         if (dest instanceof Op.Result r) {
             recurse( r.op());
         }
-        either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
@@ -129,7 +129,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-        identifier("vload" + hatVectorLoadOp.vectorN())
+        identifier("vload" + hatVectorLoadOp.vectorShape().lanes())
                 .oparen()
                 .intConstZero()
                 .comma()
@@ -140,7 +140,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
             recurse(r.op());
         }
 
-        either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
         if (index instanceof Op.Result r) {
             recurse( r.op());
@@ -163,9 +163,9 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
                 .space().equals().space();
-        if (hatVSelectStoreOp.resultValue() != null) {
+        if (hatVSelectStoreOp.resolvedName() != null) {
             // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resultValue());
+            varName(hatVSelectStoreOp.resolvedName());
         } else if (hatVSelectStoreOp.operands().get(1) instanceof Op.Result r) {
                 recurse( r.op());
 

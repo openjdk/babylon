@@ -34,7 +34,7 @@ import java.lang.reflect.Type;
 import java.util.Objects;
 
 /**
- * A wildcard type.
+ * A wildcard type
  */
 public final class WildcardType implements JavaType {
 
@@ -112,12 +112,12 @@ public final class WildcardType implements JavaType {
     }
 
     /**
-     * The bound kind of a wildcard type.
+     * The kind of a wildcard type bound
      */
     public enum BoundKind {
-        /** A bound kind representing a {@code ? extends} wildcard type*/
+        /** A bound kind representing a {@code ? extends} wildcard type */
         EXTENDS("? extends "),
-        /** A bound kind representing a {@code ? super} wildcard type*/
+        /** A bound kind representing a {@code ? super} wildcard type */
         SUPER("? super ");
 
         final String boundStr;

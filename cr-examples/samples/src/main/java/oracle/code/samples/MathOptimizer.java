@@ -25,7 +25,6 @@
 package oracle.code.samples;
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -34,7 +33,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -111,7 +109,7 @@ public class MathOptimizer {
         }
     }
 
-    static void main(String[] args) throws Throwable {
+    static void main() {
 
         Optional<Method> myFunction = Stream.of(MathOptimizer.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("myFunction"))
@@ -127,8 +125,12 @@ public class MathOptimizer {
         // has been transformed.
         MethodHandle mhNewTransform = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
-        var resultBC = mhNewTransform.invoke( 10);
-        System.out.println("Result after BC generation: " + resultBC);
+        try {
+            var result = mhNewTransform.invoke(10);
+            System.out.println("Result after BC generation: " + result);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
 
         System.out.println("\nLet's transform the code");
         codeModel = codeModel.transform((blockBuilder, op) -> {
@@ -207,11 +209,6 @@ public class MathOptimizer {
         System.out.println("After Lowering: ");
         System.out.println(codeModel.toText());
 
-        System.out.println("\nEvaluate");
-        // The Interpreter Invoke should launch new exceptions
-        var result = Interpreter.invoke(MethodHandles.lookup(), codeModel, 10);
-        System.out.println(result);
-
         // Select invocation calls and display the lines
         System.out.println("\nPlaying with Traverse");
         codeModel.elements().forEach(e -> {
@@ -220,7 +217,7 @@ public class MathOptimizer {
 
                 // Maybe Location should throw a new exception instead of the NPE,
                 // since it is possible we don't have a location after a transformation has been done.
-                Location location = invokeOp.location();
+                Op.Location location = invokeOp.location();
                 if (location != null) {
                     int line = location.line();
                     System.out.println("Line " + line);
@@ -240,8 +237,12 @@ public class MathOptimizer {
         // has been transformed.
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
-        var resultBC2 = methodHandle.invoke( 10);
-        System.out.println("Result after BC generation: " + resultBC2);
+        try {
+            var result = methodHandle.invoke(10);
+            System.out.println("Result after BC generation: " + result);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // Goal: obtain and check the value of the function parameters.

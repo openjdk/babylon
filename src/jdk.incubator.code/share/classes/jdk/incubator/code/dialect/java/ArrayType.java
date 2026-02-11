@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
 
 /**
- * An array type.
+ * An array type
  */
 public final class ArrayType implements JavaType {
 

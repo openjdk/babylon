@@ -33,7 +33,7 @@ import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.types.F16;
@@ -51,7 +51,7 @@ import static hat.buffer.F16Array.create;
 
 public class TestFlashAttention {
 
-    private interface SharedF16Array extends DeviceType {
+    private interface SharedF16Array extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<SharedF16Array> schema = DeviceSchema.of(SharedF16Array.class,
@@ -63,7 +63,7 @@ public class TestFlashAttention {
         }
     }
 
-    private interface PrivateF16Array extends DeviceType {
+    private interface PrivateF16Array extends NonMappableIface {
         F16 array(int index);
 
         DeviceSchema<PrivateF16Array> schema = DeviceSchema.of(PrivateF16Array.class,
@@ -219,7 +219,7 @@ public class TestFlashAttention {
     }
 
     // Express a float array in shared memory with HAT
-    private interface SharedFloatArray extends DeviceType {
+    private interface SharedFloatArray extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);
@@ -238,7 +238,7 @@ public class TestFlashAttention {
     }
 
     // Express an array of floats in private memory with HAT
-    private interface PrivateFloatArray extends DeviceType {
+    private interface PrivateFloatArray extends NonMappableIface {
         void array(long index, float value);
 
         float array(long index);

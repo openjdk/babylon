@@ -27,7 +27,7 @@ package hat;
 
 import hat.backend.Backend;
 
-import optkl.util.carriers.CommonCarrier;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 
@@ -76,7 +76,7 @@ import static optkl.OpHelper.Lambda.lambda;
  *
  * @author Gary Frost
  */
-public class Accelerator implements CommonCarrier,  BufferTracker {
+public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
 
     private MethodHandles.Lookup lookup;
     @Override public MethodHandles.Lookup lookup(){return lookup;}
@@ -191,8 +191,8 @@ public class Accelerator implements CommonCarrier,  BufferTracker {
      * </pre>
      */
     public void compute(Compute compute) {
-        Quoted quoted = Op.ofLambda(compute).orElseThrow();
-        JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
+        Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(compute).orElseThrow();
+        JavaOp.LambdaOp lambda = quoted.op();
         Method method = getTargetInvoke(this.lookup,lambda, ComputeContext.class).resolveMethodOrThrow();
         // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation

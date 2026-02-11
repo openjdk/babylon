@@ -22,7 +22,7 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

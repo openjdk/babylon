@@ -27,7 +27,6 @@ package hat.codebuilders;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.buffer.F16Array;
-import hat.device.DeviceType;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMathLibOp;
@@ -41,13 +40,13 @@ import hat.phases.HATFP16Phase;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types.HAType;
+import hat.types._F16;
+import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
-import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
 import optkl.FuncOpParams;
@@ -202,13 +201,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
-        return (ifaceType.iface.getName().equals(F16.class.getName())
-                || ifaceType.iface.getName().equals(F16Array.F16Impl.class.getName()));
+        return ifaceType.iface.isAssignableFrom(F16.class)
+                || ifaceType.iface.isAssignableFrom(F16Array.F16Impl.class);
     }
 
     public final boolean isbfloat16(Schema.IfaceType ifaceType) {
-        return (ifaceType.iface.getName().equals(BF16.class.getName())
-                || ifaceType.iface.getName().equals(BF16Array.BF16Impl.class.getName()));
+         return ifaceType.iface.isAssignableFrom(BF16.class)
+               || ifaceType.iface.isAssignableFrom(BF16Array.BF16Impl.class);
     }
 
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
@@ -371,9 +370,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
-        if (javaType instanceof ClassType classType && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, MappableIface.class)) {
+        if (javaType instanceof ClassType classType
+                && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
+                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
+        ) {
             HAT_GLOBAL_MEM().space().suffix_t(classType).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,KernelContext.class)) {
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().space().suffix_t(KernelContext.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().space().suffix_t(F16Impl.class).asterisk();
@@ -757,8 +759,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if ( invoke.refIs(MappableIface.class, HAType.class, DeviceType.class)) { // we need a common type
-            if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.named(atomicIncRegex)) {
+        if ( invoke.refIs(IfaceValue.class )) {
+            if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
                             ((Regex.Match)atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX

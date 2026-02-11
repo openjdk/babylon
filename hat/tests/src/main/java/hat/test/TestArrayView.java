@@ -31,15 +31,14 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.*;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
+import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
+import optkl.ifacemapper.MappableIface.*;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -180,7 +179,7 @@ public class TestArrayView {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return schema.allocate(accelerator, width, height);
+            return BoundSchema.of(accelerator ,schema, width, height).allocate();
         }
 
         ValueLayout valueLayout = JAVA_BYTE;
@@ -210,7 +209,7 @@ public class TestArrayView {
                         control.fields("from", "to"));//, "generation", "requiredFrameRate", "maxGenerations"));
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
-            var instance = schema.allocate(accelerator);
+            var instance = BoundSchema.of(accelerator ,schema).allocate();
             instance.from(cellGrid.width() * cellGrid.height());
             instance.to(0);
             return instance;
@@ -248,11 +247,9 @@ public class TestArrayView {
     public static class Compute {
         @Reflect
         // TODO: switch cellGridRes to WO
-        public static void lifePerIdx(int idx, @RO Control control, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
+        public static void lifePerIdx(int idx, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
             int w = cellGrid.width();
             int h = cellGrid.height();
-           // int from = control.from();
-           // int to = control.to();
             int x = idx % w;
             int y = idx / w;
 
@@ -293,16 +290,16 @@ public class TestArrayView {
         }
 
         @Reflect
-        public static void life(@RO KernelContext kc, @RO Control control, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
+        public static void life(@RO KernelContext kc, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
             if (kc.gix < kc.gsx) {
-                Compute.lifePerIdx(kc.gix, control, cellGrid, cellGridRes);
+                Compute.lifePerIdx(kc.gix, cellGrid, cellGridRes);
             }
         }
 
         @Reflect
-        static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RO CellGrid grid, @RW CellGrid gridRes) {
+        static public void compute(final @RO ComputeContext cc, @RO CellGrid grid, @RW CellGrid gridRes) {
             int range = grid.width() * grid.height();
-            cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, ctrl, grid, gridRes));
+            cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, grid, gridRes));
         }
     }
 
@@ -357,9 +354,9 @@ public class TestArrayView {
             }
         }
 
-        Control control = Control.create(accelerator, cellGrid);
+        // Control control = Control.create(accelerator, cellGrid);
 
-        accelerator.compute(cc -> Compute.compute(cc, control, cellGrid, cellGridRes));
+        accelerator.compute(cc -> Compute.compute(cc, cellGrid, cellGridRes));
 
         byte[][] resultGrid = lifeCheck(cellGrid);
 
@@ -463,8 +460,8 @@ public class TestArrayView {
      */
     @Reflect
     public static void blackScholesKernel(@RO KernelContext kc,
-                                          @WO F32Array call,
-                                          @WO F32Array put,
+                                          @RW F32Array call,
+                                          @RW F32Array put,
                                           @RO F32Array sArray,
                                           @RO F32Array xArray,
                                           @RO F32Array tArray,
@@ -517,7 +514,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
+    public static void blackScholes(@RO ComputeContext cc, @RW F32Array call, @RW F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
@@ -586,7 +583,7 @@ public class TestArrayView {
     /*
      * basic test of local and private buffer ArrayViews
      */
-    private interface SharedMemory extends DeviceType {
+    private interface SharedMemory extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
         DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
@@ -603,7 +600,7 @@ public class TestArrayView {
         }
     }
 
-    public interface PrivateArray extends DeviceType {
+    public interface PrivateArray extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
         DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
@@ -667,15 +664,15 @@ public class TestArrayView {
      * testing basic DeviceTypes
      */
 
-    public interface SharedDeviceType extends DeviceType {
+    public interface SharedNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedDeviceType> schema = DeviceSchema.of(SharedDeviceType.class,
+        DeviceSchema<SharedNonMappableIface> schema = DeviceSchema.of(SharedNonMappableIface.class,
                 arr -> arr.withArray("array", 1024));
-        static SharedDeviceType create(Accelerator accelerator) {
+        static SharedNonMappableIface create(Accelerator accelerator) {
             return null;
         }
-        static SharedDeviceType createLocal() {
+        static SharedNonMappableIface createLocal() {
             return null;
         }
 
@@ -684,15 +681,15 @@ public class TestArrayView {
         }
     }
 
-    public interface PrivateDeviceType extends DeviceType {
+    public interface PrivateNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateDeviceType> schema = DeviceSchema.of(PrivateDeviceType.class,
+        DeviceSchema<PrivateNonMappableIface> schema = DeviceSchema.of(PrivateNonMappableIface.class,
                 arr -> arr.withArray("array", 32));
-        static PrivateDeviceType create(Accelerator accelerator) {
+        static PrivateNonMappableIface create(Accelerator accelerator) {
             return null;
         }
-        static PrivateDeviceType createPrivate() {
+        static PrivateNonMappableIface createPrivate() {
             return null;
         }
 
@@ -703,9 +700,9 @@ public class TestArrayView {
 
     @Reflect
     public static void kernelBasicDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
-        SharedDeviceType shared = SharedDeviceType.createLocal();
+        SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
         if (kc.gix < kc.gsx){
-            PrivateDeviceType priv = PrivateDeviceType.createPrivate();
+            PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();
 
             int[] arr = s32Array.arrayView();
             int[] privView = priv.privateArrayView();
@@ -741,9 +738,9 @@ public class TestArrayView {
 
     @Reflect
     public static void squareKernelDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
-        SharedDeviceType shared = SharedDeviceType.createLocal();
+        SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
         if (kc.gix < kc.gsx){
-            PrivateDeviceType priv = PrivateDeviceType.createPrivate();
+            PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();
 
             int[] arr = s32Array.arrayView();
             int[] privView = priv.privateArrayView();

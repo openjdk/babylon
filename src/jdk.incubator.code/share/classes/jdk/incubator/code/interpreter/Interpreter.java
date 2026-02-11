@@ -44,6 +44,10 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
+/**
+ * A code model interpreter that sequentially executes operations contained in an
+ * {@link Op.Invokable} operation, such as a function operation.
+ */
 public final class Interpreter {
     private Interpreter() {
     }
@@ -137,6 +141,9 @@ public final class Interpreter {
     }
 
 
+    /**
+     * Exception thrown by the interpreter when execution fails.
+     */
     @SuppressWarnings("serial")
     public static final class InterpreterException extends RuntimeException {
         private InterpreterException(Throwable cause) {
@@ -423,10 +430,8 @@ public final class Interpreter {
         oc.successor(cb, bValues);
     }
 
-
-
     @SuppressWarnings("unchecked")
-    public static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
+    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
         throw (E) e;
     }
 
@@ -592,11 +597,11 @@ public final class Interpreter {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.AssertOp _assert) {
-            Body testBody = _assert.bodies.get(0);
+            Body testBody = _assert.bodies().get(0);
             boolean testResult = (boolean) interpretBody(l, testBody, oc, List.of());
             if (!testResult) {
-                if (_assert.bodies.size() > 1) {
-                    Body messageBody = _assert.bodies.get(1);
+                if (_assert.bodies().size() > 1) {
+                    Body messageBody = _assert.bodies().get(1);
                     String message = String.valueOf(interpretBody(l, messageBody, oc, List.of()));
                     throw new AssertionError(message);
                 } else {
