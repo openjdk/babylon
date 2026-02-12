@@ -125,7 +125,7 @@ public sealed abstract class JavaOp extends Op {
             EnhancedForOp,
             ForOp,
             IfOp,
-            JavaBranchOp,
+            StatementTargetOp,
             LabeledOp,
             SynchronizedOp,
             TryOp,
@@ -2304,21 +2304,21 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * A branch operation, that can model Java language statements associated with label identifiers.
+     * A statement target operation, that can model Java language statements associated with label identifiers.
      * <p>
-     * Branch operations feature zero or one operand, the label identifier.
+     * Statement target operations feature zero or one operand, the label identifier.
      * If present, the label identifier is modelled as a {@link ConstantOp} value.
      *
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class JavaBranchOp extends JavaOp
+    public sealed static abstract class StatementTargetOp extends JavaOp
             implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
-        JavaBranchOp(JavaBranchOp that, CodeContext cc) {
+        StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        JavaBranchOp(Value label) {
+        StatementTargetOp(Value label) {
             super(checkLabel(label));
         }
 
@@ -2401,7 +2401,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 14.15 The break Statement
      */
     @OpDeclaration(BreakOp.NAME)
-    public static final class BreakOp extends JavaBranchOp {
+    public static final class BreakOp extends StatementTargetOp {
         static final String NAME = "java.break";
 
         BreakOp(ExternalizedOp def) {
@@ -2435,7 +2435,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 14.16 The continue Statement
      */
     @OpDeclaration(ContinueOp.NAME)
-    public static final class ContinueOp extends JavaBranchOp {
+    public static final class ContinueOp extends StatementTargetOp {
         static final String NAME = "java.continue";
 
         ContinueOp(ExternalizedOp def) {
@@ -2718,7 +2718,7 @@ public sealed abstract class JavaOp extends Op {
 
             CodeTransformer syncExitTransformer = compose(opT, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof JavaBranchOp lop && ifExitFromSynchronized(lop))) {
+                    (op instanceof StatementTargetOp lop && ifExitFromSynchronized(lop))) {
                     // Monitor exit
                     block.op(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -2774,7 +2774,7 @@ public sealed abstract class JavaOp extends Op {
             return exprExit;
         }
 
-        boolean ifExitFromSynchronized(JavaBranchOp lop) {
+        boolean ifExitFromSynchronized(StatementTargetOp lop) {
             Op target = lop.target();
             return target == this || target.isAncestorOf(this);
         }
@@ -5012,7 +5012,7 @@ public sealed abstract class JavaOp extends Op {
             if (finalizer != null) {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof JavaBranchOp lop && ifExitFromTry(lop))) {
+                            (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         return inlineFinalizer(block, exitHandlers, opT);
                     } else {
                         return block;
@@ -5021,7 +5021,7 @@ public sealed abstract class JavaOp extends Op {
             } else {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof JavaBranchOp lop && ifExitFromTry(lop))) {
+                            (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.op(exceptionRegionExit(tryRegionReturnExit.successor(), exitHandlers));
                         return tryRegionReturnExit;
@@ -5072,7 +5072,7 @@ public sealed abstract class JavaOp extends Op {
                     CodeTransformer catchExitTransformer = compose(opT, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
                             return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
-                        } else if (op instanceof JavaBranchOp lop && ifExitFromTry(lop)) {
+                        } else if (op instanceof StatementTargetOp lop && ifExitFromTry(lop)) {
                             return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else {
                             return block;
@@ -5137,7 +5137,7 @@ public sealed abstract class JavaOp extends Op {
             return exit;
         }
 
-        boolean ifExitFromTry(JavaBranchOp lop) {
+        boolean ifExitFromTry(StatementTargetOp lop) {
             Op target = lop.target();
             return target == this || target.isAncestorOf(this);
         }
