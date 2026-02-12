@@ -25,9 +25,12 @@
 package hat.types;
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 
 
-public interface vec2 {
+public interface vec2 extends IfaceValue.Vector{
+    Shape shape = IfaceValue.Vector.Shape.of( JavaType.FLOAT,3);
     float x();
 
     float y();

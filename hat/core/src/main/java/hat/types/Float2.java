@@ -25,11 +25,12 @@
 package hat.types;
 
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-public interface Float2 extends Vector {
+public interface Float2 extends IfaceValue.Vector {
     Shape shape = Shape.of(JavaType.FLOAT,2);
     float x();
     float y();

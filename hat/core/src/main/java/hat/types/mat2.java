@@ -25,10 +25,12 @@
 package hat.types;
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
+import optkl.IfaceValue.Matrix;
 
-//immutable form
-public interface mat2 {
-
+public interface mat2 extends Matrix{
+    Shape shape = IfaceValue.Matrix.Shape.of( JavaType.FLOAT,2,2);
     float _00();
 
     float _01();
@@ -37,7 +39,7 @@ public interface mat2 {
 
     float _11();
 
-    // A mutable variant needed for interface mapping
+    // A mutable variant needed for interface mapping to memory segments
     interface Field extends mat2 {
         @Reflect
         default void schema(){_00();_01();_10();_11();}
@@ -54,7 +56,6 @@ public interface mat2 {
             return this;
         }
     }
-
 
     static mat2 mat2(float _00, float _01, float _10, float _11) {
         record Impl(float _00, float _01, float _10, float _11) implements mat2 {

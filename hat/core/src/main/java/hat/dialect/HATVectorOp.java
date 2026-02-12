@@ -24,7 +24,7 @@
  */
 package hat.dialect;
 
-import hat.types.Vector;
+import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
