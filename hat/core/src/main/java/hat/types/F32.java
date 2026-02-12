@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package hat.types;
 
 public interface F32 {
     float PI = (float)Math.PI;

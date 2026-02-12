@@ -25,13 +25,12 @@
 package shade;
 
 import optkl.util.carriers.ArenaAndLookupCarrier;
-import shade.types.Uniforms;
-import shade.types.vec4;
+import hat.types.vec4;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
-import static shade.types.ivec2.ivec2;
+import static hat.types.ivec2.ivec2;
 
 public class UniformTest {
      static void main(String[] args){

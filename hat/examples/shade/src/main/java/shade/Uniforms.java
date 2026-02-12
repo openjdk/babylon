@@ -22,12 +22,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package shade;
 
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 import optkl.util.carriers.ArenaAndLookupCarrier;
+import hat.types.ivec2;
+import hat.types.vec2;
+import hat.types.vec3;
+import hat.types.vec4;
 
 public interface Uniforms extends Buffer {
     interface ivec2Field extends ivec2.Field, Struct {
