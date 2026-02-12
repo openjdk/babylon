@@ -5251,6 +5251,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * Pattern operations.
+     *
+     * @jls 14.30 Patterns
      */
     public static final class PatternOps {
         PatternOps() {
@@ -5258,6 +5260,10 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * The pattern operation.
+         * <p>
+         * The type of a pattern operation is a synthetic {@linkplain Pattern pattern type}).
+         * Pattern operations are used in pattern bodies of {@link MatchOp} and as nested pattern operands of
+         * {@link RecordPatternOp}.
          */
         public sealed static abstract class PatternOp extends JavaOp implements Op.Pure {
             PatternOp(PatternOp that, CodeContext cc) {
@@ -5270,7 +5276,13 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * The binding pattern operation, that can model Java language type test patterns.
+         * The type pattern operation, that can model Java language type test patterns.
+         * <p>
+         * Type pattern operations are associated with a target type (a {@link JavaType})
+         * and an optional binding name.
+         *
+         * @jls 14.30.1 Kinds of Patterns
+         * @jls 15.20.2 The instanceof Operator
          */
         @OpDeclaration(TypePatternOp.NAME)
         public static final class TypePatternOp extends PatternOp {
@@ -5343,6 +5355,11 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * The record pattern operation, that can model Java language record patterns.
+         * <p>
+         * Record pattern operations are associated with a record descriptor.
+         * The operands are nested pattern values.
+         *
+         * @jls 14.30.1 Kinds of Patterns
          */
         @OpDeclaration(RecordPatternOp.NAME)
         public static final class RecordPatternOp extends PatternOp {
@@ -5412,6 +5429,8 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * A pattern operation representing a match-all (unconditional) pattern.
+         *
+         * @jls 14.30.1 Kinds of Patterns
          */
         @OpDeclaration(MatchAllPatternOp.NAME)
         public static final class MatchAllPatternOp extends PatternOp {
@@ -5446,6 +5465,21 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * The match operation, that can model Java language pattern matching.
+         * <p>
+         * Match operations can be used to model instanceof expressions with a pattern match operator, or
+         * case labels with case patterns in switch statements and switch expressions.
+         * <p>
+         * Match operations feature one operand, the target value being matched, and two bodies: the pattern body and
+         * the match body.
+         * <p>
+         * The pattern body should accept no arguments and yield a pattern value.
+         * The match body accepts the values bound by the pattern body and yields {@linkplain JavaType#VOID no value}.
+         * The type of a match operation is {@link JavaType#BOOLEAN}.
+         *
+         * @jls 14.30.2 Pattern Matching
+         * @jls 14.11 The switch Statement
+         * @jls 15.28 {@code switch} Expressions
+         * @jls 15.20.2 The instanceof Operator
          */
         @OpDeclaration(MatchOp.NAME)
         public static final class MatchOp extends JavaOp implements Op.Isolated, Op.Lowerable {
