@@ -155,7 +155,26 @@ public sealed abstract class JavaOp extends Op {
 
 
     /**
-     * The lambda operation, that can model a Java lambda expression.
+     * The lambda operation, that can model Java language lambda expressions.
+     * <p>
+     * Lambda operations are associated with a {@linkplain #functionalInterface() functional interface type}.
+     * They feature one body, the {@linkplain #body() function body}.
+     * The type of a lambda operation is its functional interface type.
+     * <p>
+     * The function body takes as many arguments as the function type associated with the functional interface type.
+     * The function body yields a value if that function type has a non-{@linkplain JavaType#VOID void} return type.
+     * <p>
+     * Lambda operations can also model Java language method reference expressions. A method reference is modelled as a
+     * lambda operation whose function body forwards its parameters to a corresponding {@link InvokeOp}, and that
+     * yields the result (if any) of that operation.
+     * <p>
+     * Some lambda operations are <em>reflectable</em> (see {@link Reflect}), meaning their code model is persisted at
+     * runtime.
+     *
+     * @jls 15.27 Lambda Expressions
+     * @jls 15.13 Method Reference Expressions
+     * @jls 9.8 Functional Interfaces
+     * @jls 9.9 Function Types
      */
     @OpDeclaration(LambdaOp.NAME)
     public static final class LambdaOp extends JavaOp
@@ -186,9 +205,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds a lambda operation with the provided function body.
+             * Completes the lambda operation by adding the function body.
              *
-             * @param c a consumer to populate the lambda function body
+             * @param c a consumer that populates the function body
              * @return the completed lambda operation
              */
             public LambdaOp body(Consumer<Block.Builder> c) {
@@ -198,7 +217,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Marks the constructed lambda operation as reflectable.
+             * Returns a builder that constructs a reflectable lambda operation.
+             *
              * @return this builder
              * @see Reflect
              */
