@@ -2920,8 +2920,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Begins an if operation from a predicate body obtained using the provided builder.
-             * @param c a consumer for the predicate body builder
+             * Begins an if operation by adding the initial predicate body.
+             *
+             * @param c a consumer that populates the predicate body
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder if_(Consumer<Block.Builder> c) {
@@ -2946,8 +2947,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an action body to the if operation using the provided builder.
-             * @param c a consumer for the action body builder
+             * Adds an action body to the if operation.
+             *
+             * @param c a consumer that populates the action body
              * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then(Consumer<Block.Builder> c) {
@@ -2984,8 +2986,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a predicate body to the if operation using the provided builder.
-             * @param c a consumer for the predicate body builder
+             * Adds a predicate body to the if operation.
+             *
+             * @param c a consumer that populates the predicate body
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder elseif(Consumer<Block.Builder> c) {
@@ -2997,8 +3000,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Complete the if operation with the action body obtained using the provided builder.
-             * @param c a consumer for the action body builder
+             * Completes the if operation by adding the final action body.
+             *
+             * @param c a consumer that populates the action body
              * @return the completed if operation
              */
             public IfOp else_(Consumer<Block.Builder> c) {
@@ -4495,7 +4499,8 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Adds a predicate body to this conditional-and operation.
-             * @param c the consumer that populates the predicate body
+             *
+             * @param c a consumer that populates the predicate body
              * @return this builder
              */
             public Builder and(Consumer<Block.Builder> c) {
@@ -4563,7 +4568,8 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Adds a predicate body to this conditional-or operation.
-             * @param c the consumer that populates the predicate body
+             *
+             * @param c a consumer that populates the predicate body
              * @return this builder
              */
             public Builder or(Consumer<Block.Builder> c) {
