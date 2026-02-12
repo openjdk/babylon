@@ -1593,7 +1593,11 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The binary arithmetic operation.
+     * A binary arithmetic operation.
+     * <p>
+     * Binary arithmetic operations feature two operands. Usually, both operands have the same type,
+     * although that is not always the case. The type of a binary arithmetic operation is
+     * the type of the first operand.
      */
     public sealed static abstract class BinaryOp extends ArithmeticOperation {
         BinaryOp(BinaryOp that, CodeContext cc) {
@@ -1630,6 +1634,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The binary test operation.
+     * <p>
+     * Binary test operations feature two operands, and yield a {@link JavaType#BOOLEAN} value.
      */
     public sealed static abstract class BinaryTestOp extends TestOperation {
         BinaryTestOp(BinaryTestOp that, CodeContext cc) {
@@ -1648,6 +1654,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The add operation, that can model the Java language binary {@code +} operator for numeric types
+     *
+     * @jls 15.18.2 Additive Operators (+ and -) for Numeric Types
      */
     @OpDeclaration(AddOp.NAME)
     public static final class AddOp extends BinaryOp {
@@ -1673,6 +1681,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The sub operation, that can model the Java language binary {@code -} operator for numeric types
+     *
+     * @jls 15.18.2 Additive Operators (+ and -) for Numeric Types
      */
     @OpDeclaration(SubOp.NAME)
     public static final class SubOp extends BinaryOp {
@@ -1698,6 +1708,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The mul operation, that can model the Java language binary {@code *} operator for numeric types
+     *
+     * @jls 15.17.1 Multiplication Operator *
      */
     @OpDeclaration(MulOp.NAME)
     public static final class MulOp extends BinaryOp {
@@ -1723,6 +1735,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The div operation, that can model the Java language binary {@code /} operator for numeric types
+     *
+     * @jls 15.17.2 Division Operator /
      */
     @OpDeclaration(DivOp.NAME)
     public static final class DivOp extends BinaryOp {
@@ -1748,6 +1762,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The mod operation, that can model the Java language binary {@code %} operator for numeric types
+     *
+     * @jls 15.17.3 Remainder Operator %
      */
     @OpDeclaration(ModOp.NAME)
     public static final class ModOp extends BinaryOp {
@@ -1772,8 +1788,9 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The bitwise/logical or operation, that can model the Java language binary {@code |} operator for integral types
-     * and booleans
+     * The bitwise or operation, that can model the Java language binary {@code |} operator for integral types
+     *
+     * @jls 15.22 Bitwise and Logical Operators
      */
     @OpDeclaration(OrOp.NAME)
     public static final class OrOp extends BinaryOp {
@@ -1798,8 +1815,9 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The bitwise/logical and operation, that can model the Java language binary {@code &} operator for integral types
-     * and booleans
+     * The bitwise and operation, that can model the Java language binary {@code &} operator for integral types
+     *
+     * @jls 15.22 Bitwise and Logical Operators
      */
     @OpDeclaration(AndOp.NAME)
     public static final class AndOp extends BinaryOp {
@@ -1825,7 +1843,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The xor operation, that can model the Java language binary {@code ^} operator for integral types
-     * and booleans
+     *
+     * @jls 15.22 Bitwise and Logical Operators
      */
     @OpDeclaration(XorOp.NAME)
     public static final class XorOp extends BinaryOp {
@@ -1851,6 +1870,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The (logical) shift left operation, that can model the Java language binary {@code <<} operator for integral types
+     *
+     * @jls 15.19 Shift Operators
      */
     @OpDeclaration(LshlOp.NAME)
     public static final class LshlOp extends BinaryOp {
@@ -1876,6 +1897,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The (arithmetic) shift right operation, that can model the Java language binary {@code >>} operator for integral types
+     *
+     * @jls 15.19 Shift Operators
      */
     @OpDeclaration(AshrOp.NAME)
     public static final class AshrOp extends JavaOp.BinaryOp {
@@ -1901,6 +1924,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The unsigned (logical) shift right operation, that can model the Java language binary {@code >>>} operator for integral types
+     *
+     * @jls 15.19 Shift Operators
      */
     @OpDeclaration(LshrOp.NAME)
     public static final class LshrOp extends JavaOp.BinaryOp {
@@ -2002,6 +2027,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The equals operation, that can model the Java language equality {@code ==} operator for numeric, boolean
      * and reference types
+     *
+     * @jls 15.21 Equality Operators
      */
     @OpDeclaration(EqOp.NAME)
     public static final class EqOp extends BinaryTestOp {
@@ -2028,6 +2055,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The not equals operation, that can model the Java language equality {@code !=} operator for numeric, boolean
      * and reference types
+     *
+     * @jls 15.21 Equality Operators
      */
     @OpDeclaration(NeqOp.NAME)
     public static final class NeqOp extends BinaryTestOp {
@@ -2053,6 +2082,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The greater than operation, that can model the Java language relational {@code >} operator for numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GtOp.NAME)
     public static final class GtOp extends BinaryTestOp {
@@ -2079,6 +2110,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The greater than or equal to operation, that can model the Java language relational {@code >=} operator for
      * numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GeOp.NAME)
     public static final class GeOp extends BinaryTestOp {
@@ -2105,6 +2138,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The less than operation, that can model the Java language relational {@code <} operator for
      * numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LtOp.NAME)
     public static final class LtOp extends BinaryTestOp {
@@ -2131,6 +2166,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The less than or equal to operation, that can model the Java language relational {@code <=} operator for
      * numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LeOp.NAME)
     public static final class LeOp extends BinaryTestOp {
