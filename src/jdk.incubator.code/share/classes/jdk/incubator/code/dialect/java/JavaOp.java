@@ -4322,7 +4322,12 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The conditional-and-or operation, that can model Java language condition-or or conditional-and expressions.
+     * The conditional operation, that can model Java language conditional-and and conditional-or expressions.
+     * <p>
+     * Conditional operations feature two or more predicate bodies, each yielding a {@link JavaType#BOOLEAN} value.
+     *
+     * @jls 15.23 Conditional-And Operator {@code &&}
+     * @jls 15.24 Conditional-Or Operator {@code ||}
      */
     public sealed static abstract class JavaConditionalOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaExpression {
@@ -4416,6 +4421,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The conditional-and operation, that can model Java language conditional-and expressions.
+     *
+     * @jls 15.23 Conditional-And Operator {@code &&}
      */
     @OpDeclaration(ConditionalAndOp.NAME)
     public static final class ConditionalAndOp extends JavaConditionalOp {
@@ -4435,8 +4442,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a condition to this builder.
-             * @param c the consumer populating the block modelling the additional condition
+             * Adds a predicate body to this conditional-and operation.
+             * @param c the consumer that populates the predicate body
              * @return this builder
              */
             public Builder and(Consumer<Block.Builder> c) {
@@ -4448,7 +4455,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * {@return the conditional-and operation from the accumulated conditions}
+             * {@return the completed conditional-and operation}
              */
             public ConditionalAndOp build() {
                 return new ConditionalAndOp(bodies);
@@ -4482,6 +4489,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The conditional-or operation, that can model Java language conditional-or expressions.
+     *
+     * @jls 15.24 Conditional-Or Operator {@code ||}
      */
     @OpDeclaration(ConditionalOrOp.NAME)
     public static final class ConditionalOrOp extends JavaConditionalOp {
@@ -4501,8 +4510,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a condition to this builder.
-             * @param c the consumer populating the block modelling the additional condition
+             * Adds a predicate body to this conditional-or operation.
+             * @param c the consumer that populates the predicate body
              * @return this builder
              */
             public Builder or(Consumer<Block.Builder> c) {
@@ -4514,7 +4523,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * {@return the conditional-or operation from the accumulated conditions}
+             * {@return the completed conditional-or operation}
              */
             public ConditionalOrOp build() {
                 return new ConditionalOrOp(bodies);
@@ -4548,6 +4557,13 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The conditional operation, that can model Java language conditional operator {@code ?} expressions.
+     * <p>
+     * Conditional expression operations feature three bodies: the predicate body, the true body, and the false body.
+     * <p>
+     * The predicate body accepts no arguments and yields a {@link JavaType#BOOLEAN} value.
+     * The true and false bodies accepts no arguments and yield a value.
+     *
+     * @jls 15.25 Conditional Operator {@code ? :}
      */
     @OpDeclaration(ConditionalExpressionOp.NAME)
     public static final class ConditionalExpressionOp extends JavaOp
