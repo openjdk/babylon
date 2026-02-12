@@ -23,11 +23,11 @@
  * questions.
  */
 package hat.types;
-
+import optkl.IfaceValue;
 import jdk.incubator.code.dialect.java.JavaType;
 
-public interface F32x4 extends Vector {
-    Shape shape = Vector.Shape.of( JavaType.FLOAT,4);
+public interface F32x4 extends IfaceValue.Vector{
+    Shape shape = Shape.of( JavaType.FLOAT,4);
 
     float x();
     float y();

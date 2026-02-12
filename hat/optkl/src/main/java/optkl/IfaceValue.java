@@ -25,11 +25,50 @@
 package optkl;
 
 
+import jdk.incubator.code.TypeElement;
+
 public interface IfaceValue {
 
     interface Union extends IfaceValue {
     }
 
     interface Struct extends IfaceValue {
+    }
+
+    // Experimental ... considering for interface defined vectors (see hat types vec2,3,etc)
+     interface Vector {
+        interface Shape {
+            TypeElement typeElement();
+            int lanes();
+            static Shape of(TypeElement typeElement, int lanes) {
+                record Impl(TypeElement typeElement, int lanes) implements Shape {
+                    @Override public String toString(){
+                        return typeElement.toString() + Impl.this.lanes;
+                    }
+                }
+                return new Impl(typeElement, lanes);
+            }
+        }
+    }
+
+    interface Matrix {
+        interface Shape {
+            TypeElement typeElement();
+            int rows();
+            int cols();
+
+            static Shape of(TypeElement typeElement, int rows, int cols) {
+                record Impl(TypeElement typeElement, int rows, int cols) implements Shape {
+                    @Override public String toString(){
+                        return typeElement.toString() + Impl.this.rows+"x"+Impl.this.cols;
+                    }
+                }
+                return new Impl(typeElement, rows,cols);
+            }
+        }
+    }
+
+    // Experimental ... considering for any Struct acting as an aggregate containing a length field.
+    interface Array extends IfaceValue {
     }
 }

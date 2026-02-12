@@ -25,9 +25,12 @@
 package hat.types;
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue.Vector;
 
 // This is immutable
-public interface ivec2 {
+public interface ivec2 extends Vector {
+    Shape shape = Shape.of( JavaType.INT,2);
     int x();
     int y();
 

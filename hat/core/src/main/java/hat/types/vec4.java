@@ -25,9 +25,12 @@
 package hat.types;
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 
-//immutable form
-public interface vec4 {
+
+public interface vec4 extends IfaceValue.Vector {
+    Shape shape = IfaceValue.Vector.Shape.of( JavaType.FLOAT,4);
 
     float x();
 

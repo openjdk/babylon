@@ -26,7 +26,7 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATVectorOp;
-import hat.types.Vector;
+import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
