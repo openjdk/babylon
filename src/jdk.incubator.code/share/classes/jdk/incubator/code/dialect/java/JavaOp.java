@@ -670,6 +670,17 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The invoke operation, that can model Java language method invocation expressions.
+     * <p>
+     * The method invoked by an invoke operation is specified using a
+     * {@linkplain MethodRef method reference}.
+     * The operands of an invoke operation are specified as follows:
+     * <ul>
+     *     <li>For {@linkplain InvokeKind#STATIC static} invocations, operands are the invocation arguments.</li>
+     *     <li>For {@linkplain InvokeKind#INSTANCE instance} and {@linkplain InvokeKind#SUPER super} invocations, the first
+     *         operand is the receiver and the remaining operands are the invocation arguments.</li>
+     * </ul>
+     *
+     * @jls 15.12 Method Invocation Expressions
      */
     @OpDeclaration(InvokeOp.NAME)
     public static final class InvokeOp extends JavaOp
@@ -903,7 +914,14 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The new operation, that can models Java language instance creation expressions.
+     * The new operation, that can model Java language instance creation expressions and array creation expressions.
+     * <p>
+     * The constructor invoked by a new operation is specified using a
+     * {@linkplain MethodRef constructor reference}.
+     * New operations feature operands corresponding to the constructor arguments.
+     *
+     * @jls 15.9 Class Instance Creation Expressions
+     * @jls 15.10.1 Array Creation Expressions
      */
     @OpDeclaration(NewOp.NAME)
     public static final class NewOp extends JavaOp
@@ -5877,9 +5895,9 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      * <p>
-     * The invoke return type is the invoke descriptors return type.
+     * The invoke return type is the invoke descriptor's return type.
      *
      * @param invokeDescriptor the invoke descriptor
      * @param args             the invoke parameters
@@ -5898,9 +5916,9 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      * <p>
-     * The invoke return type is the invoke descriptors return type.
+     * The invoke return type is the invoke descriptor's return type.
      *
      * @param invokeDescriptor the invoke descriptor
      * @param args             the invoke arguments
@@ -5919,7 +5937,7 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      *
      * @param returnType       the invoke return type
      * @param invokeDescriptor the invoke descriptor
