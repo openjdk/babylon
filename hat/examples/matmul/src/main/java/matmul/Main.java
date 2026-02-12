@@ -681,6 +681,7 @@ public class Main {
     }
 
     static final int BLOCK_SIZE = 16;
+    static final int BM = 64;
 
     @Reflect
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
@@ -710,23 +711,33 @@ public class Main {
         );
     }
 
+    private static int ceil(int globalSize, int blockM) {
+        return (globalSize + (blockM - 1)) / blockM;
+    }
+
     @Reflect
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(of2D(256, 256,BLOCK_SIZE, BLOCK_SIZE),
+        // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
+        int size = ceil(globalSize, BM) * BLOCK_SIZE;
+        cc.dispatchKernel(of2D(size, size, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO F32ArrayPadded matrixC, int globalSize) {
-        cc.dispatchKernel(of2D(256, 256,BLOCK_SIZE, BLOCK_SIZE),
+        // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
+        int size = ceil(globalSize, BM) * BLOCK_SIZE;
+        cc.dispatchKernel(of2D(size, size ,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DRegisterTilingHalf(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F16Array matrixC, int globalSize) {
-        var range = NDRange2D.of(Global2D.of(256, 256), Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
+        // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
+        int size = ceil(globalSize, BM) * BLOCK_SIZE;
+        var range = NDRange2D.of(Global2D.of(size, size), Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(range,
                 kc -> matrixMultiplyKernel2DRegisterTilingHalf(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -800,7 +811,6 @@ public class Main {
         for (String arg : args) {
             if (arg.startsWith("--kernel=")) {
                 String kernel = arg.split("=")[1];
-                IO.println("KERNEL SET: " + kernel);
                 configuration = switch (kernel) {
                     case "MT" -> Configuration.ALG_MT;
                     case "1D" -> Configuration.ALG_1D;
