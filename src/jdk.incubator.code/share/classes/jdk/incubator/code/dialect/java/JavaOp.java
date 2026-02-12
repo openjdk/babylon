@@ -125,7 +125,7 @@ public sealed abstract class JavaOp extends Op {
             EnhancedForOp,
             ForOp,
             IfOp,
-            JavaLabelOp,
+            JavaBranchOp,
             LabeledOp,
             SynchronizedOp,
             TryOp,
@@ -276,7 +276,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the functional interface type modeled by this lambda operation}
+         * {@return the functional interface type modelled by this lambda operation}
          */
         public TypeElement functionalInterface() {
             return functionalInterface;
@@ -2304,15 +2304,21 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The label operation, that can model Java language statements with label identifiers.
+     * A branch operation, that can model Java language statements associated with label identifiers.
+     * <p>
+     * Branch operations feature zero or one operand, the label identifier.
+     * If present, the label identifier is modelled as a {@link ConstantOp} value.
+     *
+     * @jls 14.15 The break Statement
+     * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class JavaLabelOp extends JavaOp
+    public sealed static abstract class JavaBranchOp extends JavaOp
             implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
-        JavaLabelOp(JavaLabelOp that, CodeContext cc) {
+        JavaBranchOp(JavaBranchOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        JavaLabelOp(Value label) {
+        JavaBranchOp(Value label) {
             super(checkLabel(label));
         }
 
@@ -2388,10 +2394,14 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The break operation, that can model Java language break statements with label identifiers.
+     * The break operation, that can model Java language break statements.
+     * <p>
+     * Break operations feature zero or one operand, the label identifier.
+     *
+     * @jls 14.15 The break Statement
      */
     @OpDeclaration(BreakOp.NAME)
-    public static final class BreakOp extends JavaLabelOp {
+    public static final class BreakOp extends JavaBranchOp {
         static final String NAME = "java.break";
 
         BreakOp(ExternalizedOp def) {
@@ -2418,10 +2428,14 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The continue operation, that can model Java language continue statements with label identifiers.
+     * The continue operation, that can model Java language continue statements.
+     * <p>
+     * Continue operations feature zero or one operand, the label identifier.
+     *
+     * @jls 14.16 The continue Statement
      */
     @OpDeclaration(ContinueOp.NAME)
-    public static final class ContinueOp extends JavaLabelOp {
+    public static final class ContinueOp extends JavaBranchOp {
         static final String NAME = "java.continue";
 
         ContinueOp(ExternalizedOp def) {
@@ -2704,7 +2718,7 @@ public sealed abstract class JavaOp extends Op {
 
             CodeTransformer syncExitTransformer = compose(opT, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof JavaOp.JavaLabelOp lop && ifExitFromSynchronized(lop))) {
+                    (op instanceof JavaBranchOp lop && ifExitFromSynchronized(lop))) {
                     // Monitor exit
                     block.op(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -2760,7 +2774,7 @@ public sealed abstract class JavaOp extends Op {
             return exprExit;
         }
 
-        boolean ifExitFromSynchronized(JavaLabelOp lop) {
+        boolean ifExitFromSynchronized(JavaBranchOp lop) {
             Op target = lop.target();
             return target == this || target.isAncestorOf(this);
         }
@@ -3303,7 +3317,7 @@ public sealed abstract class JavaOp extends Op {
 
         boolean haveNullCase() {
             /*
-            case null is modeled like this:
+            case null is modelled like this:
             (%4 : T)boolean -> {
                 %5 : java.lang.Object = constant @null;
                 %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
@@ -4998,7 +5012,7 @@ public sealed abstract class JavaOp extends Op {
             if (finalizer != null) {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof JavaOp.JavaLabelOp lop && ifExitFromTry(lop))) {
+                            (op instanceof JavaBranchOp lop && ifExitFromTry(lop))) {
                         return inlineFinalizer(block, exitHandlers, opT);
                     } else {
                         return block;
@@ -5007,7 +5021,7 @@ public sealed abstract class JavaOp extends Op {
             } else {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof JavaOp.JavaLabelOp lop && ifExitFromTry(lop))) {
+                            (op instanceof JavaBranchOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.op(exceptionRegionExit(tryRegionReturnExit.successor(), exitHandlers));
                         return tryRegionReturnExit;
@@ -5058,7 +5072,7 @@ public sealed abstract class JavaOp extends Op {
                     CodeTransformer catchExitTransformer = compose(opT, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
                             return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
-                        } else if (op instanceof JavaOp.JavaLabelOp lop && ifExitFromTry(lop)) {
+                        } else if (op instanceof JavaBranchOp lop && ifExitFromTry(lop)) {
                             return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else {
                             return block;
@@ -5123,7 +5137,7 @@ public sealed abstract class JavaOp extends Op {
             return exit;
         }
 
-        boolean ifExitFromTry(JavaLabelOp lop) {
+        boolean ifExitFromTry(JavaBranchOp lop) {
             Op target = lop.target();
             return target == this || target.isAncestorOf(this);
         }
