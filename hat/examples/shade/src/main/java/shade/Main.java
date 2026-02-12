@@ -771,7 +771,7 @@ void mainImage(out vec4 fragColor,  vec2 fragCoord ){
             U = vec2.abs(U.fract().mul(2f).sub(1f));
             float v = F32.max(U.x(),U.y());          // dist to border
 
-            return    vec4.clamp(
+            return
                     vec4.smoothstep(
                             vec4(.7f),
                             vec4(-.7f),
@@ -785,7 +785,7 @@ void mainImage(out vec4 fragColor,  vec2 fragCoord ){
                                        vec4.cos( vec4(id).add(vec4(0f,23f,21f,0f)))
                                     )
                             )
-            ),0f,1f);// color
+            );// color
 
     };
 
@@ -809,6 +809,6 @@ void mainImage(out vec4 fragColor,  vec2 fragCoord ){
                 this.shader=shader;
             }
         }
-        new Main(acc, 1024+512, 1024, SHADER.S25.shader);
+        new Main(acc, 1024, 1024, SHADER.Spiral.shader);
     }
 }

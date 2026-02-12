@@ -29,6 +29,7 @@ public interface F32 {
     float PIx2 = PI*2;
     float E = (float)Math.E;
     static float sqrt(float f){return (float)Math.sqrt(f);}
+    static float invsqrt(float f){return 1f/sqrt(f);}
     static float cos(float f){return (float)Math.cos(f);}
     static float sin(float f){return (float)Math.sin(f);}
     static float tan(float f){return (float)Math.tan(f);}
@@ -37,12 +38,11 @@ public interface F32 {
     static float mix(float x, float y, float a){return x*(1f-a)+y*a; }
     static float pow(float x, float pow){return (float)Math.pow(x,pow); }
     static float smoothstep(float edge0, float edge1, float x ){
-        if (edge1>edge0){
-            return -smoothstep(edge1,edge0,x);
-        }else {
-            float t = Math.clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
-            return t * t * (3.0f - 2.0f * t);
-        }
+        float t = (edge1>edge0)
+                ? Math.clamp((x - edge1) / (edge0 - edge1), 0f, 1f)
+                : Math.clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
+        return t * t * (3.0f - 2.0f * t);
+
     }
     static float step(float edge, float x ){
         return x<edge?0f:1f;
@@ -56,9 +56,6 @@ public interface F32 {
     }
     static float exp(float f) {return (float)Math.exp(f);}
     static float log(float f) {return (float)Math.log(f);}
-    static float dot(float lhs, float rhs) {
-        return lhs*rhs;
-    }
     static float min(float lhs, float rhs){ return Math.min(lhs,rhs);}
     static float max(float lhs, float rhs){ return Math.max(lhs,rhs);}
     // watch out ! Shader version is min,max, value!!

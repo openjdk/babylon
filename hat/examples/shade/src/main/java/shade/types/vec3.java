@@ -95,7 +95,7 @@ public interface vec3 {
                 F32.mix(l.y(),r.y(),a)
         );
     }
-    static float dot(vec3 lhs, vec3 rhs) { return F32.dot(lhs.x(),rhs.x())+F32.dot(lhs.y(),rhs.y()+F32.dot(lhs.z(),rhs.z()));}
+    static float dot(vec3 lhs, vec3 rhs) { return lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z();}
     default float dot(vec3 rhs) { return dot(this,rhs);}
 
     static vec3 reflect(vec3 I, vec3 N) {
