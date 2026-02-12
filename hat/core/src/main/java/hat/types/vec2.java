@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package hat.types;
 
 import jdk.incubator.code.Reflect;
 
@@ -106,7 +106,7 @@ public interface vec2 {
         return vec2(F32.mod(x(),f),F32.mod(y(),f));
     }
 
-    static float dot(vec2 lhs, vec2 rhs) { return F32.dot(lhs.x(),rhs.x())+F32.dot(lhs.y(),rhs.y());}
+    static float dot(vec2 lhs, vec2 rhs) { return lhs.x()*rhs.x()+lhs.y()*rhs.y();}
     default float dot(vec2 rhs) { return dot(this,rhs);}
 
     static vec2 floor(vec2 vec2){

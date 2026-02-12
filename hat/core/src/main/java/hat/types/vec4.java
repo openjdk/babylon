@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package hat.types;
 
 import jdk.incubator.code.Reflect;
 
@@ -70,7 +70,7 @@ public interface vec4 {
     static vec4 add(vec4 l, vec4 r) {return vec4(l.x()+r.x(),l.y()+r.y(), l.z()+r.z(),l.w()+r.w());}
     default vec4 add(vec4 rhs){return add(this,rhs);}
     default vec4 add(float scalar){return add(this,vec4(scalar));}
-
+    default vec4 add(float x, float y, float z, float w){return add(this,vec4(x,y,z,w));}
     static vec4 sub(vec4 l, vec4 r) {return vec4(l.x()-r.x(),l.y()-r.y(), l.z()-r.z(),l.w()-r.w());}
     default vec4 sub(float scalar) {return sub(this, vec4(scalar));}
     default vec4 sub(vec4 rhs){return sub(this,rhs);}
@@ -106,4 +106,17 @@ public interface vec4 {
     static vec4 sin(vec4 vec4){
         return vec4(F32.sin(vec4.x()), F32.sin(vec4.y()),F32.sin(vec4.z()) ,F32.sin(vec4.w()));
     }
+
+    static vec4 normalize(vec4 vec4){
+        float lenSq = vec4.x() * vec4.x() + vec4.y() * vec4.y() + vec4.z() * vec4.z()+ vec4.w()*vec4.w();
+        if (lenSq > 0.0f) {
+            float invLen = 1f / F32.sqrt(lenSq);
+            return vec4(vec4.x() * invLen, vec4.y() * invLen, vec4.z() * invLen, vec4.w() *invLen);
+        }
+        return vec4(0f, 0f, 0f,0f); // Handle zero-length case
+    }
+    default vec4 normalize(){
+        return normalize(this);
+    }
+
 }

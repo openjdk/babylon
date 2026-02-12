@@ -22,7 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package shade;
+
+import hat.types.vec2;
+import hat.types.vec4;
+
 @FunctionalInterface
 public interface Shader {
     vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord);

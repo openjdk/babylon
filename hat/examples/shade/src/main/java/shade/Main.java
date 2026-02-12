@@ -26,29 +26,26 @@ package shade;
 
 import hat.Accelerator;
 import hat.backend.Backend;
-import shade.types.F32;
-import shade.types.Shader;
-import shade.types.Uniforms;
-import shade.types.mat2;
-import shade.types.mat3;
-import shade.types.vec2;
-import shade.types.vec3;
-import shade.types.vec4;
+import hat.types.F32;
+import hat.types.mat2;
+import hat.types.mat3;
+import hat.types.vec2;
+import hat.types.vec3;
+import hat.types.vec4;
 
 import javax.swing.JFrame;
 import java.awt.Rectangle;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
-import static shade.types.F32.pow;
-import static shade.types.F32.smoothstep;
-import static shade.types.mat2.mat2;
-import static shade.types.mat3.mat3;
-import static shade.types.vec2.length;
-import static shade.types.vec2.vec2;
-import static shade.types.vec3.clamp;
-import static shade.types.vec3.vec3;
-import static shade.types.vec4.vec4;
+import static hat.types.F32.pow;
+import static hat.types.F32.smoothstep;
+import static hat.types.mat2.mat2;
+import static hat.types.mat3.mat3;
+import static hat.types.vec2.vec2;
+import static hat.types.vec3.clamp;
+import static hat.types.vec3.vec3;
+import static hat.types.vec4.vec4;
 
 public class Main extends JFrame {
     public final FloatImagePanel imagePanel;
@@ -771,7 +768,7 @@ void mainImage(out vec4 fragColor,  vec2 fragCoord ){
             U = vec2.abs(U.fract().mul(2f).sub(1f));
             float v = F32.max(U.x(),U.y());          // dist to border
 
-            return    vec4.clamp(
+            return
                     vec4.smoothstep(
                             vec4(.7f),
                             vec4(-.7f),
@@ -785,7 +782,7 @@ void mainImage(out vec4 fragColor,  vec2 fragCoord ){
                                        vec4.cos( vec4(id).add(vec4(0f,23f,21f,0f)))
                                     )
                             )
-            ),0f,1f);// color
+            );// color
 
     };
 
@@ -809,6 +806,6 @@ void mainImage(out vec4 fragColor,  vec2 fragCoord ){
                 this.shader=shader;
             }
         }
-        new Main(acc, 1024+512, 1024, SHADER.S25.shader);
+        new Main(acc, 1024, 1024, SHADER.Spiral.shader);
     }
 }
