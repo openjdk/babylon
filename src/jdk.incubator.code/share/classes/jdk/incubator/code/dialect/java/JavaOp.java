@@ -488,6 +488,10 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The terminating throw operation, that can model the Java language throw statement.
+     * <p>
+     * Throw operations feature one operand, the value being thrown.
+     *
+     * @jls 14.18 The throw Statement
      */
     @OpDeclaration(ThrowOp.NAME)
     public static final class ThrowOp extends JavaOp
@@ -529,7 +533,16 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The assertion operation. Supporting assertions in statement form.
+     * The assertion operation, that can model Java language assert statements.
+     * <p>
+     * Assert operations feature one or two bodies. The first body, called the <em>predicate body</em>, models the
+     * assertion condition. If present, the second body, called the <em>details body</em>, models the detail
+     * expression.
+     * <p>
+     * The predicate body should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
+     * If present, the details body should accept no arguments and yield a value.
+     *
+     * @jls 14.10 The assert Statement
      */
     @OpDeclaration(AssertOp.NAME)
     public static final class AssertOp extends JavaOp
@@ -848,6 +861,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The conversion operation, that can model Java language cast expressions
      * for numerical conversion, or such implicit conversion.
+     * <p>
+     * Conversion operations feature one operand, the value to convert.
+     *
+     * @jls 15.16 Cast Expressions
+     * @jls 5.1.2 Widening Primitive Conversion
+     * @jls 5.1.3 Narrowing Primitive Conversion
      */
     @OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends JavaOp
@@ -998,7 +1017,14 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * A field access operation, that can model Java langauge field access expressions.
+     * A field access operation, that can model Java language field access expressions.
+     * <p>
+     * The field accessed by a field access operation is specified using a {@linkplain FieldRef field
+     * reference}.
+     * <p>
+     * Instance field accesses feature a receiver operand. Static field accesses have no receiver operand.
+     *
+     * @jls 15.11 Field Access Expressions
      */
     public sealed abstract static class FieldAccessOp extends JavaOp
             implements AccessOp, ReflectiveOp {
@@ -1035,8 +1061,9 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * The field load operation, that can model Java language field access expressions combined with load access to
-         * field instance variables.
+         * The field load operation, that can model Java language field access expressions used to read a field value.
+         *
+         * @jls 15.11 Field Access Expressions
          */
         @OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
@@ -1094,8 +1121,11 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * The field store operation, that can model Java language field access expressions combined with store access
-         * to field instance variables.
+         * The field store operation, that can model Java language field access expressions used to write a field value.
+         * <p>
+         * The result type is always {@link JavaType#VOID}.
+         *
+         * @jls 15.11 Field Access Expressions
          */
         @OpDeclaration(FieldStoreOp.NAME)
         public static final class FieldStoreOp extends FieldAccessOp
@@ -1146,6 +1176,11 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The array length operation, that can model Java language field access expressions to the length field of an
      * array.
+     * <p>
+     * Array length operations feature one operand, the array value.
+     * The type of an array length operation is {@link JavaType#INT}.
+     *
+     * @jls 15.11 Field Access Expressions
      */
     @OpDeclaration(ArrayLengthOp.NAME)
     public static final class ArrayLengthOp extends JavaOp
@@ -1177,6 +1212,11 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The array access operation, that can model Java language array access expressions.
+     * <p>
+     * Array access operations feature two operands, the array value and the index value.
+     * Array store operations feature an additional operand, the stored value.
+     *
+     * @jls 15.10.3 Array Access Expressions
      */
     public sealed abstract static class ArrayAccessOp extends JavaOp
             implements AccessOp, ReflectiveOp {
@@ -1198,6 +1238,8 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The array load operation, that can model Java language array expressions combined with load access to the
          * components of an array.
+         *
+         * @jls 15.10.3 Array Access Expressions
          */
         @OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
@@ -1242,6 +1284,10 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The array store operation, that can model Java language array expressions combined with store access to the
          * components of an array.
+         * <p>
+         * The type of an array store operation is {@link JavaType#VOID}.
+         *
+         * @jls 15.10.3 Array Access Expressions
          */
         @OpDeclaration(ArrayStoreOp.NAME)
         public static final class ArrayStoreOp extends ArrayAccessOp
@@ -1277,8 +1323,13 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The instanceof operation, that can model Java language instanceof expressions when the instanceof keyword is a
-     * type comparison operator.
+     * The instanceof operation, that can model Java language instanceof expressions that use the
+     * {@code instanceof} keyword as the <em>type comparison operator</em>.
+     * <p>
+     * Instanceof operations feature one operand, the value being tested, and are associated with a
+     * {@linkplain JavaType type} modelling the target type of the type comparison operator.
+     *
+     * @jls 15.20.2 The instanceof Operator
      */
     @OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends JavaOp
@@ -1340,6 +1391,11 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The cast operation, that can model Java language cast expressions for reference types.
+     * <p>
+     * Cast operations feature one operand, the value being cast, and are associated with a
+     * {@linkplain JavaType type} modelling the target type of the cast.
+     *
+     * @jls 15.16 Cast Expressions
      */
     @OpDeclaration(CastOp.NAME)
     public static final class CastOp extends JavaOp
@@ -1529,7 +1585,13 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The String Concatenation Operation
+     * The string concatenation operation, that can model the Java language string concatenation operator
+     * {@code +}.
+     * <p>
+     * Concatenation operations feature two operands.
+     * The type of a string concatenation operation is {@linkplain JavaType#J_L_STRING java.lang.String}.
+     *
+     * @jls 15.18.1 String Concatenation Operator +
      */
 
     @OpDeclaration(ConcatOp.NAME)
@@ -2349,6 +2411,10 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The yield operation, that can model Java language yield statements.
+     * <p>
+     * Yield operations feature one operand, the yielded value.
+     *
+     * @jls 14.21 The yield Statement
      */
     @OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends JavaOp
@@ -2356,11 +2422,11 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.yield";
 
         YieldOp(ExternalizedOp def) {
-            if (def.operands().size() > 1) {
-                throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
+            if (def.operands().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            this(def.operands().isEmpty() ? null : def.operands().get(0));
+            this(def.operands().get(0));
         }
 
         YieldOp(YieldOp that, CodeContext cc) {
@@ -2373,19 +2439,14 @@ public sealed abstract class JavaOp extends Op {
         }
 
         YieldOp(Value operand) {
-            super(operand == null ? List.of() : List.of(operand));
+            super(List.of(Objects.requireNonNull(operand)));
         }
 
         /**
          * {@return the yielded value, or {@code null} if there is no yielded value}
          */
         public Value yieldValue() {
-            if (operands().size() == 1) {
-                return operands().get(0);
-            } else {
-                // @@@
-                return null;
-            }
+            return operands().get(0);
         }
 
         @Override
@@ -2430,6 +2491,11 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The block operation, that can model Java language blocks.
+     * <p>
+     * Block operations feature one statements body, modelling the list of statements enclosed by the Java block.
+     * The statements body should accept no arguments and yield {@linkplain JavaType#VOID no value}.
+     *
+     * @jls 14.2 Blocks
      */
     @OpDeclaration(BlockOp.NAME)
     public static final class BlockOp extends JavaOp
@@ -6407,20 +6473,11 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a yield operation.
      *
-     * @return the yield operation
-     */
-    public static YieldOp java_yield() {
-        return java_yield(null);
-    }
-
-    /**
-     * Creates a yield operation.
-     *
      * @param operand the value to yield
      * @return the yield operation
      */
     public static YieldOp java_yield(Value operand) {
-        return new YieldOp(operand);
+        return new YieldOp(Objects.requireNonNull(operand));
     }
 
     /**

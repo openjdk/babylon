@@ -1813,11 +1813,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         @Override
         public void visitYield(JCTree.JCYield tree) {
             Value retVal = toValue(tree.value, bodyTarget);
-            if (retVal == null) {
-                result = append(JavaOp.java_yield());
-            } else {
-                result = append(JavaOp.java_yield(retVal));
-            }
+            result = append(JavaOp.java_yield(retVal));
         }
 
         @Override
