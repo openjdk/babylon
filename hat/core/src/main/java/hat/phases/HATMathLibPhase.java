@@ -38,8 +38,6 @@ import optkl.Trxfmr;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
@@ -88,7 +86,7 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
                     operands.forEach((Value value) -> OpHelper.Invoke.stream(lookup(), value.result().op())
                             .filter(invokeInner -> !invokeInner.returnsVoid() && HATPhaseUtils.isMathLib(invokeInner))
                             .forEach(invokeInner -> {
-                                ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloatFromResult(invokeInner.op());
+                                ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloatFromResult(invokeInner);
                                 setTypeMap.put(invokeInner.op(), reducedFloatType);
                             }));
                     return invoke;
@@ -102,7 +100,7 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
                                     // to pass to the cogen to do further processing (e.g., build a new type or typecast).
                                     // An alternative is to insert a `stub`, or a code snippet that insert new nodes in the
                                     // IR
-                                    ReducedFloatType reducedFloatType =  HATFP16Phase.categorizeReducedFloatFromResult(invoke.op());
+                                    ReducedFloatType reducedFloatType =  HATFP16Phase.categorizeReducedFloatFromResult(invoke);
                                     setTypeMap.put(result.op(), reducedFloatType);
                                     setTypeMap.put(invoke.op(), reducedFloatType);
                                 }));

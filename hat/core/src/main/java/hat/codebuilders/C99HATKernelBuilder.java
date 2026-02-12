@@ -36,7 +36,6 @@ import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
-import hat.phases.HATFP16Phase;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
@@ -842,11 +841,21 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+    private ReducedFloatType resultTypeIs(HATMathLibOp hatMathLibOp) {
+        ReducedFloatType reducedFloatType = null;
+        if (OpHelper.isAssignable(lookup(), hatMathLibOp.resultType(), F16.class)) {
+            reducedFloatType = ReducedFloatType.HalfFloat.of();
+        } else if (OpHelper.isAssignable(lookup(), hatMathLibOp.resultType(), BF16.class)) {
+            reducedFloatType = ReducedFloatType.BFloat16.of();
+        }
+        return reducedFloatType;
+    }
+
     @Override
     public T hatMathLibOp(HATMathLibOp hatMathLibOp) {
 
         // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-        ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloat(hatMathLibOp.resultType().toString());
+        final ReducedFloatType reducedFloatType = resultTypeIs(hatMathLibOp);
         if (reducedFloatType != null) {
             // If special type, then we need to build the type
             // For now this applies to F16 and bFloat16
