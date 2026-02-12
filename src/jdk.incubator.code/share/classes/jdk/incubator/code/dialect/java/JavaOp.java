@@ -1616,6 +1616,9 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The unary arithmetic operation.
+     * <p>
+     * Unary arithmetic operations feature one operand.
+     * The result type of a unary arithmetic operation is the type of its operand.
      */
     public sealed static abstract class UnaryOp extends ArithmeticOperation {
         UnaryOp(UnaryOp that, CodeContext cc) {
@@ -1788,7 +1791,8 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The bitwise or operation, that can model the Java language binary {@code |} operator for integral types
+     * The bitwise/logical or operation, that can model the Java language binary {@code |} operator for integral types
+     * and booleans
      *
      * @jls 15.22 Bitwise and Logical Operators
      */
@@ -1815,7 +1819,8 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The bitwise and operation, that can model the Java language binary {@code &} operator for integral types
+     * The bitwise/logical and operation, that can model the Java language binary {@code &} operator for integral types
+     * and booleans
      *
      * @jls 15.22 Bitwise and Logical Operators
      */
@@ -1843,6 +1848,7 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The xor operation, that can model the Java language binary {@code ^} operator for integral types
+     * and booleans
      *
      * @jls 15.22 Bitwise and Logical Operators
      */
@@ -1951,6 +1957,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The neg operation, that can model the Java language unary {@code -} operator for numeric types
+     *
+     * @jls 15.15.4 Unary Minus Operator {@code -}
      */
     @OpDeclaration(NegOp.NAME)
     public static final class NegOp extends UnaryOp {
@@ -1976,6 +1984,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The bitwise complement operation, that can model the Java language unary {@code ~} operator for integral types
+     *
+     * @jls 15.15.5 Bitwise Complement Operator {@code ~}
      */
     @OpDeclaration(ComplOp.NAME)
     public static final class ComplOp extends UnaryOp {
@@ -2001,6 +2011,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The not operation, that can model the Java language unary {@code !} operator for boolean types
+     *
+     * @jls 15.15.6 Logical Complement Operator {@code !}
      */
     @OpDeclaration(NotOp.NAME)
     public static final class NotOp extends UnaryOp {
