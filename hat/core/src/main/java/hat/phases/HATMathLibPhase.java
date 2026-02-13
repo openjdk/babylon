@@ -25,18 +25,14 @@
 package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
-import hat.dialect.HATMathLibOp;
 import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 

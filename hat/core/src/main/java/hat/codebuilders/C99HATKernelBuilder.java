@@ -475,6 +475,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return identifier("bfloat16Tofloat");
     }
 
+    public static final String VALUE = "value";
+
     private final T binaryOperationsForBfloat16( HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
         byte f32Mixed = hatf16BinaryOp.getByteFloatRepresentation();
         paren(_-> bf16Type());
@@ -489,9 +491,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                 List<Boolean> references = hatf16BinaryOp.references();
                 if (references.getFirst()) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 }
 
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
@@ -505,9 +507,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                 recurse(OpHelper.asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
                 if (references.get(1)) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 }
 
                 if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
@@ -530,18 +532,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             paren(_-> {
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
                 if (hatF16BinaryOp.references().getFirst()) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 } else {
                     blockComment("hatF16BinaryOp not a result !!");
                 }
                 space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
                 if (hatF16BinaryOp.references().get(1)) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 }else {
                     blockComment("hatF16BinaryOp not a value !!");
                 }
@@ -551,7 +553,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
-        return identifier(hatF16VarLoadOp.varName()).dot().identifier("value");
+        return identifier(hatF16VarLoadOp.varName()).dot().identifier(VALUE);
     }
 
     @Override
@@ -838,8 +840,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
-
-    public static final String VALUE = "value";
 
     protected void genFieldAccess(Value operand, boolean isReference) {
         if (isReference) {
