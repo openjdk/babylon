@@ -152,7 +152,7 @@ public class BufferTagger {
                     }
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flop -> {
-                    if (OpHelper.isAssignable(lookup,  flop.fieldDescriptor().refType(), KernelContext.class)) {
+                    if (OpHelper.isAssignable(lookup,  flop.fieldReference().refType(), KernelContext.class)) {
                         updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
                     }else{
                         // or else

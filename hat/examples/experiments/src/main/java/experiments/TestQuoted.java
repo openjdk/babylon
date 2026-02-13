@@ -225,7 +225,7 @@ public class TestQuoted {
         //    static final Collection<TypeElement> BOX_TYPES = JavaType.primitiveToWrapper.values();
 
         private static boolean isBoxOrUnboxInvocation(JavaOp.InvokeOp iop) {
-            MethodRef mr = iop.invokeDescriptor();
+            MethodRef mr = iop.invokeReference();
             return false;// BOX_TYPES.contains(mr.refType()) && (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
         }
 

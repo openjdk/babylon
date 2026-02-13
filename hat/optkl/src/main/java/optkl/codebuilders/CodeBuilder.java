@@ -745,10 +745,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return identifier(funcOp.funcName());
     }
     public final T fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
-        return identifier(fieldAccessOp.fieldDescriptor().name());
+        return identifier(fieldAccessOp.fieldReference().name());
     }
     public final T funcName(JavaOp.InvokeOp invokeOp){
-        return identifier(invokeOp.invokeDescriptor().name());
+        return identifier(invokeOp.invokeReference().name());
     }
 
 
