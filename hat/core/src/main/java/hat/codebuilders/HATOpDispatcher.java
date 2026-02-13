@@ -80,7 +80,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
 
-    T hatMathLibOp(HATMathLibOp hatMathLibOp);
 
     @Override
     default T recurse(Op op) {
@@ -109,7 +108,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp($);
                 case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
                 case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp($);
-                case HATMathLibOp hatMathOp -> hatMathLibOp(hatMathOp);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {

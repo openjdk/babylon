@@ -758,7 +758,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if ( invoke.refIs(IfaceValue.class )) {
+        if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
@@ -815,18 +815,26 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     }
                 } else {
                     if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
-                        sbrace(_ -> recurse( op));
-                    }else{
+                        sbrace(_ -> recurse(op));
+                    } else {
                         // this is just call.
                     }
                 }
             }
-        } else {// General case
-            funcName(invoke.op()).paren(_ ->
-                    commaSpaceSeparated(invoke.op().operands(),
-                            op -> {if (op instanceof Op.Result result) {recurse( result.op());}
-                            })
-            );
+        } else { // General case
+            if (!invoke.returnsVoid() && HATPhaseUtils.isMathLib(invoke)) {
+                // codegen for mathlib
+                hatMathLibOp(invoke);
+            } else {
+                funcName(invoke.op()).paren(_ ->
+                        commaSpaceSeparated(invoke.op().operands(),
+                                op -> {
+                                    if (op instanceof Op.Result result) {
+                                        recurse(result.op());
+                                    }
+                                })
+                );
+            }
         }
         return self();
     }
@@ -851,31 +859,40 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return reducedFloatType;
     }
 
-    @Override
-    public T hatMathLibOp(HATMathLibOp hatMathLibOp) {
+    private ReducedFloatType resultTypeIs(Invoke invoke) {
+        ReducedFloatType reducedFloatType = null;
+        if (OpHelper.isAssignable(lookup(), invoke.op().resultType(), F16.class)) {
+            reducedFloatType = ReducedFloatType.HalfFloat.of();
+        } else if (OpHelper.isAssignable(lookup(), invoke.op().resultType(), BF16.class)) {
+            reducedFloatType = ReducedFloatType.BFloat16.of();
+        }
+        return reducedFloatType;
+    }
+
+    private T hatMathLibOp(Invoke invoke) {
 
         // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-        final ReducedFloatType reducedFloatType = resultTypeIs(hatMathLibOp);
+        final ReducedFloatType reducedFloatType = resultTypeIs(invoke);
         if (reducedFloatType != null) {
             // If special type, then we need to build the type
             // For now this applies to F16 and bFloat16
             paren(_ -> genReducedType(reducedFloatType)).obrace();
         }
-        identifier(mapMathIntrinsic(reducedFloatType, hatMathLibOp.name()));
+        identifier(mapMathIntrinsic(reducedFloatType, invoke.name()));
 
         // For each operand, obtain if it is a reference from global memory or device memory.
         // Important: when the code-tree has its own lowering, the way to place this information
         // would be in a C99 lowered tree. Thus, we will avoid code-analysis during code-gen.
-        List<Boolean> referenceList = IntStream.range(0, hatMathLibOp.operands().size())
-                .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), hatMathLibOp.operands().get(i)))
+        List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
+                .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), invoke.op().operands().get(i)))
                 .collect(Collectors.toList());
 
         paren( _ -> {
-            int numArgs = hatMathLibOp.operands().size();
+            int numArgs = invoke.op().operands().size();
             IntStream.range(0, numArgs).forEach(i -> {
-                recurse(OpHelper.asResultOrThrow(hatMathLibOp.operands().get(i)).op());
+                recurse(OpHelper.asResultOrThrow(invoke.op().operands().get(i)).op());
                 if (reducedFloatType != null) {
-                    genFieldAccess(hatMathLibOp.operands().get(i), referenceList.get(i));
+                    genFieldAccess(invoke.op().operands().get(i), referenceList.get(i));
                 }
                 // Don't generate the comma after the last argument
                 if (i != numArgs - 1) {
