@@ -5362,7 +5362,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The record pattern operation, that can model Java language record patterns.
          * <p>
-         * Record pattern operations are associated with a record descriptor.
+         * Record pattern operations are associated with a {@linkplain RecordTypeRef record reference}.
          * The operands are nested pattern values.
          *
          * @jls 14.30.1 Kinds of Patterns
@@ -6588,7 +6588,7 @@ public sealed abstract class JavaOp extends Op {
      * @return the yield operation
      */
     public static YieldOp java_yield(Value operand) {
-        return new YieldOp(Objects.requireNonNull(operand));
+        return new YieldOp(operand);
     }
 
     /**
