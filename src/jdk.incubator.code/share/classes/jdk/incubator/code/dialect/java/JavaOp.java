@@ -6626,7 +6626,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a block operation.
      *
-     * @param body the body builder of the operation to be built and become its child
+     * @param body the statements body builder
      * @return the block operation
      */
     public static BlockOp block(Body.Builder body) {
@@ -6636,8 +6636,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a synchronized operation.
      *
-     * @param expr the expression body builder of the operation to be built and become its child
-     * @param blockBody the block body builder of the operation to be built and become its child
+     * @param expr the expression body builder
+     * @param blockBody the block body builder
      * @return the synchronized operation
      */
     public static SynchronizedOp synchronized_(Body.Builder expr, Body.Builder blockBody) {
@@ -6647,7 +6647,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a labeled operation.
      *
-     * @param body the body builder of the operation to be built and become its child
+     * @param body the labeled body builder
      * @return the labeled operation
      */
     public static LabeledOp labeled(Body.Builder body) {
@@ -6672,7 +6672,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an if operation.
      *
-     * @param bodies the body builders of operation to be built and become its children
+     * @param bodies the body builders for the predicate and action bodies
      * @return the if operation
      */
     public static IfOp if_(List<Body.Builder> bodies) {
@@ -6685,7 +6685,7 @@ public sealed abstract class JavaOp extends Op {
      * The result type of the operation will be derived from the yield type of the second body
      *
      * @param target the switch target value
-     * @param bodies the body builders of the operation to be built and become its children
+     * @param bodies the body builders for the predicate and action bodies
      * @return the switch expression operation
      */
     public static SwitchExpressionOp switchExpression(Value target, List<Body.Builder> bodies) {
@@ -6697,7 +6697,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param resultType the result type of the expression
      * @param target     the switch target value
-     * @param bodies     the body builders of the operation to be built and become its children
+     * @param bodies     the body builders for the predicate and action bodies
      * @return the switch expression operation
      */
     public static SwitchExpressionOp switchExpression(TypeElement resultType, Value target,
@@ -6713,7 +6713,7 @@ public sealed abstract class JavaOp extends Op {
      * second is the corresponding action body.
      *
      * @param target the switch target value
-     * @param bodies the body builders of the operation to be built and become its children
+     * @param bodies the body builders for the predicate and action bodies
      * @return the switch statement operation
      */
     public static SwitchStatementOp switchStatement(Value target, List<Body.Builder> bodies) {
@@ -6757,10 +6757,10 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a for operation.
      *
-     * @param init   the init body builder of the operation to be built and become its child
-     * @param cond   the cond body builder of the operation to be built and become its child
-     * @param update the update body builder of the operation to be built and become its child
-     * @param body   the main body builder of the operation to be built and become its child
+     * @param init   the initialization body builder
+     * @param cond   the predicate body builder
+     * @param update the update body builder
+     * @param body   the loop body builder
      * @return the for operation
      */
     // init ()Tuple<Var<T1>, Var<T2>, ..., Var<TN>>, or init ()void
@@ -6795,9 +6795,9 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an enhanced for operation.
      *
-     * @param expression the expression body builder of the operation to be built and become its child
-     * @param init       the init body builder of the operation to be built and become its child
-     * @param body       the main body builder of the operation to be built and become its child
+     * @param expression the expression body builder
+     * @param init       the definition body builder
+     * @param body       the loop body builder
      * @return the enhanced for operation
      */
     public static EnhancedForOp enhancedFor(Body.Builder expression,
@@ -6820,8 +6820,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a while operation.
      *
-     * @param predicate the predicate body builder of the operation to be built and become its child
-     * @param body      the main body builder of the operation to be built and become its child
+     * @param predicate the predicate body builder
+     * @param body      the loop body builder
      * @return the while operation
      */
     // predicate, ()boolean, may be null for predicate returning true
@@ -6844,8 +6844,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a do operation.
      *
-     * @param predicate the predicate body builder of the operation to be built and become its child
-     * @param body      the main body builder of the operation to be built and become its child
+     * @param predicate the predicate body builder
+     * @param body      the loop body builder
      * @return the do operation
      */
     public static DoWhileOp doWhile(Body.Builder body, Body.Builder predicate) {
@@ -6857,8 +6857,8 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param ancestorBody the nearest ancestor body builder from which to construct
      *                     body builders for this operation
-     * @param lhs          a consumer that builds the left-hand side body
-     * @param rhs          a consumer that builds the right-hand side body
+     * @param lhs          a consumer that populates the first predicate body
+     * @param rhs          a consumer that populates the second predicate body
      * @return the conditional-and operation builder
      */
     public static ConditionalAndOp.Builder conditionalAnd(Body.Builder ancestorBody,
@@ -6871,8 +6871,8 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param ancestorBody the nearest ancestor body builder from which to construct
      *                     body builders for this operation
-     * @param lhs          a consumer that builds the left-hand side body
-     * @param rhs          a consumer that builds the right-hand side body
+     * @param lhs          a consumer that populates the first predicate body
+     * @param rhs          a consumer that populates the second predicate body
      * @return the conditional-or operation builder
      */
     public static ConditionalOrOp.Builder conditionalOr(Body.Builder ancestorBody,
@@ -6883,7 +6883,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a conditional-and operation
      *
-     * @param bodies the body builders of operation to be built and become its children
+     * @param bodies the body builders for the predicate bodies
      * @return the conditional-and operation
      */
     // predicates, ()boolean
@@ -6894,7 +6894,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a conditional-or operation
      *
-     * @param bodies the body builders of operation to be built and become its children
+     * @param bodies the body builders for the predicate bodies
      * @return the conditional-or operation
      */
     // predicates, ()boolean
@@ -6906,7 +6906,7 @@ public sealed abstract class JavaOp extends Op {
      * Creates a conditional operation
      *
      * @param expressionType the result type of the expression
-     * @param bodies         the body builders of operation to be built and become its children
+     * @param bodies         the body builders for the predicate, true, and false bodies
      * @return the conditional operation
      */
     public static ConditionalExpressionOp conditionalExpression(TypeElement expressionType,
@@ -6918,9 +6918,9 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a conditional operation
      * <p>
-     * The result type of the operation will be derived from the yield type of the second body
+     * The result type of the operation will be derived from the yield type of the true body.
      *
-     * @param bodies the body builders of operation to be built and become its children
+     * @param bodies the body builders for the predicate, true, and false bodies
      * @return the conditional operation
      */
     public static ConditionalExpressionOp conditionalExpression(List<Body.Builder> bodies) {
@@ -6932,7 +6932,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param ancestorBody the nearest ancestor body builder from which to construct
      *                     body builders for this operation
-     * @param c            a consumer that builds the try body
+     * @param c            a consumer that populates the try body
      * @return the try operation builder
      */
     public static TryOp.CatchBuilder try_(Body.Builder ancestorBody, Consumer<Block.Builder> c) {
@@ -6947,7 +6947,7 @@ public sealed abstract class JavaOp extends Op {
      * @param ancestorBody the nearest ancestor body builder from which to construct
      *                     body builders for this operation
      * @param resourceTypes the resource types used in the try-with-resources construct
-     * @param c            a consumer that builds the resources body
+     * @param c            a consumer that populates the resources body
      * @return the try-with-resources operation builder
      */
     public static TryOp.BodyBuilder tryWithResources(Body.Builder ancestorBody,
@@ -6968,11 +6968,10 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a try or try-with-resources operation.
      *
-     * @param resources the resources body builder of the operation to be built and become its child,
-     *                  may be {@code null}
-     * @param body      the try body builder of the operation to be built and become its child
-     * @param catchers  the catch body builders of the operation to be built and become its children
-     * @param finalizer the finalizer body builder of the operation to be built and become its child,
+     * @param resources the resources body builder, may be {@code null}
+     * @param body      the try body builder
+     * @param catchers  the catch body builders
+     * @param finalizer the finalizer body builder,
      *                  may be {@code null}
      * @return the try or try-with-resources operation
      */
@@ -6990,8 +6989,8 @@ public sealed abstract class JavaOp extends Op {
      * Creates a pattern match operation.
      *
      * @param target  the target value
-     * @param pattern the pattern body builder of the operation to be built and become its child
-     * @param match   the match body builder of the operation to be built and become its child
+     * @param pattern the pattern body builder
+     * @param match   the match body builder
      * @return the pattern match operation
      */
     public static PatternOps.MatchOp match(Value target,
