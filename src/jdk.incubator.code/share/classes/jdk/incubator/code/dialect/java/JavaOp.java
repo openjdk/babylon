@@ -168,7 +168,7 @@ public sealed abstract class JavaOp extends Op {
      * The function body takes as many arguments as the function type associated with the functional interface type.
      * The function body yields a value if that function type has a non-{@linkplain JavaType#VOID void} return type.
      * <p>
-     * Lambda operations can also model Java language method reference expressions. A method reference is modelled as a
+     * Lambda operations can also model Java language method reference expressions. A method reference is modeled as a
      * lambda operation whose function body forwards its parameters to a corresponding {@link InvokeOp}, and that
      * yields the result (if any) of that operation.
      * <p>
@@ -280,7 +280,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the functional interface type modelled by this lambda operation}
+         * {@return the functional interface type modeled by this lambda operation}
          */
         public TypeElement functionalInterface() {
             return functionalInterface;
@@ -1075,7 +1075,7 @@ public sealed abstract class JavaOp extends Op {
     public sealed abstract static class FieldAccessOp extends JavaOp
             implements AccessOp, ReflectiveOp {
         /**
-         * The externalized attribute modelling the field descriptor.
+         * The externalized attribute modeling the field descriptor.
          */
         public static final String ATTRIBUTE_FIELD_DESCRIPTOR = "field.descriptor";
 
@@ -1373,7 +1373,7 @@ public sealed abstract class JavaOp extends Op {
      * {@code instanceof} keyword as the <em>type comparison operator</em>.
      * <p>
      * Instanceof operations feature one operand, the value being tested, and are associated with a
-     * {@linkplain JavaType type} modelling the target type of the type comparison operator.
+     * {@linkplain JavaType type} modeling the target type of the type comparison operator.
      *
      * @jls 15.20.2 The instanceof Operator
      */
@@ -1439,7 +1439,7 @@ public sealed abstract class JavaOp extends Op {
      * The cast operation, that can model Java language cast expressions for reference types.
      * <p>
      * Cast operations feature one operand, the value being cast, and are associated with a
-     * {@linkplain JavaType type} modelling the target type of the cast.
+     * {@linkplain JavaType type} modeling the target type of the cast.
      *
      * @jls 15.16 Cast Expressions
      */
@@ -2315,7 +2315,7 @@ public sealed abstract class JavaOp extends Op {
      * A statement target operation, that can model Java language statements associated with label identifiers.
      * <p>
      * Statement target operations feature zero or one operand, the label identifier.
-     * If present, the label identifier is modelled as a {@link ConstantOp} value.
+     * If present, the label identifier is modeled as a {@link ConstantOp} value.
      * <p>
      * The result type of a statement target operation is {@link JavaType#VOID}.
      *
@@ -2807,7 +2807,7 @@ public sealed abstract class JavaOp extends Op {
      * Labeled operations feature one body, the labeled body. The labeled body accepts no arguments and
      * yield {@linkplain JavaType#VOID no value}.
      * <p>
-     * The entry block of the labeled body always begins with a {@linkplain ConstantOp} constant modelling
+     * The entry block of the labeled body always begins with a {@linkplain ConstantOp} constant modeling
      * the label associated with the labeled statement, followed by the statement being labeled.
      * <p>
      * The result type of a labeled operation is {@link JavaType#VOID}.
@@ -2910,7 +2910,7 @@ public sealed abstract class JavaOp extends Op {
      * <em>action bodies</em>, model the statements to be executed when the preceding predicate is satisfied.
      * <p>
      * Each predicate body has a corresponding action body, and there may be a trailing action body with no
-     * predicate, modelling the code after the Java {@code else} keyword.
+     * predicate, modeling the code after the Java {@code else} keyword.
      * <p>
      * Predicate bodies should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
      * Action bodies similarly accept no arguments, and yield {@linkplain JavaType#VOID no value}.
@@ -3201,7 +3201,7 @@ public sealed abstract class JavaOp extends Op {
         JavaSwitchOp(Value target, List<Body.Builder> bodyCs) {
             super(List.of(target));
 
-            // Each case is modelled as a contiguous pair of bodies
+            // Each case is modeled as a contiguous pair of bodies
             // The first body models the case labels, and the second models the case statements
             // The labels body has a parameter whose type is target operand's type and returns a boolean value
             // The action body has no parameters and returns void
@@ -3341,7 +3341,7 @@ public sealed abstract class JavaOp extends Op {
 
         boolean haveNullCase() {
             /*
-            case null is modelled like this:
+            case null is modeled like this:
             (%4 : T)boolean -> {
                 %5 : java.lang.Object = constant @null;
                 %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
@@ -4749,7 +4749,7 @@ public sealed abstract class JavaOp extends Op {
      * The try operation, that can model Java language try statements.
      * <p>
      * Try operations feature a <em>try body</em>, zero or more <em>catch bodies</em>, and an optional
-     * <em>finalizer body</em>. Try operations may also feature an optional <em>resources body</em>, modelling a
+     * <em>finalizer body</em>. Try operations may also feature an optional <em>resources body</em>, modeling a
      * try-with-resources statement.
      * <p>
      * The resources body, if present, accepts no arguments and yields a value of type {@code R}.
@@ -6083,7 +6083,7 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * Creates an invoke operation modelling an invocation to a method.
+     * Creates an invoke operation modeling an invocation to a method.
      *
      * @param invokeKind       the invoke kind
      * @param isVarArgs        true if an invocation to a variable argument method
@@ -6100,7 +6100,7 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * Creates an invoke operation modelling an invocation to a method.
+     * Creates an invoke operation modeling an invocation to a method.
      *
      * @param invokeKind       the invoke kind
      * @param isVarArgs        true if an invocation to a variable argument method
