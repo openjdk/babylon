@@ -52,7 +52,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  * <p>
  * A code model, produced by the Java compiler from Java program source, may consist of core operations and Java
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
- * Java Language Specification
+ * Java Language Specification.
  * <p>
  * Java operations model specific Java language constructs or Java program behaviour. Some Java operations model
  * structured control flow and nested code. These operations are transformable, commonly referred to as lowering, into
@@ -61,7 +61,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  * <p>
  * A code model, produced by the Java compiler from source, and consisting of core operations and Java operations
  * can be transformed to one consisting only of non-lowerable operations, where all lowerable operations are lowered.
- * This transformation preserves programing meaning. The resulting lowered code model also represents the same Java
+ * This transformation preserves programming meaning. The resulting lowered code model also represents the same Java
  * program.
  */
 public sealed abstract class JavaOp extends Op {
@@ -83,6 +83,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * An operation that models a Java expression
+     *
+     * @jls 15 Expressions
      */
     public sealed interface JavaExpression permits
             ArithmeticOperation,
@@ -108,7 +110,9 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * An operation that models a Java statement
+     * An operation that models a Java statement.
+     *
+     * @jls 14.5 Statements
      */
     public sealed interface JavaStatement permits
             ArrayAccessOp.ArrayStoreOp,
@@ -125,7 +129,7 @@ public sealed abstract class JavaOp extends Op {
             EnhancedForOp,
             ForOp,
             IfOp,
-            JavaLabelOp,
+            StatementTargetOp,
             LabeledOp,
             SynchronizedOp,
             TryOp,
@@ -155,7 +159,26 @@ public sealed abstract class JavaOp extends Op {
 
 
     /**
-     * The lambda operation, that can model a Java lambda expression.
+     * The lambda operation, that can model Java language lambda expressions.
+     * <p>
+     * Lambda operations are associated with a {@linkplain #functionalInterface() functional interface type}.
+     * They feature one body, the {@linkplain #body() function body}.
+     * The result type of a lambda operation is its functional interface type.
+     * <p>
+     * The function body takes as many arguments as the function type associated with the functional interface type.
+     * The function body yields a value if that function type has a non-{@linkplain JavaType#VOID void} return type.
+     * <p>
+     * Lambda operations can also model Java language method reference expressions. A method reference is modeled as a
+     * lambda operation whose function body forwards its parameters to a corresponding {@link InvokeOp}, and that
+     * yields the result (if any) of that operation.
+     * <p>
+     * Some lambda operations are <em>reflectable</em> (see {@link Reflect}), meaning their code model is persisted at
+     * runtime.
+     *
+     * @jls 15.27 Lambda Expressions
+     * @jls 15.13 Method Reference Expressions
+     * @jls 9.8 Functional Interfaces
+     * @jls 9.9 Function Types
      */
     @OpDeclaration(LambdaOp.NAME)
     public static final class LambdaOp extends JavaOp
@@ -186,9 +209,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds a lambda operation with the provided function body.
+             * Completes the lambda operation by adding the function body.
              *
-             * @param c a consumer to populate the lambda function body
+             * @param c a consumer that populates the function body
              * @return the completed lambda operation
              */
             public LambdaOp body(Consumer<Block.Builder> c) {
@@ -198,7 +221,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Marks the constructed lambda operation as reflectable.
+             * Returns a builder that constructs a reflectable lambda operation.
+             *
              * @return this builder
              * @see Reflect
              */
@@ -488,6 +512,12 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The terminating throw operation, that can model the Java language throw statement.
+     * <p>
+     * Throw operations feature one operand, the value being thrown.
+     * <p>
+     * The result type of a throw operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.18 The throw Statement
      */
     @OpDeclaration(ThrowOp.NAME)
     public static final class ThrowOp extends JavaOp
@@ -529,7 +559,18 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The assertion operation. Supporting assertions in statement form.
+     * The assertion operation, that can model Java language assert statements.
+     * <p>
+     * Assert operations feature one or two bodies. The first body, called the <em>predicate body</em>, models the
+     * assertion condition. If present, the second body, called the <em>details body</em>, models the detail
+     * expression.
+     * <p>
+     * The predicate body should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
+     * If present, the details body should accept no arguments and yield a value.
+     * <p>
+     * The result type of an assert operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.10 The assert Statement
      */
     @OpDeclaration(AssertOp.NAME)
     public static final class AssertOp extends JavaOp
@@ -657,6 +698,17 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The invoke operation, that can model Java language method invocation expressions.
+     * <p>
+     * The method invoked by an invoke operation is specified using a
+     * {@linkplain MethodRef method reference}.
+     * The operands of an invoke operation are specified as follows:
+     * <ul>
+     *     <li>For {@linkplain InvokeKind#STATIC static} invocations, operands are the invocation arguments.</li>
+     *     <li>For {@linkplain InvokeKind#INSTANCE instance} and {@linkplain InvokeKind#SUPER super} invocations, the first
+     *         operand is the receiver and the remaining operands are the invocation arguments.</li>
+     * </ul>
+     *
+     * @jls 15.12 Method Invocation Expressions
      */
     @OpDeclaration(InvokeOp.NAME)
     public static final class InvokeOp extends JavaOp
@@ -848,6 +900,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The conversion operation, that can model Java language cast expressions
      * for numerical conversion, or such implicit conversion.
+     * <p>
+     * Conversion operations feature one operand, the value to convert.
+     *
+     * @jls 15.16 Cast Expressions
+     * @jls 5.1.2 Widening Primitive Conversion
+     * @jls 5.1.3 Narrowing Primitive Conversion
      */
     @OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends JavaOp
@@ -884,7 +942,14 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The new operation, that can models Java language instance creation expressions.
+     * The new operation, that can model Java language instance creation expressions and array creation expressions.
+     * <p>
+     * The constructor invoked by a new operation is specified using a
+     * {@linkplain MethodRef constructor reference}.
+     * New operations feature operands corresponding to the constructor arguments.
+     *
+     * @jls 15.9 Class Instance Creation Expressions
+     * @jls 15.10.1 Array Creation Expressions
      */
     @OpDeclaration(NewOp.NAME)
     public static final class NewOp extends JavaOp
@@ -998,12 +1063,19 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * A field access operation, that can model Java langauge field access expressions.
+     * A field access operation, that can model Java language field access expressions.
+     * <p>
+     * The field accessed by a field access operation is specified using a {@linkplain FieldRef field
+     * reference}.
+     * <p>
+     * Instance field accesses feature a receiver operand. Static field accesses have no receiver operand.
+     *
+     * @jls 15.11 Field Access Expressions
      */
     public sealed abstract static class FieldAccessOp extends JavaOp
             implements AccessOp, ReflectiveOp {
         /**
-         * The externalized attribute modelling the field descriptor.
+         * The externalized attribute modeling the field descriptor.
          */
         public static final String ATTRIBUTE_FIELD_DESCRIPTOR = "field.descriptor";
 
@@ -1035,8 +1107,9 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * The field load operation, that can model Java language field access expressions combined with load access to
-         * field instance variables.
+         * The field load operation, that can model Java language field access expressions used to read a field value.
+         *
+         * @jls 15.11 Field Access Expressions
          */
         @OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
@@ -1094,8 +1167,11 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * The field store operation, that can model Java language field access expressions combined with store access
-         * to field instance variables.
+         * The field store operation, that can model Java language field access expressions used to write a field value.
+         * <p>
+         * The result type is always {@link JavaType#VOID}.
+         *
+         * @jls 15.11 Field Access Expressions
          */
         @OpDeclaration(FieldStoreOp.NAME)
         public static final class FieldStoreOp extends FieldAccessOp
@@ -1146,6 +1222,11 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The array length operation, that can model Java language field access expressions to the length field of an
      * array.
+     * <p>
+     * Array length operations feature one operand, the array value.
+     * The result type of an array length operation is {@link JavaType#INT}.
+     *
+     * @jls 15.11 Field Access Expressions
      */
     @OpDeclaration(ArrayLengthOp.NAME)
     public static final class ArrayLengthOp extends JavaOp
@@ -1177,6 +1258,11 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The array access operation, that can model Java language array access expressions.
+     * <p>
+     * Array load operations feature two operands, the array value and the index value.
+     * Array store operations feature an additional operand, the stored value.
+     *
+     * @jls 15.10.3 Array Access Expressions
      */
     public sealed abstract static class ArrayAccessOp extends JavaOp
             implements AccessOp, ReflectiveOp {
@@ -1198,6 +1284,8 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The array load operation, that can model Java language array expressions combined with load access to the
          * components of an array.
+         *
+         * @jls 15.10.3 Array Access Expressions
          */
         @OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
@@ -1242,6 +1330,10 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The array store operation, that can model Java language array expressions combined with store access to the
          * components of an array.
+         * <p>
+         * The result type of an array store operation is {@link JavaType#VOID}.
+         *
+         * @jls 15.10.3 Array Access Expressions
          */
         @OpDeclaration(ArrayStoreOp.NAME)
         public static final class ArrayStoreOp extends ArrayAccessOp
@@ -1277,8 +1369,13 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The instanceof operation, that can model Java language instanceof expressions when the instanceof keyword is a
-     * type comparison operator.
+     * The instanceof operation, that can model Java language instanceof expressions that use the
+     * {@code instanceof} keyword as the <em>type comparison operator</em>.
+     * <p>
+     * Instanceof operations feature one operand, the value being tested, and are associated with a
+     * {@linkplain JavaType type} modeling the target type of the type comparison operator.
+     *
+     * @jls 15.20.2 The instanceof Operator
      */
     @OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends JavaOp
@@ -1340,6 +1437,11 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The cast operation, that can model Java language cast expressions for reference types.
+     * <p>
+     * Cast operations feature one operand, the value being cast, and are associated with a
+     * {@linkplain JavaType type} modeling the target type of the cast.
+     *
+     * @jls 15.16 Cast Expressions
      */
     @OpDeclaration(CastOp.NAME)
     public static final class CastOp extends JavaOp
@@ -1529,7 +1631,13 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The String Concatenation Operation
+     * The string concatenation operation, that can model the Java language string concatenation operator
+     * {@code +}.
+     * <p>
+     * Concatenation operations feature two operands.
+     * The result type of a string concatenation operation is {@linkplain JavaType#J_L_STRING java.lang.String}.
+     *
+     * @jls 15.18.1 String Concatenation Operator +
      */
 
     @OpDeclaration(ConcatOp.NAME)
@@ -1593,7 +1701,11 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The binary arithmetic operation.
+     * A binary arithmetic operation.
+     * <p>
+     * Binary arithmetic operations feature two operands. Usually, both operands have the same type,
+     * although that is not always the case. The result type of a binary arithmetic operation is
+     * the type of the first operand.
      */
     public sealed static abstract class BinaryOp extends ArithmeticOperation {
         BinaryOp(BinaryOp that, CodeContext cc) {
@@ -1612,6 +1724,9 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The unary arithmetic operation.
+     * <p>
+     * Unary arithmetic operations feature one operand.
+     * The result type of a unary arithmetic operation is the type of its operand.
      */
     public sealed static abstract class UnaryOp extends ArithmeticOperation {
         UnaryOp(UnaryOp that, CodeContext cc) {
@@ -1630,6 +1745,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The binary test operation.
+     * <p>
+     * Binary test operations feature two operands, and yield a {@link JavaType#BOOLEAN} value.
      */
     public sealed static abstract class BinaryTestOp extends TestOperation {
         BinaryTestOp(BinaryTestOp that, CodeContext cc) {
@@ -1648,6 +1765,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The add operation, that can model the Java language binary {@code +} operator for numeric types
+     *
+     * @jls 15.18.2 Additive Operators (+ and -) for Numeric Types
      */
     @OpDeclaration(AddOp.NAME)
     public static final class AddOp extends BinaryOp {
@@ -1673,6 +1792,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The sub operation, that can model the Java language binary {@code -} operator for numeric types
+     *
+     * @jls 15.18.2 Additive Operators (+ and -) for Numeric Types
      */
     @OpDeclaration(SubOp.NAME)
     public static final class SubOp extends BinaryOp {
@@ -1698,6 +1819,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The mul operation, that can model the Java language binary {@code *} operator for numeric types
+     *
+     * @jls 15.17.1 Multiplication Operator *
      */
     @OpDeclaration(MulOp.NAME)
     public static final class MulOp extends BinaryOp {
@@ -1723,6 +1846,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The div operation, that can model the Java language binary {@code /} operator for numeric types
+     *
+     * @jls 15.17.2 Division Operator /
      */
     @OpDeclaration(DivOp.NAME)
     public static final class DivOp extends BinaryOp {
@@ -1748,6 +1873,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The mod operation, that can model the Java language binary {@code %} operator for numeric types
+     *
+     * @jls 15.17.3 Remainder Operator %
      */
     @OpDeclaration(ModOp.NAME)
     public static final class ModOp extends BinaryOp {
@@ -1774,6 +1901,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The bitwise/logical or operation, that can model the Java language binary {@code |} operator for integral types
      * and booleans
+     *
+     * @jls 15.22 Bitwise and Logical Operators
      */
     @OpDeclaration(OrOp.NAME)
     public static final class OrOp extends BinaryOp {
@@ -1800,6 +1929,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The bitwise/logical and operation, that can model the Java language binary {@code &} operator for integral types
      * and booleans
+     *
+     * @jls 15.22 Bitwise and Logical Operators
      */
     @OpDeclaration(AndOp.NAME)
     public static final class AndOp extends BinaryOp {
@@ -1826,6 +1957,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The xor operation, that can model the Java language binary {@code ^} operator for integral types
      * and booleans
+     *
+     * @jls 15.22 Bitwise and Logical Operators
      */
     @OpDeclaration(XorOp.NAME)
     public static final class XorOp extends BinaryOp {
@@ -1851,6 +1984,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The (logical) shift left operation, that can model the Java language binary {@code <<} operator for integral types
+     *
+     * @jls 15.19 Shift Operators
      */
     @OpDeclaration(LshlOp.NAME)
     public static final class LshlOp extends BinaryOp {
@@ -1876,6 +2011,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The (arithmetic) shift right operation, that can model the Java language binary {@code >>} operator for integral types
+     *
+     * @jls 15.19 Shift Operators
      */
     @OpDeclaration(AshrOp.NAME)
     public static final class AshrOp extends JavaOp.BinaryOp {
@@ -1901,6 +2038,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The unsigned (logical) shift right operation, that can model the Java language binary {@code >>>} operator for integral types
+     *
+     * @jls 15.19 Shift Operators
      */
     @OpDeclaration(LshrOp.NAME)
     public static final class LshrOp extends JavaOp.BinaryOp {
@@ -1926,6 +2065,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The neg operation, that can model the Java language unary {@code -} operator for numeric types
+     *
+     * @jls 15.15.4 Unary Minus Operator {@code -}
      */
     @OpDeclaration(NegOp.NAME)
     public static final class NegOp extends UnaryOp {
@@ -1951,6 +2092,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The bitwise complement operation, that can model the Java language unary {@code ~} operator for integral types
+     *
+     * @jls 15.15.5 Bitwise Complement Operator {@code ~}
      */
     @OpDeclaration(ComplOp.NAME)
     public static final class ComplOp extends UnaryOp {
@@ -1976,6 +2119,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The not operation, that can model the Java language unary {@code !} operator for boolean types
+     *
+     * @jls 15.15.6 Logical Complement Operator {@code !}
      */
     @OpDeclaration(NotOp.NAME)
     public static final class NotOp extends UnaryOp {
@@ -2002,6 +2147,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The equals operation, that can model the Java language equality {@code ==} operator for numeric, boolean
      * and reference types
+     *
+     * @jls 15.21 Equality Operators
      */
     @OpDeclaration(EqOp.NAME)
     public static final class EqOp extends BinaryTestOp {
@@ -2028,6 +2175,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The not equals operation, that can model the Java language equality {@code !=} operator for numeric, boolean
      * and reference types
+     *
+     * @jls 15.21 Equality Operators
      */
     @OpDeclaration(NeqOp.NAME)
     public static final class NeqOp extends BinaryTestOp {
@@ -2053,6 +2202,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The greater than operation, that can model the Java language relational {@code >} operator for numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GtOp.NAME)
     public static final class GtOp extends BinaryTestOp {
@@ -2079,6 +2230,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The greater than or equal to operation, that can model the Java language relational {@code >=} operator for
      * numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GeOp.NAME)
     public static final class GeOp extends BinaryTestOp {
@@ -2105,6 +2258,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The less than operation, that can model the Java language relational {@code <} operator for
      * numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LtOp.NAME)
     public static final class LtOp extends BinaryTestOp {
@@ -2131,6 +2286,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The less than or equal to operation, that can model the Java language relational {@code <=} operator for
      * numeric types
+     *
+     * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LeOp.NAME)
     public static final class LeOp extends BinaryTestOp {
@@ -2155,15 +2312,23 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The label operation, that can model Java language statements with label identifiers.
+     * A statement target operation, that can model Java language statements associated with label identifiers.
+     * <p>
+     * Statement target operations feature zero or one operand, the label identifier.
+     * If present, the label identifier is modeled as a {@link ConstantOp} value.
+     * <p>
+     * The result type of a statement target operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.15 The break Statement
+     * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class JavaLabelOp extends JavaOp
+    public sealed static abstract class StatementTargetOp extends JavaOp
             implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
-        JavaLabelOp(JavaLabelOp that, CodeContext cc) {
+        StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        JavaLabelOp(Value label) {
+        StatementTargetOp(Value label) {
             super(checkLabel(label));
         }
 
@@ -2239,10 +2404,14 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The break operation, that can model Java language break statements with label identifiers.
+     * The break operation, that can model Java language break statements.
+     * <p>
+     * Break operations feature zero or one operand, the label identifier.
+     *
+     * @jls 14.15 The break Statement
      */
     @OpDeclaration(BreakOp.NAME)
-    public static final class BreakOp extends JavaLabelOp {
+    public static final class BreakOp extends StatementTargetOp {
         static final String NAME = "java.break";
 
         BreakOp(ExternalizedOp def) {
@@ -2269,10 +2438,14 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The continue operation, that can model Java language continue statements with label identifiers.
+     * The continue operation, that can model Java language continue statements.
+     * <p>
+     * Continue operations feature zero or one operand, the label identifier.
+     *
+     * @jls 14.16 The continue Statement
      */
     @OpDeclaration(ContinueOp.NAME)
-    public static final class ContinueOp extends JavaLabelOp {
+    public static final class ContinueOp extends StatementTargetOp {
         static final String NAME = "java.continue";
 
         ContinueOp(ExternalizedOp def) {
@@ -2300,6 +2473,12 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The yield operation, that can model Java language yield statements.
+     * <p>
+     * Yield operations feature one operand, the yielded value.
+     * <p>
+     * The result type of a yield operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.21 The yield Statement
      */
     @OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends JavaOp
@@ -2307,11 +2486,11 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.yield";
 
         YieldOp(ExternalizedOp def) {
-            if (def.operands().size() > 1) {
-                throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
+            if (def.operands().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            this(def.operands().isEmpty() ? null : def.operands().get(0));
+            this(def.operands().get(0));
         }
 
         YieldOp(YieldOp that, CodeContext cc) {
@@ -2324,19 +2503,14 @@ public sealed abstract class JavaOp extends Op {
         }
 
         YieldOp(Value operand) {
-            super(operand == null ? List.of() : List.of(operand));
+            super(List.of(Objects.requireNonNull(operand)));
         }
 
         /**
-         * {@return the yielded value, or {@code null} if there is no yielded value}
+         * {@return the yielded value}
          */
         public Value yieldValue() {
-            if (operands().size() == 1) {
-                return operands().get(0);
-            } else {
-                // @@@
-                return null;
-            }
+            return operands().get(0);
         }
 
         @Override
@@ -2381,6 +2555,13 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The block operation, that can model Java language blocks.
+     * <p>
+     * Block operations feature one statements body, modeling the list of statements enclosed by the Java block.
+     * The statements body should accept no arguments and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a block operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.2 Blocks
      */
     @OpDeclaration(BlockOp.NAME)
     public static final class BlockOp extends JavaOp
@@ -2458,6 +2639,15 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The synchronized operation, that can model Java synchronized statements.
+     * <p>
+     * Synchronized operations feature two bodies. The <em>expression body</em> accepts no arguments
+     * and yields a value, the object associated with the monitor that will be acquired by the synchronized
+     * operation. The <em>block body</em> models the statements to execute while holding the monitor,
+     * and yields {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a synchronized operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.19 The synchronized Statement
      */
     @OpDeclaration(SynchronizedOp.NAME)
     public static final class SynchronizedOp extends JavaOp
@@ -2484,6 +2674,7 @@ public sealed abstract class JavaOp extends Op {
             return new SynchronizedOp(this, cc, ot);
         }
 
+        // @@@: builder?
         SynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
             super(List.of());
 
@@ -2543,7 +2734,7 @@ public sealed abstract class JavaOp extends Op {
 
             CodeTransformer syncExitTransformer = compose(opT, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof JavaOp.JavaLabelOp lop && ifExitFromSynchronized(lop))) {
+                    (op instanceof StatementTargetOp lop && ifExitFromSynchronized(lop))) {
                     // Monitor exit
                     block.op(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -2599,7 +2790,7 @@ public sealed abstract class JavaOp extends Op {
             return exprExit;
         }
 
-        boolean ifExitFromSynchronized(JavaLabelOp lop) {
+        boolean ifExitFromSynchronized(StatementTargetOp lop) {
             Op target = lop.target();
             return target == this || target.isAncestorOf(this);
         }
@@ -2612,6 +2803,16 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The labeled operation, that can model Java language labeled statements.
+     * <p>
+     * Labeled operations feature one body, the labeled body. The labeled body accepts no arguments and
+     * yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The entry block of the labeled body always begins with a {@linkplain ConstantOp} constant modeling
+     * the label associated with the labeled statement, followed by the statement being labeled.
+     * <p>
+     * The result type of a labeled operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.7 Labeled Statements
      */
     @OpDeclaration(LabeledOp.NAME)
     public static final class LabeledOp extends JavaOp
@@ -2658,14 +2859,14 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the label associated with this labelled operation}
+         * {@return the label associated with this labeled operation}
          */
         public Op label() {
             return body.entryBlock().firstOp();
         }
 
         /**
-         * {@return the first operation associated with this labelled operation}
+         * {@return the first operation associated with this labeled operation}
          */
         public Op target() {
             return body.entryBlock().nextOp(label());
@@ -2702,7 +2903,21 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The if operation, that can model Java language if, if-then, and if-then-else statements.
+     * The if operation, that can model Java language if statements.
+     * <p>
+     * If operations feature multiple bodies. Some bodies, called <em>predicate bodies</em>, model conditions that
+     * determine which execution path the evaluation of the if operation should take. Other bodies, called
+     * <em>action bodies</em>, model the statements to be executed when the preceding predicate is satisfied.
+     * <p>
+     * Each predicate body has a corresponding action body, and there may be a trailing action body with no
+     * predicate, modeling the code after the Java {@code else} keyword.
+     * <p>
+     * Predicate bodies should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
+     * Action bodies similarly accept no arguments, and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of an if operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.9 The if Statement
      */
     @OpDeclaration(IfOp.NAME)
     public static final class IfOp extends JavaOp
@@ -2713,7 +2928,7 @@ public sealed abstract class JavaOp extends Op {
         static final FunctionType ACTION_TYPE = CoreType.FUNCTION_TYPE_VOID;
 
         /**
-         * Builder for the initial condition branch of an if operation.
+         * Builder for the initial predicate body of an if operation.
          */
         public static class IfBuilder {
             final Body.Builder ancestorBody;
@@ -2725,9 +2940,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Begins an if-branch with the given predicate builder.
-             * @param c a consumer for the predicate body
-             * @return a then-branch builder to complete the if operation
+             * Begins an if operation by adding the initial predicate body.
+             *
+             * @param c a consumer that populates the predicate body
+             * @return a builder to add an action body to the if operation
              */
             public ThenBuilder if_(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
@@ -2739,7 +2955,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the then-branch of an if operation.
+         * Builder for the action body of an if operation.
          */
         public static class ThenBuilder {
             final Body.Builder ancestorBody;
@@ -2751,9 +2967,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a then-branch with the given body.
-             * @param c a consumer for the then-branch body
-             * @return a builder for further else-if-/else-branches
+             * Adds an action body to the if operation.
+             *
+             * @param c a consumer that populates the action body
+             * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -2764,8 +2981,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a then-branch with an empty body.
-             * @return a builder for further else-if-/else-branches
+             * Adds an empty action body to the if operation.
+             * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then() {
                 Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
@@ -2777,7 +2994,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for additional else-if-/else-branches of an if operation.
+         * Builder for additional predicate and action bodies of an if operation.
          */
         public static class ElseIfBuilder {
             final Body.Builder ancestorBody;
@@ -2789,9 +3006,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an else-if-branch to the if operation.
-             * @param c a consumer for the else-if predicate
-             * @return a then-branch builder for the else-if body
+             * Adds a predicate body to the if operation.
+             *
+             * @param c a consumer that populates the predicate body
+             * @return a builder to add an action body to the if operation
              */
             public ThenBuilder elseif(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
@@ -2802,8 +3020,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an else-branch with the given body.
-             * @param c a consumer for the else-branch body
+             * Completes the if operation by adding the final action body.
+             *
+             * @param c a consumer that populates the action body
              * @return the completed if operation
              */
             public IfOp else_(Consumer<Block.Builder> c) {
@@ -2815,7 +3034,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds an else-branch with an empty body.
+             * Complete the if operation with an empty action body.
              * @return the completed if operation
              */
             public IfOp else_() {
@@ -2954,6 +3173,17 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * An operation modeling a Java switch statement or expression.
+     * <p>
+     * Switch operations are parameterized by a selector value.
+     * They feature a sequence of case bodies, each modeled as a pair of bodies: a <em>predicate body</em> and an
+     * <em>action body</em>.
+     * <p>
+     * Each predicate body accepts one argument, the selector value, and yields a {@link JavaType#BOOLEAN} value.
+     * Each action body yields a value of the same type {@code T}. For switch statement operations, {@code T} is
+     * {@code void}. For switch expression operations, {@code T} is the switch expression type.
+     *
+     * @jls 14.11 The switch Statement
+     * @jls 15.28 {@code switch} Expressions
      */
     public abstract static sealed class JavaSwitchOp extends JavaOp implements Op.Nested, Op.Lowerable
             permits SwitchStatementOp, SwitchExpressionOp {
@@ -2971,10 +3201,10 @@ public sealed abstract class JavaOp extends Op {
         JavaSwitchOp(Value target, List<Body.Builder> bodyCs) {
             super(List.of(target));
 
-            // Each case is modelled as a contiguous pair of bodies
+            // Each case is modeled as a contiguous pair of bodies
             // The first body models the case labels, and the second models the case statements
             // The labels body has a parameter whose type is target operand's type and returns a boolean value
-            // The statements body has no parameters and returns void
+            // The action body has no parameters and returns void
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
@@ -3139,6 +3369,11 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The switch expression operation, that can model Java language switch expressions.
+     * <p>
+     * For switch expression operations, action bodies yield a value of type {@code T}, where {@code T} is also the
+     * type of the switch expression operation.
+     *
+     * @jls 15.28 {@code switch} Expressions
      */
     @OpDeclaration(SwitchExpressionOp.NAME)
     public static final class SwitchExpressionOp extends JavaSwitchOp
@@ -3176,6 +3411,12 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The switch statement operation, that can model Java language switch statement.
+     * <p>
+     * For switch statement operations, action bodies yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a switch statement operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.11 The switch Statement
      */
     @OpDeclaration(SwitchStatementOp.NAME)
     public static final class SwitchStatementOp extends JavaSwitchOp
@@ -3253,14 +3494,30 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The for operation, that can model a Java language for statement.
+     * The for operation, that can model a Java language basic for statement.
+     * <p>
+     * For operations feature four bodies that model a basic {@code for} statement:
+     * an <em>initialization body</em>, a <em>predicate body</em>, an <em>update body</em>, and a <em>loop body</em>.
+     * <p>
+     * The initialization body accepts no arguments and yields the loop state, of type {@code S}. For instance,
+     * a loop with a single loop variable of type {@code T} might use a loop state of type {@code T}.
+     * A loop with two loop variables of type {@code X} and {@code Y} might use a loop state whose type is
+     * a {@linkplain TupleType tuple type}, such as {@code (X, Y)}. A loop with no loop variables might use
+     * a loop state of type {@link JavaType#VOID}, and have its initialization body yield no value.
+     * <p>
+     * The predicate body accepts an argument of type {@code S} and yields a {@link JavaType#BOOLEAN} value.
+     * The update and loop bodies accept an argument of type {@code S} and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a for operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.14.1 The basic for Statement
      */
     @OpDeclaration(ForOp.NAME)
     public static final class ForOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for the initialization phase of a for-loop.
+         * Builder for the initialization body of a for operation.
          */
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
@@ -3273,9 +3530,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the initialization step for a for-loop.
-             * @param c a consumer to model the code initializing the loop variables
-             * @return a conditional builder for the loop condition
+             * Builds the initialization body of a for-loop.
+             *
+             * @param c a consumer that populates the initialization body
+             * @return a builder for specifying the loop predicate body
              */
             public ForOp.CondBuilder init(Consumer<Block.Builder> c) {
                 Body.Builder init = Body.Builder.of(ancestorBody,
@@ -3287,7 +3545,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the condition (predicate) phase of a for-loop.
+         * Builder for the predicate body of a for operation.
          */
         public static final class CondBuilder {
             final Body.Builder ancestorBody;
@@ -3303,9 +3561,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the predicate body for the loop.
-             * @param c a consumer to model the for-loop condition
-             * @return an update builder for building the update phase
+             * Builds the predicate body of a for-loop.
+             *
+             * @param c a consumer that populates the predicate body
+             * @return a builder for specifying the update body
              */
             public ForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder cond = Body.Builder.of(ancestorBody,
@@ -3317,7 +3576,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the update phase of a for-loop (executed after each iteration).
+         * Builder for the update body of a for operation.
          */
         public static final class UpdateBuilder {
             final Body.Builder ancestorBody;
@@ -3335,11 +3594,12 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the update logic to be run after each for-loop iteration.
-             * @param c a consumer for the update logic
-             * @return a body builder for constructing the loop body
+             * Builds the update body of a for-loop.
+             *
+             * @param c a consumer that populates the update body
+             * @return a builder for specifying the loop body
              */
-            public ForOp.BodyBuilder cond(Consumer<Block.Builder> c) {
+            public ForOp.BodyBuilder update(Consumer<Block.Builder> c) {
                 Body.Builder update = Body.Builder.of(ancestorBody,
                         CoreType.functionType(VOID, initTypes));
                 c.accept(update.entryBlock());
@@ -3369,8 +3629,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the loop body for the for-loop.
-             * @param c a consumer for the main logic to run in the for-loop
+             * Completes for operation by adding the loop body.
+             *
+             * @param c a consumer that populates the loop body
              * @return the completed for-loop operation
              */
             public ForOp body(Consumer<Block.Builder> c) {
@@ -3535,13 +3796,26 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The enhanced for operation, that can model a Java language enhanced for statement.
+     * <p>
+     * Enhanced-for operations feature three bodies. The <em>expression body</em> models the expression to be
+     * iterated. The <em>definition body</em> models the definition of the loop variable. The <em>loop body</em>
+     * models the statements to execute.
+     * <p>
+     * The expression body accepts no arguments and yields a value of type {@code I}, corresponding to the type of the
+     * expression to be iterated. The definition body accepts one argument of type {@code E}, corresponding to an element
+     * type derived from {@code I}, and yields a value of type {@code V}, the type of the loop variable. Finally, the loop
+     * body accepts that value and yields {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of an enhanced-for operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.14.2 The enhanced for statement
      */
     @OpDeclaration(EnhancedForOp.NAME)
     public static final class EnhancedForOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for the iterable expression in an enhanced-for loop.
+         * Builder for the expression body of an enhanced-for operation.
          */
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
@@ -3556,9 +3830,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the iterable expression for an enhanced-for loop.
-             * @param c a consumer that populates the block modelling the iterable expression
-             * @return a definition builder, for specifying the variable definition in the loop
+             * Builds the expression body of an enhanced-for operation.
+             *
+             * @param c a consumer that populates the expression body
+             * @return a builder for specifying the definition body
              */
             public DefinitionBuilder expression(Consumer<Block.Builder> c) {
                 Body.Builder expression = Body.Builder.of(ancestorBody,
@@ -3570,7 +3845,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for the iteration variable definition in an enhanced-for loop.
+         * Builder for the definition body of an enhanced-for operation.
          */
         public static final class DefinitionBuilder {
             final Body.Builder ancestorBody;
@@ -3585,20 +3860,22 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Defines the loop variable for the enhanced-for operation, using a type
-             * derived from the iterable expression.
-             * @param c a consumer that populates the block defining the loop variable
-             * @return a body builder for the loop body
+             * Builds the definition body of an enhanced-for operation, using a type derived from the type
+             * of the loop expression.
+             *
+             * @param c a consumer that populates the definition body
+             * @return a builder for specifying the loop body
              */
             public BodyBuilder definition(Consumer<Block.Builder> c) {
                 return definition(elementType, c);
             }
 
             /**
-             * Defines the loop variable for the enhanced-for operation with the provided type.
-             * @param bodyElementType the type to use for the variable in the loop body
-             * @param c a consumer that populates the block defining the loop variable
-             * @return a body builder for the loop body
+             * Builds the definition body of an enhanced-for operation with the provided type.
+             *
+             * @param bodyElementType the type to provide to the loop body
+             * @param c a consumer that populates the definition body
+             * @return a builder for specifying the loop body
              */
             public BodyBuilder definition(TypeElement bodyElementType, Consumer<Block.Builder> c) {
                 Body.Builder definition = Body.Builder.of(ancestorBody,
@@ -3610,7 +3887,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for an enhanced-for operation body.
+         * Builder for the loop body of an enhanced-for operation.
          */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -3627,8 +3904,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of the enhanced-for loop operation with the body obtained from the provided builder.
-             * @param c a consumer that populates the block for the enhanced-for loop body
+             * Completes the enhanced-for operation by adding the loop body.
+             *
+             * @param c a consumer that populates the loop body
              * @return the completed enhanced-for operation
              */
             public EnhancedForOp body(Consumer<Block.Builder> c) {
@@ -3807,13 +4085,23 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The while operation, that can model a Java language while statement.
+     * <p>
+     * While operations feature two bodies. The <em>predicate body</em> models the loop condition.
+     * The <em>loop body</em> models the statements to execute.
+     * <p>
+     * The predicate body should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
+     * The loop body should accept no arguments, and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a while operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.12 The while Statement
      */
     @OpDeclaration(WhileOp.NAME)
     public static final class WhileOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * A builder for specifying the predicate (loop condition) of a while loop operation.
+         * Builder for the predicate body of a while operation.
          */
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -3823,10 +4111,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the predicate (loop condition) body for the while operation.
+             * Builds the predicate body of a while operation.
              *
-             * @param c a consumer to populate the block for the predicate
-             * @return a builder for the main loop body
+             * @param c a consumer that populates the predicate body
+             * @return a builder for specifying the loop body
              */
             public WhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
@@ -3837,7 +4125,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * A builder for specifying the main body of a while loop operation.
+         * Builder for the loop body of a while operation.
          */
         public static class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -3849,10 +4137,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the main logic body for the while loop operation.
+             * Completes the while operation by adding the loop body.
              *
-             * @param c a consumer to populate the block for the loop body
-             * @return the completed while loop operation
+             * @param c a consumer that populates the loop body
+             * @return the completed while operation
              */
             public WhileOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
@@ -3959,6 +4247,16 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The do-while operation, that can model a Java language do statement.
+     * <p>
+     * Do-while operations feature two bodies. The <em>loop body</em> models the statements to execute.
+     * The <em>predicate body</em> models the loop condition.
+     * <p>
+     * The loop body should accept no arguments, and yield {@linkplain JavaType#VOID no value}. The predicate body
+     * should accept no arguments, and yield a {@link JavaType#BOOLEAN} value.
+     * <p>
+     * The result type of a do-while operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.13 The do Statement
      */
     // @@@ Unify JavaDoWhileOp and JavaWhileOp with common abstract superclass
     @OpDeclaration(DoWhileOp.NAME)
@@ -3966,7 +4264,7 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for a do-while predicate.
+         * Builder for the predicate body of a do-while operation.
          */
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -3978,9 +4276,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the construction of a do-while operation with the predicate obtained from the provided builder.
-             * @param c a consumer that populates the block modelling the do-while predicate
-             * @return a completed do-while operation with the provided predicate
+             * Completes the do-while operation by adding the predicate body.
+             *
+             * @param c a consumer that populates the predicate body
+             * @return the completed do-while operation
              */
             public DoWhileOp predicate(Consumer<Block.Builder> c) {
                 Body.Builder predicate = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
@@ -3991,7 +4290,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * Builder for a do-while body.
+         * Builder for the loop body of a do-while operation.
          */
         public static class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -4001,9 +4300,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the body of a do-while loop.
-             * @param c a consumer that populates the block modeling the body of the loop
-             * @return a predicate builder for configuring this do-while operation
+             * Builds the loop body of a do-while operation.
+             *
+             * @param c a consumer that populates the loop body
+             * @return a builder for specifying the predicate body
              */
             public DoWhileOp.PredicateBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
@@ -4108,7 +4408,12 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The conditional-and-or operation, that can model Java language condition-or or conditional-and expressions.
+     * The conditional operation, that can model Java language conditional-and and conditional-or expressions.
+     * <p>
+     * Conditional operations feature two or more predicate bodies, each yielding a {@link JavaType#BOOLEAN} value.
+     *
+     * @jls 15.23 Conditional-And Operator {@code &&}
+     * @jls 15.24 Conditional-Or Operator {@code ||}
      */
     public sealed static abstract class JavaConditionalOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaExpression {
@@ -4202,6 +4507,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The conditional-and operation, that can model Java language conditional-and expressions.
+     *
+     * @jls 15.23 Conditional-And Operator {@code &&}
      */
     @OpDeclaration(ConditionalAndOp.NAME)
     public static final class ConditionalAndOp extends JavaConditionalOp {
@@ -4221,8 +4528,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a condition to this builder.
-             * @param c the consumer populating the block modelling the additional condition
+             * Adds a predicate body to this conditional-and operation.
+             *
+             * @param c a consumer that populates the predicate body
              * @return this builder
              */
             public Builder and(Consumer<Block.Builder> c) {
@@ -4234,7 +4542,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * {@return the conditional-and operation from the accumulated conditions}
+             * {@return the completed conditional-and operation}
              */
             public ConditionalAndOp build() {
                 return new ConditionalAndOp(bodies);
@@ -4268,6 +4576,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The conditional-or operation, that can model Java language conditional-or expressions.
+     *
+     * @jls 15.24 Conditional-Or Operator {@code ||}
      */
     @OpDeclaration(ConditionalOrOp.NAME)
     public static final class ConditionalOrOp extends JavaConditionalOp {
@@ -4287,8 +4597,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a condition to this builder.
-             * @param c the consumer populating the block modelling the additional condition
+             * Adds a predicate body to this conditional-or operation.
+             *
+             * @param c a consumer that populates the predicate body
              * @return this builder
              */
             public Builder or(Consumer<Block.Builder> c) {
@@ -4300,7 +4611,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * {@return the conditional-or operation from the accumulated conditions}
+             * {@return the completed conditional-or operation}
              */
             public ConditionalOrOp build() {
                 return new ConditionalOrOp(bodies);
@@ -4334,6 +4645,13 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The conditional operation, that can model Java language conditional operator {@code ?} expressions.
+     * <p>
+     * Conditional expression operations feature three bodies: the predicate body, the true body, and the false body.
+     * <p>
+     * The predicate body accepts no arguments and yields a {@link JavaType#BOOLEAN} value.
+     * The true and false bodies accepts no arguments and yield a value.
+     *
+     * @jls 15.25 Conditional Operator {@code ? :}
      */
     @OpDeclaration(ConditionalExpressionOp.NAME)
     public static final class ConditionalExpressionOp extends JavaOp
@@ -4429,13 +4747,32 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * The try operation, that can model Java language try statements.
+     * <p>
+     * Try operations feature a <em>try body</em>, zero or more <em>catch bodies</em>, and an optional
+     * <em>finalizer body</em>. Try operations may also feature an optional <em>resources body</em>, modeling a
+     * try-with-resources statement.
+     * <p>
+     * The resources body, if present, accepts no arguments and yields a value of type {@code R}.
+     * For instance, a try-with-resources statement with two resources of type {@code X} and {@code Y},
+     * {@code R} is a {@linkplain TupleType tuple type}, such as {@code (X, Y)}.
+     * <p>
+     * The try body yields {@linkplain JavaType#VOID no value}. If a resources body is present then the try body should
+     * accept an argument of type {@code R}, otherwise it accepts no arguments.
+     * <p>
+     * Each catch body should accept an exception value and yield {@linkplain JavaType#VOID no value}. The
+     * finalizer body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a try operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.20 The try statement
+     * @jls 14.20.3 try-with-resources
      */
     @OpDeclaration(TryOp.NAME)
     public static final class TryOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
         /**
-         * A builder for specifying the main body of a try operation.
+         * Builder for the try body of a try operation.
          */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -4449,10 +4786,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Builds the main body of the try operation.
+             * Builds the try body of the try operation.
              *
-             * @param c a consumer to populate the main body of the try block
-             * @return a builder for catch and finalizer clauses
+             * @param c a consumer that populates the try body
+             * @return a builder for specifying catch bodies and an optional finalizer
              */
             public CatchBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
@@ -4464,7 +4801,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * A builder for specifying the catch clauses and finalizer for a try operation.
+         * Builder for specifying catch bodies and an optional finalizer body of a try operation.
          */
         public static final class CatchBuilder {
             final Body.Builder ancestorBody;
@@ -4481,10 +4818,10 @@ public sealed abstract class JavaOp extends Op {
 
             // @@@ multi-catch
             /**
-             * Adds a catch clause for handling exceptions of a specific type.
+             * Adds a catch body for handling exceptions of a specific type.
              *
              * @param exceptionType the type of exception handled
-             * @param c a consumer to populate the catch body
+             * @param c a consumer that populates the catch body
              * @return this builder
              */
             public CatchBuilder catch_(TypeElement exceptionType, Consumer<Block.Builder> c) {
@@ -4497,10 +4834,10 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Adds a finalizer clause to the try operation.
+             * Completes the try operation by adding the finalizer body.
              *
-             * @param c a consumer to populate the finalizer body
-             * @return the complete try operation with finalizer
+             * @param c a consumer that populates the finalizer body
+             * @return the completed try operation
              */
             public TryOp finally_(Consumer<Block.Builder> c) {
                 Body.Builder _finally = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
@@ -4510,9 +4847,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             /**
-             * Completes the try operation without a finalizer clause.
+             * Completes the try operation without a finalizer body.
              *
-             * @return the complete try operation without finalizer
+             * @return the completed try operation
              */
             public TryOp noFinalizer() {
                 return new TryOp(resources, body, catchers, null);
@@ -4652,7 +4989,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the catch clause bodies}
+         * {@return the catch bodies}
          */
         public List<Body> catchers() {
             return catchers;
@@ -4713,7 +5050,7 @@ public sealed abstract class JavaOp extends Op {
             if (finalizer != null) {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof JavaOp.JavaLabelOp lop && ifExitFromTry(lop))) {
+                            (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         return inlineFinalizer(block, exitHandlers, opT);
                     } else {
                         return block;
@@ -4722,7 +5059,7 @@ public sealed abstract class JavaOp extends Op {
             } else {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof JavaOp.JavaLabelOp lop && ifExitFromTry(lop))) {
+                            (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.op(exceptionRegionExit(tryRegionReturnExit.successor(), exitHandlers));
                         return tryRegionReturnExit;
@@ -4773,7 +5110,7 @@ public sealed abstract class JavaOp extends Op {
                     CodeTransformer catchExitTransformer = compose(opT, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
                             return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
-                        } else if (op instanceof JavaOp.JavaLabelOp lop && ifExitFromTry(lop)) {
+                        } else if (op instanceof StatementTargetOp lop && ifExitFromTry(lop)) {
                             return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else {
                             return block;
@@ -4838,7 +5175,7 @@ public sealed abstract class JavaOp extends Op {
             return exit;
         }
 
-        boolean ifExitFromTry(JavaLabelOp lop) {
+        boolean ifExitFromTry(StatementTargetOp lop) {
             Op target = lop.target();
             return target == this || target.isAncestorOf(this);
         }
@@ -4952,6 +5289,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * Pattern operations.
+     *
+     * @jls 14.30 Patterns
      */
     public static final class PatternOps {
         PatternOps() {
@@ -4959,6 +5298,10 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * The pattern operation.
+         * <p>
+         * The result type of a pattern operation is a synthetic {@linkplain Pattern pattern type}.
+         * Pattern operations are used in pattern bodies of {@link MatchOp} and as nested pattern operands of
+         * {@link RecordPatternOp}.
          */
         public sealed static abstract class PatternOp extends JavaOp implements Op.Pure {
             PatternOp(PatternOp that, CodeContext cc) {
@@ -4971,7 +5314,13 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * The binding pattern operation, that can model Java language type test patterns.
+         * The type pattern operation, that can model Java language type test patterns.
+         * <p>
+         * Type pattern operations are associated with a target type (a {@link JavaType})
+         * and an optional binding name.
+         *
+         * @jls 14.30.1 Kinds of Patterns
+         * @jls 15.20.2 The instanceof Operator
          */
         @OpDeclaration(TypePatternOp.NAME)
         public static final class TypePatternOp extends PatternOp {
@@ -5044,6 +5393,11 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * The record pattern operation, that can model Java language record patterns.
+         * <p>
+         * Record pattern operations are associated with a {@linkplain RecordTypeRef record reference}.
+         * The operands are nested pattern values.
+         *
+         * @jls 14.30.1 Kinds of Patterns
          */
         @OpDeclaration(RecordPatternOp.NAME)
         public static final class RecordPatternOp extends PatternOp {
@@ -5113,6 +5467,8 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * A pattern operation representing a match-all (unconditional) pattern.
+         *
+         * @jls 14.30.1 Kinds of Patterns
          */
         @OpDeclaration(MatchAllPatternOp.NAME)
         public static final class MatchAllPatternOp extends PatternOp {
@@ -5147,6 +5503,21 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * The match operation, that can model Java language pattern matching.
+         * <p>
+         * Match operations can be used to model instanceof expressions with a pattern match operator, or
+         * case labels with case patterns in switch statements and switch expressions.
+         * <p>
+         * Match operations feature one operand, the target value being matched, and two bodies: the pattern body and
+         * the match body.
+         * <p>
+         * The pattern body should accept no arguments and yield a pattern value.
+         * The match body accepts the values bound by the pattern body and yields {@linkplain JavaType#VOID no value}.
+         * The result type of a match operation is {@link JavaType#BOOLEAN}.
+         *
+         * @jls 14.30.2 Pattern Matching
+         * @jls 14.11 The switch Statement
+         * @jls 15.28 switch Expressions
+         * @jls 15.20.2 The instanceof Operator
          */
         @OpDeclaration(MatchOp.NAME)
         public static final class MatchOp extends JavaOp implements Op.Isolated, Op.Lowerable {
@@ -5186,6 +5557,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Returns the pattern body for this match operation.
+             *
              * @return the pattern body
              */
             public Body pattern() {
@@ -5194,6 +5566,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Returns the match body for this match operation.
+             *
              * @return the match body
              */
             public Body match() {
@@ -5202,6 +5575,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Returns the target value being matched in this match operation.
+             *
              * @return the match target value
              */
             public Value target() {
@@ -5630,9 +6004,9 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      * <p>
-     * The invoke return type is the invoke descriptors return type.
+     * The invoke return type is the invoke descriptor's return type.
      *
      * @param invokeDescriptor the invoke descriptor
      * @param args             the invoke parameters
@@ -5651,9 +6025,9 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      * <p>
-     * The invoke return type is the invoke descriptors return type.
+     * The invoke return type is the invoke descriptor's return type.
      *
      * @param invokeDescriptor the invoke descriptor
      * @param args             the invoke arguments
@@ -5672,7 +6046,7 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      *
      * @param returnType       the invoke return type
      * @param invokeDescriptor the invoke descriptor
@@ -5692,7 +6066,7 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      *
      * @param returnType       the invoke return type
      * @param invokeDescriptor the invoke descriptor
@@ -5709,7 +6083,7 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * Creates an invoke operation modelling an invocation to a method.
+     * Creates an invoke operation modeling an invocation to a method.
      *
      * @param invokeKind       the invoke kind
      * @param isVarArgs        true if an invocation to a variable argument method
@@ -5726,7 +6100,7 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * Creates an invoke operation modelling an invocation to a method.
+     * Creates an invoke operation modeling an invocation to a method.
      *
      * @param invokeKind       the invoke kind
      * @param isVarArgs        true if an invocation to a variable argument method
@@ -6066,7 +6440,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param lhs the first operand
      * @param rhs the second operand
-     * @return the xor operation
+     * @return the left shift operation
      */
     public static LshlOp lshl(Value lhs, Value rhs) {
         return new LshlOp(lhs, rhs);
@@ -6077,7 +6451,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param lhs the first operand
      * @param rhs the second operand
-     * @return the xor operation
+     * @return the right shift operation
      */
     public static AshrOp ashr(Value lhs, Value rhs) {
         return new AshrOp(lhs, rhs);
@@ -6088,7 +6462,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param lhs the first operand
      * @param rhs the second operand
-     * @return the xor operation
+     * @return the unsigned right shift operation
      */
     public static LshrOp lshr(Value lhs, Value rhs) {
         return new LshrOp(lhs, rhs);
@@ -6232,20 +6606,11 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a break operation.
      *
-     * @param label the value associated with where to continue from
+     * @param label the label identifier
      * @return the break operation
      */
     public static BreakOp break_(Value label) {
         return new BreakOp(label);
-    }
-
-    /**
-     * Creates a yield operation.
-     *
-     * @return the yield operation
-     */
-    public static YieldOp java_yield() {
-        return java_yield(null);
     }
 
     /**
@@ -6283,7 +6648,7 @@ public sealed abstract class JavaOp extends Op {
      * Creates a labeled operation.
      *
      * @param body the body builder of the operation to be built and become its child
-     * @return the block operation
+     * @return the labeled operation
      */
     public static LabeledOp labeled(Body.Builder body) {
         return new LabeledOp(body);
@@ -6343,6 +6708,10 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * Creates a switch statement operation.
+     * <p>
+     * Case bodies are provided as pairs of bodies, where the first body of each pair is the predicate body and the
+     * second is the corresponding action body.
+     *
      * @param target the switch target value
      * @param bodies the body builders of the operation to be built and become its children
      * @return the switch statement operation
@@ -6599,11 +6968,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a try or try-with-resources operation.
      *
-     * @param resources the try body builder of the operation to be built and become its child,
-     *                  may be null
+     * @param resources the resources body builder of the operation to be built and become its child,
+     *                  may be {@code null}
      * @param body      the try body builder of the operation to be built and become its child
      * @param catchers  the catch body builders of the operation to be built and become its children
-     * @param finalizer the finalizer body builder of the operation to be built and become its child
+     * @param finalizer the finalizer body builder of the operation to be built and become its child,
+     *                  may be {@code null}
      * @return the try or try-with-resources operation
      */
     public static TryOp try_(Body.Builder resources,
@@ -6664,6 +7034,7 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * Creates a match-all pattern operation.
+     *
      * @return a match-all pattern
      */
     public static PatternOps.MatchAllPatternOp matchAllPattern() {
