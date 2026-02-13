@@ -1251,7 +1251,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The array access operation, that can model Java language array access expressions.
      * <p>
-     * Array access operations feature two operands, the array value and the index value.
+     * Array load operations feature two operands, the array value and the index value.
      * Array store operations feature an additional operand, the stored value.
      *
      * @jls 15.10.3 Array Access Expressions
