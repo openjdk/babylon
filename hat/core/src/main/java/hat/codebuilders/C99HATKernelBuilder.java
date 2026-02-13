@@ -29,13 +29,13 @@ import hat.buffer.BF16Array;
 import hat.buffer.F16Array;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
-import hat.dialect.HATMathLibOp;
 import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
+import hat.phases.HATFP16Phase;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
@@ -823,8 +823,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
         } else { // General case
             if (!invoke.returnsVoid() && HATPhaseUtils.isMathLib(invoke)) {
-                // codegen for mathlib
-                hatMathLibOp(invoke);
+                // codegen for the math operation
+                generateMathIntrinsicOperation(invoke);
             } else {
                 funcName(invoke.op()).paren(_ ->
                         commaSpaceSeparated(invoke.op().operands(),
@@ -849,30 +849,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
-    private ReducedFloatType resultTypeIs(HATMathLibOp hatMathLibOp) {
-        ReducedFloatType reducedFloatType = null;
-        if (OpHelper.isAssignable(lookup(), hatMathLibOp.resultType(), F16.class)) {
-            reducedFloatType = ReducedFloatType.HalfFloat.of();
-        } else if (OpHelper.isAssignable(lookup(), hatMathLibOp.resultType(), BF16.class)) {
-            reducedFloatType = ReducedFloatType.BFloat16.of();
-        }
-        return reducedFloatType;
-    }
-
-    private ReducedFloatType resultTypeIs(Invoke invoke) {
-        ReducedFloatType reducedFloatType = null;
-        if (OpHelper.isAssignable(lookup(), invoke.op().resultType(), F16.class)) {
-            reducedFloatType = ReducedFloatType.HalfFloat.of();
-        } else if (OpHelper.isAssignable(lookup(), invoke.op().resultType(), BF16.class)) {
-            reducedFloatType = ReducedFloatType.BFloat16.of();
-        }
-        return reducedFloatType;
-    }
-
-    private T hatMathLibOp(Invoke invoke) {
-
+    private void generateMathIntrinsicOperation(Invoke invoke) {
         // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-        final ReducedFloatType reducedFloatType = resultTypeIs(invoke);
+        final ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloatFromResult(invoke);
         if (reducedFloatType != null) {
             // If special type, then we need to build the type
             // For now this applies to F16 and bFloat16
@@ -881,8 +860,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         identifier(mapMathIntrinsic(reducedFloatType, invoke.name()));
 
         // For each operand, obtain if it is a reference from global memory or device memory.
-        // Important: when the code-tree has its own lowering, the way to place this information
-        // would be in a C99 lowered tree. Thus, we will avoid code-analysis during code-gen.
         List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
                 .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), invoke.op().operands().get(i)))
                 .collect(Collectors.toList());
@@ -903,7 +880,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (reducedFloatType != null) {
             cbrace();
         }
-        return self();
     }
 
     protected abstract String mapMathIntrinsic(ReducedFloatType reducedFloatType, String name);
