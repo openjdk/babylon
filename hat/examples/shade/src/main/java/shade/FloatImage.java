@@ -40,7 +40,7 @@ import java.awt.image.Raster;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 
-record FloatImage(
+public record FloatImage(
         int width,
         int height,
         int widthXHeight,

@@ -29,7 +29,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
 
-public interface vec2 extends IfaceValue.Vector{
+public interface vec2 extends IfaceValue.Vector, IfaceValue.NewVector{
     Shape shape = IfaceValue.Vector.Shape.of( JavaType.FLOAT,3);
     float x();
 
