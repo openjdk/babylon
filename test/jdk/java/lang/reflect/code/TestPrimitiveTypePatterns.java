@@ -155,7 +155,7 @@ public class TestPrimitiveTypePatterns {
         var actualConvMethod = lmodel.elements()
                 .mapMulti((ce, c) -> {
                     if (ce instanceof JavaOp.InvokeOp op) {
-                        c.accept(op.invokeDescriptor());
+                        c.accept(op.invokeReference());
                     }
                 })
                 .findFirst().orElseThrow();

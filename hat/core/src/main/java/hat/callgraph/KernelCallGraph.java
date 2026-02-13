@@ -102,7 +102,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, OpHelper.Invoke invoke) {
-        var methodRef = invoke.op().invokeDescriptor();
+        var methodRef = invoke.op().invokeReference();
         Class<?> javaRefTypeClass = invoke.classOrThrow();
         if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
             // TODO this side effect seems scary lets do this in a separate pass

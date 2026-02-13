@@ -197,7 +197,7 @@ public class TestVarArgsInvoke {
     static Stream<JavaOp.InvokeOp> invokes(CoreOp.FuncOp f) {
         return f.elements().mapMulti((ce, c) -> {
             if (ce instanceof JavaOp.InvokeOp iop &&
-                iop.invokeDescriptor().refType().equals(JavaType.type(TestVarArgsInvoke.class))) {
+                iop.invokeReference().refType().equals(JavaType.type(TestVarArgsInvoke.class))) {
                 c.accept(iop);
             }
         });

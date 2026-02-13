@@ -346,7 +346,7 @@ final class PartialEvaluator {
                     case STATIC, INSTANCE -> l;
                     case SUPER -> l.in(target.parameterType(0));
                 };
-                MethodHandle mh = resolveToMethodHandle(il, co.invokeDescriptor(), co.invokeKind());
+                MethodHandle mh = resolveToMethodHandle(il, co.invokeReference(), co.invokeKind());
 
                 mh = mh.asType(target).asFixedArity();
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
@@ -365,7 +365,7 @@ final class PartialEvaluator {
                     }
                     return Array.newInstance(resolveToClass(l, nType), lengths);
                 } else {
-                    MethodHandle mh = constructorHandle(l, no.constructorDescriptor().type());
+                    MethodHandle mh = constructorHandle(l, no.constructorReference().type());
                     return invoke(mh, values);
                 }
             }
@@ -409,34 +409,34 @@ final class PartialEvaluator {
             }
             case JavaOp.FieldAccessOp.FieldLoadOp fo -> {
                 if (fo.operands().isEmpty()) {
-                    VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
+                    VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
                     return vh.get();
                 } else {
                     Object v = bc.getValue(o.operands().get(0));
-                    VarHandle vh = fieldHandle(l, fo.fieldDescriptor());
+                    VarHandle vh = fieldHandle(l, fo.fieldReference());
                     return vh.get(v);
                 }
             }
             case JavaOp.FieldAccessOp.FieldStoreOp fo -> {
                 if (fo.operands().size() == 1) {
                     Object v = bc.getValue(o.operands().get(0));
-                    VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
+                    VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
                     vh.set(v);
                 } else {
                     Object r = bc.getValue(o.operands().get(0));
                     Object v = bc.getValue(o.operands().get(1));
-                    VarHandle vh = fieldHandle(l, fo.fieldDescriptor());
+                    VarHandle vh = fieldHandle(l, fo.fieldReference());
                     vh.set(r, v);
                 }
                 return null;
             }
             case JavaOp.InstanceOfOp io -> {
                 Object v = bc.getValue(o.operands().get(0));
-                return isInstance(l, io.type(), v);
+                return isInstance(l, io.targetType(), v);
             }
             case JavaOp.CastOp co -> {
                 Object v = bc.getValue(o.operands().get(0));
-                return cast(l, co.type(), v);
+                return cast(l, co.targetType(), v);
             }
             case JavaOp.ArrayLengthOp arrayLengthOp -> {
                 Object a = bc.getValue(o.operands().get(0));
