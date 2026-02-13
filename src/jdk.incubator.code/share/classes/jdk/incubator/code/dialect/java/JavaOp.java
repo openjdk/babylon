@@ -4733,7 +4733,7 @@ public sealed abstract class JavaOp extends Op {
      * finalizer body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
      *
      * @jls 14.20 The try statement
-     * @jls 14.20.3 The try-with-resources statement
+     * @jls 14.20.3 try-with-resources
      */
     @OpDeclaration(TryOp.NAME)
     public static final class TryOp extends JavaOp
@@ -5484,7 +5484,7 @@ public sealed abstract class JavaOp extends Op {
          *
          * @jls 14.30.2 Pattern Matching
          * @jls 14.11 The switch Statement
-         * @jls 15.28 {@code switch} Expressions
+         * @jls 15.28 switch Expressions
          * @jls 15.20.2 The instanceof Operator
          */
         @OpDeclaration(MatchOp.NAME)
