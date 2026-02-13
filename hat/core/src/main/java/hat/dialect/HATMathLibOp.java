@@ -70,8 +70,4 @@
      public String name() {
          return name;
      }
-
-     public int numArguments() {
-         return operands().size();
-     }
  }

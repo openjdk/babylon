@@ -871,7 +871,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .collect(Collectors.toList());
 
         paren( _ -> {
-            int numArgs = hatMathLibOp.numArguments();
+            int numArgs = hatMathLibOp.operands().size();
             IntStream.range(0, numArgs).forEach(i -> {
                 recurse(OpHelper.asResultOrThrow(hatMathLibOp.operands().get(i)).op());
                 if (reducedFloatType != null) {
