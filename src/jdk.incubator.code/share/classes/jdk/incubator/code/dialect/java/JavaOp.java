@@ -52,7 +52,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  * <p>
  * A code model, produced by the Java compiler from Java program source, may consist of core operations and Java
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
- * Java Language Specification
+ * Java Language Specification.
  * <p>
  * Java operations model specific Java language constructs or Java program behaviour. Some Java operations model
  * structured control flow and nested code. These operations are transformable, commonly referred to as lowering, into
@@ -61,7 +61,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  * <p>
  * A code model, produced by the Java compiler from source, and consisting of core operations and Java operations
  * can be transformed to one consisting only of non-lowerable operations, where all lowerable operations are lowered.
- * This transformation preserves programing meaning. The resulting lowered code model also represents the same Java
+ * This transformation preserves programming meaning. The resulting lowered code model also represents the same Java
  * program.
  */
 public sealed abstract class JavaOp extends Op {
@@ -2307,7 +2307,7 @@ public sealed abstract class JavaOp extends Op {
      * A statement target operation, that can model Java language statements associated with label identifiers.
      * <p>
      * Statement target operations feature zero or one operand, the label identifier.
-     * If present, the label identifier is modelled as a {@link ConstantOp} value.
+     * If present, the label identifier is modeled as a {@link ConstantOp} value.
      *
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
@@ -2495,7 +2495,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the yielded value, or {@code null} if there is no yielded value}
+         * {@return the yielded value}
          */
         public Value yieldValue() {
             return operands().get(0);
@@ -2544,7 +2544,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The block operation, that can model Java language blocks.
      * <p>
-     * Block operations feature one statements body, modelling the list of statements enclosed by the Java block.
+     * Block operations feature one statements body, modeling the list of statements enclosed by the Java block.
      * The statements body should accept no arguments and yield {@linkplain JavaType#VOID no value}.
      *
      * @jls 14.2 Blocks
@@ -2841,14 +2841,14 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the label associated with this labelled operation}
+         * {@return the label associated with this labeled operation}
          */
         public Op label() {
             return body.entryBlock().firstOp();
         }
 
         /**
-         * {@return the first operation associated with this labelled operation}
+         * {@return the first operation associated with this labeled operation}
          */
         public Op target() {
             return body.entryBlock().nextOp(label());
@@ -3155,7 +3155,7 @@ public sealed abstract class JavaOp extends Op {
      * An operation modeling a Java switch statement or expression.
      * <p>
      * Switch operations are parameterized by a selector value.
-     * They feature a sequence of case bodies, each modelled as a pair of bodies: a <em>predicate body</em> and an
+     * They feature a sequence of case bodies, each modeled as a pair of bodies: a <em>predicate body</em> and an
      * <em>action body</em>.
      * <p>
      * Each predicate body accepts one argument, the selector value, and yields a {@link JavaType#BOOLEAN} value.
@@ -5267,7 +5267,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The pattern operation.
          * <p>
-         * The type of a pattern operation is a synthetic {@linkplain Pattern pattern type}).
+         * The type of a pattern operation is a synthetic {@linkplain Pattern pattern type}.
          * Pattern operations are used in pattern bodies of {@link MatchOp} and as nested pattern operands of
          * {@link RecordPatternOp}.
          */
@@ -5525,6 +5525,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Returns the pattern body for this match operation.
+             *
              * @return the pattern body
              */
             public Body pattern() {
@@ -5533,6 +5534,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Returns the match body for this match operation.
+             *
              * @return the match body
              */
             public Body match() {
@@ -5541,6 +5543,7 @@ public sealed abstract class JavaOp extends Op {
 
             /**
              * Returns the target value being matched in this match operation.
+             *
              * @return the match target value
              */
             public Value target() {
@@ -6031,7 +6034,7 @@ public sealed abstract class JavaOp extends Op {
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      *
      * @param returnType       the invoke return type
      * @param invokeDescriptor the invoke descriptor
@@ -6405,7 +6408,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param lhs the first operand
      * @param rhs the second operand
-     * @return the xor operation
+     * @return the left shift operation
      */
     public static LshlOp lshl(Value lhs, Value rhs) {
         return new LshlOp(lhs, rhs);
@@ -6416,7 +6419,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param lhs the first operand
      * @param rhs the second operand
-     * @return the xor operation
+     * @return the right shift operation
      */
     public static AshrOp ashr(Value lhs, Value rhs) {
         return new AshrOp(lhs, rhs);
@@ -6427,7 +6430,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param lhs the first operand
      * @param rhs the second operand
-     * @return the xor operation
+     * @return the unsigned right shift operation
      */
     public static LshrOp lshr(Value lhs, Value rhs) {
         return new LshrOp(lhs, rhs);
@@ -6571,7 +6574,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a break operation.
      *
-     * @param label the value associated with where to continue from
+     * @param label the label identifier
      * @return the break operation
      */
     public static BreakOp break_(Value label) {
@@ -6999,6 +7002,7 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * Creates a match-all pattern operation.
+     *
      * @return a match-all pattern
      */
     public static PatternOps.MatchAllPatternOp matchAllPattern() {
