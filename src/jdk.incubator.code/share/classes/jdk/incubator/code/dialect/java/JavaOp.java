@@ -159,7 +159,7 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * Lambda operations are associated with a {@linkplain #functionalInterface() functional interface type}.
      * They feature one body, the {@linkplain #body() function body}.
-     * The type of a lambda operation is its functional interface type.
+     * The result type of a lambda operation is its functional interface type.
      * <p>
      * The function body takes as many arguments as the function type associated with the functional interface type.
      * The function body yields a value if that function type has a non-{@linkplain JavaType#VOID void} return type.
@@ -1216,7 +1216,7 @@ public sealed abstract class JavaOp extends Op {
      * array.
      * <p>
      * Array length operations feature one operand, the array value.
-     * The type of an array length operation is {@link JavaType#INT}.
+     * The result type of an array length operation is {@link JavaType#INT}.
      *
      * @jls 15.11 Field Access Expressions
      */
@@ -1323,7 +1323,7 @@ public sealed abstract class JavaOp extends Op {
          * The array store operation, that can model Java language array expressions combined with store access to the
          * components of an array.
          * <p>
-         * The type of an array store operation is {@link JavaType#VOID}.
+         * The result type of an array store operation is {@link JavaType#VOID}.
          *
          * @jls 15.10.3 Array Access Expressions
          */
@@ -1627,7 +1627,7 @@ public sealed abstract class JavaOp extends Op {
      * {@code +}.
      * <p>
      * Concatenation operations feature two operands.
-     * The type of a string concatenation operation is {@linkplain JavaType#J_L_STRING java.lang.String}.
+     * The result type of a string concatenation operation is {@linkplain JavaType#J_L_STRING java.lang.String}.
      *
      * @jls 15.18.1 String Concatenation Operator +
      */
@@ -1696,7 +1696,7 @@ public sealed abstract class JavaOp extends Op {
      * A binary arithmetic operation.
      * <p>
      * Binary arithmetic operations feature two operands. Usually, both operands have the same type,
-     * although that is not always the case. The type of a binary arithmetic operation is
+     * although that is not always the case. The result type of a binary arithmetic operation is
      * the type of the first operand.
      */
     public sealed static abstract class BinaryOp extends ArithmeticOperation {
@@ -5267,7 +5267,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The pattern operation.
          * <p>
-         * The type of a pattern operation is a synthetic {@linkplain Pattern pattern type}.
+         * The result type of a pattern operation is a synthetic {@linkplain Pattern pattern type}.
          * Pattern operations are used in pattern bodies of {@link MatchOp} and as nested pattern operands of
          * {@link RecordPatternOp}.
          */
@@ -5480,7 +5480,7 @@ public sealed abstract class JavaOp extends Op {
          * <p>
          * The pattern body should accept no arguments and yield a pattern value.
          * The match body accepts the values bound by the pattern body and yields {@linkplain JavaType#VOID no value}.
-         * The type of a match operation is {@link JavaType#BOOLEAN}.
+         * The result type of a match operation is {@link JavaType#BOOLEAN}.
          *
          * @jls 14.30.2 Pattern Matching
          * @jls 14.11 The switch Statement
