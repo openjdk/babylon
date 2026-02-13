@@ -83,6 +83,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * An operation that models a Java expression
+     *
+     * @jls 15 Expressions
      */
     public sealed interface JavaExpression permits
             ArithmeticOperation,
@@ -108,7 +110,9 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * An operation that models a Java statement
+     * An operation that models a Java statement.
+     *
+     * @jls 14.5 Statements
      */
     public sealed interface JavaStatement permits
             ArrayAccessOp.ArrayStoreOp,
@@ -510,6 +514,8 @@ public sealed abstract class JavaOp extends Op {
      * The terminating throw operation, that can model the Java language throw statement.
      * <p>
      * Throw operations feature one operand, the value being thrown.
+     * <p>
+     * The result type of a throw operation is {@link JavaType#VOID}.
      *
      * @jls 14.18 The throw Statement
      */
@@ -561,6 +567,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * The predicate body should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
      * If present, the details body should accept no arguments and yield a value.
+     * <p>
+     * The result type of an assert operation is {@link JavaType#VOID}.
      *
      * @jls 14.10 The assert Statement
      */
@@ -2307,7 +2315,9 @@ public sealed abstract class JavaOp extends Op {
      * A statement target operation, that can model Java language statements associated with label identifiers.
      * <p>
      * Statement target operations feature zero or one operand, the label identifier.
-     * If present, the label identifier is modeled as a {@link ConstantOp} value.
+     * If present, the label identifier is modelled as a {@link ConstantOp} value.
+     * <p>
+     * The result type of a statement target operation is {@link JavaType#VOID}.
      *
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
@@ -2465,6 +2475,8 @@ public sealed abstract class JavaOp extends Op {
      * The yield operation, that can model Java language yield statements.
      * <p>
      * Yield operations feature one operand, the yielded value.
+     * <p>
+     * The result type of a yield operation is {@link JavaType#VOID}.
      *
      * @jls 14.21 The yield Statement
      */
@@ -2546,6 +2558,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * Block operations feature one statements body, modeling the list of statements enclosed by the Java block.
      * The statements body should accept no arguments and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a block operation is {@link JavaType#VOID}.
      *
      * @jls 14.2 Blocks
      */
@@ -2630,6 +2644,8 @@ public sealed abstract class JavaOp extends Op {
      * and yields a value, the object associated with the monitor that will be acquired by the synchronized
      * operation. The <em>block body</em> models the statements to execute while holding the monitor,
      * and yields {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a synchronized operation is {@link JavaType#VOID}.
      *
      * @jls 14.19 The synchronized Statement
      */
@@ -2793,6 +2809,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * The entry block of the labeled body always begins with a {@linkplain ConstantOp} constant modelling
      * the label associated with the labeled statement, followed by the statement being labeled.
+     * <p>
+     * The result type of a labeled operation is {@link JavaType#VOID}.
      *
      * @jls 14.7 Labeled Statements
      */
@@ -2896,6 +2914,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * Predicate bodies should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
      * Action bodies similarly accept no arguments, and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of an if operation is {@link JavaType#VOID}.
      *
      * @jls 14.9 The if Statement
      */
@@ -3393,6 +3413,8 @@ public sealed abstract class JavaOp extends Op {
      * The switch statement operation, that can model Java language switch statement.
      * <p>
      * For switch statement operations, action bodies yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a switch statement operation is {@link JavaType#VOID}.
      *
      * @jls 14.11 The switch Statement
      */
@@ -3485,6 +3507,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * The predicate body accepts an argument of type {@code S} and yields a {@link JavaType#BOOLEAN} value.
      * The update and loop bodies accept an argument of type {@code S} and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a for operation is {@link JavaType#VOID}.
      *
      * @jls 14.14.1 The basic for Statement
      */
@@ -3781,6 +3805,8 @@ public sealed abstract class JavaOp extends Op {
      * expression to be iterated. The definition body accepts one argument of type {@code E}, corresponding to an element
      * type derived from {@code I}, and yields a value of type {@code V}, the type of the loop variable. Finally, the loop
      * body accepts that value and yields {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of an enhanced-for operation is {@link JavaType#VOID}.
      *
      * @jls 14.14.2 The enhanced for statement
      */
@@ -4065,6 +4091,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * The predicate body should accept no arguments and yield a {@link JavaType#BOOLEAN} value.
      * The loop body should accept no arguments, and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a while operation is {@link JavaType#VOID}.
      *
      * @jls 14.12 The while Statement
      */
@@ -4225,6 +4253,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * The loop body should accept no arguments, and yield {@linkplain JavaType#VOID no value}. The predicate body
      * should accept no arguments, and yield a {@link JavaType#BOOLEAN} value.
+     * <p>
+     * The result type of a do-while operation is {@link JavaType#VOID}.
      *
      * @jls 14.13 The do Statement
      */
@@ -4731,6 +4761,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * Each catch body should accept an exception value and yield {@linkplain JavaType#VOID no value}. The
      * finalizer body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
+     * <p>
+     * The result type of a try operation is {@link JavaType#VOID}.
      *
      * @jls 14.20 The try statement
      * @jls 14.20.3 try-with-resources
