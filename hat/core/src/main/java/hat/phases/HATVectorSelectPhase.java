@@ -26,6 +26,9 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATVectorOp;
+import hat.types.vec3;
+import hat.types.vec4;
+import optkl.IfaceValue;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
@@ -86,6 +89,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
         Invoke.stream(lookup(),funcOp)
                 .filter(invoke -> invoke.nameMatchesRegex("[xyzw]")
                                 && invoke.refIs(Vector.class)
+                                && !invoke.refIs(IfaceValue.NewVector.class) // temporary !
                                 && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
                 .map(invoke ->
                         new InvokeVar(invoke.op(),invoke.varLoadOpFromFirstOperandOrNull())

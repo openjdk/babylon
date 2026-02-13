@@ -26,8 +26,17 @@
 package shade;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
+import hat.ComputeContext;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.F32Array;
+import hat.types.ivec2;
 import hat.types.vec2;
 import hat.types.vec4;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -42,8 +51,21 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.util.stream.IntStream;
 
-public class FloatImagePanel extends JPanel implements Runnable {
-    protected AffineTransform transform = new AffineTransform();
+public  class FloatImagePanel extends JPanel implements Runnable {
+    private  final Accelerator accelerator;
+    final protected AffineTransform transform = new AffineTransform();
+    final int width;
+    final int height;
+    final Controls controls;
+    final FloatImage floatImage;
+
+    final Uniforms uniforms;
+
+    final boolean useHAT;
+    final Shader shader;
+
+    volatile boolean running;
+
     protected float zoom = .95f; // set the zoom factor 1.0 = fit to screen
     protected float xOffset = 0; // 0 is centered -1 is to the left;
     protected float yOffset = 0; // 0 is centered -1 is to the top;
@@ -51,24 +73,14 @@ public class FloatImagePanel extends JPanel implements Runnable {
     Point mousePressedPosition;
     Point2D imageRelativeMouseDownPosition = new Point2D.Float();
     Point2D imageRelativeMovePosition = new Point2D.Float();
-    int width;
-    int height;
-    private Controls controls;
-    private FloatImage floatImage;
-    final Shader shader;
-    final Uniforms uniforms;
-    volatile boolean running;
 
 
-    //static long runShader(FloatImage floatImage, Uniforms uniforms, Shader shader) {
-
-   // }
-
-
-    public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, Shader shader) {
+    public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, boolean useHat, Shader shader) {
+        this.accelerator = accelerator;
         this.width = width;
         this.height = height;
         this.controls = controls;
+        this.useHAT = useHat;
         this.shader = shader;
         this.floatImage = FloatImage.of(accelerator, width, height);
         this.uniforms = Uniforms.create(accelerator);
@@ -157,12 +169,61 @@ public class FloatImagePanel extends JPanel implements Runnable {
         });
     }
 
-    private Thread interpolationThread;
-
     public void start() {
         running = true;
-        interpolationThread = new Thread(this);
-        interpolationThread.start();
+        new Thread(this).start();
+    }
+
+
+
+    @Reflect
+    public static vec4 shader(@MappableIface.RO Uniforms uniforms, vec4 fragColor, ivec2 fragCoord) {
+        return vec4.vec4(0f, 0f, 1f, 0f);
+    }
+
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image) {
+        if (kc.gix < kc.gsx) {
+            // The image is essentially 3x
+            int width = uniforms.iResolution().x();
+            int height = uniforms.iResolution().y();
+            var fragCoord = ivec2.ivec2(kc.gix % width, kc.gix / width);
+            long offset = ((long) kc.gsx * height * 3) + (kc.gix * 3L);
+            float r = image.array(offset + 0);
+            float g = image.array(offset + 1);
+            float b = image.array(offset + 2);
+            var fragColor = shader(uniforms, vec4.vec4(r, g, b, 0f), fragCoord);
+            image.array(offset + 0, fragColor.x());
+            image.array(offset + 1, fragColor.y());
+            image.array(offset + 2, fragColor.z());
+        }
+    }
+
+
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(
+                NDRange.of1D(width * height),               //0..S32Array2D.size()
+                (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
+
+    final public  void  runShader(FloatImage floatImage){
+        if (!useHAT){
+                IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
+                    vec2 fragCoord = vec2.vec2(i % floatImage.width(), (float) (i / floatImage.width()));
+                    vec4 inFragColor = vec4.vec4(0);
+                    vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
+                    floatImage.set(i, outFragColor);
+                });
+            }else{
+                var funiforms = uniforms;
+                var fwidth = width;
+                var fheight = height;
+                var  f32Array  =floatImage.f32Array();
+                // the following failed!
+                //   accelerator.compute((@Reflect Compute) cc ->compute(cc,funiforms,floatImage.f32Array(),fwidth,fheight));
+                accelerator.compute((@Reflect Compute) cc ->compute(cc,funiforms,f32Array,fwidth,fheight));
+            }
     }
 
 
@@ -187,13 +248,11 @@ public class FloatImagePanel extends JPanel implements Runnable {
                 long startNs = System.nanoTime();
                 if (controls.running()) {
                     uniforms.iFrame(uniforms.iFrame() + 1);
-                    IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
-                        vec2 fragCoord = vec2.vec2(i % floatImage.width(), (float)( i / floatImage.width()));
-                        vec4 inFragColor = vec4.vec4(0);
-                        vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
-                        floatImage.set(i, outFragColor);
-                    });
-                    floatImage.sync();
+                    synchronized (floatImage) {
+                        // We synchronize here and in the paint method.  To ensure that we don't copy memory segment mid compute.
+                        runShader(floatImage);
+                        floatImage.sync();
+                    }
                 }
                 long endNs = System.nanoTime();
                 controls.shaderUs((int)(endNs-startNs)/1000)
@@ -226,7 +285,9 @@ public class FloatImagePanel extends JPanel implements Runnable {
                 (1 + yOffset) * (displaySize.height - imageSize.height * scale) / 2);
         transform.scale(scale, scale);
         g2d.transform(transform);
-        g.drawImage(floatImage.bufferedImage(), 0, 0, imageSize.width, imageSize.height, null);
+        synchronized (floatImage) {
+            g.drawImage(floatImage.bufferedImage(), 0, 0, imageSize.width, imageSize.height, null);
+        }
         g2d.setTransform(safeTransform);
     }
 

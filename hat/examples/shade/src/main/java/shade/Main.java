@@ -25,18 +25,28 @@
 package shade;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
+import hat.ComputeContext.Kernel;
+import hat.ComputeContext;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.F32;
+import hat.types.ivec2;
 import hat.types.mat2;
 import hat.types.mat3;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 
 import javax.swing.JFrame;
 import java.awt.Rectangle;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.util.stream.IntStream;
 
 import static hat.types.F32.pow;
 import static hat.types.F32.smoothstep;
@@ -48,19 +58,7 @@ import static hat.types.vec3.vec3;
 import static hat.types.vec4.vec4;
 
 public class Main extends JFrame {
-    public final FloatImagePanel imagePanel;
 
-    public Main(Accelerator accelerator, int width, int height, Shader shader) {
-        super("HAT Toy");
-        Controls controls = new Controls();
-        setJMenuBar(controls.menu.menuBar());
-        this.imagePanel = new FloatImagePanel(accelerator, controls, width, height, shader);
-        setBounds(new Rectangle(width + 100, height + 200));
-        setContentPane(imagePanel);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setVisible(true);
-        this.imagePanel.start();
-    }
 
     static Shader s1 = (uniforms, inFragColor, fragCoord) -> {
         int w = uniforms.iResolution().x();
@@ -541,7 +539,7 @@ public class Main extends JFrame {
             return proj;
         }
 
-        var m1 =createRotationMatrixAxisAngle(vec3(0.0f, -1.0f, 0.0f), 3.0f * ((NormalizedMouse(fMouse, fres).x() + 0.5f) * 2.0f - 1.0f));
+        var m1 = createRotationMatrixAxisAngle(vec3(0.0f, -1.0f, 0.0f), 3.0f * ((NormalizedMouse(fMouse, fres).x() + 0.5f) * 2.0f - 1.0f));
         var m2 = createRotationMatrixAxisAngle(vec3(1.0f, 0.0f, 0.0f), 0.5f + 1.5f * (((NormalizedMouse(fMouse, fres).y()) == 0.0f ? 0.27f : NormalizedMouse(fMouse, fres).y() * 1.0f) * 2.0f - 1.0f));
         return proj.mul(m1).mul(m2);
     }
@@ -559,10 +557,10 @@ public class Main extends JFrame {
         float raysundt = F32.pow(F32.abs(vec3.dot(sundir, raydir)), 2.0f);
         float sundt = F32.pow(F32.max(0.0f, vec3.dot(sundir, raydir)), 8.0f);
         float mymie = sundt * special_trick * 0.2f;
-        vec3 suncolor=vec3(0f,0f,.7f);
-       // vec3 suncolor = vec3.mix(
-         //       vec3(1.0f), vec3.max(vec3(0.0f), vec3(1.0f).sub(vec3(5.5f, 13.0f, 22.4f).div(22.4f)
-           //     ), special_trick2));
+        vec3 suncolor = vec3(0f, 0f, .7f);
+        // vec3 suncolor = vec3.mix(
+        //       vec3(1.0f), vec3.max(vec3(0.0f), vec3(1.0f).sub(vec3(5.5f, 13.0f, 22.4f).div(22.4f)
+        //     ), special_trick2));
         vec3 bluesky = vec3(5.5f, 13.0f, 22.4f).div(22.4f).mul(suncolor);
         vec3 bluesky2 = vec3.max(vec3(0.0f), bluesky.sub(vec3(5.5f, 13.0f, 22.4f).mul(0.002f * (special_trick + -6.0f * sundir.y() * sundir.y()))));
         bluesky2 = bluesky2.mul(special_trick * (0.24f + raysundt * 0.24f));
@@ -583,7 +581,8 @@ public class Main extends JFrame {
     static float getSun(vec3 dir, float fTime) {
         return F32.pow(F32.max(0.0f, vec3.dot(dir, getSunDirection(fTime))), 720.0f) * 210.0f;
     }
-//https://www.shadertoy.com/view/MdXyzX
+
+    //https://www.shadertoy.com/view/MdXyzX
     static Shader water = (uniforms, fragColor, fragCoord) -> {
         var fResolution = vec2(uniforms.iResolution());
         var fMouse = vec2(uniforms.iMouse());
@@ -635,12 +634,12 @@ public class Main extends JFrame {
 
             // return the combined result
             vec3 C = reflection.mul(fresnel).add(scattering);
-            fragColor = vec4(clamp(aces_tonemap(C.mul(2.0f)),0f,1f), 1.0f);
+            fragColor = vec4(clamp(aces_tonemap(C.mul(2.0f)), 0f, 1f), 1.0f);
             return fragColor;
         }
     };
 
-    static vec3 aces_tonemap(vec3 color){
+    static vec3 aces_tonemap(vec3 color) {
         mat3 m1 = mat3(
                 0.59719f, 0.07600f, 0.02840f,
                 0.35458f, 0.90834f, 0.13383f,
@@ -648,164 +647,181 @@ public class Main extends JFrame {
         );
         mat3 m2 = mat3(
                 1.60475f, -0.10208f, -0.00327f,
-                -0.53108f,  1.10813f, -0.07276f,
-                -0.07367f, -0.00605f,  1.07602f
+                -0.53108f, 1.10813f, -0.07276f,
+                -0.07367f, -0.00605f, 1.07602f
         );
         vec3 v = color.mul(m1);
-        vec3 a = v.mul(v.add( + 0.0245786f)).sub(0.000090537f);
+        vec3 a = v.mul(v.add(+0.0245786f)).sub(0.000090537f);
         vec3 b = v.mul((v.mul(0.983729f).add(0.4329510f)).add(0.238081f));
         var aOverBMulM2 = a.div(b).mul(m2);
-        return vec3.clamp(vec3.pow(aOverBMulM2, 1.0f / 2.2f),0f,1f);
+        return vec3.clamp(vec3.pow(aOverBMulM2, 1.0f / 2.2f), 0f, 1f);
     }
-     static Shader aces= (uniform,  fragColor,fragCoord )-> {
+
+    static Shader aces = (uniform, fragColor, fragCoord) -> {
         // https://www.shadertoy.com/view/XsGfWV
         vec2 position = fragCoord.div(vec2(uniform.iResolution())).mul(2f).sub(1f); //fragCoord/iResolution.xy)* 2.0 - 1.0;
-        position = vec2(position.x()+ uniform.iTime() * 0.2f, position.y()); // position.x += iTime * 0.2;
+        position = vec2(position.x() + uniform.iTime() * 0.2f, position.y()); // position.x += iTime * 0.2;
 
-         //vec3 color = pow(
-         //     sin(
-         //        position.x * 4.0 + vec3(0.0, 1.0, 2.0) * 3.1415 * 2.0 / 3.0
-         //     ) * 0.5 + 0.5,
-         //     vec3(2.0)
-         //     ) * (exp(
-         //              abs(position.y) * 4.0
-         //              ) - 1.0);
-         vec3 v012 = vec3(0f, 1f, 2f);
-         vec3 v0123x2Pi = v012.mul(F32.PI).mul(2f);
-         vec3 v0123x2PiDiv3 = v0123x2Pi.div(3f);
-         vec3  sinCoef = v0123x2PiDiv3.add(position.x()*4);
-         vec3 color = vec3.pow(
-                          vec3.sin(sinCoef).mul(0.5f).add(0.5f),
-                         2f
-                 )
-                 .mul(
-                         F32.exp(
-                                 F32.abs(position.y()) * 4f
-                         ) - 1f
-                 );
-         if(position.y() < 0f){
-             color = aces_tonemap(color);
-         }
-        fragColor = vec4(clamp(color,0f,1f),1.0f);
+        //vec3 color = pow(
+        //     sin(
+        //        position.x * 4.0 + vec3(0.0, 1.0, 2.0) * 3.1415 * 2.0 / 3.0
+        //     ) * 0.5 + 0.5,
+        //     vec3(2.0)
+        //     ) * (exp(
+        //              abs(position.y) * 4.0
+        //              ) - 1.0);
+        vec3 v012 = vec3(0f, 1f, 2f);
+        vec3 v0123x2Pi = v012.mul(F32.PI).mul(2f);
+        vec3 v0123x2PiDiv3 = v0123x2Pi.div(3f);
+        vec3 sinCoef = v0123x2PiDiv3.add(position.x() * 4);
+        vec3 color = vec3.pow(
+                        vec3.sin(sinCoef).mul(0.5f).add(0.5f),
+                        2f
+                )
+                .mul(
+                        F32.exp(
+                                F32.abs(position.y()) * 4f
+                        ) - 1f
+                );
+        if (position.y() < 0f) {
+            color = aces_tonemap(color);
+        }
+        fragColor = vec4(clamp(color, 0f, 1f), 1.0f);
         return fragColor;
     };
 
-/*
-// variant of https://shadertoy.com/view/3llcDl
-// inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
+    /*
+    // variant of https://shadertoy.com/view/3llcDl
+    // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
 
-// variant of https://shadertoy.com/view/3llcDl
-// inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
+    // variant of https://shadertoy.com/view/3llcDl
+    // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
 
-void mainImage(out vec4 fragColor,  vec2 fragCoord ){
+    void mainImage(out vec4 fragColor,  vec2 fragCoord ){
 
-    vec2 fResolution = iResolution.xy;
+        vec2 fResolution = iResolution.xy;
 
-    vec2  U = ((2.*fragCoord - fResolution)) / fResolution.y; // normalized coordinates
-    vec2  z = U - vec2(-1,0);
-    U.x = U.x-.5;                      // Moebius transform
+        vec2  U = ((2.*fragCoord - fResolution)) / fResolution.y; // normalized coordinates
+        vec2  z = U - vec2(-1,0);
+        U.x = U.x-.5;                      // Moebius transform
 
-    U = U * mat2(z,-z.y,z.x) / dot(U,U);
+        U = U * mat2(z,-z.y,z.x) / dot(U,U);
 
-    U = U+.5;
-                  // offset   spiral, zoom   phase            // spiraling
-    U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
-    // n
-    U = U * 3./vec2(2,1);
-    z = //vec2(1);
-    fwidth(U);
-    U = fract(U)*5.;
+        U = U+.5;
+                      // offset   spiral, zoom   phase            // spiraling
+        U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
+        // n
+        U = U * 3./vec2(2,1);
+        z = //vec2(1);
+        fwidth(U);
+        U = fract(U)*5.;
 
-    vec2 I = floor(U);
-    U = fract(U);              // subdiv big square in 5x5
-    I.x = mod( I.x - 2.*I.y , 5.);                            // rearrange
-    U = vec2(U.x+ float(I.x==1.||I.x==3.),U.y+float(I.x<2.));     // recombine big tiles
+        vec2 I = floor(U);
+        U = fract(U);              // subdiv big square in 5x5
+        I.x = mod( I.x - 2.*I.y , 5.);                            // rearrange
+        U = vec2(U.x+ float(I.x==1.||I.x==3.),U.y+float(I.x<2.));     // recombine big tiles
 
-    float id = -1.;
+        float id = -1.;
 
-    if (I.x != 4.){
-        U =U/2.;                                     // but small times
-        id = mod(floor(I.x/2.)+I.y,5.);
+        if (I.x != 4.){
+            U =U/2.;                                     // but small times
+            id = mod(floor(I.x/2.)+I.y,5.);
+        }
+        U = abs(fract(U)*2.-1.); float v = max(U.x,U.y);          // dist to border
+        fragColor =   smoothstep(.7,-.7, (v-.95)/( abs(z.x-z.y)>1.?.1:z.y*8.))  // draw AA tiles
+            * (id<0.?vec4(1): .6 + .6 * cos( id  + vec4(0,23,21,0)  ) );// color
     }
-    U = abs(fract(U)*2.-1.); float v = max(U.x,U.y);          // dist to border
-    fragColor =   smoothstep(.7,-.7, (v-.95)/( abs(z.x-z.y)>1.?.1:z.y*8.))  // draw AA tiles
-        * (id<0.?vec4(1): .6 + .6 * cos( id  + vec4(0,23,21,0)  ) );// color
-}
- */
-    static Shader spiral = (uniforms, fragColor, fragCoord)->{
+     */
+    static Shader spiral = (uniforms, fragColor, fragCoord) -> {
         // variant of https://shadertoy.com/view/3llcDl
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
-            float fTime = uniforms.iTime();
-            float fFrame = uniforms.iFrame();
-            var fResolution  =vec2(uniforms.iResolution());
+        float fTime = uniforms.iTime();
+        float fFrame = uniforms.iFrame();
+        var fResolution = vec2(uniforms.iResolution());
 
-            var U = fragCoord.mul(2f).sub(fResolution).div(fResolution.y());
-            // normalized coordinates
-            var z = U.sub(-1f,0f);
+        var U = fragCoord.mul(2f).sub(fResolution).div(fResolution.y());
+        // normalized coordinates
+        var z = U.sub(-1f, 0f);
 
-            U = U.sub(.5f,0f);
-            U = U.mul(mat2(z.x(), z.y(), -z.y(),z.x())).div(vec2.dot(U,U));
-            // offset   spiral, zoom   phase            // spiraling
-            U = U.add(.5f,0f);
+        U = U.sub(.5f, 0f);
+        U = U.mul(mat2(z.x(), z.y(), -z.y(), z.x())).div(vec2.dot(U, U));
+        // offset   spiral, zoom   phase            // spiraling
+        U = U.add(.5f, 0f);
 
-            U = vec2(//U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
-                    F32.log(U.length())).mul(.5f, -.5f)
-                    .add(fTime/8)
-                    .add(vec2.atan(U.y(),U.x()).div(6.2832f).mul(6f,1f));
+        U = vec2(//U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
+                F32.log(U.length())).mul(.5f, -.5f)
+                .add(fTime / 8)
+                .add(vec2.atan(U.y(), U.x()).div(6.2832f).mul(6f, 1f));
 
-            U = U.mul(vec2(3f).div(vec2(2f,1f)));
-            z = vec2(.1f);//fwidth(U); // this resamples the image.  Not sure how we do this!
-            U = U.fract().mul(5f);
-            vec2 I = U.floor();
-            U = U.fract();             // subdiv big square in 5x5
-            I = vec2(F32.mod( I.x() - 2.f*I.y() , 5f),I.y());                            // rearrange
-            U = U.add((I.x()==1f||I.x()==3f)?1f:0f, I.x()<2.0?1f:0f);     // recombine big tiles
-            float id = -1f;
-            if (I.x()!=4f) {
-                U = U.div(2f);                                     // but small times
-                id = F32.mod(F32.floor(I.x() / 2f) + I.y(), 5f);
-            }
-            U = vec2.abs(U.fract().mul(2f).sub(1f));
-            float v = F32.max(U.x(),U.y());          // dist to border
+        U = U.mul(vec2(3f).div(vec2(2f, 1f)));
+        z = vec2(.1f);//fwidth(U); // this resamples the image.  Not sure how we do this!
+        U = U.fract().mul(5f);
+        vec2 I = U.floor();
+        U = U.fract();             // subdiv big square in 5x5
+        I = vec2(F32.mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
+        U = U.add((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f);     // recombine big tiles
+        float id = -1f;
+        if (I.x() != 4f) {
+            U = U.div(2f);                                     // but small times
+            id = F32.mod(F32.floor(I.x() / 2f) + I.y(), 5f);
+        }
+        U = vec2.abs(U.fract().mul(2f).sub(1f));
+        float v = F32.max(U.x(), U.y());          // dist to border
 
-            return
-                    vec4.smoothstep(
-                            vec4(.7f),
-                            vec4(-.7f),
-                            vec4(v-.95f).div(F32.abs(z.x()-z.y())>1f
-                                    ?.1f
-                                    :z.y()*8f
-                            )
-                            .mul(id<0f
-                               ? vec4(1f)
-                               : vec4(.6f).add(.6f).mul(
-                                       vec4.cos( vec4(id).add(vec4(0f,23f,21f,0f)))
-                                    )
-                            )
-            );// color
+        return
+                vec4.smoothstep(
+                        vec4(.7f),
+                        vec4(-.7f),
+                        vec4(v - .95f).div(F32.abs(z.x() - z.y()) > 1f
+                                        ? .1f
+                                        : z.y() * 8f
+                                )
+                                .mul(id < 0f
+                                                ? vec4(1f)
+                                                : vec4(.6f).add(.6f).mul(
+                                                vec4.cos(vec4(id).add(vec4(0f, 23f, 21f, 0f)))
+                                        )
+                                )
+                );// color
 
     };
 
+
+    static enum SHADER {
+        Blue((uniform, fragColor, fragCoord) -> {
+            return vec4(0f, 0f, 1f, 0f);
+        }),
+        Gradient((uniforms, fragColor, fragCoord) -> {
+            var fResolution = vec2(uniforms.iResolution());
+            float fFrame = uniforms.iFrame();
+            var uv = fragCoord.div(fResolution);
+            return vec4(uv.x(), uv.y(), F32.max(fFrame / 100f, 1f), 0f);
+        }),
+
+        S1(s1), S25(s25), Randy(randy), Spiral(spiral), Anim(anim), Water(water), Intro(intro);
+
+        Shader shader;
+
+        SHADER(Shader shader) {
+            this.shader = shader;
+        }
+    }
+
+
     static void main(String[] args) throws IOException {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        enum SHADER{
-            Blue((uniform, fragColor, fragCoord)->{
-                return vec4(0f,0f,1f,0f);
-            }),
-            Gradient((uniforms, fragColor, fragCoord) -> {
-                var fResolution = vec2(uniforms.iResolution());
-                float fFrame = uniforms.iFrame();
-                var uv = fragCoord.div(fResolution);
-                return vec4(uv.x(),uv.y(),F32.max(fFrame/100f,1f),0f);
-            }),
 
-            S1(s1),S25(s25),Randy(randy),Spiral(spiral),Anim(anim),Water(water),Intro(intro);
+        Controls controls = new Controls();
+        JFrame frame = new JFrame();
+        frame.setJMenuBar(controls.menu.menuBar());
+        int width = 1024;
+        int height = 1024;
 
-            Shader shader;
-            SHADER(Shader shader){
-                this.shader=shader;
-            }
-        }
-        new Main(acc, 1024, 1024, SHADER.Spiral.shader);
+        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height, false, SHADER.Spiral.shader);
+        frame.setBounds(new Rectangle(width + 100, height + 200));
+        frame.setContentPane(imagePanel);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+        imagePanel.start();
     }
 }
