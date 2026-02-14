@@ -25,108 +25,173 @@
 package shade;
 
 import optkl.textmodel.terminal.ANSI;
-import optkl.util.Regex;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ShaderTokenizer {
     interface Token {
         TOKEN_TYPE tokenType();
         String value();
-
     }
+
     interface ParentToken extends Token {
         List<Token> children();
     }
+
     interface LeafToken extends Token {
-
     }
 
-    interface TypeToken extends LeafToken{}
-    interface ConstToken extends Token{}
-    interface SymbolToken extends Token{}
-    interface SeparatorToken extends SymbolToken{}
+    interface TypeToken extends LeafToken {
+    }
+
+    interface ConstToken extends Token {
+    }
+
+    interface SymbolToken extends Token {
+    }
+
+    interface SeparatorToken extends SymbolToken {
+    }
+
     record CreateToken(TOKEN_TYPE tokenType, String value) implements ConstToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record MathLibCallToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record CallToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record VecTypeToken(TOKEN_TYPE tokenType, String value) implements TypeToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record MatTypeToken(TOKEN_TYPE tokenType, String value) implements TypeToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record PrimitiveTypeToken(TOKEN_TYPE tokenType, String value) implements TypeToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record FloatConstToken(TOKEN_TYPE tokenType, String value, float f32) implements ConstToken {
-        public String toString() {return "F32:"+f32;}
+        public String toString() {
+            return "F32:" + f32;
+        }
     }
+
     record WhiteSpaceToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return "WS:" + value.replace("\n", "\\n").replace("\t","\\t").replace(" ", ".");}
+        public String toString() {
+            return "WS:" + value.replace("\n", "\\n").replace("\t", "\\t").replace(" ", ".");
+        }
     }
+
     record IntConstToken(TOKEN_TYPE tokenType, String value, int i32) implements ConstToken {
-        public String toString() {return "S32:"+i32;}
+        public String toString() {
+            return "S32:" + i32;
+        }
     }
+
     record ReservedToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record UniformToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record IdentifierToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record CommaToken(TOKEN_TYPE tokenType, String value) implements SeparatorToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record SemicolonToken(TOKEN_TYPE tokenType, String value) implements SeparatorToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record OToken(TOKEN_TYPE tokenType, String value) implements SymbolToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record CToken(TOKEN_TYPE tokenType, String value) implements SymbolToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record DotToken(TOKEN_TYPE tokenType, String value) implements SymbolToken {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
-    record SimpleToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
-    }
+
     record PreprocessorToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
+
     record AssignToken(TOKEN_TYPE tokenType, String value) implements Token {
-        public String toString() {return tokenType + ":" + value;}
+        public String toString() {
+            return tokenType + ":" + value;
+        }
     }
 
     record ArithmeticOperator(TOKEN_TYPE tokenType, String value) implements Token {
-       // https://www.codingeek.com/tutorials/c-programming/precedence-and-associativity-of-operators-in-c/
-        enum Precedence{
+        // https://www.codingeek.com/tutorials/c-programming/precedence-and-associativity-of-operators-in-c/
+        enum Precedence {
             Multiplicative, Additive
         }
-        public Precedence precedence(){
-            return switch (value){
-                case "*","/"->Precedence.Multiplicative; // multiplacative
-                case "-","+"->Precedence.Additive; // additive
+
+        public Precedence precedence() {
+            return switch (value) {
+                case "*", "/" -> Precedence.Multiplicative; // multiplacative
+                case "-", "+" -> Precedence.Additive; // additive
                 default -> throw new IllegalStateException("Unexpected value: " + value);
             };
         }
-        public String toString() {return tokenType + ":" + value + " "+precedence();}
+
+        public String toString() {
+            return tokenType + ":" + value + " " + precedence();
+        }
     }
 
 
     enum TOKEN_TYPE {
-        NONE(null),
+        NONE(null),// NONE looks useless, but the ordinals for these enums define the groups # from regex.  So dont remove ;)
         WHITE_SPACE("([ \n\t]+|//[^\n]*\n)"),
         RESERVED("(in|out|mainImage|return)(?![a-zA-Z0-9_])"),
         UNIFORM("(iTime|iResolution|iMouse)"),
@@ -137,34 +202,46 @@ public class ShaderTokenizer {
         VEC_TYPE("(ivec[234]|vec[234])(?![a-zA-Z0-9_])"),
         MAT_TYPE("(imat[234]|mat[234])(?![a-zA-Z0-9_])"),
         PRE_PREPROCESSOR("(#define|#include)"),
-
         IDENTIFIER("([a-zA-Z_][a-zA-Z0-9_]*)"),
         CONST("(\\d+\\.?\\d*)"),
         OSYMBOL("([{(])"),
         CSYMBOL("([})])"),
-
         ASSIGN("(=|\\+=|\\-=|\\*=|/=)"),
         ARITHMETIC_OPERATOR("([+/\\-*])"),
         SEMICOLON("(;)"),
         COMMA("(,)"),
-        DOT("(.)"),
-        SYMBOL("([.])");
-
+        DOT("(.)");
         String regex;
 
         TOKEN_TYPE(String regex) {
             this.regex = regex;
         }
+    }
 
-        static Token getToken(Matcher matcher) {
-           // String weMatched = matcher.group();
-           // System.out.println("We matched "+weMatched.replace("\n","\\n").replace("\t", "\\t"));
-            for (var tokenType:TOKEN_TYPE.values()) {
-                if (!tokenType.equals(NONE)) {
+    private static List<Token> tokenize(String source) {
+        List<Token> tokens = new ArrayList<>();
+        // We walk the enum in order and create a single regex for all token types
+        // order is important ;)
+        StringBuilder regexBuilder = new StringBuilder();
+        for (var token : TOKEN_TYPE.values()) {
+            if (!token.equals(TOKEN_TYPE.NONE)) {
+                if (!regexBuilder.isEmpty()) {
+                    regexBuilder.append("|");
+                }
+                regexBuilder.append(token.regex);
+            }
+        }
+
+        // Now try to compile the resulting regex
+        Pattern pattern = Pattern.compile(regexBuilder.toString());
+        Matcher matcher = pattern.matcher(source);
+        while (matcher.find()) {
+            for (var tokenType : TOKEN_TYPE.values()) {
+                if (!tokenType.equals(TOKEN_TYPE.NONE)) {
                     String val = matcher.group(tokenType.ordinal());
                     if (val != null && !val.isEmpty()) {
-                        return  switch (tokenType) {
-                            case WHITE_SPACE ->new WhiteSpaceToken(tokenType,val);
+                        tokens.add(switch (tokenType) {
+                            case WHITE_SPACE -> new WhiteSpaceToken(tokenType, val);
                             case MAT_TYPE -> new MatTypeToken(tokenType, val);
                             case VEC_TYPE -> new VecTypeToken(tokenType, val);
                             case PRIMITIVE_TYPE -> new PrimitiveTypeToken(tokenType, val);
@@ -176,8 +253,8 @@ public class ShaderTokenizer {
                             case RESERVED -> new ReservedToken(tokenType, val);
                             case IDENTIFIER -> new IdentifierToken(tokenType, val);
                             case CONST -> val.contains(".")
-                                    ?new FloatConstToken(tokenType,val,Float.parseFloat(val))
-                                    :new IntConstToken(tokenType,val,Integer.parseInt(val));
+                                    ? new FloatConstToken(tokenType, val, Float.parseFloat(val))
+                                    : new IntConstToken(tokenType, val, Integer.parseInt(val));
                             case OSYMBOL -> new OToken(tokenType, val);
                             case CSYMBOL -> new CToken(tokenType, val);
                             case ARITHMETIC_OPERATOR -> new ArithmeticOperator(tokenType, val);
@@ -185,36 +262,11 @@ public class ShaderTokenizer {
                             case COMMA -> new CommaToken(tokenType, val);
                             case DOT -> new DotToken(tokenType, val);
                             case ASSIGN -> new AssignToken(tokenType, val);
-                            case SYMBOL -> new SimpleToken(tokenType, val);
-                            case NONE -> new SimpleToken(tokenType, val);
-                        };
+                            default -> throw new IllegalStateException("We should never get here");
+                        });
                     }
                 }
             }
-            throw new RuntimeException("No token ");
-        }
-        static  Regex createPattern() {
-            StringBuilder regexBuilder = new StringBuilder();
-            for (var token:TOKEN_TYPE.values()){
-                if (!token.equals(NONE)){
-                    if (!regexBuilder.isEmpty()){
-                        regexBuilder.append("|");
-                    }
-                    regexBuilder.append(token.regex);
-                }
-            }
-            String regex = regexBuilder.toString();
-            return Regex.of(regex);
-        }
-    }
-
-    private static List<Token> tokenize(String source) {
-        List<Token> tokens = new ArrayList<>();
-        Regex TOKEN_PATTERN = TOKEN_TYPE.createPattern();
-        Matcher matcher = TOKEN_PATTERN.pattern().matcher(source);
-        while (matcher.find()) {
-           // System.out.println("Looking at '"+matcher.group().replace("\n","\\n").replace("\t", "\\t")+"'");
-            tokens.add(TOKEN_TYPE.getToken(matcher));
         }
         return tokens;
     }
@@ -225,7 +277,7 @@ public class ShaderTokenizer {
         while (i < tokens.size()) {
             Token t = tokens.get(i);
             // Very basic: look for [type] [identifier] ...
-            if (t instanceof TypeToken typeToken  && i + 2 < tokens.size()) {
+            if (t instanceof TypeToken typeToken && i + 2 < tokens.size()) {
                 Token ident = tokens.get(i + 1);
                 Token next = tokens.get(i + 2);
                 if (next.value().equals("(")) {
@@ -234,7 +286,7 @@ public class ShaderTokenizer {
                 } else if (next.value().equals(";") || next.value().equals("=")) {
                     // Parse variable declaration
                     System.out.println("Variable found: type=" + t + ", name=" + ident);
-                } else{
+                } else {
                     System.out.println("OH: type=" + t + ", name=" + ident);
                 }
             }
@@ -465,21 +517,21 @@ public class ShaderTokenizer {
         var ansi = ANSI.of(System.out);
 
         tokens.forEach(token -> {
-                    switch (token) {
-                        case WhiteSpaceToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
-                        case ConstToken _  -> ansi.color(ANSI.YELLOW, a -> a.apply(token.value()));
-                        case TypeToken _  -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
-                        case ReservedToken _  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
-                        case PreprocessorToken _  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
-                        case ArithmeticOperator _  -> ansi.color(ANSI.RED, a -> a.apply(token.value()));
-                        case AssignToken _  -> ansi.color(ANSI.RED, a -> a.apply(token.value()));
-                        case UniformToken _  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
-                        case CallToken _  -> ansi.color(ANSI.PURPLE, a -> a.apply(token.value()));
-                        case MathLibCallToken _  -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
-                        case SeparatorToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
-                        default -> ansi.apply(token.value());
-                    }
-                });
+            switch (token) {
+                case WhiteSpaceToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
+                case ConstToken _ -> ansi.color(ANSI.YELLOW, a -> a.apply(token.value()));
+                case TypeToken _ -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
+                case ReservedToken _ -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
+                case PreprocessorToken _ -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
+                case ArithmeticOperator _ -> ansi.color(ANSI.RED, a -> a.apply(token.value()));
+                case AssignToken _ -> ansi.color(ANSI.RED, a -> a.apply(token.value()));
+                case UniformToken _ -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
+                case CallToken _ -> ansi.color(ANSI.PURPLE, a -> a.apply(token.value()));
+                case MathLibCallToken _ -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
+                case SeparatorToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
+                default -> ansi.apply(token.value());
+            }
+        });
         parse(tokens);
     }
 
