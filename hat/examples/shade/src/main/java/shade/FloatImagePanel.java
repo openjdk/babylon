@@ -231,7 +231,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     public void run() {
         long startTimeNs = System.nanoTime();
 
-        double nsPerTick = 1000000000.0 /10.0; // 2 Fixed Updates per second
+        double nsPerTick = 1000000000.0 /30.0; // 2 Fixed Updates per second
         double delta = 0;
         long lastTimeNs = System.nanoTime();
         while (running) {
@@ -244,7 +244,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
             while (delta >= 1) {
                 long diff = lastTimeNs - startTimeNs;
                 long diffMs = diff / 1000000;
-                uniforms.iTime(diffMs);
+                uniforms.iTime(diffMs/1000);
                 long startNs = System.nanoTime();
                 if (controls.running()) {
                     uniforms.iFrame(uniforms.iFrame() + 1);
@@ -267,7 +267,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
 
             // Cap the loop to save CPU
             try {
-                Thread.sleep(10);
+                Thread.sleep(1);
             } catch (InterruptedException e) {
             }
         }
