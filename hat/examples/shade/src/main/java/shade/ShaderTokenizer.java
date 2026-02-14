@@ -46,7 +46,8 @@ public class ShaderTokenizer {
 
     interface TypeToken extends LeafToken{}
     interface ConstToken extends Token{}
-
+    interface SymbolToken extends Token{}
+    interface SeparatorToken extends SymbolToken{}
     record CreateToken(TOKEN_TYPE tokenType, String value) implements ConstToken {
         public String toString() {return tokenType + ":" + value;}
     }
@@ -65,19 +66,37 @@ public class ShaderTokenizer {
     record PrimitiveTypeToken(TOKEN_TYPE tokenType, String value) implements TypeToken {
         public String toString() {return tokenType + ":" + value;}
     }
-    record FloatToken(TOKEN_TYPE tokenType, String value, float f32) implements ConstToken {
+    record FloatConstToken(TOKEN_TYPE tokenType, String value, float f32) implements ConstToken {
         public String toString() {return "F32:"+f32;}
     }
     record WhiteSpaceToken(TOKEN_TYPE tokenType, String value) implements Token {
         public String toString() {return "WS:" + value.replace("\n", "\\n").replace("\t","\\t").replace(" ", ".");}
     }
-    record IntToken(TOKEN_TYPE tokenType, String value, int i32) implements ConstToken {
+    record IntConstToken(TOKEN_TYPE tokenType, String value, int i32) implements ConstToken {
         public String toString() {return "S32:"+i32;}
     }
     record ReservedToken(TOKEN_TYPE tokenType, String value) implements Token {
         public String toString() {return tokenType + ":" + value;}
     }
     record UniformToken(TOKEN_TYPE tokenType, String value) implements Token {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record IdentifierToken(TOKEN_TYPE tokenType, String value) implements Token {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record CommaToken(TOKEN_TYPE tokenType, String value) implements SeparatorToken {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record SemicolonToken(TOKEN_TYPE tokenType, String value) implements SeparatorToken {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record OToken(TOKEN_TYPE tokenType, String value) implements SymbolToken {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record CToken(TOKEN_TYPE tokenType, String value) implements SymbolToken {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record DotToken(TOKEN_TYPE tokenType, String value) implements SymbolToken {
         public String toString() {return tokenType + ":" + value;}
     }
     record SimpleToken(TOKEN_TYPE tokenType, String value) implements Token {
@@ -120,7 +139,7 @@ public class ShaderTokenizer {
         PRE_PREPROCESSOR("(#define|#include)"),
 
         IDENTIFIER("([a-zA-Z_][a-zA-Z0-9_]*)"),
-        I32_OR_F32_CONST("(\\d+\\.?\\d*)"),
+        CONST("(\\d+\\.?\\d*)"),
         OSYMBOL("([{(])"),
         CSYMBOL("([})])"),
 
@@ -128,6 +147,7 @@ public class ShaderTokenizer {
         ARITHMETIC_OPERATOR("([+/\\-*])"),
         SEMICOLON("(;)"),
         COMMA("(,)"),
+        DOT("(.)"),
         SYMBOL("([.])");
 
         String regex;
@@ -143,7 +163,7 @@ public class ShaderTokenizer {
                 if (!tokenType.equals(NONE)) {
                     String val = matcher.group(tokenType.ordinal());
                     if (val != null && !val.isEmpty()) {
-                        var token =  switch (tokenType) {
+                        return  switch (tokenType) {
                             case WHITE_SPACE ->new WhiteSpaceToken(tokenType,val);
                             case MAT_TYPE -> new MatTypeToken(tokenType, val);
                             case VEC_TYPE -> new VecTypeToken(tokenType, val);
@@ -154,19 +174,20 @@ public class ShaderTokenizer {
                             case CREATE -> new CreateToken(tokenType, val);
                             case UNIFORM -> new UniformToken(tokenType, val);
                             case RESERVED -> new ReservedToken(tokenType, val);
-                            case IDENTIFIER -> new SimpleToken(tokenType, val);
-                            case I32_OR_F32_CONST -> val.contains(".") ? new FloatToken(tokenType,val,Float.parseFloat(val)) :new IntToken(tokenType,val,Integer.parseInt(val));
-                            case OSYMBOL -> new SimpleToken(tokenType, val);
-                            case CSYMBOL -> new SimpleToken(tokenType, val);
+                            case IDENTIFIER -> new IdentifierToken(tokenType, val);
+                            case CONST -> val.contains(".")
+                                    ?new FloatConstToken(tokenType,val,Float.parseFloat(val))
+                                    :new IntConstToken(tokenType,val,Integer.parseInt(val));
+                            case OSYMBOL -> new OToken(tokenType, val);
+                            case CSYMBOL -> new CToken(tokenType, val);
                             case ARITHMETIC_OPERATOR -> new ArithmeticOperator(tokenType, val);
-                            case SEMICOLON -> new SimpleToken(tokenType, val);
-                            case COMMA -> new SimpleToken(tokenType, val);
+                            case SEMICOLON -> new SemicolonToken(tokenType, val);
+                            case COMMA -> new CommaToken(tokenType, val);
+                            case DOT -> new DotToken(tokenType, val);
                             case ASSIGN -> new AssignToken(tokenType, val);
                             case SYMBOL -> new SimpleToken(tokenType, val);
                             case NONE -> new SimpleToken(tokenType, val);
                         };
-                       // System.out.println(token);
-                        return token;
                     }
                 }
             }
@@ -213,6 +234,8 @@ public class ShaderTokenizer {
                 } else if (next.value().equals(";") || next.value().equals("=")) {
                     // Parse variable declaration
                     System.out.println("Variable found: type=" + t + ", name=" + ident);
+                } else{
+                    System.out.println("OH: type=" + t + ", name=" + ident);
                 }
             }
             i++;
@@ -453,6 +476,7 @@ public class ShaderTokenizer {
                         case UniformToken _  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
                         case CallToken _  -> ansi.color(ANSI.PURPLE, a -> a.apply(token.value()));
                         case MathLibCallToken _  -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
+                        case SeparatorToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
                         default -> ansi.apply(token.value());
                     }
                 });
