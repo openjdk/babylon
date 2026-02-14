@@ -74,6 +74,11 @@ public interface mat2 extends Matrix{
     default mat2 sub(mat2 rhs){return sub(this,rhs);}
 
     static mat2 mul(mat2 l, mat2 r) {return mat2(l._00()*r._00(),l._01()*r._01(), l._10()*r._10(),l._11()*r._11());}
+    static vec2 mul(mat2 l, vec2 r) {return vec2.vec2(
+            l._00()*r.x()+l._01()*r.y(),
+            l._10()*r.x()+l._11()*r.y()
+    );}
+
     default mat2 mul(float scalar) {return mul(this, mat2(scalar));}
     default mat2 mul(mat2 rhs){return mul(this,rhs);}
 

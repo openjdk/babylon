@@ -80,6 +80,7 @@ public interface vec2 extends IfaceValue.Vector, IfaceValue.NewVector{
 
     static vec2 mul(float lx, float ly, float rx, float ry) {return vec2(lx*rx,ly*ry);}
     static vec2 mul(vec2 l, vec2 r) {return mul(l.x(),l.y(),r.x(),r.y());}
+    static vec2 mul(vec2 l, float scalar) {return mul(l.x(),l.y(),scalar,scalar);}
 
     default vec2 mul(float x, float y){return mul(this, vec2(x,y));}
     default vec2 mul(vec2 rhs){return mul(this,rhs);}
@@ -89,7 +90,7 @@ public interface vec2 extends IfaceValue.Vector, IfaceValue.NewVector{
 
     static vec2 div(float lx, float ly, float rx, float ry) {return vec2(lx/rx,ly/ry);}
     static vec2 div(vec2 l, vec2 r) {return div(l.x(),l.y(),r.x(),r.y());}
-
+    static vec2 div(vec2 l, float scalar) {return div(l.x(),l.y(),scalar,scalar);}
     default vec2 div(float x, float y){return div(this, vec2(x,y));}
     default vec2 div(vec2 rhs){return div(this,rhs);}
     default vec2 div(float scalar){return div(this,vec2(scalar));}
@@ -101,6 +102,9 @@ public interface vec2 extends IfaceValue.Vector, IfaceValue.NewVector{
     default float length(){
         return length(this);
     }
+
+    //?
+    static vec2 mod(vec2 v){return vec2(F32.mod(v.x(),v.y()));}
 
     default float mod(){
         return F32.mod(x(),y());
