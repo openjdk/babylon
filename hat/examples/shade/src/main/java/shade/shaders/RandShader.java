@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package shade.shaders;
 
 import hat.types.F32;
@@ -28,128 +52,130 @@ import static hat.types.F32.smoothstep;
 
 float hash(float seed)
 {
-	// Return a "random" number based on the "seed"
+    // Return a "random" number based on the "seed"
     return fract(sin(seed) * 43758.5453);
 }
 
 vec2 hashPosition(float x)
 {
-	// Return a "random" position based on the "seed"
-	return vec2(hash(x), hash(x * 1.1));
+    // Return a "random" position based on the "seed"
+    return vec2(hash(x), hash(x * 1.1));
 }
 
 float disk(vec2 r, vec2 center, float radius) {
-	return 1.0 - smoothstep( radius-0.005, radius+0.005, length(r-center));
+    return 1.0 - smoothstep( radius-0.005, radius+0.005, length(r-center));
 }
 
 float coordinateGrid(vec2 r) {
-	vec3 axesCol = vec3(0.0, 0.0, 1.0);
-	vec3 gridCol = vec3(0.5);
-	float ret = 0.0;
+    vec3 axesCol = vec3(0.0, 0.0, 1.0);
+    vec3 gridCol = vec3(0.5);
+    float ret = 0.0;
 
-	// Draw grid lines
-	const float tickWidth = 0.1;
-	for(float i=-2.0; i<2.0; i+=tickWidth) {
-		// "i" is the line coordinate.
-		ret += 1.-smoothstep(0.0, 0.005, abs(r.x-i));
-		ret += 1.-smoothstep(0.0, 0.01, abs(r.y-i));
-	}
-	// Draw the axes
-	ret += 1.-smoothstep(0.001, 0.005, abs(r.x));
-	ret += 1.-smoothstep(0.001, 0.005, abs(r.y));
-	return ret;
+    // Draw grid lines
+    const float tickWidth = 0.1;
+    for(float i=-2.0; i<2.0; i+=tickWidth) {
+        // "i" is the line coordinate.
+        ret += 1.-smoothstep(0.0, 0.005, abs(r.x-i));
+        ret += 1.-smoothstep(0.0, 0.01, abs(r.y-i));
+    }
+    // Draw the axes
+    ret += 1.-smoothstep(0.001, 0.005, abs(r.x));
+    ret += 1.-smoothstep(0.001, 0.005, abs(r.y));
+    return ret;
 }
 
 float plot(vec2 r, float y, float thickness) {
-	return ( abs(y - r.y) < thickness ) ? 1.0 : 0.0;
+    return ( abs(y - r.y) < thickness ) ? 1.0 : 0.0;
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-	vec2 p = vec2(fragCoord.xy / iResolution.xy);
-	vec2 r =  2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y;
-	float xMax = iResolution.x/iResolution.y;
+    vec2 p = vec2(fragCoord.xy / iResolution.xy);
+    vec2 r =  2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y;
+    float xMax = iResolution.x/iResolution.y;
 
-	vec3 bgCol = vec3(0.3);
-	vec3 col1 = vec3(0.216, 0.471, 0.698); // blue
-	vec3 col2 = vec3(1.00, 0.329, 0.298); // yellow
-	vec3 col3 = vec3(0.867, 0.910, 0.247); // red
+    vec3 bgCol = vec3(0.3);
+    vec3 col1 = vec3(0.216, 0.471, 0.698); // blue
+    vec3 col2 = vec3(1.00, 0.329, 0.298); // yellow
+    vec3 col3 = vec3(0.867, 0.910, 0.247); // red
 
-	vec3 ret = bgCol;
+    vec3 ret = bgCol;
 
-	vec3 white = vec3(1.);
-	vec3 gray = vec3(.3);
-	if(r.y > 0.7) {
+    vec3 white = vec3(1.);
+    vec3 gray = vec3(.3);
+    if(r.y > 0.7) {
 
-		// translated and rotated coordinate system
-		vec2 q = (r-vec2(0.,0.9))*vec2(1.,20.);
-		ret = mix(white, gray, coordinateGrid(q));
+        // translated and rotated coordinate system
+        vec2 q = (r-vec2(0.,0.9))*vec2(1.,20.);
+        ret = mix(white, gray, coordinateGrid(q));
 
-		// just the regular sin function
-		float y = sin(5.*q.x) * 2.0 - 1.0;
+        // just the regular sin function
+        float y = sin(5.*q.x) * 2.0 - 1.0;
 
-		ret = mix(ret, col1, plot(q, y, 0.1));
-	}
-	else if(r.y > 0.4) {
-		vec2 q = (r-vec2(0.,0.6))*vec2(1.,20.);
-		ret = mix(white, col1, coordinateGrid(q));
+        ret = mix(ret, col1, plot(q, y, 0.1));
+    }
+    else if(r.y > 0.4) {
+        vec2 q = (r-vec2(0.,0.6))*vec2(1.,20.);
+        ret = mix(white, col1, coordinateGrid(q));
 
-		// take the decimal part of the sin function
-		float y = fract(sin(5.*q.x)) * 2.0 - 1.0;
+        // take the decimal part of the sin function
+        float y = fract(sin(5.*q.x)) * 2.0 - 1.0;
 
-		ret = mix(ret, col2, plot(q, y, 0.1));
-	}
-	else if(r.y > 0.1) {
-		vec3 white = vec3(1.);
-		vec2 q = (r-vec2(0.,0.25))*vec2(1.,20.);
-		ret = mix(white, gray, coordinateGrid(q));
+        ret = mix(ret, col2, plot(q, y, 0.1));
+    }
+    else if(r.y > 0.1) {
+        vec3 white = vec3(1.);
+        vec2 q = (r-vec2(0.,0.25))*vec2(1.,20.);
+        ret = mix(white, gray, coordinateGrid(q));
 
-		// scale up the outcome of the sine function
-		// increase the scale and see the transition from
-		// periodic pattern to chaotic pattern
-		float scale = 10.0;
-		float y = fract(sin(5.*q.x) * scale) * 2.0 - 1.0;
+        // scale up the outcome of the sine function
+        // increase the scale and see the transition from
+        // periodic pattern to chaotic pattern
+        float scale = 10.0;
+        float y = fract(sin(5.*q.x) * scale) * 2.0 - 1.0;
 
-		ret = mix(ret, col1, plot(q, y, 0.2));
-	}
-	else if(r.y > -0.2) {
-		vec3 white = vec3(1.);
-		vec2 q = (r-vec2(0., -0.0))*vec2(1.,10.);
-		ret = mix(white, col1, coordinateGrid(q));
+        ret = mix(ret, col1, plot(q, y, 0.2));
+    }
+    else if(r.y > -0.2) {
+        vec3 white = vec3(1.);
+        vec2 q = (r-vec2(0., -0.0))*vec2(1.,10.);
+        ret = mix(white, col1, coordinateGrid(q));
 
-		float seed = q.x;
-		// Scale up with a big real number
-		float y = fract(sin(seed) * 43758.5453) * 2.0 - 1.0;
-		// this can be used as a pseudo-random value
-		// These type of function, functions in which two inputs
-		// that are close to each other (such as close q.x positions)
-		// return highly different output values, are called "hash"
-		// function.
+        float seed = q.x;
+        // Scale up with a big real number
+        float y = fract(sin(seed) * 43758.5453) * 2.0 - 1.0;
+        // this can be used as a pseudo-random value
+        // These type of function, functions in which two inputs
+        // that are close to each other (such as close q.x positions)
+        // return highly different output values, are called "hash"
+        // function.
 
-		ret = mix(ret, col2, plot(q, y, 0.1));
-	}
-	else {
-		vec2 q = (r-vec2(0., -0.6));
+        ret = mix(ret, col2, plot(q, y, 0.1));
+    }
+    else {
+        vec2 q = (r-vec2(0., -0.6));
 
-		// use the loop index as the seed
-		// and vary different quantities of disks, such as
-		// location and radius
-		for(float i=0.0; i<6.0; i++) {
-			// change the seed and get different distributions
-			float seed = i + 0.0;
-			vec2 pos = (vec2(hash(seed), hash(seed + 0.5))-0.5)*3.;;
-			float radius = hash(seed + 3.5);
-			pos *= vec2(1.0,0.3);
-			ret = mix(ret, col1, disk(q, pos, 0.2*radius));
-		}
-	}
+        // use the loop index as the seed
+        // and vary different quantities of disks, such as
+        // location and radius
+        for(float i=0.0; i<6.0; i++) {
+            // change the seed and get different distributions
+            float seed = i + 0.0;
+            vec2 pos = (vec2(hash(seed), hash(seed + 0.5))-0.5)*3.;;
+            float radius = hash(seed + 3.5);
+            pos *= vec2(1.0,0.3);
+            ret = mix(ret, col1, disk(q, pos, 0.2*radius));
+        }
+    }
 
-	vec3 pixel = ret;
-	fragColor = vec4(pixel, 1.0);
+    vec3 pixel = ret;
+    fragColor = vec4(pixel, 1.0);
 }
 
 
  */
+
+//https://www.shadertoy.com/view/Md23DV
 public class RandShader implements Shader {
 
     static float hash(float seed) {
