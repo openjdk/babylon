@@ -24,37 +24,43 @@
  */
 package shade;
 
-import hat.Accelerator;
-import hat.backend.Backend;
+import hat.types.F32;
+import shade.shaders.AcesShader;
+import shade.shaders.AnimShader;
+import shade.shaders.IntroShader;
+import shade.shaders.RandShader;
+import shade.shaders.Shader1;
+import shade.shaders.Shader25;
+import shade.shaders.SpiralShader;
+import shade.shaders.TutorialShader;
+import shade.shaders.WavesShader;
 
-import javax.swing.JFrame;
-import java.awt.Rectangle;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-
-import static hat.types.mat2.mat2;
-import static hat.types.mat3.mat3;
 import static hat.types.vec2.vec2;
-import static hat.types.vec3.vec3;
 import static hat.types.vec4.vec4;
 
-public class Main extends JFrame {
+enum ShaderEnum {
+    Blue((uniform, fragColor, fragCoord) -> {
+        return vec4(0f, 0f, 1f, 0f);
+    }),
+    Gradient((uniforms, fragColor, fragCoord) -> {
+        var fResolution = vec2(uniforms.iResolution());
+        float fFrame = uniforms.iFrame();
+        var uv = fragCoord.div(fResolution);
+        return vec4(uv.x(), uv.y(), F32.max(fFrame / 100f, 1f), 0f);
+    }),
 
+    Shader1(new Shader1()),
+    Shader25(new Shader25()),
+    Rand(new RandShader()),
+    Spiral(new SpiralShader()),
+    Aces(new AcesShader()),
+    Anim(new AnimShader()),
+    Waves(new WavesShader()),
+    Intro(new IntroShader()),
+    Tutrorial(new TutorialShader());
+    Shader shader;
 
-    static void main(String[] args) throws IOException {
-        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-
-        Controls controls = new Controls();
-        JFrame frame = new JFrame();
-        frame.setJMenuBar(controls.menu.menuBar());
-        int width = 1024;
-        int height = 1024;
-
-        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height, false, ShaderEnum.Tutrorial.shader);
-        frame.setBounds(new Rectangle(width + 100, height + 200));
-        frame.setContentPane(imagePanel);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setVisible(true);
-        imagePanel.start();
+    ShaderEnum(Shader shader) {
+        this.shader = shader;
     }
 }

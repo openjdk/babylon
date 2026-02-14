@@ -63,6 +63,8 @@ public interface vec3 extends IfaceValue.Vector, IfaceValue.NewVector{
     static vec3 vec3(float scalar) {return vec3(scalar,scalar,scalar);}
 
     static vec3 add(vec3 l, vec3 r) {return vec3(l.x()+r.x(),l.y()+r.y(), l.z()+r.z());}
+    static vec3 add(vec3 l, float scalar) {return vec3(l.x()+scalar,l.y()+scalar, l.z()+scalar);}
+    static vec3 add(float scalar, vec3 r) {return vec3(scalar+r.x(),scalar+r.y(), scalar+r.z());}
     default vec3 add(vec3 rhs){return add(this,rhs);}
     default vec3 add(float scalar){return add(this,vec3(scalar));}
 
@@ -71,6 +73,9 @@ public interface vec3 extends IfaceValue.Vector, IfaceValue.NewVector{
     default vec3 sub(vec3 rhs){return sub(this,rhs);}
 
     static vec3 mul(vec3 l, vec3 r) {return vec3(l.x()*r.x(),l.y()*r.y(), l.z()*r.z());}
+    static vec3 mul(vec3 l, float scalar ) {return vec3(l.x()*scalar,l.y()*scalar, l.z()*scalar);}
+    static vec3 mul(float scalar, vec3 r) {return vec3(scalar*r.x(),scalar*r.y(), scalar*r.z());}
+
     default vec3 mul(float scalar) {return mul(this, vec3(scalar));}
     default vec3 mul(vec3 rhs){return mul(this,rhs);}
     default vec3 mul(mat3 rhs){return vec3(
@@ -146,5 +151,7 @@ public interface vec3 extends IfaceValue.Vector, IfaceValue.NewVector{
         return vec3(F32.sin(vec3.x()),F32.sin(vec3.y()),F32.sin(vec3.z()));
     }
 
-
+    static vec3 cos(vec3 vec3){
+        return vec3(F32.cos(vec3.x()),F32.cos(vec3.y()),F32.cos(vec3.z()));
+    }
 }

@@ -22,39 +22,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package shade.shaders;
 
-import hat.Accelerator;
-import hat.backend.Backend;
+import hat.types.vec2;
+import hat.types.vec4;
+import shade.Shader;
+import shade.Uniforms;
+//https://www.shadertoy.com/view/Md23DV
+public class Shader1 implements Shader {
 
-import javax.swing.JFrame;
-import java.awt.Rectangle;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
 
-import static hat.types.mat2.mat2;
-import static hat.types.mat3.mat3;
-import static hat.types.vec2.vec2;
-import static hat.types.vec3.vec3;
-import static hat.types.vec4.vec4;
-
-public class Main extends JFrame {
-
-
-    static void main(String[] args) throws IOException {
-        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-
-        Controls controls = new Controls();
-        JFrame frame = new JFrame();
-        frame.setJMenuBar(controls.menu.menuBar());
-        int width = 1024;
-        int height = 1024;
-
-        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height, false, ShaderEnum.Tutrorial.shader);
-        frame.setBounds(new Rectangle(width + 100, height + 200));
-        frame.setContentPane(imagePanel);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setVisible(true);
-        imagePanel.start();
-    }
+            int w = uniforms.iResolution().x();
+            int wDiv3 = uniforms.iResolution().x() / 3;
+            int h = uniforms.iResolution().y();
+            int hDiv3 = uniforms.iResolution().y() / 3;
+            boolean midx = (fragCoord.x() > wDiv3 && fragCoord.x() < (w - wDiv3));
+            boolean midy = (fragCoord.y() > hDiv3 && fragCoord.y() < (h - hDiv3));
+            if (uniforms.iMouse().x() > wDiv3) {
+                if (midx && midy) {
+                    return vec4.vec4(fragCoord.x(), .0f, fragCoord.y(), 0.f);
+                } else {
+                    return vec4.vec4(0f, 0f, .5f, 0f);
+                }
+            } else {
+                return vec4.vec4(1f, 1f, .5f, 0f);
+            }
+        }
 }
