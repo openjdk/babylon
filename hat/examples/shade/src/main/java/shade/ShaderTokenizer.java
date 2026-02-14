@@ -299,6 +299,10 @@ public class ShaderTokenizer {
             if (c.get() instanceof TypeToken typeToken && c.next() instanceof CallToken callToken && c.next() instanceof OToken oToken) {
                 System.out.println("Function found: returnType=" + typeToken + ", name=" + callToken);
             }
+            if (c.get() instanceof ArithmeticOperator arithmeticOperator){
+                System.out.println("Arithmetic "+arithmeticOperator);
+            }
+
         }
     }
 
