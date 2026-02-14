@@ -45,8 +45,12 @@ public class ShaderTokenizer {
     }
 
     interface TypeToken extends LeafToken{}
+    interface ConstToken extends Token{}
 
-    record CreateToken(TOKEN_TYPE tokenType, String value) implements Token {
+    record CreateToken(TOKEN_TYPE tokenType, String value) implements ConstToken {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record MathLibCallToken(TOKEN_TYPE tokenType, String value) implements Token {
         public String toString() {return tokenType + ":" + value;}
     }
     record CallToken(TOKEN_TYPE tokenType, String value) implements Token {
@@ -61,20 +65,28 @@ public class ShaderTokenizer {
     record PrimitiveTypeToken(TOKEN_TYPE tokenType, String value) implements TypeToken {
         public String toString() {return tokenType + ":" + value;}
     }
-    record FloatToken(TOKEN_TYPE tokenType, String value, float f32) implements Token {
+    record FloatToken(TOKEN_TYPE tokenType, String value, float f32) implements ConstToken {
         public String toString() {return "F32:"+f32;}
     }
     record WhiteSpaceToken(TOKEN_TYPE tokenType, String value) implements Token {
         public String toString() {return "WS:" + value.replace("\n", "\\n").replace("\t","\\t").replace(" ", ".");}
     }
-    record IntToken(TOKEN_TYPE tokenType, String value, int i32) implements Token {
+    record IntToken(TOKEN_TYPE tokenType, String value, int i32) implements ConstToken {
         public String toString() {return "S32:"+i32;}
     }
-
+    record ReservedToken(TOKEN_TYPE tokenType, String value) implements Token {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record UniformToken(TOKEN_TYPE tokenType, String value) implements Token {
+        public String toString() {return tokenType + ":" + value;}
+    }
     record SimpleToken(TOKEN_TYPE tokenType, String value) implements Token {
         public String toString() {return tokenType + ":" + value;}
     }
     record PreprocessorToken(TOKEN_TYPE tokenType, String value) implements Token {
+        public String toString() {return tokenType + ":" + value;}
+    }
+    record AssignToken(TOKEN_TYPE tokenType, String value) implements Token {
         public String toString() {return tokenType + ":" + value;}
     }
 
@@ -97,8 +109,10 @@ public class ShaderTokenizer {
     enum TOKEN_TYPE {
         NONE(null),
         WHITE_SPACE("([ \n\t]+|//[^\n]*\n)"),
-
+        RESERVED("(in|out|mainImage|return)(?![a-zA-Z0-9_])"),
+        UNIFORM("(iTime|iResolution|iMouse)"),
         CREATE("(ivec[234]|vec[234]|imat[234]|mat[234])(?=[({])"),
+        MATH_LIB_CALL("(abs|clamp|cos|dot|exp|length|normalize|normal|max|min|mix|pow|reflect|sin|sqrt|tan)(?=[({])"),
         CALL("([a-zA-Z_][a-zA-Z0-9_]*)(?=[({])"),
         PRIMITIVE_TYPE("(float|int|void)(?![a-zA-Z0-9_])"),
         VEC_TYPE("(ivec[234]|vec[234])(?![a-zA-Z0-9_])"),
@@ -109,11 +123,12 @@ public class ShaderTokenizer {
         I32_OR_F32_CONST("(\\d+\\.?\\d*)"),
         OSYMBOL("([{(])"),
         CSYMBOL("([})])"),
+
+        ASSIGN("(=|\\+=|\\-=|\\*=|/=)"),
         ARITHMETIC_OPERATOR("([+/\\-*])"),
         SEMICOLON("(;)"),
         COMMA("(,)"),
-        ASSIGN("(=)"),
-        SYMBOL("([,])");
+        SYMBOL("([.])");
 
         String regex;
 
@@ -134,8 +149,11 @@ public class ShaderTokenizer {
                             case VEC_TYPE -> new VecTypeToken(tokenType, val);
                             case PRIMITIVE_TYPE -> new PrimitiveTypeToken(tokenType, val);
                             case PRE_PREPROCESSOR -> new PreprocessorToken(tokenType, val);
+                            case MATH_LIB_CALL -> new MathLibCallToken(tokenType, val);
                             case CALL -> new CallToken(tokenType, val);
                             case CREATE -> new CreateToken(tokenType, val);
+                            case UNIFORM -> new UniformToken(tokenType, val);
+                            case RESERVED -> new ReservedToken(tokenType, val);
                             case IDENTIFIER -> new SimpleToken(tokenType, val);
                             case I32_OR_F32_CONST -> val.contains(".") ? new FloatToken(tokenType,val,Float.parseFloat(val)) :new IntToken(tokenType,val,Integer.parseInt(val));
                             case OSYMBOL -> new SimpleToken(tokenType, val);
@@ -143,7 +161,7 @@ public class ShaderTokenizer {
                             case ARITHMETIC_OPERATOR -> new ArithmeticOperator(tokenType, val);
                             case SEMICOLON -> new SimpleToken(tokenType, val);
                             case COMMA -> new SimpleToken(tokenType, val);
-                            case ASSIGN -> new SimpleToken(tokenType, val);
+                            case ASSIGN -> new AssignToken(tokenType, val);
                             case SYMBOL -> new SimpleToken(tokenType, val);
                             case NONE -> new SimpleToken(tokenType, val);
                         };
@@ -425,14 +443,16 @@ public class ShaderTokenizer {
 
         tokens.forEach(token -> {
                     switch (token) {
-                        case WhiteSpaceToken whiteSpaceToken -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
-                        case FloatToken floatToken  -> ansi.color(ANSI.YELLOW, a -> a.apply(token.value()));
-                        case IntToken intToken  -> ansi.color(ANSI.YELLOW, a -> a.apply(token.value()));
-                        case TypeToken typeToken  -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
-                        case PreprocessorToken preprocessorToken  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
-                        case ArithmeticOperator arithmeticOperatorToken  -> ansi.color(ANSI.RED, a -> a.apply(token.value()));
-                        case CreateToken arithmeticOperatorToken  -> ansi.color(ANSI.PURPLE, a -> a.apply(token.value()));
-                        case CallToken arithmeticOperatorToken  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
+                        case WhiteSpaceToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
+                        case ConstToken _  -> ansi.color(ANSI.YELLOW, a -> a.apply(token.value()));
+                        case TypeToken _  -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
+                        case ReservedToken _  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
+                        case PreprocessorToken _  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
+                        case ArithmeticOperator _  -> ansi.color(ANSI.RED, a -> a.apply(token.value()));
+                        case AssignToken _  -> ansi.color(ANSI.RED, a -> a.apply(token.value()));
+                        case UniformToken _  -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
+                        case CallToken _  -> ansi.color(ANSI.PURPLE, a -> a.apply(token.value()));
+                        case MathLibCallToken _  -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
                         default -> ansi.apply(token.value());
                     }
                 });
