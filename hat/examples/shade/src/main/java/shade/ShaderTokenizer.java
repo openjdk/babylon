@@ -98,7 +98,7 @@ public class ShaderTokenizer {
         }
     }
 
-    record WhiteSpaceToken(TOKEN_TYPE tokenType, String value) implements Token {
+    record WSAndLineCommentToken(TOKEN_TYPE tokenType, String value) implements Token {
         public String toString() {
             return "WS:" + value.replace("\n", "\\n").replace("\t", "\\t").replace(" ", ".");
         }
@@ -192,7 +192,7 @@ public class ShaderTokenizer {
 
     enum TOKEN_TYPE {
         NONE(null),// NONE looks useless, but the ordinals for these enums define the groups # from regex.  So dont remove ;)
-        WHITE_SPACE("([ \n\t]+|//[^\n]*\n)"),
+        WS_AND_LINE_COMMENT("([ \n\t]+|//[^\n]*\n)"),
         RESERVED("(in|out|mainImage|return)(?![a-zA-Z0-9_])"),
         UNIFORM("(iTime|iResolution|iMouse)"),
         CREATE("(ivec[234]|vec[234]|imat[234]|mat[234])(?=[({])"),
@@ -241,7 +241,7 @@ public class ShaderTokenizer {
                     String val = matcher.group(tokenType.ordinal());
                     if (val != null && !val.isEmpty()) {
                         tokens.add(switch (tokenType) {
-                            case WHITE_SPACE -> new WhiteSpaceToken(tokenType, val);
+                            case WS_AND_LINE_COMMENT -> new WSAndLineCommentToken(tokenType, val);
                             case MAT_TYPE -> new MatTypeToken(tokenType, val);
                             case VEC_TYPE -> new VecTypeToken(tokenType, val);
                             case PRIMITIVE_TYPE -> new PrimitiveTypeToken(tokenType, val);
@@ -270,27 +270,35 @@ public class ShaderTokenizer {
         }
         return tokens;
     }
+    static class Cursor{
+        List<Token> tokens;
+        int idx;
+        Cursor(List<Token> tokens, int idx){
+            this.tokens = tokens;
+            this.idx = idx;
+        }
+        Token get(){
+            return tokens.get(idx);
+        }
+        Token next(){
+            idx++;
+            while (get() instanceof WSAndLineCommentToken ) {
+                idx++;
+            }
+            return get();
+        }
+        static Cursor of(List<Token> tokens, int idx){
+            return idx<tokens.size()?new Cursor(tokens, idx):null;
+        }
+    }
 
     // Example parse: print declarations and functions
     private static void parse(List<Token> tokens) {
-        int i = 0;
-        while (i < tokens.size()) {
-            Token t = tokens.get(i);
-            // Very basic: look for [type] [identifier] ...
-            if (t instanceof TypeToken typeToken && i + 2 < tokens.size()) {
-                Token ident = tokens.get(i + 1);
-                Token next = tokens.get(i + 2);
-                if (next.value().equals("(")) {
-                    // Parse function definition head
-                    System.out.println("Function found: returnType=" + t + ", name=" + ident);
-                } else if (next.value().equals(";") || next.value().equals("=")) {
-                    // Parse variable declaration
-                    System.out.println("Variable found: type=" + t + ", name=" + ident);
-                } else {
-                    System.out.println("OH: type=" + t + ", name=" + ident);
-                }
+        for  (int i=0; i < tokens.size(); i++) {
+            var c = Cursor.of(tokens,i);
+            if (c.get() instanceof TypeToken typeToken && c.next() instanceof CallToken callToken && c.next() instanceof OToken oToken) {
+                System.out.println("Function found: returnType=" + typeToken + ", name=" + callToken);
             }
-            i++;
         }
     }
 
@@ -518,7 +526,7 @@ public class ShaderTokenizer {
 
         tokens.forEach(token -> {
             switch (token) {
-                case WhiteSpaceToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
+                case WSAndLineCommentToken _ -> ansi.color(ANSI.GREEN, a -> a.apply(token.value()));
                 case ConstToken _ -> ansi.color(ANSI.YELLOW, a -> a.apply(token.value()));
                 case TypeToken _ -> ansi.color(ANSI.BLUE, a -> a.apply(token.value()));
                 case ReservedToken _ -> ansi.color(ANSI.CYAN, a -> a.apply(token.value()));
