@@ -29,8 +29,8 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
 
-public interface vec4 extends IfaceValue.Vector, IfaceValue.NewVector {
-    Shape shape = IfaceValue.Vector.Shape.of( JavaType.FLOAT,4);
+public interface vec4 extends  IfaceValue.vec {
+    Shape shape = Shape.of( JavaType.FLOAT,4);
 
     float x();
 
@@ -39,8 +39,6 @@ public interface vec4 extends IfaceValue.Vector, IfaceValue.NewVector {
     float z();
 
     float w();
-
-
 
     // A mutable variant needed for interface mapping
     interface Field extends vec4 {

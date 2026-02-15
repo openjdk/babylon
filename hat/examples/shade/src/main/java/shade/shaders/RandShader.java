@@ -126,6 +126,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     else if(r.y > 0.1) {
         vec3 white = vec3(1.);
         vec2 q = (r-vec2(0.,0.25))*vec2(1.,20.);
+
         ret = mix(white, gray, coordinateGrid(q));
 
         // scale up the outcome of the sine function
@@ -189,7 +190,7 @@ public class RandShader implements Shader {
     }
 
     static float disk(vec2 r, vec2 center, float radius) {
-        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, vec2.vec2(r).sub(center).length());
+        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, vec2.length(vec2.sub(vec2.vec2(r),center)));
     }
 
     static float coordinateGrid(vec2 r) {
@@ -217,9 +218,10 @@ public class RandShader implements Shader {
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         vec2 fres = vec2.vec2(uniforms.iResolution());
-        vec2 p = fragCoord.div(fres);
-        vec2 r = vec2.vec2(fragCoord.sub(fres.mul(.5f))).div(fres.y()).mul(2f);
-        ;
+        vec2 p = vec2.div(fragCoord,fres);
+        // vec2 r =  2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y;
+        vec2 r = vec2.div(vec2.mul(2f,vec2.sub(fragCoord,vec2.mul(5f, fres))),fres.y());
+
         float xMax = fres.x() / fres.y();
 
         vec3 bgCol = vec3.vec3(0.3f);
@@ -232,9 +234,10 @@ public class RandShader implements Shader {
         vec3 white = vec3.vec3(1f);
         vec3 gray = vec3.vec3(.3f);
         if (r.y() > 0.7f) {
-
+           // vec2 q = (r-vec2(0.,0.9))*vec2(1.,20.);
+            vec2 q = vec2.mul(vec2.sub(r, vec2.vec2(0f, 0.9f)),vec2.vec2(1f, 20f));
             // translated and rotated coordinate system
-            vec2 q = r.sub(vec2.vec2(0f, 0.9f)).mul(vec2.vec2(1f, 20f));
+            //vec2 q = r.sub(vec2.vec2(0f, 0.9f)).mul(vec2.vec2(1f, 20f));
             ret = vec3.mix(white, gray, coordinateGrid(q));
 
             // just the regular sin function
@@ -242,7 +245,9 @@ public class RandShader implements Shader {
 
             ret = vec3.mix(ret, col1, plot(q, y, 0.1f));
         } else if (r.y() > 0.4f) {
-            vec2 q = r.sub(vec2.vec2(0f, 0.6f)).mul(vec2.vec2(1f, 20f));
+            //vec2 q = (r-vec2(0.,0.6))*vec2(1.,20.);
+            vec2 q = vec2.mul(vec2.sub(r,vec2.vec2(0f, 0.6f) ),vec2.vec2(1f, 20f));
+          //  vec2 q = r.sub(vec2.vec2(0f, 0.6f)).mul(vec2.vec2(1f, 20f));
             ret = vec3.mix(white, col1, coordinateGrid(q));
 
             // take the decimal part of the sin function
@@ -251,7 +256,9 @@ public class RandShader implements Shader {
             ret = vec3.mix(ret, col2, plot(q, y, 0.1f));
         } else if (r.y() > 0.1f) {
             // vec3 white = vec3(1f);
-            vec2 q = r.sub(vec2.vec2(0f, 0.25f)).mul(vec2.vec2(1f, 20f));
+            //vec2 q = (r-vec2(0.,0.25))*vec2(1.,20.);
+            vec2 q= vec2.mul(vec2.sub(r,vec2.vec2(0f, 0.25f)), vec2.vec2(1f,20f));
+           // vec2 q = r.sub(vec2.vec2(0f, 0.25f)).mul(vec2.vec2(1f, 20f));
             ret = vec3.mix(white, gray, coordinateGrid(q));
 
             // scale up the outcome of the sine function
@@ -263,7 +270,9 @@ public class RandShader implements Shader {
             ret = vec3.mix(ret, col1, plot(q, y, 0.2f));
         } else if (r.y() > -0.2f) {
             //vec3 white = vec3(1.);
-            vec2 q = r.sub(vec2.vec2(0f, -0.0f)).mul(vec2.vec2(1f, 10f));
+//            vec2 q = (r-vec2(0., -0.0))*vec2(1.,10.);
+            vec2 q = vec2.mul(r, vec2.vec2(1f, 10f));
+           // vec2 q = r.sub(vec2.vec2(0f, -0.0f)).mul(vec2.vec2(1f, 10f));
             ret = vec3.mix(white, col1, coordinateGrid(q));
 
             float seed = q.x();
@@ -277,7 +286,8 @@ public class RandShader implements Shader {
 
             ret = vec3.mix(ret, col2, plot(q, y, 0.1f));
         } else {
-            vec2 q = r.sub(vec2.vec2(0f, -0.6f));
+            //   vec2 q = (r-vec2(0., -0.6));
+            vec2 q = vec2.sub(r,vec2.vec2(0f, -0.6f));
 
             // use the loop index as the seed
             // and vary different quantities of disks, such as
@@ -285,9 +295,9 @@ public class RandShader implements Shader {
             for (float i = 0.0f; i < 6.0f; i++) {
                 // change the seed and get different distributions
                 float seed = i + 0.0f;
-                vec2 pos = vec2.vec2(hash(seed), hash(seed + 0.5f)).sub(-0.5f).mul(3f);
+                vec2 pos = vec2.mul(vec2.sub(vec2.vec2(hash(seed), hash(seed + 0.5f)),-0.5f),3f);
                 float radius = hash(seed + 3.5f);
-                pos = pos.mul(vec2.vec2(1.0f, 0.3f));
+                pos = vec2.mul(pos, vec2.vec2(1.0f, 0.3f));
                 ret = vec3.mix(ret, col1, disk(q, pos, 0.2f * radius));
             }
         }

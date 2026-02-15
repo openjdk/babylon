@@ -83,38 +83,43 @@ public class SpiralShader implements Shader {
         float fTime = uniforms.iTime();
         float fFrame = uniforms.iFrame();
         var fResolution = vec2.vec2(uniforms.iResolution());
-
-        var U = fragCoord.mul(2f).sub(fResolution).div(fResolution.y());
+       // vec2  U = ((2.*fragCoord - fResolution)) / fResolution.y; // normalized coordinates
+        vec2 U = vec2.div(vec2.sub(vec2.mul(fragCoord,2f),fResolution),fResolution.y());//.sub(fResolution).div(fResolution.y());
         // normalized coordinates
-        var z = U.sub(-1f, 0f);
+        var z = vec2.sub(U, vec2.vec2(-1f, 0f));
 
-        U = U.sub(.5f, 0f);
-        U = U.mul(mat2(z.x(), z.y(), -z.y(), z.x())).div(vec2.dot(U, U));
+        U = vec2.sub(U, vec2.vec2(.5f, 0f));
+        U = vec2.div(vec2.mul(U, mat2(z.x(), z.y(), -z.y(), z.x())),vec2.dot(U, U));
         // offset   spiral, zoom   phase            // spiraling
-        U = U.add(.5f, 0f);
+        U = vec2.add(U, vec2.vec2(.5f, 0f));
+        //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
 
-        U = vec2.vec2(//U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
-                        F32.log(U.length())).mul(.5f, -.5f)
+        U = vec2.add(vec2.add(
+                vec2.mul(vec2.vec2(vec2.length(U)), vec2.vec2(.5f, 0.5f)),vec2.vec2(uniforms.iTime()/8f)
+        ), vec2.mul(vec2.div(vec2.atan(U.x(),U.y()),6.2832f),vec2.vec2(6f,1f)));
+
+       /* U = vec2.vec2(
+                        F32.log(vec2.length(U))).mul(vec2.vec2(.5f, -.5f))
                 .add(fTime / 8)
-                .add(vec2.atan(U.y(), U.x()).div(6.2832f).mul(6f, 1f));
+                .add(vec2.atan(U.y(), U.x()).div(6.2832f).mul(vec2.vec2(6f, 1f)));*/
 
-        U = U.mul(vec2.vec2(3f).div(vec2.vec2(2f, 1f)));
+        U = vec2.div(vec2.mul(U, vec2.vec2(3f)),vec2.vec2(2f, 1f));
         z = vec2.vec2(.1f);//fwidth(U); // this resamples the image.  Not sure how we do this!
-        U = U.fract().mul(5f);
-        vec2 I = U.floor();
-        U = U.fract();             // subdiv big square in 5x5
+        U = vec2.mul(vec2.fract(U),5f);
+        vec2 I = vec2.floor(U);
+        U = vec2.fract(U);             // subdiv big square in 5x5
         I = vec2.vec2(F32.mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
-        U = U.add((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f);     // recombine big tiles
+        U = vec2.add(U, vec2.vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
         float id = -1f;
         if (I.x() != 4f) {
-            U = U.div(2f);                                     // but small times
+            U = vec2.div(U,2f);                                     // but small times
             id = F32.mod(F32.floor(I.x() / 2f) + I.y(), 5f);
         }
-        U = vec2.abs(U.fract().mul(2f).sub(1f));
+        U = vec2.sub(vec2.abs(vec2.mul(vec2.fract(U),2f)),1f);
         float v = F32.max(U.x(), U.y());          // dist to border
 
         return
-                vec4.smoothstep(
+                vec4.normalize(vec4.smoothstep(
                         vec4.vec4(.7f),
                         vec4.vec4(-.7f),
                         vec4.vec4(v - .95f).div(F32.abs(z.x() - z.y()) > 1f
@@ -127,7 +132,7 @@ public class SpiralShader implements Shader {
                                                 vec4.cos(vec4.vec4(id).add(vec4.vec4(0f, 23f, 21f, 0f)))
                                         )
                                 )
-                );// color
+                ));// color
 
     };
 

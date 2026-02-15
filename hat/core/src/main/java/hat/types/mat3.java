@@ -28,8 +28,8 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
-public interface mat3 extends IfaceValue.Matrix {
-    Shape shape = IfaceValue.Matrix.Shape.of( JavaType.FLOAT,3,3);
+public interface mat3 extends IfaceValue.mat {
+    Shape shape = IfaceValue.mat.Shape.of( JavaType.FLOAT,3,3);
     float _00();
     float _01();
     float _02();

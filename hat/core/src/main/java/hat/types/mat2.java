@@ -26,11 +26,10 @@ package hat.types;
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.IfaceValue;
-import optkl.IfaceValue.Matrix;
+import optkl.IfaceValue.mat;
 
-public interface mat2 extends Matrix{
-    Shape shape = IfaceValue.Matrix.Shape.of( JavaType.FLOAT,2,2);
+public interface mat2 extends mat {
+    Shape shape = Shape.of( JavaType.FLOAT,2,2);
     float _00();
 
     float _01();

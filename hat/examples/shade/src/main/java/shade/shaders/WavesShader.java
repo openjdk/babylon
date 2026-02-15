@@ -25,6 +25,7 @@
 package shade.shaders;
 
 import hat.types.F32;
+import hat.types.ivec2;
 import hat.types.mat3;
 import hat.types.vec2;
 import hat.types.vec3;
@@ -481,13 +482,13 @@ public class WavesShader implements Shader {
     static int ITERATIONS_NORMAL = 36; // waves iterations when calculating normals
 
     static vec2 NormalizedMouse(vec2 fMouse, vec2 fResolution) {
-        return fMouse.div(fResolution);
+        return vec2.div(fMouse,fResolution);
     } // normalize mouse coords
 
     // Calculates wave value and its derivative,
 // for the wave direction, position in space, wave frequency and time
     static vec2 wavedx(vec2 position, vec2 direction, float frequency, float timeshift) {
-        float x = direction.dot(position) * frequency + timeshift;
+        float x = vec2.dot(direction,position) * frequency + timeshift;
         float wave = F32.exp(F32.sin(x) - 1.0f);
         float dx = wave * F32.cos(x);
         return vec2.vec2(wave, -dx);
@@ -495,7 +496,7 @@ public class WavesShader implements Shader {
 
     // Calculates waves by summing octaves of various waves with various parameters
     static float getwaves(vec2 position, int iterations, float fTime) {
-        float wavePhaseShift = position.length() * 0.1f; // this is to avoid every octave having exactly the same phase everywhere
+        float wavePhaseShift = vec2.length(position) * 0.1f; // this is to avoid every octave having exactly the same phase everywhere
         float iter = 0.0f; // this will help generating well distributed wave directions
         float frequency = 1.0f; // frequency of the wave, this will change every iteration
         float timeMultiplier = 2.0f; // time multiplier for the wave, this will change every iteration
@@ -510,7 +511,7 @@ public class WavesShader implements Shader {
             vec2 res = wavedx(position, p, frequency, fTime * timeMultiplier + wavePhaseShift);
 
             // shift position around according to wave drag and derivative of the wave
-            position = position.add(position.mul(res.y() * weight * DRAG_MULT));
+            position = vec2.add(position, vec2.mul(position, res.y() * weight * DRAG_MULT));
 
             // add the results to sums
             sumOfValues += res.x() * weight;
@@ -554,8 +555,8 @@ public class WavesShader implements Shader {
         vec3 a = vec3.vec3(pos.x(), H, pos.y());
         return vec3.normalize(
                 vec3.cross(
-                        a.sub(vec3.vec3(pos.x() - e, getwaves(pos.sub(ex), ITERATIONS_NORMAL, fTime) * depth, pos.y())),
-                        a.sub(vec3.vec3(pos.x(), getwaves(pos.add(ex), ITERATIONS_NORMAL, fTime) * depth, pos.y() + e))
+                        a.sub(vec3.vec3(pos.x() - e, getwaves(vec2.sub(pos,ex), ITERATIONS_NORMAL, fTime) * depth, pos.y())),
+                        a.sub(vec3.vec3(pos.x(), getwaves(vec2.add(pos, ex), ITERATIONS_NORMAL, fTime) * depth, pos.y() + e))
                 )
         );
     }
@@ -574,7 +575,7 @@ public class WavesShader implements Shader {
 
     // Helper function that generates camera ray based on UV and mouse
     static vec3 getRay(vec2 fragCoord, vec2 fres, vec2 fMouse) {
-        vec2 uv = fragCoord.div(fres.mul(2f).sub(1f)).mul(vec2.vec2(fres.x() / fres.y(), 1.0f));
+        vec2 uv = vec2.mul(vec2.div(fragCoord,vec2.sub(vec2.mul(fres, 2f),1f)),vec2.vec2(fres.x() / fres.y(), 1.0f));
         // for fisheye, uncomment following line and comment the next one
         //vec3 proj = normalize(vec3(uv.x, uv.y, 1.0) + vec3(uv.x, uv.y, -1.0) * pow(length(uv), 2.0) * 0.05);
         vec3 proj = vec3.vec3(uv.x(), uv.y(), 1.5f).normalize();

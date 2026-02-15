@@ -28,8 +28,8 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
-public interface vec3 extends IfaceValue.Vector, IfaceValue.NewVector{
-    Shape shape = IfaceValue.Vector.Shape.of( JavaType.FLOAT,3);
+public interface vec3 extends  IfaceValue.vec {
+    Shape shape = Shape.of( JavaType.FLOAT,3);
     float x();
 
     float y();

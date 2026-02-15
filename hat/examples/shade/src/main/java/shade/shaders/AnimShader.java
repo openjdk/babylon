@@ -45,15 +45,15 @@ public class AnimShader implements Shader {
         return ret;
     }
     static float disk(vec2 r, vec2 center, float radius) {
-        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, vec2.vec2(r).sub(center).length());
+        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, vec2.length(vec2.sub(vec2.vec2(r),center)));
     }
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         vec2 fres = vec2.vec2(uniforms.iResolution());
         float ftime = uniforms.iTime();
-        vec2 p = fragCoord.div(fres);
-        vec2 r = vec2.vec2(fragCoord.sub(fres.mul(.5f))).div(fres.y()).mul(2f);
+        vec2 p = vec2.div(fragCoord, fres);
+        vec2 r = vec2.mul(vec2.div(vec2.vec2(vec2.sub(fragCoord,vec2.mul(fres,.5f))),fres.y()),2f);
         float xMax = fres.x() / fres.y();
 
         vec3 col1 = vec3.vec3(0.216f, 0.471f, 0.698f); // blue
@@ -63,7 +63,7 @@ public class AnimShader implements Shader {
         vec3 ret = vec3.vec3(0f, 0f, 0f);
 
         if (p.x() < 1f / 5f) { // Part I
-            vec2 q = r.add(vec2.vec2(xMax * 4f / 5f, 0f));
+            vec2 q = vec2.add(r, vec2.vec2(xMax * 4f / 5f, 0f));
             ret = vec3.vec3(0.2f);
             // y coordinate depends on time
             float y = uniforms.iTime();
@@ -73,7 +73,7 @@ public class AnimShader implements Shader {
             y = F32.mod(y, 2f) - 1f;
             ret = vec3.mix(ret, col1, disk(q, vec2.vec2(0f, y), 0f));
         } else if (p.x() < 2f / 5f) { // Part II
-            vec2 q = r.add(vec2.vec2(xMax * 2f / 5f, 0f));
+            vec2 q = vec2.add(r, vec2.vec2(xMax * 2f / 5f, 0f));
             ret = vec3.vec3(0.3f);
             // oscillation
             float amplitude = 0.8f;
@@ -83,7 +83,7 @@ public class AnimShader implements Shader {
             float radius = 0.15f + 0.05f * F32.sin(uniforms.iTime() * 8.0f);
             ret = vec3.mix(ret, col1, disk(q, vec2.vec2(0f, y), radius));
         } else if (p.x() < 3. / 5.) { // Part III
-            vec2 q = r.add(vec2.vec2(xMax * 0f / 5f, 0f));
+            vec2 q = vec2.add(r, vec2.vec2(xMax * 0f / 5f, 0f));
             ret = vec3.vec3(0.4f);
             // booth coordinates oscillates
             float x = 0.2f * F32.cos(uniforms.iTime() * 5.0f);
@@ -96,21 +96,21 @@ public class AnimShader implements Shader {
             // try different phases, different amplitudes and different frequencies
             // for x and y coordinates
         } else if (p.x() < 4f / 5f) { // Part IV
-            vec2 q = r.add(vec2.vec2(-xMax * 2f / 5f, 0f));
+            vec2 q = vec2.add(r, vec2.vec2(-xMax * 2f / 5f, 0f));
             ret = vec3.vec3(0.3f);
             for (float i = -1.0f; i < 1.0f; i += 0.2f) {
                 float x = 0.2f * F32.cos(ftime * 5.0f + i * F32.PI);
                 // y coordinate is the loop value
                 float y = i;
-                vec2 s = q.sub(vec2.vec2(x, y));
+                vec2 s = vec2.sub(q,vec2.vec2(x, y));
                 // each box has a different phase
                 float angle = ftime * 3f + i;
                 mat2 rot = mat2.mat2(F32.cos(angle), -F32.sin(angle), F32.sin(angle), F32.cos(angle));
-                s = s.mul(rot);
+                s = vec2.mul(s, rot);
                 ret = vec3.mix(ret, col1, rect(s, vec2.vec2(-0.06f, -0.06f), vec2.vec2(0.06f, 0.06f)));
             }
         } else if (p.x() < 1) { // Part V
-            vec2 q = r.add(vec2.vec2(-xMax * 4f / 5f, 0f));
+            vec2 q = vec2.add(r, vec2.vec2(-xMax * 4f / 5f, 0f));
             ret = vec3.vec3(0.2f);
             // let stop and move again periodically
             float speed = 2.0f;

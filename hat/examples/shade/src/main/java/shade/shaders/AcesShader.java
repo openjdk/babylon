@@ -89,8 +89,10 @@ public class AcesShader implements Shader {
     }
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-
-        vec2 position = fragCoord.div(vec2.vec2(uniforms.iResolution())).mul(2f).sub(1f); //fragCoord/iResolution.xy)* 2.0 - 1.0;
+        vec2 fres = vec2.vec2(uniforms.iResolution());
+        //vec2 position = (fragCoord/iResolution.xy)* 2.0 - 1.0;
+        vec2 position = vec2.sub(vec2.mul(vec2.div(fragCoord,fres),2f), 1);
+        //fragCoord.div(vec2.vec2(uniforms.iResolution())).mul(2f).sub(1f); //fragCoord/iResolution.xy)* 2.0 - 1.0;
         position = vec2.vec2(position.x() + uniforms.iTime() * 0.2f, position.y()); // position.x += iTime * 0.2;
 
         //vec3 color = pow(
