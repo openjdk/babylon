@@ -81,16 +81,20 @@ public class AcesShader implements Shader {
                 -0.53108f, 1.10813f, -0.07276f,
                 -0.07367f, -0.00605f, 1.07602f
         );
-        vec3 v = color.mul(m1);
-        vec3 a = v.mul(v.add(+0.0245786f)).sub(0.000090537f);
-        vec3 b = v.mul((v.mul(0.983729f).add(0.4329510f)).add(0.238081f));
-        var aOverBMulM2 = a.div(b).mul(m2);
+        vec3 v = vec3.mul(color,m1);
+        // vec3 a = v * (v + 0.0245786) - 0.000090537;
+        vec3 a = vec3.sub(vec3.mul(v, vec3.add(v,0.0245786f)),0.000090537f);
+          vec3 b = vec3.add(vec3.mul(v,vec3.add(vec3.mul(0.983729f,v), 0.4329510f)), 0.238081f);
+
+        var aOverBMulM2 = vec3.mul(vec3.div(a,b),m2);
         return vec3.clamp(vec3.pow(aOverBMulM2, 1.0f / 2.2f), 0f, 1f);
     }
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-
-        vec2 position = fragCoord.div(vec2.vec2(uniforms.iResolution())).mul(2f).sub(1f); //fragCoord/iResolution.xy)* 2.0 - 1.0;
+        vec2 fres = vec2.vec2(uniforms.iResolution());
+        //vec2 position = (fragCoord/iResolution.xy)* 2.0 - 1.0;
+        vec2 position = vec2.sub(vec2.mul(vec2.div(fragCoord,fres),2f), 1);
+        //fragCoord.div(vec2.vec2(uniforms.iResolution())).mul(2f).sub(1f); //fragCoord/iResolution.xy)* 2.0 - 1.0;
         position = vec2.vec2(position.x() + uniforms.iTime() * 0.2f, position.y()); // position.x += iTime * 0.2;
 
         //vec3 color = pow(
@@ -102,18 +106,12 @@ public class AcesShader implements Shader {
         //              abs(position.y) * 4.0
         //              ) - 1.0);
         vec3 v012 = vec3.vec3(0f, 1f, 2f);
-        vec3 v0123x2Pi = v012.mul(F32.PI).mul(2f);
-        vec3 v0123x2PiDiv3 = v0123x2Pi.div(3f);
-        vec3 sinCoef = v0123x2PiDiv3.add(position.x() * 4);
-        vec3 color = vec3.pow(
-                        vec3.sin(sinCoef).mul(0.5f).add(0.5f),
-                        2f
-                )
-                .mul(
-                        F32.exp(
-                                F32.abs(position.y()) * 4f
-                        ) - 1f
-                );
+        vec3 v0123x2Pi = vec3.mul(vec3.mul(v012,F32.PI),2f);
+        vec3 v0123x2PiDiv3 = vec3.div(v0123x2Pi,3f);
+        vec3 sinCoef = vec3.add(v0123x2PiDiv3,position.x() * 4);
+        vec3 color = vec3.mul(vec3.pow(vec3.add(vec3.mul(vec3.sin(sinCoef),0.5f),0.5f), 2f)
+                ,
+                F32.exp(F32.abs(position.y()) * 4f) - 1f);
         if (position.y() < 0f) {
             color = aces_tonemap(color);
         }

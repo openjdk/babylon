@@ -24,13 +24,13 @@
  */
 package shade;
 
+import hat.types.ivec2;
+import static hat.types.ivec2.ivec2;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import hat.types.vec4;
-
+import static hat.types.vec4.vec4;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-
-import static hat.types.ivec2.ivec2;
 
 public class UniformTest {
      static void main(String[] args){
@@ -40,11 +40,11 @@ public class UniformTest {
         var resolution = uniforms.iResolution();
         IO.println("fc "+fc);
         IO.println("resolution "+resolution);
-        resolution.of(resolution.add(2));
+        resolution.of(ivec2.add(resolution,2));
         IO.println("resolution "+resolution);
         vec4 color = vec4.vec4(1f,2f,3f,4f);
         IO.println("color = "+color);
-        fc.of(fc.add(color).div(2f));
+        fc.of(vec4.div(vec4.add(fc,color),2f));
         IO.println("fc "+fc);
         uniforms.iTime(0L);
         IO.println("iTime = "+uniforms.iTime());

@@ -29,8 +29,8 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
 
-public interface vec4 extends IfaceValue.Vector, IfaceValue.NewVector {
-    Shape shape = IfaceValue.Vector.Shape.of( JavaType.FLOAT,4);
+public interface vec4 extends  IfaceValue.vec {
+    Shape shape = Shape.of( JavaType.FLOAT,4);
 
     float x();
 
@@ -39,8 +39,6 @@ public interface vec4 extends IfaceValue.Vector, IfaceValue.NewVector {
     float z();
 
     float w();
-
-
 
     // A mutable variant needed for interface mapping
     interface Field extends vec4 {
@@ -71,28 +69,18 @@ public interface vec4 extends IfaceValue.Vector, IfaceValue.NewVector {
     static vec4 vec4(vec2 vec2, float z,float w) {return vec4(vec2.x(), vec2.y(), z, w);}
 
     static vec4 add(vec4 l, vec4 r) {return vec4(l.x()+r.x(),l.y()+r.y(), l.z()+r.z(),l.w()+r.w());}
-    default vec4 add(vec4 rhs){return add(this,rhs);}
-    default vec4 add(float scalar){return add(this,vec4(scalar));}
-    default vec4 add(float x, float y, float z, float w){return add(this,vec4(x,y,z,w));}
+    static vec4 add(vec4 l, float scalar){return add(l,vec4(scalar));}
     static vec4 sub(vec4 l, vec4 r) {return vec4(l.x()-r.x(),l.y()-r.y(), l.z()-r.z(),l.w()-r.w());}
-    default vec4 sub(float scalar) {return sub(this, vec4(scalar));}
-    default vec4 sub(vec4 rhs){return sub(this,rhs);}
 
     static vec4 mul(vec4 l, vec4 r) {return vec4(l.x()*r.x(),l.y()*r.y(), l.z()*r.z(),l.w()*r.w());}
-    default vec4 mul(float scalar) {return mul(this, vec4(scalar));}
-    default vec4 mul(vec4 rhs){return mul(this,rhs);}
+    static vec4 mul(vec4 l, float scalar) {return mul(l, vec4(scalar));}
 
     static vec4 div(vec4 l, vec4 r) {return vec4(l.x()/r.x(),l.y()/r.y(), l.z()/r.z(),l.w()/r.w());}
-    default vec4 div(float scalar) {return div(this, vec4(scalar));}
-    default vec4 div(vec4 rhs){return div(this,rhs);}
+    static vec4 div(vec4 l,float scalar) {return div(l, vec4(scalar));}
 
     static vec4 clamp(vec4 rhs,float min, float max){
         return vec4(Math.clamp(rhs.x(),min,max),Math.clamp(rhs.y(),min,max),Math.clamp(rhs.z(),min,max),Math.clamp(rhs.w(),min,max));
     }
-    default vec4 clamp(float min, float max){
-        return clamp(this,min,max);
-    }
-
 
     static vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 vec4){
         return vec4(
@@ -117,9 +105,6 @@ public interface vec4 extends IfaceValue.Vector, IfaceValue.NewVector {
             return vec4(vec4.x() * invLen, vec4.y() * invLen, vec4.z() * invLen, vec4.w() *invLen);
         }
         return vec4(0f, 0f, 0f,0f); // Handle zero-length case
-    }
-    default vec4 normalize(){
-        return normalize(this);
     }
 
 }

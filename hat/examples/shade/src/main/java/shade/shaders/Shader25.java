@@ -38,16 +38,16 @@ public class Shader25 implements Shader {
         //            ivec2->vec2
         var fres = vec2.vec2(uniforms.iResolution());
         //            vec2(fragCoord.xy / iResolution.xy);
-        var p = fragCoord.div(fres);
+        var p = vec2.div(fragCoord,fres);
         //            r = 2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y
-        var r = fragCoord.sub(fres.mul(.5f)).div(fres.y()).mul(16f);
+        var r = vec2.mul(vec2.div(vec2.sub(fragCoord,vec2.mul(fres, .5f)),fres.y()),16f);
 
         float t = ((float) uniforms.iFrame()) / 15f;
 
         float v1 = F32.sin(r.x() + t);
         float v2 = F32.sin(r.y() + t);
         float v3 = F32.sin((r.x() + r.y()) + t);
-        float v4 = F32.sin(r.length() + (1.7f * t));
+        float v4 = F32.sin(vec2.length(r) + (1.7f * t));
         float v = v1 + v2 + v3 + v4;
 
         var ret = vec4.vec4(1f, 1f, 1f, 1f);
@@ -73,6 +73,6 @@ public class Shader25 implements Shader {
             // mix colors
             ret = vec4.vec4(F32.sin(v), F32.sin(v + 0.5f * F32.PI), F32.sin(v + F32.PI), 1f);
         }
-        return ret.add(.5f).mul(.5f).clamp(0f, 1f);
+        return vec4.clamp(vec4.mul(vec4.add(ret,.5f),.5f),0f, 1f);
     }
 }

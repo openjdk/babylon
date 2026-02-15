@@ -26,11 +26,10 @@ package hat.types;
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.IfaceValue;
-import optkl.IfaceValue.Matrix;
+import optkl.IfaceValue.mat;
 
-public interface mat2 extends Matrix{
-    Shape shape = IfaceValue.Matrix.Shape.of( JavaType.FLOAT,2,2);
+public interface mat2 extends mat {
+    Shape shape = Shape.of( JavaType.FLOAT,2,2);
     float _00();
 
     float _01();
@@ -66,12 +65,12 @@ public interface mat2 extends Matrix{
     static mat2 mat2(float scalar) {return mat2(scalar,scalar,scalar,scalar);}
 
     static mat2 add(mat2 l, mat2 r) {return mat2(l._00()+r._00(),l._01()+r._01(), l._10()+r._10(),l._11()+r._11());}
-    default mat2 add(mat2 rhs){return add(this,rhs);}
-    default mat2 add(float scalar){return add(this,mat2(scalar));}
+   // default mat2 add(mat2 rhs){return add(this,rhs);}
+   // default mat2 add(float scalar){return add(this,mat2(scalar));}
 
     static mat2 sub(mat2 l, mat2 r) {return mat2(l._00()-r._00(),l._01()-r._01(), l._10()-r._10(),l._11()-r._11());}
-    default mat2 sub(float scalar) {return sub(this, mat2(scalar));}
-    default mat2 sub(mat2 rhs){return sub(this,rhs);}
+    //default mat2 sub(float scalar) {return sub(this, mat2(scalar));}
+    //default mat2 sub(mat2 rhs){return sub(this,rhs);}
 
     static mat2 mul(mat2 l, mat2 r) {return mat2(l._00()*r._00(),l._01()*r._01(), l._10()*r._10(),l._11()*r._11());}
     static vec2 mul(mat2 l, vec2 r) {return vec2.vec2(
@@ -79,11 +78,11 @@ public interface mat2 extends Matrix{
             l._10()*r.x()+l._11()*r.y()
     );}
 
-    default mat2 mul(float scalar) {return mul(this, mat2(scalar));}
-    default mat2 mul(mat2 rhs){return mul(this,rhs);}
+    //default mat2 mul(float scalar) {return mul(this, mat2(scalar));}
+   // default mat2 mul(mat2 rhs){return mul(this,rhs);}
 
     static mat2 div(mat2 l, mat2 r) {return mat2(l._00()/r._00(),l._01()/r._01(), l._10()/r._10(),l._11()/r._11());}
-    default mat2 div(float scalar) {return div(this, mat2(scalar));}
-    default mat2 div(mat2 rhs){return div(this,rhs);}
+    //default mat2 div(float scalar) {return div(this, mat2(scalar));}
+    //default mat2 div(mat2 rhs){return div(this,rhs);}
 
 }

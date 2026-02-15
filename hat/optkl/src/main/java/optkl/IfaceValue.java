@@ -60,10 +60,32 @@ public interface IfaceValue {
         }
     }
 
-    interface NewVector {
+    interface vec {
+        interface Shape {
+            // This is the type that best describes the usage from a Java POV
+            TypeElement typeElement();
+            // This is how we expect to represent the type
+            // So an FP16x4 might be
+            //    typeElement=FLOAT (we will see float accessors)
+            //    representedBy=SHORT (the data is 'packed into')
+            TypeElement representedBy();
+            int lanes();
+            static Shape of(TypeElement typeElement, TypeElement representedBy, int lanes) {
+                record Impl(TypeElement typeElement, TypeElement representedBy, int lanes) implements Shape {
+                    @Override public String toString(){
+                        return typeElement.toString() + Impl.this.lanes;
+                    }
+                }
+                return new Impl(typeElement,representedBy, lanes);
+            }
+            static Shape of(TypeElement typeElement, int lanes) {
+                return of (typeElement,typeElement,lanes);
+            }
+
+        }
     }
     // Experimental ... considering for any Struct acting as an aggregate containing a length field.
-    interface Matrix {
+    interface mat {
         interface Shape {
             TypeElement typeElement();
             int rows();

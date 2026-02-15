@@ -34,7 +34,7 @@ import shade.shaders.Shader25;
 import shade.shaders.SpiralShader;
 import shade.shaders.TutorialShader;
 import shade.shaders.WavesShader;
-
+import  hat.types.vec2;
 import static hat.types.vec2.vec2;
 import static hat.types.vec4.vec4;
 
@@ -45,7 +45,7 @@ enum ShaderEnum {
     Gradient((uniforms, fragColor, fragCoord) -> {
         var fResolution = vec2(uniforms.iResolution());
         float fFrame = uniforms.iFrame();
-        var uv = fragCoord.div(fResolution);
+        var uv = vec2.div(fragCoord,fResolution);
         return vec4(uv.x(), uv.y(), F32.max(fFrame / 100f, 1f), 0f);
     }),
 
@@ -57,7 +57,7 @@ enum ShaderEnum {
     Anim(new AnimShader()),
     Waves(new WavesShader()),
     Intro(new IntroShader()),
-    Tutrorial(new TutorialShader());
+    Tutorial(new TutorialShader());
     Shader shader;
 
     ShaderEnum(Shader shader) {

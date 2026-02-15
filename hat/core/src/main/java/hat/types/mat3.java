@@ -28,8 +28,8 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
-public interface mat3 extends IfaceValue.Matrix {
-    Shape shape = IfaceValue.Matrix.Shape.of( JavaType.FLOAT,3,3);
+public interface mat3 extends IfaceValue.mat {
+    Shape shape = IfaceValue.mat.Shape.of( JavaType.FLOAT,3,3);
     float _00();
     float _01();
     float _02();
@@ -77,31 +77,31 @@ public interface mat3 extends IfaceValue.Matrix {
             l._10()+r._10(),l._11()+r._11(),l._12()+r._12(),
             l._20()+r._20(),l._21()+r._21(),l._22()+r._22()
     );}
-    default mat3 add(mat3 rhs){return add(this,rhs);}
-    default mat3 add(float scalar){return add(this,mat3(scalar));}
+    //default mat3 add(mat3 rhs){return add(this,rhs);}
+    //default mat3 add(float scalar){return add(this,mat3(scalar));}
 
     static mat3 sub(mat3 l, mat3 r) {return mat3(
             l._00()-r._00(),l._01()-r._01(),l._02()-r._02(),
             l._10()-r._10(),l._11()-r._11(),l._12()-r._12(),
             l._20()-r._20(),l._21()-r._21(),l._22()-r._22()
     );}
-    default mat3 sub(float scalar) {return sub(this, mat3(scalar));}
-    default mat3 sub(mat3 rhs){return sub(this,rhs);}
+    //default mat3 sub(float scalar) {return sub(this, mat3(scalar));}
+    //default mat3 sub(mat3 rhs){return sub(this,rhs);}
 
     static mat3 mul(mat3 l, mat3 r) {return mat3(
             l._00()*r._00(),l._01()*r._01(),l._02()*r._02(),
             l._10()*r._10(),l._11()*r._11(),l._12()*r._12(),
             l._20()*r._20(),l._21()*r._21(),l._22()*r._22()
     );}
-    default mat3 mul(float scalar) {return mul(this, mat3(scalar));}
-    default mat3 mul(mat3 rhs){return mul(this,rhs);}
+   // default mat3 mul(float scalar) {return mul(this, mat3(scalar));}
+   // default mat3 mul(mat3 rhs){return mul(this,rhs);}
 
     static mat3 div(mat3 l, mat3 r) {return mat3(
             l._00()/r._00(),l._01()/r._01(),l._02()/r._02(),
             l._10()/r._10(),l._11()/r._11(),l._12()/r._12(),
             l._20()/r._20(),l._21()/r._21(),l._22()/r._22()
     );}
-    default mat3 div(float scalar) {return div(this, mat3(scalar));}
-    default mat3 div(mat3 rhs){return div(this,rhs);}
+   // default mat3 div(float scalar) {return div(this, mat3(scalar));}
+   // default mat3 div(mat3 rhs){return div(this,rhs);}
 
 }
