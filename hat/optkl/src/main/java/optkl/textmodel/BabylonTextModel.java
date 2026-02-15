@@ -216,9 +216,7 @@ public class BabylonTextModel extends TextModel {
     private BabylonTextModel transform() {
         // "[0-9][0-9]*" ->IntConst
         replace(true, t -> Seq.isA(t, $ -> $.matches(IntConst.regex)), IntConst::new);
-
-        // IntConst '.' IntConst ->FloatConst   (yeah we are missing '.' IntConst  and the exponent stuff)
-        replace(true, (t1, t2, t3) -> IntConst.isA(t1) && Ch.isADot(t2) && Seq.isA(t3), FloatConst::new);
+        replace(true, t -> Seq.isA(t, $ -> $.matches(FloatConst.regex)), FloatConst::new);
 
         // (Seq|Dname) '.' Seq -> Dname
         replace(true, (t1, t2, t3) -> (Seq.isA(t1) || DottedName.isA(t1)) && Ch.isADot(t2) && Seq.isA(t3), DottedName::new);

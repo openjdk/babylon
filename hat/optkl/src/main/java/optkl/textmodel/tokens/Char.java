@@ -24,22 +24,13 @@
  */
 package optkl.textmodel.tokens;
 
-import optkl.util.Regex;
-
 import java.util.function.Predicate;
 
-public class IntConst extends LeafReplacementToken {
-    public final int i;
-    public static final Regex regex = Regex.of("[0-9]+");
-
-    public IntConst(Token t) {
-        super(t);
-        this.i = Integer.parseInt(t.asString());
+public interface Char extends Leaf {
+    static boolean isA(Token t, Predicate<Char> predicate) {
+        return t instanceof Char seq && predicate.test(seq);
     }
-    public static boolean isA(Token t, Predicate<IntConst> predicate) {
-        return t instanceof IntConst intConst && predicate.test(intConst);
-    }
-    public static boolean isA(Token t) {
-        return isA(t, _->true);
+    default int len() {
+        return 1;
     }
 }
