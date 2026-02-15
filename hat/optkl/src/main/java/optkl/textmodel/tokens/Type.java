@@ -24,8 +24,8 @@
  */
 package optkl.textmodel.tokens;
 
-public interface SingleCharLeaf extends Leaf {
-    default int len() {
-        return 1;
+public class Type extends LeafReplacementToken {
+    public Type(Token t) {
+        super(t);
     }
 }

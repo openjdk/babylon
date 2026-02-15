@@ -4,6 +4,7 @@
 --class-path '\
     build/hat-optkl-1.0.jar:\
     build/hat-core-1.0.jar:\
+    build/hat-tools-1.0.jar:\
     build/hat-backend-ffi-shared-1.0.jar:\
     build/hat-backend-ffi-opencl-1.0.jar:\
     build/hat-example-blackscholes-1.0.jar:\

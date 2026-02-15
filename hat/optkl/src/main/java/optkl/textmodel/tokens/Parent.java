@@ -317,12 +317,21 @@ public interface Parent extends Token {
                         add(factory().multiLineComment(this, loc.pos(), (slashFinder.textOffset() - loc.textOffset()) + 1));
                     }
                 }
-            } else if (Character.isJavaIdentifierPart(loc.ch())) {  // we don't use isJavaItendifierStart because we can slurp ints here too.
+            } else if (Character.isDigit(loc.ch())||loc.ch()=='.') {  // We map .2 2 222 -> seq
+                Cursor.Loc start = loc;
+                boolean haveDot = loc.ch()=='.';
+                while (loc.peek() instanceof Character peeked && (Character.isDigit(peeked) || (!haveDot && peeked=='.'))) {
+                    haveDot|= peeked=='.';
+                    loc = c.next();
+                }
+                add(factory().seq(this, start.pos(), loc.delta(start) + 1));
+            } else if (Character.isJavaIdentifierStart(loc.ch())) {
                 Cursor.Loc start = loc;
                 while (loc.peek() instanceof Character peeked && Character.isJavaIdentifierPart(peeked)) {
                     loc = c.next();
                 }
                 add(factory().seq(this, start.pos(), loc.delta(start) + 1));
+
             } else {
                 add(factory().ch(this, loc.pos()));
             }

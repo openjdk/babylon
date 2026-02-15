@@ -61,11 +61,9 @@ public class JavaTextModel extends TextModel {
     }
 
      public void transform(){
-         // "[0-9][0-9]*" ->IntConst
-         replace(true, t -> Seq.isA(t, $->$.matches(IntConst.regex)), IntConst::new);
 
-         // IntConst '.' IntConst ->FloatConst   (yeah we are missing '.' IntConst  and the exponent stuff)
-         replace(true, (t1,t2,t3) -> IntConst.isA(t1) && Ch.isADot(t2) && IntConst.isA(t3), FloatConst::new);
+         replace(true, t -> Seq.isA(t, $->$.matches(IntConst.regex)), IntConst::new);
+         replace(true, t -> Seq.isA(t, $->$.matches(FloatConst.regex)), FloatConst::new);
 
          // @ (char) -> At
          replace(true, Ch::isAnAt, At::new);
