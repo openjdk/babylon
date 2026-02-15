@@ -44,7 +44,7 @@ public class UniformTest {
         IO.println("resolution "+resolution);
         vec4 color = vec4.vec4(1f,2f,3f,4f);
         IO.println("color = "+color);
-        fc.of(fc.add(color).div(2f));
+        fc.of(vec4.div(vec4.add(fc,color),2f));
         IO.println("fc "+fc);
         uniforms.iTime(0L);
         IO.println("iTime = "+uniforms.iTime());

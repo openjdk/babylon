@@ -532,20 +532,20 @@ public class WavesShader implements Shader {
     // Raymarches the ray from top water layer boundary to low water layer boundary
     static float raymarchwater(vec3 camera, vec3 start, vec3 end, float depth, float fTime) {
         vec3 pos = start;
-        vec3 dir = end.sub(start).normalize();
+        vec3 dir = vec3.normalize(vec3.sub(end,start));
         for (int i = 0; i < 64; i++) {
             // the height is from 0 to -depth
             float height = getwaves(vec2.vec2(pos.x(), pos.y()), ITERATIONS_RAYMARCH, fTime) * depth - depth;
             // if the waves height almost nearly matches the ray height, assume its a hit and return the hit distance
             if (height + 0.01f > pos.y()) {
-                return pos.distance(camera);
+                return vec3.distance(pos,camera);
             }
             // iterate forwards according to the height mismatch
-            pos = pos.add(dir.mul(pos.y() - height));
+            pos = vec3.add(pos,vec3.mul(dir,pos.y() - height));
         }
         // if hit was not registered, just assume hit the top layer,
         // this makes the raymarching faster and looks better at higher distances
-        return start.distance(camera);
+        return vec3.distance(start,camera);
     }
 
     // Calculate normal at point by calculating the height at the pos and 2 additional points very close to pos
@@ -555,8 +555,8 @@ public class WavesShader implements Shader {
         vec3 a = vec3.vec3(pos.x(), H, pos.y());
         return vec3.normalize(
                 vec3.cross(
-                        a.sub(vec3.vec3(pos.x() - e, getwaves(vec2.sub(pos,ex), ITERATIONS_NORMAL, fTime) * depth, pos.y())),
-                        a.sub(vec3.vec3(pos.x(), getwaves(vec2.add(pos, ex), ITERATIONS_NORMAL, fTime) * depth, pos.y() + e))
+                        vec3.sub(a,vec3.vec3(pos.x() - e, getwaves(vec2.sub(pos,ex), ITERATIONS_NORMAL, fTime) * depth, pos.y())),
+                        vec3.sub(a, vec3.vec3(pos.x(), getwaves(vec2.add(pos, ex), ITERATIONS_NORMAL, fTime) * depth, pos.y() + e))
                 )
         );
     }
@@ -578,19 +578,19 @@ public class WavesShader implements Shader {
         vec2 uv = vec2.mul(vec2.div(fragCoord,vec2.sub(vec2.mul(fres, 2f),1f)),vec2.vec2(fres.x() / fres.y(), 1.0f));
         // for fisheye, uncomment following line and comment the next one
         //vec3 proj = normalize(vec3(uv.x, uv.y, 1.0) + vec3(uv.x, uv.y, -1.0) * pow(length(uv), 2.0) * 0.05);
-        vec3 proj = vec3.vec3(uv.x(), uv.y(), 1.5f).normalize();
+        vec3 proj = vec3.normalize(vec3.vec3(uv.x(), uv.y(), 1.5f));
         if (fres.x() < 600.0) {
             return proj;
         }
 
         var m1 = createRotationMatrixAxisAngle(vec3.vec3(0.0f, -1.0f, 0.0f), 3.0f * ((NormalizedMouse(fMouse, fres).x() + 0.5f) * 2.0f - 1.0f));
         var m2 = createRotationMatrixAxisAngle(vec3.vec3(1.0f, 0.0f, 0.0f), 0.5f + 1.5f * (((NormalizedMouse(fMouse, fres).y()) == 0.0f ? 0.27f : NormalizedMouse(fMouse, fres).y() * 1.0f) * 2.0f - 1.0f));
-        return proj.mul(m1).mul(m2);
+        return vec3.mul(vec3.mul(proj,m1),m2);
     }
 
     // Ray-Plane intersection checker
     static float intersectPlane(vec3 origin, vec3 direction, vec3 point, vec3 normal) {
-        return F32.clamp(vec3.dot(point.sub(origin), normal) / vec3.dot(direction, normal), -1.0f, 9991999.0f);
+        return F32.clamp(vec3.dot(vec3.sub(point,origin), normal) / vec3.dot(direction, normal), -1.0f, 9991999.0f);
     }
 
     // Some very barebones but fast atmosphere approximation
@@ -605,20 +605,20 @@ public class WavesShader implements Shader {
         // vec3 suncolor = vec3.mix(
         //       vec3(1.0f), vec3.max(vec3(0.0f), vec3(1.0f).sub(vec3(5.5f, 13.0f, 22.4f).div(22.4f)
         //     ), special_trick2));
-        vec3 bluesky = vec3.vec3(5.5f, 13.0f, 22.4f).div(22.4f).mul(suncolor);
-        vec3 bluesky2 = vec3.max(vec3.vec3(0.0f), bluesky.sub(vec3.vec3(5.5f, 13.0f, 22.4f).mul(0.002f * (special_trick + -6.0f * sundir.y() * sundir.y()))));
-        bluesky2 = bluesky2.mul(special_trick * (0.24f + raysundt * 0.24f));
-        return bluesky2.mul(1.0f + F32.pow(1.0f - raydir.y(), 3.0f));
+        vec3 bluesky = vec3.mul(vec3.div(vec3.vec3(5.5f, 13.0f, 22.4f),22.4f),suncolor);
+        vec3 bluesky2 = vec3.max(vec3.vec3(0.0f), vec3.sub(bluesky,vec3.mul(vec3.vec3(5.5f, 13.0f, 22.4f),0.002f * (special_trick + -6.0f * sundir.y() * sundir.y()))));
+        bluesky2 = vec3.mul(bluesky2,special_trick * (0.24f + raysundt * 0.24f));
+        return vec3.mul(bluesky2,1.0f + F32.pow(1.0f - raydir.y(), 3.0f));
     }
 
     // Calculate where the sun should be, it will be moving around the sky
     static vec3 getSunDirection(float fTime) {
-        return vec3.vec3(-0.0773502691896258f, 0.5f + F32.sin(fTime * 0.2f + 2.6f) * 0.45f, 0.5773502691896258f).normalize();
+        return vec3.normalize(vec3.vec3(-0.0773502691896258f, 0.5f + F32.sin(fTime * 0.2f + 2.6f) * 0.45f, 0.5773502691896258f));
     }
 
     // Get atmosphere color for given direction
     static vec3 getAtmosphere(vec3 dir, float fTime) {
-        return extra_cheap_atmosphere(dir, getSunDirection(fTime), fTime).mul(0.5f);
+        return vec3.mul(extra_cheap_atmosphere(dir, getSunDirection(fTime), fTime),0.5f);
     }
 
     // Get sun color for given direction
@@ -637,10 +637,11 @@ public class WavesShader implements Shader {
                 -0.53108f, 1.10813f, -0.07276f,
                 -0.07367f, -0.00605f, 1.07602f
         );
-        vec3 v = color.mul(m1);
-        vec3 a = v.mul(v.add(+0.0245786f)).sub(0.000090537f);
-        vec3 b = v.mul((v.mul(0.983729f).add(0.4329510f)).add(0.238081f));
-        var aOverBMulM2 = a.div(b).mul(m2);
+        vec3 v = vec3.mul(color,m1);
+        vec3 a = vec3.sub(vec3.mul(v,vec3.add(v,0.0245786f)),0.000090537f);
+        vec3 b =vec3.add(vec3.mul(v,vec3.mul(0.983729f,vec3.add(v,0.4329510f))),0.238081f);
+        //vec3 b = v.mul(vec3.add(vec3.add(vec3.mul(v,0.983729f),0.4329510f),0.238081f)));
+        var aOverBMulM2 = vec3.mul(vec3.div(a,b),m2);
         return vec3.clamp(vec3.pow(aOverBMulM2, 1.0f / 2.2f), 0f, 1f);
     }
 
@@ -655,8 +656,8 @@ public class WavesShader implements Shader {
 
         if (ray.y() >= 0.0) {
             // if ray.y is positive, render the sky
-            vec3 C = getAtmosphere(ray, fTime).add(getSun(ray, fTime));
-            fragColor = vec4.vec4(aces_tonemap(C.mul(2.0f)), 1.0f);
+            vec3 C = vec3.add(getAtmosphere(ray, fTime),getSun(ray, fTime));
+            fragColor = vec4.vec4(aces_tonemap(vec3.mul(C,2.0f)), 1.0f);
             return fragColor;
         } else {
 
@@ -671,12 +672,12 @@ public class WavesShader implements Shader {
             // calculate intersections and reconstruct positions
             float highPlaneHit = intersectPlane(origin, ray, waterPlaneHigh, vec3.vec3(0.0f, 1.0f, 0.0f));
             float lowPlaneHit = intersectPlane(origin, ray, waterPlaneLow, vec3.vec3(0.0f, 1.0f, 0.0f));
-            vec3 highHitPos = origin.add(ray.mul(highPlaneHit));
-            vec3 lowHitPos = origin.add(ray.mul(lowPlaneHit));
+            vec3 highHitPos = vec3.add(origin,vec3.mul(ray, highPlaneHit));
+            vec3 lowHitPos = vec3.add(origin,vec3.mul(ray, lowPlaneHit));
 
             // raymatch water and reconstruct the hit pos
             float dist = raymarchwater(origin, highHitPos, lowHitPos, WATER_DEPTH, fTime);
-            vec3 waterHitPos = origin.add(ray.mul(dist));
+            vec3 waterHitPos = vec3.add(origin,vec3.mul(ray,dist));
 
             // calculate normal at the hit position
             vec3 N = normal(vec2.vec2(waterHitPos.x(), waterHitPos.y()), 0.01f, WATER_DEPTH, fTime);
@@ -685,19 +686,19 @@ public class WavesShader implements Shader {
             N = vec3.mix(N, vec3.vec3(0.0f, 1.0f, 0.0f), 0.8f * F32.min(1.0f, F32.sqrt(dist * 0.01f) * 1.1f));
 
             // calculate fresnel coefficient
-            float fresnel = (0.04f + (1.0f - 0.04f) * (pow(1.0f - F32.max(0.0f, vec3.dot(vec3.vec3(0f).sub(N), ray)), 5.0f)));
+            float fresnel = (0.04f + (1.0f - 0.04f) * (pow(1.0f - F32.max(0.0f, vec3.dot(vec3.sub(vec3.vec3(0f),N), ray)), 5.0f)));
 
             // reflect the ray and make sure it bounces up
             vec3 R = vec3.normalize(vec3.reflect(ray, N));
             R = vec3.vec3(R.x(), F32.abs(R.y()), R.z());
 
             // calculate the reflection and approximate subsurface scattering
-            vec3 reflection = getAtmosphere(R, fTime).add(getSun(R, fTime));
-            vec3 scattering = vec3.vec3(0.0293f, 0.0698f, 0.1717f).mul(0.1f).mul(0.2f + (waterHitPos.y() + WATER_DEPTH) / WATER_DEPTH);
+            vec3 reflection = vec3.add(getAtmosphere(R, fTime),getSun(R, fTime));
+            vec3 scattering = vec3.mul(vec3.mul(vec3.vec3(0.0293f, 0.0698f, 0.1717f),0.1f),0.2f + (waterHitPos.y() + WATER_DEPTH) / WATER_DEPTH);
 
             // return the combined result
-            vec3 C = reflection.mul(fresnel).add(scattering);
-            fragColor = vec4.vec4(clamp(aces_tonemap(C.mul(2.0f)), 0f, 1f), 1.0f);
+            vec3 C = vec3.add(vec3.mul(reflection,fresnel),scattering);
+            fragColor = vec4.vec4(clamp(aces_tonemap(vec3.mul(C,2.0f)), 0f, 1f), 1.0f);
             return fragColor;
         }
     };

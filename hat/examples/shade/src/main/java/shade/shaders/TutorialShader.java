@@ -102,6 +102,6 @@ public class TutorialShader implements Shader {
         }
 
         fragColor = vec4.vec4(finalColor, 1.0f);
-        return fragColor.normalize();
+        return vec4.normalize(fragColor);
     }
 }

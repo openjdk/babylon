@@ -83,7 +83,6 @@ public class SpiralShader implements Shader {
         float fTime = uniforms.iTime();
         float fFrame = uniforms.iFrame();
         var fResolution = vec2.vec2(uniforms.iResolution());
-       // vec2  U = ((2.*fragCoord - fResolution)) / fResolution.y; // normalized coordinates
         vec2 U = vec2.div(vec2.sub(vec2.mul(fragCoord,2f),fResolution),fResolution.y());//.sub(fResolution).div(fResolution.y());
         // normalized coordinates
         var z = vec2.sub(U, vec2.vec2(-1f, 0f));
@@ -95,13 +94,9 @@ public class SpiralShader implements Shader {
         //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
 
         U = vec2.add(vec2.add(
-                vec2.mul(vec2.vec2(vec2.length(U)), vec2.vec2(.5f, 0.5f)),vec2.vec2(uniforms.iTime()/8f)
+                vec2.mul(F32.log(vec2.length(U)), vec2.vec2(.5f, 0.5f)),vec2.vec2(uniforms.iTime()/8f)
         ), vec2.mul(vec2.div(vec2.atan(U.x(),U.y()),6.2832f),vec2.vec2(6f,1f)));
 
-       /* U = vec2.vec2(
-                        F32.log(vec2.length(U))).mul(vec2.vec2(.5f, -.5f))
-                .add(fTime / 8)
-                .add(vec2.atan(U.y(), U.x()).div(6.2832f).mul(vec2.vec2(6f, 1f)));*/
 
         U = vec2.div(vec2.mul(U, vec2.vec2(3f)),vec2.vec2(2f, 1f));
         z = vec2.vec2(.1f);//fwidth(U); // this resamples the image.  Not sure how we do this!
@@ -122,14 +117,14 @@ public class SpiralShader implements Shader {
                 vec4.normalize(vec4.smoothstep(
                         vec4.vec4(.7f),
                         vec4.vec4(-.7f),
-                        vec4.vec4(v - .95f).div(F32.abs(z.x() - z.y()) > 1f
+                        vec4.mul(vec4.div(vec4.vec4(v - .95f),F32.abs(z.x() - z.y()) > 1f
                                         ? .1f
                                         : z.y() * 8f
                                 )
-                                .mul(id < 0f
+                                ,id < 0f
                                                 ? vec4.vec4(1f)
-                                                : vec4.vec4(.6f).add(.6f).mul(
-                                                vec4.cos(vec4.vec4(id).add(vec4.vec4(0f, 23f, 21f, 0f)))
+                                                : vec4.add(vec4.mul(vec4.vec4(.6f),.6f),
+                                                vec4.cos(vec4.add(vec4.vec4(id),vec4.vec4(0f, 23f, 21f, 0f)))
                                         )
                                 )
                 ));// color

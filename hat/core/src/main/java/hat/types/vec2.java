@@ -69,38 +69,22 @@ public interface vec2 extends  IfaceValue.vec {
     static vec2 div(float lx, float ly, float rx, float ry) {return vec2(lx/rx,ly/ry);}
 
     static vec2 add(vec2 l, vec2 r) {return add(l.x(),l.y(),r.x(),r.y());}
-
-
     static vec2 sub(vec2 l, vec2 r) {return sub(l.x(),l.y(),r.x(),r.y());}
     static vec2 sub(vec2 l, float scalar) {return sub(l.x(),l.y(),scalar,scalar);}
     static vec2 sub(float scalar, vec2 r) {return sub(scalar,scalar, r.x(), r.y());}
-
-
     static vec2 mul(vec2 l, vec2 r) {return mul(l.x(),l.y(),r.x(),r.y());}
     static vec2 mul(vec2 l, float scalar) {return mul(l.x(),l.y(),scalar,scalar);}
     static vec2 mul( float scalar, vec2 r) {return mul(scalar,scalar,r.x(),r.y());}
     static vec2 mul(vec2 l, mat2 rhs) {return vec2(l.x()*rhs._00()+l.x()+rhs._01(),l.y()*rhs._10()+l.y()+rhs._11());}
-
     static vec2 div(vec2 l, vec2 r) {return div(l.x(),l.y(),r.x(),r.y());}
     static vec2 div(vec2 l, float scalar) {return div(l.x(),l.y(),scalar,scalar);}
     static vec2 div( float scalar, vec2 r) {return div(scalar,scalar,r.x(),r.y());}
     static vec2 log(vec2 vec2){return vec2(F32.log(vec2.x()),F32.log(vec2.y()));}
-    static float length(vec2 vec2) {
-        return  F32.sqrt(vec2.x() * vec2.x() + vec2.y() * vec2.y());
-    }
+    static float length(vec2 vec2) {return  F32.sqrt(vec2.x() * vec2.x() + vec2.y() * vec2.y());}
     static vec2 mod(vec2 v){return vec2(F32.mod(v.x(),v.y()));}
-
     static float dot(vec2 lhs, vec2 rhs) { return lhs.x()*rhs.x()+lhs.y()*rhs.y();}
-
-    static vec2 floor(vec2 vec2){
-        return vec2(F32.floor(vec2.x()),F32.floor(vec2.y()));
-    }
-    static vec2 fract(vec2 vec2){
-        return vec2(F32.fract(vec2.x()),F32.fract(vec2.y()));
-    }
-    static vec2 abs(vec2 vec2){
-        return vec2(F32.abs(vec2.x()),F32.abs(vec2.y()));
-    }
-
+    static vec2 floor(vec2 vec2){return vec2(F32.floor(vec2.x()),F32.floor(vec2.y()));}
+    static vec2 fract(vec2 vec2){return vec2(F32.fract(vec2.x()),F32.fract(vec2.y()));}
+    static vec2 abs(vec2 vec2){return vec2(F32.abs(vec2.x()),F32.abs(vec2.y()));}
     static vec2 atan(float x, float y){return vec2(F32.atan(x), F32.atan(y));}
 }

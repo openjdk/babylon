@@ -73,6 +73,6 @@ public class Shader25 implements Shader {
             // mix colors
             ret = vec4.vec4(F32.sin(v), F32.sin(v + 0.5f * F32.PI), F32.sin(v + F32.PI), 1f);
         }
-        return ret.add(.5f).mul(.5f).clamp(0f, 1f);
+        return vec4.clamp(vec4.mul(vec4.add(ret,.5f),.5f),0f, 1f);
     }
 }
