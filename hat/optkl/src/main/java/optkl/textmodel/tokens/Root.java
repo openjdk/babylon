@@ -36,7 +36,10 @@ public interface Root extends Parent, Factory {
     default Pos pos() {
         return null;
     }
-
+    @Override
+    default void reparent(Parent parent) {
+        throw new RuntimeException("reparenting root?");
+    }
     default void parse(String text) {
         parse(new Cursor(text));
     }

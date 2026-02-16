@@ -212,10 +212,10 @@ public class IntroShader implements Shader {
         pixel = vec3.mix(pixel, green, maskS);
         pixel = vec3.mix(pixel, pink, maskL2*(1f-circ));
 
-        float dirt = .1f;// F32.pow(texture(iChannel0, 4f*r).x, 4f);
+        float dirt = .01f;// F32.pow(texture(iChannel0, 4f*r).x, 4f);
         pixel = vec3.sub(pixel,vec3.vec3((0.2f*dirt - 0.1f)*(maskG+maskS))); // dirt
         pixel = vec3.sub(pixel, vec3.vec3(F32.smoothstep(0.45f, 2.5f, vec2.length(r))));
-        fragColor = vec4.vec4(pixel, 1f);
+        fragColor = vec4.vec4(vec3.normalize(pixel), 1f);
         return fragColor;
     }
 }

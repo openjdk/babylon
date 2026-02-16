@@ -55,6 +55,10 @@ public interface vec3 extends  IfaceValue.vec {
     record Impl(float x, float y, float z) implements vec3 {
     }
 
+    static vec3 vec3(vec2 xy, float z) {
+        return new Impl(xy.x(),xy.y(), z);
+    }
+
     static vec3 vec3(float x, float y, float z) {
         return new Impl(x, y, z);
     }
@@ -68,7 +72,7 @@ public interface vec3 extends  IfaceValue.vec {
 
     static vec3 sub(vec3 l, vec3 r) {return vec3(l.x()-r.x(),l.y()-r.y(), l.z()-r.z());}
     static vec3 sub(vec3 l, float scalar) {return vec3(l.x()-scalar,l.y()-scalar, l.z()-scalar);}
-
+    static vec3 neg(vec3 vec3) {return vec3(0-vec3.x(),0-vec3.y(), 0-vec3.z());}
     static vec3 mul(vec3 l, vec3 r) {return vec3(l.x()*r.x(),l.y()*r.y(), l.z()*r.z());}
     static vec3 mul(vec3 l, float scalar ) {return vec3(l.x()*scalar,l.y()*scalar, l.z()*scalar);}
     static vec3 mul(float scalar, vec3 r) {return vec3(scalar*r.x(),scalar*r.y(), scalar*r.z());}
@@ -104,6 +108,9 @@ public interface vec3 extends  IfaceValue.vec {
 
     static vec3 max(vec3 lhs, vec3 rhs){
         return vec3(F32.max(lhs.x(),rhs.x()),F32.max(lhs.y(),rhs.y()),F32.max(lhs.z(),rhs.z()));
+    }
+    static vec3 min(vec3 lhs, vec3 rhs){
+        return vec3(F32.min(lhs.x(),rhs.x()),F32.min(lhs.y(),rhs.y()),F32.min(lhs.z(),rhs.z()));
     }
 
     static vec3 normalize(vec3 vec3){

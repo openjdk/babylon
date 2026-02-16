@@ -34,6 +34,14 @@ public interface Leaf extends Token {
     default void visit(Consumer<Token> visitor) {
         visitor.accept(this);
     }
+    @Override
+    default void visitPreOrder(Consumer<Token> visitor) {
+        visitor.accept(this);
+    }
+    @Override
+    default void visitPostOrder(Consumer<Token> visitor) {
+        visitor.accept(this);
+    }
 
     default boolean isOneOf(Set<String> strings) {
         return strings.contains(this.asString());

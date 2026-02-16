@@ -87,4 +87,9 @@ public interface vec2 extends  IfaceValue.vec {
     static vec2 fract(vec2 vec2){return vec2(F32.fract(vec2.x()),F32.fract(vec2.y()));}
     static vec2 abs(vec2 vec2){return vec2(F32.abs(vec2.x()),F32.abs(vec2.y()));}
     static vec2 atan(float x, float y){return vec2(F32.atan(x), F32.atan(y));}
+
+
+    static vec2 min(vec2 lhs,vec2 rhs){return vec2(F32.min(lhs.x(),rhs.x()), F32.min(lhs.y(),rhs.y()));}
+
+    static vec2 max(vec2 lhs,vec2 rhs){return vec2(F32.max(lhs.x(),rhs.x()), F32.max(lhs.y(),rhs.y()));}
 }
