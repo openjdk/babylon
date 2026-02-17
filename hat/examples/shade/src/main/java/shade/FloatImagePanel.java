@@ -73,15 +73,16 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     Point mousePressedPosition;
     Point2D imageRelativeMouseDownPosition = new Point2D.Float();
     Point2D imageRelativeMovePosition = new Point2D.Float();
+private final int requestedFramesPerSecond;
 
-
-    public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, boolean useHat, Shader shader) {
+    public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, boolean useHat, Shader shader, int requestedFramesPerSecond) {
         this.accelerator = accelerator;
         this.width = width;
         this.height = height;
         this.controls = controls;
         this.useHAT = useHat;
         this.shader = shader;
+        this.requestedFramesPerSecond =requestedFramesPerSecond;
         this.floatImage = FloatImage.of(accelerator, width, height);
         this.uniforms = Uniforms.create(accelerator);
         addMouseListener(new MouseAdapter() {
@@ -210,7 +211,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     final public  void  runShader(FloatImage floatImage){
         if (!useHAT){
                 IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
-                    vec2 fragCoord = vec2.vec2(i % floatImage.width(), (float) (i / floatImage.width()));
+                    vec2 fragCoord = vec2.vec2((float)i % floatImage.width(), (float) (floatImage.height()-(i / floatImage.width())));
                     vec4 inFragColor = vec4.vec4(0);
                     vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
                     floatImage.set(i, outFragColor);
@@ -231,7 +232,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     public void run() {
         long startTimeNs = System.nanoTime();
 
-        double nsPerTick = 1000000000.0 /30.0; // 2 Fixed Updates per second
+        double nsPerTick = 1000000000.0 /requestedFramesPerSecond; // 2 Fixed Updates per second
         double delta = 0;
         long lastTimeNs = System.nanoTime();
         while (running) {

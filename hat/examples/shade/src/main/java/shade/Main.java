@@ -47,10 +47,11 @@ public class Main extends JFrame {
         Controls controls = new Controls();
         JFrame frame = new JFrame();
         frame.setJMenuBar(controls.menu.menuBar());
-        int width = 512;
-        int height = 512;
+        int width = 128;
+        int height = 128;
 
-        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height, false, ShaderEnum.Waves.shader);
+        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height,
+                false, ShaderEnum.SeaScape.shader, 5);
         frame.setBounds(new Rectangle(width + 100, height + 200));
         frame.setContentPane(imagePanel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

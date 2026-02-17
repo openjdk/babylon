@@ -133,8 +133,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         // Now we just create jars and shared libs and declare dependencies
         var optkl = hat.jar("optkl");
         var core = hat.jar("core", optkl);
-        var tools = hat.jar("tools", core);
-        var tests = hat.jar("tests", core, tools);
+        //var tools = hat.jar("tools", core);
+        var tests = hat.jar("tests", core);
 
         var backend_ffi_native = hat.cmakeAndJar("backend{s}-ffi", core, cmake);
         var ffiSharedBackend = hat.jar("backend{s}-ffi-shared", backend_ffi_native);
@@ -222,7 +222,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     final var textSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
                     final var sourceSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
 
-                    Stream.of("hat", "tests", "optkl", "core", "tools", "examples", "backends", "docs", "wraps")
+                    Stream.of("hat", "tests", "optkl", "core", "examples", "backends", "docs", "wraps")
                             .map(hat.rootPath()::resolve)
                             .forEach(dir -> {
                                 System.out.println("Checking " + dir);

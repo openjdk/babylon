@@ -215,73 +215,73 @@ public class BabylonTextModel extends TextModel {
 
     private BabylonTextModel transform() {
         // "[0-9][0-9]*" ->IntConst
-        replace(true, t -> Seq.isA(t, $ -> $.matches(IntConst.regex)), IntConst::new);
-        replace(true, t -> Seq.isA(t, $ -> $.matches(FloatConst.regex)), FloatConst::new);
+        replace(t -> Seq.isA(t, $ -> $.matches(IntConst.regex)), IntConst::new);
+        replace(t -> Seq.isA(t, $ -> $.matches(FloatConst.regex)), FloatConst::new);
 
         // (Seq|Dname) '.' Seq -> Dname
-        replace(true, (t1, t2, t3) -> (Seq.isA(t1) || DottedName.isA(t1)) && Ch.isADot(t2) && Seq.isA(t3), DottedName::new);
+       replace( (t1, t2, t3) -> (Seq.isA(t1) || DottedName.isA(t1)) && Ch.isADot(t2) && Seq.isA(t3), DottedName::new);
 
         // map all seqs to DottedName
-        replace(true, t -> Seq.isA(t, $ -> $.matches(DottedName.regex)), DottedName::new);
+       replace(t -> Seq.isA(t, $ -> $.matches(DottedName.regex)), DottedName::new);
 
        Regex reservedWords = Regex.of("(func|Var)");
         // reserved word -> ReservedWord
-        replace(true, t -> DottedName.isA(t, $ -> $.matches(reservedWords)), ReservedWord::new);
+       replace(t -> DottedName.isA(t, $ -> $.matches(reservedWords)), ReservedWord::new);
 
 
         // ^block_[0-9]+ -> Block
-        replace(true, (t1, t2) -> Ch.isAHat(t1) && DottedName.isA(t2, $ -> $.matches(BabylonBlock.regex)), BabylonBlock::new);
+       replace( (t1, t2) -> Ch.isAHat(t1) && DottedName.isA(t2, $ -> $.matches(BabylonBlock.regex)), BabylonBlock::new);
 
         // ^block_[0-9]+: -> BlockDef
-        replace(true, t -> BabylonBlock.isA(t, $ -> $.next(Ch::isAColon)), BabylonBlockDef::new);
+       replace(t -> BabylonBlock.isA(t, $ -> $.next(Ch::isAColon)), BabylonBlockDef::new);
 
         // ^block_[0-9]+() -> Block
         // This is broken just because we have a '(' does not make it a def we also need to check for the colon
-        replace(true, t -> BabylonBlock.isA(t, $ -> $.next2((t2,t3)->t2 instanceof Parenthesis && Ch.isAColon(t3))), BabylonBlockDef::new);
+       replace(t -> BabylonBlock.isA(t, $ -> $.next2((t2, t3)->t2 instanceof Parenthesis && Ch.isAColon(t3))), BabylonBlockDef::new);
 
 
         // various opnames -> Op  (I am sure I have missed some)
-        replace(true, t -> DottedName.isA(t, $ -> $.matches(BabylonOp.regex)), BabylonOp::new);
+       replace(t -> DottedName.isA(t, $ -> $.matches(BabylonOp.regex)), BabylonOp::new);
 
         // java.while || java.if -> Body
-        replace(true, t -> DottedName.isA(t, $ -> $.matches(BabylonBlockOrBody.regex)), BabylonBlockOrBody::new);
+       replace(t -> DottedName.isA(t, $ -> $.matches(BabylonBlockOrBody.regex)), BabylonBlockOrBody::new);
 
         // '-' + '>' -> ->
-        replace(true, (t1, t2) -> Ch.isAHyphen(t1) && Ch.isAGt(t2), Arrow::new);
+       replace( (t1, t2) -> Ch.isAHyphen(t1) && Ch.isAGt(t2), Arrow::new);
 
 
         // java.type:"MyTypename" -> Type
-        replace(true, (t1, t2, t3) ->
+       replace( (t1, t2, t3) ->
                         DottedName.isA(t1, $ -> $.is("java.type")) && Ch.isAColon(t2) && StringLiteral.isA(t3)
                 , BabylonTypeAttribute::new
         );
 
         // java.ref:"MyTypename" -> Type
-        replace(true, (t1, t2, t3) ->
+       replace( (t1, t2, t3) ->
                         DottedName.isA(t1, $ -> $.is("java.ref")) && Ch.isAColon(t2) && StringLiteral.isA(t3)
                 , BabylonRefAttribute::new
         );
 
         // %[0-9]+ -> BabylonSSARef
-        replace(true, (t1, t2) -> Ch.isAPercent(t1) && IntConst.isA(t2), BabylonSSARef::new);
+       replace( (t1, t2) -> Ch.isAPercent(t1) && IntConst.isA(t2), BabylonSSARef::new);
 
         // We separate SSARefs and SSADefs
         // SSARef : -> SSADef
         // otherwise we leave as a SSARef
-        replace(true, t -> BabylonSSARef.isA(t,
+       replace(t -> BabylonSSARef.isA(t,
                         $ -> $.next2((t2, t3) -> Ws.isA(t2) && Ch.isAColon(t3)) // this is a lookahead.. t2 and t3 are not replaced
                 )
                 , BabylonSSADef::new
         );
 
         // @ (char) -> At
-        replace(true, Ch::isAnAt, At::new);
+       replace( Ch::isAnAt, At::new);
 
         //  @"foo" -> AnonymousAttribute
-        replace(true, (t1, t2) -> At.isA(t1) && StringLiteral.isA(t2), BabylonAnonymousAttribute::new);
+       replace( (t1, t2) -> At.isA(t1) && StringLiteral.isA(t2), BabylonAnonymousAttribute::new);
 
         //  @loc="line:col:file.*" -> FileLocationAttribute
-        replace(true, (t1, t2, t3, t4) ->
+       replace( (t1, t2, t3, t4) ->
                         At.isA(t1)
                                 && DottedName.isA(t2, $ -> $.is("loc"))
                                 && Ch.isAnEquals(t3)
@@ -290,7 +290,7 @@ public class BabylonTextModel extends TextModel {
         );
 
         //  @loc="line:col:.*" -> LocationAttribute
-        replace(true, (t1, t2, t3, t4) ->
+       replace( (t1, t2, t3, t4) ->
                         At.isA(t1)
                                 && DottedName.isA(t2, $ -> $.is("loc"))
                                 && Ch.isAnEquals(t3)
@@ -298,7 +298,7 @@ public class BabylonTextModel extends TextModel {
                 , BabylonLocationAttribute::new
         );
         //  @name=".*" -> LocationAttribute
-        replace(true, (t1, t2, t3, t4) ->
+       replace( (t1, t2, t3, t4) ->
                         At.isA(t1) && DottedName.isA(t2) && Ch.isAnEquals(t3) && StringLiteral.isA(t4)
                 , BabylonNamedAttribute::new
         );
@@ -336,7 +336,7 @@ public class BabylonTextModel extends TextModel {
     static public BabylonTextModel of(String text) {
         BabylonTextModel doc = new BabylonTextModel();
         doc.parse(text);
-        doc.find(true, (t) -> t instanceof StringLiteral, (t) -> {
+        doc.find( (t) -> t instanceof StringLiteral, (t) -> {
             if (t instanceof StringLiteral sl
                     && BabylonFileLocationAttribute.locFileRegex.is(sl.asString()) instanceof Regex.Match m
                     && Path.of(m.stringOf(3)) instanceof Path javaSource && Files.exists(javaSource)

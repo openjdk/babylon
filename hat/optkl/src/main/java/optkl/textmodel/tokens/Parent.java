@@ -79,17 +79,6 @@ public interface Parent extends Token {
         void accept(T l);
     }
 
-    interface TknPredicate3<T extends Token> extends TokenPredicate<T> {
-        boolean test(T l, T m, T r);
-    }
-
-    interface TknReplacer3<T extends Token> extends TokenReplacer<T> {
-        T replace(T l, T m, T r);
-    }
-
-    interface TknConsumer3<T extends Token> extends TokenConsumer<T> {
-        void accept(T l, T m, T r);
-    }
 
     interface TknPredicate2<T extends Token> extends TokenPredicate<T> {
         boolean test(T l, T r);
@@ -103,6 +92,17 @@ public interface Parent extends Token {
         void accept(T l, T r);
     }
 
+    interface TknPredicate3<T extends Token> extends TokenPredicate<T> {
+        boolean test(T l, T m, T r);
+    }
+
+    interface TknReplacer3<T extends Token> extends TokenReplacer<T> {
+        T replace(T l, T m, T r);
+    }
+
+    interface TknConsumer3<T extends Token> extends TokenConsumer<T> {
+        void accept(T l, T m, T r);
+    }
 
     interface TknPredicate4<T extends Token> extends TokenPredicate<T> {
         boolean test(T l, T lm, T rm, T r);
@@ -115,6 +115,17 @@ public interface Parent extends Token {
     interface TknConsumer4<T extends Token> extends TokenConsumer<T> {
         void accept(T l, T lm, T rm, T r);
     }
+    interface TknPredicate5<T extends Token> extends TokenPredicate<T> {
+        boolean test(T l, T lm, T c,  T rm, T r);
+    }
+
+    interface TknReplacer5<T extends Token> extends TokenReplacer<T> {
+        T replace(T l, T lm, T c, T rm, T r);
+    }
+
+    interface TknConsumer5<T extends Token> extends TokenConsumer<T> {
+        void accept(T l, T lm, T c, T rm, T r);
+    }
 
     default Parent find(boolean recurse, TokenPredicate<Token> predicate, TokenConsumer<Token> consumer, int count) {
         for (int i = 0; i < (children().size() - count); i++) {
@@ -123,6 +134,7 @@ public interface Parent extends Token {
                 case TknPredicate2<Token> p -> p.test(child(i), child(i + 1));
                 case TknPredicate3<Token> p -> p.test(child(i), child(i + 1), child(i + 2));
                 case TknPredicate4<Token> p -> p.test(child(i), child(i + 1), child(i + 2), child(i + 3));
+                case TknPredicate5<Token> p -> p.test(child(i), child(i + 1), child(i + 2), child(i + 3), child(i + 4));
                 default -> throw new IllegalStateException("Unexpected value: " + predicate);
             }) {
                 switch (consumer) {
@@ -130,6 +142,7 @@ public interface Parent extends Token {
                     case TknConsumer2<Token> p -> p.accept(child(i), child(i + 1));
                     case TknConsumer3<Token> p -> p.accept(child(i), child(i + 1), child(i + 2));
                     case TknConsumer4<Token> p -> p.accept(child(i), child(i + 1), child(i + 2), child(i + 3));
+                    case TknConsumer5<Token> p -> p.accept(child(i), child(i + 1), child(i + 2), child(i + 3), child(i+4));
                     default -> throw new IllegalStateException("Unexpected value: " + predicate);
                 }
             }
@@ -150,20 +163,54 @@ public interface Parent extends Token {
         });
         return collected.stream();
     }
-    default void find(boolean recurse, TknPredicate1<Token> predicate, TknConsumer1<Token> consumer) {
+    default void find1(boolean recurse, TknPredicate1<Token> predicate, TknConsumer1<Token> consumer) {
         find(recurse, predicate, consumer, 1);
     }
+    default void find(TknPredicate1<Token> predicate, TknConsumer1<Token> consumer) {
+        find1(true, predicate, consumer);
+    }
+    default void findNoRecurse(TknPredicate1<Token> predicate, TknConsumer1<Token> consumer) {
+        find1(false, predicate, consumer);
+    }
 
-    default void find(boolean recurse, TknPredicate2<Token> predicate, TknConsumer2<Token> consumer) {
+    default void find2(boolean recurse, TknPredicate2<Token> predicate, TknConsumer2<Token> consumer) {
         find(recurse, predicate, consumer, 2);
     }
-
-    default void find(boolean recurse, TknPredicate3<Token> predicate, TknConsumer3<Token> consumer) {
-        find(recurse, predicate, consumer, 3);
+    default void find(TknPredicate2<Token> predicate, TknConsumer2<Token> consumer) {
+        find2(true, predicate, consumer);
+    }
+    default void findNoRecurse(boolean recurse, TknPredicate2<Token> predicate, TknConsumer2<Token> consumer) {
+        find2(false, predicate, consumer);
     }
 
-    default void find(boolean recurse, TknPredicate4<Token> predicate, TknConsumer4<Token> consumer) {
+    default void find3(boolean recurse, TknPredicate3<Token> predicate, TknConsumer3<Token> consumer) {
+        find3(recurse, predicate, consumer);
+    }
+    default void find(TknPredicate3<Token> predicate, TknConsumer3<Token> consumer) {
+        find3(true, predicate, consumer);
+    }
+    default void findNoRecurse( TknPredicate3<Token> predicate, TknConsumer3<Token> consumer) {
+        find3(false, predicate, consumer);
+    }
+
+    default void find4(boolean recurse, TknPredicate4<Token> predicate, TknConsumer4<Token> consumer) {
         find(recurse, predicate, consumer, 4);
+    }
+    default void find(TknPredicate4<Token> predicate, TknConsumer4<Token> consumer) {
+        find4(true, predicate, consumer);
+    }
+    default void findNoRecurse( TknPredicate4<Token> predicate, TknConsumer4<Token> consumer) {
+        find4(false, predicate, consumer);
+    }
+
+    default void find5(boolean recurse, TknPredicate5<Token> predicate, TknConsumer4<Token> consumer) {
+        find(recurse, predicate, consumer, 5);
+    }
+    default void find(TknPredicate5<Token> predicate, TknConsumer4<Token> consumer) {
+        find5(true, predicate, consumer);
+    }
+    default void findNoRecurse( TknPredicate5<Token> predicate, TknConsumer4<Token> consumer) {
+        find5(false, predicate, consumer);
     }
 
     default Parent replace(boolean recurse, TokenPredicate<Token> predicate, TokenReplacer<Token> replacement, int count) {
@@ -174,15 +221,18 @@ public interface Parent extends Token {
                 case TknPredicate2<Token> p -> p.test(child(i), child(i + 1));
                 case TknPredicate3<Token> p -> p.test(child(i), child(i + 1), child(i + 2));
                 case TknPredicate4<Token> p -> p.test(child(i), child(i + 1), child(i + 2), child(i + 3));
+                case TknPredicate5<Token> p -> p.test(child(i), child(i + 1), child(i + 2), child(i + 3),child(i + 4));
                 default -> throw new IllegalStateException("Unexpected value: " + predicate);
             }) {
-                children().set(i, switch (replacement) {
+               var newOne=  switch (replacement) {
                     case TknReplacer1<Token> p -> p.replace(child(i));
                     case TknReplacer2<Token> p -> p.replace(child(i), child(i + 1));
                     case TknReplacer3<Token> p -> p.replace(child(i), child(i + 1), child(i + 2));
                     case TknReplacer4<Token> p -> p.replace(child(i), child(i + 1), child(i + 2), child(i + 3));
+                    case TknReplacer5<Token> p -> p.replace(child(i), child(i + 1), child(i + 2), child(i + 3), child(i+4));
                     default -> throw new IllegalStateException("Unexpected value: " + predicate);
-                });
+                };
+                children().set(i,newOne);
                 for (int n = 0; n < (count - 1); n++) {
                     children().remove(i + 1);
                 }
@@ -198,18 +248,51 @@ public interface Parent extends Token {
         return this;
     }
 
-    default void replace(boolean recurse, TknPredicate1<Token> predicate, TknReplacer1<Token> replacement) {
+    default void replace1(boolean recurse, TknPredicate1<Token> predicate, TknReplacer1<Token> replacement) {
         replace(recurse, predicate, replacement, 1);
     }
-
-    default void replace(boolean recurse, TknPredicate2<Token> predicate, TknReplacer2<Token> replacement) {
+    default void replace(TknPredicate1<Token> predicate, TknReplacer1<Token> replacement) {
+        replace1(true, predicate, replacement);
+    }
+    default void replaceNoRecurse( TknPredicate1<Token> predicate, TknReplacer1<Token> replacement) {
+        replace1(false, predicate, replacement);
+    }
+    default void replace2(boolean recurse, TknPredicate2<Token> predicate, TknReplacer2<Token> replacement) {
         replace(recurse, predicate, replacement, 2);
     }
-
-    default void replace(boolean recurse, TknPredicate3<Token> predicate, TknReplacer3<Token> replacement) {
+    default void replace(TknPredicate2<Token> predicate, TknReplacer2<Token> replacement) {
+        replace2(true, predicate, replacement);
+    }
+    default void replaceNoRecurse( TknPredicate2<Token> predicate, TknReplacer2<Token> replacement) {
+        replace2(false, predicate, replacement);
+    }
+    default void replace3(boolean recurse, TknPredicate3<Token> predicate, TknReplacer3<Token> replacement) {
         replace(recurse, predicate, replacement, 3);
     }
-
+    default void replace(TknPredicate3<Token> predicate, TknReplacer3<Token> replacement) {
+        replace3(true, predicate, replacement);
+    }
+    default void replaceNoRecurse( TknPredicate3<Token> predicate, TknReplacer3<Token> replacement) {
+        replace3(false, predicate, replacement);
+    }
+    default void replace4(boolean recurse, TknPredicate4<Token> predicate, TknReplacer4<Token> replacement) {
+        replace(recurse, predicate, replacement, 4);
+    }
+    default void replace(TknPredicate4<Token> predicate, TknReplacer4<Token> replacement) {
+        replace4(true, predicate, replacement);
+    }
+    default void replaceNoRecurse( TknPredicate4<Token> predicate, TknReplacer4<Token> replacement) {
+        replace4(false, predicate, replacement);
+    }
+    default void replace5(boolean recurse, TknPredicate5<Token> predicate, TknReplacer5<Token> replacement) {
+        replace(recurse, predicate, replacement, 5);
+    }
+    default void replace(TknPredicate5<Token> predicate, TknReplacer5<Token> replacement) {
+        replace5(true, predicate, replacement);
+    }
+    default void replaceNoRecurse( TknPredicate5<Token> predicate, TknReplacer5<Token> replacement) {
+        replace5(false, predicate, replacement);
+    }
     default void replace(boolean recurse, TknPredicate4<Token> predicate, TknReplacer4<Token> replacement) {
         replace(recurse, predicate, replacement, 4);
     }
@@ -225,6 +308,20 @@ public interface Parent extends Token {
     default void visit(Consumer<Token> visitor) {
         children().forEach(c ->
                 c.visit(visitor)
+        );
+    }
+    @Override
+    default void visitPreOrder(Consumer<Token> visitor) {
+        children().forEach(c ->
+                c.visitPreOrder(visitor)
+        );
+        visitor.accept(this);
+    }
+    @Override
+    default void visitPostOrder(Consumer<Token> visitor) {
+        visitor.accept(this);
+        children().forEach(c ->
+                c.visitPostOrder(visitor)
         );
     }
 
