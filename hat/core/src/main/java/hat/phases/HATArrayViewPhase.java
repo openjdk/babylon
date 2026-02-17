@@ -184,7 +184,13 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                 case JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp -> {
                     if (HATPhaseUtils.isBufferArray(lookup(), arrayLoadOp)) {
                         Op replacementOp;
-                        if (!HATPhaseUtils.isVectorOp(lookup(),arrayLoadOp) && ((ArrayType) firstOperandOrThrow(op).type()).dimensions() == 1) { // we only use the last array load
+                        if (HATPhaseUtils.isVectorOp(lookup(),arrayLoadOp)) {
+                            replacementOp = JavaOp.arrayLoadOp(
+                                    context.getValue(replaced.get((Op.Result) arrayLoadOp.operands().getFirst())),
+                                    context.getValue(arrayLoadOp.operands().getLast()),
+                                    arrayLoadOp.resultType()
+                            );
+                        } else if (((ArrayType) firstOperandOrThrow(op).type()).dimensions() == 1) {
                             var arrayAccessInfo = HATPhaseUtils.arrayAccessInfo(op.result(), replaced);
                             var operands = arrayAccessInfo.bufferAndIndicesAsValues();
                             replacementOp = new HATPtrOp.HATPtrLoadOp(
@@ -193,12 +199,8 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                     (Class<?>) classTypeToTypeOrThrow(lookup(), (ClassType) arrayAccessInfo.buffer().type()),
                                     context.getValues(operands)
                             );
-                        } else {
-                            replacementOp = JavaOp.arrayLoadOp(
-                                    context.getValue(replaced.get((Op.Result) arrayLoadOp.operands().getFirst())),
-                                    context.getValue(arrayLoadOp.operands().getLast()),
-                                    arrayLoadOp.resultType()
-                            );
+                        } else { // we only use the last array load
+                            return blockBuilder;
                         }
                         context.mapValue(arrayLoadOp.result(), blockBuilder.op(copyLocation(arrayLoadOp,replacementOp)));
                         return blockBuilder;
@@ -207,7 +209,13 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                 case JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
                     if (HATPhaseUtils.isBufferArray(lookup(), arrayStoreOp)) {
                         Op replacementOp;
-                        if (!HATPhaseUtils.isVectorOp(lookup(), arrayStoreOp) && ((ArrayType) firstOperandOrThrow(op).type()).dimensions() == 1) { // we only use the last array load
+                        if (HATPhaseUtils.isVectorOp(lookup(), arrayStoreOp)) {
+                            replacementOp = JavaOp.arrayStoreOp(
+                                    context.getValue(replaced.get((Op.Result) arrayStoreOp.operands().getFirst())),
+                                    context.getValue(arrayStoreOp.operands().get(1)),
+                                    context.getValue(arrayStoreOp.operands().getLast())
+                            );
+                        } else if (((ArrayType) firstOperandOrThrow(op).type()).dimensions() == 1) { // we only use the last array load
                             var arrayAccessInfo = HATPhaseUtils.arrayAccessInfo(op.result(), replaced);
                             var operands = arrayAccessInfo.bufferAndIndicesAsValues();
                             operands.add(arrayStoreOp.operands().getLast());
@@ -218,11 +226,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                     context.getValues(operands)
                             );
                         } else {
-                            replacementOp = JavaOp.arrayStoreOp(
-                                    context.getValue(replaced.get((Op.Result) arrayStoreOp.operands().getFirst())),
-                                    context.getValue(arrayStoreOp.operands().get(1)),
-                                    context.getValue(arrayStoreOp.operands().getLast())
-                            );
+                            return blockBuilder;
                         }
                         context.mapValue(arrayStoreOp.result(), blockBuilder.op(copyLocation(arrayStoreOp, replacementOp)));
                         return blockBuilder;
