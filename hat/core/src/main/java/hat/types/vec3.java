@@ -142,12 +142,18 @@ public interface vec3 extends  IfaceValue.vec {
     static vec3 pow(vec3 lhs, float scalar){
         return vec3(F32.pow(lhs.x(),scalar),F32.pow(lhs.y(),scalar),F32.pow(lhs.z(),scalar));
     }
-
+    static vec3 sin(float x, float y, float z){
+        return vec3(F32.sin(x),F32.sin(y),F32.sin(z));
+    }
     static vec3 sin(vec3 vec3){
-        return vec3(F32.sin(vec3.x()),F32.sin(vec3.y()),F32.sin(vec3.z()));
+        return sin(vec3.x(),vec3.y(),vec3.z());
     }
 
     static vec3 cos(vec3 vec3){
         return vec3(F32.cos(vec3.x()),F32.cos(vec3.y()),F32.cos(vec3.z()));
     }
+
+   // static vec3 neg(vec3 vec3){
+     //   return vec3(-vec3.x(),-vec3.y(), -vec3.z() );
+   // }
 }

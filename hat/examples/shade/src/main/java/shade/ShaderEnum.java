@@ -29,6 +29,7 @@ import shade.shaders.AcesShader;
 import shade.shaders.AnimShader;
 import shade.shaders.IntroShader;
 import shade.shaders.RandShader;
+import shade.shaders.SeaScapeShader;
 import shade.shaders.Shader1;
 import shade.shaders.Shader25;
 import shade.shaders.SpiralShader;
@@ -59,7 +60,8 @@ enum ShaderEnum {
     Waves(new WavesShader()),
     Intro(new IntroShader()),
     Tutorial(new TutorialShader()),
-    SquareWave(new SquareWaveShader());
+    SquareWave(new SquareWaveShader()),
+    SeaScape(new SeaScapeShader());
     Shader shader;
 
     ShaderEnum(Shader shader) {
