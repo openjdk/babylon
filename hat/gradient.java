@@ -1,20 +1,38 @@
+import hat.backend.Backend;
+
+import javax.swing.JFrame;
+import java.awt.Rectangle;
 import hat.Accelerator;
 import hat.backend.Backend;
-import shade.types.ivec2;
-import shade.types.vec2;
-import shade.types.vec4;
-import shade.types.Shader;
-import shade.types.Uniforms;
-import static shade.types.vec4.*;
-import static shade.types.vec2.*;
+import hat.types.ivec2;
+import hat.types.vec2;
+import hat.types.vec4;
+import shade.Controls;
+import shade.FloatImagePanel;
+import shade.Shader;
+import shade.Uniforms;
+import static hat.types.F32.*;
+import static hat.types.vec4.*;
+import static hat.types.vec2.*;
 import shade.Main;
 
 static void main(String[] args) throws IOException {
     var acc =  new Accelerator(MethodHandles.lookup(), Backend.FIRST);
     Shader shader = (uniforms, inFragColor, fragCoord) -> {
-            var uv = fragCoord.div(vec2(uniforms.iResolution()));  // normalize between 0->1 vec2 uv = fragCoord/iResolution.xy
-            float frame= Math.max(uniforms.iFrame()/1000f,1f);
+            var uv = div(fragCoord,vec2(uniforms.iResolution()));  // normalize between 0->1 vec2 uv = fragCoord/iResolution.xy
+            float frame= max(uniforms.iFrame()/1000f,1f);
             return vec4(uv.x(),uv.y(),frame,0f);
     };
-    new Main(acc, 1024, 1024, shader);
+    Controls controls = new Controls();
+    JFrame frame = new JFrame();
+    frame.setJMenuBar(controls.menu.menuBar());
+    int width = 1024;
+    int height = 1024;
+
+    FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height, false, shader, 30);
+    frame.setBounds(new Rectangle(width + 100, height + 100));
+    frame.setContentPane(imagePanel);
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    frame.setVisible(true);
+    imagePanel.start();
 }

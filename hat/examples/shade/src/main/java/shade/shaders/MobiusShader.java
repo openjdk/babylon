@@ -169,6 +169,7 @@ public class MobiusShader implements Shader {
             """;
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+
         return fragColor;
     }
 }

@@ -33,7 +33,10 @@ import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.F32Array;
 import hat.types.ivec2;
+import hat.types.mat2;
+import hat.types.mat3;
 import hat.types.vec2;
+import hat.types.vec3;
 import hat.types.vec4;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
@@ -247,6 +250,21 @@ private final int requestedFramesPerSecond;
                 long diffMs = diff / 1000000;
                 uniforms.iTime(diffMs/1000);
                 long startNs = System.nanoTime();
+                boolean collectStats = true;
+                if (collectStats){
+                    ivec2.collect.set(true);
+                    vec2.collect.set(true);
+                    vec3.collect.set(true);
+                    vec4.collect.set(true);
+                    mat2.collect.set(true);
+                    mat3.collect.set(true);
+                    ivec2.count.set(0);
+                    vec2.count.set(0);
+                    vec3.count.set(0);
+                    vec4.count.set(0);
+                    mat2.count.set(0);
+                    mat3.count.set(0);
+                }
                 if (controls.running()) {
                     uniforms.iFrame(uniforms.iFrame() + 1);
                     synchronized (floatImage) {
@@ -256,6 +274,16 @@ private final int requestedFramesPerSecond;
                     }
                 }
                 long endNs = System.nanoTime();
+                if (collectStats){
+                    controls.vectorsAndMats(
+                          ivec2.count.get()
+                            +vec2.count.get()
+                            +vec3.count.get()
+                            +vec4.count.get()
+                            +mat2.count.get()
+                            +mat3.count.get()
+                    );
+                }
                 controls.shaderUs((int)(endNs-startNs)/1000)
                         .fps((int) (uniforms.iFrame() * 1000 / diffMs))
                         .frame((int) uniforms.iFrame())

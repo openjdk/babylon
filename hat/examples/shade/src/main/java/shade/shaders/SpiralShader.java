@@ -25,12 +25,21 @@
 package shade.shaders;
 
 import hat.types.F32;
+import hat.types.mat3;
+import hat.types.mat2;
 import hat.types.vec2;
+import hat.types.vec3;
 import hat.types.vec4;
+import static hat.types.F32.*;
+import static hat.types.mat3.*;
+
+import static hat.types.mat2.*;
+import static hat.types.vec2.*;
+import static hat.types.vec3.*;
+import static hat.types.vec4.*;
 import shade.Shader;
 import shade.Uniforms;
 
-import static hat.types.mat2.mat2;
 
 //https://shadertoy.com/view/3llcDl
 public class SpiralShader implements Shader {
@@ -82,49 +91,49 @@ public class SpiralShader implements Shader {
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
         float fTime = uniforms.iTime();
         float fFrame = uniforms.iFrame();
-        var fResolution = vec2.vec2(uniforms.iResolution());
-        vec2 U = vec2.div(vec2.sub(vec2.mul(fragCoord,2f),fResolution),fResolution.y());//.sub(fResolution).div(fResolution.y());
+        var fResolution = vec2(uniforms.iResolution());
+        vec2 U = div(sub(mul(fragCoord,2f),fResolution),fResolution.y());//.sub(fResolution).div(fResolution.y());
         // normalized coordinates
-        var z = vec2.sub(U, vec2.vec2(-1f, 0f));
+        var z = sub(U, vec2(-1f, 0f));
 
-        U = vec2.sub(U, vec2.vec2(.5f, 0f));
-        U = vec2.div(vec2.mul(U, mat2(z.x(), z.y(), -z.y(), z.x())),vec2.dot(U, U));
+        U = sub(U, vec2(.5f, 0f));
+        U = div(mul(U, mat2(z.x(), z.y(), -z.y(), z.x())),dot(U, U));
         // offset   spiral, zoom   phase            // spiraling
-        U = vec2.add(U, vec2.vec2(.5f, 0f));
+        U = add(U, vec2(.5f, 0f));
         //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
 
-        U = vec2.add(vec2.add(
-                vec2.mul(F32.log(vec2.length(U)), vec2.vec2(.5f, 0.5f)),vec2.vec2(uniforms.iTime()/8f)
-        ), vec2.mul(vec2.div(vec2.atan(U.x(),U.y()),6.2832f),vec2.vec2(6f,1f)));
+        U = add(add(
+                mul(log(length(U)), vec2(.5f, 0.5f)),vec2(uniforms.iTime()/8f)
+        ), mul(div(atan(U.x(),U.y()),6.2832f),vec2(6f,1f)));
 
 
-        U = vec2.div(vec2.mul(U, vec2.vec2(3f)),vec2.vec2(2f, 1f));
-        z = vec2.vec2(.1f);//fwidth(U); // this resamples the image.  Not sure how we do this!
-        U = vec2.mul(vec2.fract(U),5f);
-        vec2 I = vec2.floor(U);
-        U = vec2.fract(U);             // subdiv big square in 5x5
-        I = vec2.vec2(F32.mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
-        U = vec2.add(U, vec2.vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
+        U = div(mul(U, vec2(3f)),vec2(2f, 1f));
+        z = vec2(.1f);//fwidth(U); // this resamples the image.  Not sure how we do this!
+        U = mul(fract(U),5f);
+        vec2 I = floor(U);
+        U = fract(U);             // subdiv big square in 5x5
+        I = vec2(mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
+        U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
         float id = -1f;
         if (I.x() != 4f) {
-            U = vec2.div(U,2f);                                     // but small times
-            id = F32.mod(F32.floor(I.x() / 2f) + I.y(), 5f);
+            U = div(U,2f);                                     // but small times
+            id = mod(floor(I.x() / 2f) + I.y(), 5f);
         }
-        U = vec2.sub(vec2.abs(vec2.mul(vec2.fract(U),2f)),1f);
-        float v = F32.max(U.x(), U.y());          // dist to border
+        U = sub(abs(mul(fract(U),2f)),1f);
+        float v = max(U.x(), U.y());          // dist to border
 
         return
-                vec4.normalize(vec4.smoothstep(
-                        vec4.vec4(.7f),
-                        vec4.vec4(-.7f),
-                        vec4.mul(vec4.div(vec4.vec4(v - .95f),F32.abs(z.x() - z.y()) > 1f
+                normalize(smoothstep(
+                        vec4(.7f),
+                        vec4(-.7f),
+                        mul(div(vec4(v - .95f),abs(z.x() - z.y()) > 1f
                                         ? .1f
                                         : z.y() * 8f
                                 )
                                 ,id < 0f
-                                                ? vec4.vec4(1f)
-                                                : vec4.add(vec4.mul(vec4.vec4(.6f),.6f),
-                                                vec4.cos(vec4.add(vec4.vec4(id),vec4.vec4(0f, 23f, 21f, 0f)))
+                                                ? vec4(1f)
+                                                : add(mul(vec4(.6f),.6f),
+                                                cos(add(vec4(id),vec4(0f, 23f, 21f, 0f)))
                                         )
                                 )
                 ));// color

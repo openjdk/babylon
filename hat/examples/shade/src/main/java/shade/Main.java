@@ -32,11 +32,6 @@ import java.awt.Rectangle;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
-import static hat.types.mat2.mat2;
-import static hat.types.mat3.mat3;
-import static hat.types.vec2.vec2;
-import static hat.types.vec3.vec3;
-import static hat.types.vec4.vec4;
 
 public class Main extends JFrame {
 
@@ -47,12 +42,13 @@ public class Main extends JFrame {
         Controls controls = new Controls();
         JFrame frame = new JFrame();
         frame.setJMenuBar(controls.menu.menuBar());
-        int width = 128;
-        int height = 128;
+        int width = Integer.parseInt(System.getProperty("width", "1024"));
+        int height = Integer.parseInt(System.getProperty("height", "1024"));
+        int fps = Integer.parseInt(System.getProperty("fps", "30"));
+        ShaderEnum shader = ShaderEnum.valueOf(System.getProperty("shader", "Tutorial"));
 
-        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height,
-                false, ShaderEnum.SeaScape.shader, 5);
-        frame.setBounds(new Rectangle(width + 100, height + 200));
+        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height, false, shader.shader, fps);
+        frame.setBounds(new Rectangle(width+Math.min(1600, 1600-width), height+Math.min(1000, 1000-height)));
         frame.setContentPane(imagePanel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);

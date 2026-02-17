@@ -31,22 +31,29 @@ import javax.swing.JMenuBar;
 import javax.swing.JToggleButton;
 
 public class Controls {
-    Menu menu;
+    public  final Menu menu;
+    private SevenSegmentDisplay vectorsAndMats7Seg;
     private SevenSegmentDisplay shaderUs7Seg;
     private SevenSegmentDisplay fps7Seg;
     private SevenSegmentDisplay frame7Seg;
     private SevenSegmentDisplay elapsedMs7Seg;
     private JToggleButton running;
 
-    Controls() {
-        menu = new Menu(new JMenuBar())
+    public Controls() {
+        this.menu = new Menu(new JMenuBar())
                 .exit()
+                .label("Vectors + Mats").sevenSegment(10, 15, $ -> vectorsAndMats7Seg = $).space(20)
                 .label("Shader Time (us)").sevenSegment(6, 15, $ -> shaderUs7Seg = $).space(20)
                 .label("Frame ").sevenSegment(6, 15, $ -> frame7Seg = $).space(20)
                 .label("Elapsed (ms)").sevenSegment(6, 15, $ -> elapsedMs7Seg = $).space(20)
                 .label("Frames (per sec)").sevenSegment(4, 15, $ -> fps7Seg = $).space(20)
                 .toggle("Stop","Go",true, $->running=$,_->{})
                 .space(40);
+    }
+
+    Controls vectorsAndMats(int v) {
+        vectorsAndMats7Seg.set(v);
+        return this;
     }
 
     Controls shaderUs(int v) {

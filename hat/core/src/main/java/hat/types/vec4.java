@@ -28,6 +28,9 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 public interface vec4 extends  IfaceValue.vec {
     Shape shape = Shape.of( JavaType.FLOAT,4);
@@ -39,7 +42,9 @@ public interface vec4 extends  IfaceValue.vec {
     float z();
 
     float w();
-
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping
     interface Field extends vec4 {
         @Reflect
@@ -61,6 +66,7 @@ public interface vec4 extends  IfaceValue.vec {
     static vec4 vec4(float x, float y, float z, float w) {
         record Impl(float x, float y, float z, float w) implements vec4 {
         }
+      //  if (collect.get())count.getAndIncrement();
         return new Impl(x, y, z, w);
     }
     static vec4 vec4(vec4 vec4) {return vec4(vec4.x(), vec4.y(), vec4.z(), vec4.w());}
