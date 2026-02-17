@@ -23,9 +23,19 @@
  * questions.
  */
 package shade.shaders;
-
+import hat.types.F32;
+import hat.types.mat3;
+import hat.types.mat2;
 import hat.types.vec2;
+import hat.types.vec3;
 import hat.types.vec4;
+import static hat.types.F32.*;
+import static hat.types.mat3.*;
+
+import static hat.types.mat2.*;
+import static hat.types.vec2.*;
+import static hat.types.vec3.*;
+import static hat.types.vec4.*;
 import shade.Shader;
 import shade.Uniforms;
 //https://www.shadertoy.com/view/Md23DV
@@ -42,12 +52,12 @@ public class Shader1 implements Shader {
             boolean midy = (fragCoord.y() > hDiv3 && fragCoord.y() < (h - hDiv3));
             if (uniforms.iMouse().x() > wDiv3) {
                 if (midx && midy) {
-                    return vec4.vec4(fragCoord.x(), .0f, fragCoord.y(), 0.f);
+                    return vec4(fragCoord.x(), .0f, fragCoord.y(), 0.f);
                 } else {
-                    return vec4.vec4(0f, 0f, .5f, 0f);
+                    return vec4(0f, 0f, .5f, 0f);
                 }
             } else {
-                return vec4.vec4(1f, 1f, .5f, 0f);
+                return vec4(1f, 1f, .5f, 0f);
             }
         }
 }

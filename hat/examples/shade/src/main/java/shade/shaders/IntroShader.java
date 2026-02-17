@@ -23,12 +23,19 @@
  * questions.
  */
 package shade.shaders;
-
 import hat.types.F32;
+import hat.types.mat3;
 import hat.types.mat2;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
+import static hat.types.F32.*;
+import static hat.types.mat3.*;
+
+import static hat.types.mat2.*;
+import static hat.types.vec2.*;
+import static hat.types.vec3.*;
+import static hat.types.vec4.*;
 import shade.Shader;
 import shade.Uniforms;
 
@@ -120,33 +127,33 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 public class IntroShader implements Shader {
 
     float square(vec2 r, vec2 bottomLeft, float side) {
-        vec2 p = vec2.sub(r,  bottomLeft);
+        vec2 p = sub(r,  bottomLeft);
         return ( p.x() > 0f && p.x() < side && p.y()>0f && p.y() < side ) ? 1f : 0f;
     }
 
     float character(vec2 r, vec2 bottomLeft, float charCode, float squareSide) {
-        vec2 p = vec2.sub(r, bottomLeft);
+        vec2 p = sub(r, bottomLeft);
         float ret = 0f;
         float num=charCode;
         float quotient, remainder;
         float x, y;
         for(int i=0; i<20; i++) {
             float boxNo = 19f-i;
-            float divider = F32.pow(2f, boxNo);
-            quotient = F32.floor(num / divider);
+            float divider = pow(2f, boxNo);
+            quotient = floor(num / divider);
             remainder = num - quotient*divider;
             num = remainder;
 
-            y = F32.floor(boxNo/4f);
+            y = floor(boxNo/4f);
             x = boxNo - y*4f;
             if(quotient == 1f) {
-                ret += square( p, vec2.mul(vec2.vec2(squareSide),vec2.vec2(x, y)), squareSide );
+                ret += square( p, mul(vec2(squareSide),vec2(x, y)), squareSide );
             }
         }
         return ret;
     }
 
-    mat2 rot(float th) { return mat2.mat2(F32.cos(th), -F32.sin(th), F32.sin(th), F32.cos(th)); }
+    mat2 rot(float th) { return mat2(cos(th), -sin(th), sin(th), cos(th)); }
 
     @Override public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord ) {
         float G = 990623f; // compressed characters :-)
@@ -154,68 +161,68 @@ public class IntroShader implements Shader {
         float S = 991119f;
 
         float t = uniforms.iTime();
-        vec2 fres = vec2.vec2(uniforms.iResolution());
-        vec2 r = vec2.div(vec2.sub(fragCoord, vec2.mul(vec2.vec2(-0.5f),fres)),vec2.vec2(fres.y()));
+        vec2 fres = vec2(uniforms.iResolution());
+        vec2 r = div(sub(fragCoord, mul(vec2(-0.5f),fres)),vec2(fres.y()));
 
         float c = 0.05f;
 
-         vec2 cos_3_sin_3 = vec2.vec2(F32.cos(0.3f*t),F32.sin(0.3f*t));
-         vec2 rplus = vec2.add(r,cos_3_sin_3);
-         vec2 cAsVec2= vec2.vec2(c);
-         vec2 pL = vec2.div(vec2.sub(vec2.mod(rplus),cAsVec2),cAsVec2);
-        float circ = 1f-F32.smoothstep(0.75f, 0.8f, vec2.length(pL));
+         vec2 cos_3_sin_3 = vec2(cos(0.3f*t),sin(0.3f*t));
+         vec2 rplus = add(r,cos_3_sin_3);
+         vec2 cAsVec2= vec2(c);
+         vec2 pL = div(sub(mod(rplus),cAsVec2),cAsVec2);
+        float circ = 1f-smoothstep(0.75f, 0.8f, length(pL));
 
-        vec2 rG = mat2.mul(rot(2f*3.1415f*F32.smoothstep(0f,1f,F32.mod(1.5f*t,4.0f))),r);
-        vec2 rStripes = mat2.mul(rot(0.2f),r);
+        vec2 rG = mul(rot(2f*3.1415f*smoothstep(0f,1f,mod(1.5f*t,4.0f))),r);
+        vec2 rStripes = mul(rot(0.2f),r);
 
 
         float xMax = 0.5f*fres.x()/fres.y();
         float letterWidth = 2f*xMax*0.9f/4f;
         float side = letterWidth/4f;
         float space = 2f*xMax*0.1f/5f;
-        vec2 letterWidthPlusSpace = vec2.vec2(letterWidth+space, 0f);
-        r = vec2.add(r,vec2.vec2(0.001f)); // to get rid off the y=0 horizontal blue line.
-        float maskGS = character(r, vec2.vec2(-xMax+space, -2.5f*side), G, side);
-        float maskG = character(rG, vec2.vec2(-xMax+space, -2.5f*side), G, side);
-        float maskL1 = character(r, vec2.add(vec2.vec2(-xMax+space, -2.5f*side)
-                ,vec2.mul(letterWidthPlusSpace,vec2.vec2(1f))), L, side);
-        float maskSS = character(r, vec2.add(vec2.vec2(-xMax+space, -2.5f*side)
-                ,vec2.mul(letterWidthPlusSpace,vec2.vec2(2f))), S, side);
+        vec2 letterWidthPlusSpace = vec2(letterWidth+space, 0f);
+        r = add(r,vec2(0.001f)); // to get rid off the y=0 horizontal blue line.
+        float maskGS = character(r, vec2(-xMax+space, -2.5f*side), G, side);
+        float maskG = character(rG, vec2(-xMax+space, -2.5f*side), G, side);
+        float maskL1 = character(r, add(vec2(-xMax+space, -2.5f*side)
+                ,mul(letterWidthPlusSpace,vec2(1f))), L, side);
+        float maskSS = character(r, add(vec2(-xMax+space, -2.5f*side)
+                ,mul(letterWidthPlusSpace,vec2(2f))), S, side);
 
-          float maskS = character(r, vec2.add(
-                 vec2.vec2(-xMax+space, -2.5f*side),
-                vec2.add(
-                        vec2.mul(
-                                vec2.vec2(letterWidth+space, 0f),vec2.vec2(2.0f)
+          float maskS = character(r, add(
+                 vec2(-xMax+space, -2.5f*side),
+                add(
+                        mul(
+                                vec2(letterWidth+space, 0f),vec2(2.0f)
                         )
-                        , vec2.vec2(
-                                0.01f*F32.sin(2.1f*t) ,0.012f*F32.cos(t))
+                        , vec2(
+                                0.01f*sin(2.1f*t) ,0.012f*cos(t))
                 )), S, side);
 
-        float maskL2 = character(r, vec2.add(vec2.vec2(-xMax+space, -2.5f*side),vec2.mul(letterWidthPlusSpace,vec2.vec2(3f))), L, side);
-        float maskStripes = F32.step(0.25f, F32.mod(rStripes.x() - 0.5f*t, 0.5f));
+        float maskL2 = character(r, add(vec2(-xMax+space, -2.5f*side),mul(letterWidthPlusSpace,vec2(3f))), L, side);
+        float maskStripes = step(0.25f, mod(rStripes.x() - 0.5f*t, 0.5f));
 
-        vec3 i255 = vec3.vec3(0.00392156862f);
+        vec3 i255 = vec3(0.00392156862f);
 
-        vec3 blue = vec3.mul(vec3.vec3(43f, 172f, 181f),i255);
-        vec3 pink = vec3.mul(vec3.vec3(232f, 77f, 91f),i255);
-     //   vec3 dark = vec3.mul(vec3.vec3(59f, 59f, 59f),i255);
-        vec3 light = vec3.mul(vec3.vec3(245f, 236f, 217f),i255);
-        vec3 green = vec3.mul(vec3.vec3(180f, 204f, 18f),i255);
+        vec3 blue = mul(vec3(43f, 172f, 181f),i255);
+        vec3 pink = mul(vec3(232f, 77f, 91f),i255);
+     //   vec3 dark = mul(vec3(59f, 59f, 59f),i255);
+        vec3 light = mul(vec3(245f, 236f, 217f),i255);
+        vec3 green = mul(vec3(180f, 204f, 18f),i255);
 
         vec3 pixel = blue;
-        pixel = vec3.mix(pixel, light, maskGS);
-        pixel = vec3.mix(pixel, light, maskSS);
-        pixel = vec3.sub(pixel,vec3.vec3(0.1f*maskStripes));
-        pixel = vec3.mix(pixel, green, maskG);
-        pixel = vec3.mix(pixel, pink, maskL1*circ);
-        pixel = vec3.mix(pixel, green, maskS);
-        pixel = vec3.mix(pixel, pink, maskL2*(1f-circ));
+        pixel = mix(pixel, light, maskGS);
+        pixel = mix(pixel, light, maskSS);
+        pixel = sub(pixel,vec3(0.1f*maskStripes));
+        pixel = mix(pixel, green, maskG);
+        pixel = mix(pixel, pink, maskL1*circ);
+        pixel = mix(pixel, green, maskS);
+        pixel = mix(pixel, pink, maskL2*(1f-circ));
 
-        float dirt = .01f;// F32.pow(texture(iChannel0, 4f*r).x, 4f);
-        pixel = vec3.sub(pixel,vec3.vec3((0.2f*dirt - 0.1f)*(maskG+maskS))); // dirt
-        pixel = vec3.sub(pixel, vec3.vec3(F32.smoothstep(0.45f, 2.5f, vec2.length(r))));
-        fragColor = vec4.vec4(vec3.normalize(pixel), 1f);
+        float dirt = .01f;// pow(texture(iChannel0, 4f*r).x, 4f);
+        pixel = sub(pixel,vec3((0.2f*dirt - 0.1f)*(maskG+maskS))); // dirt
+        pixel = sub(pixel, vec3(smoothstep(0.45f, 2.5f, length(r))));
+        fragColor = vec4(normalize(pixel), 1f);
         return fragColor;
     }
 }

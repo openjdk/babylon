@@ -28,6 +28,9 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public interface mat3 extends IfaceValue.mat {
     Shape shape = IfaceValue.mat.Shape.of( JavaType.FLOAT,3,3);
     float _00();
@@ -39,6 +42,10 @@ public interface mat3 extends IfaceValue.mat {
     float _20();
     float _21();
     float _22();
+
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping
     interface Field extends mat3 {
         @Reflect
@@ -62,11 +69,13 @@ public interface mat3 extends IfaceValue.mat {
         }
     }
 
-    record Impl(float _00, float _01, float _02, float _10, float _11, float _12, float _20, float _21, float _22) implements mat3 {
-    }
+
 
 
     static mat3 mat3(float _00, float _01, float _02,float _10, float _11, float _12, float _20, float _21, float _22) {
+        record Impl(float _00, float _01, float _02, float _10, float _11, float _12, float _20, float _21, float _22) implements mat3 {
+        }
+       // if (collect.get())count.getAndIncrement();
         return new Impl(_00, _01,_02, _10, _11, _12, _20, _21, _22);
     }
     static mat3 mat3(mat3 mat3) {return mat3(mat3._00(), mat3._01(), mat3._02(), mat3._10(), mat3._11(), mat3._12(), mat3._20(), mat3._21(), mat3._22());}

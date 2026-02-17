@@ -28,11 +28,17 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 // This is immutable
 public interface ivec2 extends  IfaceValue.vec {
     Shape shape = Shape.of( JavaType.INT,2);
     int x();
     int y();
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
 
     // A mutable form needed for interface mapping.
     interface Field extends ivec2 {
@@ -52,6 +58,7 @@ public interface ivec2 extends  IfaceValue.vec {
 
      static ivec2 ivec2(int x, int y) {
         record Impl(int x, int y) implements ivec2 { }
+      //   if (collect.get())count.getAndIncrement();
         return new Impl(x, y);
     }
     static ivec2 ivec2(ivec2 ivec2) {return ivec2(ivec2.x(), ivec2.y());}

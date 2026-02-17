@@ -28,6 +28,9 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public interface vec3 extends  IfaceValue.vec {
     Shape shape = Shape.of( JavaType.FLOAT,3);
     float x();
@@ -35,7 +38,9 @@ public interface vec3 extends  IfaceValue.vec {
     float y();
 
     float z();
-
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping
     interface Field extends vec3 {
         @Reflect
@@ -52,15 +57,17 @@ public interface vec3 extends  IfaceValue.vec {
             return this;
         }
     }
-    record Impl(float x, float y, float z) implements vec3 {
+
+
+    static vec3 vec3(float x, float y, float z) {
+        record Impl(float x, float y, float z) implements vec3 {
+        }
+      //  if (collect.get())count.getAndIncrement();
+        return new Impl(x, y,z);
     }
 
     static vec3 vec3(vec2 xy, float z) {
-        return new Impl(xy.x(),xy.y(), z);
-    }
-
-    static vec3 vec3(float x, float y, float z) {
-        return new Impl(x, y, z);
+        return vec3(xy.x(), xy.y(), z);
     }
 
     static vec3 vec3(vec3 vec3) {return vec3(vec3.x(), vec3.y(), vec3.z());}

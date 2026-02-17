@@ -28,6 +28,9 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue.mat;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public interface mat2 extends mat {
     Shape shape = Shape.of( JavaType.FLOAT,2,2);
     float _00();
@@ -37,7 +40,9 @@ public interface mat2 extends mat {
     float _10();
 
     float _11();
-
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping to memory segments
     interface Field extends mat2 {
         @Reflect
@@ -59,6 +64,7 @@ public interface mat2 extends mat {
     static mat2 mat2(float _00, float _01, float _10, float _11) {
         record Impl(float _00, float _01, float _10, float _11) implements mat2 {
         }
+      //  if (collect.get())count.getAndIncrement();
         return new Impl(_00, _01, _10, _11);
     }
     static mat2 mat2(mat2 mat2) {return mat2(mat2._00(), mat2._01(), mat2._10(), mat2._11());}
