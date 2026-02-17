@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.device.NonMappableIface;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
@@ -120,12 +121,12 @@ public class HATPhaseUtils {
 
     static public boolean isBufferArray(MethodHandles.Lookup lookup, Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
-        // return iop.invokeDescriptor().name().toLowerCase().contains("arrayview"); // we need a better way
-        try {
-            return iop.resultType() instanceof ArrayType && IfaceValue.class.isAssignableFrom(iop.invokeDescriptor().resolveToMethod(lookup).getDeclaringClass()); // we need a better way
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
+        return iop.invokeDescriptor().name().toLowerCase().contains("arrayview"); // we need a better way
+        // try {
+        //     return iop.resultType() instanceof ArrayType && IfaceValue.class.isAssignableFrom(iop.invokeDescriptor().resolveToMethod(lookup).getDeclaringClass()); // we need a better way
+        // } catch (ReflectiveOperationException e) {
+        //     throw new RuntimeException(e);
+        // }
     }
 
     static public boolean isSharedOrPrivateView(Op op) {
@@ -134,6 +135,11 @@ public class HATPhaseUtils {
                 && (iop.invokeDescriptor().name().toLowerCase().contains("shared")
                 || iop.invokeDescriptor().name().toLowerCase().contains("local")
                 || iop.invokeDescriptor().name().toLowerCase().contains("private")); // also
+        // try {
+        //     return iop != null && iop.resultType() instanceof ArrayType && NonMappableIface.class.isAssignableFrom(iop.invokeDescriptor().resolveToMethod(lookup).getDeclaringClass()); // we need a better way
+        // } catch (ReflectiveOperationException e) {
+        //     throw new RuntimeException(e);
+        // }
     }
 
     static  public Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
