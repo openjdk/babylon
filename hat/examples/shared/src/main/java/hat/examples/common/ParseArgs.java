@@ -75,15 +75,14 @@ public class ParseArgs {
     }
 
     private static void showHelp() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Help:").append(System.lineSeparator());
-        builder.append("    --size=<size>                   Specify an input size").append(System.lineSeparator());
-        builder.append("    --iterations=<numIterations>    Specify the number of iterations to perform").append(System.lineSeparator());
-        builder.append("    --skip-sequential               Flag to bypass the sequential execution in Java").append(System.lineSeparator());
-        builder.append("    --check                         Flag to check the results. This implies the Java sequential version runs.").append(System.lineSeparator());
-        builder.append("    --verbose                       Flag to print information between runs (e.g., total time).").append(System.lineSeparator());
-        builder.append("    --help                          Print this help.").append(System.lineSeparator());
-        IO.println(builder.toString());
+        String builder = "Help:" + System.lineSeparator() +
+                "    --size=<size>                   Specify an input size" + System.lineSeparator() +
+                "    --iterations=<numIterations>    Specify the number of iterations to perform" + System.lineSeparator() +
+                "    --skip-sequential               Flag to bypass the sequential execution in Java" + System.lineSeparator() +
+                "    --check                         Flag to check the results. This implies the Java sequential version runs." + System.lineSeparator() +
+                "    --verbose                       Flag to print information between runs (e.g., total time)." + System.lineSeparator() +
+                "    --help                          Print this help." + System.lineSeparator();
+        IO.println(builder);
 
     }
 

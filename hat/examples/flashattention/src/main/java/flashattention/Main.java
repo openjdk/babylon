@@ -87,8 +87,6 @@ import static optkl.ifacemapper.MappableIface.WO;
  */
 public class Main {
 
-    public static final int ITERATIONS = 100;
-
     /**
      * Computes self-attention with HAT in a 1D parallel kernel. It fuses:
      * - Matmul: Q @ K^T with a scale factor
@@ -682,7 +680,7 @@ public class Main {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int defaultSize = 512;
-        int iterations = ITERATIONS;
+        int iterations = 100;
         ParseArgs parseArgs = new ParseArgs(args);
         ParseArgs.Options options = parseArgs.parseWithDefaults(defaultSize, iterations);
 
@@ -756,7 +754,7 @@ public class Main {
         List<Long> timersFlashAttentionHAT16 = new ArrayList<>();
 
         // Run the CPU version with Java:
-        for (int i = 0; i < ITERATIONS; i++) {
+        for (int i = 0; i < options.iterations(); i++) {
             long start = System.nanoTime();
             selfAttentionV2(Q, K, V, attentionMatrix, O_java, sequenceLen, headDim, softmaxScale);
             long end = System.nanoTime();
@@ -767,7 +765,7 @@ public class Main {
         }
 
         // Run the Parallel Stream version with Java:
-        for (int i = 0; i < ITERATIONS; i++) {
+        for (int i = 0; i < options.iterations(); i++) {
             long start = System.nanoTime();
             selfAttentionStreamsV2(Q, K, V, attentionMatrix, O_streams, sequenceLen, headDim, softmaxScale);
             long end = System.nanoTime();
@@ -778,7 +776,7 @@ public class Main {
         }
 
         // Run self-attention algorithm with HAT
-        for (int i = 0; i < ITERATIONS; i++) {
+        for (int i = 0; i < options.iterations(); i++) {
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute)
                     cc -> Main.selfAttentionCompute(
@@ -800,7 +798,7 @@ public class Main {
         }
 
         // Run flashAttention in HAT
-        for (int i = 0; i < ITERATIONS; i++) {
+        for (int i = 0; i < options.iterations(); i++) {
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute)
                     cc -> Main.computeFlashAttention(
@@ -823,7 +821,7 @@ public class Main {
         }
 
         // Run flashAttention in HAT
-        for (int i = 0; i < ITERATIONS; i++) {
+        for (int i = 0; i < options.iterations(); i++) {
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute)
                     cc -> Main.computeFlashAttentionF16(
@@ -870,7 +868,7 @@ public class Main {
         // Print Performance Metrics
         // skip 50% of first timers -> we evaluate in peak,
         // or closed to peak, performance.
-        final int skip = ITERATIONS / 2;
+        final int skip = options.iterations() / 2;
         double averageJavaTimer = computeAverage(timersSelfAttentionJava, skip);
         double averageStreamTimer = computeAverage(timersSelfAttentionStream, skip);
         double averageSelfAttentionHAT = computeAverage(timersSelfAttentionHAT, skip);
