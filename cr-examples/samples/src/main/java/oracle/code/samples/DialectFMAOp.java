@@ -37,6 +37,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -114,37 +115,35 @@ public class DialectFMAOp {
 
         // 3. Print the original code model
         String codeModelString = functionModel.toText();
-        System.out.println(codeModelString);
+        IO.println(codeModelString);
 
         // 4. Detect if FMA can be applied.
         // To do so, we traverse the original code model and find
         // all AddOp(MultOp)) patterns.
-
-        // data structure used to store all Ops involved, so it will be easier later
-        // to transform/replace/eliminate pending the nodes involved in this transformation.
-        Stream<CodeElement<?, ?>> elements = functionModel.elements()
-                .mapMulti( (codeElement, consumer) -> {
-                        // Obtain dependency list of dependencies and check if any of the
-                        // input parameters comes from a multiply operation
-                    if (codeElement instanceof JavaOp.AddOp addOp) {
-                        List<Value> inputOperandsAdd = addOp.operands();
-                        Value addDep = inputOperandsAdd.getFirst();
-                        if (addDep instanceof Op.Result result) {
-                            if (result.op() instanceof JavaOp.MulOp multOp) {
-                                // At this point, we know AddOp uses a value from a
-                                // result from a multiplication. Thus, we add them
-                                // in the processing list
-                                consumer.accept(multOp);
-                                consumer.accept(addOp);
-                            }
-                        }
+        Set<Op> nodesInvolved = new HashSet<>();
+        functionModel.elements()
+                // filter with AddOp
+                .filter(codeElement -> codeElement instanceof JavaOp.AddOp)
+                // Map codeElement to an AddOp
+                .map(codeElement -> (JavaOp.AddOp) codeElement)
+                // for each of the selected AddOp, check if they depend on a MulOp as fist parameter
+                .forEach(addOp -> {
+                    // Obtain dependency list of dependencies and check if any of the
+                    // input parameters comes from a multiply operation
+                    List<Value> inputOperandsAdd = addOp.operands();
+                    Value addDep = inputOperandsAdd.getFirst();
+                    if (addDep instanceof Op.Result result && result.op() instanceof JavaOp.MulOp multOp) {
+                        // At this point, we know AddOp uses a value from a
+                        // result from a multiplication. Thus, we add them
+                        // in the processing list
+                        nodesInvolved.add(addOp);
+                        nodesInvolved.add(multOp);
                     }
                 });
 
         // Collect the stream to a HashSet
-        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
         if (nodesInvolved.isEmpty()) {
-            System.out.println("No fma found");
+            IO.println("No fma found");
             return;
         }
 
@@ -154,44 +153,36 @@ public class DialectFMAOp {
             if (!nodesInvolved.contains(op)) {
                 builder.op(op);
             } else if (op instanceof JavaOp.MulOp  mulOp) {
-                // If it is only used by one operation, we know it is the one we are replacing.
                 // In this case, we can eliminate the node (we don't insert it into the builder)
-                if (mulOp.result().uses().size() == 1) {
-                    context.mapValue(mulOp.result(), context.getValue(mulOp.operands().getFirst()));
-                } else {
-                    // We need to insert it into the tree because another non-FMA operation also uses this
-                    // operand
-                    builder.op(op);
-                }
+                context.mapValue(mulOp.result(), context.getValue(mulOp.operands().getFirst()));
             } else if (op instanceof JavaOp.AddOp addOp) {
                 // 6. Obtain the operands for the node
                 List<Value> inputOperandsAdd = addOp.operands();
 
-                // Obtain the fist operand and check if the value comes from an Mult Op.
+                // Obtain the **fist operand** and check if the value comes from an Mult Op.
                 // In that case, we check if the mult node is contained in the set of
                 // involved nodes. If all of this is true, then we replace it with an
                 // FMA operation.
-                if (addOp.operands().get(0) instanceof Op.Result r &&
+                if (addOp.operands().getFirst() instanceof Op.Result r &&
                         r.op() instanceof JavaOp.MulOp mulOp
                         && nodesInvolved.contains(mulOp)) {
 
                     // 7. Create a new Op with the new operation
-                    List<Value> inputOperandsMult = mulOp.operands();
+                    List<Value> inputOperandsMul = mulOp.operands();
                     List<Value> outputAdd = context.getValues(inputOperandsAdd);
-                    List<Value> outputMul = context.getValues(inputOperandsMult);
-                    List<Value> outFMA = new ArrayList<>();
+                    List<Value> outputMul = context.getValues(inputOperandsMul);
 
                     // Build the new parameters list
-                    outFMA.addAll(outputMul);      // First two parameters comes from the multiplication.
+                    List<Value> outFMA = new ArrayList<>(outputMul);      // First two parameters comes from the multiplication.
                     outFMA.add(outputAdd.get(1));  // the last parameter is the second arg to the AddOp
 
-                    FMA myFMA = new FMA(outFMA, addOp.resultType());
+                    FMA myFMAOp = new FMA(outFMA, addOp.resultType());
 
                     // 8. Attach the new Op to the builder
-                    Op.Result resultFMA = builder.op(myFMA);
+                    Op.Result resultFMA = builder.op(myFMAOp);
 
                     // 9. Propagate the location of the new op
-                    myFMA.setLocation(addOp.location());
+                    myFMAOp.setLocation(addOp.location());
 
                     // 10. Map the values from input -> output for the new Op
                     context.mapValue(addOp.result(), resultFMA);
@@ -201,15 +192,17 @@ public class DialectFMAOp {
         });
 
         // 11. Print the transformed code model
-        System.out.println("Model with new OpNodes for Dialect: ");
-        System.out.println(dialectModel.toText());
+        IO.println("Model with new OpNodes for Dialect: ");
+        IO.println(dialectModel.toText());
 
         // 12. Transform to SSA and print the code model
-        System.out.println(SSA.transform(dialectModel).toText());
+        IO.println(SSA.transform(dialectModel).toText());
     }
 
     static void main() {
-        System.out.println("Testing Dialects in Code-Reflection");
+        IO.println("Testing Dialects in Code-Reflection");
         customFMA();
     }
+
+    private DialectFMAOp() {}
 }
