@@ -69,6 +69,9 @@ public interface vec3 extends  IfaceValue.vec {
     static vec3 vec3(vec2 xy, float z) {
         return vec3(xy.x(), xy.y(), z);
     }
+    static vec3 vec3(float x, vec2 yz) {
+        return vec3(x, yz.x(), yz.y());
+    }
 
     static vec3 vec3(vec3 vec3) {return vec3(vec3.x(), vec3.y(), vec3.z());}
     static vec3 vec3(float scalar) {return vec3(scalar,scalar,scalar);}

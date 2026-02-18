@@ -24,23 +24,16 @@
  */
 package shade.shaders;
 import hat.types.F32;
-import hat.types.mat3;
-import hat.types.mat2;
 import hat.types.vec2;
-import hat.types.vec3;
 import hat.types.vec4;
-import static hat.types.F32.*;
-import static hat.types.mat3.*;
 
-import static hat.types.mat2.*;
 import static hat.types.vec2.*;
-import static hat.types.vec3.*;
 import static hat.types.vec4.*;
 import shade.Shader;
 import shade.Uniforms;
 
 //https://www.shadertoy.com/view/Md23DV
-public class Shader25 implements Shader {
+public class GroovyShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {

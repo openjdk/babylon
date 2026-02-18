@@ -89,26 +89,34 @@ public class SpiralShader implements Shader {
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         // variant of https://shadertoy.com/view/3llcDl
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
-        float fTime = uniforms.iTime();
-        float fFrame = uniforms.iFrame();
+
         var fResolution = vec2(uniforms.iResolution());
         vec2 U = div(sub(mul(fragCoord,2f),fResolution),fResolution.y());//.sub(fResolution).div(fResolution.y());
         // normalized coordinates
         var z = sub(U, vec2(-1f, 0f));
 
         U = sub(U, vec2(.5f, 0f));
-        U = div(mul(U, mat2(z.x(), z.y(), -z.y(), z.x())),dot(U, U));
+        U = div(
+                mul(U, mat2(z.x(), z.y(), -z.y(), z.x())),
+                dot(U, U)
+        );
         // offset   spiral, zoom   phase            // spiraling
         U = add(U, vec2(.5f, 0f));
         //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
-
-        U = add(add(
-                mul(log(length(U)), vec2(.5f, 0.5f)),vec2(uniforms.iTime()/8f)
-        ), mul(div(atan(U.x(),U.y()),6.2832f),vec2(6f,1f)));
+        U = add(
+                add(
+                        mul(log(length(U)), vec2(.5f, 0.5f)),
+                        vec2(uniforms.iTime()/8f)
+                ),
+                mul(
+                        div(atan(U.x(),U.y()), 6.2832f),
+                        vec2(6f,1f)
+                )
+        );
 
 
         U = div(mul(U, vec2(3f)),vec2(2f, 1f));
-        z = vec2(.1f);//fwidth(U); // this resamples the image.  Not sure how we do this!
+        z = vec2(.01f);//fwidth(U); // this resamples the image.  Not sure how we do this!
         U = mul(fract(U),5f);
         vec2 I = floor(U);
         U = fract(U);             // subdiv big square in 5x5
@@ -123,7 +131,8 @@ public class SpiralShader implements Shader {
         float v = max(U.x(), U.y());          // dist to border
 
         return
-                normalize(smoothstep(
+                normalize(
+                        smoothstep(
                         vec4(.7f),
                         vec4(-.7f),
                         mul(div(vec4(v - .95f),abs(z.x() - z.y()) > 1f
@@ -136,7 +145,8 @@ public class SpiralShader implements Shader {
                                                 cos(add(vec4(id),vec4(0f, 23f, 21f, 0f)))
                                         )
                                 )
-                ));// color
+                )
+                );// color
 
     };
 

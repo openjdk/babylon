@@ -30,8 +30,8 @@ import shade.shaders.AnimShader;
 import shade.shaders.IntroShader;
 import shade.shaders.RandShader;
 import shade.shaders.SeaScapeShader;
-import shade.shaders.Shader1;
-import shade.shaders.Shader25;
+import shade.shaders.MouseSensitiveShader;
+import shade.shaders.GroovyShader;
 import shade.shaders.SpiralShader;
 import shade.shaders.SquareWaveShader;
 import shade.shaders.TutorialShader;
@@ -51,8 +51,8 @@ enum ShaderEnum {
         return vec4(uv.x(), uv.y(), F32.max(fFrame / 100f, 1f), 0f);
     }),
 
-    Shader1(new Shader1()),
-    Shader25(new Shader25()),
+    MouseSensitive(new MouseSensitiveShader()),
+    Groovy(new GroovyShader()),
     Rand(new RandShader()),
     Spiral(new SpiralShader()),
     Aces(new AcesShader()),

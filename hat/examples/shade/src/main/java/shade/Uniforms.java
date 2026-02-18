@@ -63,8 +63,8 @@ public interface Uniforms extends Buffer {
 
     ivec2Field iResolution();
 
-    long iTime();
-    void iTime(long iTime);
+    float iTime();
+    void iTime(float iTime);
     ivec2Field iMouse();
     long iFrame();
     void iFrame(long iFrame);
@@ -74,6 +74,7 @@ public interface Uniforms extends Buffer {
             .field("iResolution", iResolution -> iResolution.fields("x", "y"))
             .field("iMouse", iMouse -> iMouse.fields("x", "y"))
             .field("iTime")
+            .pad(4)
             .field("iFrame")
     );
 
