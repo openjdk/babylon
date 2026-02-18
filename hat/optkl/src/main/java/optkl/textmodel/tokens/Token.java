@@ -31,6 +31,8 @@ public interface Token extends Span {
 
     Parent parent();
 
+    void reparent(Parent parent);
+
     Pos pos();
 
     default int depth() {
@@ -90,5 +92,6 @@ public interface Token extends Span {
     }
 
     void visit(Consumer<Token> visitor);
-
+    void visitPreOrder(Consumer<Token> visitor);
+    void visitPostOrder(Consumer<Token> visitor);
 }

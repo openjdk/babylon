@@ -30,14 +30,12 @@ import java.util.function.Predicate;
 
 public class IntConst extends LeafReplacementToken {
     public final int i;
-    public static final Regex regex = Regex.of("[0-9][0-9]*");
+    public static final Regex regex = Regex.of("[0-9]+");
 
     public IntConst(Token t) {
         super(t);
-        var s = t.asString();
-        this.i = Integer.parseInt(s);
+        this.i = Integer.parseInt(t.asString());
     }
-
     public static boolean isA(Token t, Predicate<IntConst> predicate) {
         return t instanceof IntConst intConst && predicate.test(intConst);
     }

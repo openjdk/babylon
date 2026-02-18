@@ -33,7 +33,10 @@ import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.F32Array;
 import hat.types.ivec2;
+import hat.types.mat2;
+import hat.types.mat3;
 import hat.types.vec2;
+import hat.types.vec3;
 import hat.types.vec4;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
@@ -73,15 +76,16 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     Point mousePressedPosition;
     Point2D imageRelativeMouseDownPosition = new Point2D.Float();
     Point2D imageRelativeMovePosition = new Point2D.Float();
+private final int requestedFramesPerSecond;
 
-
-    public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, boolean useHat, Shader shader) {
+    public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, boolean useHat, Shader shader, int requestedFramesPerSecond) {
         this.accelerator = accelerator;
         this.width = width;
         this.height = height;
         this.controls = controls;
         this.useHAT = useHat;
         this.shader = shader;
+        this.requestedFramesPerSecond =requestedFramesPerSecond;
         this.floatImage = FloatImage.of(accelerator, width, height);
         this.uniforms = Uniforms.create(accelerator);
         addMouseListener(new MouseAdapter() {
@@ -210,7 +214,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     final public  void  runShader(FloatImage floatImage){
         if (!useHAT){
                 IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
-                    vec2 fragCoord = vec2.vec2(i % floatImage.width(), (float) (i / floatImage.width()));
+                    vec2 fragCoord = vec2.vec2((float)i % floatImage.width(), (float) (floatImage.height()-(i / floatImage.width())));
                     vec4 inFragColor = vec4.vec4(0);
                     vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
                     floatImage.set(i, outFragColor);
@@ -231,7 +235,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     public void run() {
         long startTimeNs = System.nanoTime();
 
-        double nsPerTick = 1000000000.0 / 30.0; // 30 Fixed Updates per second
+        double nsPerTick = 1000000000.0 /requestedFramesPerSecond; // 2 Fixed Updates per second
         double delta = 0;
         long lastTimeNs = System.nanoTime();
         while (running) {
@@ -244,8 +248,23 @@ public  class FloatImagePanel extends JPanel implements Runnable {
             while (delta >= 1) {
                 long diff = lastTimeNs - startTimeNs;
                 long diffMs = diff / 1000000;
-                uniforms.iTime(diffMs);
+                uniforms.iTime(diffMs/1000);
                 long startNs = System.nanoTime();
+                boolean collectStats = true;
+                if (collectStats){
+                    ivec2.collect.set(true);
+                    vec2.collect.set(true);
+                    vec3.collect.set(true);
+                    vec4.collect.set(true);
+                    mat2.collect.set(true);
+                    mat3.collect.set(true);
+                    ivec2.count.set(0);
+                    vec2.count.set(0);
+                    vec3.count.set(0);
+                    vec4.count.set(0);
+                    mat2.count.set(0);
+                    mat3.count.set(0);
+                }
                 if (controls.running()) {
                     uniforms.iFrame(uniforms.iFrame() + 1);
                     synchronized (floatImage) {
@@ -255,6 +274,16 @@ public  class FloatImagePanel extends JPanel implements Runnable {
                     }
                 }
                 long endNs = System.nanoTime();
+                if (collectStats){
+                    controls.vectorsAndMats(
+                          ivec2.count.get()
+                            +vec2.count.get()
+                            +vec3.count.get()
+                            +vec4.count.get()
+                            +mat2.count.get()
+                            +mat3.count.get()
+                    );
+                }
                 controls.shaderUs((int)(endNs-startNs)/1000)
                         .fps((int) (uniforms.iFrame() * 1000 / diffMs))
                         .frame((int) uniforms.iFrame())
@@ -267,7 +296,7 @@ public  class FloatImagePanel extends JPanel implements Runnable {
 
             // Cap the loop to save CPU
             try {
-                Thread.sleep(10);
+                Thread.sleep(1);
             } catch (InterruptedException e) {
             }
         }

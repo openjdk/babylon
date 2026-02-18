@@ -29,7 +29,7 @@ public interface F32 {
     float PIx2 = PI*2;
     float E = (float)Math.E;
     static float sqrt(float f){return (float)Math.sqrt(f);}
-    static float invsqrt(float f){return 1f/sqrt(f);}
+    static float inversesqrt(float f){return 1f/sqrt(f);}
     static float cos(float f){return (float)Math.cos(f);}
     static float sin(float f){return (float)Math.sin(f);}
     static float tan(float f){return (float)Math.tan(f);}
@@ -60,4 +60,17 @@ public interface F32 {
     static float max(float lhs, float rhs){ return Math.max(lhs,rhs);}
     // watch out ! Shader version is min,max, value!!
     static float clamp(float value,float min, float max){return Math.clamp(value,min,max);}
+
+    static float  mul(float lhs, float rhs) {
+        return lhs*rhs;
+    }
+    static float  add(float lhs, float rhs) {
+        return lhs+rhs;
+    }
+    static float  sub(float lhs, float rhs) {
+        return lhs-rhs;
+    }
+    static float  div(float lhs, float rhs) {
+        return lhs/rhs;
+    }
 }

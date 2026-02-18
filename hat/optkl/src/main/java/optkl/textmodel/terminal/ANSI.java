@@ -33,7 +33,9 @@ import java.util.function.Function;
 
 public interface ANSI<T extends ANSI<T>> extends  Function<String, T> {
     T apply(String o);
-
+    default T apply(char ch){
+        return apply(""+ch);
+    }
     default T apply(Token t) {
         return apply(t.asString());
     }
@@ -73,6 +75,9 @@ public interface ANSI<T extends ANSI<T>> extends  Function<String, T> {
     default T fg(int color, Consumer<T> cc) {
         return color(0, color, cc);
     }
+    default T fg(int color, Token token) {
+        return fg(color, $->$.apply(token));
+    }
 
 
     default T bold(int color, Consumer<T> cc) {
@@ -94,6 +99,9 @@ public interface ANSI<T extends ANSI<T>> extends  Function<String, T> {
 
     default T bg(int color,Consumer<T> cc) {
         return color(color + 10, cc);
+    }
+    default T bg(int color,Token token) {
+        return bg(color, $->$.apply(token));
     }
 
     default T csi() {

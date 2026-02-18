@@ -24,44 +24,13 @@
  */
 package optkl.textmodel.tokens;
 
-import optkl.util.Regex;
+import java.util.function.Predicate;
 
-import java.util.Set;
-import java.util.function.Consumer;
-
-public interface Leaf extends Token {
-    @Override
-    default void visit(Consumer<Token> visitor) {
-        visitor.accept(this);
+public interface Char extends Leaf {
+    static boolean isA(Token t, Predicate<Char> predicate) {
+        return t instanceof Char seq && predicate.test(seq);
     }
-    @Override
-    default void visitPreOrder(Consumer<Token> visitor) {
-        visitor.accept(this);
-    }
-    @Override
-    default void visitPostOrder(Consumer<Token> visitor) {
-        visitor.accept(this);
-    }
-
-    default boolean isOneOf(Set<String> strings) {
-        return strings.contains(this.asString());
-    }
-
-    default boolean isOneOf(String... strings) {
-        return isOneOf(Set.of(strings));
-    }
-
-    default Regex.Match matcher(Regex regex) {
-        Regex.Result matcher = regex.is(asString());
-        if (matcher instanceof Regex.Match) {
-            return (Regex.Match) matcher;
-        } else {
-            return null;
-        }
-    }
-
-
-    default boolean matches(Regex regex) {
-        return matcher(regex) != null;
+    default int len() {
+        return 1;
     }
 }

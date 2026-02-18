@@ -27,13 +27,18 @@ package hat.types;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
-import optkl.IfaceValue.Vector;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 // This is immutable
-public interface ivec2 extends Vector, IfaceValue.NewVector {
+public interface ivec2 extends  IfaceValue.vec {
     Shape shape = Shape.of( JavaType.INT,2);
     int x();
     int y();
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
 
     // A mutable form needed for interface mapping.
     interface Field extends ivec2 {
@@ -51,26 +56,32 @@ public interface ivec2 extends Vector, IfaceValue.NewVector {
     }
 
 
-    static ivec2 ivec2(int x, int y) {
+     static ivec2 ivec2(int x, int y) {
         record Impl(int x, int y) implements ivec2 { }
+      //   if (collect.get())count.getAndIncrement();
         return new Impl(x, y);
     }
     static ivec2 ivec2(ivec2 ivec2) {return ivec2(ivec2.x(), ivec2.y());}
     static ivec2 ivec2(int scalar) {return ivec2(scalar,scalar);}
 
-    static ivec2 add(ivec2 l, ivec2 r) {return ivec2(l.x()+r.x(),l.y()+r.y());}
-    default ivec2 add(ivec2 rhs){return add(this,rhs);}
-    default ivec2 add(int scalar){return add(this,ivec2(scalar));}
+    static ivec2 add(int lx, int ly,  int rx, int ry) {return ivec2(lx+rx,ly+ry);}
+    static ivec2 sub(int lx, int ly,  int rx, int ry) {return ivec2(lx-rx,ly-ry);}
+    static ivec2 mul(int lx, int ly,  int rx, int ry) {return ivec2(lx*rx,ly*ry);}
+    static ivec2 div(int lx, int ly,  int rx, int ry) {return ivec2(lx/rx,ly/ry);}
 
-    static ivec2 sub(ivec2 l, ivec2 r) {return ivec2(l.x()-r.x(),l.y()-r.y());}
-    default ivec2 sub(int scalar) {return sub(this, ivec2(scalar));}
-    default ivec2 sub(ivec2 rhs){return sub(this,rhs);}
+    static ivec2 add(ivec2 l, ivec2 r) {return add(l.x(),r.x(),l.y(),r.y());}
+    static ivec2 add(ivec2 l, int scalar) {return add(l.x(),scalar,l.y(),scalar);}
+    static ivec2 add(int scalar, ivec2 r) {return add(scalar, r.x(),scalar, r.y());}
 
-    static ivec2 mul(ivec2 l, ivec2 r) {return ivec2(l.x()*r.x(),l.y()*r.y());}
-    default ivec2 mul(int scalar) {return mul(this, ivec2(scalar));}
-    default ivec2 mul(ivec2 rhs){return mul(this,rhs);}
+    static ivec2 sub(ivec2 l, ivec2 r) {return sub(l.x(),r.x(),l.y(),r.y());}
+    static ivec2 sub(ivec2 l, int scalar) {return sub(l.x(),scalar,l.y(),scalar);}
+    static ivec2 sub(int scalar, ivec2 r) {return sub(scalar, r.x(),scalar, r.y());}
 
-    static ivec2 div(ivec2 l, ivec2 r) {return ivec2(l.x()/r.x(),l.y()/r.y());}
-    default ivec2 div(int scalar) {return div(this, ivec2(scalar));}
-    default ivec2 div(ivec2 rhs){return div(this,rhs);}
+    static ivec2  mul(ivec2 l, ivec2 r) {return  mul(l.x(),r.x(),l.y(),r.y());}
+    static ivec2  mul(ivec2 l, int scalar) {return  mul(l.x(),scalar,l.y(),scalar);}
+    static ivec2  mul(int scalar, ivec2 r) {return  mul(scalar, r.x(),scalar, r.y());}
+
+    static ivec2 div(ivec2 l, ivec2 r) {return div(l.x(),r.x(),l.y(),r.y());}
+    static ivec2 div(ivec2 l, int scalar) {return div(l.x(),scalar,l.y(),scalar);}
+    static ivec2 div(int scalar, ivec2 r) {return div(scalar, r.x(),scalar, r.y());}
 }

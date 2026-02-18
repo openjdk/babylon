@@ -22,26 +22,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.tools;
+package experiments;
 
 import hat.ComputeContext;
-import hat.KernelContext;
 import hat.NDRange;
+import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
+import optkl.codebuilders.JavaCodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.MappableIface;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.textmodel.ui.FuncOpViewer;
+import optkl.util.OpCodeBuilder;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandles;
 
-public class TestFuncOpViewer {
-    static class Compute {
+public class TestJavaHATCodeBuilder {
+    public static class Compute {
         @Reflect
-        public static void mandel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array2D s32Array2D, @MappableIface.RO S32Array pallette, float offsetx, float offsety, float scale) {
+        public static void mandel(@MappableIface.RO KernelContext kc,
+                                  @MappableIface.RO S32Array pallette,
+                                  @MappableIface.RW S32Array2D s32Array2D,
+                                  float offsetx, float offsety, float scale) {
             if (kc.gix < kc.gsx) {
                 float width = s32Array2D.width();
                 float height = s32Array2D.height();
@@ -67,17 +71,28 @@ public class TestFuncOpViewer {
         static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
             computeContext.dispatchKernel(
-                    NDRange.of1D(s32Array2D.width() * s32Array2D.height()),         //0..S32Array2D.size()
-                    kc -> mandel(kc, s32Array2D, pallete, x, y, scale));
+                    NDRange.of1D(s32Array2D.width()*s32Array2D.height()),  //0..S32Array2D.size()
+                    kc -> mandel(kc,  pallete,s32Array2D, x, y, scale));
         }
 
     }
+   public static void main(String[] args) throws NoSuchMethodException {
+            CoreOp.FuncOp mandel =  Op.ofMethod(Compute.class.getDeclaredMethod("mandel",
+                       KernelContext.class, S32Array.class,  S32Array2D.class, float.class, float.class,float.class)).get();
+            CoreOp.FuncOp compute =  Op.ofMethod(Compute.class.getDeclaredMethod("compute",
+                    ComputeContext.class,  S32Array.class, S32Array2D.class,float.class, float.class,float.class)).get();
+       var builder=  new JavaCodeBuilder(MethodHandles.lookup(),mandel);
 
-    public static void main(String[] args) throws NoSuchMethodException, IOException {
-        String methodName = "mandel";
-        Method method = Compute.class.getDeclaredMethod(methodName,
-                KernelContext.class, S32Array2D.class, S32Array.class, float.class, float.class, float.class);
-        CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
-        FuncOpViewer.launch(javaFunc);
+       OpCodeBuilder.writeTo(System.out,mandel);
+            System.out.println();
+            System.out.println("----");
+            System.out.println(mandel.toText());
+
+       System.out.println();
+       System.out.println("----");
+           builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),mandel));
+           builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),compute));
+           System.out.println(builder.toText());
+
     }
 }

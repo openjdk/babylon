@@ -24,7 +24,7 @@
  */
 package optkl.textmodel.tokens;
 
-public interface OpenClose extends SingleCharLeaf {
+public interface OpenClose extends Char {
 
     char ch();
 }
