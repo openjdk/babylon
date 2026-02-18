@@ -423,7 +423,7 @@ public final class BytecodeGenerator {
             case LambdaOp op ->
                 !(values = op.capturedValues()).isEmpty() && values.getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
-            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof BinaryTestOp bto ->
+            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CompareOp bto ->
                 isFirstOperand(bto, opr);
             // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
@@ -454,7 +454,7 @@ public final class BytecodeGenerator {
         return isFirstOperand(nextOp, opr);
     }
 
-    private static boolean isConditionForCondBrOp(BinaryTestOp op) {
+    private static boolean isConditionForCondBrOp(CompareOp op) {
         // Result of op has one use as the operand of a CondBrOp op,
         // and both ops are in the same block
 
@@ -757,7 +757,7 @@ public final class BytecodeGenerator {
                         cob.arraylength();
                         push(op.result());
                     }
-                    case BinaryTestOp op -> {
+                    case CompareOp op -> {
                         if (!isConditionForCondBrOp(op)) {
                             cob.ifThenElse(prepareConditionalBranch(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                             push(op.result());
@@ -1005,7 +1005,7 @@ public final class BytecodeGenerator {
                     setCatchStack(op.trueBranch(), recentCatchBlocks);
                     setCatchStack(op.falseBranch(), recentCatchBlocks);
 
-                    if (getConditionForCondBrOp(op) instanceof BinaryTestOp btop) {
+                    if (getConditionForCondBrOp(op) instanceof CompareOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
                         conditionalBranch(prepareConditionalBranch(btop), op.trueBranch(), op.falseBranch());
                     } else {
@@ -1227,7 +1227,7 @@ public final class BytecodeGenerator {
         cob.goto_(getLabel(trueBlock));
     }
 
-    private Opcode prepareConditionalBranch(BinaryTestOp op) {
+    private Opcode prepareConditionalBranch(CompareOp op) {
         Value firstOperand = op.operands().get(0);
         TypeKind typeKind = toTypeKind(firstOperand.type());
         Value secondOperand = op.operands().get(1);
@@ -1307,7 +1307,7 @@ public final class BytecodeGenerator {
                 };
     }
 
-    private static Opcode reverseIfOpcode(BinaryTestOp op) {
+    private static Opcode reverseIfOpcode(CompareOp op) {
         return switch (op) {
             case EqOp _ -> Opcode.IFNE;
             case NeqOp _ -> Opcode.IFEQ;

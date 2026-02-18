@@ -179,7 +179,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case JavaOp.FieldAccessOp.FieldLoadOp $ -> fieldLoad(lookup,$);
             case JavaOp.FieldAccessOp.FieldStoreOp $ -> fieldStore($);
             case JavaOp.BinaryOp $ -> binaryOperation($);
-            case JavaOp.BinaryTestOp $ -> binaryTest($);
+            case JavaOp.CompareOp $ -> compareOperation($);
             case JavaOp.ConvOp $ -> conv($);
             case CoreOp.ConstantOp $ -> constant($);
             case CoreOp.YieldOp $ -> javaYield($);
@@ -295,7 +295,7 @@ PTXHATKernelBuilder symbol(Op op) {
         reg(op.operands().get(1));
     }
 
-    public void binaryTest(JavaOp.BinaryTestOp op) {
+    public void compareOperation(JavaOp.CompareOp op) {
         setp().dot();
         symbol(op).resultType(op.operands().getFirst().type(), true).space();
         resultReg(op, PTXRegister.Type.PREDICATE);
