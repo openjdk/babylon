@@ -54,6 +54,8 @@ public final class OnnxTransformer {
     static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
     static final JavaType LIST_CLASS = JavaType.type(List.class);
 
+    static final System.Logger LOG = System.getLogger("oracle.code.onnx");
+
     public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers, Map<Value, String> namesMap) {}
 
     public static ModuleAndInitializers transform(MethodHandles.Lookup l, Quoted<JavaOp.LambdaOp> quotedLambda) {
@@ -130,11 +132,13 @@ public final class OnnxTransformer {
 
     // transform all relevant invocations to func calls or inline
     static CoreOp.FuncOp mapOrInline(CoreOp.FuncOp f, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline) {
-        return f.transform(f.funcName().isEmpty() ? findBetterName(funcs, doNotInline): f.funcName(), (bb, op) -> {
+        String fname = f.funcName().isEmpty() ? findBetterName(funcs, doNotInline): f.funcName();
+        return f.transform(fname, (bb, op) -> {
             if (op instanceof JavaOp.InvokeOp io && funcs.get(io.invokeReference()) instanceof CoreOp.FuncOp fo) {
                 if (doNotInline.contains(fo)) {
                     bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
                 } else {
+                    LOG.log(System.Logger.Level.DEBUG, "Inlining " + fo.funcName() + " into " + fname);
                     Inliner.inline(bb, mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()), (_, v) -> bb.context().mapValue(io.result(), v));
                 }
             } else {
@@ -143,7 +147,6 @@ public final class OnnxTransformer {
             return bb;
         });
     }
-
 
     static ModuleAndInitializers remapInitializers(TypeConvertor tc, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
@@ -199,17 +202,22 @@ public final class OnnxTransformer {
         }).toList()), initializers.sequencedKeySet(), null);
     }
 
+    static final Map<MethodRef, CoreOp.FuncOp> cache = new WeakHashMap<>();
+
     static CoreOp.FuncOp resolve(MethodHandles.Lookup l, JavaOp.InvokeOp io) {
-        try {
-            var res = Op.ofMethod(io.invokeReference().resolveToMethod(l));
-            if (res.isPresent()) {
-                return SSA.transform(evaluate(l, res.get()));
-            }
-        } catch (ReflectiveOperationException | IllegalArgumentException _) {}
-        return null;
+        return cache.computeIfAbsent(io.invokeReference(), mref -> {
+            try {
+                var res = Op.ofMethod(mref.resolveToMethod(l));
+                if (res.isPresent()) {
+                    return SSA.transform(evaluate(l, res.get()));
+                }
+            } catch (ReflectiveOperationException | IllegalArgumentException _) {}
+            return null;
+        });
     }
 
     public static CoreOp.FuncOp evaluate(MethodHandles.Lookup l, CoreOp.FuncOp f) {
+        LOG.log(System.Logger.Level.DEBUG, "Evaluating " + f.funcName());
         try {
             f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
             f = PartialEvaluator.evaluate(l,
@@ -256,6 +264,7 @@ public final class OnnxTransformer {
     }
 
     static CoreOp.FuncOp transformFunc(TypeConvertor tc, CoreOp.FuncOp func, Map<String, BitSet> paramsToDropMap, Map<Value, String> namesMap) {
+        LOG.log(System.Logger.Level.DEBUG, "Transforming " + func.funcName());
         // get original return record class
         Class<?> returnRecordClass = null;
         try {

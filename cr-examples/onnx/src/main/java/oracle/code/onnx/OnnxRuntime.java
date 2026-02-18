@@ -60,6 +60,7 @@ import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 public final class OnnxRuntime {
 
     static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.OnnxRuntime.DEBUG");
+    static final System.Logger LOG = System.getLogger("oracle.code.onnx");
     static final JavaType TENSOR_RAW_TYPE = JavaType.type(Tensor.class);
     static final JavaType LIST_RAW_TYPE = JavaType.type(List.class);
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
@@ -94,6 +95,7 @@ public final class OnnxRuntime {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        LOG.log(System.Logger.Level.DEBUG, "ONNX Runtime initialized");
     }
 
     private final MemorySegment runtimeAddress, ret, envAddress, defaultAllocatorAddress;
@@ -107,6 +109,7 @@ public final class OnnxRuntime {
         envAddress = retAddr(OrtApi.CreateEnv.invoke(OrtApi.CreateEnv(runtimeAddress), ORT_LOGGING_LEVEL_ERROR(), arena.allocateFrom(LOG_ID), ret));
         defaultAllocatorAddress = retAddr(OrtApi.GetAllocatorWithDefaultOptions.invoke(OrtApi.GetAllocatorWithDefaultOptions(runtimeAddress), ret)).reinterpret(arena, null);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.log(System.Logger.Level.DEBUG, "ONNX Runtime released");
             OrtApi.ReleaseEnv.invoke(OrtApi.ReleaseEnv(runtimeAddress), envAddress);
         }));
     }
@@ -173,6 +176,7 @@ public final class OnnxRuntime {
                                                model.bypassedInitValues().stream())
                 .mapMulti(OnnxRuntime::expandArg)
                 .toList();
+        LOG.log(System.Logger.Level.DEBUG, "Running ONNX session " + codeLambda.getClass().getSimpleName().split("\\$")[0]);
         List<Tensor> ret = model.session().run(arena, arguments);
 
         var lambdaOp = q.op();
@@ -505,6 +509,7 @@ public final class OnnxRuntime {
             String domainName = type.getSimpleName().split("\\$")[0];
             boolean bypassInits = options != null && options.bypassInitilizers;
             List<Object> initValues = getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues());
+            LOG.log(System.Logger.Level.DEBUG, "Building ONNX binary " + domainName);
             byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), bypassInits ? List.of() : initValues);
 
             if (DEBUG) {
@@ -518,6 +523,7 @@ public final class OnnxRuntime {
                 }
             }
 
+            LOG.log(System.Logger.Level.DEBUG, "Creating ONNX session " + domainName);
             // cached session must be created under its own auto arena
             Session session = (options != null) ?
                     getInstance().createSession(Arena.ofAuto(), protobufModel, options) :
