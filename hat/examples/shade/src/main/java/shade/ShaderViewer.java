@@ -41,7 +41,7 @@ import hat.types.vec4;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
 
-import javax.swing.JPanel;
+import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -54,19 +54,13 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.util.stream.IntStream;
 
-public  class FloatImagePanel extends JPanel implements Runnable {
-    private  final Accelerator accelerator;
+public class ShaderViewer implements Runnable {
+    private final Accelerator accelerator;
     final protected AffineTransform transform = new AffineTransform();
-    final int width;
-    final int height;
-    final Controls controls;
+    final ShaderFrame.FrameControls frameControls;
     final FloatImage floatImage;
-
+    final JComponent panel;
     final Uniforms uniforms;
-
-    final boolean useHAT;
-    final Shader shader;
-
     volatile boolean running;
 
     protected float zoom = .95f; // set the zoom factor 1.0 = fit to screen
@@ -76,19 +70,32 @@ public  class FloatImagePanel extends JPanel implements Runnable {
     Point mousePressedPosition;
     Point2D imageRelativeMouseDownPosition = new Point2D.Float();
     Point2D imageRelativeMovePosition = new Point2D.Float();
-private final int requestedFramesPerSecond;
 
-    public FloatImagePanel(Accelerator accelerator, Controls controls, int width, int height, boolean useHat, Shader shader, int requestedFramesPerSecond) {
+    public ShaderViewer(Accelerator accelerator, ShaderFrame.FrameControls frameControls) {
+        this.panel = new JComponent() {
+            @Override
+            public void paint(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                Dimension displaySize = getSize();
+                Dimension imageSize = new Dimension(frameControls.width(), frameControls.height());
+                AffineTransform safeTransform = g2d.getTransform();
+                transform.setToIdentity();
+                double scale = zoom * Math.min(displaySize.width / (double) imageSize.width, displaySize.height / (double) imageSize.height);
+                transform.translate((1 + xOffset) * (displaySize.width - imageSize.width * scale) / 2,
+                        (1 + yOffset) * (displaySize.height - imageSize.height * scale) / 2);
+                transform.scale(scale, scale);
+                g2d.transform(transform);
+                synchronized (floatImage) {
+                    g.drawImage(floatImage.bufferedImage(), 0, 0, imageSize.width, imageSize.height, null);
+                }
+                g2d.setTransform(safeTransform);
+            }
+        };
         this.accelerator = accelerator;
-        this.width = width;
-        this.height = height;
-        this.controls = controls;
-        this.useHAT = useHat;
-        this.shader = shader;
-        this.requestedFramesPerSecond =requestedFramesPerSecond;
-        this.floatImage = FloatImage.of(accelerator, width, height);
+        this.frameControls = frameControls;
+        this.floatImage = FloatImage.of(accelerator, frameControls.width(), frameControls.height());
         this.uniforms = Uniforms.create(accelerator);
-        addMouseListener(new MouseAdapter() {
+        this.panel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
              /*  if (SwingUtilities.isLeftMouseButton(e)) {
@@ -127,11 +134,11 @@ private final int requestedFramesPerSecond;
             }
 
         });
-        addMouseWheelListener(e -> {
+        this.panel.addMouseWheelListener(e -> {
             zoom = zoom * (1 + e.getWheelRotation() / 10f);
-          //  repaint(); */
+            //  repaint(); */
         });
-        addMouseMotionListener(new MouseMotionAdapter() {
+        this.panel.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
                 /*
@@ -179,7 +186,6 @@ private final int requestedFramesPerSecond;
     }
 
 
-
     @Reflect
     public static vec4 shader(@MappableIface.RO Uniforms uniforms, vec4 fragColor, ivec2 fragCoord) {
         return vec4.vec4(0f, 0f, 1f, 0f);
@@ -189,8 +195,8 @@ private final int requestedFramesPerSecond;
     public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image) {
         if (kc.gix < kc.gsx) {
             // The image is essentially 3x
-            int width = uniforms.iResolution().x();
-            int height = uniforms.iResolution().y();
+            int width = (int)uniforms.iResolution().x();
+            int height = (int)uniforms.iResolution().y();
             var fragCoord = ivec2.ivec2(kc.gix % width, kc.gix / width);
             long offset = ((long) kc.gsx * height * 3) + (kc.gix * 3L);
             float r = image.array(offset + 0);
@@ -211,23 +217,23 @@ private final int requestedFramesPerSecond;
                 (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
     }
 
-    final public  void  runShader(FloatImage floatImage){
-        if (!useHAT){
-                IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
-                    vec2 fragCoord = vec2.vec2((float)i % floatImage.width(), (float) (floatImage.height()-(i / floatImage.width())));
-                    vec4 inFragColor = vec4.vec4(0);
-                    vec4 outFragColor = shader.mainImage(uniforms, inFragColor, fragCoord);
-                    floatImage.set(i, outFragColor);
-                });
-            }else{
-                var funiforms = uniforms;
-                var fwidth = width;
-                var fheight = height;
-                var  f32Array  =floatImage.f32Array();
-                // the following failed!
-                //   accelerator.compute((@Reflect Compute) cc ->compute(cc,funiforms,floatImage.f32Array(),fwidth,fheight));
-                accelerator.compute((@Reflect Compute) cc ->compute(cc,funiforms,f32Array,fwidth,fheight));
-            }
+    final public void runShader(FloatImage floatImage) {
+        if (!frameControls.useHat()) {
+            IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
+                vec2 fragCoord = vec2.vec2((float) i % floatImage.width(), (float) (floatImage.height() - (i / floatImage.width())));
+                vec4 inFragColor = vec4.vec4(0);
+                vec4 outFragColor = frameControls.shader().mainImage(uniforms, inFragColor, fragCoord);
+                floatImage.set(i, outFragColor);
+            });
+        } else {
+            var funiforms = uniforms;
+            var fwidth = frameControls.width();
+            var fheight = frameControls.height();
+            var f32Array = floatImage.f32Array();
+            // the following failed!
+            //   accelerator.compute((@Reflect Compute) cc ->compute(cc,funiforms,floatImage.f32Array(),fwidth,fheight));
+            accelerator.compute((@Reflect Compute) cc -> compute(cc, funiforms, f32Array, fwidth, fheight));
+        }
     }
 
 
@@ -235,7 +241,7 @@ private final int requestedFramesPerSecond;
     public void run() {
         long startTimeNs = System.nanoTime();
 
-        double nsPerTick = 1000000000.0 /requestedFramesPerSecond; // 2 Fixed Updates per second
+        double nsPerTick = 1000000000.0 / frameControls.targetFps(); // 2 Fixed Updates per second
         double delta = 0;
         long lastTimeNs = System.nanoTime();
         while (running) {
@@ -246,12 +252,14 @@ private final int requestedFramesPerSecond;
             uniforms.iResolution().y(floatImage.height());
 
             while (delta >= 1) {
-                long diff = lastTimeNs - startTimeNs;
-                long diffMs = diff / 1000000;
-                uniforms.iTime(diffMs/1000);
+                long diffNs = lastTimeNs - startTimeNs;
+
+                long diffMs = diffNs / 1000000;
+                float fdiffMs = (float) diffMs;
+                uniforms.iTime(fdiffMs / 1000);
                 long startNs = System.nanoTime();
-                boolean collectStats = true;
-                if (collectStats){
+
+                if (frameControls.showAllocations()) {
                     ivec2.collect.set(true);
                     vec2.collect.set(true);
                     vec3.collect.set(true);
@@ -265,7 +273,7 @@ private final int requestedFramesPerSecond;
                     mat2.count.set(0);
                     mat3.count.set(0);
                 }
-                if (controls.running()) {
+                if (frameControls.running()) {
                     uniforms.iFrame(uniforms.iFrame() + 1);
                     synchronized (floatImage) {
                         // We synchronize here and in the paint method.  To ensure that we don't copy memory segment mid compute.
@@ -274,50 +282,28 @@ private final int requestedFramesPerSecond;
                     }
                 }
                 long endNs = System.nanoTime();
-                if (collectStats){
-                    controls.vectorsAndMats(
-                          ivec2.count.get()
-                            +vec2.count.get()
-                            +vec3.count.get()
-                            +vec4.count.get()
-                            +mat2.count.get()
-                            +mat3.count.get()
+                if (frameControls.showAllocations()) {
+                    frameControls.allocations(
+                        ivec2.count.get() + vec2.count.get() + vec3.count.get() + vec4.count.get() + mat2.count.get() + mat3.count.get()
                     );
                 }
-                controls.shaderUs((int)(endNs-startNs)/1000)
-                        .fps((int) (uniforms.iFrame() * 1000 / diffMs))
-                        .frame((int) uniforms.iFrame())
+                frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
+                        .actualFps((int) (uniforms.iFrame() * 1000 / diffMs))
+                        .frameNumber((int) uniforms.iFrame())
                         .elapsedMs((int) diffMs);
-                delta-=1f;
+                delta -= 1f;
             }
 
             // Schedule Render on EDT
-            SwingUtilities.invokeLater(this::repaint);
+            SwingUtilities.invokeLater(panel::repaint);
 
             // Cap the loop to save CPU
             try {
-                Thread.sleep(1);
+                Thread.sleep(2);
             } catch (InterruptedException e) {
             }
         }
     }
 
-    @Override
-    public void paint(Graphics g) {
-        Graphics2D g2d = (Graphics2D) g;
-        Dimension displaySize = getSize();
-        Dimension imageSize = new Dimension(width, height);
-        AffineTransform safeTransform = g2d.getTransform();
-        transform.setToIdentity();
-        double scale = zoom * Math.min(displaySize.width / (double) imageSize.width, displaySize.height / (double) imageSize.height);
-        transform.translate((1 + xOffset) * (displaySize.width - imageSize.width * scale) / 2,
-                (1 + yOffset) * (displaySize.height - imageSize.height * scale) / 2);
-        transform.scale(scale, scale);
-        g2d.transform(transform);
-        synchronized (floatImage) {
-            g.drawImage(floatImage.bufferedImage(), 0, 0, imageSize.width, imageSize.height, null);
-        }
-        g2d.setTransform(safeTransform);
-    }
 
 }

@@ -72,7 +72,9 @@ public interface vec2 extends  IfaceValue.vec {
     static vec2 vec2(ivec2 ivec2) {return vec2(ivec2.x(), ivec2.y());}
     static vec2 vec2(float scalar) {return vec2(scalar,scalar);}
     static vec2 vec2() {return vec2(0f,0f);}
-
+    static vec2 xy(vec3 vec3) {return vec2(vec3.x(), vec3.y());}
+    static vec2 xz(vec3 vec3) {return vec2(vec3.x(), vec3.z());}
+    static vec2 yz(vec3 vec3) {return vec2(vec3.y(), vec3.z());}
     static vec2 add(float lx, float ly, float rx, float ry) {return vec2(lx+rx,ly+ry);}
     static vec2 sub(float lx, float ly, float rx, float ry) {return vec2(lx-rx,ly-ry);}
     static vec2 mul(float lx, float ly, float rx, float ry) {return vec2(lx*rx,ly*ry);}

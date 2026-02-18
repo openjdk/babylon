@@ -221,7 +221,7 @@ public class RandShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec2(uniforms.iResolution());
+        vec2 fres = vec3.xy(uniforms.iResolution());
         vec2 p = div(fragCoord,fres);
         // vec2 r =  2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y;
         vec2 r = div(mul(2f,sub(fragCoord,mul(5f, fres))),fres.y());

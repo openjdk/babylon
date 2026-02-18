@@ -89,21 +89,22 @@ public class TutorialShader implements Shader {
     }
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 uv = div(sub(mul(fragCoord, 2f),vec2(uniforms.iResolution())), uniforms.iResolution().y());
+        vec2 fResolution= vec3.xy(uniforms.iResolution());
+        float fTime = uniforms.iTime();
+        vec2 uv = div(sub(mul(fragCoord, 2f),fResolution), fResolution.y());
         vec2 uv0 = uv;
-        vec3 finalColor = vec3(0f);
-        float fTime = uniforms.iTime()/10f;
+        vec3 color = vec3(0f);
         for (float i = 0f; i < 4f; i++) {
             uv = sub(fract(mul(uv,1.5f)), vec2(0.5f));
-            float d = length(uv) * exp(-length(uv0));
             vec3 col = palette(length(uv0) + i * .4f + fTime * .4f);
+            float d = length(uv) * exp(-length(uv0));
             d = sin(d * 8f + fTime) / 8f;
             d = abs(d);
             d = pow(0.01f / d, 1.2f);
-            finalColor  = add(finalColor, mul(col, d));
+            color  = add(color, mul(col, d));
         }
 
-        fragColor = vec4(finalColor, 1.0f);
+        fragColor = vec4(color, 1.0f);
         return normalize(fragColor);
     }
 }
