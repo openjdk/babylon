@@ -108,7 +108,7 @@ public class Schema<T extends MappableIface> {
 
         record Receiver(JavaOp.InvokeOp array, List<JavaOp.InvokeOp> args){
             public String arrayName() {
-                return array.invokeDescriptor().name();
+                return array.invokeReference().name();
             }
 
         }
@@ -159,7 +159,7 @@ public class Schema<T extends MappableIface> {
                         .filter(ce -> ce instanceof JavaOp.InvokeOp)
                         .map(ce -> (JavaOp.InvokeOp) ce)
                         .forEach(invokeOp -> {
-                            String name = invokeOp.invokeDescriptor().name();
+                            String name = invokeOp.invokeReference().name();
                             if (name.equals("schema")){
                                //System.out.println("This could get recursive very quickly");
                             }else if (name.equals("pad")) {
@@ -187,7 +187,7 @@ public class Schema<T extends MappableIface> {
                                     if (uses.iterator().next() instanceof Op.Result result) {// is might it a constant like we have only one, so probably a constant like length
                                         // we have a call which is possibly being passed to another method say we have width and we want to find invokeOp -> "array(width())"
                                         if (consumedInvoke(invokeOp, result) instanceof Receiver  receiver
-                                              && receiver.args.stream().map(i->i.invokeDescriptor().name()).filter(declared::contains).toList() instanceof List<String> containedConsumers
+                                              && receiver.args.stream().map(i->i.invokeReference().name()).filter(declared::contains).toList() instanceof List<String> containedConsumers
                                                && receiver.args.size() == containedConsumers.size()){
                                             // in our case we expect Reciever (array,[width, height])
                                             schemaBuilder.arrayLen(containedConsumers).array(receiver.arrayName());

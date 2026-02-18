@@ -75,7 +75,7 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
         Invoke.stream(lookup, entry).forEach(invoke -> {
             if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp && !filterCalls(funcOp, invoke)) {
-                work.push(new RefAndFunc(invoke.op().invokeDescriptor(), funcOp));
+                work.push(new RefAndFunc(invoke.op().invokeReference(), funcOp));
             }
         });
 
@@ -84,7 +84,7 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
         while (!work.isEmpty() && work.pop() instanceof RefAndFunc refAndFunc && setOfVisitedMethodRefs.add(refAndFunc.methodRef)) {
             CoreOp.FuncOp tf = refAndFunc.funcOp.transform(refAndFunc.methodRef.name(), (blockBuilder, op) -> {
                 if (invoke(lookup, op) instanceof Invoke iop && iop.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
-                    RefAndFunc call = new RefAndFunc(iop.op().invokeDescriptor(), funcOp);
+                    RefAndFunc call = new RefAndFunc(iop.op().invokeReference(), funcOp);
                     work.push(call);
                     blockBuilder.context().mapValue(op.result(), blockBuilder.op(copyLocation(funcOp, CoreOp.funcCall(
                             call.methodRef.name(),

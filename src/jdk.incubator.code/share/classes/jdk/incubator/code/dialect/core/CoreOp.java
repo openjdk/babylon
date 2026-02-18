@@ -100,7 +100,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The externalized attribute modelling the function name
          */
-        public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
+        static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
         final Body body;
@@ -219,7 +219,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The externalized attribute modelling the name of the invoked function
          */
-        public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
+        static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
         final TypeElement resultType;
@@ -369,7 +369,7 @@ public sealed abstract class CoreOp extends Op {
 
         static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
             try {
-                Method method = invokeOp.invokeDescriptor().resolveToMethod(l);
+        Method method = invokeOp.invokeReference().resolveToMethod(l);
                 return Op.ofMethod(method).orElse(null);
             } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException("Could not resolve invokeOp to method");
@@ -406,7 +406,7 @@ public sealed abstract class CoreOp extends Op {
                     if (op instanceof JavaOp.InvokeOp iop) {
                         Method invokeOpCalledMethod = null;
                         try {
-                            invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l);
+        invokeOpCalledMethod = iop.invokeReference().resolveToMethod(l);
                         } catch (ReflectiveOperationException e) {
                             throw new RuntimeException("Could not resolve invokeOp to method");
                         }
@@ -810,7 +810,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The externalized attribute modelling the constant value
          */
-        public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
+        static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
         final TypeElement type;
@@ -930,7 +930,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The externalized attribute modelling the variable name
          */
-        public static final String ATTRIBUTE_NAME = NAME + ".name";
+        static final String ATTRIBUTE_NAME = NAME + ".name";
 
         final String varName;
         final VarType resultType;
@@ -1205,7 +1205,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The externalized attribute modelling the tuple index
          */
-        public static final String ATTRIBUTE_INDEX = NAME + ".index";
+        static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
@@ -1270,7 +1270,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The externalized attribute modelling the tuple index
          */
-        public static final String ATTRIBUTE_INDEX = NAME + ".index";
+        static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
