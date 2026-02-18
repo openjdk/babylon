@@ -195,8 +195,8 @@ public class ShaderViewer implements Runnable {
     public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image) {
         if (kc.gix < kc.gsx) {
             // The image is essentially 3x
-            int width = uniforms.iResolution().x();
-            int height = uniforms.iResolution().y();
+            int width = (int)uniforms.iResolution().x();
+            int height = (int)uniforms.iResolution().y();
             var fragCoord = ivec2.ivec2(kc.gix % width, kc.gix / width);
             long offset = ((long) kc.gsx * height * 3) + (kc.gix * 3L);
             float r = image.array(offset + 0);

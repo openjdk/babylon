@@ -35,10 +35,10 @@ public class MouseSensitiveShader implements Shader {
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
 
-            int w = uniforms.iResolution().x();
-            int wDiv3 = uniforms.iResolution().x() / 3;
-            int h = uniforms.iResolution().y();
-            int hDiv3 = uniforms.iResolution().y() / 3;
+            float w = uniforms.iResolution().x();
+        float wDiv3 = uniforms.iResolution().x() / 3;
+        float h = uniforms.iResolution().y();
+        float hDiv3 = uniforms.iResolution().y() / 3;
             boolean midx = (fragCoord.x() > wDiv3 && fragCoord.x() < (w - wDiv3));
             boolean midy = (fragCoord.y() > hDiv3 && fragCoord.y() < (h - hDiv3));
             if (uniforms.iMouse().x() > wDiv3) {

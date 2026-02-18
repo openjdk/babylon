@@ -61,7 +61,7 @@ public interface Uniforms extends Buffer {
 
     vec4Field fragColor();
 
-    ivec2Field iResolution();
+    vec3Field iResolution();
 
     float iTime();
     void iTime(float iTime);
@@ -71,7 +71,8 @@ public interface Uniforms extends Buffer {
     Schema<Uniforms> schema = Schema.of(Uniforms.class, uniforms -> uniforms
             .field("fragCoord", fragCoord -> fragCoord.fields("x", "y"))
             .field("fragColor", fragColor -> fragColor.fields("x", "y", "z", "w"))
-            .field("iResolution", iResolution -> iResolution.fields("x", "y"))
+            .field("iResolution", iResolution -> iResolution.fields("x", "y", "z"))
+            .pad(4)
             .field("iMouse", iMouse -> iMouse.fields("x", "y"))
             .field("iTime")
             .pad(4)

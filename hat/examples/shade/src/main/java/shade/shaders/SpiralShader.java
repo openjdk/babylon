@@ -90,7 +90,7 @@ public class SpiralShader implements Shader {
         // variant of https://shadertoy.com/view/3llcDl
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
 
-        var fResolution = vec2(uniforms.iResolution());
+        var fResolution = vec3.xy(uniforms.iResolution());
         vec2 U = div(sub(mul(fragCoord,2f),fResolution),fResolution.y());//.sub(fResolution).div(fResolution.y());
         // normalized coordinates
         var z = sub(U, vec2(-1f, 0f));
@@ -116,7 +116,7 @@ public class SpiralShader implements Shader {
 
 
         U = div(mul(U, vec2(3f)),vec2(2f, 1f));
-        z = vec2(.01f);//fwidth(U); // this resamples the image.  Not sure how we do this!
+        z = vec2(.001f);//fwidth(U); // this resamples the image.  Not sure how we do this!
         U = mul(fract(U),5f);
         vec2 I = floor(U);
         U = fract(U);             // subdiv big square in 5x5

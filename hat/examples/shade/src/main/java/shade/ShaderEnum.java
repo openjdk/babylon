@@ -25,6 +25,7 @@
 package shade;
 
 import hat.types.F32;
+import hat.types.vec3;
 import shade.shaders.AcesShader;
 import shade.shaders.AnimShader;
 import shade.shaders.IntroShader;
@@ -45,7 +46,7 @@ enum ShaderEnum {
         return vec4(0f, 0f, 1f, 0f);
     }),
     Gradient((uniforms, fragColor, fragCoord) -> {
-        var fResolution = vec2(uniforms.iResolution());
+        var fResolution = vec3.xy(uniforms.iResolution());
         float fFrame = uniforms.iFrame();
         var uv = vec2.div(fragCoord,fResolution);
         return vec4(uv.x(), uv.y(), F32.max(fFrame / 100f, 1f), 0f);

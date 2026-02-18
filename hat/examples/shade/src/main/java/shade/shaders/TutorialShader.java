@@ -89,7 +89,7 @@ public class TutorialShader implements Shader {
     }
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fResolution= vec2(uniforms.iResolution());
+        vec2 fResolution= vec3.xy(uniforms.iResolution());
         float fTime = uniforms.iTime();
         vec2 uv = div(sub(mul(fragCoord, 2f),fResolution), fResolution.y());
         vec2 uv0 = uv;
