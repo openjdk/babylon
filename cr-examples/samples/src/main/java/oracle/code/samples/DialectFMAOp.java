@@ -25,7 +25,6 @@
 package oracle.code.samples;
 
 import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
@@ -41,7 +40,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -119,7 +117,7 @@ public class DialectFMAOp {
 
         // 4. Detect if FMA can be applied.
         // To do so, we traverse the original code model and find
-        // all AddOp(MultOp)) patterns.
+        // all AddOp(MulOp)) patterns.
         Set<Op> nodesInvolved = new HashSet<>();
         functionModel.elements()
                 // filter with AddOp
@@ -132,12 +130,12 @@ public class DialectFMAOp {
                     // input parameters comes from a multiply operation
                     List<Value> inputOperandsAdd = addOp.operands();
                     Value addDep = inputOperandsAdd.getFirst();
-                    if (addDep instanceof Op.Result result && result.op() instanceof JavaOp.MulOp multOp) {
+                    if (addDep.declaringElement() instanceof JavaOp.MulOp mulOp) {
                         // At this point, we know AddOp uses a value from a
                         // result from a multiplication. Thus, we add them
                         // in the processing list
                         nodesInvolved.add(addOp);
-                        nodesInvolved.add(multOp);
+                        nodesInvolved.add(mulOp);
                     }
                 });
 
@@ -159,12 +157,11 @@ public class DialectFMAOp {
                 // 6. Obtain the operands for the node
                 List<Value> inputOperandsAdd = addOp.operands();
 
-                // Obtain the **fist operand** and check if the value comes from an Mult Op.
-                // In that case, we check if the mult node is contained in the set of
+                // Obtain the **fist operand** and check if the value comes from an Mul Op.
+                // In that case, we check if the mul node is contained in the set of
                 // involved nodes. If all of this is true, then we replace it with an
                 // FMA operation.
-                if (addOp.operands().getFirst() instanceof Op.Result r &&
-                        r.op() instanceof JavaOp.MulOp mulOp
+                if (addOp.operands().getFirst().declaringElement() instanceof JavaOp.MulOp mulOp
                         && nodesInvolved.contains(mulOp)) {
 
                     // 7. Create a new Op with the new operation
