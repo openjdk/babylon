@@ -26,12 +26,15 @@ package shade;
 
 import optkl.textmodel.TextModel;
 import optkl.textmodel.terminal.ANSI;
+import optkl.textmodel.tokens.AbstractParentToken;
 import optkl.textmodel.tokens.Close;
 import optkl.textmodel.tokens.Comment;
 import optkl.textmodel.tokens.FloatConst;
 import optkl.textmodel.tokens.IntConst;
 import optkl.textmodel.tokens.LeafReplacementToken;
 import optkl.textmodel.tokens.Open;
+import optkl.textmodel.tokens.Parent;
+import optkl.textmodel.tokens.Parenthesis;
 import optkl.textmodel.tokens.Seq;
 import optkl.textmodel.tokens.Char;
 import optkl.textmodel.tokens.Token;
@@ -103,15 +106,37 @@ public class ShaderModel extends TextModel {
             super(hash,define);
         }
     }
-
-    record Declaration(Type type, Identifier identifier) {
+    public static class Declaration extends AbstractParentToken {
         static TknPredicate3<Token> predicate = (l, ws, r) -> l instanceof Type && ws instanceof Ws && r instanceof Identifier;
-
+        Type type;
+        Identifier identifier;
+        public Declaration(Token t, Token ws, Token i ) {
+            super(List.of(t,ws,i));
+            this.type = (Type) t;
+            this.identifier = (Identifier) i;
+        }
         @Override
         public String toString() {
             return (type.pos() + ":" + type.asString() + " " + identifier.asString());
         }
     }
+    public static class MethodDeclaration extends AbstractParentToken {
+        static TknPredicate2<Token> predicate = (l,r) -> l instanceof Declaration && r instanceof Parenthesis;
+        Type type;
+        Identifier identifier;
+        Parenthesis parenthesis;
+        public MethodDeclaration(Token declaration, Token parenthesis ) {
+            super(List.of(declaration,parenthesis));
+            this.type = ((Declaration) declaration).type;
+            this.identifier = ((Declaration) declaration).identifier;
+            this.parenthesis = (Parenthesis) parenthesis;
+        }
+        @Override
+        public String toString() {
+            return (type.pos() + ":" + type.asString() + " " + identifier.asString()+" (...)");
+        }
+    }
+
 
 
 
@@ -119,36 +144,45 @@ public class ShaderModel extends TextModel {
     public static void main(String[] args) {
         ShaderModel shaderModel = new ShaderModel();
         shaderModel.parse(WavesShader.glslSource);
-        shaderModel.replace(true, (lhs,rhs) ->Char.isA(lhs, $ -> $.is("#")) && Seq.isA(rhs,$->$.is("define")), HashDefine::new);
+        shaderModel.replace( (lhs, rhs) ->Char.isA(lhs, $ -> $.is("#")) && Seq.isA(rhs, $->$.is("define")), HashDefine::new);
 
-        shaderModel.replace(true, t -> Seq.isA(t, $ -> $.matches(FloatConst.regex)), FloatConst::new);  // "[0-9][0-9]*" ->FloatConst
-        shaderModel.replace(true, t -> Seq.isA(t, $ -> $.matches(IntConst.regex)), IntConst::new); // "[0-9][0-9]*" ->IntConst
-        shaderModel.replace(true, t -> Seq.isA(t, $ -> $.matches(Type.regex)), Type::new);
-        shaderModel.replace(true, t -> Seq.isA(t, $ -> $.matches(ReservedWord.regex)), ReservedWord::new);
-        shaderModel.replace(true, t -> Seq.isA(t, $ -> $.matches(Uniform.regex)), Uniform::new);
-        shaderModel.replace(true, t -> Seq.isA(t, $ -> $.matches(MathFunc.regex)), MathFunc::new);
-        shaderModel.replace(true, t -> Char.isA(t, $ -> $.matches(ArithmeticOperator.regex)), ArithmeticOperator::new);
-        shaderModel.replace(true, t -> Seq.isA(t, $ -> $.matches(Identifier.regex)), Identifier::new);
+        shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(FloatConst.regex)), FloatConst::new);  // "[0-9][0-9]*" ->FloatConst
+        shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(IntConst.regex)), IntConst::new); // "[0-9][0-9]*" ->IntConst
+        shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(Type.regex)), Type::new);
+        shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(ReservedWord.regex)), ReservedWord::new);
+        shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(Uniform.regex)), Uniform::new);
+        shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(MathFunc.regex)), MathFunc::new);
+        shaderModel.replace(t -> Char.isA(t, $ -> $.matches(ArithmeticOperator.regex)), ArithmeticOperator::new);
+        shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(Identifier.regex)), Identifier::new);
 
+        shaderModel.replace( (t, w, i)-> Declaration.predicate.test(t,w,i), Declaration::new);
+        shaderModel.replace( (d, p)-> MethodDeclaration.predicate.test(d,p), MethodDeclaration::new);
 
-        List<Declaration> declarations = new ArrayList<>();
-        shaderModel.find(true, Declaration.predicate, (type, ws, identifier) -> {
-            Declaration dec = new Declaration((Type) type, (Identifier) identifier);
-            declarations.add(dec);
-        });
-       // declarations.forEach(System.out::println);
+      //  List<MethodDeclaration> declarations = new ArrayList<>();
+       // shaderModel.find(c->c instanceof MethodDeclaration, (c)->{
+         //   declarations.add((MethodDeclaration) c);
+        //});
+      //  declarations.forEach(System.out::println);
 
         var c = ANSI.of(System.out);
-        shaderModel.visit(token -> {
-                    switch (token) {
-                        case FloatConst _,IntConst _, Uniform _,ReservedWord _,  HashDefine _ -> c.fg(PURPLE, token);
-                        case Comment _ -> c.fg(GREEN,_->c.bg(BLACK,  token));
-                        case MathFunc _ -> c.fg(CYAN, token);
-                        case Open _, Close  _ -> c.fg(BLUE,token);
-                        case Type _ -> c.fg(BLUE,token);
-                        case ArithmeticOperator _ -> c.fg(RED,token);
-                        case Identifier _ -> c.fg(YELLOW,token);
-                        default -> c.fg(WHITE,token);
+        shaderModel.visitPostOrder(token -> {
+                    if (token instanceof Parent) {
+                        switch (token) {
+                            case MethodDeclaration _ -> c.apply("/* DECL */");
+                            default ->{}
+                        }
+                    } else {
+                        switch (token) {
+
+                            case FloatConst _, IntConst _, Uniform _, ReservedWord _, HashDefine _ -> c.fg(PURPLE, token);
+                            case Comment _ -> c.fg(GREEN, _ -> c.bg(BLACK, token));
+                            case MathFunc _ -> c.fg(CYAN, token);
+                            case Open _, Close _ -> c.fg(BLUE, token);
+                            case Type _ -> c.fg(BLUE, token);
+                            case ArithmeticOperator _ -> c.fg(RED, token);
+                            case Identifier _ -> c.fg(YELLOW, token);
+                            default -> c.fg(WHITE, token);
+                        }
                     }
                 }
         );

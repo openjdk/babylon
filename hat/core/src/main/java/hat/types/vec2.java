@@ -28,13 +28,18 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 public interface vec2 extends  IfaceValue.vec {
     Shape shape = Shape.of( JavaType.FLOAT,3);
     float x();
 
     float y();
-
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
     // A mutable form needed for interface mapping.
     interface Field extends vec2 {
         @Reflect
@@ -51,24 +56,33 @@ public interface vec2 extends  IfaceValue.vec {
         }
     }
 
+
+
     static vec2 vec2(float x, float y) {
         record Impl(float x, float y) implements vec2 {
         }
+       // if (collect.get())count.getAndIncrement();
         return new Impl(x, y);
     }
+
+
 
 
     static vec2 vec2(vec2 vec2) {return vec2(vec2.x(), vec2.y());}
     static vec2 vec2(ivec2 ivec2) {return vec2(ivec2.x(), ivec2.y());}
     static vec2 vec2(float scalar) {return vec2(scalar,scalar);}
     static vec2 vec2() {return vec2(0f,0f);}
-
+    static vec2 xy(vec3 vec3) {return vec2(vec3.x(), vec3.y());}
+    static vec2 xz(vec3 vec3) {return vec2(vec3.x(), vec3.z());}
+    static vec2 yz(vec3 vec3) {return vec2(vec3.y(), vec3.z());}
     static vec2 add(float lx, float ly, float rx, float ry) {return vec2(lx+rx,ly+ry);}
     static vec2 sub(float lx, float ly, float rx, float ry) {return vec2(lx-rx,ly-ry);}
     static vec2 mul(float lx, float ly, float rx, float ry) {return vec2(lx*rx,ly*ry);}
     static vec2 div(float lx, float ly, float rx, float ry) {return vec2(lx/rx,ly/ry);}
 
     static vec2 add(vec2 l, vec2 r) {return add(l.x(),l.y(),r.x(),r.y());}
+    static vec2 add(float  l, vec2 r) {return add(l,l,r.x(),r.y());}
+    static vec2 add(vec2  l, float r) {return add(l.x(),l.x(),r,r);}
     static vec2 sub(vec2 l, vec2 r) {return sub(l.x(),l.y(),r.x(),r.y());}
     static vec2 sub(vec2 l, float scalar) {return sub(l.x(),l.y(),scalar,scalar);}
     static vec2 sub(float scalar, vec2 r) {return sub(scalar,scalar, r.x(), r.y());}
@@ -87,4 +101,29 @@ public interface vec2 extends  IfaceValue.vec {
     static vec2 fract(vec2 vec2){return vec2(F32.fract(vec2.x()),F32.fract(vec2.y()));}
     static vec2 abs(vec2 vec2){return vec2(F32.abs(vec2.x()),F32.abs(vec2.y()));}
     static vec2 atan(float x, float y){return vec2(F32.atan(x), F32.atan(y));}
+
+
+    static vec2 min(vec2 lhs,vec2 rhs){return vec2(F32.min(lhs.x(),rhs.x()), F32.min(lhs.y(),rhs.y()));}
+
+    static vec2 max(vec2 lhs,vec2 rhs){return vec2(F32.max(lhs.x(),rhs.x()), F32.max(lhs.y(),rhs.y()));}
+
+    static vec2 mix(vec2 lhs,vec2 rhs, vec2 a){return vec2(F32.mix(lhs.x(),rhs.x(),a.x()), F32.mix(lhs.y(),rhs.y(),a.y()));}
+
+    static vec2 sin(float x, float y){
+        return vec2(F32.sin(x),F32.sin(y));
+    }
+    static vec2 sin(vec2 vec2){
+        return sin(vec2.x(),vec2.y());
+    }
+    static vec2 cos(float x, float y){
+        return vec2(F32.cos(x),F32.cos(y));
+    }
+    static vec2 cos(vec2 vec2){
+        return cos(vec2.x(),vec2.y());
+    }
+
+    static vec2 pow(vec2 l, vec2 r){
+        return vec2(F32.pow(l.x(),r.x()),F32.pow(l.y(),r.y()));
+    }
+
 }

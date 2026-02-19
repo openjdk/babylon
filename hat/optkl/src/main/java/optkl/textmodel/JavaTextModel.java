@@ -62,25 +62,25 @@ public class JavaTextModel extends TextModel {
 
      public void transform(){
 
-         replace(true, t -> Seq.isA(t, $->$.matches(IntConst.regex)), IntConst::new);
-         replace(true, t -> Seq.isA(t, $->$.matches(FloatConst.regex)), FloatConst::new);
+         replace(t -> Seq.isA(t, $->$.matches(IntConst.regex)), IntConst::new);
+         replace(t -> Seq.isA(t, $->$.matches(FloatConst.regex)), FloatConst::new);
 
          // @ (char) -> At
-         replace(true, Ch::isAnAt, At::new);
+         replace( Ch::isAnAt, At::new);
 
          Regex javaTypes = Regex.of("void|int|float|double|boolean|char|short|long|class|record|interface|String");
 
-         replace(true,t -> Seq.isA(t, $->$.matches(javaTypes)), ReservedWord::new);
+         replace(t -> Seq.isA(t, $->$.matches(javaTypes)), ReservedWord::new);
 
-         replace(true,t -> Seq.isA(t,$->$.matches(JavaType.regex)), JavaType::new);
+         replace(t -> Seq.isA(t, $->$.matches(JavaType.regex)), JavaType::new);
 
-         replace(true,t -> Seq.isA(t,$->$.matches(JavaModifier.regex)),JavaModifier::new);
+         replace(t -> Seq.isA(t, $->$.matches(JavaModifier.regex)),JavaModifier::new);
 
          // (Seq|Dname) '.' Seq -> Dname
-         replace(true,(t1,t2,t3) -> (Seq.isA(t1) || DottedName.isA(t1)) && Ch.isADot(t2) && Seq.isA(t3),DottedName::new);
+         replace((t1, t2, t3) -> (Seq.isA(t1) || DottedName.isA(t1)) && Ch.isADot(t2) && Seq.isA(t3),DottedName::new);
 
          // map all seqs to DottedName
-         replace(true, t -> Seq.isA(t,$->$.matches(DottedName.regex)), DottedName::new);
+         replace(t -> Seq.isA(t, $->$.matches(DottedName.regex)), DottedName::new);
      }
     static public JavaTextModel of(String text) {
         JavaTextModel doc = new JavaTextModel();

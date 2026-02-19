@@ -33,6 +33,10 @@ public abstract class AbstractToken implements Token {
     }
 
     @Override
+    public void reparent(Parent parent){
+        this.parent= parent;
+    }
+    @Override
     public Pos pos() {
         return pos;
     }

@@ -28,33 +28,30 @@ import hat.Accelerator;
 import hat.backend.Backend;
 
 import javax.swing.JFrame;
-import java.awt.Rectangle;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
-import static hat.types.mat2.mat2;
-import static hat.types.mat3.mat3;
-import static hat.types.vec2.vec2;
-import static hat.types.vec3.vec3;
-import static hat.types.vec4.vec4;
 
 public class Main extends JFrame {
 
-
     static void main(String[] args) throws IOException {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        ShaderEnum shaderEnum = ShaderEnum.valueOf(System.getProperty("shader", "Tutorial"));
+        ShaderFrame.FrameControls frameControls = new ShaderFrame.FrameControls(
+                Boolean.parseBoolean(System.getProperty("hat", "false")),
+                Integer.parseInt(System.getProperty("width", System.getProperty("size","1024"))),
+                Integer.parseInt(System.getProperty("height", System.getProperty("size","1024"))),
+                Integer.parseInt(System.getProperty("targetFps", "12")),
+                shaderEnum.toString(),
+                shaderEnum.shader,
+                Boolean.parseBoolean(System.getProperty("showTargetFps", "true")),
+                Boolean.parseBoolean(System.getProperty("showActualFps", "true")),
+                Boolean.parseBoolean(System.getProperty("showShaderTimeUs", "true")),
+                Boolean.parseBoolean(System.getProperty("showAllocations", "false")),
+                Boolean.parseBoolean(System.getProperty("showElapsedMs", "false")),
+                Boolean.parseBoolean(System.getProperty("showFrameCount", "false"))
+        );
+        ShaderFrame.of(acc,frameControls);
 
-        Controls controls = new Controls();
-        JFrame frame = new JFrame();
-        frame.setJMenuBar(controls.menu.menuBar());
-        int width = 512;
-        int height = 512;
-
-        FloatImagePanel imagePanel = new FloatImagePanel(acc, controls, width, height, false, ShaderEnum.Waves.shader);
-        frame.setBounds(new Rectangle(width + 100, height + 200));
-        frame.setContentPane(imagePanel);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setVisible(true);
-        imagePanel.start();
     }
 }

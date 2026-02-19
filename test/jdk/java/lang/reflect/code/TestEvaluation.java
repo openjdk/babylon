@@ -181,7 +181,7 @@ public class TestEvaluation {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
-        Optional<Object> v = JavaOp.JavaExpression.evaluate(l, op);
+        Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (Op & JavaOp.JavaExpression) op);
         Assertions.assertTrue(v.isPresent());
         // TODO BytecodeGen
         Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER));
@@ -230,7 +230,7 @@ public class TestEvaluation {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
-        Optional<Object> v = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), op);
+        Optional<Object> v = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (Op & JavaOp.JavaExpression) op);
         Assertions.assertTrue(v.isEmpty());
     }
 
@@ -257,7 +257,7 @@ public class TestEvaluation {
                 CoreOp.FuncOp f = conversionModel(pt[i], pt[j]);
                 Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
                 MethodHandles.Lookup l = MethodHandles.lookup();
-                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, op);
+                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (JavaOp.ConvOp) op);
                 Assertions.assertTrue(v.isPresent());
                 Object expected = Interpreter.invoke(l, f);
                 Assertions.assertEquals(expected, v.get());

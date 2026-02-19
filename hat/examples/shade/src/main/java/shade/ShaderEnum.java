@@ -25,13 +25,16 @@
 package shade;
 
 import hat.types.F32;
+import hat.types.vec3;
 import shade.shaders.AcesShader;
 import shade.shaders.AnimShader;
 import shade.shaders.IntroShader;
 import shade.shaders.RandShader;
-import shade.shaders.Shader1;
-import shade.shaders.Shader25;
+import shade.shaders.SeaScapeShader;
+import shade.shaders.MouseSensitiveShader;
+import shade.shaders.GroovyShader;
 import shade.shaders.SpiralShader;
+import shade.shaders.SquareWaveShader;
 import shade.shaders.TutorialShader;
 import shade.shaders.WavesShader;
 import  hat.types.vec2;
@@ -43,21 +46,23 @@ enum ShaderEnum {
         return vec4(0f, 0f, 1f, 0f);
     }),
     Gradient((uniforms, fragColor, fragCoord) -> {
-        var fResolution = vec2(uniforms.iResolution());
+        var fResolution = vec3.xy(uniforms.iResolution());
         float fFrame = uniforms.iFrame();
         var uv = vec2.div(fragCoord,fResolution);
         return vec4(uv.x(), uv.y(), F32.max(fFrame / 100f, 1f), 0f);
     }),
 
-    Shader1(new Shader1()),
-    Shader25(new Shader25()),
+    MouseSensitive(new MouseSensitiveShader()),
+    Groovy(new GroovyShader()),
     Rand(new RandShader()),
     Spiral(new SpiralShader()),
     Aces(new AcesShader()),
     Anim(new AnimShader()),
     Waves(new WavesShader()),
     Intro(new IntroShader()),
-    Tutorial(new TutorialShader());
+    Tutorial(new TutorialShader()),
+    SquareWave(new SquareWaveShader()),
+    SeaScape(new SeaScapeShader());
     Shader shader;
 
     ShaderEnum(Shader shader) {

@@ -22,46 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl.textmodel.tokens;
+package shade;
 
-import optkl.util.Regex;
-
-import java.util.Set;
-import java.util.function.Consumer;
-
-public interface Leaf extends Token {
-    @Override
-    default void visit(Consumer<Token> visitor) {
-        visitor.accept(this);
-    }
-    @Override
-    default void visitPreOrder(Consumer<Token> visitor) {
-        visitor.accept(this);
-    }
-    @Override
-    default void visitPostOrder(Consumer<Token> visitor) {
-        visitor.accept(this);
-    }
-
-    default boolean isOneOf(Set<String> strings) {
-        return strings.contains(this.asString());
-    }
-
-    default boolean isOneOf(String... strings) {
-        return isOneOf(Set.of(strings));
-    }
-
-    default Regex.Match matcher(Regex regex) {
-        Regex.Result matcher = regex.is(asString());
-        if (matcher instanceof Regex.Match) {
-            return (Regex.Match) matcher;
-        } else {
-            return null;
-        }
-    }
-
-
-    default boolean matches(Regex regex) {
-        return matcher(regex) != null;
-    }
+public interface Controller {
+    boolean useHat();
+    boolean showAllocations();
+    int width();
+    int height();
+    int targetFps();
+    String shaderName();
+    Shader shader();
+    boolean running();
 }

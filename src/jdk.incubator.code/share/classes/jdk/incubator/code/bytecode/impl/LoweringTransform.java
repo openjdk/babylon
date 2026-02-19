@@ -170,10 +170,10 @@ public final class LoweringTransform {
                 Optional<Object> v = JavaOp.JavaExpression.evaluate(l, eqOp.operands().get(1));
                 v.ifPresent(o -> labels.add(toInteger(o)));
             }
-            case JavaOp.InvokeOp ie when ie.invokeDescriptor().equals(objectsEquals) -> {
+            case JavaOp.InvokeOp ie when ie.invokeReference().equals(objectsEquals) -> {
                 Value toEvaluate;
                 if (ie.operands().getLast() instanceof Op.Result opr && opr.op() instanceof JavaOp.InvokeOp ib
-                        && isBoxingMethod(ib.invokeDescriptor())) {
+                        && isBoxingMethod(ib.invokeReference())) {
                     // workaround the modeling of switch that has a selector of type Box and a case constant of type primitive
                     // we skip the boxing operation that's contained in the model
                     // invoking a boxing method is not a valid operation in a constant expr

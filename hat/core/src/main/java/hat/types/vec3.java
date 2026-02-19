@@ -28,6 +28,9 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public interface vec3 extends  IfaceValue.vec {
     Shape shape = Shape.of( JavaType.FLOAT,3);
     float x();
@@ -35,7 +38,9 @@ public interface vec3 extends  IfaceValue.vec {
     float y();
 
     float z();
-
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping
     interface Field extends vec3 {
         @Reflect
@@ -52,23 +57,35 @@ public interface vec3 extends  IfaceValue.vec {
             return this;
         }
     }
-    record Impl(float x, float y, float z) implements vec3 {
-    }
+
 
     static vec3 vec3(float x, float y, float z) {
-        return new Impl(x, y, z);
+        record Impl(float x, float y, float z) implements vec3 {
+        }
+      //  if (collect.get())count.getAndIncrement();
+        return new Impl(x, y,z);
+    }
+
+    static vec3 vec3(vec2 xy, float z) {
+        return vec3(xy.x(), xy.y(), z);
+    }
+    static vec3 vec3(float x, vec2 yz) {
+        return vec3(x, yz.x(), yz.y());
     }
 
     static vec3 vec3(vec3 vec3) {return vec3(vec3.x(), vec3.y(), vec3.z());}
     static vec3 vec3(float scalar) {return vec3(scalar,scalar,scalar);}
 
+    static vec2 xy(vec3 vec3){ return vec2.vec2(vec3.x(),vec3.y());}
+    static vec2 yz(vec3 vec3){ return vec2.vec2(vec3.y(),vec3.z());}
+    static vec2 xz(vec3 vec3){ return vec2.vec2(vec3.x(),vec3.z());}
     static vec3 add(vec3 l, vec3 r) {return vec3(l.x()+r.x(),l.y()+r.y(), l.z()+r.z());}
     static vec3 add(vec3 l, float scalar) {return vec3(l.x()+scalar,l.y()+scalar, l.z()+scalar);}
     static vec3 add(float scalar, vec3 r) {return vec3(scalar+r.x(),scalar+r.y(), scalar+r.z());}
 
     static vec3 sub(vec3 l, vec3 r) {return vec3(l.x()-r.x(),l.y()-r.y(), l.z()-r.z());}
     static vec3 sub(vec3 l, float scalar) {return vec3(l.x()-scalar,l.y()-scalar, l.z()-scalar);}
-
+    static vec3 neg(vec3 vec3) {return vec3(0-vec3.x(),0-vec3.y(), 0-vec3.z());}
     static vec3 mul(vec3 l, vec3 r) {return vec3(l.x()*r.x(),l.y()*r.y(), l.z()*r.z());}
     static vec3 mul(vec3 l, float scalar ) {return vec3(l.x()*scalar,l.y()*scalar, l.z()*scalar);}
     static vec3 mul(float scalar, vec3 r) {return vec3(scalar*r.x(),scalar*r.y(), scalar*r.z());}
@@ -105,6 +122,9 @@ public interface vec3 extends  IfaceValue.vec {
     static vec3 max(vec3 lhs, vec3 rhs){
         return vec3(F32.max(lhs.x(),rhs.x()),F32.max(lhs.y(),rhs.y()),F32.max(lhs.z(),rhs.z()));
     }
+    static vec3 min(vec3 lhs, vec3 rhs){
+        return vec3(F32.min(lhs.x(),rhs.x()),F32.min(lhs.y(),rhs.y()),F32.min(lhs.z(),rhs.z()));
+    }
 
     static vec3 normalize(vec3 vec3){
         float lenSq = vec3.x() * vec3.x() + vec3.y() * vec3.y() + vec3.z() * vec3.z();
@@ -135,12 +155,18 @@ public interface vec3 extends  IfaceValue.vec {
     static vec3 pow(vec3 lhs, float scalar){
         return vec3(F32.pow(lhs.x(),scalar),F32.pow(lhs.y(),scalar),F32.pow(lhs.z(),scalar));
     }
-
+    static vec3 sin(float x, float y, float z){
+        return vec3(F32.sin(x),F32.sin(y),F32.sin(z));
+    }
     static vec3 sin(vec3 vec3){
-        return vec3(F32.sin(vec3.x()),F32.sin(vec3.y()),F32.sin(vec3.z()));
+        return sin(vec3.x(),vec3.y(),vec3.z());
     }
 
     static vec3 cos(vec3 vec3){
         return vec3(F32.cos(vec3.x()),F32.cos(vec3.y()),F32.cos(vec3.z()));
     }
+
+   // static vec3 neg(vec3 vec3){
+     //   return vec3(-vec3.x(),-vec3.y(), -vec3.z() );
+   // }
 }
