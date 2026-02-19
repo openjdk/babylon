@@ -151,20 +151,20 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var example_normmap = hat.jar("example{s}-normmap", core); // will probabvly need shared when we hatify
 
         // example_shared allows us to break out common UI functions, views, even loops etc
-        var sharedModule = hat.jar("example{s}-shared", ui, core);
+        var example_shared = hat.jar("example{s}-shared", ui, core);
         var example_nbody = hat.jar("example{s}-nbody", ui, core);
 
-        var example_flash_attention = hat.jar("example{s}-flashattention", core, sharedModule);
-        var example_dft = hat.jar("example{s}-dft", core, sharedModule);
-        var example_fft = hat.jar("example{s}-fft", core, sharedModule);
-        var example_matmul = hat.jar("example{s}-matmul", core, sharedModule);
+        var example_flash_attention = hat.jar("example{s}-flashattention", core, example_shared);
+        var example_dft = hat.jar("example{s}-dft", core, example_shared);
+        var example_fft = hat.jar("example{s}-fft", core, example_shared);
+        var example_matmul = hat.jar("example{s}-matmul", core, example_shared);
 
         // These examples use example_shared, so they are UI based
-        var example_mandel = hat.jar("example{s}-mandel", sharedModule);
-        var example_life = hat.jar("example{s}-life", sharedModule);
-        var example_heal = hat.jar("example{s}-heal", sharedModule);
-        var example_shade = hat.jar("example{s}-shade", sharedModule);
-        var example_violajones = hat.jar("example{s}-violajones", sharedModule);
+        var example_mandel = hat.jar("example{s}-mandel", example_shared);
+        var example_life = hat.jar("example{s}-life", example_shared);
+        var example_heal = hat.jar("example{s}-heal", example_shared);
+        var example_shade = hat.jar("example{s}-shade", example_shared);
+        var example_violajones = hat.jar("example{s}-violajones", example_shared);
 
         // experiments include code that expects an opencl backend, this is not idea, but we can accomodate
         var example_experiments = hat.jar("example{s}-experiments", core);

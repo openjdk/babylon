@@ -865,15 +865,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .collect(Collectors.toList());
 
         paren( _ -> {
-            int numArgs = invoke.op().operands().size();
-            IntStream.range(0, numArgs).forEach(i -> {
-                recurse(OpHelper.asResultOrThrow(invoke.op().operands().get(i)).op());
+            int[] counter = new int[] {0};
+            commaSpaceSeparated(invoke.op().operands(), op -> {
+                recurse(OpHelper.asResultOrThrow(op).op());
                 if (reducedFloatType != null) {
-                    genFieldAccess(invoke.op().operands().get(i), referenceList.get(i));
-                }
-                // Don't generate the comma after the last argument
-                if (i != numArgs - 1) {
-                    comma();
+                    genFieldAccess(op, referenceList.get(counter[0]++));
                 }
             });
         });

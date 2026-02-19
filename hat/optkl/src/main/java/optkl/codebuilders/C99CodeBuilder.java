@@ -146,15 +146,10 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
 
     public final T macro(String name, List<String> params, Consumer<T> body) {
         hashDefineKeyword().space().identifier(name);
-        paren( _ -> {
-            int last = params.size() - 1;
-            for (int i = 0; i < last; i++) {
-                identifier(params.get(i)).comma().space();
-            }
-            identifier(params.get(last));
-        }).space();
-        paren( _ -> body.accept(self()));
-        return nl();
+        return paren( _ -> commaSpaceSeparated(params, this::identifier))
+               .space()
+               .paren( _ -> body.accept(self()))
+               .nl();
     }
 
     public final T maxMacro(String name) {
