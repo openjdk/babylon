@@ -21,7 +21,7 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
  * @enablePreview
- * @compile TestIsCaseConstantSwitch.java
+ * @build TestIsCaseConstantSwitch
  * @run junit TestIsCaseConstantSwitch
  */
 public class TestIsCaseConstantSwitch {
@@ -168,9 +168,10 @@ public class TestIsCaseConstantSwitch {
                 .filter(o -> o instanceof SwitchExpressionOp)
                 .map(o -> ((SwitchExpressionOp) o)).toList();
         for (SwitchExpressionOp swExprOp : swExprOps) {
+            boolean actual = LoweringTransform.isCaseConstantSwitchWithIntegralSelector(swExprOp, MethodHandles.lookup()).isPresent();
             Assertions.assertEquals(
-                    new LoweringTransform.ConstantLabelSwitchChecker(swExprOp, MethodHandles.lookup()).isCaseConstantSwitch(),
                     expected,
+                    actual,
                     swExprOp.toText());
         }
     }
