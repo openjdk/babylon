@@ -824,7 +824,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 }
             }
         } else { // General case
-            if (!invoke.returnsVoid() && HATPhaseUtils.isMathLib(invoke)) {
+            if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
                 // codegen for the math operation
                 generateMathIntrinsicOperation(invoke);
             } else {

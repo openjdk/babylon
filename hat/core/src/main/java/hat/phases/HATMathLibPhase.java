@@ -58,7 +58,7 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
     private Map<Op, ReducedFloatType> analyseIRForInvokeHATMath(CoreOp.FuncOp funcOp) {
         Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
         OpHelper.Invoke.stream(lookup(), funcOp)
-                .filter(invoke -> !invoke.returnsVoid() && HATPhaseUtils.isMathLib(invoke))
+                .filter(invoke -> !invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke))
                 .forEach(invoke ->
                         // This detects a HATMathLib is stored either in a VarOp or a VarStoreOp
                         invoke.op().result().uses().stream()
