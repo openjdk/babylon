@@ -423,8 +423,8 @@ public final class BytecodeGenerator {
             case LambdaOp op ->
                 !(values = op.capturedValues()).isEmpty() && values.getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
-            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CompareOp bto ->
-                isFirstOperand(bto, opr);
+            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CompareOp co ->
+                isFirstOperand(co, opr);
             // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
                 op.operands().get(1) == opr;
@@ -1005,9 +1005,9 @@ public final class BytecodeGenerator {
                     setCatchStack(op.trueBranch(), recentCatchBlocks);
                     setCatchStack(op.falseBranch(), recentCatchBlocks);
 
-                    if (getConditionForCondBrOp(op) instanceof CompareOp btop) {
+                    if (getConditionForCondBrOp(op) instanceof CompareOp cop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
-                        conditionalBranch(prepareConditionalBranch(btop), op.trueBranch(), op.falseBranch());
+                        conditionalBranch(prepareConditionalBranch(cop), op.trueBranch(), op.falseBranch());
                     } else {
                         processFirstOperand(op);
                         conditionalBranch(Opcode.IFEQ, op.trueBranch(), op.falseBranch());
