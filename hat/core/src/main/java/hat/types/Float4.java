@@ -29,7 +29,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-public interface Float4 extends Vector {
+public interface Float4 extends optkl.IfaceValue.Vector {
     Shape shape = Shape.of(JavaType.FLOAT,4);
 
     float x();

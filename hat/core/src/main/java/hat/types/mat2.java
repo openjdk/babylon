@@ -22,13 +22,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package hat.types;
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue.mat;
 
-//immutable form
-public interface mat2 {
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
+public interface mat2 extends mat {
+    Shape shape = Shape.of( JavaType.FLOAT,2,2);
     float _00();
 
     float _01();
@@ -36,8 +40,10 @@ public interface mat2 {
     float _10();
 
     float _11();
-
-    // A mutable variant needed for interface mapping
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
+    // A mutable variant needed for interface mapping to memory segments
     interface Field extends mat2 {
         @Reflect
         default void schema(){_00();_01();_10();_11();}
@@ -55,29 +61,34 @@ public interface mat2 {
         }
     }
 
-
     static mat2 mat2(float _00, float _01, float _10, float _11) {
         record Impl(float _00, float _01, float _10, float _11) implements mat2 {
         }
+      //  if (collect.get())count.getAndIncrement();
         return new Impl(_00, _01, _10, _11);
     }
     static mat2 mat2(mat2 mat2) {return mat2(mat2._00(), mat2._01(), mat2._10(), mat2._11());}
     static mat2 mat2(float scalar) {return mat2(scalar,scalar,scalar,scalar);}
 
     static mat2 add(mat2 l, mat2 r) {return mat2(l._00()+r._00(),l._01()+r._01(), l._10()+r._10(),l._11()+r._11());}
-    default mat2 add(mat2 rhs){return add(this,rhs);}
-    default mat2 add(float scalar){return add(this,mat2(scalar));}
+   // default mat2 add(mat2 rhs){return add(this,rhs);}
+   // default mat2 add(float scalar){return add(this,mat2(scalar));}
 
     static mat2 sub(mat2 l, mat2 r) {return mat2(l._00()-r._00(),l._01()-r._01(), l._10()-r._10(),l._11()-r._11());}
-    default mat2 sub(float scalar) {return sub(this, mat2(scalar));}
-    default mat2 sub(mat2 rhs){return sub(this,rhs);}
+    //default mat2 sub(float scalar) {return sub(this, mat2(scalar));}
+    //default mat2 sub(mat2 rhs){return sub(this,rhs);}
 
     static mat2 mul(mat2 l, mat2 r) {return mat2(l._00()*r._00(),l._01()*r._01(), l._10()*r._10(),l._11()*r._11());}
-    default mat2 mul(float scalar) {return mul(this, mat2(scalar));}
-    default mat2 mul(mat2 rhs){return mul(this,rhs);}
+    static vec2 mul(mat2 l, vec2 r) {return vec2.vec2(
+            l._00()*r.x()+l._01()*r.y(),
+            l._10()*r.x()+l._11()*r.y()
+    );}
+
+    //default mat2 mul(float scalar) {return mul(this, mat2(scalar));}
+   // default mat2 mul(mat2 rhs){return mul(this,rhs);}
 
     static mat2 div(mat2 l, mat2 r) {return mat2(l._00()/r._00(),l._01()/r._01(), l._10()/r._10(),l._11()/r._11());}
-    default mat2 div(float scalar) {return div(this, mat2(scalar));}
-    default mat2 div(mat2 rhs){return div(this,rhs);}
+    //default mat2 div(float scalar) {return div(this, mat2(scalar));}
+    //default mat2 div(mat2 rhs){return div(this,rhs);}
 
 }

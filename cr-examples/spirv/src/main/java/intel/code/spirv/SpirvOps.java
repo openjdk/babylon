@@ -81,16 +81,16 @@ public class SpirvOps {
 
     public static final class FieldLoadOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "fieldload";
-        private final FieldRef fieldDesc;
+        private final FieldRef fieldRef;
 
         public FieldLoadOp(TypeElement resultType, FieldRef fieldRef, List<Value> operands) {
             super(OPNAME, resultType, operands);
-            this.fieldDesc = fieldRef;
+            this.fieldRef = fieldRef;
         }
 
         public FieldLoadOp(FieldLoadOp that, CodeContext cc) {
             super(that, cc);
-            this.fieldDesc = that.fieldDesc;
+            this.fieldRef = that.fieldRef;
         }
 
         @Override
@@ -98,8 +98,8 @@ public class SpirvOps {
             return new FieldLoadOp(this, cc);
         }
 
-        public FieldRef fieldDescriptor() {
-            return fieldDesc;
+        public FieldRef fieldReference() {
+            return fieldRef;
         }
     }
 

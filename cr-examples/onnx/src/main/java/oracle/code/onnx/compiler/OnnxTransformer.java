@@ -105,7 +105,7 @@ public final class OnnxTransformer {
         func.elements().forEach(e -> {
             if (e instanceof JavaOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
                 collectModuleFunctions(l, funcs, doNotInline, f);
-                doNotInline.add(funcs.putIfAbsent(io.invokeDescriptor(), f));
+                doNotInline.add(funcs.putIfAbsent(io.invokeReference(), f));
             }
         });
     }
@@ -131,7 +131,7 @@ public final class OnnxTransformer {
     // transform all relevant invocations to func calls or inline
     static CoreOp.FuncOp mapOrInline(CoreOp.FuncOp f, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline) {
         return f.transform(f.funcName().isEmpty() ? findBetterName(funcs, doNotInline): f.funcName(), (bb, op) -> {
-            if (op instanceof JavaOp.InvokeOp io && funcs.get(io.invokeDescriptor()) instanceof CoreOp.FuncOp fo) {
+            if (op instanceof JavaOp.InvokeOp io && funcs.get(io.invokeReference()) instanceof CoreOp.FuncOp fo) {
                 if (doNotInline.contains(fo)) {
                     bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
                 } else {
@@ -157,7 +157,7 @@ public final class OnnxTransformer {
                     )) {
                 var targetType = tc.convertType(flo.result());
                 // computataion of the tuple size created out of the static array initializer field
-                initializers.compute(flo.fieldDescriptor(), (fd, ti) -> ti == null
+                initializers.compute(flo.fieldReference(), (fd, ti) -> ti == null
                         ? new TI(targetType, initializers.size())
                         : targetType instanceof TupleType newTt && ti.type() instanceof TupleType oldTt && newTt.componentTypes().size() > oldTt.componentTypes().size()
                                 ? new TI(newTt, ti.index())
@@ -179,7 +179,7 @@ public final class OnnxTransformer {
                         List<Block.Parameter> initArgs = bob.parameters().subList(argsSize, bob.parameters().size());
                         switch (op) {
                             // field loads mapped to initializers args
-                            case JavaOp.FieldAccessOp.FieldLoadOp flo when initializers.get(flo.fieldDescriptor()) instanceof TI ti -> {
+                            case JavaOp.FieldAccessOp.FieldLoadOp flo when initializers.get(flo.fieldReference()) instanceof TI ti -> {
                                 bb.context().mapValue(op.result(), initArgs.get(ti.index()));
                             }
                             case CoreOp.FuncCallOp fco -> {
@@ -201,7 +201,7 @@ public final class OnnxTransformer {
 
     static CoreOp.FuncOp resolve(MethodHandles.Lookup l, JavaOp.InvokeOp io) {
         try {
-            var res = Op.ofMethod(io.invokeDescriptor().resolveToMethod(l));
+            var res = Op.ofMethod(io.invokeReference().resolveToMethod(l));
             if (res.isPresent()) {
                 return SSA.transform(evaluate(l, res.get()));
             }
@@ -371,8 +371,8 @@ public final class OnnxTransformer {
             }
             switch (op) {
                 // Transform invocation to ONNX operator to operation modeling the operator
-                case JavaOp.InvokeOp io when io.invokeDescriptor().refType().equals(ONNX_OPERATORS_CLASS) -> {
-                    String operatorName = io.invokeDescriptor().name();
+                case JavaOp.InvokeOp io when io.invokeReference().refType().equals(ONNX_OPERATORS_CLASS) -> {
+                    String operatorName = io.invokeReference().name();
                     Class<? extends OnnxOp> opClass = onnxOpClassFromName(operatorName);
                     OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
 
@@ -406,8 +406,8 @@ public final class OnnxTransformer {
                             case OPTIONAL -> {
                                 // Evaluation of expressions Optional.empty and Optional.of() with symbolic values
                                 if (v instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp optionalInvoke
-                                        && optionalInvoke.invokeDescriptor().refType().equals(JavaType.type(Optional.class))) {
-                                    switch (optionalInvoke.invokeDescriptor().name()) {
+                                        && optionalInvoke.invokeReference().refType().equals(JavaType.type(Optional.class))) {
+                                    switch (optionalInvoke.invokeReference().name()) {
                                         case "of" -> {
                                             opArgs.add(Optional.of(bb.context().getValue(optionalInvoke.operands().getFirst())));
                                         }
@@ -423,8 +423,8 @@ public final class OnnxTransformer {
                             case VARIADIC -> {
                                 // Evaluation of expressions List.of() with symbolic values
                                 if (v instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp listInvoke
-                                        && listInvoke.invokeDescriptor().refType().equals(JavaType.type(List.class))) {
-                                    switch (listInvoke.invokeDescriptor().name()) {
+                                        && listInvoke.invokeReference().refType().equals(JavaType.type(List.class))) {
+                                    switch (listInvoke.invokeReference().name()) {
                                         case "of" -> {
                                             opArgs.add(listInvoke.operands().stream().map(o -> bb.context().getValue(o)).toList());
                                         }
@@ -460,7 +460,7 @@ public final class OnnxTransformer {
                 }
                 // Transform access to the result of an operator that is a record access
                 case JavaOp.InvokeOp io when
-                        tc.recordComponentAccessToTupleIndex(io.invokeDescriptor()) instanceof Integer index -> {
+                        tc.recordComponentAccessToTupleIndex(io.invokeReference()) instanceof Integer index -> {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
                 }
@@ -484,9 +484,9 @@ public final class OnnxTransformer {
                 }
                 // Transform access to the result of an operator that is a list access
                 // @@@ raw use of List::get with constant argument
-                case JavaOp.InvokeOp io when io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get") -> {
+                case JavaOp.InvokeOp io when io.invokeReference().refType().equals(LIST_CLASS) && io.invokeReference().name().equals("get") -> {
                     Op.Result result = bb.op(JavaOp.invoke(
-                            io.invokeDescriptor(),
+                            io.invokeReference(),
                             bb.context().getValue(io.operands().getFirst()),
                             bb.op(CoreOp.constant(JavaType.INT, pe.evaluatedAttributes.get(io).getLast()))));
                     bb.context().mapValue(io.result(), result);
@@ -499,11 +499,11 @@ public final class OnnxTransformer {
                     bb.context().mapValue(fco.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldDescriptor()));
+                    Op.Result result = bb.op(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldReference()));
                     bb.context().mapValue(flo.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldDescriptor(), bb.context().getValue(flo.operands().getFirst())));
+                    Op.Result result = bb.op(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldReference(), bb.context().getValue(flo.operands().getFirst())));
                     bb.context().mapValue(flo.result(), result);
                 }
                 case JavaOp.ArrayAccessOp.ArrayStoreOp aso when aso.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp cop -> {

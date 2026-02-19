@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,21 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.types;
+package shade;
 
-import jdk.incubator.code.TypeElement;
-
-public interface Vector {
-    interface Shape {
-        TypeElement typeElement();
-        int lanes();
-        static Shape of(TypeElement typeElement, int lanes) {
-            record Impl(TypeElement typeElement, int lanes) implements Shape {
-               @Override public String toString(){
-                   return typeElement.toString() + Impl.this.lanes;
-               }
-            }
-            return new Impl(typeElement, lanes);
-        }
-    }
+public interface Controller {
+    boolean useHat();
+    boolean showAllocations();
+    int width();
+    int height();
+    int targetFps();
+    String shaderName();
+    Shader shader();
+    boolean running();
 }

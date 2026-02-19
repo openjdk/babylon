@@ -26,7 +26,7 @@ package optkl.textmodel.tokens;
 
 import java.util.function.Predicate;
 
-public interface Ch extends SingleCharLeaf {
+public interface Ch extends Char {
 
     static boolean isA(Token t, Predicate<Ch> predicate) {
         return t instanceof Ch c && predicate.test(c);

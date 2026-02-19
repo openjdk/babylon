@@ -192,10 +192,10 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T binaryTestOp( JavaOp.BinaryTestOp binaryTestOp) {
-        parenthesisIfNeeded( binaryTestOp, OpHelper.lhsResult(binaryTestOp).op());
-        symbol(binaryTestOp);
-        parenthesisIfNeeded( binaryTestOp, OpHelper.rhsResult(binaryTestOp).op());
+    public final T compareOp( JavaOp.CompareOp compareOp) {
+        parenthesisIfNeeded( compareOp, OpHelper.lhsResult(compareOp).op());
+        symbol(compareOp);
+        parenthesisIfNeeded( compareOp, OpHelper.rhsResult(compareOp).op());
         return self();
     }
 

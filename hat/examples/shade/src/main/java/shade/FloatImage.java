@@ -26,7 +26,7 @@ package shade;
 
 import hat.buffer.F32Array;
 import optkl.util.carriers.ArenaAndLookupCarrier;
-import shade.types.vec4;
+import hat.types.vec4;
 
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
@@ -40,7 +40,7 @@ import java.awt.image.Raster;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 
-record FloatImage(
+public record FloatImage(
         int width,
         int height,
         int widthXHeight,

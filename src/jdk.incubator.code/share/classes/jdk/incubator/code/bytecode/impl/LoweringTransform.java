@@ -179,11 +179,11 @@ public final class LoweringTransform {
                         (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) &&
                                 isConstantExpr(convOp.operands().get(0));
                 case JavaOp.InvokeOp invokeOp ->
-                        isBoxingMethod(invokeOp.invokeDescriptor()) && isConstantExpr(invokeOp.operands().get(0));
+                    isBoxingMethod(invokeOp.invokeReference()) && isConstantExpr(invokeOp.operands().get(0));
                 case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
                     Field field;
                     try {
-                        field = fieldLoadOp.fieldDescriptor().resolveToField(lookup);
+                field = fieldLoadOp.fieldReference().resolveToField(lookup);
                     } catch (ReflectiveOperationException e) {
                         throw new RuntimeException(e);
                     }
@@ -191,8 +191,8 @@ public final class LoweringTransform {
                 }
                 case JavaOp.UnaryOp unaryOp -> isConstantExpr(unaryOp.operands().get(0));
                 case JavaOp.BinaryOp binaryOp -> binaryOp.operands().stream().allMatch(this::isConstantExpr);
-                case JavaOp.BinaryTestOp binaryTestOp ->
-                        binaryTestOp.operands().stream().allMatch(this::isConstantExpr);
+                case JavaOp.CompareOp compareOp ->
+                        compareOp.operands().stream().allMatch(this::isConstantExpr);
                 case JavaOp.ConditionalExpressionOp cexpr -> // bodies must yield constant expressions
                         isConstantExpr(((YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
                                 isConstantExpr(((YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue()) &&
@@ -218,7 +218,7 @@ public final class LoweringTransform {
             // EqOp for primitives, method invocation for Strings and Reference Types
             return switch (r.op()) {
                 case JavaOp.EqOp eqOp -> isConstantExpr(eqOp.operands().get(1));
-                case JavaOp.InvokeOp invokeOp when !invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS) -> false;
+                case JavaOp.InvokeOp invokeOp when !invokeOp.invokeReference().equals(OBJECTS_EQUALS) -> false;
                 case JavaOp.InvokeOp invokeOp -> {
                     // case null
                     if (invokeOp.operands().get(1) instanceof Op.Result opr && opr.op() instanceof CoreOp.ConstantOp cop && cop.value() == null) {
@@ -269,7 +269,7 @@ public final class LoweringTransform {
         var labels = new ArrayList<Integer>();
         switch (opr.op()) {
             case JavaOp.EqOp eqOp -> labels.add(extractConstantLabel(lookup, body, eqOp));
-            case JavaOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS) ->
+                case JavaOp.InvokeOp invokeOp when invokeOp.invokeReference().equals(OBJECTS_EQUALS) ->
                     labels.add(extractConstantLabel(lookup, body, invokeOp));
             case JavaOp.ConditionalOrOp cor -> {
                 for (Body corbody : cor.bodies()) {

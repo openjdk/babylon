@@ -22,12 +22,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package shade;
 
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 import optkl.util.carriers.ArenaAndLookupCarrier;
+import hat.types.ivec2;
+import hat.types.vec2;
+import hat.types.vec3;
+import hat.types.vec4;
 
 public interface Uniforms extends Buffer {
     interface ivec2Field extends ivec2.Field, Struct {
@@ -57,19 +61,21 @@ public interface Uniforms extends Buffer {
 
     vec4Field fragColor();
 
-    ivec2Field iResolution();
+    vec3Field iResolution();
 
-    long iTime();
-    void iTime(long iTime);
+    float iTime();
+    void iTime(float iTime);
     ivec2Field iMouse();
     long iFrame();
     void iFrame(long iFrame);
     Schema<Uniforms> schema = Schema.of(Uniforms.class, uniforms -> uniforms
             .field("fragCoord", fragCoord -> fragCoord.fields("x", "y"))
             .field("fragColor", fragColor -> fragColor.fields("x", "y", "z", "w"))
-            .field("iResolution", iResolution -> iResolution.fields("x", "y"))
+            .field("iResolution", iResolution -> iResolution.fields("x", "y", "z"))
+            .pad(4)
             .field("iMouse", iMouse -> iMouse.fields("x", "y"))
             .field("iTime")
+            .pad(4)
             .field("iFrame")
     );
 

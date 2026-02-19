@@ -70,6 +70,10 @@ public interface Pos extends LineCol {
         public Impl(Pos pos) {
             this(pos.text(), pos.textOffset(), pos.line(), pos.col());
         }
+
+        @Override public String toString(){
+            return "@"+line()+","+col();
+        }
     }
 
 }

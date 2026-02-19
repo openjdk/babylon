@@ -30,7 +30,6 @@
       <module fileurl="file://$PROJECT_DIR$/example_violajones.iml" filepath="$PROJECT_DIR$/example_violajones.iml" />
       <module fileurl="file://$PROJECT_DIR$/job.iml" filepath="$PROJECT_DIR$/job.iml" />
       <module fileurl="file://$PROJECT_DIR$/tests.iml" filepath="$PROJECT_DIR$/tests.iml" />
-      <module fileurl="file://$PROJECT_DIR$/tools.iml" filepath="$PROJECT_DIR$/tools.iml" />
       <module fileurl="file://$PROJECT_DIR$/wrap_cuda.iml" filepath="$PROJECT_DIR$/wrap_cuda.iml" />
       <module fileurl="file://$PROJECT_DIR$/wrap_opencl.iml" filepath="$PROJECT_DIR$/wrap_opencl.iml" />
       <module fileurl="file://$PROJECT_DIR$/wrap_opengl.iml" filepath="$PROJECT_DIR$/wrap_opengl.iml" />

@@ -122,7 +122,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         // These next three 'optional' dependencies use cmake to determine availability.  We delegate to cmake which
         //    a) determines if capability is available,
-        //    b) if they are, they extract from cmake vars (see conf/cmake-info/OpenCL/properties for example) information export headers and libs needed by JExtract
+        //    b) if they are, they extract from cmake vars (see conf/cmake-info/OpenCL/properties for example)
+        //       information export headers and libs needed by JExtract
         var jextractOpts = JExtract.Config.of(o -> o.command(true));
         var cmakeOpts = CMake.Config.of(o -> o.command(true));
         var openclCmakeInfo = new OpenCL(hat.id("cmake-info-opencl"), cmake);
@@ -132,8 +133,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         // Now we just create jars and shared libs and declare dependencies
         var optkl = hat.jar("optkl");
         var core = hat.jar("core", optkl);
-        var tools = hat.jar("tools", core);
-        var tests = hat.jar("tests", core, tools);
+        //var tools = hat.jar("tools", core);
+        var tests = hat.jar("tests", core);
 
         var backend_ffi_native = hat.cmakeAndJar("backend{s}-ffi", core, cmake);
         var ffiSharedBackend = hat.jar("backend{s}-ffi-shared", backend_ffi_native);
@@ -185,6 +186,24 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         // Finally we have everything needed for nbodygl
         var example_nbodygl = hat.jar("example{s}-nbodygl", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
 
+        var listOfExamples = List.of(
+           example_squares,
+           example_matmul,
+           example_flash_attention,
+           example_blackscholes,
+           example_view,
+           example_normmap,
+           example_nbody,
+           example_mandel,
+           example_life,
+           example_heal,
+           example_shade,
+           example_violajones,
+           example_experiments,
+           example_nbodygl
+        );
+        //listOfExamples.forEach(jar->System.out.println(jar.id().projectRelativeHyphenatedName()));
+        //System.exit(1);
         var testEnginePackage = "hat.test.engine";
         var testEngineClassName = "HATTestEngine";
         while (!args.isEmpty()) {
@@ -206,7 +225,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     final var textSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
                     final var sourceSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
 
-                    Stream.of("hat", "tests", "optkl", "core", "tools", "examples", "backends", "docs", "wraps")
+                    Stream.of("hat", "tests", "optkl", "core", "examples", "backends", "docs", "wraps")
                             .map(hat.rootPath()::resolve)
                             .forEach(dir -> {
                                 System.out.println("Checking " + dir);

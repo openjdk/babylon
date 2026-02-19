@@ -206,7 +206,7 @@ public class TestConcat {
 
     @ParameterizedTest
     @MethodSource("testData")
-    public static void testRun(TestMethodData t) {
+    public void testRun(TestMethodData t) {
         try {
             Object[] args = new Object[] {valMap.get(t.first), valMap.get(t.second)};
             Class<TestConcat> clazz = TestConcat.class;

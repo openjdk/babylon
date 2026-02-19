@@ -38,12 +38,12 @@ public enum BinaryOpEnum {
         this.symbol = symbol;
     }
     public static BinaryOpEnum of(JavaOp.InvokeOp invokeOp) {
-        return switch (invokeOp.invokeDescriptor().name()) {
+        return switch (invokeOp.invokeReference().name()) {
             case "add" -> BinaryOpEnum.ADD;
             case "sub" -> BinaryOpEnum.SUB;
             case "mul" -> BinaryOpEnum.MUL;
             case "div" -> BinaryOpEnum.DIV;
-            default -> throw new RuntimeException("Unknown binary op " + invokeOp.invokeDescriptor().name());
+            default -> throw new RuntimeException("Unknown binary op " + invokeOp.invokeReference().name());
         };
     }
     public String symbol() {

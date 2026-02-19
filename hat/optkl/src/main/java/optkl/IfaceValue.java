@@ -25,11 +25,84 @@
 package optkl;
 
 
+import jdk.incubator.code.TypeElement;
+
 public interface IfaceValue {
 
     interface Union extends IfaceValue {
     }
 
     interface Struct extends IfaceValue {
+    }
+
+     interface Vector {
+        interface Shape {
+            // This is the type that best describes the usage from a Java POV
+            TypeElement typeElement();
+            // This is how we expect to represent the type
+            // So an FP16x4 might be
+            //    typeElement=FLOAT (we will see float accessors)
+            //    representedBy=SHORT (the data is 'packed into')
+            TypeElement representedBy();
+            int lanes();
+            static Shape of(TypeElement typeElement, TypeElement representedBy, int lanes) {
+                record Impl(TypeElement typeElement, TypeElement representedBy, int lanes) implements Shape {
+                    @Override public String toString(){
+                        return typeElement.toString() + Impl.this.lanes;
+                    }
+                }
+                return new Impl(typeElement,representedBy, lanes);
+            }
+            static Shape of(TypeElement typeElement,  int lanes) {
+               return of (typeElement,typeElement,lanes);
+            }
+
+        }
+    }
+
+    interface vec {
+        interface Shape {
+            // This is the type that best describes the usage from a Java POV
+            TypeElement typeElement();
+            // This is how we expect to represent the type
+            // So an FP16x4 might be
+            //    typeElement=FLOAT (we will see float accessors)
+            //    representedBy=SHORT (the data is 'packed into')
+            TypeElement representedBy();
+            int lanes();
+            static Shape of(TypeElement typeElement, TypeElement representedBy, int lanes) {
+                record Impl(TypeElement typeElement, TypeElement representedBy, int lanes) implements Shape {
+                    @Override public String toString(){
+                        return typeElement.toString() + Impl.this.lanes;
+                    }
+                }
+                return new Impl(typeElement,representedBy, lanes);
+            }
+            static Shape of(TypeElement typeElement, int lanes) {
+                return of (typeElement,typeElement,lanes);
+            }
+
+        }
+    }
+    // Experimental ... considering for any Struct acting as an aggregate containing a length field.
+    interface mat {
+        interface Shape {
+            TypeElement typeElement();
+            int rows();
+            int cols();
+
+            static Shape of(TypeElement typeElement, int rows, int cols) {
+                record Impl(TypeElement typeElement, int rows, int cols) implements Shape {
+                    @Override public String toString(){
+                        return typeElement.toString() + Impl.this.rows+"x"+Impl.this.cols;
+                    }
+                }
+                return new Impl(typeElement, rows,cols);
+            }
+        }
+    }
+
+    // Experimental ... considering for any Struct acting as an aggregate containing a length field.
+    interface Array extends IfaceValue {
     }
 }

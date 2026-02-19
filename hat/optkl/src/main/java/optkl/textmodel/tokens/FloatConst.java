@@ -24,17 +24,17 @@
  */
 package optkl.textmodel.tokens;
 
+import optkl.util.Regex;
+
 import java.util.function.Predicate;
 
 public class FloatConst extends LeafReplacementToken {
     public final float f;
-
-    public FloatConst(Token t1, Token t2, Token t3) {
-        super(t1, t2, t3);
-        var s = t1.asString() + t2.asString() + t3.asString();
-        this.f = Float.parseFloat(s);
+    public static final Regex regex = Regex.of("(\\d+\\.\\d*|\\d*\\.\\d+)");
+    public FloatConst(Token t) {
+        super(t);
+        this.f = Float.parseFloat(t.asString());
     }
-
     public static boolean isA(Token t, Predicate<FloatConst> predicate) {
         return t instanceof FloatConst floatConst && predicate.test(floatConst);
     }

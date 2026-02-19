@@ -28,7 +28,7 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.core.VarType;
-import java.util.ArrayList;
+
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +124,7 @@ final class UnresolvedTypesTransformer {
                     case JavaOp.BinaryOp bo ->
                         resolveTo(ut, bo.resultType());
                     case JavaOp.InvokeOp io -> {
-                        MethodRef id = io.invokeDescriptor();
+                        MethodRef id = io.invokeReference();
                         if (io.hasReceiver()) {
                             if (i == 0) yield resolveTo(ut, id.refType());
                             i--;
@@ -132,7 +132,7 @@ final class UnresolvedTypesTransformer {
                         yield resolveTo(ut, id.type().parameterTypes().get(i));
                     }
                     case JavaOp.FieldAccessOp fao ->
-                        resolveTo(ut, fao.fieldDescriptor().refType());
+                        resolveTo(ut, fao.fieldReference().refType());
                     case CoreOp.ReturnOp ro ->
                         resolveTo(ut, ro.ancestorBody().bodyType().returnType());
                     case CoreOp.VarOp vo ->
@@ -140,7 +140,7 @@ final class UnresolvedTypesTransformer {
                     case CoreOp.VarAccessOp.VarStoreOp vso ->
                         resolveTo(ut, vso.varType().valueType());
                     case JavaOp.NewOp no ->
-                        resolveTo(ut, no.constructorDescriptor().type().parameterTypes().get(i));
+                        resolveTo(ut, no.constructorReference().type().parameterTypes().get(i));
                     case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
                         resolveTo(ut, toArray(alo.resultType()));
                     case JavaOp.ArrayAccessOp.ArrayStoreOp aso ->
@@ -321,7 +321,7 @@ final class UnresolvedTypesTransformer {
     private static CodeTransformer unifyOperandsTransformer() {
         return (block, op) -> {
             switch (op) {
-                case JavaOp.BinaryTestOp _ ->
+                case JavaOp.CompareOp _ ->
                     unify(block, op, JavaType.INT, JavaType.INT);
                 case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
                     unify(block, op, op.resultType(), JavaType.INT);

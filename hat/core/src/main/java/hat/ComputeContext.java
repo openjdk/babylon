@@ -176,7 +176,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         } else {
             kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
                 JavaOp.LambdaOp lambdaOp = quoted.op();
-                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeDescriptor();
+                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeReference();
                 KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
                 if (kernelCallGraph == null) {
                     throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");

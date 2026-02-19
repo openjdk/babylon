@@ -200,7 +200,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             var  privateVarOp = copyLocation(varOp,new HATMemoryVarOp.HATPrivateInitVarOp(varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    invokeOp.invokeDescriptor().refType(),
+                    invokeOp.invokeReference().refType(),
                     blockBuilder.context().getValues(varOp.operands())));
             blockBuilder.context().mapValue(varOp.result(), blockBuilder.op(privateVarOp));
             return privateVarOp;

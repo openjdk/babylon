@@ -54,6 +54,12 @@ public record Menu(JMenuBar menuBar) {
         menuBar.add(new JLabel(text));
         return this;
     }
+    public  Menu label(boolean condition, String text) {
+       if (condition) {
+          label(text);
+       }
+        return this;
+    }
 
     public Menu toggle(String selected,String unselected, boolean sel, Consumer<JToggleButton> jToggleButtonConsumer,Consumer<Boolean> stateConsumer){
         JToggleButton toggleButton = (JToggleButton) menuBar.add(new JToggleButton(unselected));

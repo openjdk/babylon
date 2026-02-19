@@ -24,5 +24,5 @@
  */
 package optkl.textmodel.tokens;
 
-public interface Nl extends SingleCharLeaf {
+public interface Nl extends Char {
 }

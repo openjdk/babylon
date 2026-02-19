@@ -26,7 +26,8 @@ package hat.phases;
 
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATVectorOp;
-import hat.types.Vector;
+import optkl.IfaceValue;
+import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -77,7 +78,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                 return invokeOp.resultType();
             }
             int laneIdx() {
-                return "xyzw".indexOf(invokeOp.invokeDescriptor().name().charAt(0));
+                return "xyzw".indexOf(invokeOp.invokeReference().name().charAt(0));
             }
 
         }

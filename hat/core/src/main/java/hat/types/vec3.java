@@ -22,17 +22,25 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade.types;
+package hat.types;
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 
-public interface vec3 {
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public interface vec3 extends  IfaceValue.vec {
+    Shape shape = Shape.of( JavaType.FLOAT,3);
     float x();
 
     float y();
 
     float z();
-
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicBoolean collect = new AtomicBoolean(false);
+    //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping
     interface Field extends vec3 {
         @Reflect
@@ -49,44 +57,53 @@ public interface vec3 {
             return this;
         }
     }
-    record Impl(float x, float y, float z) implements vec3 {
-    }
+
 
     static vec3 vec3(float x, float y, float z) {
-        return new Impl(x, y, z);
+        record Impl(float x, float y, float z) implements vec3 {
+        }
+      //  if (collect.get())count.getAndIncrement();
+        return new Impl(x, y,z);
+    }
+
+    static vec3 vec3(vec2 xy, float z) {
+        return vec3(xy.x(), xy.y(), z);
+    }
+    static vec3 vec3(float x, vec2 yz) {
+        return vec3(x, yz.x(), yz.y());
     }
 
     static vec3 vec3(vec3 vec3) {return vec3(vec3.x(), vec3.y(), vec3.z());}
     static vec3 vec3(float scalar) {return vec3(scalar,scalar,scalar);}
 
+    static vec2 xy(vec3 vec3){ return vec2.vec2(vec3.x(),vec3.y());}
+    static vec2 yz(vec3 vec3){ return vec2.vec2(vec3.y(),vec3.z());}
+    static vec2 xz(vec3 vec3){ return vec2.vec2(vec3.x(),vec3.z());}
     static vec3 add(vec3 l, vec3 r) {return vec3(l.x()+r.x(),l.y()+r.y(), l.z()+r.z());}
-    default vec3 add(vec3 rhs){return add(this,rhs);}
-    default vec3 add(float scalar){return add(this,vec3(scalar));}
+    static vec3 add(vec3 l, float scalar) {return vec3(l.x()+scalar,l.y()+scalar, l.z()+scalar);}
+    static vec3 add(float scalar, vec3 r) {return vec3(scalar+r.x(),scalar+r.y(), scalar+r.z());}
 
     static vec3 sub(vec3 l, vec3 r) {return vec3(l.x()-r.x(),l.y()-r.y(), l.z()-r.z());}
-    default vec3 sub(float scalar) {return sub(this, vec3(scalar));}
-    default vec3 sub(vec3 rhs){return sub(this,rhs);}
-
+    static vec3 sub(vec3 l, float scalar) {return vec3(l.x()-scalar,l.y()-scalar, l.z()-scalar);}
+    static vec3 neg(vec3 vec3) {return vec3(0-vec3.x(),0-vec3.y(), 0-vec3.z());}
     static vec3 mul(vec3 l, vec3 r) {return vec3(l.x()*r.x(),l.y()*r.y(), l.z()*r.z());}
-    default vec3 mul(float scalar) {return mul(this, vec3(scalar));}
-    default vec3 mul(vec3 rhs){return mul(this,rhs);}
-    default vec3 mul(mat3 rhs){return vec3(
-            this.x()*rhs._00()+this.x()+rhs._01()+this.x()+rhs._02(),
-            this.y()*rhs._10()+this.y()+rhs._11()+this.y()+rhs._12(),
-            this.z()*rhs._20()+this.z()+rhs._21()+this.z()+rhs._22()
+    static vec3 mul(vec3 l, float scalar ) {return vec3(l.x()*scalar,l.y()*scalar, l.z()*scalar);}
+    static vec3 mul(float scalar, vec3 r) {return vec3(scalar*r.x(),scalar*r.y(), scalar*r.z());}
+
+    static vec3 mul(vec3 lhs, mat3 rhs){return vec3(
+            lhs.x()*rhs._00()+lhs.x()+rhs._01()+lhs.x()+rhs._02(),
+            lhs.y()*rhs._10()+lhs.y()+rhs._11()+lhs.y()+rhs._12(),
+            lhs.z()*rhs._20()+lhs.z()+rhs._21()+lhs.z()+rhs._22()
     );}
 
     static vec3 div(vec3 l, vec3 r) {return vec3(l.x()/r.x(),l.y()/r.y(), l.z()/r.z());}
-    default vec3 div(float scalar) {return div(this, vec3(scalar));}
-    default vec3 div(vec3 rhs){return div(this,rhs);}
+    static vec3 div(vec3 l, float scalar) {return vec3(l.x()/scalar,l.y()/scalar, l.z()/scalar);}
+
     static float distance(vec3 lhs, vec3 rhs){
         return (float)Math.sqrt(lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z());
     }
     static float length(vec3 vec3){
         return distance(vec3,vec3);
-    }
-    default float distance(vec3 vec3){
-        return distance(this,vec3);
     }
     static vec3 mix(vec3 l, vec3 r, float a) {
         return vec3(
@@ -95,16 +112,18 @@ public interface vec3 {
                 F32.mix(l.y(),r.y(),a)
         );
     }
-    static float dot(vec3 lhs, vec3 rhs) { return F32.dot(lhs.x(),rhs.x())+F32.dot(lhs.y(),rhs.y()+F32.dot(lhs.z(),rhs.z()));}
-    default float dot(vec3 rhs) { return dot(this,rhs);}
+    static float dot(vec3 lhs, vec3 rhs) { return lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z();}
 
     static vec3 reflect(vec3 I, vec3 N) {
         // I - 2.0 * dot(N, I) * N
-        return I.sub(N.mul(dot(N,I)).mul(2f));
+        return vec3.sub(I, vec3.mul(vec3.mul(N, dot(N,I)),2f));
     }
 
     static vec3 max(vec3 lhs, vec3 rhs){
         return vec3(F32.max(lhs.x(),rhs.x()),F32.max(lhs.y(),rhs.y()),F32.max(lhs.z(),rhs.z()));
+    }
+    static vec3 min(vec3 lhs, vec3 rhs){
+        return vec3(F32.min(lhs.x(),rhs.x()),F32.min(lhs.y(),rhs.y()),F32.min(lhs.z(),rhs.z()));
     }
 
     static vec3 normalize(vec3 vec3){
@@ -115,15 +134,13 @@ public interface vec3 {
         }
         return vec3(0.0f, 0.0f, 0.0f); // Handle zero-length case
     }
-    default vec3 normalize(){
-        return normalize(this);
-    }
+
 
     static vec3 cross(vec3 a, vec3 b) {
         return vec3(
-            a.y() * b.z() - a.z() * b.y(),
-                    a.z() * b.x() - a.x() * b.z(),
-                    a.x() * b.y() - a.y() * b.x());
+                a.y() * b.z() - a.z() * b.y(),
+                a.z() * b.x() - a.x() * b.z(),
+                a.x() * b.y() - a.y() * b.x());
 
     }
 
@@ -138,10 +155,18 @@ public interface vec3 {
     static vec3 pow(vec3 lhs, float scalar){
         return vec3(F32.pow(lhs.x(),scalar),F32.pow(lhs.y(),scalar),F32.pow(lhs.z(),scalar));
     }
-
+    static vec3 sin(float x, float y, float z){
+        return vec3(F32.sin(x),F32.sin(y),F32.sin(z));
+    }
     static vec3 sin(vec3 vec3){
-        return vec3(F32.sin(vec3.x()),F32.sin(vec3.y()),F32.sin(vec3.z()));
+        return sin(vec3.x(),vec3.y(),vec3.z());
     }
 
+    static vec3 cos(vec3 vec3){
+        return vec3(F32.cos(vec3.x()),F32.cos(vec3.y()),F32.cos(vec3.z()));
+    }
 
+   // static vec3 neg(vec3 vec3){
+     //   return vec3(-vec3.x(),-vec3.y(), -vec3.z() );
+   // }
 }

@@ -112,7 +112,7 @@ public class DialectWithInvoke {
         // parameters and their types. For simplication, this example does not check this.
         CoreOp.FuncOp dialectModel = functionModel.transform((blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (op instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeDescriptor().name().equals("intrinsicsFMA")) {
+            if (op instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("intrinsicsFMA")) {
                 // The Op is the one we are looking for.
                 // We obtain the input values to this Op and use them to build the new FMA op.
                 List<Value> inputOperands = invokeOp.operands();

@@ -33,6 +33,11 @@ public abstract class AbstractParentToken extends AbstractToken implements Paren
         super(parent,pos);
         this.children = new ArrayList<>();
     }
+    protected AbstractParentToken( List<Token>  tokens) {
+        super(tokens.getFirst().parent(),tokens.getFirst().pos());
+        tokens.forEach(t->t.reparent(this));
+        this.children = new ArrayList<>(tokens);
+    }
 
     @Override
     public List<Token> children() {
