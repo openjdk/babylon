@@ -134,7 +134,7 @@ public final class LoweringTransform {
         };
     }
 
-    record LabelsAndTargets(List<Integer> labels, List<Block> targets) {}
+    public record LabelsAndTargets(List<Integer> labels, List<Block> targets) {}
 
     public static Optional<LabelsAndTargets> isCaseConstantSwitchWithIntegralSelector(JavaOp.JavaSwitchOp swOp, MethodHandles.Lookup lookup) {
         //@@@ we only check for case constant switch that has integral type
