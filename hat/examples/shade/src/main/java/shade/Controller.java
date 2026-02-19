@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,31 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package shade;
 
-import jdk.incubator.code.dialect.java.JavaOp;
-
-public enum BinaryOpEnum {
-    ADD("+"),
-    SUB("-"),
-    MUL("*"),
-    DIV("/");
-
-    String symbol;
-
-    BinaryOpEnum(String symbol) {
-        this.symbol = symbol;
-    }
-    public static BinaryOpEnum of(JavaOp.InvokeOp invokeOp) {
-        return switch (invokeOp.invokeReference().name()) {
-            case "add" -> BinaryOpEnum.ADD;
-            case "sub" -> BinaryOpEnum.SUB;
-            case "mul" -> BinaryOpEnum.MUL;
-            case "div" -> BinaryOpEnum.DIV;
-            default -> throw new RuntimeException("Unknown binary op " + invokeOp.invokeReference().name());
-        };
-    }
-    public String symbol() {
-        return symbol;
-    }
+public interface Controller {
+    boolean useHat();
+    boolean showAllocations();
+    int width();
+    int height();
+    int targetFps();
+    String shaderName();
+    Shader shader();
+    boolean running();
 }

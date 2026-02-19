@@ -173,7 +173,7 @@ public class TestLocalTransformationsAdaption {
 
         CoreOp.FuncOp fc = f.transform((block, op) -> {
             switch (op) {
-                case JavaOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(ADD_METHOD): {
+                case JavaOp.InvokeOp invokeOp when invokeOp.invokeReference().equals(ADD_METHOD): {
                     // Get the adapted operands, and pass those to the new call method
                     List<Value> adaptedOperands = block.context().getValues(op.operands());
                     Op.Result adaptedResult = block.op(JavaOp.invoke(ADD_WITH_PRINT_METHOD, adaptedOperands));
@@ -255,7 +255,7 @@ public class TestLocalTransformationsAdaption {
 
         Op.Result formatString = opBuilder.op(
                 constant(J_L_STRING,
-                        prefix + ": " + invokeOp.invokeDescriptor() + "(" + formatString(adaptedInvokeOperands) + ")%n"));
+                        prefix + ": " + invokeOp.invokeReference() + "(" + formatString(adaptedInvokeOperands) + ")%n"));
         Value System_out = opBuilder.op(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
         opBuilder.op(
                 JavaOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
@@ -279,7 +279,7 @@ public class TestLocalTransformationsAdaption {
 
         formatString = opBuilder.op(
                 constant(J_L_STRING,
-                        prefix + ": " + invokeOp.invokeDescriptor() + " -> " + formatString(adaptedInvokeResult.type()) + "%n"));
+                        prefix + ": " + invokeOp.invokeReference() + " -> " + formatString(adaptedInvokeResult.type()) + "%n"));
         opBuilder.op(
                 JavaOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));

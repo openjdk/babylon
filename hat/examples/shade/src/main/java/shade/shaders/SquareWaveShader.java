@@ -110,30 +110,27 @@ public class SquareWaveShader implements Shader {
             }
             """;
     static final int  moblur=4;
-    static final int harmonic=25;
-            static final int triangle=1; // comment this line out for only square
+    static final int harmonic=20;
 
     vec3 circle(vec2 uv, float rr, float cc, float ss) {
-
         uv = mul(uv,mat2(cc,ss,-ss,cc));
         if (rr<0f){
             uv = vec2(uv.x(),-uv.y());
         }
         rr= abs(rr);
         float r = length(uv)-rr;
-        float pix=1f;// fwidth(r);
-        float c = smoothstep(0f,pix,abs(r));
-        float l = smoothstep(0f,pix,abs(uv.x())+step(uv.y(),0f)+step(rr,uv.y()));
+        float fwidthR=.1f;// fwidth(r);
+        float c = smoothstep(0f,fwidthR,abs(r));
+        float l = smoothstep(0f,fwidthR,abs(uv.x())+step(uv.y(),0f)+step(rr,uv.y()));
         return vec3(c,c*l,c*l);
     }
 
     vec3 ima(vec2 uv, float th0) {
-
         vec2 uv0=uv;
         th0-=max(0f,uv0.x()-1.5f)*2f;
         th0-=max(0f,uv0.y()-1.5f)*2f;
 
-        float lerpy = triangle==1?1f :smoothstep(-0.6f,0.2f,cos(th0*0.1f));
+        float lerpy =smoothstep(-0.6f,0.2f,cos(th0*0.1f));
         vec3 col=vec3(1f);
         for (int i=1;i<harmonic;i+=2) {
             float th=th0*i;
@@ -145,8 +142,9 @@ public class SquareWaveShader implements Shader {
             col = min(col, circle(uv,rr,cc,ss));
             uv = add(uv, vec2(rr*ss, -rr*cc));
         }
-        float pix=.1f;//fwidth(uv0.x);
-
+        float fwidthUv0X=.1f;//fwidth(uv0.x);
+        float fwidthUvX=.1f;
+        float fwidthUvY=.1f;
         /*
           if (uv.y>0. && fract(uv0.y*10.)<0.5) col.yz=min(col.yz,smoothstep(0.,pix,abs(uv.x)));
           if (uv.x>0. && fract(uv0.x*10.)<0.5) col.yz=min(col.yz,smoothstep(0.,pix,abs(uv.y)));
@@ -154,44 +152,37 @@ public class SquareWaveShader implements Shader {
           if (uv0.y>=1.5) col.xy=vec2(smoothstep(0.,fwidth(uv.x),abs(uv.x)));
          */
         if (uv.y()>0f && fract(uv0.y()*10f)<0.5f){
-            vec2 yz = min(vec2(col.y(), col.z()),vec2(smoothstep(0f,pix,abs(uv.x()))));
-            col = vec3(0f, yz.x(),yz.y());
+            col = vec3(col.x(), min(vec2.yz(col),vec2(smoothstep(0f,fwidthUv0X,abs(uv.x())))));
         }
         if (uv.x()>0f && fract(uv0.x()*10f)<0.5f){
-            vec2 yz = max(vec2(col.y(), col.z()),vec2(smoothstep(0f,pix,abs(uv.x()))));
-            col = vec3(0f, yz.x(),yz.y());
+            col = vec3(col.x(), min(vec2.xz(col),vec2(smoothstep(0f,fwidthUv0X,abs(uv.x())))));
         }
         if (uv0.x()>=1.5f){
-            col=vec3(
-                    vec2(smoothstep(0f,/*fwidth(uv.y())*/.1f,abs(uv.y()))),
-                    col.z()
-            );
+            col=vec3(vec2(smoothstep(0f,fwidthUvY,abs(uv.y()))), col.z());
         }
         if (uv0.y()>=1.5f){
-            col=vec3(
-                    vec2(smoothstep(0f,/*fwidth(uv.x())*/.1f,abs(uv.x()))), col.z()
-            );
+            col=vec3(vec2(smoothstep(0f,fwidthUvX,abs(uv.x()))), col.z());
         }
-        return normalize(col);
+        return col;
     }
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec2(uniforms.iResolution());
-        float fTime = uniforms.iTime();
+        vec2 fres = vec2(vec3.xy(uniforms.iResolution()));
+
         vec2 uv = div(fragCoord,vec2(fres.y(),fres.y()));//iResolution.yy;
         uv = vec2(uv.x(),1f-uv.y());
         uv=mul (uv,5f);
         uv=sub(uv, vec2(1.5f));
-        float th0=fTime*2f;
-        float dt=2f/60f/(float)moblur;
-        vec3 col=vec3(.1f);
+        float th0=uniforms.iTime()*2f;
+        float dt=2f/60f/moblur;
+        vec3 col=vec3(.9f,0.9f,1f);
         for (int mb=0;mb<moblur;++mb) {
             col= add(col,ima(uv,th0));
             th0+=dt;
         }
-     //   col=pow(mul(col,(1f/(float)moblur)),vec3(1f/2.2f));
-        fragColor=vec4(normalize(col),0f);
-        return fragColor;
+        col=pow(mul(col,(1f/moblur)),vec3(1f/2.2f));
+        fragColor=vec4(col,0f);
+        return normalize(fragColor);
     }
 }

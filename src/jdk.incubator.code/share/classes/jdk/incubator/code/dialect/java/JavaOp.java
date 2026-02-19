@@ -101,7 +101,6 @@ public sealed abstract class JavaOp extends Op {
             InvokeOp,
             LambdaOp,
             NewOp,
-            TestOperation,
             VarAccessOp.VarLoadOp,
             VarAccessOp.VarStoreOp,
             ConditionalExpressionOp,
@@ -140,7 +139,7 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * An operation characteristic indicating the operation's behavior may be emulated using Java reflection.
-     * A descriptor is derived from or declared by the operation that can be resolved at runtime to
+     * A reference is derived from or declared by the operation that can be resolved at runtime to
      * an instance of a reflective handle or member. That handle or member can be operated on to
      * emulate the operation's behavior, specifically as bytecode behavior.
      */
@@ -504,7 +503,7 @@ public sealed abstract class JavaOp extends Op {
                 "booleanValue");
 
         private static boolean isBoxOrUnboxInvocation(InvokeOp iop) {
-            MethodRef mr = iop.invokeDescriptor();
+            MethodRef mr = iop.invokeReference();
             return mr.refType() instanceof ClassType ct && ct.unbox().isPresent() &&
                     (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
         }
@@ -733,25 +732,25 @@ public sealed abstract class JavaOp extends Op {
         }
 
         static final String NAME = "invoke";
-        /** The externalized attribute key for a method invocation descriptor. */
-        public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
+        /** The externalized attribute key for a method invocation reference. */
+        static final String ATTRIBUTE_INVOKE_REF = NAME + ".ref";
         /** The externalized attribute key indicating the invocation kind. */
-        public static final String ATTRIBUTE_INVOKE_KIND = NAME + ".kind";
+        static final String ATTRIBUTE_INVOKE_KIND = NAME + ".kind";
         /** The externalized attribute key for marking a varargs invocation. */
-        public static final String ATTRIBUTE_INVOKE_VARARGS = NAME + ".varargs";
+        static final String ATTRIBUTE_INVOKE_VARARGS = NAME + ".varargs";
 
         final InvokeKind invokeKind;
         final boolean isVarArgs;
-        final MethodRef invokeDescriptor;
+        final MethodRef invokeRef;
         final TypeElement resultType;
 
         InvokeOp(ExternalizedOp def) {
             // Required attribute
-            MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
+            MethodRef invokeRef = def.extractAttributeValue(ATTRIBUTE_INVOKE_REF,
                     true, v -> switch (v) {
                         case MethodRef md -> md;
                         case null, default ->
-                                throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
+                                throw new UnsupportedOperationException("Unsupported invoke reference value:" + v);
                     });
 
             // If not present defaults to false
@@ -772,7 +771,7 @@ public sealed abstract class JavaOp extends Op {
                                 // If varargs then we cannot infer invoke kind
                                 throw new UnsupportedOperationException("Unsupported invoke kind value:" + v);
                             }
-                            int paramCount = invokeDescriptor.type().parameterTypes().size();
+                            int paramCount = invokeRef.type().parameterTypes().size();
                             int argCount = def.operands().size();
                             yield (argCount == paramCount + 1)
                                     ? InvokeKind.INSTANCE
@@ -781,7 +780,7 @@ public sealed abstract class JavaOp extends Op {
                     });
 
 
-            this(ik, isVarArgs, def.resultType(), invokeDescriptor, def.operands());
+            this(ik, isVarArgs, def.resultType(), invokeRef, def.operands());
         }
 
         InvokeOp(InvokeOp that, CodeContext cc) {
@@ -789,7 +788,7 @@ public sealed abstract class JavaOp extends Op {
 
             this.invokeKind = that.invokeKind;
             this.isVarArgs = that.isVarArgs;
-            this.invokeDescriptor = that.invokeDescriptor;
+            this.invokeRef = that.invokeRef;
             this.resultType = that.resultType;
         }
 
@@ -798,30 +797,30 @@ public sealed abstract class JavaOp extends Op {
             return new InvokeOp(this, cc);
         }
 
-        InvokeOp(InvokeKind invokeKind, boolean isVarArgs, TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
+        InvokeOp(InvokeKind invokeKind, boolean isVarArgs, TypeElement resultType, MethodRef invokeRef, List<Value> args) {
             super(args);
 
-            validateArgCount(invokeKind, isVarArgs, invokeDescriptor, args);
+            validateArgCount(invokeKind, isVarArgs, invokeRef, args);
 
             this.invokeKind = invokeKind;
             this.isVarArgs = isVarArgs;
-            this.invokeDescriptor = invokeDescriptor;
+            this.invokeRef = invokeRef;
             this.resultType = resultType;
         }
 
-        static void validateArgCount(InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeDescriptor, List<Value> operands) {
-            int paramCount = invokeDescriptor.type().parameterTypes().size();
+        static void validateArgCount(InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeRef, List<Value> operands) {
+            int paramCount = invokeRef.type().parameterTypes().size();
             int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
-                throw new IllegalArgumentException(invokeKind + " " + isVarArgs + " " + invokeDescriptor);
+                throw new IllegalArgumentException(invokeKind + " " + isVarArgs + " " + invokeRef);
             }
         }
 
         @Override
         public Map<String, Object> externalize() {
             HashMap<String, Object> m = new HashMap<>();
-            m.put("", invokeDescriptor);
+            m.put("", invokeRef);
             if (isVarArgs) {
                 // If varargs then we need to declare the invoke.kind attribute
                 // Given a method `A::m(A... more)` and an invocation with one
@@ -850,10 +849,10 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the method invocation descriptor}
+         * {@return the method invocation reference}
          */
-        public MethodRef invokeDescriptor() {
-            return invokeDescriptor;
+        public MethodRef invokeReference() {
+            return invokeRef;
         }
 
         /**
@@ -874,7 +873,7 @@ public sealed abstract class JavaOp extends Op {
 
             int operandCount = operands().size();
             int argCount = operandCount - (invokeKind == InvokeKind.STATIC ? 0 : 1);
-            int paramCount = invokeDescriptor.type().parameterTypes().size();
+            int paramCount = invokeRef.type().parameterTypes().size();
             int varArgCount = argCount - (paramCount - 1);
             return operands().subList(operandCount - varArgCount, operandCount);
         }
@@ -886,7 +885,7 @@ public sealed abstract class JavaOp extends Op {
             if (!isVarArgs) {
                 return operands();
             }
-            int paramCount = invokeDescriptor().type().parameterTypes().size();
+            int paramCount = invokeReference().type().parameterTypes().size();
             int argOperandsCount = paramCount - (invokeKind() == InvokeKind.STATIC ? 1 : 0);
             return operands().subList(0, argOperandsCount);
         }
@@ -957,25 +956,25 @@ public sealed abstract class JavaOp extends Op {
 
         static final String NAME = "new";
         /**
-         * The externalized attribute key for a constructor descriptor in a new operation.
+         * The externalized attribute key for a constructor reference in a new operation.
          */
-        public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
+        static final String ATTRIBUTE_NEW_REF = NAME + ".ref";
         /**
          * The externalized attribute key indicating a varargs constructor in a new operation.
          */
-        public static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
+        static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
         final boolean isVarArgs;
-        final MethodRef constructorDescriptor;
+        final MethodRef constructorRef;
         final TypeElement resultType;
 
         NewOp(ExternalizedOp def) {
             // Required attribute
-            MethodRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
+            MethodRef constructorRef = def.extractAttributeValue(ATTRIBUTE_NEW_REF,
                     true, v -> switch (v) {
                         case MethodRef cd -> cd;
                         case null, default ->
-                                throw new UnsupportedOperationException("Unsupported constructor descriptor value:" + v);
+                                throw new UnsupportedOperationException("Unsupported constructor reference value:" + v);
                     });
 
             // If not present defaults to false
@@ -985,14 +984,14 @@ public sealed abstract class JavaOp extends Op {
                         case null, default -> false;
                     });
 
-            this(isVarArgs, def.resultType(), constructorDescriptor, def.operands());
+            this(isVarArgs, def.resultType(), constructorRef, def.operands());
         }
 
         NewOp(NewOp that, CodeContext cc) {
             super(that, cc);
 
             this.isVarArgs = that.isVarArgs;
-            this.constructorDescriptor = that.constructorDescriptor;
+            this.constructorRef = that.constructorRef;
             this.resultType = that.resultType;
         }
 
@@ -1001,32 +1000,32 @@ public sealed abstract class JavaOp extends Op {
             return new NewOp(this, cc);
         }
 
-        NewOp(boolean isVarargs, TypeElement resultType, MethodRef constructorDescriptor, List<Value> args) {
+        NewOp(boolean isVarargs, TypeElement resultType, MethodRef ctorRef, List<Value> args) {
             super(args);
 
-            validateArgCount(isVarargs, constructorDescriptor, args);
-            if (!constructorDescriptor.isConstructor()) {
-                throw new IllegalArgumentException("Not a constructor descriptor: " + constructorDescriptor);
+            validateArgCount(isVarargs, ctorRef, args);
+            if (!ctorRef.isConstructor()) {
+                throw new IllegalArgumentException("Not a constructor reference: " + ctorRef);
             }
 
             this.isVarArgs = isVarargs;
-            this.constructorDescriptor = constructorDescriptor;
+            this.constructorRef = ctorRef;
             this.resultType = resultType;
         }
 
-        static void validateArgCount(boolean isVarArgs, MethodRef constructorDescriptor, List<Value> operands) {
-            int paramCount = constructorDescriptor.type().parameterTypes().size();
+        static void validateArgCount(boolean isVarArgs, MethodRef ctorRef, List<Value> operands) {
+            int paramCount = ctorRef.type().parameterTypes().size();
             int argCount = operands.size();
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
-                throw new IllegalArgumentException(isVarArgs + " " + constructorDescriptor);
+                throw new IllegalArgumentException(isVarArgs + " " + ctorRef);
             }
         }
 
         @Override
         public Map<String, Object> externalize() {
             HashMap<String, Object> m = new HashMap<>();
-            m.put("", constructorDescriptor);
+            m.put("", constructorRef);
             if (isVarArgs) {
                 m.put(ATTRIBUTE_NEW_VARARGS, isVarArgs);
             }
@@ -1050,10 +1049,10 @@ public sealed abstract class JavaOp extends Op {
         } // @@@ duplication, same as resultType()
 
         /**
-         * {@return the constructor descriptor for this instance creation operation}
+         * {@return the constructor reference for this instance creation operation}
          */
-        public MethodRef constructorDescriptor() {
-            return constructorDescriptor;
+        public MethodRef constructorReference() {
+            return constructorRef;
         }
 
         @Override
@@ -1075,35 +1074,34 @@ public sealed abstract class JavaOp extends Op {
     public sealed abstract static class FieldAccessOp extends JavaOp
             implements AccessOp, ReflectiveOp {
         /**
-         * The externalized attribute modeling the field descriptor.
+         * The externalized attribute modeling the field reference.
          */
-        public static final String ATTRIBUTE_FIELD_DESCRIPTOR = "field.descriptor";
+        static final String ATTRIBUTE_FIELD_REF = "field.ref";
 
-        final FieldRef fieldDescriptor;
+        final FieldRef fieldRef;
 
         FieldAccessOp(FieldAccessOp that, CodeContext cc) {
             super(that, cc);
-
-            this.fieldDescriptor = that.fieldDescriptor;
+            this.fieldRef = that.fieldRef;
         }
 
         FieldAccessOp(List<Value> operands,
-                      FieldRef fieldDescriptor) {
+                      FieldRef fieldRef) {
             super(operands);
 
-            this.fieldDescriptor = fieldDescriptor;
+            this.fieldRef = fieldRef;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", fieldDescriptor);
+            return Map.of("", fieldRef);
         }
 
         /**
-         * {@return the descriptor of the accessed field}
+         * {@return the reference to the accessed field}
          */
-        public final FieldRef fieldDescriptor() {
-            return fieldDescriptor;
+        public final FieldRef fieldReference() {
+            return fieldRef;
         }
 
         /**
@@ -1123,14 +1121,14 @@ public sealed abstract class JavaOp extends Op {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
 
-                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
+                FieldRef fieldRef = def.extractAttributeValue(ATTRIBUTE_FIELD_REF, true,
                         v -> switch (v) {
                             case FieldRef fd -> fd;
                             case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
+                                    throw new UnsupportedOperationException("Unsupported field reference value:" + v);
                         });
 
-                super(def.operands(), fieldDescriptor);
+                super(def.operands(), fieldRef);
 
                 this.resultType = def.resultType();
             }
@@ -1147,15 +1145,15 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // instance
-            FieldLoadOp(TypeElement resultType, FieldRef descriptor, Value receiver) {
-                super(List.of(receiver), descriptor);
+            FieldLoadOp(TypeElement resultType, FieldRef fieldRef, Value receiver) {
+                super(List.of(receiver), fieldRef);
 
                 this.resultType = resultType;
             }
 
             // static
-            FieldLoadOp(TypeElement resultType, FieldRef descriptor) {
-                super(List.of(), descriptor);
+            FieldLoadOp(TypeElement resultType, FieldRef fieldRef) {
+                super(List.of(), fieldRef);
 
                 this.resultType = resultType;
             }
@@ -1183,14 +1181,14 @@ public sealed abstract class JavaOp extends Op {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
 
-                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
+                FieldRef fieldRef = def.extractAttributeValue(ATTRIBUTE_FIELD_REF, true,
                         v -> switch (v) {
                             case FieldRef fd -> fd;
                             case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
+                                    throw new UnsupportedOperationException("Unsupported field reference value:" + v);
                         });
 
-                super(def.operands(), fieldDescriptor);
+                super(def.operands(), fieldRef);
             }
 
             FieldStoreOp(FieldStoreOp that, CodeContext cc) {
@@ -1203,13 +1201,13 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // instance
-            FieldStoreOp(FieldRef descriptor, Value receiver, Value v) {
-                super(List.of(receiver, v), descriptor);
+            FieldStoreOp(FieldRef fieldRef, Value receiver, Value v) {
+                super(List.of(receiver, v), fieldRef);
             }
 
             // static
-            FieldStoreOp(FieldRef descriptor, Value v) {
-                super(List.of(v), descriptor);
+            FieldStoreOp(FieldRef fieldRef, Value v) {
+                super(List.of(v), fieldRef);
             }
 
             @Override
@@ -1381,29 +1379,29 @@ public sealed abstract class JavaOp extends Op {
     public static final class InstanceOfOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "instanceof";
-        /** The externalized attribute key for the instanceof type descriptor. */
-        public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
+        /** The externalized attribute key for the type element modeling the instanceof target type. */
+        static final String ATTRIBUTE_INSTANCEOF_TYPE = NAME + ".type";
 
-        final TypeElement typeDescriptor;
+        final TypeElement targetType;
 
         InstanceOfOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeElement typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
+            TypeElement targetType = def.extractAttributeValue(ATTRIBUTE_INSTANCEOF_TYPE, true,
                     v -> switch (v) {
                         case JavaType td -> td;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported type value:" + v);
                     });
 
-            this(typeDescriptor, def.operands().get(0));
+            this(targetType, def.operands().get(0));
         }
 
         InstanceOfOp(InstanceOfOp that, CodeContext cc) {
             super(that, cc);
 
-            this.typeDescriptor = that.typeDescriptor;
+            this.targetType = that.targetType;
         }
 
         @Override
@@ -1414,19 +1412,19 @@ public sealed abstract class JavaOp extends Op {
         InstanceOfOp(TypeElement t, Value v) {
             super(List.of(v));
 
-            this.typeDescriptor = t;
+            this.targetType = t;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", typeDescriptor);
+            return Map.of("", targetType);
         }
 
         /**
-         * {@return the type descriptor associated with this instanceof operation}
+         * {@return the type element modeling the target type of this instanceof operation}
          */
-        public TypeElement type() {
-            return typeDescriptor;
+        public TypeElement targetType() {
+            return targetType;
         }
 
         @Override
@@ -1447,21 +1445,21 @@ public sealed abstract class JavaOp extends Op {
     public static final class CastOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "cast";
-        /** The externalized attribute key for the cast type descriptor. */
-        public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
+        /** The externalized attribute key for the type element modeling the target type of the cast. */
+        static final String ATTRIBUTE_CAST_TYPE = NAME + ".type";
 
         final TypeElement resultType;
-        final TypeElement typeDescriptor;
+        final TypeElement targetType;
 
         CastOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeElement type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
+            TypeElement type = def.extractAttributeValue(ATTRIBUTE_CAST_TYPE, true,
                     v -> switch (v) {
                         case JavaType td -> td;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported type value:" + v);
                     });
 
             this(def.resultType(), type, def.operands().get(0));
@@ -1471,7 +1469,7 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
 
             this.resultType = that.resultType;
-            this.typeDescriptor = that.typeDescriptor;
+            this.targetType = that.targetType;
         }
 
         @Override
@@ -1483,19 +1481,19 @@ public sealed abstract class JavaOp extends Op {
             super(List.of(v));
 
             this.resultType = resultType;
-            this.typeDescriptor = t;
+            this.targetType = t;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", typeDescriptor);
+            return Map.of("", targetType);
         }
 
         /**
-         * {@return the type descriptor associated with this cast operation}
+         * {@return the type element modeling the target type of this cast operation}
          */
-        public TypeElement type() {
-            return typeDescriptor;
+        public TypeElement targetType() {
+            return targetType;
         }
 
         @Override
@@ -1687,20 +1685,6 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The test operation.
-     */
-    public sealed static abstract class TestOperation extends JavaOp
-            implements Pure, JavaExpression {
-        TestOperation(TestOperation that, CodeContext cc) {
-            super(that, cc);
-        }
-
-        TestOperation(List<Value> operands) {
-            super(operands);
-        }
-    }
-
-    /**
      * A binary arithmetic operation.
      * <p>
      * Binary arithmetic operations feature two operands. Usually, both operands have the same type,
@@ -1744,16 +1728,16 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The binary test operation.
+     * The compare operation.
      * <p>
-     * Binary test operations feature two operands, and yield a {@link JavaType#BOOLEAN} value.
+     * Compare operations feature two operands, and yield a {@link JavaType#BOOLEAN} value.
      */
-    public sealed static abstract class BinaryTestOp extends TestOperation {
-        BinaryTestOp(BinaryTestOp that, CodeContext cc) {
+    public sealed static abstract class CompareOp extends ArithmeticOperation {
+        CompareOp(CompareOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        BinaryTestOp(Value lhs, Value rhs) {
+        CompareOp(Value lhs, Value rhs) {
             super(List.of(lhs, rhs));
         }
 
@@ -2151,7 +2135,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.21 Equality Operators
      */
     @OpDeclaration(EqOp.NAME)
-    public static final class EqOp extends BinaryTestOp {
+    public static final class EqOp extends CompareOp {
         static final String NAME = "eq";
 
         EqOp(ExternalizedOp def) {
@@ -2179,7 +2163,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.21 Equality Operators
      */
     @OpDeclaration(NeqOp.NAME)
-    public static final class NeqOp extends BinaryTestOp {
+    public static final class NeqOp extends CompareOp {
         static final String NAME = "neq";
 
         NeqOp(ExternalizedOp def) {
@@ -2206,7 +2190,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GtOp.NAME)
-    public static final class GtOp extends BinaryTestOp {
+    public static final class GtOp extends CompareOp {
         static final String NAME = "gt";
 
         GtOp(ExternalizedOp def) {
@@ -2234,7 +2218,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GeOp.NAME)
-    public static final class GeOp extends BinaryTestOp {
+    public static final class GeOp extends CompareOp {
         static final String NAME = "ge";
 
         GeOp(ExternalizedOp def) {
@@ -2262,7 +2246,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LtOp.NAME)
-    public static final class LtOp extends BinaryTestOp {
+    public static final class LtOp extends CompareOp {
         static final String NAME = "lt";
 
         LtOp(ExternalizedOp def) {
@@ -2290,7 +2274,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LeOp.NAME)
-    public static final class LeOp extends BinaryTestOp {
+    public static final class LeOp extends CompareOp {
         static final String NAME = "le";
 
         LeOp(ExternalizedOp def) {
@@ -3097,11 +3081,11 @@ public sealed abstract class JavaOp extends Op {
                     action = bodies.get(i + 1);
                     Body fromPred = bodies.get(i);
                     if (!fromPred.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                        throw new IllegalArgumentException("Illegal predicate body descriptor: " + fromPred.bodyType());
+                throw new IllegalArgumentException("Illegal predicate body type: " + fromPred.bodyType());
                     }
                 }
                 if (!action.bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
-                    throw new IllegalArgumentException("Illegal action body descriptor: " + action.bodyType());
+                throw new IllegalArgumentException("Illegal action body type: " + action.bodyType());
                 }
             }
         }
@@ -3358,7 +3342,7 @@ public sealed abstract class JavaOp extends Op {
                 if (terminatingOp instanceof CoreOp.YieldOp yieldOp &&
                         yieldOp.yieldValue() instanceof Op.Result opr &&
                         opr.op() instanceof InvokeOp invokeOp &&
-                        invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
+            invokeOp.invokeReference().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
                         invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r && r.op() instanceof ConstantOp cop && cop.value() == null)) {
                     return true;
                 }
@@ -4175,12 +4159,12 @@ public sealed abstract class JavaOp extends Op {
             // @@@ This will change with pattern bindings
             if (!bodies.get(0).bodyType().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + CoreType.functionType(BOOLEAN) +
+                        "Predicate body type should be " + CoreType.functionType(BOOLEAN) +
                                 " but is " + bodies.get(0).bodyType());
             }
             if (!bodies.get(1).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + CoreType.functionType(VOID) +
+                        "Body type should be " + CoreType.functionType(VOID) +
                                 " but is " + bodies.get(1).bodyType());
             }
         }
@@ -4337,12 +4321,12 @@ public sealed abstract class JavaOp extends Op {
 
             if (!bodies.get(0).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + CoreType.functionType(VOID) +
+                        "Body type should be " + CoreType.functionType(VOID) +
                                 " but is " + bodies.get(1).bodyType());
             }
             if (!bodies.get(1).bodyType().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + CoreType.functionType(BOOLEAN) +
+                        "Predicate body type should be " + CoreType.functionType(BOOLEAN) +
                                 " but is " + bodies.get(0).bodyType());
             }
         }
@@ -4436,7 +4420,7 @@ public sealed abstract class JavaOp extends Op {
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             for (Body b : bodies) {
                 if (!b.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                    throw new IllegalArgumentException("Body conditional body descriptor: " + b.bodyType());
+                    throw new IllegalArgumentException("Body conditional body type: " + b.bodyType());
                 }
             }
         }
@@ -4698,7 +4682,7 @@ public sealed abstract class JavaOp extends Op {
 
             Body cond = bodies.get(0);
             if (!cond.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal cond body descriptor: " + cond.bodyType());
+                throw new IllegalArgumentException("Illegal cond body type: " + cond.bodyType());
             }
         }
 
@@ -5329,7 +5313,7 @@ public sealed abstract class JavaOp extends Op {
             /**
              * The externalized attribute key for a pattern binding name in a type pattern operation.
              */
-            public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
+        static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
             final TypeElement resultType;
             final String bindingName;
@@ -5404,27 +5388,27 @@ public sealed abstract class JavaOp extends Op {
             static final String NAME = "pattern.record";
 
             /**
-             * The externalized attribute key for a record descriptor in a record pattern operation.
-             */
-            public static final String ATTRIBUTE_RECORD_DESCRIPTOR = NAME + ".descriptor";
+              * The externalized attribute key for a record reference in a record pattern operation.
+              */
+            static final String ATTRIBUTE_RECORD_REF = NAME + ".ref";
 
-            final RecordTypeRef recordDescriptor;
+            final RecordTypeRef recordRef;
 
             RecordPatternOp(ExternalizedOp def) {
-                RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR, true,
+                RecordTypeRef recordRef = def.extractAttributeValue(ATTRIBUTE_RECORD_REF, true,
                         v -> switch (v) {
                             case RecordTypeRef rtd -> rtd;
                             case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);
+                                    throw new UnsupportedOperationException("Unsupported record type reference value:" + v);
                         });
 
-                this(recordDescriptor, def.operands());
+                this(recordRef, def.operands());
             }
 
             RecordPatternOp(RecordPatternOp that, CodeContext cc) {
                 super(that, cc);
 
-                this.recordDescriptor = that.recordDescriptor;
+                this.recordRef = that.recordRef;
             }
 
             @Override
@@ -5432,24 +5416,24 @@ public sealed abstract class JavaOp extends Op {
                 return new RecordPatternOp(this, cc);
             }
 
-            RecordPatternOp(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
+            RecordPatternOp(RecordTypeRef recordRef, List<Value> nestedPatterns) {
                 // The type of each value is a subtype of Pattern
                 // The number of values corresponds to the number of components of the record
                 super(List.copyOf(nestedPatterns));
 
-                this.recordDescriptor = recordDescriptor;
+                this.recordRef = recordRef;
             }
 
             @Override
             public Map<String, Object> externalize() {
-                return Map.of("", recordDescriptor());
+                return Map.of("", recordReference());
             }
 
             /**
-             * {@return the record descriptor associated with this record pattern}
-             */
-            public RecordTypeRef recordDescriptor() {
-                return recordDescriptor;
+              * {@return the record reference associated with this record pattern}
+              */
+            public RecordTypeRef recordReference() {
+                return recordRef;
             }
 
             /**
@@ -5461,7 +5445,7 @@ public sealed abstract class JavaOp extends Op {
 
             @Override
             public TypeElement resultType() {
-                return Pattern.recordType(recordDescriptor.recordType());
+                return Pattern.recordType(recordRef.recordType());
             }
         }
 
@@ -5654,7 +5638,7 @@ public sealed abstract class JavaOp extends Op {
                 for (int i = 0; i < dArgs.size(); i++) {
                     Op.Result nestedPattern = (Op.Result) dArgs.get(i);
                     // @@@ Handle exceptions?
-                    Value nestedTarget = currentBlock.op(invoke(rpOp.recordDescriptor().methodForComponent(i), target));
+            Value nestedTarget = currentBlock.op(invoke(rpOp.recordReference().methodForComponent(i), target));
 
                     currentBlock = lower(endNoMatchBlock, currentBlock, bindings, nestedPattern.op(), nestedTarget);
                 }
@@ -6000,41 +5984,20 @@ public sealed abstract class JavaOp extends Op {
      * instance or static (class) method with no variable arguments.
      * <p>
      * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
+     * comparing the argument count with the method reference's
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
      * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      * <p>
-     * The invoke return type is the invoke descriptor's return type.
+     * The result type of the invoke operation is the method reference's return type.
      *
-     * @param invokeDescriptor the invoke descriptor
-     * @param args             the invoke parameters
-     * @return the invoke operation
-     */
-    public static InvokeOp invoke(MethodRef invokeDescriptor, Value... args) {
-        return invoke(invokeDescriptor, List.of(args));
-    }
-
-    /**
-     * Creates an invoke operation modeling an invocation to an
-     * instance or static (class) method with no variable arguments.
-     * <p>
-     * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
-     * parameter count. If they are equal then the invoke kind is
-     * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
-     * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
-     * <p>
-     * The invoke return type is the invoke descriptor's return type.
-     *
-     * @param invokeDescriptor the invoke descriptor
+     * @param invokeRef        the method reference
      * @param args             the invoke arguments
      * @return the invoke operation
      */
-    public static InvokeOp invoke(MethodRef invokeDescriptor, List<Value> args) {
-        return invoke(invokeDescriptor.type().returnType(), invokeDescriptor, args);
+    public static InvokeOp invoke(MethodRef invokeRef, Value... args) {
+        return invoke(invokeRef, List.of(args));
     }
 
     /**
@@ -6042,19 +6005,20 @@ public sealed abstract class JavaOp extends Op {
      * instance or static (class) method with no variable arguments.
      * <p>
      * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
+     * comparing the argument count with the method reference's
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
      * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
+     * <p>
+     * The result type of the invoke operation is the method reference's return type.
      *
-     * @param returnType       the invoke return type
-     * @param invokeDescriptor the invoke descriptor
+     * @param invokeRef        the method reference
      * @param args             the invoke arguments
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
-        return invoke(returnType, invokeDescriptor, List.of(args));
+    public static InvokeOp invoke(MethodRef invokeRef, List<Value> args) {
+        return invoke(invokeRef.type().returnType(), invokeRef, args);
     }
 
     /**
@@ -6062,24 +6026,44 @@ public sealed abstract class JavaOp extends Op {
      * instance or static (class) method with no variable arguments.
      * <p>
      * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
+     * comparing the argument count with the method reference's
      * parameter count. If they are equal then the invoke kind is
      * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
      * plus one is equal to the argument count then the invoke kind
      * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
      *
-     * @param returnType       the invoke return type
-     * @param invokeDescriptor the invoke descriptor
+     * @param returnType       the result type of the invoke operation
+     * @param invokeRef        the method reference
+     * @param args             the invoke arguments
+     * @return the invoke operation
+     */
+    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeRef, Value... args) {
+        return invoke(returnType, invokeRef, List.of(args));
+    }
+
+    /**
+     * Creates an invoke operation modeling an invocation to an
+     * instance or static (class) method with no variable arguments.
+     * <p>
+     * The invoke kind of the invoke operation is determined by
+     * comparing the argument count with the method reference's
+     * parameter count. If they are equal then the invoke kind is
+     * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
+     * plus one is equal to the argument count then the invoke kind
+     * is {@link InvokeOp.InvokeKind#INSTANCE instance}.
+     *
+     * @param returnType       the result type of the invoke operation
+     * @param invokeRef        the method reference
      * @param args             the invoke arguments
      * @return the invoke super operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
-        int paramCount = invokeDescriptor.type().parameterTypes().size();
+    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeRef, List<Value> args) {
+        int paramCount = invokeRef.type().parameterTypes().size();
         int argCount = args.size();
         InvokeOp.InvokeKind ik = (argCount == paramCount + 1)
                 ? InvokeOp.InvokeKind.INSTANCE
                 : InvokeOp.InvokeKind.STATIC;
-        return new InvokeOp(ik, false, returnType, invokeDescriptor, args);
+        return new InvokeOp(ik, false, returnType, invokeRef, args);
     }
 
     /**
@@ -6087,16 +6071,16 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param invokeKind       the invoke kind
      * @param isVarArgs        true if an invocation to a variable argument method
-     * @param returnType       the return type
-     * @param invokeDescriptor the invoke descriptor
+     * @param returnType       the result type of the invoke operation
+     * @param invokeRef        the method reference
      * @param args             the invoke arguments
      * @return the invoke operation
      * @throws IllegalArgumentException if there is a mismatch between the argument count
-     *                                  and the invoke descriptors parameter count.
+     *                                  and the method reference's parameter count.
      */
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
-                                  TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
-        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, List.of(args));
+                                  TypeElement returnType, MethodRef invokeRef, Value... args) {
+        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeRef, List.of(args));
     }
 
     /**
@@ -6104,16 +6088,16 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param invokeKind       the invoke kind
      * @param isVarArgs        true if an invocation to a variable argument method
-     * @param returnType       the return type
-     * @param invokeDescriptor the invoke descriptor
+     * @param returnType       the result type of the invoke operation
+     * @param invokeRef        the method reference
      * @param args             the invoke arguments
      * @return the invoke operation
      * @throws IllegalArgumentException if there is a mismatch between the argument count
-     *                                  and the invoke descriptors parameter count.
+     *                                  and the method reference's parameter count.
      */
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
-                                  TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
-        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, args);
+                                  TypeElement returnType, MethodRef invokeRef, List<Value> args) {
+        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeRef, args);
     }
 
     /**
@@ -6130,63 +6114,63 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorRef  the constructor reference
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(MethodRef constructorDescriptor, Value... args) {
-        return new_(constructorDescriptor, List.of(args));
+    public static NewOp new_(MethodRef constructorRef, Value... args) {
+        return new_(constructorRef, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorRef  the constructor reference
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(MethodRef constructorDescriptor, List<Value> args) {
-        return new NewOp(false, constructorDescriptor.refType(), constructorDescriptor, args);
+    public static NewOp new_(MethodRef constructorRef, List<Value> args) {
+        return new NewOp(false, constructorRef.refType(), constructorRef, args);
     }
 
     /**
      * Creates an instance creation operation.
      *
-     * @param returnType      the instance type
-     * @param constructorDescriptor the constructor descriptor
+     * @param returnType      the result type of the instance creation operation
+     * @param constructorRef  the constructor reference
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(TypeElement returnType, MethodRef constructorDescriptor,
+    public static NewOp new_(TypeElement returnType, MethodRef constructorRef,
                              Value... args) {
-        return new_(returnType, constructorDescriptor, List.of(args));
+        return new_(returnType, constructorRef, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
-     * @param returnType      the instance type
-     * @param constructorDescriptor the constructor descriptor
+     * @param returnType      the result type of the instance creation operation
+     * @param constructorRef  the constructor reference
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(TypeElement returnType, MethodRef constructorDescriptor,
+    public static NewOp new_(TypeElement returnType, MethodRef constructorRef,
                              List<Value> args) {
-        return new NewOp(false, returnType, constructorDescriptor, args);
+        return new NewOp(false, returnType, constructorRef, args);
     }
 
     /**
      * Creates an instance creation operation.
      *
      * @param isVarargs {@code true} if calling a varargs constructor
-     * @param returnType      the instance type
-     * @param constructorDescriptor the constructor descriptor
+     * @param returnType      the result type of the instance creation operation
+     * @param constructorRef  the constructor reference
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(boolean isVarargs, TypeElement returnType, MethodRef constructorDescriptor,
+    public static NewOp new_(boolean isVarargs, TypeElement returnType, MethodRef constructorRef,
                              List<Value> args) {
-        return new NewOp(isVarargs, returnType, constructorDescriptor, args);
+        return new NewOp(isVarargs, returnType, constructorRef, args);
     }
 
     /**
@@ -6197,75 +6181,75 @@ public sealed abstract class JavaOp extends Op {
      * @return the array creation operation
      */
     public static NewOp newArray(TypeElement arrayType, Value length) {
-        MethodRef constructorDescriptor = MethodRef.constructor(arrayType, INT);
-        return new_(constructorDescriptor, length);
+        MethodRef constructorRef = MethodRef.constructor(arrayType, INT);
+        return new_(constructorRef, length);
     }
 
     /**
      * Creates a field load operation to a non-static field.
      *
-     * @param descriptor the field descriptor
+     * @param fieldRef   the field reference
      * @param receiver   the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef descriptor, Value receiver) {
-        return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor, receiver);
+    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef fieldRef, Value receiver) {
+        return new FieldAccessOp.FieldLoadOp(fieldRef.type(), fieldRef, receiver);
     }
 
     /**
      * Creates a field load operation to a non-static field.
      *
      * @param resultType the result type of the operation
-     * @param descriptor the field descriptor
+     * @param fieldRef   the field reference
      * @param receiver   the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor, Value receiver) {
-        return new FieldAccessOp.FieldLoadOp(resultType, descriptor, receiver);
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef fieldRef, Value receiver) {
+        return new FieldAccessOp.FieldLoadOp(resultType, fieldRef, receiver);
     }
 
     /**
      * Creates a field load operation to a static field.
      *
-     * @param descriptor the field descriptor
+     * @param fieldRef the field reference
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef descriptor) {
-        return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor);
+    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef fieldRef) {
+        return new FieldAccessOp.FieldLoadOp(fieldRef.type(), fieldRef);
     }
 
     /**
      * Creates a field load operation to a static field.
      *
      * @param resultType the result type of the operation
-     * @param descriptor the field descriptor
+     * @param fieldRef the field reference
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor) {
-        return new FieldAccessOp.FieldLoadOp(resultType, descriptor);
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef fieldRef) {
+        return new FieldAccessOp.FieldLoadOp(resultType, fieldRef);
     }
 
     /**
      * Creates a field store operation to a non-static field.
      *
-     * @param descriptor the field descriptor
+     * @param fieldRef   the field reference
      * @param receiver   the receiver value
      * @param v          the value to store
      * @return the field store operation
      */
-    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value receiver, Value v) {
-        return new FieldAccessOp.FieldStoreOp(descriptor, receiver, v);
+    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef fieldRef, Value receiver, Value v) {
+        return new FieldAccessOp.FieldStoreOp(fieldRef, receiver, v);
     }
 
     /**
      * Creates a field load operation to a static field.
      *
-     * @param descriptor the field descriptor
+     * @param fieldRef   the field reference
      * @param v          the value to store
      * @return the field store operation
      */
-    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value v) {
-        return new FieldAccessOp.FieldStoreOp(descriptor, v);
+    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef fieldRef, Value v) {
+        return new FieldAccessOp.FieldStoreOp(fieldRef, v);
     }
 
     /**
@@ -6294,7 +6278,7 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param array the array value
      * @param index the index value
-     * @param componentType type of the array component
+     * @param componentType the type of the array component
      * @return the array load operation
      */
     public static ArrayAccessOp.ArrayLoadOp arrayLoadOp(Value array, Value index, TypeElement componentType) {
@@ -7012,23 +6996,23 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a record pattern operation.
      *
-     * @param recordDescriptor the record descriptor
+     * @param recordRef the record reference
      * @param nestedPatterns   the nested pattern values
      * @return the record pattern operation
      */
-    public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, Value... nestedPatterns) {
-        return recordPattern(recordDescriptor, List.of(nestedPatterns));
+    public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordRef, Value... nestedPatterns) {
+        return recordPattern(recordRef, List.of(nestedPatterns));
     }
 
     /**
      * Creates a record pattern operation.
      *
-     * @param recordDescriptor the record descriptor
+     * @param recordRef the record reference
      * @param nestedPatterns   the nested pattern values
      * @return the record pattern operation
      */
-    public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
-        return new PatternOps.RecordPatternOp(recordDescriptor, nestedPatterns);
+    public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordRef, List<Value> nestedPatterns) {
+        return new PatternOps.RecordPatternOp(recordRef, nestedPatterns);
     }
 
     /**

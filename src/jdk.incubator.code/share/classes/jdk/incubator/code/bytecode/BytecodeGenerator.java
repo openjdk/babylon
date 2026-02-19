@@ -417,14 +417,14 @@ public final class BytecodeGenerator {
             // When there is no next operation
             case null -> false;
             // New object cannot use first operand from stack, new array fall through to the default
-            case NewOp op when !(op.constructorDescriptor().type().returnType() instanceof ArrayType) ->
+            case NewOp op when !(op.constructorReference().type().returnType() instanceof ArrayType) ->
                 false;
             // For lambda the effective operands are captured values
             case LambdaOp op ->
                 !(values = op.capturedValues()).isEmpty() && values.getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
-            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof BinaryTestOp bto ->
-                isFirstOperand(bto, opr);
+            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CompareOp co ->
+                isFirstOperand(co, opr);
             // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
                 op.operands().get(1) == opr;
@@ -454,7 +454,7 @@ public final class BytecodeGenerator {
         return isFirstOperand(nextOp, opr);
     }
 
-    private static boolean isConditionForCondBrOp(BinaryTestOp op) {
+    private static boolean isConditionForCondBrOp(CompareOp op) {
         // Result of op has one use as the operand of a CondBrOp op,
         // and both ops are in the same block
 
@@ -757,7 +757,7 @@ public final class BytecodeGenerator {
                         cob.arraylength();
                         push(op.result());
                     }
-                    case BinaryTestOp op -> {
+                    case CompareOp op -> {
                         if (!isConditionForCondBrOp(op)) {
                             cob.ifThenElse(prepareConditionalBranch(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                             push(op.result());
@@ -765,7 +765,7 @@ public final class BytecodeGenerator {
                         // Processing is deferred to the CondBrOp, do not process the op result
                     }
                     case NewOp op -> {
-                        switch (op.constructorDescriptor().type().returnType()) {
+                        switch (op.constructorReference().type().returnType()) {
                             case ArrayType at -> {
                                 processOperands(op);
                                 if (at.dimensions() == 1) {
@@ -786,18 +786,18 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        MethodRef.toNominalDescriptor(op.constructorDescriptor().type())
+                                        MethodRef.toNominalDescriptor(op.constructorReference().type())
                                                  .changeReturnType(ConstantDescs.CD_void));
                             }
                             default ->
                                 throw new IllegalArgumentException("Invalid return type: "
-                                                                    + op.constructorDescriptor().type().returnType());
+                                                                    + op.constructorReference().type().returnType());
                         }
                         push(op.result());
                     }
                     case InvokeOp op -> {
                         // Resolve referenced class to determine if interface
-                        MethodRef md = op.invokeDescriptor();
+                        MethodRef md = op.invokeReference();
                         JavaType refType = (JavaType)md.refType();
                         ClassDesc specialCaller = lookup.lookupClass().describeConstable().get();
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
@@ -819,7 +819,7 @@ public final class BytecodeGenerator {
                             processOperands(op.argOperands());
                             var varArgOperands = op.varArgOperands();
                             cob.loadConstant(varArgOperands.size());
-                            var compType = ((ArrayType) op.invokeDescriptor().type().parameterTypes().getLast()).componentType();
+                            var compType = ((ArrayType) op.invokeReference().type().parameterTypes().getLast()).componentType();
                             var compTypeDesc = compType.toNominalDescriptor();
                             var typeKind = TypeKind.from(compTypeDesc);
                             if (compTypeDesc.isPrimitive()) {
@@ -891,7 +891,7 @@ public final class BytecodeGenerator {
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
                         processOperands(op);
-                        FieldRef fd = op.fieldDescriptor();
+                FieldRef fd = op.fieldReference();
                         if (op.operands().isEmpty()) {
                             cob.getstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -907,7 +907,7 @@ public final class BytecodeGenerator {
                     }
                     case FieldAccessOp.FieldStoreOp op -> {
                         processOperands(op);
-                        FieldRef fd = op.fieldDescriptor();
+                FieldRef fd = op.fieldReference();
                         if (op.operands().size() == 1) {
                             cob.putstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -922,12 +922,12 @@ public final class BytecodeGenerator {
                     }
                     case InstanceOfOp op -> {
                         processFirstOperand(op);
-                        cob.instanceOf(((JavaType) op.type()).toNominalDescriptor());
+                        cob.instanceOf(((JavaType) op.targetType()).toNominalDescriptor());
                         push(op.result());
                     }
                     case CastOp op -> {
                         processFirstOperand(op);
-                        cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
+                        cob.checkcast(((JavaType) op.targetType()).toNominalDescriptor());
                         push(op.result());
                     }
                     case LambdaOp op -> {
@@ -1005,9 +1005,9 @@ public final class BytecodeGenerator {
                     setCatchStack(op.trueBranch(), recentCatchBlocks);
                     setCatchStack(op.falseBranch(), recentCatchBlocks);
 
-                    if (getConditionForCondBrOp(op) instanceof BinaryTestOp btop) {
+                    if (getConditionForCondBrOp(op) instanceof CompareOp cop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
-                        conditionalBranch(prepareConditionalBranch(btop), op.trueBranch(), op.falseBranch());
+                        conditionalBranch(prepareConditionalBranch(cop), op.trueBranch(), op.falseBranch());
                     } else {
                         processFirstOperand(op);
                         conditionalBranch(Opcode.IFEQ, op.trueBranch(), op.falseBranch());
@@ -1227,7 +1227,7 @@ public final class BytecodeGenerator {
         cob.goto_(getLabel(trueBlock));
     }
 
-    private Opcode prepareConditionalBranch(BinaryTestOp op) {
+    private Opcode prepareConditionalBranch(CompareOp op) {
         Value firstOperand = op.operands().get(0);
         TypeKind typeKind = toTypeKind(firstOperand.type());
         Value secondOperand = op.operands().get(1);
@@ -1307,7 +1307,7 @@ public final class BytecodeGenerator {
                 };
     }
 
-    private static Opcode reverseIfOpcode(BinaryTestOp op) {
+    private static Opcode reverseIfOpcode(CompareOp op) {
         return switch (op) {
             case EqOp _ -> Opcode.IFNE;
             case NeqOp _ -> Opcode.IFEQ;

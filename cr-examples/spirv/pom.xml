@@ -48,7 +48,7 @@ questions.
         <dependency>
              <groupId>beehive-lab</groupId>
              <artifactId>beehive-spirv-lib</artifactId>
-             <version>0.0.3</version>
+             <version>0.0.5</version>
         </dependency>
     </dependencies>
 
@@ -57,7 +57,7 @@ questions.
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.13.0</version>
                 <configuration>
                     <compilerArgs>
                         <arg>--enable-preview</arg>
@@ -74,26 +74,13 @@ questions.
              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>3.2.5</version>
                 <configuration>
                     <argLine>--enable-preview</argLine>
                     <argLine>--add-modules=jdk.incubator.vector</argLine>
                     <redirectTestOutputToFile>false</redirectTestOutputToFile>
                 </configuration>
             </plugin>
-            <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>exec-maven-plugin</artifactId>
-              <version>1.4.0</version>
-              <configuration>
-                <mainClass>intel.code.spirv.ExampleUseTest</mainClass>
-                <configuration>
-                    <argLine>--enable-preview</argLine>
-                    <argLine>--add-modules=jdk.incubator.vector</argLine>
-                </configuration>
-             </configuration>
-            </plugin>
-
         </plugins>
     </build>
 </project>

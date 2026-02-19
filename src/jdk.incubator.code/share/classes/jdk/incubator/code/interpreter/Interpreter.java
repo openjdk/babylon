@@ -474,14 +474,14 @@ public final class Interpreter {
                 case STATIC, INSTANCE -> l;
                 case SUPER -> l.in(target.parameterType(0));
             };
-            MethodHandle mh = resolveToMethodHandle(il, co.invokeDescriptor(), co.invokeKind());
+        MethodHandle mh = resolveToMethodHandle(il, co.invokeReference(), co.invokeKind());
 
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            MethodHandle mh = resolveToConstructorHandle(l, no.constructorDescriptor());
+        MethodHandle mh = resolveToConstructorHandle(l, no.constructorReference());
             return invoke(mh, values);
         } else if (o instanceof CoreOp.QuotedOp qo) {
             SequencedMap<Value, Object> capturedValues = qo.capturedValues().stream()
@@ -548,31 +548,31 @@ public final class Interpreter {
             return tb.with(two.index(), oc.getValue(o.operands().get(1)));
         } else if (o instanceof JavaOp.FieldAccessOp.FieldLoadOp fo) {
             if (fo.operands().isEmpty()) {
-                VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
                 return vh.get();
             } else {
                 Object v = oc.getValue(o.operands().get(0));
-                VarHandle vh = fieldHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldHandle(l, fo.fieldReference());
                 return vh.get(v);
             }
         } else if (o instanceof JavaOp.FieldAccessOp.FieldStoreOp fo) {
             if (fo.operands().size() == 1) {
                 Object v = oc.getValue(o.operands().get(0));
-                VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
                 vh.set(v);
             } else {
                 Object r = oc.getValue(o.operands().get(0));
                 Object v = oc.getValue(o.operands().get(1));
-                VarHandle vh = fieldHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldHandle(l, fo.fieldReference());
                 vh.set(r, v);
             }
             return null;
         } else if (o instanceof JavaOp.InstanceOfOp io) {
             Object v = oc.getValue(o.operands().get(0));
-            return isInstance(l, io.type(), v);
+            return isInstance(l, io.targetType(), v);
         } else if (o instanceof JavaOp.CastOp co) {
             Object v = oc.getValue(o.operands().get(0));
-            return cast(l, co.type(), v);
+            return cast(l, co.targetType(), v);
         } else if (o instanceof JavaOp.ArrayLengthOp) {
             Object a = oc.getValue(o.operands().get(0));
             return Array.getLength(a);
@@ -586,7 +586,7 @@ public final class Interpreter {
             Object v = oc.getValue(o.operands().get(2));
             Array.set(a, (int) index, v);
             return null;
-        } else if (o instanceof JavaOp.ArithmeticOperation || o instanceof JavaOp.TestOperation) {
+        } else if (o instanceof JavaOp.ArithmeticOperation) {
             // @@@ avoid use of opName
             MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();

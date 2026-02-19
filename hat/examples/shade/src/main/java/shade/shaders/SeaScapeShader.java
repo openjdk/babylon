@@ -875,7 +875,7 @@ public class SeaScapeShader implements Shader {
     //https://www.shadertoy.com/view/Ms2SD1
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        final vec2 fres = vec2(uniforms.iResolution());
+        final vec2 fres = vec3.xy(uniforms.iResolution());
         final float fTime = uniforms.iTime();
         final vec2 fMouse = vec2(uniforms.iMouse());
         final float EPSILON_NRM  = 0.1f / fres.x();

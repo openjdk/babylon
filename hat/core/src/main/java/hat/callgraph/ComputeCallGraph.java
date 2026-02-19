@@ -139,7 +139,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     @Override
     public boolean filterCalls(CoreOp.FuncOp funcOp, OpHelper.Invoke invoke) {
         Method method = invoke.resolveMethodOrThrow();
-        var methodRef = invoke.op().invokeDescriptor();
+        var methodRef = invoke.op().invokeReference();
         Class<?> javaRefTypeClass = invoke.classOrThrow();
         if (entrypoint.method().getDeclaringClass().equals(invoke.classOrThrow())
                 && isValidKernelDispatch(computeContext.lookup(),method, funcOp)) {

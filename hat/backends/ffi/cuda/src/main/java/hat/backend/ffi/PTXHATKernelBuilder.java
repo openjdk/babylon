@@ -179,7 +179,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case JavaOp.FieldAccessOp.FieldLoadOp $ -> fieldLoad(lookup,$);
             case JavaOp.FieldAccessOp.FieldStoreOp $ -> fieldStore($);
             case JavaOp.BinaryOp $ -> binaryOperation($);
-            case JavaOp.BinaryTestOp $ -> binaryTest($);
+            case JavaOp.CompareOp $ -> compareOperation($);
             case JavaOp.ConvOp $ -> conv($);
             case CoreOp.ConstantOp $ -> constant($);
             case CoreOp.YieldOp $ -> javaYield($);
@@ -295,7 +295,7 @@ PTXHATKernelBuilder symbol(Op op) {
         reg(op.operands().get(1));
     }
 
-    public void binaryTest(JavaOp.BinaryTestOp op) {
+    public void compareOperation(JavaOp.CompareOp op) {
         setp().dot();
         symbol(op).resultType(op.operands().getFirst().type(), true).space();
         resultReg(op, PTXRegister.Type.PREDICATE);
@@ -450,7 +450,7 @@ PTXHATKernelBuilder symbol(Op op) {
     // S32Array and S32Array2D functions can be deleted after schema is done
     public void methodCall(Invoke invoke) {
        // Invoke invoke = Invoke.invokeOpHelper(MethodHandles.lookup(),invokeOp);
-        switch (invoke.op().invokeDescriptor().toString()) {
+        switch (invoke.op().invokeReference().toString()) {
             // S32Array functions
             case "hat.buffer.S32Array::array(long)int" -> {
                 PTXRegister temp = new PTXRegister(incrOrdinal(addressType()), addressType());
@@ -612,7 +612,7 @@ PTXHATKernelBuilder symbol(Op op) {
 
     public PTXRegister getReg(Value val) {
         if (varToRegMap.get(val) == null && val instanceof Op.Result result && result.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-            return fieldToRegMap.get(getFieldObj(fieldLoadOp.fieldDescriptor().name()));
+            return fieldToRegMap.get(getFieldObj(fieldLoadOp.fieldReference().name()));
         }
         if (varToRegMap.containsKey(val)) {
             return varToRegMap.get(val);

@@ -202,7 +202,7 @@ public class MathOptimizer {
         IO.println("\nPlaying with Traverse");
         codeModel.elements().forEach(e -> {
             if (e instanceof JavaOp.InvokeOp invokeOp) {
-                IO.println("Function Name: " + invokeOp.invokeDescriptor().name());
+                IO.println("Function Name: " + invokeOp.invokeReference().name());
 
                 // Maybe Location should throw a new exception instead of the NPE,
                 // since it is possible we don't have a location after a transformation has been done.
@@ -212,9 +212,9 @@ public class MathOptimizer {
                     IO.println("Line " + line);
                     IO.println("Class: " + invokeOp.getClass());
                     // Detect Math::pow
-                    boolean contains = invokeOp.invokeDescriptor().equals(JAVA_LANG_MATH_POW);
+                    boolean contains = invokeOp.invokeReference().equals(JAVA_LANG_MATH_POW);
                     if (contains) {
-                        IO.println("Method: " + invokeOp.invokeDescriptor().name());
+                        System.out.println("Method: " + invokeOp.invokeReference().name());
                     }
                 } else {
                     IO.println("[WARNING] Location is null");
@@ -256,6 +256,6 @@ public class MathOptimizer {
     static final MethodRef JAVA_LANG_MATH_POW = MethodRef.method(Math.class, "pow", double.class, double.class, double.class);
 
     private static boolean whenIsMathPowFunction(JavaOp.InvokeOp invokeOp) {
-        return invokeOp.invokeDescriptor().equals(JAVA_LANG_MATH_POW);
+        return invokeOp.invokeReference().equals(JAVA_LANG_MATH_POW);
     }
 }

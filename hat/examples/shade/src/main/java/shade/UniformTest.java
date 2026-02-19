@@ -26,6 +26,8 @@ package shade;
 
 import hat.types.ivec2;
 import static hat.types.ivec2.ivec2;
+
+import hat.types.vec3;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import hat.types.vec4;
 import static hat.types.vec4.vec4;
@@ -40,7 +42,7 @@ public class UniformTest {
         var resolution = uniforms.iResolution();
         IO.println("fc "+fc);
         IO.println("resolution "+resolution);
-        resolution.of(ivec2.add(resolution,2));
+        resolution.of(vec3.add(resolution,2));
         IO.println("resolution "+resolution);
         vec4 color = vec4.vec4(1f,2f,3f,4f);
         IO.println("color = "+color);

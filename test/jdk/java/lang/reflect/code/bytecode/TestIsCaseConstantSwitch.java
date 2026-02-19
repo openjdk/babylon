@@ -207,7 +207,7 @@ public class TestIsCaseConstantSwitch {
         if (opr.op() instanceof EqOp eqOp) {
             labels.add(extractConstantLabel(lookup, body, eqOp));
         } else if (opr.op() instanceof InvokeOp invokeOp &&
-                invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class))) {
+                invokeOp.invokeReference().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class))) {
             labels.add(extractConstantLabel(lookup, body, invokeOp));
         } else if (opr.op() instanceof ConditionalOrOp cor) {
             for (Body corbody : cor.bodies()) {

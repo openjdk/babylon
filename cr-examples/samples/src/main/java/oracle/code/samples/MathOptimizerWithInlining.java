@@ -297,15 +297,15 @@ public class MathOptimizerWithInlining {
     static final MethodRef JAVA_LANG_MATH_POW = MethodRef.method(Math.class, "pow", double.class, double.class, double.class);
 
     private static boolean whenIsMathPowFunction(JavaOp.InvokeOp invokeOp) {
-        return invokeOp.invokeDescriptor().equals(JAVA_LANG_MATH_POW);
+        return invokeOp.invokeReference().equals(JAVA_LANG_MATH_POW);
     }
 
     private static boolean isMethodWeWantToInline(JavaOp.InvokeOp invokeOp) {
-        return (invokeOp.invokeDescriptor().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionShift")
-                || invokeOp.invokeDescriptor().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionMult"));
+        return (invokeOp.invokeReference().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionShift")
+                || invokeOp.invokeReference().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionMult"));
     }
 
     private static boolean isShiftFunction(JavaOp.InvokeOp invokeOp) {
-        return invokeOp.invokeDescriptor().toString().contains("functionShift");
+        return invokeOp.invokeReference().toString().contains("functionShift");
     }
 }
