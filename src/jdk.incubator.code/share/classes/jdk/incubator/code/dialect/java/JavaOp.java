@@ -113,14 +113,14 @@ public sealed abstract class JavaOp extends Op {
             ConditionalExpressionOp,
             JavaConditionalOp,
             SwitchExpressionOp {
+
         /**
-         * Evaluate a value.
+         * Evaluates an operation result whose operation models a constant expression.
          *
-         * @param l {@link java.lang.invoke.MethodHandles.Lookup lookup} object to perform resolution on behalf of the user, if needed
+         * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param v the value to evaluate
-         * @return the result of the evaluation wrapped in an {@link Optional} if the value is an {@link Op.Result}
-         * and its operation models a constant expression,
-         * or an empty {@link Optional} otherwise.
+         * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
+         * is not an instance of {@link Op.Result} or the operation does not model a constant expression
          * @jls 15.29 Constant Expressions
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
@@ -130,10 +130,11 @@ public sealed abstract class JavaOp extends Op {
             return Optional.empty();
         }
         /**
-         * Evaluate an operation.
+         * Evaluates an operation that models a constant expression.
          *
          * @param l {@link java.lang.invoke.MethodHandles.Lookup lookup} object to perform resultion on behalf of the user, if needed
          * @param op the operation to evaluate
+         * @param <T> the type of the operation
          * @return the result of the evaluation wrapped in an {@link Optional} if the operation models a constant expression,
          * or an empty {@link Optional} otherwise.
          * @jls 15.29 Constant Expressions
