@@ -1,31 +1,13 @@
-/*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
+package jdk.incubator.code.internal;
 
-package jdk.incubator.code.interpreter;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.MethodRef;
 
-final class InvokableLeafOps {
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+
+public final class ArithmeticOpImpls {
 
     public static String add(String a, String b) {
         return a.concat(b);
@@ -392,7 +374,7 @@ final class InvokableLeafOps {
     public static boolean le(char l, char r) {
         return l <= r;
     }
-   // long
+    // long
 
     public static long neg(long l) {
         return -l;
@@ -486,27 +468,27 @@ final class InvokableLeafOps {
 
     // float
 
-    static float neg(float l) {
+    public static float neg(float l) {
         return -l;
     }
 
-    static float add(float l, float r) {
+    public static float add(float l, float r) {
         return l + r;
     }
 
-    static float sub(float l, float r) {
+    public static float sub(float l, float r) {
         return l - r;
     }
 
-    static float mul(float l, float r) {
+    public static float mul(float l, float r) {
         return l * r;
     }
 
-    static float div(float l, float r) {
+    public static float div(float l, float r) {
         return l / r;
     }
 
-    static float mod(float l, float r) {
+    public static float mod(float l, float r) {
         return l % r;
     }
 
@@ -538,27 +520,27 @@ final class InvokableLeafOps {
 
     // double
 
-    static double neg(double l) {
+    public static double neg(double l) {
         return -l;
     }
 
-    static double add(double l, double r) {
+    public static double add(double l, double r) {
         return l + r;
     }
 
-    static double sub(double l, double r) {
+    public static double sub(double l, double r) {
         return l - r;
     }
 
-    static double mul(double l, double r) {
+    public static double mul(double l, double r) {
         return l * r;
     }
 
-    static double div(double l, double r) {
+    public static double div(double l, double r) {
         return l / r;
     }
 
-    static double mod(double l, double r) {
+    public static double mod(double l, double r) {
         return l % r;
     }
 
@@ -589,23 +571,23 @@ final class InvokableLeafOps {
 
     // boolean
 
-    static boolean eq(boolean l, boolean r) {
+    public static boolean eq(boolean l, boolean r) {
         return l == r;
     }
 
-    static boolean neq(boolean l, boolean r) {
+    public static boolean neq(boolean l, boolean r) {
         return l != r;
     }
 
-    static boolean and(boolean l, boolean r) {
+    public static boolean and(boolean l, boolean r) {
         return l & r;
     }
 
-    static boolean or(boolean l, boolean r) {
+    public static boolean or(boolean l, boolean r) {
         return l | r;
     }
 
-    static boolean xor(boolean l, boolean r) {
+    public static boolean xor(boolean l, boolean r) {
         return l ^ r;
     }
 
@@ -613,210 +595,228 @@ final class InvokableLeafOps {
     // Primitive conversions
 
     // double conversion
-    static double conv_double(double i) {
+    public static double conv_double(double i) {
         return i;
     }
-    static float conv_float(double i) {
+    public static float conv_float(double i) {
         return (float) i;
     }
-    static long conv_long(double i) {
+    public static long conv_long(double i) {
         return (long) i;
     }
-    static int conv_int(double i) {
+    public static int conv_int(double i) {
         return (int) i;
     }
-    static short conv_short(double i) {
+    public static short conv_short(double i) {
         return (short) i;
     }
-    static char conv_char(double i) {
+    public static char conv_char(double i) {
         return (char) i;
     }
-    static byte conv_byte(double i) {
+    public static byte conv_byte(double i) {
         return (byte) i;
     }
-    static boolean conv_boolean(double i) {
+    public static boolean conv_boolean(double i) {
         return ((int)i & 1) == 1;
     }
 
     // float conversion
-    static double conv_double(float i) {
+    public static double conv_double(float i) {
         return i;
     }
-    static float conv_float(float i) {
+    public static float conv_float(float i) {
         return i;
     }
-    static long conv_long(float i) {
+    public static long conv_long(float i) {
         return (long) i;
     }
-    static int conv_int(float i) {
+    public static int conv_int(float i) {
         return (int) i;
     }
-    static short conv_short(float i) {
+    public static short conv_short(float i) {
         return (short) i;
     }
-    static char conv_char(float i) {
+    public static char conv_char(float i) {
         return (char) i;
     }
-    static byte conv_byte(float i) {
+    public static byte conv_byte(float i) {
         return (byte) i;
     }
-    static boolean conv_boolean(float i) {
+    public static boolean conv_boolean(float i) {
         return ((int)i & 1) == 1;
     }
 
     // long conversion
-    static double conv_double(long i) {
+    public static double conv_double(long i) {
         return (double) i;
     }
-    static float conv_float(long i) {
+    public static float conv_float(long i) {
         return (float) i;
     }
-    static long conv_long(long i) {
+    public static long conv_long(long i) {
         return i;
     }
-    static int conv_int(long i) {
+    public static int conv_int(long i) {
         return (int) i;
     }
-    static short conv_short(long i) {
+    public static short conv_short(long i) {
         return (short) i;
     }
-    static char conv_char(long i) {
+    public static char conv_char(long i) {
         return (char) i;
     }
-    static byte conv_byte(long i) {
+    public static byte conv_byte(long i) {
         return (byte) i;
     }
-    static boolean conv_boolean(long i) {
+    public static boolean conv_boolean(long i) {
         return (i & 1) == 1;
     }
 
     // int conversion
-    static double conv_double(int i) {
+    public static double conv_double(int i) {
         return (double) i;
     }
-    static float conv_float(int i) {
+    public static float conv_float(int i) {
         return (float) i;
     }
-    static long conv_long(int i) {
+    public static long conv_long(int i) {
         return i;
     }
-    static int conv_int(int i) {
+    public static int conv_int(int i) {
         return i;
     }
-    static short conv_short(int i) {
+    public static short conv_short(int i) {
         return (short) i;
     }
-    static char conv_char(int i) {
+    public static char conv_char(int i) {
         return (char) i;
     }
-    static byte conv_byte(int i) {
+    public static byte conv_byte(int i) {
         return (byte) i;
     }
-    static boolean conv_boolean(int i) {
+    public static boolean conv_boolean(int i) {
         return (i & 1) == 1;
     }
 
     // short conversion
-    static double conv_double(short i) {
+    public static double conv_double(short i) {
         return i;
     }
-    static float conv_float(short i) {
+    public static float conv_float(short i) {
         return i;
     }
-    static long conv_long(short i) {
+    public static long conv_long(short i) {
         return i;
     }
-    static int conv_int(short i) {
+    public static int conv_int(short i) {
         return i;
     }
-    static short conv_short(short i) {
+    public static short conv_short(short i) {
         return i;
     }
-    static char conv_char(short i) {
+    public static char conv_char(short i) {
         return (char) i;
     }
-    static byte conv_byte(short i) {
+    public static byte conv_byte(short i) {
         return (byte) i;
     }
-    static boolean conv_boolean(short i) {
+    public static boolean conv_boolean(short i) {
         return (i & 1) == 1;
     }
 
     // char conversion
-    static double conv_double(char i) {
+    public static double conv_double(char i) {
         return i;
     }
-    static float conv_float(char i) {
+    public static float conv_float(char i) {
         return i;
     }
-    static long conv_long(char i) {
+    public static long conv_long(char i) {
         return i;
     }
-    static int conv_int(char i) {
+    public static int conv_int(char i) {
         return i;
     }
-    static short conv_short(char i) {
+    public static short conv_short(char i) {
         return (short) i;
     }
-    static char conv_char(char i) {
+    public static char conv_char(char i) {
         return i;
     }
-    static byte conv_byte(char i) {
+    public static byte conv_byte(char i) {
         return (byte) i;
     }
-    static boolean conv_boolean(char i) {
+    public static boolean conv_boolean(char i) {
         return (i & 1) == 1;
     }
 
     // byte conversion
-    static double conv_double(byte i) {
+    public static double conv_double(byte i) {
         return i;
     }
-    static float conv_float(byte i) {
+    public static float conv_float(byte i) {
         return i;
     }
-    static long conv_long(byte i) {
+    public static long conv_long(byte i) {
         return i;
     }
-    static int conv_int(byte i) {
+    public static int conv_int(byte i) {
         return i;
     }
-    static short conv_short(byte i) {
+    public static short conv_short(byte i) {
         return i;
     }
-    static char conv_char(byte i) {
+    public static char conv_char(byte i) {
         return (char) i;
     }
-    static byte conv_byte(byte i) {
+    public static byte conv_byte(byte i) {
         return i;
     }
-    static boolean conv_boolean(byte i) {
+    public static boolean conv_boolean(byte i) {
         return (i & 1) == 1;
     }
 
     // boolean conversion
-    static double conv_double(boolean i) {
+    public static double conv_double(boolean i) {
         return i ? 1d : 0d;
     }
-    static float conv_float(boolean i) {
+    public static float conv_float(boolean i) {
         return i ? 1f : 0f;
     }
-    static long conv_long(boolean i) {
+    public static long conv_long(boolean i) {
         return i ? 1l : 0l;
     }
-    static int conv_int(boolean i) {
+    public static int conv_int(boolean i) {
         return i ? 1 : 0;
     }
-    static short conv_short(boolean i) {
+    public static short conv_short(boolean i) {
         return i ? (short)1 : 0;
     }
-    static char conv_char(boolean i) {
+    public static char conv_char(boolean i) {
         return i ? (char)1 : 0;
     }
-    static byte conv_byte(boolean i) {
+    public static byte conv_byte(boolean i) {
         return i ? (byte)1 : 0;
     }
-    static boolean conv_boolean(boolean i) {
+    public static boolean conv_boolean(boolean i) {
         return i;
+    }
+
+    // resolution
+    public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+        try {
+            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(l, ft).erase();
+        try {
+            return MethodHandles.lookup().findStatic(ArithmeticOpImpls.class, opName, mt);
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
