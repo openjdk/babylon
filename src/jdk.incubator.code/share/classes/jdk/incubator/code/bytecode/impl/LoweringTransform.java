@@ -191,8 +191,8 @@ public final class LoweringTransform {
                 }
                 case JavaOp.UnaryOp unaryOp -> isConstantExpr(unaryOp.operands().get(0));
                 case JavaOp.BinaryOp binaryOp -> binaryOp.operands().stream().allMatch(this::isConstantExpr);
-                case JavaOp.BinaryTestOp binaryTestOp ->
-                        binaryTestOp.operands().stream().allMatch(this::isConstantExpr);
+                case JavaOp.CompareOp compareOp ->
+                        compareOp.operands().stream().allMatch(this::isConstantExpr);
                 case JavaOp.ConditionalExpressionOp cexpr -> // bodies must yield constant expressions
                         isConstantExpr(((YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
                                 isConstantExpr(((YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue()) &&

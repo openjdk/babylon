@@ -586,7 +586,7 @@ public final class Interpreter {
             Object v = oc.getValue(o.operands().get(2));
             Array.set(a, (int) index, v);
             return null;
-        } else if (o instanceof JavaOp.ArithmeticOperation || o instanceof JavaOp.TestOperation) {
+        } else if (o instanceof JavaOp.ArithmeticOperation) {
             // @@@ avoid use of opName
             MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();

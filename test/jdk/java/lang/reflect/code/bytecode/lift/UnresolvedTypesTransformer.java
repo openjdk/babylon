@@ -28,7 +28,7 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.core.VarType;
-import java.util.ArrayList;
+
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -321,7 +321,7 @@ final class UnresolvedTypesTransformer {
     private static CodeTransformer unifyOperandsTransformer() {
         return (block, op) -> {
             switch (op) {
-                case JavaOp.BinaryTestOp _ ->
+                case JavaOp.CompareOp _ ->
                     unify(block, op, JavaType.INT, JavaType.INT);
                 case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
                     unify(block, op, op.resultType(), JavaType.INT);

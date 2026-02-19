@@ -136,7 +136,9 @@ public final class TritonTransformer {
                 case ConstantOp cop -> {
                     valueTypeMap.put(op.result(), new ConstantType(op.result().type(), cop.value()));
                 }
-                case ArithmeticOperation _ -> {
+                case CompareOp _ -> {
+                }
+                case BinaryOp _, UnaryOp _ -> {
                     TypeElement t = checkWithTypeInterpreter(op, op.externalizeOpName(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
@@ -205,8 +207,6 @@ public final class TritonTransformer {
                     } else {
                         throw new IllegalStateException();
                     }
-                }
-                case TestOperation _ -> {
                 }
                 case JavaOp.ContinueOp _ -> {
                 }

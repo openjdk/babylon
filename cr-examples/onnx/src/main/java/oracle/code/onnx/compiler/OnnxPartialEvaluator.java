@@ -464,11 +464,6 @@ final class OnnxPartialEvaluator {
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
-            case JavaOp.TestOperation testOperation -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
-                Object[] values = o.operands().stream().map(oc::getValue).toArray();
-                return invoke(mh, values);
-            }
             case JavaOp.ConvOp convOp -> {
                 MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();

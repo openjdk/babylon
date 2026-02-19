@@ -287,12 +287,12 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         return javaConditionalOp.bodies().get(1).entryBlock().ops();
     }
 
-    static Op.Result lhsResult(JavaOp.BinaryTestOp binaryTestOp) {
-        return (Op.Result) binaryTestOp.operands().get(0);
+    static Op.Result lhsResult(JavaOp.CompareOp compareOp) {
+        return (Op.Result) compareOp.operands().get(0);
     }
 
-    static Op.Result rhsResult(JavaOp.BinaryTestOp binaryTestOp) {
-        return (Op.Result) binaryTestOp.operands().get(1);
+    static Op.Result rhsResult(JavaOp.CompareOp compareOp) {
+        return (Op.Result) compareOp.operands().get(1);
     }
 
     sealed interface LoadOrStore<T extends Op> extends OpHelper<T> permits VarAccess {

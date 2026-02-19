@@ -101,7 +101,6 @@ public sealed abstract class JavaOp extends Op {
             InvokeOp,
             LambdaOp,
             NewOp,
-            TestOperation,
             VarAccessOp.VarLoadOp,
             VarAccessOp.VarStoreOp,
             ConditionalExpressionOp,
@@ -1686,20 +1685,6 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The test operation.
-     */
-    public sealed static abstract class TestOperation extends JavaOp
-            implements Pure, JavaExpression {
-        TestOperation(TestOperation that, CodeContext cc) {
-            super(that, cc);
-        }
-
-        TestOperation(List<Value> operands) {
-            super(operands);
-        }
-    }
-
-    /**
      * A binary arithmetic operation.
      * <p>
      * Binary arithmetic operations feature two operands. Usually, both operands have the same type,
@@ -1743,16 +1728,16 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The binary test operation.
+     * The compare operation.
      * <p>
-     * Binary test operations feature two operands, and yield a {@link JavaType#BOOLEAN} value.
+     * Compare operations feature two operands, and yield a {@link JavaType#BOOLEAN} value.
      */
-    public sealed static abstract class BinaryTestOp extends TestOperation {
-        BinaryTestOp(BinaryTestOp that, CodeContext cc) {
+    public sealed static abstract class CompareOp extends ArithmeticOperation {
+        CompareOp(CompareOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        BinaryTestOp(Value lhs, Value rhs) {
+        CompareOp(Value lhs, Value rhs) {
             super(List.of(lhs, rhs));
         }
 
@@ -2150,7 +2135,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.21 Equality Operators
      */
     @OpDeclaration(EqOp.NAME)
-    public static final class EqOp extends BinaryTestOp {
+    public static final class EqOp extends CompareOp {
         static final String NAME = "eq";
 
         EqOp(ExternalizedOp def) {
@@ -2178,7 +2163,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.21 Equality Operators
      */
     @OpDeclaration(NeqOp.NAME)
-    public static final class NeqOp extends BinaryTestOp {
+    public static final class NeqOp extends CompareOp {
         static final String NAME = "neq";
 
         NeqOp(ExternalizedOp def) {
@@ -2205,7 +2190,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GtOp.NAME)
-    public static final class GtOp extends BinaryTestOp {
+    public static final class GtOp extends CompareOp {
         static final String NAME = "gt";
 
         GtOp(ExternalizedOp def) {
@@ -2233,7 +2218,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(GeOp.NAME)
-    public static final class GeOp extends BinaryTestOp {
+    public static final class GeOp extends CompareOp {
         static final String NAME = "ge";
 
         GeOp(ExternalizedOp def) {
@@ -2261,7 +2246,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LtOp.NAME)
-    public static final class LtOp extends BinaryTestOp {
+    public static final class LtOp extends CompareOp {
         static final String NAME = "lt";
 
         LtOp(ExternalizedOp def) {
@@ -2289,7 +2274,7 @@ public sealed abstract class JavaOp extends Op {
      * @jls 15.20.1 Numerical Comparison Operators {@code <}, {@code <=}, {@code >}, and {@code >=}
      */
     @OpDeclaration(LeOp.NAME)
-    public static final class LeOp extends BinaryTestOp {
+    public static final class LeOp extends CompareOp {
         static final String NAME = "le";
 
         LeOp(ExternalizedOp def) {
