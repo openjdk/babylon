@@ -157,7 +157,7 @@ public sealed abstract class JavaOp extends Op {
                     // eventhough cast context doesn't allow it
                     var v = evaluate(l, convOp.operands().getFirst());
                     if (v.isEmpty()) {
-                        yield Optional.empty();
+                        yield null;
                     }
                     MethodType mt = ArithmeticOpImpls.resolveToMethodType(l, convOp.opType());
                     MethodHandle mh;
