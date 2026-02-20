@@ -396,6 +396,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    // Mapping between API function names and CUDA intrinsics for the math operations
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
     static {
         MATH_FUNCTIONS.put("maxf", "max");

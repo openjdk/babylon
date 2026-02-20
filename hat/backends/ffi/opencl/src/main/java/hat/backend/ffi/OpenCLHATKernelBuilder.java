@@ -274,6 +274,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
+    // Mapping between API function names and OpenCL intrinsics for the math operations
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
     static {
         MATH_FUNCTIONS.put("maxf", "max");
