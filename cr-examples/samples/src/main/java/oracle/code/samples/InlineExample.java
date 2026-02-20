@@ -79,10 +79,11 @@ public class InlineExample {
 
         // 2. Builds a new FuncOp with the copy of the fmaCodeModel and with the specialized values
         // This example is useful, for example, to apply partial evaluation of expression at runtime,
-        CoreOp.FuncOp f = CoreOp.func("myFunction", CoreType.functionType(JavaType.FLOAT, // return type
-                                                                                    JavaType.FLOAT, // param 1
-                                                                                    JavaType.FLOAT  // param 2 (the new function has 2 params
-                                        ))
+        CoreOp.FuncOp f = CoreOp.func("myFunction",
+                            CoreType.functionType(JavaType.FLOAT, // return type
+                                                  JavaType.FLOAT, // param 1
+                                                  JavaType.FLOAT  // param 2 (the new function has 2 params
+                                            ))
                 .body(blockBuilder -> {
                     // Get parameters for the new function
                     Block.Parameter parameter1 = blockBuilder.parameters().get(0);
@@ -100,13 +101,13 @@ public class InlineExample {
                 });
 
         // 3. Print the resulting code model
-        System.out.println(f.toText());
+        IO.println(f.toText());
 
         // 4. Generate bytecodes from the code model.
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), f);
         try {
             var res = methodHandle.invoke(10.f, 20.f);
-            System.out.println("Result from bytecode generation: " + res);
+            IO.println("Result from bytecode generation: " + res);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
