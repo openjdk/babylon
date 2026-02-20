@@ -50,7 +50,7 @@ public class TestHATMathLib {
         if (kc.gix < kc.gsx) {
             F16 ha = a.array(kc.gix);
             F16 hb = b.array(kc.gix);
-            F16 result = HATMath.max(ha, hb);
+            F16 result = HATMath.maxf16(ha, hb);
             F16 hC = c.array(kc.gix);
             hC.value(result.value());
         }
@@ -67,7 +67,7 @@ public class TestHATMathLib {
         if (kc.gix < kc.gsx) {
             float ha = a.array(kc.gix);
             float hb = b.array(kc.gix);
-            float result = HATMath.max(ha, hb);
+            float result = HATMath.maxf(ha, hb);
             c.array(kc.gix, result);
         }
     }
@@ -85,8 +85,8 @@ public class TestHATMathLib {
             F16 hb = b.array(kc.gix);
             F16 hC = c.array(kc.gix);
 
-            F16 result = HATMath.max(ha, hb);
-            result = HATMath.max(result, hC);
+            F16 result = HATMath.maxf16(ha, hb);
+            result = HATMath.maxf16(result, hC);
 
             F16 hD = d.array(kc.gix);
             hD.value(result.value());
@@ -107,7 +107,7 @@ public class TestHATMathLib {
             F16 hC = c.array(kc.gix);
 
             F16 init = F16.of(2.0f);
-            F16 result = HATMath.max(F16.add(ha, hb), F16.mul(hC, init));
+            F16 result = HATMath.maxf16(F16.add(ha, hb), F16.mul(hC, init));
 
             F16 hD = d.array(kc.gix);
             hD.value(result.value());
@@ -128,7 +128,7 @@ public class TestHATMathLib {
             F16 hC = c.array(kc.gix);
 
             F16 init = F16.of(2.0f);
-            F16 result = HATMath.max(HATMath.max(ha, hb), HATMath.max(hC, init));
+            F16 result = HATMath.maxf16(HATMath.maxf16(ha, hb), HATMath.maxf16(hC, init));
 
             F16 hD = d.array(kc.gix);
             hD.value(result.value());
@@ -145,7 +145,7 @@ public class TestHATMathLib {
     private static void testMathLib06(@RO KernelContext kc, @RO F16Array a, @WO F16Array b) {
         if (kc.gix < kc.gsx) {
             F16 ha = a.array(kc.gix);
-            F16 result = HATMath.exp(ha);
+            F16 result = HATMath.expf16(ha);
             F16 hB = b.array(kc.gix);
             hB.value(result.value());
         }

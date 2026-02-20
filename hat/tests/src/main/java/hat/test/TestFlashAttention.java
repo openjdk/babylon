@@ -151,24 +151,24 @@ public class TestFlashAttention {
                 }
                 score = F16.mul(score, scale);
                 privateFloatArray.array((t) + sS_index).value(score.value());
-                m_block = HATMath.max(m_block, score);
+                m_block = HATMath.maxf16(m_block, score);
             }
 
             // Compute local sum of Math.exp(p_i - m_block)
             for (int t = 0; t < blockN; t++) {
                 F16 privateVal = privateFloatArray.array(t);
                 F16 sub = F16.sub(privateVal, m_block);
-                F16 p = HATMath.exp(sub);
+                F16 p = HATMath.expf16(sub);
                 privateFloatArray.array(t).value(p.value());
                 l_block = F16.add(l_block, p);
             }
 
             // Update m and l with the new values
-            F16 m_new = HATMath.max(m_prev, m_block);
+            F16 m_new = HATMath.maxf16(m_prev, m_block);
 
-            F16 exp1 = HATMath.exp(F16.sub(m_prev, m_new));
+            F16 exp1 = HATMath.expf16(F16.sub(m_prev, m_new));
             F16 mul1 = F16.mul(exp1, l_prev);
-            F16 exp2 = HATMath.exp(F16.sub(m_block, m_new));
+            F16 exp2 = HATMath.expf16(F16.sub(m_block, m_new));
             F16 mul2 = F16.mul(exp2, l_block);
             F16 l_new = F16.add(mul1, mul2);
 
@@ -188,11 +188,11 @@ public class TestFlashAttention {
                 int oIndex = (bx * blockN + tid) * d + k;
                 F16 value = O.array(oIndex);
 
-                F16 expOut1 = HATMath.exp(F16.sub(m_prev, m_new));
+                F16 expOut1 = HATMath.expf16(F16.sub(m_prev, m_new));
                 F16 multOut1 = F16.mul(l_prev, expOut1);
                 multOut1 = F16.mul(multOut1, value);
 
-                F16 expOut2 = HATMath.exp(F16.sub(m_block, m_new));
+                F16 expOut2 = HATMath.expf16(F16.sub(m_block, m_new));
                 F16 multOut2 = F16.mul(expOut2, pv);
                 F16 addOut = F16.add(multOut1, multOut2);
                 F16 outVal = F16.div(addOut, l_new);

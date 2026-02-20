@@ -34,7 +34,9 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -394,39 +396,37 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+    static {
+        MATH_FUNCTIONS.put("maxf", "max");
+        MATH_FUNCTIONS.put("maxd", "max");
+        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
+        MATH_FUNCTIONS.put("minf", "min");
+        MATH_FUNCTIONS.put("mind", "min");
+        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
+
+        MATH_FUNCTIONS.put("expf", "expf");
+        MATH_FUNCTIONS.put("expd", "exp");
+        MATH_FUNCTIONS.put("expf16", "hexp");
+
+        MATH_FUNCTIONS.put("cosf", "cosf");
+        MATH_FUNCTIONS.put("cosd", "cos");
+        MATH_FUNCTIONS.put("sinf", "sinf");
+        MATH_FUNCTIONS.put("sind", "sin");
+        MATH_FUNCTIONS.put("tanf", "tanf");
+        MATH_FUNCTIONS.put("tand", "tan");
+
+        MATH_FUNCTIONS.put("native_cosf", "__cosf");
+        MATH_FUNCTIONS.put("native_sinf", "__sinf");
+        MATH_FUNCTIONS.put("native_tanf", "__tanf");
+        MATH_FUNCTIONS.put("native_expf", "__expf");
+
+        MATH_FUNCTIONS.put("sqrtf", "sqrtf");
+        MATH_FUNCTIONS.put("sqrtd", "sqrt");
+    }
+
     @Override
-    protected String mapMathIntrinsic(ReducedFloatType reducedFloatType, String hatMathIntrinsicName) {
-        switch (hatMathIntrinsicName) {
-            case "max" -> {
-                if (reducedFloatType != null) {
-                    return "MAX_HAT";
-                }
-            }
-            case "min" -> {
-                if (reducedFloatType != null) {
-                    return "MIN_HAT";
-                }
-            }
-            case "exp" -> {
-                if (reducedFloatType != null) {
-                    return "hexp";
-                } else {
-                    return "expf";
-                }
-            }
-            case "native_cosf" -> {
-                return "__cosf";
-            }
-            case "native_sinf" -> {
-                return "__sinf";
-            }
-            case "native_tanf" -> {
-                return "__tanf";
-            }
-            case "native_expf" -> {
-                return "__expf";
-            }
-        }
-        return hatMathIntrinsicName;
+    protected String mapMathIntrinsic(String hatMathIntrinsicName) {
+        return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 }

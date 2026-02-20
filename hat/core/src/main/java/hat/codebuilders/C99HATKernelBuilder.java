@@ -857,7 +857,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             // For now this applies to F16 and bFloat16
             paren(_ -> genReducedType(reducedFloatType)).obrace();
         }
-        identifier(mapMathIntrinsic(reducedFloatType, invoke.name()));
+        identifier(mapMathIntrinsic(invoke.name()));
 
         // For each operand, obtain if it is a reference from global memory or device memory.
         List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
@@ -878,5 +878,5 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
-    protected abstract String mapMathIntrinsic(ReducedFloatType reducedFloatType, String name);
+    protected abstract String mapMathIntrinsic(String name);
 }
