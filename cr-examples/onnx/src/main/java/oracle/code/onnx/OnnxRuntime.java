@@ -68,32 +68,37 @@ public final class OnnxRuntime {
     private static OnnxRuntime INSTANCE;
 
     static {
-        String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
-        String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
-        String libResource;
-        if (os.contains("mac") || os.contains("darwin")) {
-            libResource = "/ai/onnxruntime/native/osx-" + arch + "/libonnxruntime.dylib";
-        } else if (os.contains("win")) {
-            libResource = "/ai/onnxruntime/native/win-" + arch + "/libonnxruntime.dll";
-        } else if (os.contains("nux")) {
-            libResource = "/ai/onnxruntime/native/linux-" + arch + "/libonnxruntime.so";
-        } else {
-            throw new IllegalStateException("Unsupported os:" + os);
-        }
         try {
-            // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the shutdown hook from already closed classloader
-            Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
-        try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
-            var libFile = File.createTempFile("libonnxruntime", "");
-            Path libFilePath = libFile.toPath();
-            Files.copy(Objects.requireNonNull(libStream), libFilePath, StandardCopyOption.REPLACE_EXISTING);
-            System.load(libFilePath.toAbsolutePath().toString());
-            libFile.deleteOnExit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.loadLibrary("onnxruntime");
+        } catch (UnsatisfiedLinkError _) {
+            // fallback to extract the library from onnxruntime dependency jar
+            String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
+            String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+            String libResource;
+            if (os.contains("mac") || os.contains("darwin")) {
+                libResource = "/ai/onnxruntime/native/osx-" + arch + "/libonnxruntime.dylib";
+            } else if (os.contains("win")) {
+                libResource = "/ai/onnxruntime/native/win-" + arch + "/libonnxruntime.dll";
+            } else if (os.contains("nux")) {
+                libResource = "/ai/onnxruntime/native/linux-" + arch + "/libonnxruntime.so";
+            } else {
+                throw new IllegalStateException("Unsupported os:" + os);
+            }
+            try {
+                // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the shutdown hook from already closed classloader
+                Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
+            try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
+                var libFile = File.createTempFile("libonnxruntime", "");
+                Path libFilePath = libFile.toPath();
+                Files.copy(Objects.requireNonNull(libStream), libFilePath, StandardCopyOption.REPLACE_EXISTING);
+                System.load(libFilePath.toAbsolutePath().toString());
+                libFile.deleteOnExit();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
         LOG.log(System.Logger.Level.DEBUG, "ONNX Runtime initialized");
     }
