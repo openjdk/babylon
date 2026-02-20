@@ -29,12 +29,14 @@ import hat.types.vec3;
 import shade.shaders.AcesShader;
 import shade.shaders.AnimShader;
 import shade.shaders.IntroShader;
+import shade.shaders.MobiusShader;
 import shade.shaders.RandShader;
 import shade.shaders.SeaScapeShader;
 import shade.shaders.MouseSensitiveShader;
 import shade.shaders.GroovyShader;
 import shade.shaders.SpiralShader;
 import shade.shaders.SquareWaveShader;
+import shade.shaders.TruchetShader;
 import shade.shaders.TutorialShader;
 import shade.shaders.WavesShader;
 import  hat.types.vec2;
@@ -62,7 +64,9 @@ enum ShaderEnum {
     Intro(new IntroShader()),
     Tutorial(new TutorialShader()),
     SquareWave(new SquareWaveShader()),
-    SeaScape(new SeaScapeShader());
+    SeaScape(new SeaScapeShader()),
+    Mobius(new MobiusShader()),
+    Truchet(new TruchetShader());
     Shader shader;
 
     ShaderEnum(Shader shader) {

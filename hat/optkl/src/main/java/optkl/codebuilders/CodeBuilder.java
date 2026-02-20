@@ -29,6 +29,8 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.util.Mutable;
 
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -507,7 +509,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     public <I> T commaSpaceSeparated(Iterable<I> iterable, Consumer<I> consumer) {
         return separated(iterable, _ -> commaSpace(), consumer);
     }
-
+   public <I> T commaSpaceSeparated(Iterable<I> list1, Iterable<I> list2, BiConsumer<I, I> consumer) {
+        return commaSpaceSeparated(list1, $1 -> commaSpaceSeparated(list2, $2 -> consumer.accept($1, $2)));
+    }
+    public <I> T dotSeparated(Iterable<I> iterable, Consumer<I> consumer) {
+        return separated(iterable, _ -> dot(), consumer);
+    }
     public T commaSpaceSeparated(Consumer<T>... consumers) {
         for (int i = 0; i < consumers.length; i++) {
             if (i > 0) {
@@ -739,10 +746,13 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return self();
     }
     public final  T funcName(CoreOp.FuncCallOp funcCallOp){
-        return identifier(funcCallOp.funcName());
+        return funcName(funcCallOp.funcName());
+    }
+    public final  T funcName(String name){
+        return identifier(name);
     }
     public final T funcName(CoreOp.FuncOp funcOp) {
-        return identifier(funcOp.funcName());
+        return funcName(funcOp.funcName());
     }
     public final T fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
         return identifier(fieldAccessOp.fieldDescriptor().name());
