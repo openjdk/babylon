@@ -125,10 +125,12 @@ public sealed abstract class JavaOp extends Op {
          * @jls 15.29 Constant Expressions
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
-            if (v instanceof Op.Result opr && opr.op() instanceof JavaExpression e) {
-                return evaluate(l, (Op & JavaExpression) e);
+            try {
+                Object o = eval(l, v);
+                return Optional.of(o);
+            } catch (NonConstantExpression e) {
+                return Optional.empty();
             }
-            return Optional.empty();
         }
         /**
          * Evaluates an operation that models a constant expression.
@@ -150,30 +152,37 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
+        private static Object eval(MethodHandles.Lookup l, Value v) throws NonConstantExpression {
+            if (v instanceof Op.Result opr && opr.op() instanceof JavaExpression e) {
+                return eval(l, (Op & JavaExpression) e);
+            }
+            throw new NonConstantExpression();
+        }
+
         private static Object eval(MethodHandles.Lookup l, Op op) throws NonConstantExpression {
             return switch (op) {
                 case CoreOp.ConstantOp cop
                         when cop.resultType() instanceof PrimitiveType ||
                         (cop.resultType().equals(J_L_STRING) && cop.value() != null) -> cop.value();
-                case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) -> {
-                    var v = evaluate(l, varLoadOp.varOp().initOperand());
-                    yield v.get();
-                }
+                case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) ->
+                        eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp convOp
                         when (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) -> {
                     //@@@ we allow conv from a PT to boolean and from boolean to a PT
                     // eventhough cast context doesn't allow it
-                    var v = evaluate(l, convOp.operands().getFirst());
+                    var v = eval(l, convOp.operands().getFirst());
                     try {
-                        yield ArithmeticOpImpls.opHandle(l, "conv_" + convOp.resultType(), op.opType()).invoke(v.get());
+                        yield ArithmeticOpImpls.opHandle(l, "conv_" + convOp.resultType(), op.opType()).invoke(v);
                     } catch (Throwable e) {
                         throw new NonConstantExpression();
                     }
+                    //@@@ when to throw NonConstantExpr
+                    // and when to throw other exceptions
                 }
                 case ConcatOp concatOp -> {
-                    Optional<Object> first = evaluate(l, concatOp.operands().getFirst());
-                    Optional<Object> second = evaluate(l, concatOp.operands().getLast());
-                    yield String.valueOf(first.get()) + second.get();
+                    Object first = eval(l, concatOp.operands().getFirst());
+                    Object second = eval(l, concatOp.operands().getLast());
+                    yield String.valueOf(first) + second;
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
                     Field field;
@@ -191,50 +200,51 @@ public sealed abstract class JavaOp extends Op {
                     throw new NonConstantExpression();
                 }
                 case JavaOp.UnaryOp unaryOp -> {
-                    Optional<Object> v = evaluate(l, unaryOp.operands().getFirst());
+                    Object v = eval(l, unaryOp.operands().getFirst());
                     try {
-                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(v.get());
+                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(v);
                     } catch (Throwable e) {
                         throw new NonConstantExpression();
                     }
                 }
                 case JavaOp.BinaryOp binaryOp -> {
-                    Optional<Object> first = evaluate(l, op.operands().getFirst());
-                    Optional<Object> second = evaluate(l, op.operands().getLast());
+                    Object first = eval(l, op.operands().getFirst());
+                    Object second = eval(l, op.operands().getLast());
                     try {
-                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first.get(), second.get());
+                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first, second);
                     } catch (Throwable e) {
                         throw new NonConstantExpression();
                     }
                 }
                 case JavaOp.CompareOp compareOp -> {
-                    Optional<Object> first = evaluate(l, op.operands().getFirst());
-                    Optional<Object> second = evaluate(l, op.operands().getLast());
+                    Object first = eval(l, op.operands().getFirst());
+                    Object second = eval(l, op.operands().getLast());
                     try {
-                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first.get(), second.get());
+                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first, second);
                     } catch (Throwable e) {
                         throw new NonConstantExpression();
                     }
                 }
                 case JavaOp.ConditionalExpressionOp cexpr -> {
-                    Optional<Object> p = evaluate(l, ((CoreOp.YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    Optional<Object> t = evaluate(l, ((CoreOp.YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-                    Optional<Object> f = evaluate(l, ((CoreOp.YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue());
-                    if (p.get() instanceof Boolean b && b) {
-                        yield t.get();
+                    Object p = eval(l, ((CoreOp.YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
+                    Object t = eval(l, ((CoreOp.YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+                    Object f = eval(l, ((CoreOp.YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue());
+                    // @@@ if not Boolean we can throw NonConstantExpression
+                    if (p instanceof Boolean b && b) {
+                        yield t;
                     } else {
-                        yield f.get();
+                        yield f;
                     }
                 }
                 case JavaOp.ConditionalAndOp cand -> {
-                    Optional<Object> left = evaluate(l, ((CoreOp.YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    Optional<Object> right = evaluate(l, ((CoreOp.YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-                    yield ((Boolean) left.get()) && ((Boolean) right.get());
+                    Object left = eval(l, ((CoreOp.YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
+                    Object right = eval(l, ((CoreOp.YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+                    yield ((Boolean) left) && ((Boolean) right);
                 }
                 case JavaOp.ConditionalOrOp cor -> {
-                    Optional<Object> left = evaluate(l, ((CoreOp.YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    Optional<Object> right = evaluate(l, ((CoreOp.YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-                    yield ((Boolean) left.get()) || ((Boolean) right.get());
+                    Object left = eval(l, ((CoreOp.YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
+                    Object right = eval(l, ((CoreOp.YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+                    yield ((Boolean) left) || ((Boolean) right);
                 }
                 default -> throw new NonConstantExpression();
             };
