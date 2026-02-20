@@ -47,12 +47,12 @@ import java.util.stream.Stream;
  * code reflection.
  * <p>
  * This example customizes an operation: it inspects the code model to find
- * Fused-Multiple-Add operations (FMA). This means and Add(Mult(x, y), z).
+ * Fused-Multiple-Add operations (FMA). This means and Add(Mul(x, y), z).
  * </p>
  *
  * <p>
- * If the detection is successful, we replace the Add and Mult ops with a new
- * Op called {@FMA}.
+ * If the detection is successful, we replace the Add and Mul ops with a new
+ * Op called {@link FMA}.
  *
  * <p>
  *     How to run from the terminal?
@@ -120,22 +120,22 @@ public class DialectFMAOp {
         // all AddOp(MulOp)) patterns.
         Set<Op> nodesInvolved = new HashSet<>();
         functionModel.elements()
-                // filter with AddOp
-                .filter(codeElement -> codeElement instanceof JavaOp.AddOp)
-                // Map codeElement to an AddOp
-                .map(codeElement -> (JavaOp.AddOp) codeElement)
-                // for each of the selected AddOp, check if they depend on a MulOp as fist parameter
-                .forEach(addOp -> {
-                    // Obtain dependency list of dependencies and check if any of the
-                    // input parameters comes from a multiply operation
-                    List<Value> inputOperandsAdd = addOp.operands();
-                    Value addDep = inputOperandsAdd.getFirst();
-                    if (addDep.declaringElement() instanceof JavaOp.MulOp mulOp) {
-                        // At this point, we know AddOp uses a value from a
-                        // result from a multiplication. Thus, we add them
-                        // in the processing list
-                        nodesInvolved.add(addOp);
-                        nodesInvolved.add(mulOp);
+                // for each Op of the tree, we check if the code element is an instance of an AddOp.
+                // If so, we obtain the first operand and check weather such operand comes from a MulOp.
+                .forEach(codeElement -> {
+                    // We can use pattern matching for code elements of the tree
+                    if (codeElement instanceof JavaOp.AddOp addOp) {
+                        // Obtain dependency list of dependencies and check if any of the
+                        // input parameters comes from a multiply operation
+                        List<Value> inputOperandsAdd = addOp.operands();
+                        Value addDep = inputOperandsAdd.getFirst();
+                        if (addDep.declaringElement() instanceof JavaOp.MulOp mulOp) {
+                            // At this point, we know AddOp uses a value from a
+                            // result from a multiplication. Thus, we add them
+                            // in the processing list
+                            nodesInvolved.add(addOp);
+                            nodesInvolved.add(mulOp);
+                        }
                     }
                 });
 
