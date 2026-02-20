@@ -80,37 +80,38 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
 
+
     @Override
-    default T recurse( Op op) {
+    default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
             switch (hatOp) {
-                case HATBarrierOp $ -> hatBarrierOp( $);
-                case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp( $);
-                case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp( $);
-                case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp( $);
-                case HATThreadOp $ -> hatThreadIdOp( $);
-                case HATVectorOp.HATVectorVarOp $ -> hatVectorVarOp( $);
-                case HATVectorOp.HATVectorStoreView $ -> hatVectorStoreOp( $);
-                case HATVectorOp.HATVectorBinaryOp $ -> hatBinaryVectorOp( $);
-                case HATVectorOp.HATVectorLoadOp $ -> hatVectorLoadOp( $);
-                case HATVectorOp.HATVectorSelectLoadOp $ -> hatSelectLoadOp( $);
-                case HATVectorOp.HATVectorSelectStoreOp $ -> hatSelectStoreOp( $);
-                case HATVectorOp.HATVectorVarLoadOp $ -> hatVectorVarLoadOp( $);
-                case HATVectorOp.HATVectorOfOp $ -> hatVectorOfOps( $);
-                case HATF16Op.HATF16VarOp $ -> hatF16VarOp( $);
-                case HATF16Op.HATF16BinaryOp $ -> hatF16BinaryOp( $);
-                case HATF16Op.HATF16VarLoadOp $ -> hatF16VarLoadOp( $);
-                case HATF16Op.HATF16ConvOp $ -> hatF16ConvOp( $);
-                case HATVectorOp.HATVectorMakeOfOp $ -> hatVectorMakeOf( $);
-                case HATPtrOp.HATPtrLoadOp $ -> hatPtrLoadOp( $);
-                case HATPtrOp.HATPtrStoreOp $ -> hatPtrStoreOp( $);
-                case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp( $);
-                case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp( $);
-                case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp( $);
+                case HATBarrierOp $ -> hatBarrierOp($);
+                case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp($);
+                case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp($);
+                case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp($);
+                case HATThreadOp $ -> hatThreadIdOp($);
+                case HATVectorOp.HATVectorVarOp $ -> hatVectorVarOp($);
+                case HATVectorOp.HATVectorStoreView $ -> hatVectorStoreOp($);
+                case HATVectorOp.HATVectorBinaryOp $ -> hatBinaryVectorOp($);
+                case HATVectorOp.HATVectorLoadOp $ -> hatVectorLoadOp($);
+                case HATVectorOp.HATVectorSelectLoadOp $ -> hatSelectLoadOp($);
+                case HATVectorOp.HATVectorSelectStoreOp $ -> hatSelectStoreOp($);
+                case HATVectorOp.HATVectorVarLoadOp $ -> hatVectorVarLoadOp($);
+                case HATVectorOp.HATVectorOfOp $ -> hatVectorOfOps($);
+                case HATF16Op.HATF16VarOp $ -> hatF16VarOp($);
+                case HATF16Op.HATF16BinaryOp $ -> hatF16BinaryOp($);
+                case HATF16Op.HATF16VarLoadOp $ -> hatF16VarLoadOp($);
+                case HATF16Op.HATF16ConvOp $ -> hatF16ConvOp($);
+                case HATVectorOp.HATVectorMakeOfOp $ -> hatVectorMakeOf($);
+                case HATPtrOp.HATPtrLoadOp $ -> hatPtrLoadOp($);
+                case HATPtrOp.HATPtrStoreOp $ -> hatPtrStoreOp($);
+                case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp($);
+                case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
+                case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
-        }else{
-            BabylonOpDispatcher.super.recurse( op);
+        } else {
+            BabylonOpDispatcher.super.recurse(op);
         }
 
         return (T) this;

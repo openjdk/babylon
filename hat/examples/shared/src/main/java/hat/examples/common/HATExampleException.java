@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,19 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.examples.common;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
+public class HATExampleException extends RuntimeException {
 
-import java.util.List;
-
-public abstract sealed class HATOp extends Op permits HATBarrierOp, HATF16Op, HATMemoryDefOp, HATMemoryVarOp, HATPtrOp, HATThreadOp, HATVectorOp {
-    protected HATOp(List<Value> operands) {
-        super(operands);
-    }
-    protected HATOp(Op that, CodeContext cc) {
-        super(that, cc);
+    public HATExampleException(String e) {
+        super(e);
     }
 }

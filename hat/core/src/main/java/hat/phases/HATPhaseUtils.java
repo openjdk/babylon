@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.HATMath;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
@@ -171,7 +172,7 @@ public class HATPhaseUtils {
     }
 
     //recursive
-    static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
+    public static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(lookup,varLoadOp); // recurse
             case CoreOp.VarOp varOp ->
@@ -224,6 +225,7 @@ public class HATPhaseUtils {
         }
         return null;
     }
+
     //recursive
     public static boolean isSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isSharedOrPrivate(varLoadOp.operands().getFirst());
@@ -256,6 +258,9 @@ public class HATPhaseUtils {
         }
     }
 
+    public static boolean isInvokeFromMathLib(OpHelper.Invoke invoke) {
+        return invoke.refIs(HATMath.class);
+    }
 
     public static Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int param) {
         Value varValue = invokeOp.operands().get(param);
@@ -264,10 +269,6 @@ public class HATPhaseUtils {
         }
         return null;
     }
-
-    //public static Vector.Shape getVectorShapeFromInvokeReturnType(OpHelper.Invoke invoke) {
-       // return ;
-    //}
 
     /**
      *

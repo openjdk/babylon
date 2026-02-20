@@ -33,6 +33,9 @@ public interface Precedence {
     interface LoadOrConv extends Precedence {
     }
 
+    interface Invoke extends Precedence {
+    }
+
     interface Multiplicative extends Precedence {
     }
 
@@ -48,7 +51,8 @@ public interface Precedence {
 
     static int precedenceOf(Op op) {
         return switch (op) {
-            case Precedence.LoadOrConv _,
+            case Precedence.Invoke _,
+                 Precedence.LoadOrConv _,
                  CoreOp.YieldOp _,
                  JavaOp.InvokeOp _,
                  CoreOp.FuncCallOp _,

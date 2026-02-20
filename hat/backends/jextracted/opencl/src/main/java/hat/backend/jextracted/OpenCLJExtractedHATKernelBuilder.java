@@ -29,8 +29,12 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCLJExtractedHATKernelBuilder> {
 
@@ -203,6 +207,40 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         return paren(_-> f16Type()).identifier(hatF16ToFloatConvOp.varName());
+    }
+
+    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+    static {
+        MATH_FUNCTIONS.put("maxf", "max");
+        MATH_FUNCTIONS.put("maxd", "max");
+        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
+        MATH_FUNCTIONS.put("minf", "min");
+        MATH_FUNCTIONS.put("mind", "min");
+        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
+
+        MATH_FUNCTIONS.put("expf", "exp");
+        MATH_FUNCTIONS.put("expd", "exp");
+        MATH_FUNCTIONS.put("expf16", "half_exp");
+
+        MATH_FUNCTIONS.put("cosf", "cos");
+        MATH_FUNCTIONS.put("cosd", "cos");
+        MATH_FUNCTIONS.put("sinf", "sin");
+        MATH_FUNCTIONS.put("sind", "sin");
+        MATH_FUNCTIONS.put("tanf", "tan");
+        MATH_FUNCTIONS.put("tand", "tan");
+
+        MATH_FUNCTIONS.put("native_cosf", "native_cos");
+        MATH_FUNCTIONS.put("native_sinf", "native_sin");
+        MATH_FUNCTIONS.put("native_tanf", "native_tan");
+        MATH_FUNCTIONS.put("native_expf", "native_exp");
+
+        MATH_FUNCTIONS.put("sqrtf", "sqrt");
+        MATH_FUNCTIONS.put("sqrtd", "sqrt");
+    }
+
+    @Override
+    protected String mapMathIntrinsic(String hatMathIntrinsicName) {
+        return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 
 }

@@ -35,10 +35,14 @@ import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
+import hat.phases.HATFP16Phase;
+import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types._F16;
 import optkl.IfaceValue;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
@@ -55,9 +59,12 @@ import optkl.codebuilders.CodeBuilder;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static hat.buffer.F16Array.F16Impl;
 
+import static java.lang.invoke.MethodHandles.lookup;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
@@ -348,6 +355,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         var fieldAccess = fieldAccess(scopedCodeBuilderContext().lookup(),fieldLoadOp);
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive()) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
+
+            // Experiment: if it is float, then generate "f"
+            PrimitiveType primitiveType = (PrimitiveType) fieldLoadOp.resultType();
+            if (primitiveType.toBasicType() == JavaType.FLOAT) {
+                emitText("f");
+            }
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOp);
         }
@@ -426,6 +439,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return suffix_t(BF16.class);
     }
 
+    protected final T genReducedType(ReducedFloatType reducedFloatType) {
+        return (switch (reducedFloatType) {
+            case ReducedFloatType.HalfFloat _ -> f16Type();
+            case ReducedFloatType.BFloat16 _ -> bf16Type();
+            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+        });
+    }
+
     @Override
     public final T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp) {
         ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
@@ -454,6 +475,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return identifier("bfloat16Tofloat");
     }
 
+    public static final String VALUE = "value";
+
     private final T binaryOperationsForBfloat16( HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
         byte f32Mixed = hatf16BinaryOp.getByteFloatRepresentation();
         paren(_-> bf16Type());
@@ -468,9 +491,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                 List<Boolean> references = hatf16BinaryOp.references();
                 if (references.getFirst()) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 }
 
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
@@ -484,9 +507,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                 recurse(OpHelper.asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
                 if (references.get(1)) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 }
 
                 if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
@@ -509,18 +532,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             paren(_-> {
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
                 if (hatF16BinaryOp.references().getFirst()) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 } else {
                     blockComment("hatF16BinaryOp not a result !!");
                 }
                 space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
                 if (hatF16BinaryOp.references().get(1)) {
-                    rarrow().identifier("value");
+                    rarrow().identifier(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
-                    dot().identifier("value");
+                    dot().identifier(VALUE);
                 }else {
                     blockComment("hatF16BinaryOp not a value !!");
                 }
@@ -530,7 +553,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
-        return identifier(hatF16VarLoadOp.varName()).dot().identifier("value");
+        return identifier(hatF16VarLoadOp.varName()).dot().identifier(VALUE);
     }
 
     @Override
@@ -737,7 +760,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if ( invoke.refIs(IfaceValue.class )) {
+        if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
@@ -794,20 +817,66 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     }
                 } else {
                     if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
-                        sbrace(_ -> recurse( op));
-                    }else{
+                        sbrace(_ -> recurse(op));
+                    } else {
                         // this is just call.
                     }
                 }
             }
-        } else {// General case
-            funcName(invoke.op()).paren(_ ->
-                    commaSpaceSeparated(invoke.op().operands(),
-                            op -> {if (op instanceof Op.Result result) {recurse( result.op());}
-                            })
-            );
+        } else { // General case
+            if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
+                // codegen for the math operation
+                generateMathIntrinsicOperation(invoke);
+            } else {
+                funcName(invoke.op()).paren(_ ->
+                        commaSpaceSeparated(invoke.op().operands(),
+                                op -> {
+                                    if (op instanceof Op.Result result) {
+                                        recurse(result.op());
+                                    }
+                                })
+                );
+            }
         }
         return self();
     }
 
+    protected void genFieldAccess(Value operand, boolean isReference) {
+        if (isReference) {
+            rarrow().identifier(VALUE);
+        } else if (!OpHelper.isPrimitiveResult(operand)) {
+            dot().identifier(VALUE);
+        }
+    }
+
+    private void generateMathIntrinsicOperation(Invoke invoke) {
+        // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
+        final ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloatFromResult(invoke);
+        if (reducedFloatType != null) {
+            // If special type, then we need to build the type
+            // For now this applies to F16 and bFloat16
+            paren(_ -> genReducedType(reducedFloatType)).obrace();
+        }
+        identifier(mapMathIntrinsic(invoke.name()));
+
+        // For each operand, obtain if it is a reference from global memory or device memory.
+        List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
+                .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), invoke.op().operands().get(i)))
+                .collect(Collectors.toList());
+
+        paren( _ -> {
+            int[] counter = new int[] {0};
+            commaSpaceSeparated(invoke.op().operands(), op -> {
+                recurse(OpHelper.asResultOrThrow(op).op());
+                if (reducedFloatType != null) {
+                    genFieldAccess(op, referenceList.get(counter[0]++));
+                }
+            });
+        });
+        if (reducedFloatType != null) {
+            cbrace();
+        }
+    }
+
+    protected abstract String mapMathIntrinsic(String name);
 }
