@@ -44,6 +44,9 @@ public interface vec4 extends  IfaceValue.vec {
     float w();
     AtomicInteger count = new AtomicInteger(0);
     AtomicBoolean collect = new AtomicBoolean(false);
+
+    static vec3 xyz(vec4 vec4){return vec3.vec3(vec4.x(), vec4.y(), vec4.z());}
+
     //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping
     interface Field extends vec4 {
