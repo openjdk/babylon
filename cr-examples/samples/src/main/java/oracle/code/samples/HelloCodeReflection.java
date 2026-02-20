@@ -105,11 +105,11 @@ public class HelloCodeReflection {
         IO.println("SSA Representation of a code model");
         IO.println(ssaCodeModel.toText());
 
-        // 4. We can obtain parameters to the method
-        Block.Parameter _this = ssaCodeModel.body().entryBlock().parameters().get(0);
-        IO.println("First parameter: " + _this);
-        Block.Parameter _second = ssaCodeModel.body().entryBlock().parameters().get(1);
-        IO.println("Second parameter: " + _second);
+        // 4. We can obtain parameters of the method
+        Block.Parameter firstParam = ssaCodeModel.body().entryBlock().parameters().get(0);
+        IO.println("First parameter: " + firstParam);
+        Block.Parameter secondParam = ssaCodeModel.body().entryBlock().parameters().get(1);
+        IO.println("Second parameter: " + secondParam);
 
         // 5. Generate bytecodes from the lowered code model.
         // Note: The BytecodeGenerator.generate method receives a code model, and returns
