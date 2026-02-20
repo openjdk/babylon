@@ -16,7 +16,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.Random;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.java.PrimitiveType.*;
@@ -221,6 +220,10 @@ public class TestEvaluation {
     @Reflect
     static boolean fc8() {
         return 1d > Math.pow(2, 2);
+    }
+    @Reflect
+    static String fc9() {
+        return null;
     }
 
 

@@ -121,6 +121,7 @@ public sealed abstract class JavaOp extends Op {
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
          * is not an instance of {@link Op.Result} or the operation does not model a constant expression
+         * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
@@ -132,23 +133,30 @@ public sealed abstract class JavaOp extends Op {
         /**
          * Evaluates an operation that models a constant expression.
          *
-         * @param l {@link java.lang.invoke.MethodHandles.Lookup lookup} object to perform resultion on behalf of the user, if needed
+         * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
          * @param <T> the type of the operation
          * @return the result of the evaluation wrapped in an {@link Optional} if the operation models a constant expression,
          * or an empty {@link Optional} otherwise.
+         * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
          */
         static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op) {
-            Object c = switch (op) {
+            try {
+                Object v = eval(l, op);
+                return Optional.of(v);
+            } catch (NonConstantExpression e) {
+                return Optional.empty();
+            }
+        }
+
+        private static Object eval(MethodHandles.Lookup l, Op op) throws NonConstantExpression {
+            return switch (op) {
                 case CoreOp.ConstantOp cop
-                        when cop.resultType() instanceof PrimitiveType  || cop.resultType().equals(J_L_STRING) ->
-                        cop.value();
+                        when cop.resultType() instanceof PrimitiveType ||
+                        (cop.resultType().equals(J_L_STRING) && cop.value() != null) -> cop.value();
                 case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) -> {
                     var v = evaluate(l, varLoadOp.varOp().initOperand());
-                    if (v.isEmpty()) {
-                        yield null;
-                    }
                     yield v.get();
                 }
                 case JavaOp.ConvOp convOp
@@ -156,102 +164,62 @@ public sealed abstract class JavaOp extends Op {
                     //@@@ we allow conv from a PT to boolean and from boolean to a PT
                     // eventhough cast context doesn't allow it
                     var v = evaluate(l, convOp.operands().getFirst());
-                    if (v.isEmpty()) {
-                        yield null;
-                    }
-                    MethodType mt = ArithmeticOpImpls.resolveToMethodType(l, convOp.opType());
-                    MethodHandle mh;
                     try {
-                        mh = MethodHandles.lookup().findStatic(ArithmeticOpImpls.class, "conv_" + convOp.resultType(), mt);
-                    } catch (NoSuchMethodException | IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
-                    try {
-                        yield mh.invoke(v.get());
+                        yield ArithmeticOpImpls.opHandle(l, "conv_" + convOp.resultType(), op.opType()).invoke(v.get());
                     } catch (Throwable e) {
-                        throw new RuntimeException(e);
+                        throw new NonConstantExpression();
                     }
                 }
                 case ConcatOp concatOp -> {
                     Optional<Object> first = evaluate(l, concatOp.operands().getFirst());
-                    if (first.isEmpty()) {
-                        yield null;
-                    }
                     Optional<Object> second = evaluate(l, concatOp.operands().getLast());
-                    if (second.isEmpty()) {
-                        yield null;
-                    }
                     yield String.valueOf(first.get()) + second.get();
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
                     Field field;
                     VarHandle vh;
                     try {
-                        // @@@ bug in resolveToField ?
                         field = fieldLoadOp.fieldReference().resolveToField(l);
                         vh = fieldLoadOp.fieldReference().resolveToHandle(l);
                     } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException(e);
+                        throw new IllegalArgumentException(e);
                     }
                     if (field.isEnumConstant() || field.accessFlags().containsAll(Set.of(AccessFlag.STATIC, AccessFlag.FINAL))) {
+                        // @@@ why using field.get fails ?
                         yield vh.get();
                     }
-                    yield null;
+                    throw new NonConstantExpression();
                 }
                 case JavaOp.UnaryOp unaryOp -> {
                     Optional<Object> v = evaluate(l, unaryOp.operands().getFirst());
-                    if (v.isEmpty()) {
-                        yield null;
-                    }
                     try {
                         yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(v.get());
                     } catch (Throwable e) {
-                        throw new RuntimeException(e);
+                        throw new NonConstantExpression();
                     }
                 }
                 case JavaOp.BinaryOp binaryOp -> {
                     Optional<Object> first = evaluate(l, op.operands().getFirst());
-                    if (first.isEmpty()) {
-                        yield null;
-                    }
                     Optional<Object> second = evaluate(l, op.operands().getLast());
-                    if (second.isEmpty()) {
-                        yield null;
-                    }
                     try {
                         yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first.get(), second.get());
                     } catch (Throwable e) {
-                        throw new RuntimeException(e);
+                        throw new NonConstantExpression();
                     }
                 }
                 case JavaOp.CompareOp compareOp -> {
                     Optional<Object> first = evaluate(l, op.operands().getFirst());
-                    if (first.isEmpty()) {
-                        yield null;
-                    }
                     Optional<Object> second = evaluate(l, op.operands().getLast());
-                    if (second.isEmpty()) {
-                        yield null;
-                    }
                     try {
                         yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first.get(), second.get());
                     } catch (Throwable e) {
-                        throw new RuntimeException(e);
+                        throw new NonConstantExpression();
                     }
                 }
                 case JavaOp.ConditionalExpressionOp cexpr -> {
                     Optional<Object> p = evaluate(l, ((CoreOp.YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    if (p.isEmpty()) {
-                        yield null;
-                    }
                     Optional<Object> t = evaluate(l, ((CoreOp.YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-                    if (t.isEmpty()) {
-                        yield null;
-                    }
                     Optional<Object> f = evaluate(l, ((CoreOp.YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue());
-                    if (f.isEmpty()) {
-                        yield null;
-                    }
                     if (p.get() instanceof Boolean b && b) {
                         yield t.get();
                     } else {
@@ -260,33 +228,21 @@ public sealed abstract class JavaOp extends Op {
                 }
                 case JavaOp.ConditionalAndOp cand -> {
                     Optional<Object> left = evaluate(l, ((CoreOp.YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    if (left.isEmpty()) {
-                        yield null;
-                    }
                     Optional<Object> right = evaluate(l, ((CoreOp.YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-                    if (right.isEmpty()) {
-                        yield null;
-                    }
                     yield ((Boolean) left.get()) && ((Boolean) right.get());
                 }
                 case JavaOp.ConditionalOrOp cor -> {
                     Optional<Object> left = evaluate(l, ((CoreOp.YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    if (left.isEmpty()) {
-                        yield null;
-                    }
                     Optional<Object> right = evaluate(l, ((CoreOp.YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-                    if (right.isEmpty()) {
-                        yield null;
-                    }
                     yield ((Boolean) left.get()) || ((Boolean) right.get());
                 }
-                default -> null;
+                default -> throw new NonConstantExpression();
             };
-            if (c == null) {
-                return Optional.empty();
-            }
-            return Optional.of(c);
-            // TODO throw an excpetion to simplify the code
+        }
+
+        @SuppressWarnings("serial")
+        class NonConstantExpression extends Exception {
+            NonConstantExpression() {}
         }
 
         private static boolean isFinalVar(CoreOp.VarOp varOp) {
