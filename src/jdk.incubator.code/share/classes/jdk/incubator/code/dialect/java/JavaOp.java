@@ -136,8 +136,8 @@ public sealed abstract class JavaOp extends Op {
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
          * @param <T> the type of the operation
-         * @return the result of the evaluation wrapped in an {@link Optional} if the operation models a constant expression,
-         * or an empty {@link Optional} otherwise.
+         * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the operation
+         * does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
          */
