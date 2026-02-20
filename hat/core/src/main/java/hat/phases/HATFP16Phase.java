@@ -38,7 +38,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.Regex;
 
@@ -46,11 +45,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Gatherer;
-import java.util.stream.Stream;
 
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
