@@ -37,10 +37,21 @@ import java.util.function.Consumer;
 public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
 
 
+    public T importKeyword() {
+        return keyword("import");
+    }
+    public T importDotted(String ... dotted){
+        return importKeyword().space().dotted(dotted).semicolonNl();
+    }
+    public T importStaticDotted(String ... dotted){
+        return importKeyword().space().staticKeyword().space().dotted(dotted).semicolonNl();
+    }
 
-
-    public T type(IfaceValue.vec.Shape shape) {
-        return type((JavaType) shape.typeElement());
+    public T packageKeyword() {
+        return keyword("package");
+    }
+    public T packageDotted(String ... dotted){
+        return packageKeyword().space().dotted(dotted).semicolonNl();
     }
 
     T recordKeyword() {
