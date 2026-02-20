@@ -591,7 +591,7 @@ public class SeaScapeShader implements Shader {
     }
     /*
     // sea
-            float sea_octave(vec2 uv, float choppy) {
+            float sea_octave(out vec2 uv, float choppy) {
                 uv += noise(uv);
                 vec2 wv = 1.0-abs(sin(uv));
                 vec2 swv = abs(cos(uv));

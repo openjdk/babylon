@@ -34,6 +34,7 @@ public interface F32 {
     static float sin(float f){return (float)Math.sin(f);}
     static float tan(float f){return (float)Math.tan(f);}
     static float atan(float f){return (float)Math.atan(f);}
+    static float atan(float l,float r){return (float)Math.atan2(l,r);}
     static float floor(float f){return (float)Math.floor(f);}
     static float mix(float x, float y, float a){return x*(1f-a)+y*a; }
     static float pow(float x, float pow){return (float)Math.pow(x,pow); }
@@ -73,4 +74,6 @@ public interface F32 {
     static float  div(float lhs, float rhs) {
         return lhs/rhs;
     }
+
+    static float round(float f) {return Math.round(f);}
 }
