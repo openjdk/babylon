@@ -24,18 +24,35 @@
  */
 package shade.shaders;
 
-import hat.types.F32;
-import static hat.types.F32.*;
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.vec2;
-
-import static hat.types.vec2.*;
 import hat.types.vec3;
-import static hat.types.vec3.*;
 import hat.types.vec4;
-
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
+
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.F32.abs;
+import static hat.types.F32.exp;
+import static hat.types.F32.pow;
+import static hat.types.F32.sin;
+import static hat.types.vec2.div;
+import static hat.types.vec2.fract;
+import static hat.types.vec2.length;
+import static hat.types.vec2.mul;
+import static hat.types.vec2.sub;
+import static hat.types.vec2.vec2;
+import static hat.types.vec3.add;
+import static hat.types.vec3.cos;
+import static hat.types.vec3.mul;
+import static hat.types.vec3.vec3;
+import static hat.types.vec4.normalize;
+import static hat.types.vec4.vec4;
 
 /* This animation is the material of my first youtube tutorial about creative
    coding, which is a video in which I try to introduce programmers to GLSL
@@ -80,31 +97,46 @@ vec3 palette( float t ) {
  */
 //https://www.shadertoy.com/view/mtyGWy
 public class TutorialShader implements Shader {
-    vec3 palette( float t ) {
+
+
+    vec3 palette(float t) {
         vec3 a = vec3(0.5f, 0.5f, 0.5f);
         vec3 b = vec3(0.5f, 0.5f, 0.5f);
         vec3 c = vec3(1.0f, 1.0f, 1.0f);
-        vec3 d = vec3(0.263f,0.416f,0.557f);
-        return add(a, mul(b, cos(mul(add(mul(c,vec3(t)),d), vec3(6.28318f)))));
+        vec3 d = vec3(0.263f, 0.416f, 0.557f);
+        return add(a, mul(b, cos(mul(add(mul(c, vec3(t)), d), vec3(6.28318f)))));
     }
+
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fResolution= vec3.xy(uniforms.iResolution());
+        vec2 fResolution = vec3.xy(uniforms.iResolution());
         float fTime = uniforms.iTime();
-        vec2 uv = div(sub(mul(fragCoord, 2f),fResolution), fResolution.y());
+        vec2 uv = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());
         vec2 uv0 = uv;
         vec3 color = vec3(0f);
         for (float i = 0f; i < 4f; i++) {
-            uv = sub(fract(mul(uv,1.5f)), vec2(0.5f));
+            uv = sub(fract(mul(uv, 1.5f)), vec2(0.5f));
             vec3 col = palette(length(uv0) + i * .4f + fTime * .4f);
             float d = length(uv) * exp(-length(uv0));
             d = sin(d * 8f + fTime) / 8f;
             d = abs(d);
             d = pow(0.01f / d, 1.2f);
-            color  = add(color, mul(col, d));
+            color = add(color, mul(col, d));
         }
 
         fragColor = vec4(color, 1.0f);
         return normalize(fragColor);
+    }
+
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("targetFps", "12")),
+            new TutorialShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
     }
 }

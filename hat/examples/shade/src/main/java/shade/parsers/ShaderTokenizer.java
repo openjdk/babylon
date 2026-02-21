@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package shade.parsers;
 
 import optkl.textmodel.terminal.ANSI;
 import shade.shaders.WavesShader;
@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 public class ShaderTokenizer {
     interface Token {
         TOKEN_TYPE tokenType();
+
         String value();
     }
 
@@ -271,37 +272,42 @@ public class ShaderTokenizer {
         }
         return tokens;
     }
-    static class Cursor{
+
+    static class Cursor {
         List<Token> tokens;
         int idx;
-        Cursor(List<Token> tokens, int idx){
+
+        Cursor(List<Token> tokens, int idx) {
             this.tokens = tokens;
             this.idx = idx;
         }
-        Token get(){
+
+        Token get() {
             return tokens.get(idx);
         }
-        Token next(){
+
+        Token next() {
             idx++;
-            while (get() instanceof WSAndLineCommentToken ) {
+            while (get() instanceof WSAndLineCommentToken) {
                 idx++;
             }
             return get();
         }
-        static Cursor of(List<Token> tokens, int idx){
-            return idx<tokens.size()?new Cursor(tokens, idx):null;
+
+        static Cursor of(List<Token> tokens, int idx) {
+            return idx < tokens.size() ? new Cursor(tokens, idx) : null;
         }
     }
 
     // Example parse: print declarations and functions
     private static void parse(List<Token> tokens) {
-        for  (int i=0; i < tokens.size(); i++) {
-            var c = Cursor.of(tokens,i);
+        for (int i = 0; i < tokens.size(); i++) {
+            var c = Cursor.of(tokens, i);
             if (c.get() instanceof TypeToken typeToken && c.next() instanceof CallToken callToken && c.next() instanceof OToken oToken) {
                 System.out.println("Function found: returnType=" + typeToken + ", name=" + callToken);
             }
-            if (c.get() instanceof ArithmeticOperator arithmeticOperator){
-                System.out.println("Arithmetic "+arithmeticOperator);
+            if (c.get() instanceof ArithmeticOperator arithmeticOperator) {
+                System.out.println("Arithmetic " + arithmeticOperator);
             }
 
         }
@@ -330,7 +336,7 @@ public class ShaderTokenizer {
                 default -> ansi.apply(token.value());
             }
         });
-       // parse(tokens);
+        // parse(tokens);
     }
 
 }

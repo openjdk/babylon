@@ -30,7 +30,10 @@ import optkl.IfaceValue;
 import optkl.IfaceValue.vec.Shape;
 import optkl.codebuilders.JavaCodeBuilder;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -73,7 +76,7 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         importDotted("jdk", "incubator", "code", "dialect", "java", "JavaType");
         importDotted("optkl", "IfaceValue");
         nl();
-        interfaceKeyword(vectorName).space().dotted("IfaceValue", "vec").body(_ -> {
+        interfaceKeyword(vectorName).space().extendsKeyword().space().dotted("IfaceValue", "vec").body(_ -> {
             typeName("Shape").space().identifier("shape").equals().shape(shape).semicolonNl().nl();
             shape.laneNames().forEach(laneName -> {
                 type(shape).space().call(laneName).semicolonNl();
@@ -85,12 +88,20 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                   return new Impl(x,y,z,w);
                }
              */
-            func(_ -> type(shape),
+            staticKeyword().space().func(_ -> typeName(vectorName),
                     vectorName,
                     _ -> commaSpaceSeparated(shape.laneNames(), c -> type(shape).space().identifier(c)),
                     _ -> { // We create a record to return
-                        record("Impl", _ -> blockInlineComment("implement args"));
-                        returnKeyword(_ -> reserved("new").space().call("Impl"));
+                        record("Impl",
+                                _ -> commaSpaceSeparated(shape.laneNames(), laneName -> type(shape).space().identifier(laneName)),
+                                _ -> identifier(vectorName),
+                                _ -> {
+                                }
+
+                        );
+                        returnKeyword(_ -> reserved("new").space().call("Impl", _ ->
+                                commaSpaceSeparated(shape.laneNames(), this::identifier)
+                        ));
                     }
             );
 
@@ -105,9 +116,9 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                                  return vec4(lx+rx, ly+ry, lz+rz, lw+rw);
                              }
                         */
-                        func(
-                                _ -> type(shape),
-                                "_" + name,    // core ops are named _add(...)
+                        staticKeyword().space().func(
+                                _ -> typeName(vectorName),
+                                name,    // core ops are named _add(...)
                                 _ -> commaSpaceSeparated(List.of(lhs, rhs), shape.laneNames(), (side, laneName) ->
                                         type(shape).space().identifier(side + laneName)
                                 ),
@@ -122,15 +133,15 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                               return add(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
                            }
                         */
-                        func(
-                                _ -> type(shape),
+                        staticKeyword().space().func(
+                                _ -> typeName(vectorName),
                                 name,
                                 _ -> commaSpaceSeparated(List.of(lhs, rhs), c ->
                                         identifier(vectorName).space().identifier(c)
                                 ),
                                 _ -> returnCallResult(name, _ ->
                                         commaSpaceSeparated(shape.laneNames(), List.of(lhs, rhs), (laneName, side) ->
-                                                identifier(side).dot().call(laneName).ocparen()// l.x() or r.y()
+                                                identifier(side).dot().call(laneName)// l.x() or r.y()
                                         )
                                 )
                         );
@@ -139,13 +150,13 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                               return add(l, r.x(), l, r.y(), l, r.z(), l, r.w());
                            }
                         */
-                        func(
-                                _ -> type(shape),
+                        staticKeyword().space().func(
+                                _ -> typeName(vectorName),
                                 name,
                                 _ -> type(shape).space().identifier(lhs).commaSpace().identifier(vectorName).space().identifier(rhs),
                                 _ -> returnCallResult(name, _ ->
-                                        commaSpaceSeparated(shape.laneNames(), List.of(lhs, rhs), (laneName, side) ->
-                                                identifier(side).dot().call(laneName)  // l.x() or r.y()
+                                        commaSpaceSeparated(shape.laneNames(), laneName ->
+                                                identifier(lhs).comma().space().identifier(rhs).dot().call(laneName)
                                         )
                                 )
                         );
@@ -154,16 +165,26 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                               return add( l.x(), r, l.y(), r, l.z(), r, l.w(), r);
                            }
                         */
+                        staticKeyword().space().func(
+                                _ -> typeName(vectorName),
+                                name,
+                                _ -> typeName(vectorName).space().identifier(lhs).commaSpace().type(shape).space().identifier(rhs),
+                                _ -> returnCallResult(name, _ ->
+                                        commaSpaceSeparated(shape.laneNames(), laneName ->
+                                                identifier(lhs).dot().call(laneName).comma().space().identifier(rhs)
+                                        )
+                                )
+                        );
 
                     }
             );
-            List.of("neg", "sin", "cos", "tan", "sqrt", "invsqrt").forEach(functionName ->
+            List.of("neg", "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(functionName ->
                     /*
                        vec4 sin(vec4 v){
                           return vec4(F32.sin(v.x()), F32.sin(v.y()), F32.sin(v.z()), F32.sin(v.w()));
                        }
                      */
-                    func(_ -> type(shape), // type
+                    staticKeyword().space().func(_ -> typeName(vectorName), // type
                             functionName,               // name
                             _ -> identifier(vectorName).space().identifier("v"),
                             _ -> returnCallResult(vectorName, _ ->
@@ -175,13 +196,14 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                             )
                     )
             );
+            /*
             List.of("length").forEach(functionName ->
                      /*
                        float length(vec4 v){
                           return F32.length(v.x(), v.y(),v.z(),v.w());
                        }
-                     */
-                    func(_ -> type(shape), // type
+
+                    staticKeyword().space().func(_ -> type(shape), // type
                             functionName,               // name
                             _ -> identifier(vectorName).space().identifier("v"),
                             _ -> returnCallResult(vectorName, _ ->
@@ -192,7 +214,7 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                                     )
                             )
                     )
-            );
+            );*/
         });
         return self();
     }
@@ -201,16 +223,21 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         return new VecAndMatBuilder().vec(vectorName, shape).toString();
     }
 
+    static void writeVec(Path path, String vectorName, Shape shape) throws IOException {
+        String text = createVec(vectorName, shape);
+        Files.writeString(path.resolve(vectorName + ".java"), text);
+    }
 
-    static void main(String[] argv) {
 
-        System.out.println(
-                createVec("ivec2", Shape.of(JavaType.INT, 2))
-                        + createVec("ivec3", Shape.of(JavaType.INT, 3))
-                        + createVec("vec2", Shape.of(JavaType.FLOAT, 2))
-                        + createVec("vec3", Shape.of(JavaType.FLOAT, 3))
-                        + createVec("vec4", Shape.of(JavaType.FLOAT, 4))
-        );
+    static void main(String[] argv) throws IOException {
+        Path path = Path.of("/Users/grfrost/github/babylon-grfrost-fork/hat/vecs/java/shade");
+        Files.createDirectories(path);
+
+        // writeVec(path,"ivec2", Shape.of(JavaType.INT, 2));
+        //        writeVec(path,"ivec3", Shape.of(JavaType.INT, 3));
+        writeVec(path, "vec2", Shape.of(JavaType.FLOAT, 2));
+        writeVec(path, "vec3", Shape.of(JavaType.FLOAT, 3));
+        writeVec(path, "vec4", Shape.of(JavaType.FLOAT, 4));
 
 
     }

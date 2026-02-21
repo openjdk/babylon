@@ -24,21 +24,44 @@
  */
 package shade.shaders;
 
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.F32;
-import hat.types.mat3;
-import hat.types.mat2;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import static hat.types.F32.*;
-import static hat.types.mat3.*;
-
-import static hat.types.mat2.*;
-import static hat.types.vec2.*;
-import static hat.types.vec3.*;
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
+
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.F32.abs;
+import static hat.types.F32.div;
+import static hat.types.F32.floor;
+import static hat.types.F32.log;
+import static hat.types.F32.max;
+import static hat.types.F32.mod;
+import static hat.types.mat2.mat2;
+import static hat.types.vec2.abs;
+import static hat.types.vec2.add;
+import static hat.types.vec2.div;
+import static hat.types.vec2.dot;
+import static hat.types.vec2.floor;
+import static hat.types.vec2.fract;
+import static hat.types.vec2.length;
+import static hat.types.vec2.mul;
+import static hat.types.vec2.sub;
+import static hat.types.vec2.vec2;
+import static hat.types.vec4.add;
+import static hat.types.vec4.cos;
+import static hat.types.vec4.div;
+import static hat.types.vec4.mul;
+import static hat.types.vec4.normalize;
+import static hat.types.vec4.smoothstep;
+import static hat.types.vec4.vec4;
 
 
 //https://shadertoy.com/view/3llcDl
@@ -91,7 +114,7 @@ public class SpiralShader implements Shader {
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
 
         var fResolution = vec3.xy(uniforms.iResolution());
-        vec2 U = div(sub(mul(fragCoord,2f),fResolution),fResolution.y());//.sub(fResolution).div(fResolution.y());
+        vec2 U = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());//.sub(fResolution).div(fResolution.y());
         // normalized coordinates
         var z = sub(U, vec2(-1f, 0f));
 
@@ -106,51 +129,63 @@ public class SpiralShader implements Shader {
         U = add(
                 add(
                         mul(log(length(U)), vec2(.5f, 0.5f)),
-                        vec2(uniforms.iTime()/8f)
+                        vec2(uniforms.iTime() / 8f)
                 ),
                 mul(
-                        div(F32.atan(U.x(),U.y()), 6.2832f),
-                        vec2(6f,1f)
+                        div(F32.atan(U.x(), U.y()), 6.2832f),
+                        vec2(6f, 1f)
                 )
         );
 
 
-        U = div(mul(U, vec2(3f)),vec2(2f, 1f));
+        U = div(mul(U, vec2(3f)), vec2(2f, 1f));
         z = vec2(.001f);//fwidth(U); // this resamples the image.  Not sure how we do this!
-        U = mul(fract(U),5f);
+        U = mul(fract(U), 5f);
         vec2 I = floor(U);
         U = fract(U);             // subdiv big square in 5x5
         I = vec2(mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
         U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
         float id = -1f;
         if (I.x() != 4f) {
-            U = div(U,2f);                                     // but small times
+            U = div(U, 2f);                                     // but small times
             id = mod(floor(I.x() / 2f) + I.y(), 5f);
         }
-        U = sub(abs(mul(fract(U),2f)),1f);
+        U = sub(abs(mul(fract(U), 2f)), 1f);
         float v = max(U.x(), U.y());          // dist to border
 
         return
                 normalize(
                         smoothstep(
-                        vec4(.7f),
-                        vec4(-.7f),
-                        mul(div(vec4(v - .95f),abs(z.x() - z.y()) > 1f
-                                        ? .1f
-                                        : z.y() * 8f
-                                )
-                                ,id < 0f
+                                vec4(.7f),
+                                vec4(-.7f),
+                                mul(div(vec4(v - .95f), abs(z.x() - z.y()) > 1f
+                                                ? .1f
+                                                : z.y() * 8f
+                                        )
+                                        , id < 0f
                                                 ? vec4(1f)
-                                                : add(mul(vec4(.6f),.6f),
-                                                cos(add(vec4(id),vec4(0f, 23f, 21f, 0f)))
+                                                : add(mul(vec4(.6f), .6f),
+                                                cos(add(vec4(id), vec4(0f, 23f, 21f, 0f)))
                                         )
                                 )
-                )
+                        )
                 );// color
 
-    };
+    }
 
+    ;
 
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("targetFps", "30")),
+            new SpiralShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
+    }
 
 
 }

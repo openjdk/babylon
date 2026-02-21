@@ -58,14 +58,19 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
         return keyword("record");
     }
 
-    T record(String recordName, Consumer<T> args, Consumer<T> body) {
-        return recordKeyword().space().typeName(recordName).paren(args).brace(body).nl();
+    public T record(String recordName, Consumer<T> args, Consumer<T> imple, Consumer<T> body) {
+         recordKeyword().space().typeName(recordName).paren(args);
+         if (imple != null){
+             space().implementsKeyword().space();
+             imple.accept(self());
+         }
+         return body(body).nl();
     }
-    public T record(String recordName, Consumer<T> args) {
-        return record(recordName,args,_->ocbrace());
+    public T extendsKeyword() {
+        return keyword("extends");
     }
-    T extendsKeyword(String name) {
-        return keyword("extend").space().identifier(name);
+    public T implementsKeyword() {
+        return keyword("implements");
     }
     public T interfaceKeyword(String name) {
         return keyword("interface").space().identifier(name);

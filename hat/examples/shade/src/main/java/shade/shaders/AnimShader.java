@@ -24,21 +24,37 @@
  */
 package shade.shaders;
 
-import hat.types.F32;
-import hat.types.mat3;
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.mat2;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import static hat.types.F32.*;
-import static hat.types.mat3.*;
-
-import static hat.types.mat2.*;
-import static hat.types.vec2.*;
-import static hat.types.vec3.*;
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
+
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.F32.PI;
+import static hat.types.F32.cos;
+import static hat.types.F32.floor;
+import static hat.types.F32.fract;
+import static hat.types.F32.mod;
+import static hat.types.F32.sin;
+import static hat.types.F32.smoothstep;
+import static hat.types.mat2.mat2;
+import static hat.types.vec2.add;
+import static hat.types.vec2.div;
+import static hat.types.vec2.length;
+import static hat.types.vec2.mul;
+import static hat.types.vec2.sub;
+import static hat.types.vec2.vec2;
+import static hat.types.vec3.mix;
+import static hat.types.vec3.vec3;
+import static hat.types.vec4.vec4;
 
 
 public class AnimShader implements Shader {
@@ -51,8 +67,9 @@ public class AnimShader implements Shader {
         ret *= 1.0f - smoothstep(topRight.x() - d, topRight.x() + d, r.x());
         return ret;
     }
+
     static float disk(vec2 r, vec2 center, float radius) {
-        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(vec2(r),center)));
+        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(vec2(r), center)));
     }
 
     @Override
@@ -60,7 +77,7 @@ public class AnimShader implements Shader {
         vec2 fres = vec3.xy(uniforms.iResolution());
         float ftime = uniforms.iTime();
         vec2 p = div(fragCoord, fres);
-        vec2 r = mul(div(vec2(sub(fragCoord,mul(fres,.5f))),fres.y()),2f);
+        vec2 r = mul(div(vec2(sub(fragCoord, mul(fres, .5f))), fres.y()), 2f);
         float xMax = fres.x() / fres.y();
 
         vec3 col1 = vec3(0.216f, 0.471f, 0.698f); // blue
@@ -109,7 +126,7 @@ public class AnimShader implements Shader {
                 float x = 0.2f * cos(ftime * 5.0f + i * PI);
                 // y coordinate is the loop value
                 float y = i;
-                vec2 s = sub(q,vec2(x, y));
+                vec2 s = sub(q, vec2(x, y));
                 // each box has a different phase
                 float angle = ftime * 3f + i;
                 mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
@@ -136,7 +153,19 @@ public class AnimShader implements Shader {
         vec3 pixel = ret;
         fragColor = vec4(pixel, 1.0f);
         return fragColor;
-    };
+    }
 
+    ;
 
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("targetFps", "30")),
+            new AnimShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
+    }
 }

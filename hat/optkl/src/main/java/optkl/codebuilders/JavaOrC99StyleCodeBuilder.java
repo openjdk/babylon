@@ -56,7 +56,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return braceNlIndented(consumer);
     }
 
-    T call(String identifier, Consumer<T> consumer) {
+    public T call(String identifier, Consumer<T> consumer) {
         return identifier(identifier).paren(consumer);
     }
     public T call(String identifier) {

@@ -24,13 +24,21 @@
  */
 package shade;
 
-public interface Controller {
-    boolean useHat();
-    boolean showAllocations();
-    int width();
-    int height();
-    int targetFps();
-    String shaderName();
-    Shader shader();
-    boolean running();
+import javax.swing.JFrame;
+import java.awt.Rectangle;
+
+public class ShaderApp {
+
+    public ShaderApp(Config controls) {
+        JFrame jFrame = new JFrame(controls.shaderName());
+        jFrame.setJMenuBar(controls.menu().menuBar());
+        ShaderViewer shaderViewer = new ShaderViewer(controls);
+        jFrame.setBounds(new Rectangle(controls.width(), controls.height()));
+        jFrame.setContentPane(shaderViewer.bufferedImageViewer);
+        jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        jFrame.setVisible(true);
+        shaderViewer.startShader();
+    }
+
+
 }

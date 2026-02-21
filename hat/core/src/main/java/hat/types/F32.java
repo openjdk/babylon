@@ -74,6 +74,6 @@ public interface F32 {
     static float  div(float lhs, float rhs) {
         return lhs/rhs;
     }
-
+    static float neg(float f) {return -f;}
     static float round(float f) {return Math.round(f);}
 }

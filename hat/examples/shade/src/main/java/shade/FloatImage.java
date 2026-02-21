@@ -25,8 +25,8 @@
 package shade;
 
 import hat.buffer.F32Array;
-import optkl.util.carriers.ArenaAndLookupCarrier;
 import hat.types.vec4;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
@@ -62,7 +62,7 @@ public record FloatImage(
         ColorModel colorModel = new ComponentColorModel(colorSpace, false, false,
                 Transparency.OPAQUE, DataBuffer.TYPE_FLOAT);
 
-        int channels = width*height*3;
+        int channels = width * height * 3;
         // Create the Sample Model (Pixel Interleaved) bands for RGB, scanline stride is width * 3
         SampleModel sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_FLOAT,
                 width, height, 3, width * 3, new int[]{0, 1, 2});
@@ -81,11 +81,11 @@ public record FloatImage(
 
         F32Array f32Array = F32Array.create(arenaAndLookupCarrier, channels);
 
-        return new FloatImage(width,height,width*height,channels,
+        return new FloatImage(width, height, width * height, channels,
                 colorSpace, colorModel, sampleModel, dataBufferFloat, data, raster, bufferedImage, f32Array);
     }
 
-    public void set(int i,vec4 outFragColor) {
+    public void set(int i, vec4 outFragColor) {
         data[i * 3 + 0] = outFragColor.x();
         data[i * 3 + 1] = outFragColor.y();
         data[i * 3 + 2] = outFragColor.z();

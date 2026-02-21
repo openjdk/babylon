@@ -23,27 +23,38 @@
  * questions.
  */
 package shade.shaders;
+
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-
-import static hat.types.vec2.*;
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
+
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.vec2.div;
+import static hat.types.vec2.length;
+import static hat.types.vec2.mul;
+import static hat.types.vec2.sub;
+import static hat.types.vec4.add;
+import static hat.types.vec4.clamp;
+import static hat.types.vec4.mul;
+import static hat.types.vec4.vec4;
 
 //https://www.shadertoy.com/view/Md23DV
 public class GroovyShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        //            ivec2->vec2
         var fres = vec3.xy(uniforms.iResolution());
-        //            vec2(fragCoord.xy / iResolution.xy);
-        var p = div(fragCoord,fres);
-        //            r = 2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y
-        var r = mul(div(sub(fragCoord,mul(fres, .5f)),fres.y()),16f);
+        var p = div(fragCoord, fres);
+        var r = mul(div(sub(fragCoord, mul(fres, .5f)), fres.y()), 16f);
 
         float t = ((float) uniforms.iFrame()) / 15f;
 
@@ -57,25 +68,31 @@ public class GroovyShader implements Shader {
 
         if (p.x() < 1f / 10f) { // Part I
             ret = vec4(v1);
-        } else if (p.x() < 2f / 10f) { // Part II
-            // horizontal waves
+        } else if (p.x() < 2f / 10f) { // horizontal waves
             ret = vec4(v2);
-        } else if (p.x() < 3f / 10f) { // Part III
-            // diagonal waves
+        } else if (p.x() < 3f / 10f) { // diagonal waves
             ret = vec4(v3);
-        } else if (p.x() < 4f / 10f) { // Part IV
-            // circular waves
+        } else if (p.x() < 4f / 10f) { // circular waves
             ret = vec4(v4);
-        } else if (p.x() < 5f / 10f) { // Part V
-            // the sum of all waves
+        } else if (p.x() < 5f / 10f) { // the sum of all waves
             ret = vec4(v);
-        } else if (p.x() < 6f / 10f) { // Part VI
-            // Add periodicity to the gradients
+        } else if (p.x() < 6f / 10f) { // Add periodicity to the gradients
             ret = vec4(F32.sin(2f * v));
-        } else { // Part VII
-            // mix colors
+        } else { // mix colors
             ret = vec4(F32.sin(v), F32.sin(v + 0.5f * F32.PI), F32.sin(v + F32.PI), 1f);
         }
-        return clamp(mul(add(ret,.5f),.5f),0f, 1f);
+        return clamp(mul(add(ret, .5f), .5f),0f,1f);
+    }
+
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("targetFps", "30")),
+            new GroovyShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
     }
 }
