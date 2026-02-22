@@ -242,7 +242,30 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
 
                     }
             );
-            List.of( "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(fName ->
+
+            List.of(
+                    "pow","min","max"
+            ).forEach(fName -> {
+                        /*
+                              static vec2 pow(vec2 l, vec2 r){
+                                return vec2(F32.pow(l.x(),r.x()),F32.pow(l.y(),r.y()));
+                              }
+                        */
+
+                        staticKeyword().space().func(
+                                _ -> typeName(vectorName),
+                                fName,
+                                _ ->  css(List.of(lhs, rhs), side -> typeAndName(vectorName,side)),
+                                _ ->returnCallResult(vectorName, _-> css(shape.laneNames(), n ->
+                                        identifier("F32").dot().call(fName,_->css(List.of(lhs, rhs),side-> dotCall(side,n))))
+                                )
+                        );
+
+                    }
+            );
+
+
+            List.of( "floor", "round","fract","abs","log", "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(fName ->
                     /*
                        vec4 sin(vec4 v){
                           return vec4(F32.sin(v.x()), F32.sin(v.y()), F32.sin(v.z()), F32.sin(v.w()));
@@ -302,9 +325,6 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
     static void main(String[] argv) throws IOException {
         Path path = Path.of("/Users/grfrost/github/babylon-grfrost-fork/hat/vecs/java/hat/types");
         Files.createDirectories(path);
-
-        // writeVec(path,"ivec2", Shape.of(JavaType.INT, 2));
-        //        writeVec(path,"ivec3", Shape.of(JavaType.INT, 3));
         writeVec(path, "vec2", Shape.of(JavaType.FLOAT, 2));
         writeVec(path, "vec3", Shape.of(JavaType.FLOAT, 3));
         writeVec(path, "vec4", Shape.of(JavaType.FLOAT, 4));

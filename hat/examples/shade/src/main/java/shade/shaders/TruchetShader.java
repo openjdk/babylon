@@ -300,9 +300,9 @@ public class TruchetShader implements Shader {
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "20")),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "800"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "800"))),
+            Integer.parseInt(System.getProperty("targetFps", "25")),
             new TruchetShader()
     );
 

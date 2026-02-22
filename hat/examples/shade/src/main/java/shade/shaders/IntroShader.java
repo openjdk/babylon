@@ -50,7 +50,7 @@ import static hat.types.mat2.mul;
 import static hat.types.vec2.add;
 import static hat.types.vec2.div;
 import static hat.types.vec2.length;
-import static hat.types.vec2.mod;
+//import static hat.types.vec2.mod;
 import static hat.types.vec2.mul;
 import static hat.types.vec2.sub;
 import static hat.types.vec2.vec2;
@@ -191,10 +191,14 @@ public class IntroShader implements Shader {
 
         float c = 0.05f;
 
-        vec2 cos_3_sin_3 = vec2(cos(0.3f * t), sin(0.3f * t));
-        vec2 rplus = add(r, cos_3_sin_3);
-        vec2 cAsVec2 = vec2(c);
-        vec2 pL = div(sub(mod(rplus), cAsVec2), cAsVec2);
+
+
+       // vec2 cos_3_sin_3 = vec2(cos(0.3f * t), sin(0.3f * t));
+       // vec2 rplus = add(r, cos_3_sin_3);
+       // vec2 cAsVec2 = vec2(c);
+        var added = add(r,vec2(cos(0.3f*t),sin(0.3f*t)));
+        vec2 pL = div(sub(vec2.mod(added, 2.0f*c),c),c);
+       // vec2 pL = div(sub(mod(rplus), cAsVec2), cAsVec2);
         float circ = 1f - smoothstep(0.75f, 0.8f, length(pL));
 
         vec2 rG = mul(rot(2f * 3.1415f * smoothstep(0f, 1f, mod(1.5f * t, 4.0f))), r);
@@ -255,7 +259,7 @@ public class IntroShader implements Shader {
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "10")),
+            Integer.parseInt(System.getProperty("targetFps", "5")),
             new IntroShader()
     );
 

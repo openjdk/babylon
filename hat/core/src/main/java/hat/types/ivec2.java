@@ -64,24 +64,24 @@ public interface ivec2 extends  IfaceValue.vec {
     static ivec2 ivec2(ivec2 ivec2) {return ivec2(ivec2.x(), ivec2.y());}
     static ivec2 ivec2(int scalar) {return ivec2(scalar,scalar);}
 
-    static ivec2 add(int lx, int ly,  int rx, int ry) {return ivec2(lx+rx,ly+ry);}
-    static ivec2 sub(int lx, int ly,  int rx, int ry) {return ivec2(lx-rx,ly-ry);}
-    static ivec2 mul(int lx, int ly,  int rx, int ry) {return ivec2(lx*rx,ly*ry);}
-    static ivec2 div(int lx, int ly,  int rx, int ry) {return ivec2(lx/rx,ly/ry);}
+  //  static ivec2 add(int lx, int ly,  int rx, int ry) {return ivec2(lx+rx,ly+ry);}
+  //  static ivec2 sub(int lx, int ly,  int rx, int ry) {return ivec2(lx-rx,ly-ry);}
+  //  static ivec2 mul(int lx, int ly,  int rx, int ry) {return ivec2(lx*rx,ly*ry);}
+  //  static ivec2 div(int lx, int ly,  int rx, int ry) {return ivec2(lx/rx,ly/ry);}
 
-    static ivec2 add(ivec2 l, ivec2 r) {return add(l.x(),r.x(),l.y(),r.y());}
-    static ivec2 add(ivec2 l, int scalar) {return add(l.x(),scalar,l.y(),scalar);}
-    static ivec2 add(int scalar, ivec2 r) {return add(scalar, r.x(),scalar, r.y());}
+   // static ivec2 add(ivec2 l, ivec2 r) {return add(l.x(),r.x(),l.y(),r.y());}
+    //static ivec2 add(ivec2 l, int scalar) {return add(l.x(),scalar,l.y(),scalar);}
+   // static ivec2 add(int scalar, ivec2 r) {return add(scalar, r.x(),scalar, r.y());}
 
-    static ivec2 sub(ivec2 l, ivec2 r) {return sub(l.x(),r.x(),l.y(),r.y());}
-    static ivec2 sub(ivec2 l, int scalar) {return sub(l.x(),scalar,l.y(),scalar);}
-    static ivec2 sub(int scalar, ivec2 r) {return sub(scalar, r.x(),scalar, r.y());}
+ //   static ivec2 sub(ivec2 l, ivec2 r) {return sub(l.x(),r.x(),l.y(),r.y());}
+   // static ivec2 sub(ivec2 l, int scalar) {return sub(l.x(),scalar,l.y(),scalar);}
+   // static ivec2 sub(int scalar, ivec2 r) {return sub(scalar, r.x(),scalar, r.y());}
 
-    static ivec2  mul(ivec2 l, ivec2 r) {return  mul(l.x(),r.x(),l.y(),r.y());}
-    static ivec2  mul(ivec2 l, int scalar) {return  mul(l.x(),scalar,l.y(),scalar);}
-    static ivec2  mul(int scalar, ivec2 r) {return  mul(scalar, r.x(),scalar, r.y());}
+   // static ivec2  mul(ivec2 l, ivec2 r) {return  mul(l.x(),r.x(),l.y(),r.y());}
+    //static ivec2  mul(ivec2 l, int scalar) {return  mul(l.x(),scalar,l.y(),scalar);}
+    //static ivec2  mul(int scalar, ivec2 r) {return  mul(scalar, r.x(),scalar, r.y());}
 
-    static ivec2 div(ivec2 l, ivec2 r) {return div(l.x(),r.x(),l.y(),r.y());}
-    static ivec2 div(ivec2 l, int scalar) {return div(l.x(),scalar,l.y(),scalar);}
-    static ivec2 div(int scalar, ivec2 r) {return div(scalar, r.x(),scalar, r.y());}
+  //  static ivec2 div(ivec2 l, ivec2 r) {return div(l.x(),r.x(),l.y(),r.y());}
+  //  static ivec2 div(ivec2 l, int scalar) {return div(l.x(),scalar,l.y(),scalar);}
+    //static ivec2 div(int scalar, ivec2 r) {return div(scalar, r.x(),scalar, r.y());}
 }

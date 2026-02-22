@@ -75,20 +75,20 @@ public interface vec2 extends IfaceValue.vec{
         return vec2(scalar, scalar);
     }
 
-    static vec2 add(float xl, float xr, float yl, float yr){
-        return vec2(xl+xr, yl+yr);
+    static vec2 mul(float xl, float xr, float yl, float yr){
+        return vec2(xl*xr, yl*yr);
     }
 
-    static vec2 add(vec2 l, vec2 r){
-        return add(l.x(), r.x(), l.y(), r.y());
+    static vec2 mul(vec2 l, vec2 r){
+        return mul(l.x(), r.x(), l.y(), r.y());
     }
 
-    static vec2 add(float l, vec2 r){
-        return add(l, r.x(), l, r.y());
+    static vec2 mul(float l, vec2 r){
+        return mul(l, r.x(), l, r.y());
     }
 
-    static vec2 add(vec2 l, float r){
-        return add(l.x(), r, l.y(), r);
+    static vec2 mul(vec2 l, float r){
+        return mul(l.x(), r, l.y(), r);
     }
 
     static vec2 div(float xl, float xr, float yl, float yr){
@@ -107,20 +107,20 @@ public interface vec2 extends IfaceValue.vec{
         return div(l.x(), r, l.y(), r);
     }
 
-    static vec2 mul(float xl, float xr, float yl, float yr){
-        return vec2(xl*xr, yl*yr);
+    static vec2 add(float xl, float xr, float yl, float yr){
+        return vec2(xl+xr, yl+yr);
     }
 
-    static vec2 mul(vec2 l, vec2 r){
-        return mul(l.x(), r.x(), l.y(), r.y());
+    static vec2 add(vec2 l, vec2 r){
+        return add(l.x(), r.x(), l.y(), r.y());
     }
 
-    static vec2 mul(float l, vec2 r){
-        return mul(l, r.x(), l, r.y());
+    static vec2 add(float l, vec2 r){
+        return add(l, r.x(), l, r.y());
     }
 
-    static vec2 mul(vec2 l, float r){
-        return mul(l.x(), r, l.y(), r);
+    static vec2 add(vec2 l, float r){
+        return add(l.x(), r, l.y(), r);
     }
 
     static vec2 sub(float xl, float xr, float yl, float yr){
@@ -137,6 +137,38 @@ public interface vec2 extends IfaceValue.vec{
 
     static vec2 sub(vec2 l, float r){
         return sub(l.x(), r, l.y(), r);
+    }
+
+    static vec2 pow(vec2 l, vec2 r){
+        return vec2(F32.pow(l.x(), r.x()), F32.pow(l.y(), r.y()));
+    }
+
+    static vec2 min(vec2 l, vec2 r){
+        return vec2(F32.min(l.x(), r.x()), F32.min(l.y(), r.y()));
+    }
+
+    static vec2 max(vec2 l, vec2 r){
+        return vec2(F32.max(l.x(), r.x()), F32.max(l.y(), r.y()));
+    }
+
+    static vec2 floor(vec2 v){
+        return vec2(F32.floor(v.x()), F32.floor(v.y()));
+    }
+
+    static vec2 round(vec2 v){
+        return vec2(F32.round(v.x()), F32.round(v.y()));
+    }
+
+    static vec2 fract(vec2 v){
+        return vec2(F32.fract(v.x()), F32.fract(v.y()));
+    }
+
+    static vec2 abs(vec2 v){
+        return vec2(F32.abs(v.x()), F32.abs(v.y()));
+    }
+
+    static vec2 log(vec2 v){
+        return vec2(F32.log(v.x()), F32.log(v.y()));
     }
 
     static vec2 sin(vec2 v){
@@ -162,6 +194,8 @@ public interface vec2 extends IfaceValue.vec{
     static vec2 neg(vec2 v){
         return vec2(0f-v.x(), 0f-v.y());
     }
+
+
 
     /* safe to copy to here */
 
@@ -242,38 +276,33 @@ public interface vec2 extends IfaceValue.vec{
             }
     */
     static vec2 mul(vec2 l, mat2 rhs) {return vec2(l.x()*rhs._00()+l.x()+rhs._01(),l.y()*rhs._10()+l.y()+rhs._11());}
-    static vec2 log(vec2 vec2){return vec2(F32.log(vec2.x()),F32.log(vec2.y()));}
-    static vec2 mod(vec2 v){return vec2(F32.mod(v.x(),v.y()));}
-
-    static vec2 floor(vec2 vec2){return vec2(F32.floor(vec2.x()),F32.floor(vec2.y()));}
-    static vec2 fract(vec2 vec2){return vec2(F32.fract(vec2.x()),F32.fract(vec2.y()));}
-    static vec2 abs(vec2 vec2){return vec2(F32.abs(vec2.x()),F32.abs(vec2.y()));}
-    static vec2 atan(float x, float y){return vec2(F32.atan(x), F32.atan(y));}
+   // static vec2 log(vec2 vec2){return vec2(F32.log(vec2.x()),F32.log(vec2.y()));}
+    static vec2 mod(vec2 v, float r){return vec2(F32.mod(v.x(),r),F32.mod(v.y(),r));}
 
 
-    static vec2 min(vec2 lhs,vec2 rhs){return vec2(F32.min(lhs.x(),rhs.x()), F32.min(lhs.y(),rhs.y()));}
 
-    static vec2 max(vec2 lhs,vec2 rhs){return vec2(F32.max(lhs.x(),rhs.x()), F32.max(lhs.y(),rhs.y()));}
+   // static vec2 round(vec2 vec2){return vec2(F32.round(vec2.x()), F32.round(vec2.y()));}
+   // static vec2 atan(float x, float y){return vec2(F32.atan(x), F32.atan(y));}
+
+
+   // static vec2 min(vec2 lhs,vec2 rhs){return vec2(F32.min(lhs.x(),rhs.x()), F32.min(lhs.y(),rhs.y()));}
+
+   // static vec2 max(vec2 lhs,vec2 rhs){return vec2(F32.max(lhs.x(),rhs.x()), F32.max(lhs.y(),rhs.y()));}
     static vec2 max(float x,vec2 rhs){return vec2(F32.max(x,rhs.x()), F32.max(x,rhs.y()));}
     static vec2 max(vec2 lhs, float y){return vec2(F32.max(lhs.x(),y), F32.max(lhs.y(),y));}
     static vec2 mix(vec2 lhs,vec2 rhs, vec2 a){return vec2(F32.mix(lhs.x(),rhs.x(),a.x()), F32.mix(lhs.y(),rhs.y(),a.y()));}
+   // static vec2 pow(vec2 l, vec2 r){
+     //   return vec2(F32.pow(l.x(), r.x()), F32.pow(l.y(), r.y()));
+   // }
 
-    static vec2 pow(vec2 l, vec2 r){
-        return vec2(F32.pow(l.x(),r.x()),F32.pow(l.y(),r.y()));
-    }
-
-    static vec2 round(vec2 vec2){return vec2(F32.round(vec2.x()), F32.round(vec2.y()));}
+   // static vec2 round(vec2 vec2){return vec2(F32.round(vec2.x()), F32.round(vec2.y()));}
     static float dot(vec2 lhs, vec2 rhs) { return lhs.x()*rhs.x()+lhs.y()*rhs.y();}
     static float sumOfSquares(vec2 v) { return dot(v,v);}
     static float length(vec2 vec2) {return  F32.sqrt(sumOfSquares(vec2));}
 
     static vec2 normalize(vec2 vec2){
         float lenSq = sumOfSquares(vec2);
-        if (lenSq > 0.0f) {
-            float invLen = F32.inversesqrt(lenSq);
-            return vec2(vec2.x() * invLen, vec2.y() * invLen);
-        }
-        return vec2(0.0f, 0.0f); // Handle zero-length case
+        return (lenSq > 0.0f)?mul(vec2, F32.inversesqrt(lenSq)):vec2(0.0f); // Handle zero-length case
     }
 
 }
