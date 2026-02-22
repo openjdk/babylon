@@ -26,35 +26,56 @@ package optkl.codebuilders;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.IfaceValue;
 import optkl.OpHelper;
 
 import java.lang.invoke.MethodHandles;
-import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
+
+    public T importStatic(Class<?> clazz, String ...suffices){
+        importClasses(clazz);
+        var split = clazz.getName().split("\\.");
+        for (var suffix :suffices) {
+            importKeyword().space().staticKeyword().space();
+            for (int i = 0; i < split.length; i++) {
+                identifier(split[i]).dot();
+            }
+            identifier(suffix).semicolonNl();
+        }
+        return self();
+    }
+    public T importClasses(Class<?> ...classes){
+        for(var clazz :classes){
+            var split = clazz.getName().split("\\.");
+            importKeyword().space().identifier(split[0]);
+            for (int i = 1; i < split.length; i++) {
+                dot().identifier(split[i]);
+            }
+             semicolonNl();
+        }
+        return self();
+    }
+    public T packageName(Package p){
+        var split = p.getName().split("\\.");
+        packageKeyword().space().identifier(split[0]);
+        for(int i = 1; i< split.length; i++){
+            dot().identifier(split[i]);
+        }
+        return semicolonNl();
+    }
+
 
 
     public T importKeyword() {
         return keyword("import");
     }
-    public T importDotted(String ... dotted){
-        return importKeyword().space().dotted(dotted).semicolonNl();
-    }
-    public T importStaticDotted(String ... dotted){
-        return importKeyword().space().staticKeyword().space().dotted(dotted).semicolonNl();
-    }
 
     public T packageKeyword() {
         return keyword("package");
     }
-    public T packageDotted(String ... dotted){
-        return packageKeyword().space().dotted(dotted).semicolonNl();
-    }
 
-    T recordKeyword() {
+    public T recordKeyword() {
         return keyword("record");
     }
 
