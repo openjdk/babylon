@@ -58,10 +58,11 @@ import static hat.types.vec3.cross;
 import static hat.types.vec3.distance;
 import static hat.types.vec3.div;
 import static hat.types.vec3.dot;
+
+import static hat.types.vec3.neg;
 import static hat.types.vec3.max;
 import static hat.types.vec3.mix;
 import static hat.types.vec3.mul;
-import static hat.types.vec3.neg;
 import static hat.types.vec3.normalize;
 import static hat.types.vec3.pow;
 import static hat.types.vec3.reflect;

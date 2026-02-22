@@ -118,7 +118,7 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         importClasses(Reflect.class, JavaType.class, AtomicInteger.class, AtomicBoolean.class, IfaceValue.class);
         importStatic(F32.class, "*");
         nl();
-        interfaceKeyword(vectorName).space().extendsKeyword().space().dotted(IfaceValue.class.getSimpleName(), "vec").body(_ -> {
+        publicKeyword().space().interfaceKeyword(vectorName).space().extendsKeyword().space().dotted(IfaceValue.class.getSimpleName(), "vec").body(_ -> {
             typeAndName(Shape.class.getSimpleName(),"shape").equals().shape(shape).semicolonNl().nl();
             semicolonNlSeparatedLaneNames(shape,n-> type(shape).space().call(n)).nl();
 
@@ -175,6 +175,20 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                             .returnKeyword(_ -> newKeyword("Impl", _ -> cssLaneNames(shape, this::identifier)))
             );
 
+            /*
+            static vec3 vec3(float scalar) {return vec3(scalar,scalar,scalar);}
+             */
+            staticKeyword().space().func(_ -> typeName(vectorName),
+                    vectorName,
+                    _-> typeAndName(shape,"scalar"),
+                    _->
+                        returnKeyword().space().call(vectorName, _ -> {
+                            for (int i = 0; i < shape.lanes() - 1; i++) {
+                                identifier("scalar").commaSpace();
+                            }
+                            identifier("scalar");
+                        }).semicolon()
+                    );
             Map.of(
                     "add", "+",
                     "sub", "-",
@@ -189,8 +203,8 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                         staticKeyword().space().func(
                                 _ -> typeName(vectorName),
                                 fName,
-                                _ -> cssX2(List.of(lhs, rhs), shape.laneNames(), (side, n) -> typeAndName(shape,side + n)),
-                                _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> identifier(lhs + n).symbol(sym).identifier(rhs + n)))
+                                _ -> cssX2( shape.laneNames(),List.of(lhs, rhs), (side, n) -> typeAndName(shape,side + n)),
+                                _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> identifier(n+lhs).symbol(sym).identifier(n+rhs)))
                         );
                         /*
                            vec4 add(vec4 l, vec4 r){
@@ -228,7 +242,7 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
 
                     }
             );
-            List.of("neg", "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(fName ->
+            List.of( "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(fName ->
                     /*
                        vec4 sin(vec4 v){
                           return vec4(F32.sin(v.x()), F32.sin(v.y()), F32.sin(v.z()), F32.sin(v.w()));
@@ -241,6 +255,16 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                             _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> dotCall("F32", fName,_ -> dotCall("v", n))))
                     )
             );
+            //     static vec3 neg(vec3 vec3) {return vec3(0-vec3.x(),0-vec3.y(), 0-vec3.z());}
+
+
+                    staticKeyword().space().func(
+                            _ -> typeName(vectorName), // type
+                            "neg",                    // name
+                            _ -> typeAndName(vectorName,"v"),
+                            _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> floatConstZero().minus().dotCall("v",n)))
+                    );
+
 
             /*
             List.of("length").forEach(functionName ->

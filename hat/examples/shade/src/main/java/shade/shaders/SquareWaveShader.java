@@ -190,7 +190,7 @@ public class SquareWaveShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec2(vec3.xy(uniforms.iResolution()));
+        vec2 fres = vec3.xy(uniforms.iResolution());
 
         vec2 uv = div(fragCoord, vec2(fres.y(), fres.y()));//iResolution.yy;
         uv = vec2(uv.x(), 1f - uv.y());

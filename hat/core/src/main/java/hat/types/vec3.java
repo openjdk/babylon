@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,78 +24,150 @@
  */
 package hat.types;
 
+// Auto generated DO NOT EDIT
+
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.IfaceValue;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import optkl.IfaceValue;
+import hat.types.F32;
+import static hat.types.F32.*;
 
-public interface vec3 extends  IfaceValue.vec {
-    Shape shape = Shape.of( JavaType.FLOAT,3);
+public interface vec3 extends IfaceValue.vec{
+    Shape shape=Shape.of(JavaType.FLOAT, 3);
+
     float x();
-
     float y();
-
     float z();
-    AtomicInteger count = new AtomicInteger(0);
-    AtomicBoolean collect = new AtomicBoolean(false);
-    // A mutable variant needed for interface mapping
-    interface Field extends vec3 {
-        @Reflect
-        default void schema(){x();y();z();}
+
+    AtomicInteger count=new AtomicInteger(0);
+    AtomicBoolean collect=new AtomicBoolean(false);
+    /*
+    This allows us to add this type to interface mapped segments
+    */
+    interface Field extends vec3{
         void x(float x);
         void y(float y);
         void z(float z);
         default vec3 of(float x, float y, float z){
-            x(x);y(y);z(z);
+            x(x);
+            y(y);
+            z(z);
             return this;
         }
+
         default vec3 of(vec3 vec3){
-            of(vec3.x(),vec3.y(),vec3.z());
+            of(vec3.x(), vec3.y(), vec3.z());
             return this;
         }
+
+
     }
 
+    static vec3 vec3(float x, float y, float z){
+        record Impl(float x, float y, float z) implements vec3{
 
-    static vec3 vec3(float x, float y, float z) {
-        record Impl(float x, float y, float z) implements vec3 {
         }
-      //  if (collect.get())count.getAndIncrement();
-        return new Impl(x, y,z);
+        // Uncomment to collect stats
+        //    if (collect.get())count.getAndIncrement();
+        return new Impl(x, y, z);
     }
 
-    static vec3 vec3(vec3 vec3) {return vec3(vec3.x(), vec3.y(), vec3.z());}
-    static vec3 vec3(float scalar) {return vec3(scalar,scalar,scalar);}
-
-
-    static vec3 add(vec3 l, vec3 r) {return vec3(l.x()+r.x(),l.y()+r.y(), l.z()+r.z());}
-    static vec3 add(vec3 l, float scalar) {return vec3(l.x()+scalar,l.y()+scalar, l.z()+scalar);}
-    static vec3 add(float scalar, vec3 r) {return vec3(scalar+r.x(),scalar+r.y(), scalar+r.z());}
-
-    static vec3 sub(vec3 l, vec3 r) {return vec3(l.x()-r.x(),l.y()-r.y(), l.z()-r.z());}
-    static vec3 sub(vec3 l, float scalar) {return vec3(l.x()-scalar,l.y()-scalar, l.z()-scalar);}
-    static vec3 mul(vec3 l, vec3 r) {return vec3(l.x()*r.x(),l.y()*r.y(), l.z()*r.z());}
-    static vec3 mul(vec3 l, float scalar ) {return vec3(l.x()*scalar,l.y()*scalar, l.z()*scalar);}
-    static vec3 mul(float scalar, vec3 r) {return vec3(scalar*r.x(),scalar*r.y(), scalar*r.z());}
-
-
-    static vec3 div(vec3 l, vec3 r) {return vec3(l.x()/r.x(),l.y()/r.y(), l.z()/r.z());}
-    static vec3 div(vec3 l, float scalar) {return vec3(l.x()/scalar,l.y()/scalar, l.z()/scalar);}
-
-
-
-
-    static vec3 sin(vec3 vec3){
-        return sin(vec3.x(),vec3.y(),vec3.z());
+    static vec3 vec3(float scalar){
+        return vec3(scalar, scalar, scalar);
     }
 
-    static vec3 cos(vec3 vec3){
-        return vec3(F32.cos(vec3.x()),F32.cos(vec3.y()),F32.cos(vec3.z()));
+    static vec3 add(float xl, float xr, float yl, float yr, float zl, float zr){
+        return vec3(xl+xr, yl+yr, zl+zr);
     }
 
+    static vec3 add(vec3 l, vec3 r){
+        return add(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
+    }
 
-    static vec3 neg(vec3 vec3) {return vec3(0-vec3.x(),0-vec3.y(), 0-vec3.z());}
+    static vec3 add(float l, vec3 r){
+        return add(l, r.x(), l, r.y(), l, r.z());
+    }
+
+    static vec3 add(vec3 l, float r){
+        return add(l.x(), r, l.y(), r, l.z(), r);
+    }
+
+    static vec3 div(float xl, float xr, float yl, float yr, float zl, float zr){
+        return vec3(xl/xr, yl/yr, zl/zr);
+    }
+
+    static vec3 div(vec3 l, vec3 r){
+        return div(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
+    }
+
+    static vec3 div(float l, vec3 r){
+        return div(l, r.x(), l, r.y(), l, r.z());
+    }
+
+    static vec3 div(vec3 l, float r){
+        return div(l.x(), r, l.y(), r, l.z(), r);
+    }
+
+    static vec3 mul(float xl, float xr, float yl, float yr, float zl, float zr){
+        return vec3(xl*xr, yl*yr, zl*zr);
+    }
+
+    static vec3 mul(vec3 l, vec3 r){
+        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
+    }
+
+    static vec3 mul(float l, vec3 r){
+        return mul(l, r.x(), l, r.y(), l, r.z());
+    }
+
+    static vec3 mul(vec3 l, float r){
+        return mul(l.x(), r, l.y(), r, l.z(), r);
+    }
+
+    static vec3 sub(float xl, float xr, float yl, float yr, float zl, float zr){
+        return vec3(xl-xr, yl-yr, zl-zr);
+    }
+
+    static vec3 sub(vec3 l, vec3 r){
+        return sub(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
+    }
+
+    static vec3 sub(float l, vec3 r){
+        return sub(l, r.x(), l, r.y(), l, r.z());
+    }
+
+    static vec3 sub(vec3 l, float r){
+        return sub(l.x(), r, l.y(), r, l.z(), r);
+    }
+
+    static vec3 sin(vec3 v){
+        return vec3(F32.sin(v.x()), F32.sin(v.y()), F32.sin(v.z()));
+    }
+
+    static vec3 cos(vec3 v){
+        return vec3(F32.cos(v.x()), F32.cos(v.y()), F32.cos(v.z()));
+    }
+
+    static vec3 tan(vec3 v){
+        return vec3(F32.tan(v.x()), F32.tan(v.y()), F32.tan(v.z()));
+    }
+
+    static vec3 sqrt(vec3 v){
+        return vec3(F32.sqrt(v.x()), F32.sqrt(v.y()), F32.sqrt(v.z()));
+    }
+
+    static vec3 inversesqrt(vec3 v){
+        return vec3(F32.inversesqrt(v.x()), F32.inversesqrt(v.y()), F32.inversesqrt(v.z()));
+    }
+
+    static vec3 neg(vec3 v){
+        return vec3(0f-v.x(), 0f-v.y(), 0f-v.z());
+    }
+
+    /* safe to copy to here */
+
 
     static vec3 vec3(vec2 xy, float z) {
         return vec3(xy.x(), xy.y(), z);
@@ -112,25 +184,16 @@ public interface vec3 extends  IfaceValue.vec {
             lhs.y()*rhs._10()+lhs.y()+rhs._11()+lhs.y()+rhs._12(),
             lhs.z()*rhs._20()+lhs.z()+rhs._21()+lhs.z()+rhs._22()
     );}
-    static float distance(vec3 lhs, vec3 rhs){
-        return (float)Math.sqrt(lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z());
-    }
-    static float length(vec3 vec3){
-        return distance(vec3,vec3);
-    }
+
     static vec3 mix(vec3 l, vec3 r, float a) {
         return vec3(
                 F32.mix(l.x(),r.x(),a),
                 F32.mix(l.y(),r.y(),a),
-                F32.mix(l.y(),r.y(),a)
+                F32.mix(l.z(),r.z(),a)
         );
     }
-    static float dot(vec3 lhs, vec3 rhs) { return lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z();}
 
-    static vec3 reflect(vec3 I, vec3 N) {
-        // I - 2.0 * dot(N, I) * N
-        return vec3.sub(I, vec3.mul(vec3.mul(N, dot(N,I)),2f));
-    }
+
 
     static vec3 max(vec3 lhs, vec3 rhs){
         return vec3(F32.max(lhs.x(),rhs.x()),F32.max(lhs.y(),rhs.y()),F32.max(lhs.z(),rhs.z()));
@@ -139,10 +202,25 @@ public interface vec3 extends  IfaceValue.vec {
         return vec3(F32.min(lhs.x(),rhs.x()),F32.min(lhs.y(),rhs.y()),F32.min(lhs.z(),rhs.z()));
     }
 
+    static float dot(vec3 lhs, vec3 rhs) { return lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z();}
+    static float sumOfSquares(vec3 v) { return dot(v,v);}
+    static vec3 reflect(vec3 I, vec3 N) {
+        // I - 2.0 * dot(N, I) * N
+        return vec3.sub(I, vec3.mul(vec3.mul(N, dot(N,I)),2f));
+    }
+    static float distance(vec3 lhs, vec3 rhs){
+        var dx = rhs.x()-lhs.x();
+        var dy = rhs.y()-lhs.y();
+        var dz = rhs.z()-lhs.z();
+        return F32.sqrt(dx*dx+dy*dy+dz);
+    }
+    static float length(vec3 vec3){
+        return F32.sqrt(sumOfSquares(vec3));
+    }
     static vec3 normalize(vec3 vec3){
-        float lenSq = vec3.x() * vec3.x() + vec3.y() * vec3.y() + vec3.z() * vec3.z();
+        float lenSq = sumOfSquares(vec3);
         if (lenSq > 0.0f) {
-            float invLen = 1.0f / F32.sqrt(lenSq);
+            float invLen = F32.inversesqrt(lenSq);
             return vec3(vec3.x() * invLen, vec3.y() * invLen, vec3.z() * invLen);
         }
         return vec3(0.0f, 0.0f, 0.0f); // Handle zero-length case

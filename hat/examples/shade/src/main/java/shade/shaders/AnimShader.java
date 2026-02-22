@@ -69,7 +69,7 @@ public class AnimShader implements Shader {
     }
 
     static float disk(vec2 r, vec2 center, float radius) {
-        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(vec2(r), center)));
+        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(r, center)));
     }
 
     @Override
@@ -77,7 +77,7 @@ public class AnimShader implements Shader {
         vec2 fres = vec3.xy(uniforms.iResolution());
         float ftime = uniforms.iTime();
         vec2 p = div(fragCoord, fres);
-        vec2 r = mul(div(vec2(sub(fragCoord, mul(fres, .5f))), fres.y()), 2f);
+        vec2 r = mul(div(sub(fragCoord, mul(fres, .5f)), fres.y()), 2f);
         float xMax = fres.x() / fres.y();
 
         vec3 col1 = vec3(0.216f, 0.471f, 0.698f); // blue

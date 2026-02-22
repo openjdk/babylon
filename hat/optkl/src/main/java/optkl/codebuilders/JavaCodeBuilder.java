@@ -65,7 +65,15 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
         return semicolonNl();
     }
 
-
+    public T publicKeyword() {
+        return keyword("public");
+    }
+    public T privateKeyword() {
+        return keyword("private");
+    }
+    public T protectedKeyword() {
+        return keyword("protected");
+    }
 
     public T importKeyword() {
         return keyword("import");

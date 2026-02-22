@@ -748,7 +748,7 @@ public class SeaScapeShader implements Shader {
         fresnel = min(fresnel * fresnel * fresnel, 0.5f);
 
         vec3 reflected = getSkyColor(reflect(eye, n));
-        vec3 refracted = add(vec3(SEA_BASE), mul(mul(diffuse(n, l, 80.0f), SEA_WATER_COLOR), 0.12f));
+        vec3 refracted = add(SEA_BASE, mul(mul(diffuse(n, l, 80.0f), SEA_WATER_COLOR), 0.12f));
 
         vec3 color = mix(refracted, reflected, fresnel);
 
@@ -917,7 +917,8 @@ public class SeaScapeShader implements Shader {
     //https://www.shadertoy.com/view/Ms2SD1
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        final vec2 fres = vec3.xy(uniforms.iResolution());
+        final vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+       // final vec2 fres = vec3.xy(uniforms.iResolution());
         final float fTime = uniforms.iTime();
         final vec2 fMouse = vec2(uniforms.iMouse());
         final float EPSILON_NRM = 0.1f / fres.x();

@@ -208,7 +208,7 @@ public class RandShader implements Shader {
     }
 
     static float disk(vec2 r, vec2 center, float radius) {
-        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(vec2(r), center)));
+        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(r, center)));
     }
 
     static float coordinateGrid(vec2 r) {

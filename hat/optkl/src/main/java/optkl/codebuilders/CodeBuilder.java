@@ -593,6 +593,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     public final T intConstZero() {
         return constant("0");
     }
+    public final T floatConstZero() {
+        return constant("0f");
+    }
 
     public final T intConstOne() {
         return constant("1");

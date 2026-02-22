@@ -452,7 +452,7 @@ public class MobiusShader implements Shader {
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "10")),
+            Integer.parseInt(System.getProperty("targetFps", "5")),
             new MobiusShader()
     );
 
