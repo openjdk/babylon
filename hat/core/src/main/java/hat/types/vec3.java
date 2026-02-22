@@ -38,8 +38,8 @@ public interface vec3 extends  IfaceValue.vec {
     float y();
 
     float z();
-    AtomicInteger count = new AtomicInteger(0);
-    AtomicBoolean collect = new AtomicBoolean(false);
+   // AtomicInteger count = new AtomicInteger(0);
+   // AtomicBoolean collect = new AtomicBoolean(false);
     //   if (collect.get())count.getAndIncrement();
     // A mutable variant needed for interface mapping
     interface Field extends vec3 {

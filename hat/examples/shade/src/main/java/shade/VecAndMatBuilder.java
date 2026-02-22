@@ -36,6 +36,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
 
@@ -64,6 +66,49 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         return type((JavaType) shape.typeElement());
     }
 
+    VecAndMatBuilder typeAndName(String typeName, String identifierName) {
+        return typeName(typeName).space().identifier(identifierName);
+    }
+    VecAndMatBuilder typeAndName(Shape shape, String identifierName) {
+        return type(shape).space().identifier(identifierName);
+    }
+    <I> VecAndMatBuilder css(Iterable<I> iterable, Consumer<I> consumer) {
+        return commaSpaceSeparated(iterable,consumer);
+    }
+    <I> VecAndMatBuilder cssX2(Iterable<I> iterable1, Iterable<I> iterable2, BiConsumer<I,I> consumer) {
+        return commaSpaceSeparated(iterable1,iterable2,consumer);
+    }
+     VecAndMatBuilder cssLaneNames(Shape shape, Consumer<String> consumer) {
+        return css(shape.laneNames(),consumer);
+    }
+    VecAndMatBuilder dotCall(String identifier, String identifier2, Consumer<VecAndMatBuilder> consumer) {
+        return identifier(identifier).dot().call(identifier2,consumer);
+    }
+    VecAndMatBuilder dotCall(String identifier, String identifier2) {
+        return dotCall(identifier,identifier2,_->{});
+    }
+
+    VecAndMatBuilder newKeyword( String identifier, Consumer<VecAndMatBuilder> consumer) {
+        return newKeyword().space().call(identifier,consumer);
+    }
+    VecAndMatBuilder defaultKeyword( String typeName) {
+        return defaultKeyword().space().typeName(typeName);
+    }
+
+    VecAndMatBuilder callOf(  Consumer<VecAndMatBuilder> consumer) {
+        return call("of",consumer);
+    }
+
+    VecAndMatBuilder returnThis( ) {
+        return  returnKeyword("this").semicolon();
+    }
+
+    VecAndMatBuilder semicolonNlSeparatedLaneNames(Shape shape, Consumer<String> consumer){
+        return semicolonNlSeparated(shape.laneNames(),consumer).semicolonNl();
+    }
+
+
+
     VecAndMatBuilder vec(String vectorName, Shape shape) {
         final String lhs = "l";
         final String rhs = "r";
@@ -77,11 +122,38 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         importDotted("optkl", "IfaceValue");
         nl();
         interfaceKeyword(vectorName).space().extendsKeyword().space().dotted("IfaceValue", "vec").body(_ -> {
-            typeName("Shape").space().identifier("shape").equals().shape(shape).semicolonNl().nl();
-            shape.laneNames().forEach(laneName -> {
-                type(shape).space().call(laneName).semicolonNl();
-            });
-            nl();
+            typeAndName("Shape","shape").equals().shape(shape).semicolonNl().nl();
+            semicolonNlSeparatedLaneNames(shape,n-> type(shape).space().call(n)).nl();
+
+              /*
+             interface Field extends vec3 {
+                 @Reflect
+                 default void schema(){x();y();z();}
+                 void x(float x);
+                 void y(float y);
+                 void z(float z);
+                 default vec3 of(float x, float y, float z){
+                    x(x);y(y);z(z);
+                     return this;
+                 }
+                 default vec3 of(vec3 vec3){
+                     of(vec3.x(),vec3.y(),vec3.z());
+                     return this;
+                 }
+            }
+            */
+
+            blockComment("This allows us to add this type to interface mapped segments ");
+            interfaceKeyword("Field").space().extendsKeyword().space().identifier(vectorName).body(_->
+                    semicolonNlSeparatedLaneNames(shape, n->voidType().space().call(n,_->typeAndName(shape,n)))
+                            .defaultKeyword().space().func(_->typeName(vectorName), "of", _->cssLaneNames(shape,n->typeAndName(shape,n)),
+                                    _->semicolonNlSeparatedLaneNames(shape, n-> call(n, _ -> identifier(n))).returnThis()
+                            )
+                            .defaultKeyword().space().func(_->typeName(vectorName), "of", _->typeAndName(vectorName,vectorName),
+                                    _->callOf(_-> cssLaneNames(shape,n-> dotCall(vectorName,n))).semicolonNl().returnThis()
+                            )
+            ).nl().nl();
+
             /*
                float vec4(float x, float y, float z, float w){
                   record Impl(float x, float y, float z, float w){}
@@ -90,19 +162,12 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
              */
             staticKeyword().space().func(_ -> typeName(vectorName),
                     vectorName,
-                    _ -> commaSpaceSeparated(shape.laneNames(), c -> type(shape).space().identifier(c)),
-                    _ -> { // We create a record to return
-                        record("Impl",
-                                _ -> commaSpaceSeparated(shape.laneNames(), laneName -> type(shape).space().identifier(laneName)),
+                    _ -> cssLaneNames(shape, n -> typeAndName(shape,n)),
+                    _ -> record("Impl",
+                                _ -> cssLaneNames(shape, n -> typeAndName(shape,n)),
                                 _ -> identifier(vectorName),
-                                _ -> {
-                                }
-
-                        );
-                        returnKeyword(_ -> reserved("new").space().call("Impl", _ ->
-                                commaSpaceSeparated(shape.laneNames(), this::identifier)
-                        ));
-                    }
+                                _ -> {}
+                        ).returnKeyword(_ -> newKeyword("Impl", _ -> cssLaneNames(shape, this::identifier)))
             );
 
             Map.of(
@@ -110,23 +175,17 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                     "sub", "-",
                     "mul", "*",
                     "div", "/"
-            ).forEach((name, symbol) -> {
+            ).forEach((fName, sym) -> {
                         /*
-                             vec4 _add(float lx, float ly, float lz, float lw, float rx, float ry, float rz, float rw){
+                             vec4 add(float lx, float ly, float lz, float lw, float rx, float ry, float rz, float rw){
                                  return vec4(lx+rx, ly+ry, lz+rz, lw+rw);
                              }
                         */
                         staticKeyword().space().func(
                                 _ -> typeName(vectorName),
-                                name,    // core ops are named _add(...)
-                                _ -> commaSpaceSeparated(List.of(lhs, rhs), shape.laneNames(), (side, laneName) ->
-                                        type(shape).space().identifier(side + laneName)
-                                ),
-                                _ -> returnCallResult(vectorName, _ ->
-                                        commaSpaceSeparated(shape.laneNames(), c ->
-                                                identifier(lhs + c).symbol(symbol).identifier(rhs + c)
-                                        )
-                                )
+                                fName,
+                                _ -> cssX2(List.of(lhs, rhs), shape.laneNames(), (side, n) -> typeAndName(shape,side + n)),
+                                _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> identifier(lhs + n).symbol(sym).identifier(rhs + n)))
                         );
                         /*
                            vec4 add(vec4 l, vec4 r){
@@ -135,15 +194,9 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                         */
                         staticKeyword().space().func(
                                 _ -> typeName(vectorName),
-                                name,
-                                _ -> commaSpaceSeparated(List.of(lhs, rhs), c ->
-                                        identifier(vectorName).space().identifier(c)
-                                ),
-                                _ -> returnCallResult(name, _ ->
-                                        commaSpaceSeparated(shape.laneNames(), List.of(lhs, rhs), (laneName, side) ->
-                                                identifier(side).dot().call(laneName)// l.x() or r.y()
-                                        )
-                                )
+                                fName,
+                                _ -> css(List.of(lhs, rhs), side -> typeAndName(vectorName,side)),
+                                _ -> returnCallResult(fName, _-> cssX2(shape.laneNames(), List.of(lhs, rhs), (n, side) -> dotCall(side,n)))
                         );
                          /*
                            vec4 add(float l, vec4 r){
@@ -152,13 +205,9 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                         */
                         staticKeyword().space().func(
                                 _ -> typeName(vectorName),
-                                name,
-                                _ -> type(shape).space().identifier(lhs).commaSpace().identifier(vectorName).space().identifier(rhs),
-                                _ -> returnCallResult(name, _ ->
-                                        commaSpaceSeparated(shape.laneNames(), laneName ->
-                                                identifier(lhs).comma().space().identifier(rhs).dot().call(laneName)
-                                        )
-                                )
+                                fName,
+                                _ -> typeAndName(shape,lhs).commaSpace().typeAndName(vectorName,rhs),
+                                _ -> returnCallResult(fName, _ -> cssLaneNames(shape, n -> identifier(lhs).comma().space().dotCall(rhs,n)))
                         );
                          /*
                            vec4 add(vec4 l, float r){
@@ -166,36 +215,28 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                            }
                         */
                         staticKeyword().space().func(
-                                _ -> typeName(vectorName),
-                                name,
-                                _ -> typeName(vectorName).space().identifier(lhs).commaSpace().type(shape).space().identifier(rhs),
-                                _ -> returnCallResult(name, _ ->
-                                        commaSpaceSeparated(shape.laneNames(), laneName ->
-                                                identifier(lhs).dot().call(laneName).comma().space().identifier(rhs)
-                                        )
-                                )
+                                _ -> typeName(vectorName), // vec4
+                                fName,                      // add
+                                _ -> typeAndName(vectorName,lhs).commaSpace().typeAndName(shape,rhs), // vec4 l, float r
+                                _ -> returnCallResult(fName, _ -> cssLaneNames(shape,n -> dotCall(lhs,n).commaSpace().identifier(rhs)))
                         );
 
                     }
             );
-            List.of("neg", "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(functionName ->
+            List.of("neg", "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(fName ->
                     /*
                        vec4 sin(vec4 v){
                           return vec4(F32.sin(v.x()), F32.sin(v.y()), F32.sin(v.z()), F32.sin(v.w()));
                        }
                      */
-                    staticKeyword().space().func(_ -> typeName(vectorName), // type
-                            functionName,               // name
-                            _ -> identifier(vectorName).space().identifier("v"),
-                            _ -> returnCallResult(vectorName, _ ->
-                                    commaSpaceSeparated(shape.laneNames(), laneName ->
-                                            dotted("F32", functionName).paren(_ ->
-                                                    dotted("v", laneName).ocparen()
-                                            )
-                                    )
-                            )
+                    staticKeyword().space().func(
+                            _ -> typeName(vectorName), // type
+                            fName,                    // name
+                            _ -> typeAndName(vectorName,"v"),
+                            _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> dotCall("F32", fName,_ -> dotCall("v", n))))
                     )
             );
+
             /*
             List.of("length").forEach(functionName ->
                      /*
