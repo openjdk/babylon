@@ -109,7 +109,7 @@ public class SpiralShader implements Shader {
                         vec2(uniforms.iTime()/8f)
                 ),
                 mul(
-                        div(atan(U.x(),U.y()), 6.2832f),
+                        div(F32.atan(U.x(),U.y()), 6.2832f),
                         vec2(6f,1f)
                 )
         );

@@ -105,7 +105,7 @@ public class DialectWithInvoke {
 
         // Original Code Mode.
         CoreOp.FuncOp functionModel = Op.ofMethod(m).get();
-        System.out.println(functionModel.toText());
+        IO.println(functionModel.toText());
 
         // Transform the code model to search for all InvokeOp and check if the
         // method name matches with the one we want to replace. We could also check
@@ -135,16 +135,16 @@ public class DialectWithInvoke {
             return blockBuilder;
         });
 
-        System.out.println("Model with new OpNodes for Dialect: ");
-        System.out.println(dialectModel.toText());
+        IO.println("Model with new OpNodes for Dialect: ");
+        IO.println(dialectModel.toText());
 
         CoreOp.FuncOp ssaDialect = SSA.transform(dialectModel);
-        System.out.println("Model with new OpNodes for SsaDialect: ");
-        System.out.println(ssaDialect.toText());
+        IO.println("Model with new OpNodes for SsaDialect: ");
+        IO.println(ssaDialect.toText());
     }
 
     static void main() {
-        System.out.println("Testing Dialects in Code-Reflection");
+        IO.println("Testing Dialects in Code-Reflection");
         customInvoke();
     }
 }

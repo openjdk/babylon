@@ -56,8 +56,6 @@ public interface vec2 extends  IfaceValue.vec {
         }
     }
 
-
-
     static vec2 vec2(float x, float y) {
         record Impl(float x, float y) implements vec2 {
         }
@@ -65,34 +63,101 @@ public interface vec2 extends  IfaceValue.vec {
         return new Impl(x, y);
     }
 
-
-
-
     static vec2 vec2(vec2 vec2) {return vec2(vec2.x(), vec2.y());}
     static vec2 vec2(ivec2 ivec2) {return vec2(ivec2.x(), ivec2.y());}
     static vec2 vec2(float scalar) {return vec2(scalar,scalar);}
     static vec2 vec2() {return vec2(0f,0f);}
+
     static vec2 xy(vec3 vec3) {return vec2(vec3.x(), vec3.y());}
     static vec2 xz(vec3 vec3) {return vec2(vec3.x(), vec3.z());}
     static vec2 yz(vec3 vec3) {return vec2(vec3.y(), vec3.z());}
-    static vec2 add(float lx, float ly, float rx, float ry) {return vec2(lx+rx,ly+ry);}
-    static vec2 sub(float lx, float ly, float rx, float ry) {return vec2(lx-rx,ly-ry);}
-    static vec2 mul(float lx, float ly, float rx, float ry) {return vec2(lx*rx,ly*ry);}
-    static vec2 div(float lx, float ly, float rx, float ry) {return vec2(lx/rx,ly/ry);}
 
-    static vec2 add(vec2 l, vec2 r) {return add(l.x(),l.y(),r.x(),r.y());}
-    static vec2 add(float  l, vec2 r) {return add(l,l,r.x(),r.y());}
-    static vec2 add(vec2  l, float r) {return add(l.x(),l.x(),r,r);}
-    static vec2 sub(vec2 l, vec2 r) {return sub(l.x(),l.y(),r.x(),r.y());}
-    static vec2 sub(vec2 l, float scalar) {return sub(l.x(),l.y(),scalar,scalar);}
-    static vec2 sub(float scalar, vec2 r) {return sub(scalar,scalar, r.x(), r.y());}
-    static vec2 mul(vec2 l, vec2 r) {return mul(l.x(),l.y(),r.x(),r.y());}
-    static vec2 mul(vec2 l, float scalar) {return mul(l.x(),l.y(),scalar,scalar);}
-    static vec2 mul( float scalar, vec2 r) {return mul(scalar,scalar,r.x(),r.y());}
+    static vec2 _add(float lx, float ly, float rx, float ry) {return vec2(lx+rx,ly+ry);}
+    static vec2 _sub(float lx, float ly, float rx, float ry) {return vec2(lx-rx,ly-ry);}
+    static vec2 _mul(float lx, float ly, float rx, float ry) {return vec2(lx*rx,ly*ry);}
+    static vec2 _div(float lx, float ly, float rx, float ry) {return vec2(lx/rx,ly/ry);}
+
+    static vec2 add(vec2 l, vec2 r) {return _add(l.x(),l.y(),r.x(),r.y());}
+    static vec2 add(float  l, vec2 r) {return _add(l,l,r.x(),r.y());}
+    static vec2 add(vec2  l, float r) {return _add(l.x(),l.x(),r,r);}
+
+    static vec2 sub(vec2 l, vec2 r) {return _sub(l.x(),l.y(),r.x(),r.y());}
+    static vec2 sub(vec2 l, float scalar) {return _sub(l.x(),l.y(),scalar,scalar);}
+    static vec2 sub(float scalar, vec2 r) {return _sub(scalar,scalar, r.x(), r.y());}
+
+    static vec2 mul(vec2 l, vec2 r) {return _mul(l.x(),l.y(),r.x(),r.y());}
+    static vec2 mul(vec2 l, float scalar) {return _mul(l.x(),l.y(),scalar,scalar);}
+    static vec2 mul( float scalar, vec2 r) {return _mul(scalar,scalar,r.x(),r.y());}
+
+   /*
+   We should be able to use vec16 for mat4
+
+
+            float16 mat4_mul(float16 A, float16 B) {
+                float16 C;
+
+                // We compute C row by row
+                // Each row of C is the sum of the rows of B scaled by the components of A
+
+                // Row 0
+                C.s0123 = A.s0 * B.s0123 + A.s1 * B.s4567 + A.s2 * B.s89ab + A.s3 * B.scdef;
+                // Row 1
+                C.s4567 = A.s4 * B.s0123 + A.s5 * B.s4567 + A.s6 * B.s89ab + A.s7 * B.scdef;
+                // Row 2
+                C.s89ab = A.s8 * B.s0123 + A.s9 * B.s4567 + A.sa * B.s89ab + A.sb * B.scdef;
+                // Row 3
+                C.scdef = A.sc * B.s0123 + A.sd * B.s4567 + A.se * B.s89ab + A.sf * B.scdef;
+
+                return C;
+            }
+
+
+            #define TS 16 // Tile Size
+
+            __kernel void mat4_mul_tiled(__global const float16* A,\s
+                                         __global const float16* B,\s
+                                         __global float16* C,
+                                         const int Width) { // Width in terms of float16 units
+
+                // Local memory for tiles of float16 matrices
+                __local float16 tileA[TS][TS];
+                __local float16 tileB[TS][TS];
+
+                int row = get_local_id(1);
+                int col = get_local_id(0);
+                int globalRow = get_global_id(1);
+                int globalCol = get_global_id(0);
+
+                float16 accumulated = (float16)(0.0f);
+
+                // Loop over tiles
+                for (int t = 0; t < (Width / TS); t++) {
+
+                    // Cooperative Load: Each thread loads one float16 into local memory
+                    tileA[row][col] = A[globalRow * Width + (t * TS + col)];
+                    tileB[row][col] = B[(t * TS + row) * Width + globalCol];
+
+                    // Synchronize to ensure the tile is fully loaded
+                    barrier(CLK_LOCAL_MEM_FENCE);
+
+                    // Compute partial product for this tile
+                    for (int k = 0; k < TS; k++) {
+                        accumulated = mat4_mul_core(accumulated, tileA[row][k], tileB[k][col]);
+                    }
+
+                    // Synchronize before loading the next tile
+                    barrier(CLK_LOCAL_MEM_FENCE);
+                }
+
+                // Write result to global memory
+                C[globalRow * Width + globalCol] = accumulated;
+            }
+    */
     static vec2 mul(vec2 l, mat2 rhs) {return vec2(l.x()*rhs._00()+l.x()+rhs._01(),l.y()*rhs._10()+l.y()+rhs._11());}
-    static vec2 div(vec2 l, vec2 r) {return div(l.x(),l.y(),r.x(),r.y());}
-    static vec2 div(vec2 l, float scalar) {return div(l.x(),l.y(),scalar,scalar);}
-    static vec2 div( float scalar, vec2 r) {return div(scalar,scalar,r.x(),r.y());}
+
+    static vec2 div(vec2 l, vec2 r) {return _div(l.x(),l.y(),r.x(),r.y());}
+    static vec2 div(vec2 l, float scalar) {return _div(l.x(),l.y(),scalar,scalar);}
+    static vec2 div( float scalar, vec2 r) {return _div(scalar,scalar,r.x(),r.y());}
     static vec2 log(vec2 vec2){return vec2(F32.log(vec2.x()),F32.log(vec2.y()));}
     static float length(vec2 vec2) {return  F32.sqrt(vec2.x() * vec2.x() + vec2.y() * vec2.y());}
     static vec2 mod(vec2 v){return vec2(F32.mod(v.x(),v.y()));}
@@ -106,7 +171,8 @@ public interface vec2 extends  IfaceValue.vec {
     static vec2 min(vec2 lhs,vec2 rhs){return vec2(F32.min(lhs.x(),rhs.x()), F32.min(lhs.y(),rhs.y()));}
 
     static vec2 max(vec2 lhs,vec2 rhs){return vec2(F32.max(lhs.x(),rhs.x()), F32.max(lhs.y(),rhs.y()));}
-
+    static vec2 max(float x,vec2 rhs){return vec2(F32.max(x,rhs.x()), F32.max(x,rhs.y()));}
+    static vec2 max(vec2 lhs, float y){return vec2(F32.max(lhs.x(),y), F32.max(lhs.y(),y));}
     static vec2 mix(vec2 lhs,vec2 rhs, vec2 a){return vec2(F32.mix(lhs.x(),rhs.x(),a.x()), F32.mix(lhs.y(),rhs.y(),a.y()));}
 
     static vec2 sin(float x, float y){
@@ -124,6 +190,16 @@ public interface vec2 extends  IfaceValue.vec {
 
     static vec2 pow(vec2 l, vec2 r){
         return vec2(F32.pow(l.x(),r.x()),F32.pow(l.y(),r.y()));
+    }
+    static vec2 round(vec2 vec2){return vec2(F32.round(vec2.x()), F32.round(vec2.y()));}
+
+    static vec2 normalize(vec2 vec2){
+        float lenSq = vec2.x() * vec2.x() + vec2.y() * vec2.y();
+        if (lenSq > 0.0f) {
+            float invLen = 1.0f / F32.sqrt(lenSq);
+            return vec2(vec2.x() * invLen, vec2.y() * invLen);
+        }
+        return vec2(0.0f, 0.0f); // Handle zero-length case
     }
 
 }

@@ -41,7 +41,7 @@ public class Main extends JFrame {
                 Boolean.parseBoolean(System.getProperty("hat", "false")),
                 Integer.parseInt(System.getProperty("width", System.getProperty("size","1024"))),
                 Integer.parseInt(System.getProperty("height", System.getProperty("size","1024"))),
-                Integer.parseInt(System.getProperty("targetFps", "12")),
+                Integer.parseInt(System.getProperty("targetFps", "10")),
                 shaderEnum.toString(),
                 shaderEnum.shader,
                 Boolean.parseBoolean(System.getProperty("showTargetFps", "true")),

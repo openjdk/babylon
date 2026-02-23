@@ -26,11 +26,57 @@ package optkl.codebuilders;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 import optkl.OpHelper;
 
 import java.lang.invoke.MethodHandles;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
+
+
+    public T importKeyword() {
+        return keyword("import");
+    }
+    public T importDotted(String ... dotted){
+        return importKeyword().space().dotted(dotted).semicolonNl();
+    }
+    public T importStaticDotted(String ... dotted){
+        return importKeyword().space().staticKeyword().space().dotted(dotted).semicolonNl();
+    }
+
+    public T packageKeyword() {
+        return keyword("package");
+    }
+    public T packageDotted(String ... dotted){
+        return packageKeyword().space().dotted(dotted).semicolonNl();
+    }
+
+    T recordKeyword() {
+        return keyword("record");
+    }
+
+    T record(String recordName, Consumer<T> args, Consumer<T> body) {
+        return recordKeyword().space().typeName(recordName).paren(args).brace(body).nl();
+    }
+    public T record(String recordName, Consumer<T> args) {
+        return record(recordName,args,_->ocbrace());
+    }
+    T extendsKeyword(String name) {
+        return keyword("extend").space().identifier(name);
+    }
+    public T interfaceKeyword(String name) {
+        return keyword("interface").space().identifier(name);
+    }
+
+
+    public T returnCallResult(String identifier, Consumer<T> args){
+        return returnKeyword(_-> call(identifier,args));
+    }
+
+
     @Override
     public T type( JavaType javaType) {
         // lets do equiv of SimpleName
