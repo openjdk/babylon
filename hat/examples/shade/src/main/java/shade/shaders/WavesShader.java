@@ -838,7 +838,7 @@ public class WavesShader implements Shader {
             fragColor = vec4(aces_tonemap(C * 2.0), 1.0);
          */
         var fResolution = vec2(uniforms.iResolution().x(), uniforms.iResolution().y());
-        var fMouse = vec2(uniforms.iMouse());
+        var fMouse = vec2(uniforms.iMouse().x(),uniforms.iMouse().y());
         float fTime = uniforms.iTime();
         // get the ray
         vec3 ray = getRay(fragCoord, fResolution, fMouse);

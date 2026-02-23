@@ -288,26 +288,92 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                             _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> floatConstZero().minus().dotCall("v",n)))
                     );
 
+                    /*
+                     static vec4 vec4(vec3 vec3, float w) {return vec4(vec3.x(), vec3.y(), vec3.z(), w);}
+                     static vec4 vec4(vec2 vec2, float z,float w) {return vec4(vec2.x(), vec2.y(), z, w);}
+                    */
 
+            for (int lane=2;lane<shape.lanes();lane++){
+                final int flane = lane;
+                var argVecName = vectorName.substring(0,vectorName.length()-1)+lane; // vec2,vec3 etc
+                List<String> trailingArgs = shape.laneNames().subList(flane,shape.lanes());
+                staticKeyword().space().func(
+                        _ -> typeName(vectorName), // type
+                        vectorName,                    // name
+                        _ -> typeAndName(argVecName,argVecName).commaSpace().css(trailingArgs,n-> typeAndName(shape,n)),
+                        _ -> returnCallResult(vectorName, _ ->{
+                               for (int argPos = 0; argPos<shape.lanes(); argPos++){
+                                   if (argPos>0){
+                                       commaSpace();
+                                   }
+                                   if (argPos<flane){
+                                       typeName(argVecName).dot().call(shape.laneNames().get(argPos));
+                                   }else{
+                                       identifier(shape.laneNames().get(argPos));
+                                   }
+                               }
+
+                        })
+                );
+
+            }
             /*
-            List.of("length").forEach(functionName ->
-                     /*
-                       float length(vec4 v){
-                          return F32.length(v.x(), v.y(),v.z(),v.w());
-                       }
+              static float dot(vec4 lhs, vec4 rhs) {
+                  return lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z()+lhs.w()*rhs.w();
+                  }
+   */
+            staticKeyword().space().func(
+                    _ -> type(shape), // type
+                    "dot",                    // name
+                    _ -> css(List.of(lhs,rhs),side->typeAndName(vectorName,side)),
+                    _ -> returnKeyword().space().separated(shape.laneNames(),_->add(),n-> dotCall(lhs,n).mul().dotCall(rhs,n)).semicolon()
+            );
 
-                    staticKeyword().space().func(_ -> type(shape), // type
-                            functionName,               // name
-                            _ -> identifier(vectorName).space().identifier("v"),
-                            _ -> returnCallResult(vectorName, _ ->
-                                    commaSpaceSeparated(shape.laneNames(), laneName ->
-                                            dotted("F32", functionName).paren(_ ->
-                                                    dotted("v", laneName).ocparen()
-                                            )
-                                    )
-                            )
-                    )
-            );*/
+            /* static float sumOfSquares(vec4 v) { return dot(v,v);} */
+            staticKeyword().space().func(
+                    _ -> type(shape), // type
+                    "sumOfSquares",                    // name
+                    _ -> typeAndName(vectorName,"v"),
+                    _ -> returnCallResult("dot",_->identifier("v").commaSpace().identifier("v"))
+            );
+            /*
+             static float length(vec4 vec4){
+                return F32.sqrt(sumOfSquares(vec4));
+              }
+             */
+            staticKeyword().space().func(
+                    _ -> type(shape), // type
+                    "length",                    // name
+                    _ -> typeAndName(vectorName,"v"),
+                    _ -> returnKeyword().space().dotCall("F32","sqrt",_->
+                            call("sumOfSquares",_->identifier("v"))
+                    ).semicolon()
+            );
+            /*
+    static float distance(vec4 lhs, vec4 rhs){
+        var dx = rhs.x()-lhs.x();
+        var dy = rhs.y()-lhs.y();
+        var dz = rhs.z()-lhs.z();
+        var dw = rhs.w()-lhs.w();
+        return F32.sqrt(dx*dx+dy*dy+dz*dz+dw*dw);
+    }
+    static float length(vec4 vec4){
+        return F32.sqrt(sumOfSquares(vec4));
+    }
+    static vec4 clamp(vec4 rhs,float min, float max){
+        return vec4(Math.clamp(rhs.x(),min,max),Math.clamp(rhs.y(),min,max),Math.clamp(rhs.z(),min,max),Math.clamp(rhs.w(),min,max));
+    }
+
+    static vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 vec4){
+        return vec4(
+                F32.smoothstep(edge0.x(),edge1.x(), vec4.x()),
+                F32.smoothstep(edge0.y(),edge1.y(), vec4.y()),
+                F32.smoothstep(edge0.z(),edge1.z(), vec4.z()),
+                F32.smoothstep(edge0.w(),edge1.w(), vec4.w())
+        );
+    }
+                     */
+
         });
         return self();
     }

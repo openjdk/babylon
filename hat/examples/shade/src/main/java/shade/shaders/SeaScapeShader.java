@@ -920,7 +920,7 @@ public class SeaScapeShader implements Shader {
         final vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
        // final vec2 fres = vec3.xy(uniforms.iResolution());
         final float fTime = uniforms.iTime();
-        final vec2 fMouse = vec2(uniforms.iMouse());
+        final vec2 fMouse = vec2(uniforms.iMouse().x(),uniforms.iMouse().y());
         final float EPSILON_NRM = 0.1f / fres.x();
         final float SEA_TIME = 1f + fTime * SEA_SPEED;
         mat2 octave_m = mat2(1.6f, 1.2f, -1.2f, 1.6f);
