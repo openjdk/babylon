@@ -56,12 +56,18 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return braceNlIndented(consumer);
     }
 
-    T call(String identifier, Consumer<T> consumer) {
-        return identifier(identifier).paren(consumer);
+    public T tern(Consumer<T> test, Consumer<T> ifTrue, Consumer<T> ifFalse){
+        return paren(test).questionMark().paren(ifTrue).colon().paren(ifFalse);
     }
-    public T call(String identifier) {
-        return call(identifier, _->{});
+
+   public T statement(Consumer<T> consumer){
+        consumer.accept(self());
+        return semicolon();
     }
+   public T statementNl(Consumer<T> consumer){
+        return statement(consumer).nl();
+    }
+
     public T func(
             Consumer<T> type,
             String funcName,
@@ -71,9 +77,6 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return space().identifier(funcName).paren(args).body(body).nl().nl();
     }
 
-    public T dotted(String... parts){
-        return dotSeparated(List.of(parts), this::identifier);
-    }
     public final T assign(Consumer<T> lhs, Consumer<T> rhs){
         lhs.accept(self());
         space().equals().space();

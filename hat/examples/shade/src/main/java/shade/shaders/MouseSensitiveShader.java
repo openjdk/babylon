@@ -23,32 +23,53 @@
  * questions.
  */
 package shade.shaders;
+
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.vec2;
 import hat.types.vec4;
-
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
+
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.vec4.vec4;
+
 //https://www.shadertoy.com/view/Md23DV
 public class MouseSensitiveShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
 
-            float w = uniforms.iResolution().x();
+        float w = uniforms.iResolution().x();
         float wDiv3 = uniforms.iResolution().x() / 3;
         float h = uniforms.iResolution().y();
         float hDiv3 = uniforms.iResolution().y() / 3;
-            boolean midx = (fragCoord.x() > wDiv3 && fragCoord.x() < (w - wDiv3));
-            boolean midy = (fragCoord.y() > hDiv3 && fragCoord.y() < (h - hDiv3));
-            if (uniforms.iMouse().x() > wDiv3) {
-                if (midx && midy) {
-                    return vec4(fragCoord.x(), .0f, fragCoord.y(), 0.f);
-                } else {
-                    return vec4(0f, 0f, .5f, 0f);
-                }
+        boolean midx = (fragCoord.x() > wDiv3 && fragCoord.x() < (w - wDiv3));
+        boolean midy = (fragCoord.y() > hDiv3 && fragCoord.y() < (h - hDiv3));
+        if (uniforms.iMouse().x() > wDiv3) {
+            if (midx && midy) {
+                return vec4(fragCoord.x(), .0f, fragCoord.y(), 0.f);
             } else {
-                return vec4(1f, 1f, .5f, 0f);
+                return vec4(0f, 0f, .5f, 0f);
             }
+        } else {
+            return vec4(1f, 1f, .5f, 0f);
         }
+    }
+
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
+            Integer.parseInt(System.getProperty("targetFps", "30")),
+            new MouseSensitiveShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
+    }
 }
