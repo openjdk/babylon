@@ -235,7 +235,7 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model text of code model to the output stream, using the UTF-8 character set.
+     * Writes code model text of a code model to the output stream, using the UTF-8 character set.
      *
      * @param out the output stream
      * @param op the code model, an operation
@@ -246,7 +246,7 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model text of code model to the character stream.
+     * Writes code model text of a code model to the character stream.
      * <p>
      * The character stream will be flushed after the model is writen.
      *
