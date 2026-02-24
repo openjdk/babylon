@@ -30,6 +30,7 @@
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,7 @@ public class TestUsesDependsOn {
 
     @Test
     public void testDependsOn() {
-        Op f = OpParser.fromStringOfJavaCodeModel(OP);
+        Op f = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, OP).get(0);
 
         Map<String, List<String>> dependsUpon = computeValueMap(f, Value::dependsOn);
 
@@ -84,7 +85,7 @@ public class TestUsesDependsOn {
 
     @Test
     public void testUses() {
-        Op f = OpParser.fromStringOfJavaCodeModel(OP);
+        Op f = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, OP).get(0);
         System.out.println(f.toText());
 
         Map<String, List<String>> uses = computeValueMap(f, Value::uses);

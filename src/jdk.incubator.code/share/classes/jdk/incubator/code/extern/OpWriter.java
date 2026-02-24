@@ -39,9 +39,15 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * A writer of code models to the textual form.
+ * A writer of code model to code model text.
  * <p>
- * A code model in textual form may be parsed back into the runtime form by parsing it.
+ * The format of codel model text is unspecified.
+ * <p>
+ * Code model text may be {@link OpParser#fromText(DialectFactory, String) parsed} to produce a code model.
+ *
+ * @apiNote Code model text is designed to be human-readable and is intended for debugging, testing,
+ * and comprehension.
+ * @see OpParser
  */
 public final class OpWriter {
 
@@ -229,10 +235,10 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model (an operation) to the output stream, using the UTF-8 character set.
+     * Writes a code model text of code model to the output stream, using the UTF-8 character set.
      *
      * @param out the output stream
-     * @param op the code model
+     * @param op the code model, an operation
      * @param options writer options
      */
     public static void writeTo(OutputStream out, Op op, Option... options) {
@@ -240,12 +246,12 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model (an operation) to the character stream.
+     * Writes a code model text of code model to the character stream.
      * <p>
      * The character stream will be flushed after the model is writen.
      *
      * @param w the character stream
-     * @param op the code model
+     * @param op the code model, an operation
      * @param options the writer options
      */
     public static void writeTo(Writer w, Op op, Option... options) {
@@ -260,9 +266,9 @@ public final class OpWriter {
     }
 
     /**
-     * {@return the textual representation of the code model operation}
+     * {@return the code model text of a code model}
      *
-     * @param op the code model operation
+     * @param op the code model, an operation
      * @param options the writer options
      */
     public static String toText(Op op, OpWriter.Option... options) {
@@ -272,7 +278,7 @@ public final class OpWriter {
     }
 
     /**
-     * An option that affects the writing operations.
+     * An option that affects the writing of code model text.
      */
     public sealed interface Option {
     }
@@ -284,7 +290,7 @@ public final class OpWriter {
             permits NamerOptionImpl {
 
         /**
-         * {@return an code item naming option with the provided function}
+         * {@return a code item naming option with the provided function}
          *
          * @param named the function used to name code items
          */
@@ -365,9 +371,9 @@ public final class OpWriter {
     final boolean writeVoidOpResult;
 
     /**
-     * Creates a writer of code models (operations) to their textual form.
+     * Creates a writer of code model to code model text.
      *
-     * @param w the character stream writer to write the textual form.
+     * @param w the character stream writer to write code model text.
      */
     public OpWriter(Writer w) {
         this.w = new IndentWriter(w);
@@ -378,9 +384,9 @@ public final class OpWriter {
     }
 
     /**
-     * Creates a writer of code models (operations) to their textual form.
+     * Creates a writer of code model to code model text.
      *
-     * @param w the character stream writer to write the textual form.
+     * @param w the character stream writer to write code model text.
      * @param options the writer options
      */
     public OpWriter(Writer w, Option... options) {
@@ -422,9 +428,9 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model, an operation, to the character stream.
+     * Writes an operation.
      *
-     * @param op the code model
+     * @param op the operation
      */
     public void writeOp(Op op) {
         if (op.parent() != null) {

@@ -180,12 +180,12 @@ public final class BytecodeGenerator {
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
                 if (reflectableLambda.get(i)) {
-                    // return (FuncOp) OpParser.fromOpString(opText)
+                    // @@@ Remove dependency on OpParser encode the model the same way as javac
                     clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
                             ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
                                     .loadConstant(Quoted.embedOp(lop).toText())
                                     .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
-                                            "fromStringOfJavaCodeModel",
+                                            "fromTextWithJavaDialect",
                                             MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
                                     .areturn()));
                 }
