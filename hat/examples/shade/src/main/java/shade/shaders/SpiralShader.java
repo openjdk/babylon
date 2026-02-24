@@ -113,7 +113,7 @@ public class SpiralShader implements Shader {
         // variant of https://shadertoy.com/view/3llcDl
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
 
-        var fResolution = vec3.xy(uniforms.iResolution());
+        var fResolution = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         vec2 U = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());//.sub(fResolution).div(fResolution.y());
         // normalized coordinates
         var z = sub(U, vec2(-1f, 0f));

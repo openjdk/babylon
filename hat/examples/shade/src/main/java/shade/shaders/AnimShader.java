@@ -74,7 +74,7 @@ public class AnimShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec3.xy(uniforms.iResolution());
+        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         float ftime = uniforms.iTime();
         vec2 p = div(fragCoord, fres);
         vec2 r = mul(div(sub(fragCoord, mul(fres, .5f)), fres.y()), 2f);

@@ -45,88 +45,125 @@ import java.util.function.Consumer;
 
 public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
 
-    VecAndMatBuilder() {
+    String vectorName;
+    Shape shape;
+    VecAndMatBuilder(String vectorName, Shape shape) {
         super(MethodHandles.lookup(), null);
+        this.vectorName = vectorName;
+        this.shape = shape;
+
     }
 
-    VecAndMatBuilder shape(Shape shape) {
-        return dotted("Shape", "of").paren(_ -> {
-                    typeName("JavaType").dot();
-                    if (shape.typeElement() instanceof PrimitiveType primitiveType) {
-                        if (JavaType.FLOAT.equals(primitiveType)) {
-                            typeName("FLOAT");
-                        } else {
-                            typeName("INT");
-                        }
-                    } else {
-                        blockInlineComment("WHAT");
-                    }
-                    commaSpace().intValue(shape.lanes());
-                }
-        );
+    VecAndMatBuilder vName() {
+        return id(vectorName);
+    }
+    VecAndMatBuilder vType() {
+        return typeName(vectorName);
+    }
+    VecAndMatBuilder lType() {
+        return type((JavaType)shape.typeElement());
+    }
+    VecAndMatBuilder vDecl(String id) {
+        return vType().space().id(id);
+    }
+    VecAndMatBuilder lDecl(String id) {
+        return lType().space().id(id);
+    }
+    VecAndMatBuilder className(Class<?> clazz) {
+        return typeName(clazz.getSimpleName());
     }
 
-    VecAndMatBuilder type(IfaceValue.vec.Shape shape) {
-        return type((JavaType) shape.typeElement());
-    }
 
-    VecAndMatBuilder typeAndName(String typeName, String identifierName) {
-        return typeName(typeName).space().identifier(identifierName);
-    }
-    VecAndMatBuilder typeAndName(Shape shape, String identifierName) {
-        return type(shape).space().identifier(identifierName);
-    }
     <I> VecAndMatBuilder css(Iterable<I> iterable, Consumer<I> consumer) {
-        return commaSpaceSeparated(iterable,consumer);
-    }
-    <I> VecAndMatBuilder cssX2(Iterable<I> iterable1, Iterable<I> iterable2, BiConsumer<I,I> consumer) {
-        return commaSpaceSeparated(iterable1,iterable2,consumer);
-    }
-     VecAndMatBuilder cssLaneNames(Shape shape, Consumer<String> consumer) {
-        return css(shape.laneNames(),consumer);
-    }
-    VecAndMatBuilder dotCall(String identifier, String identifier2, Consumer<VecAndMatBuilder> consumer) {
-        return identifier(identifier).dot().call(identifier2,consumer);
-    }
-    VecAndMatBuilder dotCall(String identifier, String identifier2) {
-        return dotCall(identifier,identifier2,_->{});
+        return commaSpaceSeparated(iterable, consumer);
     }
 
-    VecAndMatBuilder newKeyword( String identifier, Consumer<VecAndMatBuilder> consumer) {
-        return newKeyword().space().call(identifier,consumer);
+    <I> VecAndMatBuilder cssX2(Iterable<I> iterable1, Iterable<I> iterable2, BiConsumer<I, I> consumer) {
+        return commaSpaceSeparated(iterable1, iterable2, consumer);
     }
 
-    VecAndMatBuilder callOf(  Consumer<VecAndMatBuilder> consumer) {
-        return call("of",consumer);
-    }
-
-    VecAndMatBuilder returnThis( ) {
-        return  returnKeyword("this").semicolon();
-    }
-
-    VecAndMatBuilder semicolonNlSeparatedLaneNames(Shape shape, Consumer<String> consumer){
-        return semicolonNlSeparated(shape.laneNames(),consumer).semicolonNl();
+    VecAndMatBuilder cssLaneNames(Shape shape, Consumer<String> consumer) {
+        return css(shape.laneNames(), consumer);
     }
 
 
-    VecAndMatBuilder vec(String vectorName, Shape shape) {
+    VecAndMatBuilder semicolonNlSeparatedLaneNames(Shape shape, Consumer<String> consumer) {
+        return semicolonNlSeparated(shape.laneNames(), consumer).semicolonNl();
+    }
+
+    VecAndMatBuilder f32Call(String name, Consumer<VecAndMatBuilder> consumer) {
+        return className(F32.class).dot().id(name).paren( consumer);
+    }
+    VecAndMatBuilder f32Sqrt( Consumer<VecAndMatBuilder> consumer) {
+        return f32Call("sqrt",consumer);
+    }
+    VecAndMatBuilder f32Clamp( Consumer<VecAndMatBuilder> consumer) {
+        return f32Call("clamp",consumer);
+    }
+    VecAndMatBuilder f32Mix( Consumer<VecAndMatBuilder> consumer) {
+        return f32Call("mix",consumer);
+    }
+    VecAndMatBuilder f32Smoothstep( Consumer<VecAndMatBuilder> consumer) {
+        return f32Call("smoothstep",consumer);
+    }
+    VecAndMatBuilder f32Inversesqrt( Consumer<VecAndMatBuilder> consumer) {
+        return f32Call("inversesqrt",consumer);
+    }
+
+    VecAndMatBuilder cs() {
+        return commaSpace();
+    }
+
+    VecAndMatBuilder id(String name) {
+        return identifier(name);
+    }
+
+    VecAndMatBuilder staticLaneTypeFunc(
+             String name, Consumer<VecAndMatBuilder> args, Consumer<VecAndMatBuilder> body) {
+        return staticKeyword().space().func(_->lType(), name, args, body);
+    }
+    VecAndMatBuilder staticVecTypeFunc(
+            String name, Consumer<VecAndMatBuilder> args, Consumer<VecAndMatBuilder> body) {
+        return staticKeyword().space().func(_ -> vType(), name, args, body);
+    }
+    VecAndMatBuilder vec() {
         final String lhs = "l";
         final String rhs = "r";
+        final var sides = List.of(lhs, rhs);
         oracleCopyright();
         packageName(F32.class.getPackage());
         autoGenerated();
         importClasses(Reflect.class, JavaType.class, AtomicInteger.class, AtomicBoolean.class, IfaceValue.class);
         importStatic(F32.class, "*");
         nl();
-        publicKeyword().space().interfaceKeyword(vectorName).space().extendsKeyword().space().dotted(IfaceValue.class.getSimpleName(), "vec").body(_ -> {
-            typeAndName(Shape.class.getSimpleName(),"shape").equals().shape(shape).semicolonNl().nl();
-            semicolonNlSeparatedLaneNames(shape,n-> type(shape).space().call(n)).nl();
+        publicKeyword().space().interfaceKeyword().space().vName().space().extendsKeyword().space().className(IfaceValue.class).dot().id("vec").body(_ -> {
+            statementNl(_->
+                    assign(
+                            _->className(Shape.class).space().id( "shape"),
+                            _->typeName("Shape").dot().id("of").paren(_-> {
+                                className(JavaType.class).dot();
+                                either(shape.typeElement() instanceof PrimitiveType primitiveType && JavaType.FLOAT.equals(primitiveType),
+                                        _ -> typeName("FLOAT"),
+                                        _ -> typeName("INT"));
+                                cs().intValue(shape.lanes());
+                            })
+                    )
+            );
+            semicolonNlSeparatedLaneNames(shape, n -> lType().space().id(n).ocparen()).nl();
 
-            typeAndName(AtomicInteger.class.getSimpleName(), "count").equals().newKeyword(AtomicInteger.class.getSimpleName(), _->intConstZero()).semicolonNl();
-            typeAndName(AtomicBoolean.class.getSimpleName(), "collect").equals().newKeyword(AtomicBoolean.class.getSimpleName(), _->constant("false")).semicolonNl();
+            statementNl(_->
+                    assign(
+                            _-> className(AtomicInteger.class).space().id("count"),
+                            _->newKeyword().space().className(AtomicInteger.class).paren( _ -> intConstZero())
+                    )
+            );
+            statementNl(_->
+                    assign(
+                            _->className(AtomicBoolean.class).space().id("collect"),
+                            _->newKeyword().space().className(AtomicBoolean.class).paren( _ -> booleanFalse())
+                    )
+            );
 
-            AtomicInteger count = new AtomicInteger(0);
-            AtomicBoolean collect = new AtomicBoolean(false);
               /*
              interface Field extends vec3 {
                  @Reflect
@@ -146,13 +183,16 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
             */
 
             blockComment("This allows us to add this type to interface mapped segments ");
-            interfaceKeyword("Field").space().extendsKeyword().space().identifier(vectorName).body(_->
-                    semicolonNlSeparatedLaneNames(shape, n->voidType().space().call(n,_->typeAndName(shape,n)))
-                            .defaultKeyword().space().func(_->typeName(vectorName), "of", _->cssLaneNames(shape,n->typeAndName(shape,n)),
-                                    _->semicolonNlSeparatedLaneNames(shape, n-> call(n, _ -> identifier(n))).returnThis()
+            interfaceKeyword().space().id("Field").space().extendsKeyword().space().vType().body(_ ->
+                    semicolonNlSeparatedLaneNames(shape, n -> voidType().space().id(n).paren(_ -> lDecl( n)))
+                            .defaultKeyword().space().func(_-> vType(), "of", _ -> cssLaneNames(shape, this::lDecl),
+                                    _ -> statement(_->semicolonNlSeparatedLaneNames(shape, n -> id(n).paren(_ -> id(n)))
+                                            .returnKeyword().space().id("this"))
                             )
-                            .defaultKeyword().space().func(_->typeName(vectorName), "of", _->typeAndName(vectorName,vectorName),
-                                    _->callOf(_-> cssLaneNames(shape,n-> dotCall(vectorName,n))).semicolonNl().returnThis()
+                            .defaultKeyword().space().func(_ -> vType(), "of", _ -> vType().space().vName(),
+                                    _ -> statement(_->id("of").paren(_ -> cssLaneNames(shape, n -> vName().dot().id(n).ocparen())).semicolonNl()
+                                            .returnKeyword().space().id("this")
+                                    )
                             )
             ).nl().nl();
 
@@ -162,33 +202,27 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                   return new Impl(x,y,z,w);
                }
              */
-            staticKeyword().space().func(_ -> typeName(vectorName),
-                    vectorName,
-                    _ -> cssLaneNames(shape, n -> typeAndName(shape,n)),
+            staticVecTypeFunc( vectorName, _ -> cssLaneNames(shape, this::lDecl),
                     _ -> record("Impl",
-                                _ -> cssLaneNames(shape, n -> typeAndName(shape,n)),
-                                _ -> identifier(vectorName),
-                                _ -> {}
-                        )
+                            _ -> cssLaneNames(shape, this::lDecl),
+                            _ -> vName(),
+                            _ -> {}
+                    )
                             .lineComment("Uncomment to collect stats")
                             .lineComment("   if (collect.get())count.getAndIncrement();")
-                            .returnKeyword(_ -> newKeyword("Impl", _ -> cssLaneNames(shape, this::identifier)))
+                            .returnKeyword(_ -> newKeyword().space().typeName("Impl").paren( _ -> cssLaneNames(shape, this::identifier)))
             );
 
             /*
             static vec3 vec3(float scalar) {return vec3(scalar,scalar,scalar);}
              */
-            staticKeyword().space().func(_ -> typeName(vectorName),
-                    vectorName,
-                    _-> typeAndName(shape,"scalar"),
-                    _->
-                        returnKeyword().space().call(vectorName, _ -> {
-                            for (int i = 0; i < shape.lanes() - 1; i++) {
-                                identifier("scalar").commaSpace();
-                            }
-                            identifier("scalar");
-                        }).semicolon()
-                    );
+           staticVecTypeFunc( vectorName, _ -> lDecl("scalar"),
+                    _ -> statement(_->
+                            returnKeyword().space().vName().paren(_ ->
+                                css(shape.laneNames(), _->id("scalar"))
+                            )
+                    )
+            );
             Map.of(
                     "add", "+",
                     "sub", "-",
@@ -200,120 +234,155 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                                  return vec4(lx+rx, ly+ry, lz+rz, lw+rw);
                              }
                         */
-                        staticKeyword().space().func(
-                                _ -> typeName(vectorName),
-                                fName,
-                                _ -> cssX2( shape.laneNames(),List.of(lhs, rhs), (side, n) -> typeAndName(shape,side + n)),
-                                _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> identifier(n+lhs).symbol(sym).identifier(n+rhs)))
+                       staticVecTypeFunc( fName,
+                                _ -> cssX2(shape.laneNames(), sides, (side, n) -> lDecl( side + n)),
+                                _ -> returnKeyword().space().vName().paren( _ ->
+                                        cssLaneNames(shape, n -> id(n + lhs).symbol(sym).id(n + rhs))
+                                ).semicolon()
                         );
                         /*
                            vec4 add(vec4 l, vec4 r){
                               return add(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
                            }
                         */
-                        staticKeyword().space().func(
-                                _ -> typeName(vectorName),
-                                fName,
-                                _ -> css(List.of(lhs, rhs), side -> typeAndName(vectorName,side)),
-                                _ -> returnCallResult(fName, _-> cssX2(shape.laneNames(), List.of(lhs, rhs), (n, side) -> dotCall(side,n)))
+                       staticVecTypeFunc( fName, _ -> css(sides, this::vDecl),
+                                _ -> statement(_->
+                                        returnKeyword().space().id(fName).paren(_->
+                                                cssX2(shape.laneNames(), sides, (n, side) -> id(side).dot().id( n).ocparen())
+                                        )
+                                )
                         );
-                         /*
+                         /* Scaler left
                            vec4 add(float l, vec4 r){
                               return add(l, r.x(), l, r.y(), l, r.z(), l, r.w());
                            }
                         */
-                        staticKeyword().space().func(
-                                _ -> typeName(vectorName),
-                                fName,
-                                _ -> typeAndName(shape,lhs).commaSpace().typeAndName(vectorName,rhs),
-                                _ -> returnCallResult(fName, _ -> cssLaneNames(shape, n -> identifier(lhs).comma().space().dotCall(rhs,n)))
+                       staticVecTypeFunc( fName, _ -> lDecl(lhs).cs().vDecl(rhs),
+                                _ -> statement(_->
+                                        returnKeyword().space().id(fName).paren(_ ->
+                                                cssLaneNames(shape, n -> id(lhs).comma().space().id(rhs).dot().id( n).ocparen())
+                                        )
+                                )
                         );
                          /*
+                         Scaler right
                            vec4 add(vec4 l, float r){
                               return add( l.x(), r, l.y(), r, l.z(), r, l.w(), r);
                            }
                         */
-                        staticKeyword().space().func(
-                                _ -> typeName(vectorName), // vec4
-                                fName,                      // add
-                                _ -> typeAndName(vectorName,lhs).commaSpace().typeAndName(shape,rhs), // vec4 l, float r
-                                _ -> returnCallResult(fName, _ -> cssLaneNames(shape,n -> dotCall(lhs,n).commaSpace().identifier(rhs)))
-                        );
-
-                    }
-            );
-
-            List.of(
-                    "pow","min","max"
-            ).forEach(fName -> {
-                        /*
-                              static vec2 pow(vec2 l, vec2 r){
-                                return vec2(F32.pow(l.x(),r.x()),F32.pow(l.y(),r.y()));
-                              }
-                        */
-
-                        staticKeyword().space().func(
-                                _ -> typeName(vectorName),
-                                fName,
-                                _ ->  css(List.of(lhs, rhs), side -> typeAndName(vectorName,side)),
-                                _ ->returnCallResult(vectorName, _-> css(shape.laneNames(), n ->
-                                        identifier("F32").dot().call(fName,_->css(List.of(lhs, rhs),side-> dotCall(side,n))))
+                       staticVecTypeFunc( fName, _ -> vDecl( lhs).cs().lDecl( rhs),
+                                _ -> statement(_->
+                                        returnKeyword().space().id(fName).paren(_ ->
+                                                cssLaneNames(shape, n -> id(lhs).dot().id( n).ocparen().cs().id(rhs))
+                                        )
                                 )
                         );
 
                     }
             );
 
+            List.of(
+                    "pow", "min", "max"
+            ).forEach(fName -> {
+                        /*
+                              static vec2 pow(vec2 l, vec2 r){
+                                return vec2(F32.pow(l.x(),r.x()),F32.pow(l.y(),r.y()));
+                              }
+                        */
+                       staticVecTypeFunc( fName, _ -> css(sides, this::vDecl),
+                                _ -> statement(_->
+                                        returnKeyword().space().vName().paren( _ -> css(shape.laneNames(), n ->
+                                                f32Call(fName, _ -> css(sides, side -> id(side).dot().id( n).ocparen())))
+                                        )
+                                )
+                        );
+                         /*
+                              static vec2 pow(float l, vec2 r){
+                                return vec2(F32.pow(l,r.x()),F32.pow(l,r.y()));
+                              }
+                        */
+                        //scalar l
+                       staticVecTypeFunc( fName, _ -> lDecl( lhs).cs().vDecl( rhs),
+                                _ -> statement(_->
+                                        returnKeyword().space().vName().paren( _ -> css(shape.laneNames(), n ->
+                                                f32Call(fName, _ -> id(lhs).cs().id(rhs).dot().id( n).ocparen()))
+                                        )
+                                )
 
-            List.of( "floor", "round","fract","abs","log", "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(fName ->
+                        );
+                  /*
+                              static vec2 pow(vec2 l, float r){
+                                return vec2(F32.pow(l.x(),r),F32.pow(l.y(),r));
+                              }
+                        */
+                        //scalar r
+                       staticVecTypeFunc( fName, _ -> vDecl( lhs).cs().lDecl( rhs),
+                                _ -> statement(_->
+                                        returnKeyword().space().vName().paren( _ -> css(shape.laneNames(), n ->
+                                                f32Call(fName, _ -> id(lhs).dot().id( n).ocparen().cs().id(rhs)))
+                                        )
+                                )
+
+                        );
+
+                    }
+            );
+
+
+            List.of("floor", "round", "fract", "abs", "log", "sin", "cos", "tan", "sqrt", "inversesqrt").forEach(fName ->
                     /*
                        vec4 sin(vec4 v){
                           return vec4(F32.sin(v.x()), F32.sin(v.y()), F32.sin(v.z()), F32.sin(v.w()));
                        }
                      */
-                    staticKeyword().space().func(
-                            _ -> typeName(vectorName), // type
-                            fName,                    // name
-                            _ -> typeAndName(vectorName,"v"),
-                            _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> dotCall("F32", fName,_ -> dotCall("v", n))))
+                   staticVecTypeFunc( fName, _ -> vDecl( "v"),
+                            _ -> statement(_->
+                                    returnKeyword().space().vName().paren( _ ->
+                                            cssLaneNames(shape, n -> f32Call(fName, _ -> id("v").dot().id( n).ocparen()))
+                                    )
+                            )
                     )
             );
-            //     static vec3 neg(vec3 vec3) {return vec3(0-vec3.x(),0-vec3.y(), 0-vec3.z());}
 
 
-                    staticKeyword().space().func(
-                            _ -> typeName(vectorName), // type
-                            "neg",                    // name
-                            _ -> typeAndName(vectorName,"v"),
-                            _ -> returnCallResult(vectorName, _ -> cssLaneNames(shape, n -> floatConstZero().minus().dotCall("v",n)))
-                    );
+            /*
+                   static vec3 neg(vec3 vec3) {
+                       return vec3(0f-vec3.x(),0f-vec3.y(), 0f-vec3.z());
+                   }
+            */
+           staticVecTypeFunc( "neg", _ -> vDecl( "v"),
+                    _ -> statement(_->
+                            returnKeyword().space().vName().paren( _ ->
+                                    cssLaneNames(shape, n -> floatConstZero().minus().id("v").dot().id( n).ocparen())
+                            )
+                    )
+            );
 
                     /*
                      static vec4 vec4(vec3 vec3, float w) {return vec4(vec3.x(), vec3.y(), vec3.z(), w);}
                      static vec4 vec4(vec2 vec2, float z,float w) {return vec4(vec2.x(), vec2.y(), z, w);}
                     */
 
-            for (int lane=2;lane<shape.lanes();lane++){
+            for (int lane = 2; lane < shape.lanes(); lane++) {
                 final int flane = lane;
-                var argVecName = vectorName.substring(0,vectorName.length()-1)+lane; // vec2,vec3 etc
-                List<String> trailingArgs = shape.laneNames().subList(flane,shape.lanes());
-                staticKeyword().space().func(
-                        _ -> typeName(vectorName), // type
-                        vectorName,                    // name
-                        _ -> typeAndName(argVecName,argVecName).commaSpace().css(trailingArgs,n-> typeAndName(shape,n)),
-                        _ -> returnCallResult(vectorName, _ ->{
-                               for (int argPos = 0; argPos<shape.lanes(); argPos++){
-                                   if (argPos>0){
-                                       commaSpace();
-                                   }
-                                   if (argPos<flane){
-                                       typeName(argVecName).dot().call(shape.laneNames().get(argPos));
-                                   }else{
-                                       identifier(shape.laneNames().get(argPos));
-                                   }
-                               }
-
-                        })
+                var argVecName = vectorName.substring(0, vectorName.length() - 1) + lane; // vec2,vec3 etc
+                List<String> trailingArgs = shape.laneNames().subList(flane, shape.lanes());
+               staticVecTypeFunc( vectorName,                    // name
+                        _ -> typeName(argVecName).space().id(argVecName).cs().css(trailingArgs, this::lDecl),
+                        _ -> statement(_->
+                                returnKeyword().space().vName().paren( _ -> {
+                                    for (int argPos = 0; argPos < shape.lanes(); argPos++) {
+                                        if (argPos > 0) {
+                                            cs();
+                                        }
+                                        if (argPos < flane) {
+                                            typeName(argVecName).dot().id(shape.laneNames().get(argPos)).ocparen();
+                                        } else {
+                                            id(shape.laneNames().get(argPos));
+                                        }
+                                    }
+                                })
+                        )
                 );
 
             }
@@ -321,34 +390,92 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
               static float dot(vec4 lhs, vec4 rhs) {
                   return lhs.x()*rhs.x()+lhs.y()*rhs.y()+lhs.z()*rhs.z()+lhs.w()*rhs.w();
                   }
-   */
-            staticKeyword().space().func(
-                    _ -> type(shape), // type
-                    "dot",                    // name
-                    _ -> css(List.of(lhs,rhs),side->typeAndName(vectorName,side)),
-                    _ -> returnKeyword().space().separated(shape.laneNames(),_->add(),n-> dotCall(lhs,n).mul().dotCall(rhs,n)).semicolon()
+            */
+           staticLaneTypeFunc("dot",_ -> css(sides, this::vDecl),
+                    _ -> statement(_->
+                            returnKeyword().space().separated(shape.laneNames(), _ ->
+                                    add(), n -> id(lhs).dot().id( n).ocparen().mul().id(rhs).dot().id( n).ocparen()
+                            )
+                    )
             );
 
-            /* static float sumOfSquares(vec4 v) { return dot(v,v);} */
-            staticKeyword().space().func(
-                    _ -> type(shape), // type
-                    "sumOfSquares",                    // name
-                    _ -> typeAndName(vectorName,"v"),
-                    _ -> returnCallResult("dot",_->identifier("v").commaSpace().identifier("v"))
+            /*
+             static float sumOfSquares(vec4 v) {
+                 return dot(v,v);
+             }
+            */
+           staticLaneTypeFunc("sumOfSquares",_ -> vDecl( "v"),
+                    _ -> statement(_->
+                            returnKeyword().space().id("dot").paren(_ ->
+                                    id("v").cs().id("v")
+                            )
+                    )
             );
             /*
              static float length(vec4 vec4){
                 return F32.sqrt(sumOfSquares(vec4));
               }
              */
-            staticKeyword().space().func(
-                    _ -> type(shape), // type
-                    "length",                    // name
-                    _ -> typeAndName(vectorName,"v"),
-                    _ -> returnKeyword().space().dotCall("F32","sqrt",_->
-                            call("sumOfSquares",_->identifier("v"))
+           staticLaneTypeFunc("length", _ -> vDecl( "v"),
+                    _ -> returnKeyword().space().f32Sqrt( _ ->
+                            id("sumOfSquares").paren(_ -> id("v"))
                     ).semicolon()
             );
+
+             /*
+               static vec4 clamp(vec4 rhs,float min, float max){
+                    return vec4(Math.clamp(rhs.x(),min,max),Math.clamp(rhs.y(),min,max),Math.clamp(rhs.z(),min,max),Math.clamp(rhs.w(),min,max));
+                }
+            */
+
+           staticVecTypeFunc("clamp", _ -> vDecl( "v").cs().lDecl( "min").cs().lDecl( "max"),
+                    _ -> statement(_->
+                            returnKeyword().space().vName().paren( _ ->
+                                    cssLaneNames(shape, n -> f32Clamp( _ ->
+                                            id("v").dot().id( n).ocparen().cs().id("min").cs().id("max"))
+                                    )
+                            )
+                    )
+            );
+
+            /*
+             static vec4 normalize(vec4 vec4){
+                float lenSq = sumOfSquares(vec4);
+                 return (lenSq > 0.0f)?mul(vec4,F32.inversesqrt(lenSq)):vec4(0f);
+             }
+             */
+           staticVecTypeFunc( "normalize", _-> vDecl( "v"),
+                    _ -> {
+                        statementNl(_->
+                               assign(_->
+                                       lDecl( "lenSq"),
+                                       _->id("sumOfSquares").paren(_ -> id("v"))
+                               )
+                        );
+                        statement(_->
+                                        returnKeyword().space().tern(
+                                                _->id("lenSq").space().gt().space().floatConstZero(),
+                                                _->id("mul").paren(_ -> id("v").cs().f32Inversesqrt(_ -> id("lenSq"))),
+                                                _->vName().paren( _ -> floatConstZero()))
+                                );
+                    });
+
+/*
+    static vec3 reflect(vec3 I, vec3 N) {
+        // I - 2.0 * dot(N, I) * N
+        return vec3.sub(I, vec3.mul(vec3.mul(N, dot(N,I)),2f));
+    }
+             */
+
+           staticVecTypeFunc( "reflect", _ -> vDecl( lhs).cs().vDecl( rhs),
+                    _ -> lineComment("lhs - 2f * dot(rhs, lhs) * rhs")
+                            .statement(_->returnKeyword().space().vName().dot().id("sub").paren(_ ->
+                                id(lhs).cs().id("mul").paren(_ ->
+                                        id("mul").paren(_ -> id(rhs).cs().id(lhs)).cs().constant("2f"))
+                        ))
+                    );
+
+
             /*
     static float distance(vec4 lhs, vec4 rhs){
         var dx = rhs.x()-lhs.x();
@@ -356,14 +483,24 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         var dz = rhs.z()-lhs.z();
         var dw = rhs.w()-lhs.w();
         return F32.sqrt(dx*dx+dy*dy+dz*dz+dw*dw);
-    }
-    static float length(vec4 vec4){
-        return F32.sqrt(sumOfSquares(vec4));
-    }
-    static vec4 clamp(vec4 rhs,float min, float max){
-        return vec4(Math.clamp(rhs.x(),min,max),Math.clamp(rhs.y(),min,max),Math.clamp(rhs.z(),min,max),Math.clamp(rhs.w(),min,max));
-    }
+    } */
+           staticLaneTypeFunc( "distance",_ -> css(sides, this::vDecl),
+                    _ -> {
+                        semicolonNlSeparatedLaneNames(shape, n ->
+                            assign(
+                                    _->lDecl( "d" + n),
+                                    _->id(rhs).dot().id( n).ocparen().sub().id(lhs).dot().id( n).ocparen()
+                            )
+                        );
 
+                        statement(_->
+                                returnKeyword().space().f32Sqrt( _ ->
+                                   separated(shape.laneNames(), _ -> add(), n -> id("d" + n).mul().id("d" + n))
+                                )
+                        );
+                    });
+
+            /*
     static vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 vec4){
         return vec4(
                 F32.smoothstep(edge0.x(),edge1.x(), vec4.x()),
@@ -373,13 +510,130 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         );
     }
                      */
+           staticVecTypeFunc( "smoothstep", _ -> css(List.of("e0","e1","v"), this::vDecl),
+                    _ -> statement(_->
+                            returnKeyword().space().vName().paren( _ ->
+                                    indent(_ -> nl()
+                                            .separated(shape.laneNames(), _->
+                                                            comma().nl(),
+                                                            n -> f32Smoothstep( _-> id("e0").dot().id( n).ocparen().cs()
+                                                                            .id("e1").dot().id( n).ocparen().cs()
+                                                                            .id("v").dot().id( n).ocparen()
+                                                            )
+                                                    ).nl()
+                                    )
+                            )
+                    )
+            );
+            /*
+               static vec3 mix(vec3 l, vec3 r, float a) {
+        return vec3(
+                F32.mix(l.x(),r.x(),a),
+                F32.mix(l.y(),r.y(),a),
+                F32.mix(l.z(),r.z(),a)
+        );
+    } */
+           staticVecTypeFunc( "mix", _ -> css(sides, this::vDecl).cs().lDecl( "v"),
+                    _ ->statement(_->
+                            returnKeyword().space().vName().paren( _ -> indent(_ ->
+                                            nl()
+                                                    .separated(shape.laneNames(), _ ->
+                                                            comma().nl(), n ->
+                                                            f32Mix( _ ->
+                                                                    id(lhs).dot().id( n).ocparen().cs().id(rhs).dot().id( n).ocparen().cs().id("v"))
+                                                    )
+                                    )
+                                            .nl()
+                            )
+                    )
 
+            );
+            /*
+            static vec2 mix(vec2 lhs,vec2 rhs, vec2 a){
+                return vec2(
+                        F32.mix(lhs.x(),rhs.x(),a.x()),
+                        F32.mix(lhs.y(),rhs.y(),a.y()));
+            }
+
+            staticFunc(
+                    _ -> vectorType(), // type
+                    "mix",                    // name
+                    _ -> vectorTypeDecl( lhs)
+                            .cs().vectorTypeDecl( rhs)
+                            .cs().laneTypeDecl( "v"),
+                    _ ->
+                            returnCallResult(vectorName, _ -> indent(_ ->
+                                            nl()
+                                                    .separated(shape.laneNames(), _ ->
+                                                            comma().nl(), n ->
+                                                            dotCall("F32", "mix", _ ->
+                                                                    dotCall(lhs, n).cs().dotCall(rhs, n).cs().id("v"))
+                                                    )
+                                    )
+                                            .nl()
+                            )
+
+            );
+
+
+
+*/
+/*
+            static vec2 mod(vec2 v, float r){
+                return vec2(
+                        F32.mod(v.x(),r),
+                        F32.mod(v.y(),r)
+                );
+            }
+            */
+
+            if (shape.lanes() == 3) {
+
+            /*
+
+    static vec3 cross(vec3 a, vec3 b) {
+        return vec3(
+                a.y() * b.z() - a.z() * b.y(),
+                a.z() * b.x() - a.x() * b.z(),
+                a.x() * b.y() - a.y() * b.x()
+        );
+    }
+
+             */
+                staticVecTypeFunc(
+                        //_ -> vType(), // type
+                        "cross",                    // name
+                        _ -> css(List.of("a","b"), this::vDecl),
+                        _ -> statement(_->
+                                returnKeyword().space().vName().paren( _ -> indent(_ -> nl()
+                                                        // a.y() * b.z() - a.z() * b.y(),
+                                                        .id("a").dot().id( "y").ocparen().mul().id("b").dot().id( "z").ocparen()
+                                                        .sub()
+                                                        .id("a").dot().id( "z").ocparen().mul().id("b").dot().id( "y").ocparen().comma().nl()
+                                                        //a.z() * b.x() - a.x() * b.z(),
+                                                        .id("a").dot().id( "z").ocparen().mul().id("b").dot().id( "x").ocparen()
+                                                        .sub()
+                                                        .id("a").dot().id( "x").ocparen().mul().id("b").dot().id( "z").ocparen().comma().nl()
+                                                        //a.x() * b.y() - a.y() * b.x()
+                                                        .id("a").dot().id( "x").ocparen().mul().id("b").dot().id( "y").ocparen()
+                                                        .sub()
+                                                        .id("a").dot().id( "y").ocparen().mul().id("b").dot().id( "x").ocparen()
+                                                // a.y() * b.z() - a.z() * b.y(),
+                                        )
+                                                .nl()
+                                )
+                        )
+
+                );
+
+
+            }
         });
         return self();
     }
 
     static String createVec(String vectorName, Shape shape) {
-        return new VecAndMatBuilder().vec(vectorName, shape).toString();
+        return new VecAndMatBuilder(vectorName, shape).vec().toString();
     }
 
     static void writeVec(Path path, String vectorName, Shape shape) throws IOException {
@@ -394,7 +648,5 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
         writeVec(path, "vec2", Shape.of(JavaType.FLOAT, 2));
         writeVec(path, "vec3", Shape.of(JavaType.FLOAT, 3));
         writeVec(path, "vec4", Shape.of(JavaType.FLOAT, 4));
-
-
     }
 }

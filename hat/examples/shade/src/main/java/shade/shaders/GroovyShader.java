@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.backend.Backend;
 import hat.types.F32;
 import hat.types.vec2;
+import static hat.types.vec2.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
 import shade.Config;
@@ -52,7 +53,7 @@ public class GroovyShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        var fres = vec3.xy(uniforms.iResolution());
+        var fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         var p = div(fragCoord, fres);
         var r = mul(div(sub(fragCoord, mul(fres, .5f)), fres.y()), 16f);
 

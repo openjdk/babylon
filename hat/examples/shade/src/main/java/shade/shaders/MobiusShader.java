@@ -54,7 +54,6 @@ import static hat.types.vec3.mix;
 import static hat.types.vec3.vec3;
 import static hat.types.vec4.normalize;
 import static hat.types.vec4.vec4;
-import static hat.types.vec4.xyz;
 
 //https://www.shadertoy.com/view/4tXyWs
 public class MobiusShader implements Shader {
@@ -442,9 +441,10 @@ public class MobiusShader implements Shader {
 
         // render the grid and stuff
         fragColor = vec4(fragColor.x(), fragColor.y(), fragColor.z(), 1.0f);
-        renderGrid(pos, xyz(fragColor));
-        fragColor = vec4(renderUnitSquare(pos, xyz(fragColor)), 1f);
-        fragColor = vec4(renderAxes(vec2(0f), pos, xyz(fragColor)), 1f);
+
+        renderGrid(pos, vec3(fragColor.x(),fragColor.y(),fragColor.z()));
+        fragColor = vec4(renderUnitSquare(pos, vec3(fragColor.x(),fragColor.y(),fragColor.z())), 1f);
+        fragColor = vec4(renderAxes(vec2(0f), pos, vec3(fragColor.x(),fragColor.y(),fragColor.z())), 1f);
         return normalize(fragColor);
     }
 

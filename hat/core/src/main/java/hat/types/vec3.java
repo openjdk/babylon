@@ -146,12 +146,36 @@ public interface vec3 extends IfaceValue.vec{
         return vec3(F32.pow(l.x(), r.x()), F32.pow(l.y(), r.y()), F32.pow(l.z(), r.z()));
     }
 
+    static vec3 pow(float l, vec3 r){
+        return vec3(F32.pow(l, r.x()), F32.pow(l, r.y()), F32.pow(l, r.z()));
+    }
+
+    static vec3 pow(vec3 l, float r){
+        return vec3(F32.pow(l.x(), r), F32.pow(l.y(), r), F32.pow(l.z(), r));
+    }
+
     static vec3 min(vec3 l, vec3 r){
         return vec3(F32.min(l.x(), r.x()), F32.min(l.y(), r.y()), F32.min(l.z(), r.z()));
     }
 
+    static vec3 min(float l, vec3 r){
+        return vec3(F32.min(l, r.x()), F32.min(l, r.y()), F32.min(l, r.z()));
+    }
+
+    static vec3 min(vec3 l, float r){
+        return vec3(F32.min(l.x(), r), F32.min(l.y(), r), F32.min(l.z(), r));
+    }
+
     static vec3 max(vec3 l, vec3 r){
         return vec3(F32.max(l.x(), r.x()), F32.max(l.y(), r.y()), F32.max(l.z(), r.z()));
+    }
+
+    static vec3 max(float l, vec3 r){
+        return vec3(F32.max(l, r.x()), F32.max(l, r.y()), F32.max(l, r.z()));
+    }
+
+    static vec3 max(vec3 l, float r){
+        return vec3(F32.max(l.x(), r), F32.max(l.y(), r), F32.max(l.z(), r));
     }
 
     static vec3 floor(vec3 v){
@@ -214,12 +238,54 @@ public interface vec3 extends IfaceValue.vec{
         return F32.sqrt(sumOfSquares(v));
     }
 
+    static vec3 clamp(vec3 v, float min, float max){
+        return vec3(F32.clamp(v.x(), min, max), F32.clamp(v.y(), min, max), F32.clamp(v.z(), min, max));
+    }
+
+    static vec3 normalize(vec3 v){
+        float lenSq =sumOfSquares(v);
+        return (lenSq > 0f)?mul(v, F32.inversesqrt(lenSq)):vec3(0f);
+    }
+
+    static vec3 reflect(vec3 l, vec3 r){
+        // lhs - 2f * dot(rhs, lhs) * rhs
+        return vec3.sub(l, mul(mul(r, l), 2f));
+    }
+
+    static float distance(vec3 l, vec3 r){
+        float dx = r.x()-l.x();
+        float dy = r.y()-l.y();
+        float dz = r.z()-l.z();
+        return F32.sqrt(dx*dx+dy*dy+dz*dz);
+    }
+
+    static vec3 smoothstep(vec3 edge0, vec3 edge1, vec3 v){
+        return vec3(
+                F32.smoothstep(edge0.x(), edge1.x(), v.x()),
+                F32.smoothstep(edge0.y(), edge1.y(), v.y()),
+                F32.smoothstep(edge0.z(), edge1.z(), v.z())
+        );
+    }
+
+    static vec3 mix(vec3 l, vec3 r, float v){
+        return vec3(
+                F32.mix(l.x(), r.x(), v),
+                F32.mix(l.y(), r.y(), v),
+                F32.mix(l.z(), r.z(), v)
+        );
+    }
+
+    static vec3 cross(vec3 a, vec3 b){
+        return vec3(
+                a.y()*b.z()-a.z()*b.y(),
+                a.z()*b.x()-a.x()*b.z(),
+                a.x()*b.y()-a.y()*b.x()
+        );
+    }
 
     /* safe to copy to here */
 
     static vec3 vec3(float x, vec2 yz) {return vec3(x, yz.x(), yz.y());}
-
-    static vec2 xy(vec3 vec3){ return vec2.vec2(vec3.x(),vec3.y());}
 
     static vec3 mul(vec3 lhs, mat3 rhs){return vec3(
             lhs.x()*rhs._00()+lhs.x()+rhs._01()+lhs.x()+rhs._02(),
@@ -227,43 +293,4 @@ public interface vec3 extends IfaceValue.vec{
             lhs.z()*rhs._20()+lhs.z()+rhs._21()+lhs.z()+rhs._22()
     );}
 
-    static vec3 mix(vec3 l, vec3 r, float a) {
-        return vec3(
-                F32.mix(l.x(),r.x(),a),
-                F32.mix(l.y(),r.y(),a),
-                F32.mix(l.z(),r.z(),a)
-        );
-    }
-    static vec3 reflect(vec3 I, vec3 N) {
-        // I - 2.0 * dot(N, I) * N
-        return vec3.sub(I, vec3.mul(vec3.mul(N, dot(N,I)),2f));
-    }
-    static float distance(vec3 lhs, vec3 rhs){
-        var dx = rhs.x()-lhs.x();
-        var dy = rhs.y()-lhs.y();
-        var dz = rhs.z()-lhs.z();
-        return F32.sqrt(dx*dx+dy*dy+dz*dz);
-    }
-    static vec3 normalize(vec3 vec3){
-        float lenSq = sumOfSquares(vec3);
-        return (lenSq > 0.0f)?mul(vec3,F32.inversesqrt(lenSq)):vec3(0.0f);
-    }
-
-
-    static vec3 cross(vec3 a, vec3 b) {
-        return vec3(
-                a.y() * b.z() - a.z() * b.y(),
-                a.z() * b.x() - a.x() * b.z(),
-                a.x() * b.y() - a.y() * b.x()
-        );
-    }
-
-    static vec3 clamp(vec3 a, float f1,float f2) {
-        return vec3(F32.clamp(a.x(),f1,f2),F32.clamp(a.y(),f1,f2),F32.clamp(a.z(),f1,f2));
-
-    }
-
-    static vec3 pow(vec3 lhs, float scalar){
-        return vec3(F32.pow(lhs.x(),scalar),F32.pow(lhs.y(),scalar),F32.pow(lhs.z(),scalar));
-    }
 }

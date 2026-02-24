@@ -520,9 +520,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
    public <I> T commaSpaceSeparated(Iterable<I> list1, Iterable<I> list2, BiConsumer<I, I> consumer) {
         return commaSpaceSeparated(list1, $1 -> commaSpaceSeparated(list2, $2 -> consumer.accept($1, $2)));
     }
-    public <I> T dotSeparated(Iterable<I> iterable, Consumer<I> consumer) {
-        return separated(iterable, _ -> dot(), consumer);
-    }
+
     public T commaSpaceSeparated(Consumer<T>... consumers) {
         for (int i = 0; i < consumers.length; i++) {
             if (i > 0) {
@@ -590,6 +588,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return s32Type().space().identifier(identifier);
     }
 
+    public final T booleanFalse() {
+        return constant("false");
+    }
+    public final T booleanTrue() {
+        return constant("true");
+    }
     public final T intConstZero() {
         return constant("0");
     }

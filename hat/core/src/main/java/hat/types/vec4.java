@@ -81,38 +81,6 @@ public interface vec4 extends IfaceValue.vec{
         return vec4(scalar, scalar, scalar, scalar);
     }
 
-    static vec4 mul(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
-        return vec4(xl*xr, yl*yr, zl*zr, wl*wr);
-    }
-
-    static vec4 mul(vec4 l, vec4 r){
-        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
-    }
-
-    static vec4 mul(float l, vec4 r){
-        return mul(l, r.x(), l, r.y(), l, r.z(), l, r.w());
-    }
-
-    static vec4 mul(vec4 l, float r){
-        return mul(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
-    }
-
-    static vec4 sub(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
-        return vec4(xl-xr, yl-yr, zl-zr, wl-wr);
-    }
-
-    static vec4 sub(vec4 l, vec4 r){
-        return sub(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
-    }
-
-    static vec4 sub(float l, vec4 r){
-        return sub(l, r.x(), l, r.y(), l, r.z(), l, r.w());
-    }
-
-    static vec4 sub(vec4 l, float r){
-        return sub(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
-    }
-
     static vec4 add(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
         return vec4(xl+xr, yl+yr, zl+zr, wl+wr);
     }
@@ -143,6 +111,38 @@ public interface vec4 extends IfaceValue.vec{
 
     static vec4 div(vec4 l, float r){
         return div(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
+    }
+
+    static vec4 mul(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
+        return vec4(xl*xr, yl*yr, zl*zr, wl*wr);
+    }
+
+    static vec4 mul(vec4 l, vec4 r){
+        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
+    }
+
+    static vec4 mul(float l, vec4 r){
+        return mul(l, r.x(), l, r.y(), l, r.z(), l, r.w());
+    }
+
+    static vec4 mul(vec4 l, float r){
+        return mul(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
+    }
+
+    static vec4 sub(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
+        return vec4(xl-xr, yl-yr, zl-zr, wl-wr);
+    }
+
+    static vec4 sub(vec4 l, vec4 r){
+        return sub(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
+    }
+
+    static vec4 sub(float l, vec4 r){
+        return sub(l, r.x(), l, r.y(), l, r.z(), l, r.w());
+    }
+
+    static vec4 sub(vec4 l, float r){
+        return sub(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
     static vec4 pow(vec4 l, vec4 r){
@@ -221,31 +221,36 @@ public interface vec4 extends IfaceValue.vec{
         return F32.sqrt(sumOfSquares(v));
     }
 
-
-    /* save to copy to here */
-    static vec3 xyz(vec4 vec4){return vec3.vec3(vec4.x(), vec4.y(), vec4.z());}
-
-    static vec4 clamp(vec4 rhs,float min, float max){
-        return vec4(Math.clamp(rhs.x(),min,max),Math.clamp(rhs.y(),min,max),Math.clamp(rhs.z(),min,max),Math.clamp(rhs.w(),min,max));
+    static vec4 clamp(vec4 v, float min, float max){
+        return vec4(F32.clamp(v.x(), min, max), F32.clamp(v.y(), min, max), F32.clamp(v.z(), min, max), F32.clamp(v.w(), min, max));
     }
 
-    static vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 vec4){
-        return vec4(
-                F32.smoothstep(edge0.x(),edge1.x(), vec4.x()),
-                F32.smoothstep(edge0.y(),edge1.y(), vec4.y()),
-                F32.smoothstep(edge0.z(),edge1.z(), vec4.z()),
-                F32.smoothstep(edge0.w(),edge1.w(), vec4.w())
-        );
+    static vec4 normalize(vec4 v){
+        float lenSq =sumOfSquares(v);
+        return (lenSq > 0f)?mul(v, F32.inversesqrt(lenSq)):vec4(0f);
     }
-    static float distance(vec4 lhs, vec4 rhs){
-        var dx = rhs.x()-lhs.x();
-        var dy = rhs.y()-lhs.y();
-        var dz = rhs.z()-lhs.z();
-        var dw = rhs.w()-lhs.w();
+
+    static vec4 reflect(vec4 l, vec4 r){
+        // lhs - 2f * dot(rhs, lhs) * rhs
+        return vec4.sub(l, mul(mul(r, l), 2f));
+    }
+
+    static float distance(vec4 l, vec4 r){
+        float dx = r.x()-l.x();
+        float dy = r.y()-l.y();
+        float dz = r.z()-l.z();
+        float dw = r.w()-l.w();
         return F32.sqrt(dx*dx+dy*dy+dz*dz+dw*dw);
     }
-    static vec4 normalize(vec4 vec4){
-        float lenSq = sumOfSquares(vec4);
-        return (lenSq > 0.0f)?mul(vec4,F32.inversesqrt(lenSq)):vec4(0f,0f,0f,0f);
+
+    static vec4 smoothstep(vec4 edge0, vec4 edge1, vec4 v){
+        return vec4(
+                F32.smoothstep(edge0.x(), edge1.x(), v.x()),
+                F32.smoothstep(edge0.y(), edge1.y(), v.y()),
+                F32.smoothstep(edge0.z(), edge1.z(), v.z()),
+                F32.smoothstep(edge0.w(), edge1.w(), v.w())
+        );
     }
+
+
 }

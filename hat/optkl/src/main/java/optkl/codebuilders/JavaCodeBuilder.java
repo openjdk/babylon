@@ -101,14 +101,12 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
     public T implementsKeyword() {
         return keyword("implements");
     }
-    public T interfaceKeyword(String name) {
-        return keyword("interface").space().identifier(name);
+    public T interfaceKeyword() {
+        return keyword("interface");
     }
 
 
-    public T returnCallResult(String identifier, Consumer<T> args){
-        return returnKeyword(_-> call(identifier,args));
-    }
+
 
 
     @Override

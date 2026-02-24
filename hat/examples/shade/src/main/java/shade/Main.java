@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.backend.Backend;
 import hat.types.F32;
 import hat.types.vec2;
+import static hat.types.vec2.vec2;
 import hat.types.vec3;
 import shade.shaders.AcesShader;
 import shade.shaders.AnimShader;
@@ -56,7 +57,7 @@ public class Main {
             return vec4(0f, 0f, 1f, 0f);
         }),
         Gradient((uniforms, fragColor, fragCoord) -> {
-            var fResolution = vec3.xy(uniforms.iResolution());
+            var fResolution = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
             float fFrame = uniforms.iFrame();
             var uv = vec2.div(fragCoord, fResolution);
             return vec4(uv.x(), uv.y(), F32.max(fFrame / 100f, 1f), 0f);

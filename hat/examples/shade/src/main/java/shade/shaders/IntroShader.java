@@ -186,7 +186,7 @@ public class IntroShader implements Shader {
         float S = 991119f;
 
         float t = uniforms.iTime();
-        vec2 fres = vec3.xy(uniforms.iResolution());
+        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         vec2 r = div(sub(fragCoord, mul(vec2(-0.5f), fres)), vec2(fres.y()));
 
         float c = 0.05f;
