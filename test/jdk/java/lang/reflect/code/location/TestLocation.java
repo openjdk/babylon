@@ -89,7 +89,7 @@ public class TestLocation {
         StringWriter w = new StringWriter();
         OpWriter.writeTo(w, f, OpWriter.LocationOption.DROP_LOCATION);
         String tfText = w.toString();
-        CoreOp.FuncOp tf = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, tfText).getFirst();
+        CoreOp.FuncOp tf = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, tfText).getFirst();
         testNoLocations(tf);
     }
 

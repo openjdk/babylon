@@ -25,8 +25,6 @@
 
 package jdk.incubator.code.extern;
 
-import java.io.IOException;
-import java.io.InputStream;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -39,97 +37,21 @@ import jdk.incubator.code.extern.impl.Tokens;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * A parser of serialized code models from their textual form.
+ * A parser of code model text to code model.
  * <p>
- * The syntactic grammar of a code mode is specified in the grammar notation, and is a subset of the grammar,
- * specified by the JLS, see section 2.4. (Except that we cannot express non-terminal symbols in italic type.)
+ * The format of codel model text is unspecified.
  * <p>
- * {@snippet lang=text :
- * Operation:
- *   [Value =] Name {Operands} {Successors} {Attributes} {Bodies} ;
+ * Code model text is be produced by {@link OpWriter#toText(Op, OpWriter.Option...) writing} a code model.
  *
- * Operands:
- *   ValueIdentifier {ValueIdentifier}
- *
- * Successors:
- *   Successor {Successor}
- *
- * Successor:
- *   BlockIdentifier
- *   BlockIdentifier ()
- *   BlockIdentifier ( ValueIdentifier {, ValueIdentifier} )
- *
- * Attributes:
- *   Attribute {Attribute}
- *
- * Attribute:
- *   @ AttributeValue
- *   @ Name = AttributeValue
- *
- * AttributeValue:
- *   ExType
- *   NumericAttributeValue
- *   BooleanLiteral
- *   CharacterLiteral
- *   StringLiteral
- *   NullLiteral
- *
- * NumericAttributeValue:
- *    [ '-' ] IntLiteral
- *    [ '-' ] LongLiteral
- *    [ '-' ] FloatLiteral
- *    [ '-' ] DoubleLiteral
- *
- * Bodies:
- *   Body {Body}
- *
- * Body:
- *   BlockIdentifier ( ) Type -> { Operations {Block} }
- *   BlockIdentifier ( Value {, Value} ) Type -> { Operations {Block} }
- *
- * Operations:
- *   Operation {Operation}
- *
- * Block:
- *   BlockIdentifier : Operations
- *   BlockIdentifier ( ) : Operations
- *   BlockIdentifier ( Value {, Value} ) : Operations
- *
- * BlockIdentifier:
- *   ^ Identifier
- *
- * Value:
- *   ValueIdentifier : Type
- *
- * ValueIdentifier:
- *   % JavaLetterOrDigit {JavaLetterOrDigit}
- *
- * Name:
- *   Identifier
- *   Name . Identifier
- *
- * Type:
- *   same as in section 4.1 of JLS but without any annotations
- *
- * Identifier:
- *   same as in section 3 of JLS
- *
- * JavaLetterOrDigit:
- *   same as in section 3 of JLS
- *
- * StringLiteral:
- *   same as in section 3 of JLS
- *
- * NullLiteral:
- *   same as in section 3 of JLS
- * }
+ * @apiNote Code model text is designed to be human-readable and is intended for debugging, testing,
+ * and comprehension.
+ * @see OpWriter
  */
 public final class OpParser {
 
@@ -138,47 +60,29 @@ public final class OpParser {
     // @@@ check failure from operation and type element factories
 
     /**
-     * Parse a code model from its serialized textual form obtained from an input stream.
+     * Parses code model text.
      *
      * @param factory the dialect factory used to construct operations and type elements.
-     * @param in the input stream
-     * @return the list of operations
-     * @throws IOException if parsing fails to read from the input stream
-     * @throws IllegalArgumentException if parsing fails
-     */
-    public static List<Op> fromStream(DialectFactory factory, InputStream in) throws IOException {
-        String s = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        return fromString(factory, s);
-    }
-
-    /**
-     * Parse a code model from its serialized textual form obtained from an input string.
-     *
-     * @param factory the dialect factory used to construct operations and type elements.
-     * @param in the input string
+     * @param in code model text
      * @return the list of operations
      * @throws IllegalArgumentException if parsing fails
      */
-    public static List<Op> fromString(DialectFactory factory, String in) {
+    public static List<Op> fromText(DialectFactory factory, String in) {
         return parse(factory.opFactory(), factory.typeElementFactory(), in);
     }
 
     /**
-     * Parse a Java code model, modeling a method body or quoted lambda body, from
-     * its serialized textual form obtained from an input string.
-     * <p>
-     * This method uses the Java {@link JavaOp#JAVA_DIALECT_FACTORY dialect factory}
+     * Parses code model text using the Java {@link JavaOp#JAVA_DIALECT_FACTORY dialect factory}
      * for construction of operations and type elements.
      *
-     * @param in the input string
-     * @return the code model
-     * @throws IllegalArgumentException if parsing fails or if top-level operation
+     * @param in code model text
+     * @return the operation
+     * @throws IllegalArgumentException if parsing fails or if root operation
      * of the code model is not an instance of {@link CoreOp.FuncOp}
      */
-    public static Op fromStringOfJavaCodeModel(String in) {
-        // @@@ Used produce code models stored as text in the class file,
-        // can eventually be removed as storing text is now a backup option.
-        Op op = fromString(JavaOp.JAVA_DIALECT_FACTORY, in).get(0);
+    public static Op fromTextWithJavaDialect(String in) {
+        // @@@ Remove once bytecode generator is fixed not to use it
+        Op op = fromText(JavaOp.JAVA_DIALECT_FACTORY, in).get(0);
         if (!(op instanceof CoreOp.FuncOp)) {
             throw new IllegalArgumentException("Op is not a FuncOp: " + op);
         }
