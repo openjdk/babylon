@@ -26,11 +26,7 @@
 package shade;
 
 import hat.Accelerator.Compute;
-import hat.types.ivec2;
-import hat.types.mat2;
-import hat.types.mat3;
 import hat.types.vec2;
-import hat.types.vec3;
 import hat.types.vec4;
 import jdk.incubator.code.Reflect;
 import optkl.util.carriers.ArenaAndLookupCarrier;
@@ -41,7 +37,7 @@ import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.util.stream.IntStream;
 
-public class ShaderViewer {
+public class ShaderViewer implements Runnable{
     final Config frameControls;
     final FloatImage floatImage;
     final BufferedImageViewer bufferedImageViewer;
@@ -65,10 +61,9 @@ public class ShaderViewer {
 
     public void startShader() {
         running = true;
-        new Thread(runnable).start();
+        new Thread(this).start();
     }
 
-    Runnable runnable = new Runnable() {
         @Override
         public void run() {
 
@@ -93,7 +88,7 @@ public class ShaderViewer {
                     long startNs = System.nanoTime();
 
                     if (frameControls.showAllocations()) {
-                        ivec2.collect.set(true);
+                      /*  ivec2.collect.set(true);
                         vec2.collect.set(true);
                         vec3.collect.set(true);
                         vec4.collect.set(true);
@@ -104,7 +99,7 @@ public class ShaderViewer {
                         vec3.count.set(0);
                         vec4.count.set(0);
                         mat2.count.set(0);
-                        mat3.count.set(0);
+                        mat3.count.set(0); */
                     }
                     if (frameControls.running()) {
                         uniforms.iFrame(uniforms.iFrame() + 1);
@@ -132,9 +127,9 @@ public class ShaderViewer {
                     }
                     long endNs = System.nanoTime();
                     if (frameControls.showAllocations()) {
-                        frameControls.allocations(
-                                ivec2.count.get() + vec2.count.get() + vec3.count.get() + vec4.count.get() + mat2.count.get() + mat3.count.get()
-                        );
+                      //  frameControls.allocations(
+                        //        ivec2.count.get() + vec2.count.get() + vec3.count.get() + vec4.count.get() + mat2.count.get() + mat3.count.get()
+                       // );
                     }
                     frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
                             .actualFps((int) (uniforms.iFrame() * 1000 / diffMs))
@@ -151,7 +146,7 @@ public class ShaderViewer {
                 }
             }
         }
-    };
+
 
 
 }

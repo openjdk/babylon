@@ -1,47 +1,39 @@
 /*
- * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
+* Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
+* DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+*
+* This code is free software; you can redistribute it and/or modify it
+* under the terms of the GNU General Public License version 2 only, as
+* published by the Free Software Foundation.  Oracle designates this
+* particular file as subject to the "Classpath" exception as provided
+* by Oracle in the LICENSE file that accompanied this code.
+*
+* This code is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+* version 2 for more details (a copy is included in the LICENSE file that
+* accompanied this code).
+*
+* You should have received a copy of the GNU General Public License version
+* 2 along with this work; if not, write to the Free Software Foundation,
+* Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+*
+* Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+* or visit www.oracle.com if you need additional information or have any
+* questions.
+*/
 package hat.types;
 
 // Auto generated DO NOT EDIT
 
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicBoolean;
 import optkl.IfaceValue;
-import hat.types.F32;
-import static hat.types.F32.*;
 
 public interface vec2 extends IfaceValue.vec{
-    Shape shape=Shape.of(JavaType.FLOAT, 2);
-
+    Shape shape = Shape.of(JavaType.FLOAT, 2);
     float x();
     float y();
 
-    AtomicInteger count=new AtomicInteger(0);
-    AtomicBoolean collect=new AtomicBoolean(false);
     /*
     This allows us to add this type to interface mapped segments
     */
@@ -66,8 +58,7 @@ public interface vec2 extends IfaceValue.vec{
         record Impl(float x, float y) implements vec2{
 
         }
-        // Uncomment to collect stats
-        //    if (collect.get())count.getAndIncrement();
+
         return new Impl(x, y);
     }
 
@@ -236,8 +227,9 @@ public interface vec2 extends IfaceValue.vec{
     }
 
     static vec2 normalize(vec2 v){
-        float lenSq =sumOfSquares(v);
-        return (lenSq > 0f)?mul(v, F32.inversesqrt(lenSq)):vec2(0f);
+        float lenSq = sumOfSquares(v);
+
+        return (lenSq > 0f)?(mul(v, F32.inversesqrt(lenSq))):(vec2(0f));
     }
 
     static vec2 reflect(vec2 l, vec2 r){
@@ -251,21 +243,20 @@ public interface vec2 extends IfaceValue.vec{
         return F32.sqrt(dx*dx+dy*dy);
     }
 
-    static vec2 smoothstep(vec2 edge0, vec2 edge1, vec2 v){
+    static vec2 smoothstep(vec2 e0, vec2 e1, vec2 v){
         return vec2(
-                F32.smoothstep(edge0.x(), edge1.x(), v.x()),
-                F32.smoothstep(edge0.y(), edge1.y(), v.y())
+            F32.smoothstep(e0.x(), e1.x(), v.x()),
+            F32.smoothstep(e0.y(), e1.y(), v.y())
         );
     }
 
     static vec2 mix(vec2 l, vec2 r, float v){
         return vec2(
-                F32.mix(l.x(), r.x(), v),
-                F32.mix(l.y(), r.y(), v)
+            F32.mix(l.x(), r.x(), v),
+            F32.mix(l.y(), r.y(), v)
         );
     }
 
-    /* safe to copy to here */
 
     static vec2 xy(vec3 vec3) {return vec2(vec3.x(), vec3.y());}
     static vec2 xz(vec3 vec3) {return vec2(vec3.x(), vec3.z());}
