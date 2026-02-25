@@ -64,9 +64,11 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
         }
         return semicolonNl();
     }
-
     public T publicKeyword() {
         return keyword("public");
+    }
+    public T publicKwSp() {
+        return publicKeyword().space();
     }
     public T privateKeyword() {
         return keyword("private");
@@ -98,11 +100,21 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
     public T extendsKeyword() {
         return keyword("extends");
     }
+    public T extendsKwSp() {
+        return extendsKeyword().space();
+    }
     public T implementsKeyword() {
         return keyword("implements");
     }
+    public T implementsKwSp(){
+        return interfaceKeyword().space();
+    }
     public T interfaceKeyword() {
         return keyword("interface");
+    }
+
+    public T interfaceKwSp() {
+        return interfaceKeyword().space();
     }
 
 

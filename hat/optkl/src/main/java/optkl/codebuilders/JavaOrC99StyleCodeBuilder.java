@@ -64,9 +64,6 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         consumer.accept(self());
         return semicolon();
     }
-   public T statementNl(Consumer<T> consumer){
-        return statement(consumer).nl();
-    }
 
     public T func(
             Consumer<T> type,
