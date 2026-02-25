@@ -26,11 +26,7 @@
 package shade;
 
 import hat.Accelerator.Compute;
-import hat.types.ivec2;
-import hat.types.mat2;
-import hat.types.mat3;
 import hat.types.vec2;
-import hat.types.vec3;
 import hat.types.vec4;
 import jdk.incubator.code.Reflect;
 import optkl.util.carriers.ArenaAndLookupCarrier;
@@ -41,7 +37,7 @@ import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.util.stream.IntStream;
 
-public class ShaderViewer {
+public class ShaderViewer implements Runnable{
     final Config frameControls;
     final FloatImage floatImage;
     final BufferedImageViewer bufferedImageViewer;
@@ -65,10 +61,9 @@ public class ShaderViewer {
 
     public void startShader() {
         running = true;
-        new Thread(runnable).start();
+        new Thread(this).start();
     }
 
-    Runnable runnable = new Runnable() {
         @Override
         public void run() {
 
@@ -151,7 +146,7 @@ public class ShaderViewer {
                 }
             }
         }
-    };
+
 
 
 }
