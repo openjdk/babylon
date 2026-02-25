@@ -59,9 +59,10 @@ import jdk.incubator.code.bytecode.impl.LocalsCompactor;
 import jdk.incubator.code.bytecode.impl.LoweringTransform;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.extern.DialectFactory;
+import jdk.incubator.code.internal.OpBuilder;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -168,6 +169,7 @@ public final class BytecodeGenerator {
     private static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                           ClassDesc clName,
                                                                           SequencedMap<String, ? extends O> ops) {
+        var modelsToBuild = new LinkedHashMap<String, FuncOp>();
         byte[] classBytes = ClassFile.of().build(clName, clb -> {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             BitSet reflectableLambda = new BitSet();
@@ -180,16 +182,21 @@ public final class BytecodeGenerator {
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
                 if (reflectableLambda.get(i)) {
-                    // @@@ Remove dependency on OpParser encode the model the same way as javac
-                    clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
-                            ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
-                                    .loadConstant(Quoted.embedOp(lop).toText())
-                                    .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
-                                            "fromTextWithJavaDialect",
-                                            MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
-                                    .areturn()));
+                    modelsToBuild.put("op$lambda$" + i, Quoted.embedOp(lop));
                 }
                 generateMethod(lookup, clName, "lambda$" + i, lop, clb, ops, lambdaSink, reflectableLambda);
+            }
+            if (!modelsToBuild.isEmpty()) {
+                var module = OpBuilder.createBuilderFunctions(
+                        modelsToBuild,
+                        b -> b.op(JavaOp.fieldLoad(
+                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+
+                for (var e : module.functionTable().sequencedEntrySet()) {
+                    var lowered = NormalizeBlocksTransformer.transform(
+                            e.getValue().transform(CodeContext.create(), lowering));
+                    generateMethod(lookup, clName, e.getKey(), lowered, clb, module.functionTable(), null, null);
+                }
             }
         });
 
