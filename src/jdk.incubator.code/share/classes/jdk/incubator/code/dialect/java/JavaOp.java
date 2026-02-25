@@ -166,7 +166,8 @@ public sealed abstract class JavaOp extends Op {
                 case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) ->
                         eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp convOp -> {
-                    var v = eval(l, convOp.operands().getFirst());
+                    Value operand = op.operands().getFirst();
+                    var v = eval(l, operand);
                     // cast to String
                     if (convOp.resultType().equals(J_L_STRING)) {
                         if (!(v instanceof String)) {
@@ -175,7 +176,6 @@ public sealed abstract class JavaOp extends Op {
                         yield v;
                     }
                     // cast to primitive type
-                    Value operand = op.operands().getFirst();
                     // cast from a primitive type to boolean or form boolean to a primitive type is not allowed in cast context
                     if ((convOp.resultType().equals(BOOLEAN) && !operand.type().equals(BOOLEAN)) ||
                             (operand.type().equals(BOOLEAN) && !convOp.resultType().equals(BOOLEAN))) {

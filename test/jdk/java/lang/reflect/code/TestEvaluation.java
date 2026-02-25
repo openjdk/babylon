@@ -15,6 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -291,6 +292,23 @@ public class TestEvaluation {
                     Assertions.assertEquals(expected, v.get());
                 }
             }
+        }
+    }
+
+    @Test
+    void testInvalidConversion() {
+        CoreOp.FuncOp funcOp = CoreOp.func("ic", CoreType.FUNCTION_TYPE_VOID).body(b -> {
+            // String -> int
+            b.op(JavaOp.conv(INT, b.op(CoreOp.constant(J_L_STRING, "A"))));
+            // int -> String
+            b.op(JavaOp.conv(J_L_STRING, b.op(CoreOp.constant(INT, 1))));
+            b.op(CoreOp.return_());
+        });
+
+        List<Op> convOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.ConvOp).toList();
+        for (Op convOp : convOps) {
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (JavaOp.ConvOp) convOp);
+            Assertions.assertTrue(opt.isEmpty());
         }
     }
 }
