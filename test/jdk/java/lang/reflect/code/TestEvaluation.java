@@ -176,8 +176,6 @@ public class TestEvaluation {
         return true || false;
     }
 
-    // evaluate the op of the result we return
-
     @ParameterizedTest
     @MethodSource("reflectableMethods")
     void test(Method m) throws NoSuchMethodException {

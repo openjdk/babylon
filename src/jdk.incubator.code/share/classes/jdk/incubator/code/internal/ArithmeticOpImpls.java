@@ -841,10 +841,4 @@ public final class ArithmeticOpImpls {
     public static class NonConstantExpression extends Exception {
         public NonConstantExpression() {}
     }
-
-    /*
-    java/lang/reflect/code/TestConstants.java:
-java/lang/reflect/code/bytecode/lift/TestBytecodeLift.java:
-java/lang/reflect/code/writer/TestCodeBuilder.java:
-    * */
 }
