@@ -93,7 +93,7 @@ public class ShaderViewer {
                     long startNs = System.nanoTime();
 
                     if (frameControls.showAllocations()) {
-                        ivec2.collect.set(true);
+                      /*  ivec2.collect.set(true);
                         vec2.collect.set(true);
                         vec3.collect.set(true);
                         vec4.collect.set(true);
@@ -104,7 +104,7 @@ public class ShaderViewer {
                         vec3.count.set(0);
                         vec4.count.set(0);
                         mat2.count.set(0);
-                        mat3.count.set(0);
+                        mat3.count.set(0); */
                     }
                     if (frameControls.running()) {
                         uniforms.iFrame(uniforms.iFrame() + 1);
@@ -132,9 +132,9 @@ public class ShaderViewer {
                     }
                     long endNs = System.nanoTime();
                     if (frameControls.showAllocations()) {
-                        frameControls.allocations(
-                                ivec2.count.get() + vec2.count.get() + vec3.count.get() + vec4.count.get() + mat2.count.get() + mat3.count.get()
-                        );
+                      //  frameControls.allocations(
+                        //        ivec2.count.get() + vec2.count.get() + vec3.count.get() + vec4.count.get() + mat2.count.get() + mat3.count.get()
+                       // );
                     }
                     frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
                             .actualFps((int) (uniforms.iFrame() * 1000 / diffMs))
