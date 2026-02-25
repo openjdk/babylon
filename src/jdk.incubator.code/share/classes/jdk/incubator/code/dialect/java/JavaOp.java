@@ -31,7 +31,7 @@ import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
-import jdk.incubator.code.internal.ArithmeticOpImpls;
+import jdk.incubator.code.internal.ArithmeticAndConvOpImpls;
 import jdk.incubator.code.internal.BranchTarget;
 import jdk.incubator.code.internal.OpDeclaration;
 
@@ -51,7 +51,7 @@ import static jdk.incubator.code.Op.Lowerable.*;
 import static jdk.incubator.code.CodeTransformer.*;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
-import static jdk.incubator.code.internal.ArithmeticOpImpls.*;
+import static jdk.incubator.code.internal.ArithmeticAndConvOpImpls.*;
 
 /**
  * The top-level operation class for Java operations.
@@ -185,7 +185,7 @@ public sealed abstract class JavaOp extends Op {
                             (operand.type().equals(BOOLEAN) && !convOp.resultType().equals(BOOLEAN))) {
                         throw new NonConstantExpression();
                     }
-                    yield ArithmeticOpImpls.evaluate(convOp, v);
+                    yield ArithmeticAndConvOpImpls.evaluate(convOp, v);
                 }
                 case ConcatOp concatOp -> {
                     Object first = eval(l, concatOp.operands().getFirst());
@@ -209,17 +209,17 @@ public sealed abstract class JavaOp extends Op {
                 }
                 case JavaOp.UnaryOp unaryOp -> {
                     Object v = eval(l, unaryOp.operands().getFirst());
-                    yield ArithmeticOpImpls.evaluate(op, v);
+                    yield ArithmeticAndConvOpImpls.evaluate(op, v);
                 }
                 case JavaOp.BinaryOp binaryOp -> {
                     Object first = eval(l, op.operands().getFirst());
                     Object second = eval(l, op.operands().getLast());
-                    yield ArithmeticOpImpls.evaluate(op, first, second);
+                    yield ArithmeticAndConvOpImpls.evaluate(op, first, second);
                 }
                 case JavaOp.CompareOp compareOp -> {
                     Object first = eval(l, op.operands().getFirst());
                     Object second = eval(l, op.operands().getLast());
-                    yield ArithmeticOpImpls.evaluate(op, first, second);
+                    yield ArithmeticAndConvOpImpls.evaluate(op, first, second);
                 }
                 case JavaOp.ConditionalExpressionOp cexpr -> {
                     Object p = eval(l, cexpr.bodies().get(0));

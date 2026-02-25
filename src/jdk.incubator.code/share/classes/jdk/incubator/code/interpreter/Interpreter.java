@@ -36,7 +36,7 @@ import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.internal.ArithmeticOpImpls;
+import jdk.incubator.code.internal.ArithmeticAndConvOpImpls;
 
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -660,7 +660,7 @@ public final class Interpreter {
     static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
         MethodType mt = resolveToMethodType(l, ft).erase();
         try {
-            return MethodHandles.lookup().findStatic(ArithmeticOpImpls.class, opName, mt);
+            return MethodHandles.lookup().findStatic(ArithmeticAndConvOpImpls.class, opName, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw interpreterException(e);
         }

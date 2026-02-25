@@ -29,13 +29,12 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
-public final class ArithmeticOpImpls {
+public final class ArithmeticAndConvOpImpls {
     public static boolean eq(Object a, Object b) {
         return a == b;
     }
@@ -838,7 +837,7 @@ public final class ArithmeticOpImpls {
         if (mt == null) return null;
         mt = mt.erase();
         try {
-            return MethodHandles.lookup().findStatic(ArithmeticOpImpls.class, methodName, mt);
+            return MethodHandles.lookup().findStatic(ArithmeticAndConvOpImpls.class, methodName, mt);
         } catch (NoSuchMethodException e) {
             return null;
         } catch (IllegalAccessException e) {
