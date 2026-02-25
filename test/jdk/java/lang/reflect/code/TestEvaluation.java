@@ -278,13 +278,13 @@ public class TestEvaluation {
     @Test
     void testConversion() {
         var pt = new PrimitiveType[] {BOOLEAN, BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE};
-        for (int i = 0; i < pt.length; i++) {
-            for (int j = 0; j < pt.length; j++) {
-                CoreOp.FuncOp f = conversionModel(pt[i], pt[j]);
+        for (PrimitiveType from : pt) {
+            for (PrimitiveType to : pt) {
+                CoreOp.FuncOp f = conversionModel(from, to);
                 Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
                 MethodHandles.Lookup l = MethodHandles.lookup();
                 Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (JavaOp.ConvOp) op);
-                if ((pt[j].equals(BOOLEAN) && !pt[i].equals(BOOLEAN)) || (pt[i].equals(BOOLEAN) && !pt[j].equals(BOOLEAN))) {
+                if ((to.equals(BOOLEAN) && !from.equals(BOOLEAN)) || (from.equals(BOOLEAN) && !to.equals(BOOLEAN))) {
                     Assertions.assertTrue(v.isEmpty());
                 } else {
                     Assertions.assertTrue(v.isPresent());
@@ -308,6 +308,21 @@ public class TestEvaluation {
         List<Op> convOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.ConvOp).toList();
         for (Op convOp : convOps) {
             Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (JavaOp.ConvOp) convOp);
+            Assertions.assertTrue(opt.isEmpty());
+        }
+    }
+
+    @Test
+    void testInvalidConstants() {
+        CoreOp.FuncOp funcOp = CoreOp.func("ic", CoreType.FUNCTION_TYPE_VOID).body(b -> {
+            b.op(CoreOp.constant(J_L_STRING, null));
+            b.op(CoreOp.constant(INT, new Object()));
+            b.op(CoreOp.return_());
+        });
+
+        List<Op> constantOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.ConstantOp).toList();
+        for (Op cop : constantOps) {
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (CoreOp.ConstantOp) cop);
             Assertions.assertTrue(opt.isEmpty());
         }
     }

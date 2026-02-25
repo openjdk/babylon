@@ -158,11 +158,15 @@ public sealed abstract class JavaOp extends Op {
             throw new NonConstantExpression();
         }
 
+        List<Class<?>> primitiveWrapperClasses = List.of(Boolean.class, Byte.class, Short.class,
+                Character.class, Integer.class, Long.class, Float.class, Double.class);
+
         private static Object eval(MethodHandles.Lookup l, Op op) throws NonConstantExpression {
             return switch (op) {
                 case CoreOp.ConstantOp cop
-                        when cop.resultType() instanceof PrimitiveType ||
-                        (cop.resultType().equals(J_L_STRING) && cop.value() != null) -> cop.value();
+                        when cop.value() != null &&
+                        (cop.value().getClass().equals(String.class) || primitiveWrapperClasses.contains(cop.value().getClass())) ->
+                        cop.value();
                 case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) ->
                         eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp convOp -> {
@@ -222,7 +226,10 @@ public sealed abstract class JavaOp extends Op {
                     Object t = eval(l, cexpr.bodies().get(1));
                     Object f = eval(l, cexpr.bodies().get(2));
                     // @@@ if not Boolean we can throw NonConstantExpression
-                    if (p instanceof Boolean b && b) {
+                    if (!(p instanceof Boolean b)) {
+                        throw new NonConstantExpression();
+                    }
+                    if (b) {
                         yield t;
                     } else {
                         yield f;
@@ -231,11 +238,17 @@ public sealed abstract class JavaOp extends Op {
                 case JavaOp.ConditionalAndOp cand -> {
                     Object left = eval(l, cand.bodies().get(0));
                     Object right = eval(l, cand.bodies().get(1));
+                    if (!(left instanceof Boolean) || !(right instanceof Boolean)) {
+                        throw new NonConstantExpression();
+                    }
                     yield ((Boolean) left) && ((Boolean) right);
                 }
                 case JavaOp.ConditionalOrOp cor -> {
                     Object left = eval(l, cor.bodies().get(0));
                     Object right = eval(l, cor.bodies().get(1));
+                    if (!(left instanceof Boolean) || !(right instanceof Boolean)) {
+                        throw new NonConstantExpression();
+                    }
                     yield ((Boolean) left) || ((Boolean) right);
                 }
                 default -> throw new NonConstantExpression();
