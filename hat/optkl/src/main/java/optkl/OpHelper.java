@@ -547,6 +547,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return OpHelper.isAssignable(lookup(), op().invokeReference().refType(), classes);
         }
 
+        default boolean resultTypeIs(Class<?>... classes) {
+            return OpHelper.isAssignable(lookup(), op().resultType(), classes);
+        }
+
         default boolean returnsArray() {
             return op().resultType() instanceof ArrayType;
         }
@@ -862,9 +866,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return args;
 
         }
-
     }
-
 
     sealed interface Binary extends OpHelper<JavaOp.BinaryOp> {
         default <T> boolean isAssignable(Class<T> clazz) {

@@ -37,6 +37,7 @@ import optkl.ParamVar;
 import optkl.util.Mutable;
 import optkl.util.ops.Precedence;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import static optkl.OpHelper.FieldAccess.fieldAccess;
@@ -51,6 +52,31 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
          throw new RuntimeException("we are fake. This should be removed ");
      }
 
+    public T body(Consumer<T> consumer) {
+        return braceNlIndented(consumer);
+    }
+
+    public T tern(Consumer<T> test, Consumer<T> ifTrue, Consumer<T> ifFalse){
+        return paren(test).questionMark().paren(ifTrue).colon().paren(ifFalse);
+    }
+
+   public T statement(Consumer<T> consumer){
+        consumer.accept(self());
+        return semicolon();
+    }
+   public T statementNl(Consumer<T> consumer){
+        return statement(consumer).nl();
+    }
+
+    public T func(
+            Consumer<T> type,
+            String funcName,
+            Consumer<T> args,
+            Consumer<T> body) {
+        type.accept(self());
+        return space().identifier(funcName).paren(args).body(body).nl().nl();
+    }
+
     public final T assign(Consumer<T> lhs, Consumer<T> rhs){
         lhs.accept(self());
         space().equals().space();
@@ -63,8 +89,11 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     public final T returnKeyword(Consumer<T> exp){
-        return returnKeyword().space().paren(_-> exp.accept(self())).semicolon();
-    }
+      //  return returnKeyword().space().paren(_-> exp.accept(self())).semicolon(); // This looks wrong.  it is very rare for us to have to add trailing semicolons
+        returnKeyword().space();
+        exp.accept(self());
+        return semicolon();
+          }
     public final T forLoop(Consumer<T> init, Consumer<T> test, Consumer<T>mutate, Consumer<T>body) {
         return  forKeyword()
                 .paren(_->{

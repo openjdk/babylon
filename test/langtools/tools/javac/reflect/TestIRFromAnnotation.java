@@ -176,7 +176,7 @@ public class TestIRFromAnnotation {
 
     // parses, and then serializes, dropping location information
     static String canonicalizeModel(String d) {
-        return serialize(OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, d).get(0));
+        return serialize(OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, d).get(0));
     }
 
     // serializes, dropping location information

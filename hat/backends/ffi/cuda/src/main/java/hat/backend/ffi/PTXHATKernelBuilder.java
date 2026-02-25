@@ -975,9 +975,7 @@ PTXHATKernelBuilder symbol(Op op) {
         return intVal(addressSize);
     }
 
-    public PTXHATKernelBuilder funcName(String funcName) {
-        return identifier(funcName);
-    }
+
 
     public PTXHATKernelBuilder visible() {
         return dot().keyword("visible");

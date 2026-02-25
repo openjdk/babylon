@@ -24,40 +24,39 @@
  */
 package shade;
 
-import hat.types.ivec2;
-import static hat.types.ivec2.ivec2;
-
 import hat.types.vec3;
-import optkl.util.carriers.ArenaAndLookupCarrier;
 import hat.types.vec4;
-import static hat.types.vec4.vec4;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
+import static hat.types.ivec2.ivec2;
+
 public class UniformTest {
-     static void main(String[] args){
-        var alc = ArenaAndLookupCarrier.of(MethodHandles.lookup(),Arena.global());
+    static void main(String[] args) {
+        var alc = ArenaAndLookupCarrier.of(MethodHandles.lookup(), Arena.global());
         Uniforms uniforms = Uniforms.create(alc);
-        var fc= uniforms.fragColor();
+        var fc = uniforms.fragColor();
         var resolution = uniforms.iResolution();
-        IO.println("fc "+fc);
-        IO.println("resolution "+resolution);
-        resolution.of(vec3.add(resolution,2));
-        IO.println("resolution "+resolution);
-        vec4 color = vec4.vec4(1f,2f,3f,4f);
-        IO.println("color = "+color);
-        fc.of(vec4.div(vec4.add(fc,color),2f));
-        IO.println("fc "+fc);
+        IO.println("fc " + fc);
+        IO.println("resolution " + resolution);
+        resolution.of(vec3.add(resolution, 2));
+        IO.println("resolution " + resolution);
+        vec4 color = vec4.vec4(1f, 2f, 3f, 4f);
+        IO.println("color = " + color);
+        fc.of(vec4.div(vec4.add(fc, color), 2f));
+        IO.println("fc " + fc);
         uniforms.iTime(0L);
-        IO.println("iTime = "+uniforms.iTime());
+        IO.println("iTime = " + uniforms.iTime());
         uniforms.iTime(2L);
-        IO.println("iTime = "+uniforms.iTime());
+        IO.println("iTime = " + uniforms.iTime());
         uniforms.iFrame(0L);
-        IO.println("iFrame = "+uniforms.iFrame());
+        IO.println("iFrame = " + uniforms.iFrame());
         uniforms.iFrame(1L);
-        IO.println("iFrame = "+uniforms.iFrame());
+        IO.println("iFrame = " + uniforms.iFrame());
         var iMouse = uniforms.iMouse();
-        IO.println("iMouse "+iMouse);
-        iMouse.of(ivec2(0,1));
+        IO.println("iMouse " + iMouse);
+        iMouse.of(ivec2(0, 1));
     }
 }

@@ -31,6 +31,8 @@ import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
 import hat.backend.Backend;
+import hat.examples.common.HATExampleException;
+import hat.examples.common.ParseArgs;
 import hat.types.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -42,12 +44,15 @@ import optkl.ifacemapper.MappableIface.WO;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 
 import static hat.NDRange.NDRange2D;
 import static hat.NDRange.of1D;
 import static hat.NDRange.of2D;
+import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 import static optkl.ifacemapper.MappableIface.RO;
 
 /**
@@ -57,21 +62,17 @@ import static optkl.ifacemapper.MappableIface.RO;
  *
  * <p>For 2D Configuration:
  * <code>
- * java @hat/run ffi-opencl matmul 2D
+ * java @hat/run ffi-opencl matmul --kernel=2D
  * </code>
  * </p>
  *
  * <p> For 1D Configuration
  * <code>
- * java @hat/run ffi-opencl matmul 1D
+ * java @hat/run ffi-opencl matmul --kernel=1D
  * </code>
  * </p>
  */
 public class Main {
-
-    private static final boolean CHECK_RESULT = true;
-
-    private static final int NUM_ITERATIONS = 10;
 
     /**
      * Naive Matrix Multiplication implemented in 2D.
@@ -679,7 +680,8 @@ public class Main {
         );
     }
 
-    final static int BLOCK_SIZE = 16;
+    static final int BLOCK_SIZE = 16;
+    static final int BM = 64;
 
     @Reflect
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
@@ -709,23 +711,33 @@ public class Main {
         );
     }
 
+    private static int ceil(int globalSize, int blockM) {
+        return (globalSize + (blockM - 1)) / blockM;
+    }
+
     @Reflect
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(of2D(256, 256,BLOCK_SIZE, BLOCK_SIZE),
+        // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
+        int size = ceil(globalSize, BM) * BLOCK_SIZE;
+        cc.dispatchKernel(of2D(size, size, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO F32ArrayPadded matrixC, int globalSize) {
-        cc.dispatchKernel(of2D(256, 256,BLOCK_SIZE, BLOCK_SIZE),
+        // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
+        int size = ceil(globalSize, BM) * BLOCK_SIZE;
+        cc.dispatchKernel(of2D(size, size ,BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DRegisterTilingHalf(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F16Array matrixC, int globalSize) {
-        var range = NDRange2D.of(Global2D.of(256, 256), Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
+        // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
+        int size = ceil(globalSize, BM) * BLOCK_SIZE;
+        var range = NDRange2D.of(Global2D.of(size, size), Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(range,
                 kc -> matrixMultiplyKernel2DRegisterTilingHalf(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -778,15 +790,42 @@ public class Main {
      * 1D range or 2D range.
      */
     private enum Configuration {
-        _MT,  // Runs the Multi-thread Java code on the host side (no HAT)
-        _1D,   //
-        _1DFC, // 1D with multiple function calls: This is just for testing
-        _2D,   //
-        _2DLI,
-        _2DTILING,
-        _2DREGISTER_TILING,
-        _2DREGISTER_TILING_VECTORIZED,
-        _2DREGISTER_TILING_FP16,
+        ALG_MT,  // Runs the Multi-thread Java code on the host side (no HAT)
+        ALG_1D,   //
+        ALG_1DFC, // 1D with multiple function calls: This is just for testing
+        ALG_2D,   //
+        ALG_2DLI,
+        ALG_2DTILING,
+        ALG_2DREGISTER_TILING,
+        ALG_2DREGISTER_TILING_VECTORIZED,
+        ALG_2DREGISTER_TILING_FP16;
+
+        String toName() {
+            return this.name().substring(4);
+        }
+    }
+
+    // Process extra parameter to obtain kernel algorithm to run
+    private static Configuration getConfiguration(String[] args) {
+        Configuration configuration = Configuration.ALG_2DTILING;
+        for (String arg : args) {
+            if (arg.startsWith("--kernel=")) {
+                String kernel = arg.split("=")[1];
+                configuration = switch (kernel) {
+                    case "MT" -> Configuration.ALG_MT;
+                    case "1D" -> Configuration.ALG_1D;
+                    case "1DFC" -> Configuration.ALG_1DFC;
+                    case "2D" -> Configuration.ALG_2D;
+                    case "2DLI" -> Configuration.ALG_2DLI;
+                    case "2DTILING" -> Configuration.ALG_2DTILING;
+                    case "2DREGISTERTILING" -> Configuration.ALG_2DREGISTER_TILING;
+                    case "2DREGISTERTILING_V" -> Configuration.ALG_2DREGISTER_TILING_VECTORIZED;
+                    case "2DREGISTERTILING_FP16" -> Configuration.ALG_2DREGISTER_TILING_FP16;
+                    default -> configuration;
+                };
+            }
+        }
+        return configuration;
     }
 
     /**
@@ -796,30 +835,27 @@ public class Main {
      *
      */
     static void main(String[] args) {
-        Configuration configuration = Configuration._2DTILING;
-        if (args.length > 0) {
-            configuration = switch (args[0]) {
-                case "MT" -> Configuration._MT;
-                case "1D" -> Configuration._1D;
-                case "1DFC" -> Configuration._1DFC;
-                case "2D" -> Configuration._2D;
-                case "2DLI" -> Configuration._2DLI;
-                case "2DTILING" -> Configuration._2DTILING;
-                case "2DREGISTERTILING" -> Configuration._2DREGISTER_TILING;
-                case "2DREGISTERTILING_V" -> Configuration._2DREGISTER_TILING_VECTORIZED;
-                case "2DREGISTERTILING_FP16" -> Configuration._2DREGISTER_TILING_FP16;
-                default -> configuration;
-            };
-        }
 
-        System.out.println("[INFO] NDRangeConfiguration: " + configuration);
+        final int defaultSize = 1024;
+        ParseArgs parseArgs = new ParseArgs(args);
+        ParseArgs.Options options = parseArgs.parseWithDefaults(defaultSize, 100);
+
+        final boolean verbose = options.verbose();
+        final int size = options.size();
+        final int iterations = options.iterations();
+        final boolean checkResult = options.checkResult();
+
+        // process configuration (extra parameter for this example)
+        Configuration configuration = getConfiguration(args);
+        IO.println("[INFO] Input Size     : " + size + "x" + size);
+        IO.println("[INFO] Check Result:  : " + checkResult);
+        IO.println("[INFO] Num Iterations : " + iterations);
+        IO.println("[INFO] NDRangeConfiguration: " + configuration.toName());
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        System.out.println(accelerator);
+        IO.println(accelerator);
 
-        final int size = 1024;
-        IO.println("[INFO] Starting Matrix Multiplication with size: " + size + "x" + size);
         F32Array matrixA;
         F32Array matrixB;
         F32Array matrixC;
@@ -831,7 +867,7 @@ public class Main {
         F16Array matrixCHalf;
 
         Random r = new Random(19);
-        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
+        if (configuration == Configuration.ALG_2DREGISTER_TILING_VECTORIZED) {
             matrixBHalf = null;
             matrixAHalf = null;
             matrixCHalf = null;
@@ -849,7 +885,7 @@ public class Main {
             matrixCPad = null;
             matrixBPad = null;
             matrixAPad = null;
-            if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+            if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
                 matrixC = null;
                 matrixB = null;
                 matrixA = null;
@@ -874,66 +910,67 @@ public class Main {
             }
         }
 
-
         F32Array resultSeq = null;
         F16Array resultSeqHalf = null;
-        if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+        if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
             resultSeqHalf = F16Array.create(accelerator, size * size);
         } else {
             resultSeq = F32Array.create(accelerator, size * size);
         }
 
-        // Run Seq for reference
-        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
-            runSequential(matrixAPad, matrixBPad, resultSeq, size);
-        } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
-            runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
-        } else {
-            runSequential(matrixA, matrixB, resultSeq, size);
+        if (checkResult) {
+            // Run the sequential version for reference
+            switch (configuration) {
+                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
+                case Configuration.ALG_2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
+                default -> runSequential(matrixA, matrixB, resultSeq, size);
+            }
         }
 
-        for (int it = 0; it < NUM_ITERATIONS; it++) {
+        List<Long> timers = new ArrayList<>();
+        for (int it = 0; it < iterations; it++) {
             long start = System.nanoTime();
             switch (configuration) {
-                case _MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
-                case _1D -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
+                case ALG_1D -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
-                case _1DFC -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_1DFC -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
-                case _2D -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2D -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
-                case _2DLI -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DLI -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
-                case _2DTILING -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DTILING -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
-                case _2DREGISTER_TILING -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DREGISTER_TILING -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DRegisterTiling(cc, matrixA, matrixB, matrixC, size));
-                case _2DREGISTER_TILING_VECTORIZED -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DREGISTER_TILING_VECTORIZED -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DRegisterTilingVectorizedAccesses(cc, matrixAPad, matrixBPad, matrixCPad, size));
-                case _2DREGISTER_TILING_FP16 -> accelerator.compute((@Reflect Compute) cc ->
+                case ALG_2DREGISTER_TILING_FP16 -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DRegisterTilingHalf(cc, matrixAHalf, matrixBHalf, matrixCHalf, size));
-                default -> throw new RuntimeException("Unknown configuration: " + configuration);
+                default -> throw new HATExampleException("Unknown configuration: " + configuration);
+            }
+            long end = System.nanoTime();
+            timers.add((end-start));
+            if (verbose) {
+                IO.println("Elapsed Time: " + (end - start) + " ns");
             }
 
-            long end = System.nanoTime();
-            System.out.println("Elapsed Time: " + (end - start) + " ns");
-
-            // If the check is ON, then check first and lat iterations
-            if (it == 0 || it == (NUM_ITERATIONS - 1) && CHECK_RESULT) {
-                // Check result for the first iteration
+            // If the check is ON, then check first and last iterations
+            if (checkResult && (it == 0 || it == (iterations - 1))) {
                 boolean isCorrect = true;
                 for (int i = 0; i < size; i++) {
                     for (int j = 0; j < size; j++) {
                         float expectedValue;
-                        if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+                        if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
                             expectedValue = F16.f16ToFloat(resultSeqHalf.array(i * size + j));
                         } else {
                             expectedValue = resultSeq.array(i * size + j);
                         }
                         float gotValue;
-                        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
+                        if (configuration == Configuration.ALG_2DREGISTER_TILING_VECTORIZED) {
                             gotValue = matrixCPad.array(i * size + j);
-                        } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
+                        } else if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
                             gotValue = F16.f16ToFloat(matrixCHalf.array(i * size + j));
                         } else {
                             gotValue = matrixC.array(i * size + j);
@@ -950,23 +987,30 @@ public class Main {
                 }
 
                 if (isCorrect) {
-                    System.out.println("Result is correct!");
+                    IO.println("Result is correct!");
                 } else {
-                    System.out.println("Result is wrong!");
+                    IO.println("Result is wrong!");
                 }
             }
         }
+
+        // Write CSV table with all results
+        List<String> header = List.of(configuration.toName() + "-" + + size);
+        String fileName = "table-results-mxm-" + configuration.toName() + "-" + size + ".csv";
+        dumpStatsToCSVFile(List.of(timers), header, fileName);
     }
 
     private static void runMultiThreadedWithStreams(F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        IntStream.range(0, size).parallel().forEach(i -> {
-            IntStream.range(0, size).parallel().forEach(j -> {
-                float sum = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    sum += matrixA.array(i * size + k) * matrixB.array(k * size + j);
-                }
-                matrixC.array(i * size + j, sum);
-            });
-        });
+        IntStream.range(0, size)
+                .parallel()
+                .forEach(i -> IntStream.range(0, size)
+                        .parallel()
+                        .forEach(j -> {
+                            float sum = 0.0f;
+                            for (int k = 0; k < size; k++) {
+                                sum += matrixA.array(i * size + k) * matrixB.array(k * size + j);
+                            }
+                            matrixC.array(i * size + j, sum);
+                        }));
     }
 }
