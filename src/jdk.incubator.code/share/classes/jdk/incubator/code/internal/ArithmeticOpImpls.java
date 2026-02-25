@@ -1,19 +1,16 @@
 package jdk.incubator.code.internal;
 
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
 public final class ArithmeticOpImpls {
-
-    public static String add(String a, String b) {
-        return a.concat(b);
-    }
-
-
     public static boolean eq(Object a, Object b) {
         return a == b;
     }
@@ -803,20 +800,51 @@ public final class ArithmeticOpImpls {
     }
 
     // resolution
-    public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+    private static MethodType resolveToMethodType(FunctionType ft) {
         try {
-            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
+            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(MethodHandles.publicLookup());
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            return null;
         }
     }
 
-    public static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
-        MethodType mt = resolveToMethodType(l, ft).erase();
+    public static MethodHandle opHandle(String methodName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(ft);
+        if (mt == null) return null;
+        mt = mt.erase();
         try {
-            return MethodHandles.lookup().findStatic(ArithmeticOpImpls.class, opName, mt);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+            return MethodHandles.lookup().findStatic(ArithmeticOpImpls.class, methodName, mt);
+        } catch (NoSuchMethodException e) {
+            return null;
+        } catch (IllegalAccessException e) {
+            throw new InternalError("Should not reach here");
         }
     }
+
+    public static Object evaluate(Op op, Object... evaluatedOperands) throws NonConstantExpression {
+        String mn = op.externalizeOpName();
+        if (op instanceof JavaOp.ConvOp) {
+            mn = mn + "_" + op.resultType();
+        }
+        MethodHandle mh = opHandle(mn, op.opType());
+        if (mh == null) {
+            throw new NonConstantExpression();
+        }
+        try {
+            return mh.invokeWithArguments(evaluatedOperands);
+        } catch (Throwable e) {
+            throw new InternalError("Should not reach here", e);
+        }
+    }
+
+    @SuppressWarnings("serial")
+    public static class NonConstantExpression extends Exception {
+        public NonConstantExpression() {}
+    }
+
+    /*
+    java/lang/reflect/code/TestConstants.java:
+java/lang/reflect/code/bytecode/lift/TestBytecodeLift.java:
+java/lang/reflect/code/writer/TestCodeBuilder.java:
+    * */
 }

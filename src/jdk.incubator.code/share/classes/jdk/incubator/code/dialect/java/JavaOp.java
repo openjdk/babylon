@@ -35,9 +35,7 @@ import jdk.incubator.code.internal.ArithmeticOpImpls;
 import jdk.incubator.code.internal.BranchTarget;
 import jdk.incubator.code.internal.OpDeclaration;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Field;
@@ -53,6 +51,7 @@ import static jdk.incubator.code.Op.Lowerable.*;
 import static jdk.incubator.code.CodeTransformer.*;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
+import static jdk.incubator.code.internal.ArithmeticOpImpls.*;
 
 /**
  * The top-level operation class for Java operations.
@@ -166,18 +165,23 @@ public sealed abstract class JavaOp extends Op {
                         (cop.resultType().equals(J_L_STRING) && cop.value() != null) -> cop.value();
                 case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) ->
                         eval(l, varLoadOp.varOp().initOperand());
-                case JavaOp.ConvOp convOp
-                        when (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) -> {
-                    //@@@ we allow conv from a PT to boolean and from boolean to a PT
-                    // eventhough cast context doesn't allow it
+                case JavaOp.ConvOp convOp -> {
                     var v = eval(l, convOp.operands().getFirst());
-                    try {
-                        yield ArithmeticOpImpls.opHandle(l, "conv_" + convOp.resultType(), op.opType()).invoke(v);
-                    } catch (Throwable e) {
+                    // cast to String
+                    if (convOp.resultType().equals(J_L_STRING)) {
+                        if (!(v instanceof String)) {
+                            throw new NonConstantExpression();
+                        }
+                        yield v;
+                    }
+                    // cast to primitive type
+                    Value operand = op.operands().getFirst();
+                    // cast from a primitive type to boolean or form boolean to a primitive type is not allowed in cast context
+                    if ((convOp.resultType().equals(BOOLEAN) && !operand.type().equals(BOOLEAN)) ||
+                            (operand.type().equals(BOOLEAN) && !convOp.resultType().equals(BOOLEAN))) {
                         throw new NonConstantExpression();
                     }
-                    //@@@ when to throw NonConstantExpr
-                    // and when to throw other exceptions
+                    yield ArithmeticOpImpls.evaluate(convOp, v);
                 }
                 case ConcatOp concatOp -> {
                     Object first = eval(l, concatOp.operands().getFirst());
@@ -201,34 +205,22 @@ public sealed abstract class JavaOp extends Op {
                 }
                 case JavaOp.UnaryOp unaryOp -> {
                     Object v = eval(l, unaryOp.operands().getFirst());
-                    try {
-                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(v);
-                    } catch (Throwable e) {
-                        throw new NonConstantExpression();
-                    }
+                    yield ArithmeticOpImpls.evaluate(op, v);
                 }
                 case JavaOp.BinaryOp binaryOp -> {
                     Object first = eval(l, op.operands().getFirst());
                     Object second = eval(l, op.operands().getLast());
-                    try {
-                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first, second);
-                    } catch (Throwable e) {
-                        throw new NonConstantExpression();
-                    }
+                    yield ArithmeticOpImpls.evaluate(op, first, second);
                 }
                 case JavaOp.CompareOp compareOp -> {
                     Object first = eval(l, op.operands().getFirst());
                     Object second = eval(l, op.operands().getLast());
-                    try {
-                        yield ArithmeticOpImpls.opHandle(l, op.externalizeOpName(), op.opType()).invoke(first, second);
-                    } catch (Throwable e) {
-                        throw new NonConstantExpression();
-                    }
+                    yield ArithmeticOpImpls.evaluate(op, first, second);
                 }
                 case JavaOp.ConditionalExpressionOp cexpr -> {
-                    Object p = eval(l, ((CoreOp.YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    Object t = eval(l, ((CoreOp.YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
-                    Object f = eval(l, ((CoreOp.YieldOp) cexpr.bodies().get(2).entryBlock().terminatingOp()).yieldValue());
+                    Object p = eval(l, cexpr.bodies().get(0));
+                    Object t = eval(l, cexpr.bodies().get(1));
+                    Object f = eval(l, cexpr.bodies().get(2));
                     // @@@ if not Boolean we can throw NonConstantExpression
                     if (p instanceof Boolean b && b) {
                         yield t;
@@ -237,22 +229,24 @@ public sealed abstract class JavaOp extends Op {
                     }
                 }
                 case JavaOp.ConditionalAndOp cand -> {
-                    Object left = eval(l, ((CoreOp.YieldOp) cand.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    Object right = eval(l, ((CoreOp.YieldOp) cand.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+                    Object left = eval(l, cand.bodies().get(0));
+                    Object right = eval(l, cand.bodies().get(1));
                     yield ((Boolean) left) && ((Boolean) right);
                 }
                 case JavaOp.ConditionalOrOp cor -> {
-                    Object left = eval(l, ((CoreOp.YieldOp) cor.bodies().get(0).entryBlock().terminatingOp()).yieldValue());
-                    Object right = eval(l, ((CoreOp.YieldOp) cor.bodies().get(1).entryBlock().terminatingOp()).yieldValue());
+                    Object left = eval(l, cor.bodies().get(0));
+                    Object right = eval(l, cor.bodies().get(1));
                     yield ((Boolean) left) || ((Boolean) right);
                 }
                 default -> throw new NonConstantExpression();
             };
         }
 
-        @SuppressWarnings("serial")
-        class NonConstantExpression extends Exception {
-            NonConstantExpression() {}
+        private static Object eval(MethodHandles.Lookup l, Body body) throws NonConstantExpression {
+            if (body.blocks().size() != 1 || !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop)) {
+                throw new NonConstantExpression();
+            }
+            return eval(l, yop.yieldValue());
         }
 
         private static boolean isFinalVar(CoreOp.VarOp varOp) {

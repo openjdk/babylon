@@ -160,6 +160,10 @@ public class TestEvaluation {
         return 1 != 2;
     }
     @Reflect
+    static boolean binaryTestOp7() {
+        return "A" != "B";
+    }
+    @Reflect
     static int condExprOp() {
         return 1 != 2 | 2 > 3 ? 3 : 4;
     }
@@ -245,25 +249,49 @@ public class TestEvaluation {
 
     static CoreOp.FuncOp conversionModel(TypeElement source, TypeElement target) {
         return CoreOp.func("conv", CoreType.functionType(target)).body(b -> {
-            var intOne = b.op(CoreOp.constant(INT, 1));
-            var v = b.op(JavaOp.conv(source, intOne));
+            var v = b.op(CoreOp.constant(source, valueOne(source)));
             var r = b.op(JavaOp.conv(target, v));
             b.op(CoreOp.return_(r));
         });
     }
 
+    static Object valueOne(TypeElement t) {
+        if (t.equals(BOOLEAN)) {
+            return true;
+        } if (t.equals(BYTE)) {
+            return (byte) 1;
+        } else if (t.equals(SHORT)) {
+            return (short) 1;
+        } else if (t.equals(CHAR)) {
+            return (char) 1;
+        } else if (t.equals(INT)) {
+            return 1;
+        } else if (t.equals(LONG)) {
+            return 1L;
+        } else if (t.equals(FLOAT)) {
+            return 1f;
+        } else if (t.equals(DOUBLE)) {
+            return 1d;
+        }
+        throw new IllegalArgumentException("Unkown value one for type " + t);
+    }
+
     @Test
     void testConversion() {
         var pt = new PrimitiveType[] {BOOLEAN, BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE};
-        for (int i = pt.length - 1; i >= 0; i--) {
-            for (int j = i; j >= 0; j--) {
+        for (int i = 0; i < pt.length; i++) {
+            for (int j = 0; j < pt.length; j++) {
                 CoreOp.FuncOp f = conversionModel(pt[i], pt[j]);
                 Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
                 MethodHandles.Lookup l = MethodHandles.lookup();
                 Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (JavaOp.ConvOp) op);
-                Assertions.assertTrue(v.isPresent());
-                Object expected = Interpreter.invoke(l, f);
-                Assertions.assertEquals(expected, v.get());
+                if ((pt[j].equals(BOOLEAN) && !pt[i].equals(BOOLEAN)) || (pt[i].equals(BOOLEAN) && !pt[j].equals(BOOLEAN))) {
+                    Assertions.assertTrue(v.isEmpty());
+                } else {
+                    Assertions.assertTrue(v.isPresent());
+                    Object expected = Interpreter.invoke(l, f);
+                    Assertions.assertEquals(expected, v.get());
+                }
             }
         }
     }
