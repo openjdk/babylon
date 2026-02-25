@@ -25,21 +25,37 @@
 
 package shade.shaders;
 
-import hat.types.F32;
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.mat3;
-import hat.types.mat2;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import static hat.types.F32.*;
-import static hat.types.mat3.*;
-
-import static hat.types.mat2.*;
-import static hat.types.vec2.*;
-import static hat.types.vec3.*;
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
+
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.F32.PI;
+import static hat.types.F32.abs;
+import static hat.types.F32.exp;
+import static hat.types.mat3.mat3;
+import static hat.types.vec2.div;
+import static hat.types.vec2.mul;
+import static hat.types.vec2.sub;
+import static hat.types.vec2.vec2;
+import static hat.types.vec3.add;
+import static hat.types.vec3.clamp;
+import static hat.types.vec3.div;
+import static hat.types.vec3.mul;
+import static hat.types.vec3.pow;
+import static hat.types.vec3.sin;
+import static hat.types.vec3.sub;
+import static hat.types.vec3.vec3;
+import static hat.types.vec4.vec4;
 
 /*
 // Based on http://www.oscars.org/science-technology/sci-tech-projects/aces
@@ -88,30 +104,40 @@ public class AcesShader implements Shader {
                 -0.53108f, 1.10813f, -0.07276f,
                 -0.07367f, -0.00605f, 1.07602f
         );
-        vec3 v = mul(color,m1);
-        // vec3 a = v * (v + 0.0245786) - 0.000090537;
-        vec3 a = sub(mul(v, add(v,0.0245786f)),0.000090537f);
-        //   vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
-        vec3 b = add(mul(v,add(mul(0.983729f,v), 0.4329510f)), 0.238081f);
-        return clamp(pow(mul(div(a,b),m2), 1.0f / 2.2f), 0f, 1f);
+        vec3 v = mul(color, m1);
+        vec3 a = sub(mul(v, add(v, 0.0245786f)), 0.000090537f);
+        vec3 b = add(mul(v, add(mul(0.983729f, v), 0.4329510f)), 0.238081f);
+        return clamp(pow(mul(div(a, b), m2), 1.0f / 2.2f), 0f, 1f);
     }
+
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec3.xy(uniforms.iResolution());
-        //vec2 position = (fragCoord/iResolution.xy)* 2.0 - 1.0;
-        vec2 position = sub(mul(div(fragCoord,fres),2f), 1);
+        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+        vec2 position = sub(mul(div(fragCoord, fres), 2f), 1);
         //fragCoord.div(vec2(uniforms.iResolution())).mul(2f).sub(1f); //fragCoord/iResolution.xy)* 2.0 - 1.0;
         position = vec2(position.x() + uniforms.iTime() * 0.2f, position.y()); // position.x += iTime * 0.2;
 
         vec3 v012 = vec3(0f, 1f, 2f);
-        vec3 v0123x2Pi = mul(mul(v012,PI),2f);
-        vec3 v0123x2PiDiv3 = div(v0123x2Pi,3f);
-        vec3 sinCoef = add(v0123x2PiDiv3,position.x() * 4);
-        vec3 color = mul(pow(add(mul(sin(sinCoef),0.5f),0.5f), 2f), exp(abs(position.y()) * 4f) - 1f);
+        vec3 v0123x2Pi = mul(mul(v012, PI), 2f);
+        vec3 v0123x2PiDiv3 = div(v0123x2Pi, 3f);
+        vec3 sinCoef = add(v0123x2PiDiv3, position.x() * 4);
+        vec3 color = mul(pow(add(mul(sin(sinCoef), 0.5f), 0.5f), 2f), exp(abs(position.y()) * 4f) - 1f);
         if (position.y() < 0f) {
             color = aces_tonemap(color);
         }
         fragColor = vec4(clamp(color, 0f, 1f), 1.0f);
         return fragColor;
+    }
+
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("targetFps", "30")),
+            new AcesShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
     }
 }

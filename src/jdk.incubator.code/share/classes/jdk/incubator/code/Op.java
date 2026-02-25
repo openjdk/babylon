@@ -569,9 +569,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the textual form of this operation.
+     * Returns the code model text for this operation.
+     * <p>
+     * The format of codel model text is unspecified.
      *
-     * @return the textual form of this operation.
+     * @return the code model text for this operation.
+     * @apiNote Code model text is designed to be human-readable and is intended for debugging, testing,
+     * and comprehension.
+     * @see OpWriter#toText(Op, OpWriter.Option...)
      */
     public final String toText() {
         return OpWriter.toText(this);

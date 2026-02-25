@@ -134,6 +134,8 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
  */
 public class OnnxGenRuntimeSession implements AutoCloseable {
 
+    static final System.Logger LOG = System.getLogger("oracle.code.onnx");
+
     /**
      * Loads {@code onnxruntime-genai} native library from the given folder.
      * This method unpacks required {@code onnxruntime} library from dependencies, if missing.
@@ -238,10 +240,13 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
      * @param outputConsumer Consumer receiving decoded model response from the model generator.
      */
     public void prompt(String prompt, Consumer<String> outputConsumer) {
+        LOG.log(System.Logger.Level.DEBUG, "Create sequences");
         var inputTokens = call(OgaCreateSequences(ret));
         try {
             call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(prompt), inputTokens));
+            LOG.log(System.Logger.Level.DEBUG, "Tokenizer encode");
             call(OgaGenerator_AppendTokenSequences(generator, inputTokens));
+            LOG.log(System.Logger.Level.DEBUG, "Generator loop");
             while (!OgaGenerator_IsDone(generator)) {
                 call(OgaGenerator_GenerateNextToken(generator));
                 int nextToken = call(OgaGenerator_GetNextTokens(generator, ret, count)).get(C_INT, 0);
@@ -249,6 +254,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
                 outputConsumer.accept(response);
             }
             outputConsumer.accept("\n");
+            LOG.log(System.Logger.Level.DEBUG, "Tokenizer stream decoded");
         } finally {
             OgaDestroySequences(inputTokens);
         }

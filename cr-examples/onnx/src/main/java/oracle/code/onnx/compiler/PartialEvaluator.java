@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class PartialEvaluator {
+    static final System.Logger LOG = System.getLogger("oracle.code.onnx");
+
     final Set<Value> constants;
     final Predicate<Op> opConstant;
 
@@ -147,6 +149,7 @@ public final class PartialEvaluator {
 
                 LoopAnalyzer.Loop loop = loops.computeIfAbsent(inBlock, b -> LoopAnalyzer.isLoop(inBlock).orElse(null));
                 if (loop != null && inBlockPred.isDominatedBy(loop.header())) {
+                    LOG.log(System.Logger.Level.DEBUG, "unrolling loop");
                     // Entering loop header from latch
                     assert loop.latches().contains(inBlockPred);
 

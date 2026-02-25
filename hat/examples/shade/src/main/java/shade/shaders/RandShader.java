@@ -24,18 +24,32 @@
  */
 package shade.shaders;
 
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import static hat.types.F32.*;
-import static hat.types.vec2.*;
-import static hat.types.vec3.*;
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
 
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.F32.abs;
+import static hat.types.F32.fract;
+import static hat.types.F32.sin;
 import static hat.types.F32.smoothstep;
+import static hat.types.vec2.div;
+import static hat.types.vec2.length;
+import static hat.types.vec2.mul;
+import static hat.types.vec2.sub;
+import static hat.types.vec2.vec2;
+import static hat.types.vec3.mix;
+import static hat.types.vec3.vec3;
+import static hat.types.vec4.vec4;
 
 /*
 // RANDOMNESS
@@ -194,7 +208,7 @@ public class RandShader implements Shader {
     }
 
     static float disk(vec2 r, vec2 center, float radius) {
-        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(vec2(r),center)));
+        return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(r, center)));
     }
 
     static float coordinateGrid(vec2 r) {
@@ -221,10 +235,10 @@ public class RandShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec3.xy(uniforms.iResolution());
-        vec2 p = div(fragCoord,fres);
+        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+        vec2 p = div(fragCoord, fres);
         // vec2 r =  2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y;
-        vec2 r = div(mul(2f,sub(fragCoord,mul(5f, fres))),fres.y());
+        vec2 r = div(mul(2f, sub(fragCoord, mul(5f, fres))), fres.y());
 
         float xMax = fres.x() / fres.y();
 
@@ -238,8 +252,8 @@ public class RandShader implements Shader {
         vec3 white = vec3(1f);
         vec3 gray = vec3(.3f);
         if (r.y() > 0.7f) {
-           // vec2 q = (r-vec2(0.,0.9))*vec2(1.,20.);
-            vec2 q = mul(sub(r, vec2(0f, 0.9f)),vec2(1f, 20f));
+            // vec2 q = (r-vec2(0.,0.9))*vec2(1.,20.);
+            vec2 q = mul(sub(r, vec2(0f, 0.9f)), vec2(1f, 20f));
             // translated and rotated coordinate system
             //vec2 q = r.sub(vec2(0f, 0.9f)).mul(vec2(1f, 20f));
             ret = mix(white, gray, coordinateGrid(q));
@@ -250,8 +264,8 @@ public class RandShader implements Shader {
             ret = mix(ret, col1, plot(q, y, 0.1f));
         } else if (r.y() > 0.4f) {
             //vec2 q = (r-vec2(0.,0.6))*vec2(1.,20.);
-            vec2 q = mul(sub(r,vec2(0f, 0.6f) ),vec2(1f, 20f));
-          //  vec2 q = r.sub(vec2(0f, 0.6f)).mul(vec2(1f, 20f));
+            vec2 q = mul(sub(r, vec2(0f, 0.6f)), vec2(1f, 20f));
+            //  vec2 q = r.sub(vec2(0f, 0.6f)).mul(vec2(1f, 20f));
             ret = mix(white, col1, coordinateGrid(q));
 
             // take the decimal part of the sin function
@@ -261,8 +275,8 @@ public class RandShader implements Shader {
         } else if (r.y() > 0.1f) {
             // vec3 white = vec3(1f);
             //vec2 q = (r-vec2(0.,0.25))*vec2(1.,20.);
-            vec2 q= mul(sub(r,vec2(0f, 0.25f)), vec2(1f,20f));
-           // vec2 q = r.sub(vec2(0f, 0.25f)).mul(vec2(1f, 20f));
+            vec2 q = mul(sub(r, vec2(0f, 0.25f)), vec2(1f, 20f));
+            // vec2 q = r.sub(vec2(0f, 0.25f)).mul(vec2(1f, 20f));
             ret = mix(white, gray, coordinateGrid(q));
 
             // scale up the outcome of the sine function
@@ -276,7 +290,7 @@ public class RandShader implements Shader {
             //vec3 white = vec3(1.);
 //            vec2 q = (r-vec2(0., -0.0))*vec2(1.,10.);
             vec2 q = mul(r, vec2(1f, 10f));
-           // vec2 q = r.sub(vec2(0f, -0.0f)).mul(vec2(1f, 10f));
+            // vec2 q = r.sub(vec2(0f, -0.0f)).mul(vec2(1f, 10f));
             ret = mix(white, col1, coordinateGrid(q));
 
             float seed = q.x();
@@ -291,7 +305,7 @@ public class RandShader implements Shader {
             ret = mix(ret, col2, plot(q, y, 0.1f));
         } else {
             //   vec2 q = (r-vec2(0., -0.6));
-            vec2 q = sub(r,vec2(0f, -0.6f));
+            vec2 q = sub(r, vec2(0f, -0.6f));
 
             // use the loop index as the seed
             // and vary different quantities of disks, such as
@@ -299,7 +313,7 @@ public class RandShader implements Shader {
             for (float i = 0.0f; i < 6.0f; i++) {
                 // change the seed and get different distributions
                 float seed = i + 0.0f;
-                vec2 pos = mul(sub(vec2(hash(seed), hash(seed + 0.5f)),-0.5f),3f);
+                vec2 pos = mul(sub(vec2(hash(seed), hash(seed + 0.5f)), -0.5f), 3f);
                 float radius = hash(seed + 3.5f);
                 pos = mul(pos, vec2(1.0f, 0.3f));
                 ret = mix(ret, col1, disk(q, pos, 0.2f * radius));
@@ -309,8 +323,20 @@ public class RandShader implements Shader {
         vec3 pixel = ret;
         fragColor = vec4(pixel, 1.0f);
         return fragColor;
-    };
+    }
 
+    ;
 
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
+            Integer.parseInt(System.getProperty("targetFps", "10")),
+            new RandShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
+    }
 
 }

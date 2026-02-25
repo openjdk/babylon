@@ -329,7 +329,7 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
     @ParameterizedTest
     @MethodSource("invalidCases")
     void testInvalidCases(String model, Object[] args) {
-        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, model).get(0));
         Assertions.assertThrows(RuntimeException.class, () -> Quoted.extractOp(fop, args));
     }
 
@@ -462,7 +462,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
     @ParameterizedTest
     @MethodSource("validCases")
     void testValidCases(String model, Object[] args) {
-        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, model).get(0));
         Quoted<?> quoted = Quoted.extractOp(fop, args);
 
         for (Map.Entry<Value, Object> e : quoted.capturedValues().entrySet()) {
@@ -536,7 +536,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
     @ParameterizedTest
     @MethodSource("numParamsCases")
     void testNumAndOrderOfParams(String model, int expectedNumParams) {
-        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
         CoreOp.FuncOp qm = Quoted.embedOp(funcOp.body().entryBlock().ops().getFirst());
         Assertions.assertEquals(expectedNumParams, qm.parameters().size());
 

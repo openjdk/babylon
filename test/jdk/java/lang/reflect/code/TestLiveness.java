@@ -376,7 +376,7 @@ public class TestLiveness {
 
     @Test
     public void testF() {
-        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, F).getFirst();
+        Op op = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, F).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -408,7 +408,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElse() {
-        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, IF_ELSE).getFirst();
+        Op op = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, IF_ELSE).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -446,7 +446,7 @@ public class TestLiveness {
 
     @Test
     public void testLoop() {
-        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, LOOP).getFirst();
+        Op op = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, LOOP).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -515,7 +515,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElseNested() {
-        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, IF_ELSE_NESTED).getFirst();
+        Op op = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, IF_ELSE_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -576,7 +576,7 @@ public class TestLiveness {
 
     @Test
     public void testLoopNested() {
-        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, LOOP_NESTED).getFirst();
+        Op op = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, LOOP_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
