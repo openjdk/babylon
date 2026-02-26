@@ -25,6 +25,7 @@
 package optkl.codebuilders;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
@@ -141,6 +142,50 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
         space();
         consumer.accept(self());
         return nl();
+    }
+
+    public final T macro(String name, List<String> params, Consumer<T> body) {
+        hashDefineKeyword().space().identifier(name);
+        return paren( _ -> commaSpaceSeparated(params, this::identifier))
+               .space()
+               .paren( _ -> body.accept(self()))
+               .nl();
+    }
+
+    public final T maxMacro(String name) {
+        List<String> params = List.of("a", "b");
+        return macro(name, params, _ -> maxMacroBody(params));
+    }
+
+    public final T minMacro(String name) {
+        List<String> params = List.of("a", "b");
+        return macro(name, params, _ -> minMacroBody(params));
+    }
+
+    public final T maxMacroBody(List<String> params) {
+        final String a = params.getFirst();
+        final String b = params.get(1);
+        paren(_ -> paren(_ -> identifier(a))
+                .gt()
+                .paren(_ -> identifier(b)));
+        questionMark()
+                .paren(_ -> identifier(a))
+                .colon()
+                .paren(_ -> identifier(b));
+        return self();
+    }
+
+    public final T minMacroBody(List<String> params) {
+        final String a = params.getFirst();
+        final String b = params.get(1);
+        paren(_ -> paren( _ -> identifier(a))
+                .lt()
+                .paren( _ -> identifier(b)));
+        questionMark()
+                .paren( _ -> identifier(a))
+                .colon()
+                .paren( _ -> identifier(b));
+        return self();
     }
 
     public final T pragma(String name, String... values) {

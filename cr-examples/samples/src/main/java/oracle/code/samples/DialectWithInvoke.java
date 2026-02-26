@@ -105,14 +105,14 @@ public class DialectWithInvoke {
 
         // Original Code Mode.
         CoreOp.FuncOp functionModel = Op.ofMethod(m).get();
-        System.out.println(functionModel.toText());
+        IO.println(functionModel.toText());
 
         // Transform the code model to search for all InvokeOp and check if the
         // method name matches with the one we want to replace. We could also check
         // parameters and their types. For simplication, this example does not check this.
         CoreOp.FuncOp dialectModel = functionModel.transform((blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (op instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeDescriptor().name().equals("intrinsicsFMA")) {
+            if (op instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("intrinsicsFMA")) {
                 // The Op is the one we are looking for.
                 // We obtain the input values to this Op and use them to build the new FMA op.
                 List<Value> inputOperands = invokeOp.operands();
@@ -135,16 +135,16 @@ public class DialectWithInvoke {
             return blockBuilder;
         });
 
-        System.out.println("Model with new OpNodes for Dialect: ");
-        System.out.println(dialectModel.toText());
+        IO.println("Model with new OpNodes for Dialect: ");
+        IO.println(dialectModel.toText());
 
         CoreOp.FuncOp ssaDialect = SSA.transform(dialectModel);
-        System.out.println("Model with new OpNodes for SsaDialect: ");
-        System.out.println(ssaDialect.toText());
+        IO.println("Model with new OpNodes for SsaDialect: ");
+        IO.println(ssaDialect.toText());
     }
 
     static void main() {
-        System.out.println("Testing Dialects in Code-Reflection");
+        IO.println("Testing Dialects in Code-Reflection");
         customInvoke();
     }
 }

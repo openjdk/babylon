@@ -136,20 +136,22 @@ public final class TritonTransformer {
                 case ConstantOp cop -> {
                     valueTypeMap.put(op.result(), new ConstantType(op.result().type(), cop.value()));
                 }
-                case ArithmeticOperation _ -> {
+                case CompareOp _ -> {
+                }
+                case BinaryOp _, UnaryOp _ -> {
                     TypeElement t = checkWithTypeInterpreter(op, op.externalizeOpName(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
                 case FieldAccessOp.FieldLoadOp flop -> {
                     if (!flop.operands().isEmpty()) {
-                        throw new IllegalStateException("Unsupported field load: " + flop.fieldDescriptor());
+                        throw new IllegalStateException("Unsupported field load: " + flop.fieldReference());
                     }
 
                     Field f;
                     try {
-                        f = flop.fieldDescriptor().resolveToField(MethodHandles.lookup());
+                        f = flop.fieldReference().resolveToField(MethodHandles.lookup());
                     } catch (ReflectiveOperationException ex) {
-                        throw new IllegalStateException("Unsupported field load: " + flop.fieldDescriptor(), ex);
+                        throw new IllegalStateException("Unsupported field load: " + flop.fieldReference(), ex);
                     }
                     Object value;
                     try {
@@ -159,38 +161,38 @@ public final class TritonTransformer {
                     }
                     valueTypeMap.put(op.result(), new ConstantType(JavaType.type(f.getType()), value));
                 }
-                case InvokeOp iop when iop.invokeDescriptor().refType().equals(JavaType.J_L_INTEGER) -> {
+                case InvokeOp iop when iop.invokeReference().refType().equals(JavaType.J_L_INTEGER) -> {
                     // Box
-                    if (iop.invokeDescriptor().name().equals("valueOf")) {
+                    if (iop.invokeReference().name().equals("valueOf")) {
                         Value a = op.operands().get(0);
                         valueTypeMap.put(op.result(), valueTypeMap.get(a));
                     } else {
-                        throw new UnsupportedOperationException("Unsupported invocation on Integer: " + iop.invokeDescriptor());
+                        throw new UnsupportedOperationException("Unsupported invocation on Integer: " + iop.invokeReference());
                     }
                 }
-                case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_J_L_MATH) -> {
-                    String name = iop.invokeDescriptor().name();
+                case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_J_L_MATH) -> {
+                    String name = iop.invokeReference().name();
                     if (name.equals("max") || name.equals("min")) {
                         Value a = op.operands().get(0);
                         valueTypeMap.put(op.result(), valueTypeMap.get(a));
                     } else {
-                        throw new UnsupportedOperationException("Unsupported invocation on Math: " + iop.invokeDescriptor());
+                        throw new UnsupportedOperationException("Unsupported invocation on Math: " + iop.invokeReference());
                     }
                 }
-                case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Tensor) -> {
-                    if (iop.invokeDescriptor().name().equals("type")) {
+                case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_Tensor) -> {
+                    if (iop.invokeReference().name().equals("type")) {
                         Value a = op.operands().get(0);
                         valueTypeMap.put(op.result(), valueTypeMap.get(a));
                     } else {
-                        throw new UnsupportedOperationException("Unsupported invocation on Tensor: " + iop.invokeDescriptor());
+                        throw new UnsupportedOperationException("Unsupported invocation on Tensor: " + iop.invokeReference());
                     }
                 }
-                case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Triton) -> {
-                    TypeElement t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
+                case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_Triton) -> {
+                    TypeElement t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
-                case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Triton_Test) -> {
-                    TypeElement t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
+                case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_Triton_Test) -> {
+                    TypeElement t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
                 case JavaOp.ForOp fop -> {
@@ -205,8 +207,6 @@ public final class TritonTransformer {
                     } else {
                         throw new IllegalStateException();
                     }
-                }
-                case TestOperation _ -> {
                 }
                 case JavaOp.ContinueOp _ -> {
                 }
@@ -613,13 +613,13 @@ public final class TritonTransformer {
                     cc.mapValue(op.result(), result);
                 }
             }
-            case InvokeOp iop when iop.invokeDescriptor().refType().equals(JavaType.J_L_INTEGER) -> {
+            case InvokeOp iop when iop.invokeReference().refType().equals(JavaType.J_L_INTEGER) -> {
                 // Replace box with its value
                 Value a = cc.getValue(op.operands().get(0));
                 cc.mapValue(op.result(), a);
             }
-            case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_J_L_MATH) -> {
-                String name = iop.invokeDescriptor().name();
+            case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_J_L_MATH) -> {
+                String name = iop.invokeReference().name();
                 if (name.equals("max")) {
                     Value a = cc.getValue(op.operands().get(0));
                     Value b = cc.getValue(op.operands().get(1));
@@ -634,8 +634,8 @@ public final class TritonTransformer {
                     cc.mapValue(op.result(), result);
                 }
             }
-            case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Tensor) -> {
-                if (iop.invokeDescriptor().name().equals("type")) {
+            case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_Tensor) -> {
+                if (iop.invokeReference().name().equals("type")) {
                     // Replace with constant operation to produce tensor type.
                     // Result may be used, but transitively it will be removed due to no uses
                     // contributing to the computation
@@ -647,14 +647,14 @@ public final class TritonTransformer {
                 }
                 // Remove
             }
-            case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Triton) -> {
-                Value result = tbi.build(op, iop.invokeDescriptor().name(), valueTypeMap);
+            case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_Triton) -> {
+                Value result = tbi.build(op, iop.invokeReference().name(), valueTypeMap);
                 if (result != null) {
                     cc.mapValue(op.result(), result);
                 }
             }
-            case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Triton_Test) -> {
-                Value result = tbi.build(op, iop.invokeDescriptor().name(), valueTypeMap);
+            case InvokeOp iop when iop.invokeReference().refType().equals(TYPE_Triton_Test) -> {
+                Value result = tbi.build(op, iop.invokeReference().name(), valueTypeMap);
                 if (result != null) {
                     cc.mapValue(op.result(), result);
                 }

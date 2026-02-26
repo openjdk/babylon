@@ -173,7 +173,7 @@ public final class ForwardDifferentiation {
                 yield zero;
             }
             case JavaOp.InvokeOp c -> {
-                MethodRef md = c.invokeDescriptor();
+                MethodRef md = c.invokeReference();
                 String operationName = null;
                 if (md.refType().equals(J_L_MATH)) {
                     operationName = md.name();

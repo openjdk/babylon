@@ -25,21 +25,43 @@
 package shade.shaders;
 
 
-import hat.types.F32;
-import hat.types.mat3;
-import hat.types.mat2;
+import hat.Accelerator;
+import hat.backend.Backend;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import static hat.types.F32.*;
-import static hat.types.mat3.*;
-
-import static hat.types.mat2.*;
-import static hat.types.vec2.*;
-import static hat.types.vec3.*;
-import static hat.types.vec4.*;
+import shade.Config;
 import shade.Shader;
+import shade.ShaderApp;
 import shade.Uniforms;
+
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+
+import static hat.types.F32.abs;
+import static hat.types.F32.cos;
+import static hat.types.F32.fract;
+import static hat.types.F32.max;
+import static hat.types.F32.mix;
+import static hat.types.F32.mod;
+import static hat.types.F32.sin;
+import static hat.types.F32.smoothstep;
+import static hat.types.F32.step;
+import static hat.types.mat2.mat2;
+import static hat.types.vec2.add;
+import static hat.types.vec2.div;
+import static hat.types.vec2.length;
+import static hat.types.vec2.min;
+import static hat.types.vec2.mul;
+import static hat.types.vec2.sub;
+import static hat.types.vec2.vec2;
+import static hat.types.vec3.add;
+import static hat.types.vec3.min;
+import static hat.types.vec3.mul;
+import static hat.types.vec3.pow;
+import static hat.types.vec3.vec3;
+import static hat.types.vec4.normalize;
+import static hat.types.vec4.vec4;
 
 //https://www.shadertoy.com/view/4tXSzM
 public class SquareWaveShader implements Shader {
@@ -109,89 +131,92 @@ public class SquareWaveShader implements Shader {
                 fragColor=vec4(col,1.);
             }
             """;
-    static final int  moblur=4;
-    static final int harmonic=25;
-            static final int triangle=1; // comment this line out for only square
+    static final int moblur = 4;
+    static final int harmonic = 20;
 
     vec3 circle(vec2 uv, float rr, float cc, float ss) {
-
-        uv = mul(uv,mat2(cc,ss,-ss,cc));
-        if (rr<0f){
-            uv = vec2(uv.x(),-uv.y());
+        uv = mul(uv, mat2(cc, ss, -ss, cc));
+        if (rr < 0f) {
+            uv = vec2(uv.x(), -uv.y());
         }
-        rr= abs(rr);
-        float r = length(uv)-rr;
-        float pix=1f;// fwidth(r);
-        float c = smoothstep(0f,pix,abs(r));
-        float l = smoothstep(0f,pix,abs(uv.x())+step(uv.y(),0f)+step(rr,uv.y()));
-        return vec3(c,c*l,c*l);
+        rr = abs(rr);
+        float r = length(uv) - rr;
+        float fwidthR = .1f;// fwidth(r);
+        float c = smoothstep(0f, fwidthR, abs(r));
+        float l = smoothstep(0f, fwidthR, abs(uv.x()) + step(uv.y(), 0f) + step(rr, uv.y()));
+        return vec3(c, c * l, c * l);
     }
 
     vec3 ima(vec2 uv, float th0) {
+        vec2 uv0 = uv;
+        th0 -= max(0f, uv0.x() - 1.5f) * 2f;
+        th0 -= max(0f, uv0.y() - 1.5f) * 2f;
 
-        vec2 uv0=uv;
-        th0-=max(0f,uv0.x()-1.5f)*2f;
-        th0-=max(0f,uv0.y()-1.5f)*2f;
-
-        float lerpy = triangle==1?1f :smoothstep(-0.6f,0.2f,cos(th0*0.1f));
-        vec3 col=vec3(1f);
-        for (int i=1;i<harmonic;i+=2) {
-            float th=th0*i;
-            float fl=mod(i,4f)-2f;// used to be repeated assignment fl=-fl, but compiler bugs. :(
-            float cc=cos(th)*fl,ss=sin(th);
-            float trir=-fl/i*i;
-            float sqrr=1f/i;
-            float rr=mix(trir,sqrr,lerpy);
-            col = min(col, circle(uv,rr,cc,ss));
-            uv = add(uv, vec2(rr*ss, -rr*cc));
+        float lerpy = smoothstep(-0.6f, 0.2f, cos(th0 * 0.1f));
+        vec3 col = vec3(1f);
+        for (int i = 1; i < harmonic; i += 2) {
+            float th = th0 * i;
+            float fl = mod(i, 4f) - 2f;// used to be repeated assignment fl=-fl, but compiler bugs. :(
+            float cc = cos(th) * fl, ss = sin(th);
+            float trir = -fl / i * i;
+            float sqrr = 1f / i;
+            float rr = mix(trir, sqrr, lerpy);
+            col = min(col, circle(uv, rr, cc, ss));
+            uv = add(uv, vec2(rr * ss, -rr * cc));
         }
-        float pix=.1f;//fwidth(uv0.x);
-
+        float fwidthUv0X = .1f;//fwidth(uv0.x);
+        float fwidthUvX = .1f;
+        float fwidthUvY = .1f;
         /*
           if (uv.y>0. && fract(uv0.y*10.)<0.5) col.yz=min(col.yz,smoothstep(0.,pix,abs(uv.x)));
           if (uv.x>0. && fract(uv0.x*10.)<0.5) col.yz=min(col.yz,smoothstep(0.,pix,abs(uv.y)));
           if (uv0.x>=1.5) col.xy=vec2(smoothstep(0.,fwidth(uv.y),abs(uv.y)));
           if (uv0.y>=1.5) col.xy=vec2(smoothstep(0.,fwidth(uv.x),abs(uv.x)));
          */
-        if (uv.y()>0f && fract(uv0.y()*10f)<0.5f){
-            vec2 yz = min(vec2(col.y(), col.z()),vec2(smoothstep(0f,pix,abs(uv.x()))));
-            col = vec3(0f, yz.x(),yz.y());
+        if (uv.y() > 0f && fract(uv0.y() * 10f) < 0.5f) {
+            col = vec3(col.x(), min(vec2.yz(col), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
         }
-        if (uv.x()>0f && fract(uv0.x()*10f)<0.5f){
-            vec2 yz = max(vec2(col.y(), col.z()),vec2(smoothstep(0f,pix,abs(uv.x()))));
-            col = vec3(0f, yz.x(),yz.y());
+        if (uv.x() > 0f && fract(uv0.x() * 10f) < 0.5f) {
+            col = vec3(col.x(), min(vec2.xz(col), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
         }
-        if (uv0.x()>=1.5f){
-            col=vec3(
-                    vec2(smoothstep(0f,/*fwidth(uv.y())*/.1f,abs(uv.y()))),
-                    col.z()
-            );
+        if (uv0.x() >= 1.5f) {
+            col = vec3(vec2(smoothstep(0f, fwidthUvY, abs(uv.y()))), col.z());
         }
-        if (uv0.y()>=1.5f){
-            col=vec3(
-                    vec2(smoothstep(0f,/*fwidth(uv.x())*/.1f,abs(uv.x()))), col.z()
-            );
+        if (uv0.y() >= 1.5f) {
+            col = vec3(vec2(smoothstep(0f, fwidthUvX, abs(uv.x()))), col.z());
         }
-        return normalize(col);
+        return col;
     }
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec2(uniforms.iResolution());
-        float fTime = uniforms.iTime();
-        vec2 uv = div(fragCoord,vec2(fres.y(),fres.y()));//iResolution.yy;
-        uv = vec2(uv.x(),1f-uv.y());
-        uv=mul (uv,5f);
-        uv=sub(uv, vec2(1.5f));
-        float th0=fTime*2f;
-        float dt=2f/60f/(float)moblur;
-        vec3 col=vec3(.1f);
-        for (int mb=0;mb<moblur;++mb) {
-            col= add(col,ima(uv,th0));
-            th0+=dt;
+        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+
+        vec2 uv = div(fragCoord, vec2(fres.y(), fres.y()));//iResolution.yy;
+        uv = vec2(uv.x(), 1f - uv.y());
+        uv = mul(uv, 5f);
+        uv = sub(uv, vec2(1.5f));
+        float th0 = uniforms.iTime() * 2f;
+        float dt = 2f / 60f / moblur;
+        vec3 col = vec3(.9f, 0.9f, 1f);
+        for (int mb = 0; mb < moblur; ++mb) {
+            col = add(col, ima(uv, th0));
+            th0 += dt;
         }
-     //   col=pow(mul(col,(1f/(float)moblur)),vec3(1f/2.2f));
-        fragColor=vec4(normalize(col),0f);
-        return fragColor;
+        col = pow(mul(col, (1f / moblur)), vec3(1f / 2.2f));
+        fragColor = vec4(col, 0f);
+        return normalize(fragColor);
+    }
+
+    static Config controls = Config.of(
+            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
+            Integer.parseInt(System.getProperty("targetFps", "10")),
+            new SquareWaveShader()
+    );
+
+    static void main(String[] args) throws IOException {
+        new ShaderApp(controls);
     }
 }

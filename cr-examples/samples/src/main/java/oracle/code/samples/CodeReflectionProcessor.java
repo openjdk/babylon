@@ -80,7 +80,7 @@ public class CodeReflectionProcessor extends AbstractProcessor {
         void processOp(Element element, CodeElement<?, ?> codeElement) {
             switch (codeElement) {
                 case InvokeOp invokeOp -> {
-                    var desc = invokeOp.invokeDescriptor();
+                    var desc = invokeOp.invokeReference();
                     var receiverType = (JavaType) desc.refType();
                     String methodName = desc.name();
                     List<String> unsupportedMethods = UNSUPPORTED_METHODS.getOrDefault(receiverType, List.of());

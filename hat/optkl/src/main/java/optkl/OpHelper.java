@@ -287,12 +287,12 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         return javaConditionalOp.bodies().get(1).entryBlock().ops();
     }
 
-    static Op.Result lhsResult(JavaOp.BinaryTestOp binaryTestOp) {
-        return (Op.Result) binaryTestOp.operands().get(0);
+    static Op.Result lhsResult(JavaOp.CompareOp compareOp) {
+        return (Op.Result) compareOp.operands().get(0);
     }
 
-    static Op.Result rhsResult(JavaOp.BinaryTestOp binaryTestOp) {
-        return (Op.Result) binaryTestOp.operands().get(1);
+    static Op.Result rhsResult(JavaOp.CompareOp compareOp) {
+        return (Op.Result) compareOp.operands().get(1);
     }
 
     sealed interface LoadOrStore<T extends Op> extends OpHelper<T> permits VarAccess {
@@ -392,7 +392,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
         @Override
         default String name() {
-            return op().fieldDescriptor().name();
+            return op().fieldReference().name();
         }
 
         default boolean isPrimitive() {
@@ -404,7 +404,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
 
         default TypeElement refType() {
-            return op().fieldDescriptor().refType();
+            return op().fieldReference().refType();
         }
 
         default boolean refType(Class<?>... classes) {
@@ -509,7 +509,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
         @Override
         default String name() {
-            return op().invokeDescriptor().name();
+            return op().invokeReference().name();
         }
 
         default  boolean returns(Class<?> clazz) {
@@ -537,14 +537,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
         default Method resolvedMethodOrNull() {
             try {
-                return op().invokeDescriptor().resolveToMethod(lookup()) instanceof Method method ? method : null;
+                return op().invokeReference().resolveToMethod(lookup()) instanceof Method method ? method : null;
             } catch (ReflectiveOperationException rope) {
                 return null;
             }
         }
 
         default boolean refIs(Class<?>... classes) {
-            return OpHelper.isAssignable(lookup(), op().invokeDescriptor().refType(), classes);
+            return OpHelper.isAssignable(lookup(), op().invokeReference().refType(), classes);
+        }
+
+        default boolean resultTypeIs(Class<?>... classes) {
+            return OpHelper.isAssignable(lookup(), op().resultType(), classes);
         }
 
         default boolean returnsArray() {
@@ -552,11 +556,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
 
         default boolean returnsVoid() {
-            return op().invokeDescriptor().type().returnType().equals(JavaType.VOID);
+            return op().invokeReference().type().returnType().equals(JavaType.VOID);
         }
 
         default TypeElement returnType() {
-            return op().invokeDescriptor().type().returnType();
+            return op().invokeReference().type().returnType();
         }
 
         default boolean returnsInt() {
@@ -570,7 +574,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
 
         default TypeElement refType() {
-            return op().invokeDescriptor().refType();
+            return op().invokeReference().refType();
         }
 
         default boolean returnsPrimitive() {
@@ -595,7 +599,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
         default Method resolveMethodOrNull() {
             try {
-                return op().invokeDescriptor().resolveToMethod(lookup());
+                return op().invokeReference().resolveToMethod(lookup());
             } catch (ReflectiveOperationException e) {
                 return null;
             }
@@ -603,7 +607,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
         default Method resolveMethodOrThrow() {
             try {
-                return op().invokeDescriptor().resolveToMethod(lookup());
+                return op().invokeReference().resolveToMethod(lookup());
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
@@ -862,9 +866,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return args;
 
         }
-
     }
-
 
     sealed interface Binary extends OpHelper<JavaOp.BinaryOp> {
         default <T> boolean isAssignable(Class<T> clazz) {

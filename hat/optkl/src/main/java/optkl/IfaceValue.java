@@ -27,6 +27,8 @@ package optkl;
 
 import jdk.incubator.code.TypeElement;
 
+import java.util.List;
+
 public interface IfaceValue {
 
     interface Union extends IfaceValue {
@@ -56,7 +58,14 @@ public interface IfaceValue {
             static Shape of(TypeElement typeElement,  int lanes) {
                return of (typeElement,typeElement,lanes);
             }
-
+            default  List<String> laneNames(){
+                return switch (lanes()){
+                    case 2 -> List.of("x","y");
+                    case 3 -> List.of("x","y","z");
+                    case 4 -> List.of("x","y","z","w");
+                    default -> throw new RuntimeException("We only support 2,3 or 4 lanes");
+                };
+            }
         }
     }
 
@@ -81,7 +90,14 @@ public interface IfaceValue {
             static Shape of(TypeElement typeElement, int lanes) {
                 return of (typeElement,typeElement,lanes);
             }
-
+            default  List<String> laneNames(){
+                return switch (lanes()){
+                    case 2 -> List.of("x","y");
+                    case 3 -> List.of("x","y","z");
+                    case 4 -> List.of("x","y","z","w");
+                    default -> throw new RuntimeException("We only support 2,3 or 4 lanes");
+                };
+            }
         }
     }
     // Experimental ... considering for any Struct acting as an aggregate containing a length field.

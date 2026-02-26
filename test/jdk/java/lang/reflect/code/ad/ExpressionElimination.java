@@ -99,7 +99,7 @@ public final class ExpressionElimination {
             if (op instanceof Op.Pure) {
                 return true;
             } else {
-                return op instanceof JavaOp.InvokeOp c && c.invokeDescriptor().refType().equals(J_L_MATH);
+                return op instanceof JavaOp.InvokeOp c && c.invokeReference().refType().equals(J_L_MATH);
             }
         };
 

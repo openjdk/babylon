@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.device.NonMappableIface;
+import hat.HATMath;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
@@ -75,7 +76,7 @@ public class HATPhaseUtils {
         for (Value operand : value.dependsOn()) {
             if (operand instanceof Op.Result res &&
                     res.op() instanceof JavaOp.InvokeOp iop
-                    && iop.invokeDescriptor().name().toLowerCase().contains("arrayview")){ // We need to find a better way
+                    && iop.invokeReference().name().toLowerCase().contains("arrayview")){ // We need to find a better way
                 continue;
             }
             edges.add(expressionGraph(operand));
@@ -121,25 +122,15 @@ public class HATPhaseUtils {
 
     static public boolean isBufferArray(MethodHandles.Lookup lookup, Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
-        return iop.invokeDescriptor().name().toLowerCase().contains("arrayview"); // we need a better way
-        // try {
-        //     return iop.resultType() instanceof ArrayType && IfaceValue.class.isAssignableFrom(iop.invokeDescriptor().resolveToMethod(lookup).getDeclaringClass()); // we need a better way
-        // } catch (ReflectiveOperationException e) {
-        //     throw new RuntimeException(e);
-        // }
+        return iop.invokeReference().name().toLowerCase().contains("arrayview"); // we need a better way
     }
 
-    static public boolean isSharedOrPrivateView(Op op) {
-        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
+    static public boolean isLocalSharedOrPrivate(Op op) {
+        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
         return iop != null
                 && (iop.invokeDescriptor().name().toLowerCase().contains("shared")
                 || iop.invokeDescriptor().name().toLowerCase().contains("local")
-                || iop.invokeDescriptor().name().toLowerCase().contains("private")); // also
-        // try {
-        //     return iop != null && iop.resultType() instanceof ArrayType && NonMappableIface.class.isAssignableFrom(iop.invokeDescriptor().resolveToMethod(lookup).getDeclaringClass()); // we need a better way
-        // } catch (ReflectiveOperationException e) {
-        //     throw new RuntimeException(e);
-        // }
+                || iop.invokeDescriptor().name().toLowerCase().contains("private"));
     }
 
     static  public Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
@@ -191,7 +182,7 @@ public class HATPhaseUtils {
     }
 
     //recursive
-    static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
+    public static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(lookup,varLoadOp); // recurse
             case CoreOp.VarOp varOp ->
@@ -244,6 +235,7 @@ public class HATPhaseUtils {
         }
         return null;
     }
+
     //recursive
     public static boolean isSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isSharedOrPrivate(varLoadOp.operands().getFirst());
@@ -276,6 +268,9 @@ public class HATPhaseUtils {
         }
     }
 
+    public static boolean isInvokeFromMathLib(OpHelper.Invoke invoke) {
+        return invoke.refIs(HATMath.class);
+    }
 
     public static Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int param) {
         Value varValue = invokeOp.operands().get(param);
@@ -284,10 +279,6 @@ public class HATPhaseUtils {
         }
         return null;
     }
-
-    //public static Vector.Shape getVectorShapeFromInvokeReturnType(OpHelper.Invoke invoke) {
-       // return ;
-    //}
 
     /**
      *

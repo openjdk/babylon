@@ -25,14 +25,18 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATVectorOp;
+import hat.dialect.ReducedFloatType;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.*;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -103,6 +107,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BSY", _ -> gridDimY())
                 .hashDefine("HAT_BSZ", _ -> gridDimZ())
                 .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
+                .maxMacro("MAX_HAT")
+                .minMacro("MIN_HAT")
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
@@ -265,7 +271,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
         oparen();
         ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
-        generateReduceFloatType(reducedFloatType);
+        genReducedType(reducedFloatType);
         cparen().obrace();
 
         buildReducedFloatType(reducedFloatType);
@@ -328,7 +334,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Boolean> references = hatF16BinaryOp.references();
         byte f32Mixed = hatF16BinaryOp.getByteFloatRepresentation();
 
-        paren( _-> generateReduceFloatType(reducedFloatType)).obrace().oparen();
+        paren( _-> genReducedType(reducedFloatType)).obrace().oparen();
 
         if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
             generateReducedFloatConversionToFloat(reducedFloatType).oparen();
@@ -381,15 +387,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private CudaHATKernelBuilder generateReduceFloatType(ReducedFloatType reducedFloatType) {
-        switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> f16Type();
-            case ReducedFloatType.BFloat16 _ -> bf16Type();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        }
-        return self();
-    }
-
     private CudaHATKernelBuilder generateReducedFloatConversionToFloat(ReducedFloatType reducedFloatType) {
         switch (reducedFloatType) {
             case ReducedFloatType.HalfFloat _ ->  half2float();
@@ -397,5 +394,40 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
         }
         return self();
+    }
+
+    // Mapping between API function names and CUDA intrinsics for the math operations
+    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+    static {
+        MATH_FUNCTIONS.put("maxf", "max");
+        MATH_FUNCTIONS.put("maxd", "max");
+        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
+        MATH_FUNCTIONS.put("minf", "min");
+        MATH_FUNCTIONS.put("mind", "min");
+        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
+
+        MATH_FUNCTIONS.put("expf", "expf");
+        MATH_FUNCTIONS.put("expd", "exp");
+        MATH_FUNCTIONS.put("expf16", "hexp");
+
+        MATH_FUNCTIONS.put("cosf", "cosf");
+        MATH_FUNCTIONS.put("cosd", "cos");
+        MATH_FUNCTIONS.put("sinf", "sinf");
+        MATH_FUNCTIONS.put("sind", "sin");
+        MATH_FUNCTIONS.put("tanf", "tanf");
+        MATH_FUNCTIONS.put("tand", "tan");
+
+        MATH_FUNCTIONS.put("native_cosf", "__cosf");
+        MATH_FUNCTIONS.put("native_sinf", "__sinf");
+        MATH_FUNCTIONS.put("native_tanf", "__tanf");
+        MATH_FUNCTIONS.put("native_expf", "__expf");
+
+        MATH_FUNCTIONS.put("sqrtf", "sqrtf");
+        MATH_FUNCTIONS.put("sqrtd", "sqrt");
+    }
+
+    @Override
+    protected String mapMathIntrinsic(String hatMathIntrinsicName) {
+        return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 }

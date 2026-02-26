@@ -32,8 +32,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
 public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
-        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase,
-        HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
+        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
     KernelCallGraph kernelCallGraph();
     @Override default MethodHandles.Lookup lookup(){
         return kernelCallGraph().lookup();

@@ -29,8 +29,98 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.OpHelper;
 
 import java.lang.invoke.MethodHandles;
+import java.util.function.Consumer;
 
 public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
+
+    public T importStatic(Class<?> clazz, String ...suffices){
+        importClasses(clazz);
+        var split = clazz.getName().split("\\.");
+        for (var suffix :suffices) {
+            importKeyword().space().staticKeyword().space();
+            for (int i = 0; i < split.length; i++) {
+                identifier(split[i]).dot();
+            }
+            identifier(suffix).semicolonNl();
+        }
+        return self();
+    }
+    public T importClasses(Class<?> ...classes){
+        for(var clazz :classes){
+            var split = clazz.getName().split("\\.");
+            importKeyword().space().identifier(split[0]);
+            for (int i = 1; i < split.length; i++) {
+                dot().identifier(split[i]);
+            }
+             semicolonNl();
+        }
+        return self();
+    }
+    public T packageName(Package p){
+        var split = p.getName().split("\\.");
+        packageKeyword().space().identifier(split[0]);
+        for(int i = 1; i< split.length; i++){
+            dot().identifier(split[i]);
+        }
+        return semicolonNl();
+    }
+    public T publicKeyword() {
+        return keyword("public");
+    }
+    public T publicKwSp() {
+        return publicKeyword().space();
+    }
+    public T privateKeyword() {
+        return keyword("private");
+    }
+    public T protectedKeyword() {
+        return keyword("protected");
+    }
+
+    public T importKeyword() {
+        return keyword("import");
+    }
+
+    public T packageKeyword() {
+        return keyword("package");
+    }
+
+    public T recordKeyword() {
+        return keyword("record");
+    }
+
+    public T record(String recordName, Consumer<T> args, Consumer<T> imple, Consumer<T> body) {
+         recordKeyword().space().typeName(recordName).paren(args);
+         if (imple != null){
+             space().implementsKeyword().space();
+             imple.accept(self());
+         }
+         return body(body).nl();
+    }
+    public T extendsKeyword() {
+        return keyword("extends");
+    }
+    public T extendsKwSp() {
+        return extendsKeyword().space();
+    }
+    public T implementsKeyword() {
+        return keyword("implements");
+    }
+    public T implementsKwSp(){
+        return interfaceKeyword().space();
+    }
+    public T interfaceKeyword() {
+        return keyword("interface");
+    }
+
+    public T interfaceKwSp() {
+        return interfaceKeyword().space();
+    }
+
+
+
+
+
     @Override
     public T type( JavaType javaType) {
         // lets do equiv of SimpleName

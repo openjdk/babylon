@@ -59,6 +59,9 @@ public class HATTier implements  LookupCarrier {
         // ID's /thread access
         hatPhases.add(new HATThreadsPhase(kernelCallGraph));
 
+        // MathLib phase
+        hatPhases.add(new HATMathLibPhase(kernelCallGraph));
+
         // views for vector types
         hatPhases.add(new HATVectorPhase.Float4LoadPhase(kernelCallGraph));
         hatPhases.add(new HATVectorPhase.Float2LoadPhase(kernelCallGraph));
