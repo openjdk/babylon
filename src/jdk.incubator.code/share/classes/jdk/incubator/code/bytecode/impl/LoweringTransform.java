@@ -30,20 +30,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.internal.BranchTarget;
 
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
-import jdk.incubator.code.dialect.java.JavaType;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
@@ -99,7 +102,7 @@ public final class LoweringTransform {
         }
 
         Value selector = block.context().getValue(swOp.operands().get(0));
-        if (isIntegralReferenceType(selector.type())) {
+        if (integralReferenceTypes.contains(selector.type())) {
             // unbox selector
             if (selector.type().equals(J_L_CHARACTER)) {
                 selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "charValue", JavaType.CHAR), selector));
@@ -139,7 +142,8 @@ public final class LoweringTransform {
     public static Optional<LabelsAndTargets> isCaseConstantSwitchWithIntegralSelector(JavaOp.JavaSwitchOp swOp, MethodHandles.Lookup lookup) {
         //@@@ we only check for case constant switch that has integral type
         // so labels in model / source code will be identical to the one we will find in bytecode
-        if (!isIntegralType(swOp.operands().get(0).type())) {
+        Value selector = swOp.operands().get(0);
+        if (!integralPrimitiveTypes.contains(selector.type()) && !integralReferenceTypes.contains(selector.type())) {
             return Optional.empty();
         }
         var labels = new ArrayList<Integer>();
@@ -173,7 +177,7 @@ public final class LoweringTransform {
             case JavaOp.InvokeOp ie when ie.invokeReference().equals(objectsEquals) -> {
                 Value toEvaluate;
                 if (ie.operands().getLast() instanceof Op.Result opr && opr.op() instanceof JavaOp.InvokeOp ib
-                        && isBoxingMethod(ib.invokeReference())) {
+                        && integralReferenceTypes.contains(ib.invokeReference().refType()) && ib.invokeReference().name().equals("valueOf")) {
                     // workaround the modeling of switch that has a selector of type Box and a case constant of type primitive
                     // we skip the boxing operation that's contained in the model
                     // invoking a boxing method is not a valid operation in a constant expr
@@ -202,22 +206,9 @@ public final class LoweringTransform {
         return labels;
     }
 
-    private static boolean isBoxingMethod(MethodRef mr) {
-        return List.of(J_L_BYTE, J_L_CHARACTER, J_L_SHORT, J_L_INTEGER, J_L_LONG, J_L_FLOAT, J_L_DOUBLE).contains(mr.refType())
-                && mr.name().equals("valueOf");
-    }
-
-    private static boolean isIntegralType(TypeElement te) {
-        return isIntegralPrimitiveType(te) || isIntegralReferenceType(te);
-    }
-
-    private static boolean isIntegralPrimitiveType(TypeElement te) {
-        return List.of(BYTE, SHORT, CHAR, INT).contains(te);
-    }
-
-    private static boolean isIntegralReferenceType(TypeElement te) {
-        return List.of(J_L_BYTE, J_L_SHORT, J_L_CHARACTER, J_L_INTEGER).contains(te);
-    }
+    // @@@ should we add these functionalities to the API ?
+    private static final Set<ClassType> integralReferenceTypes = Set.of(J_L_BYTE, J_L_CHARACTER, J_L_SHORT, J_L_INTEGER);
+    private static final Set<PrimitiveType> integralPrimitiveTypes = Set.of(BYTE, CHAR, SHORT, INT);
 
     private static Integer toInteger(Object o) {
         return switch (o) {
@@ -225,7 +216,8 @@ public final class LoweringTransform {
             case Short s -> Integer.valueOf(s);
             case Character c -> Integer.valueOf(c);
             case Integer i -> i;
-            default -> throw new IllegalStateException(); // @@@ not going to happen
+            // @@@ should not reach here
+            default -> throw new IllegalArgumentException("Object of type " + o.getClass().getName() + " can't be cast to Integer");
         };
     }
 }
