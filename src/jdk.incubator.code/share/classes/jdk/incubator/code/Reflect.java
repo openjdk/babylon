@@ -62,6 +62,10 @@ import java.lang.reflect.Method;
  * the method and any lambda expressions (or method references) it contains are declared reflectable.
  * </li>
  * </ul>
+ * Not all Java language constructs are supported. If {@code @Reflect} is used in one of the supported syntactic
+ * locations described above, compilation may still fail with an error indicating that a code model cannot be
+ * provided for the annotated construct (or for a construct transitively contained within the annotated scope).
+ * <p>
  * The annotation is ignored if it appears in any other valid syntactic location.
  * <p>
  * Declaring a reflectable lambda expression or method does not implicitly broaden the scope of what is reflectable to
