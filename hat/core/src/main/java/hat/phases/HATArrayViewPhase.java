@@ -90,7 +90,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         Op.Result buffer = resultFromFirstOperandOrNull(arrayLoadOp);
                         String name = hatPtrName(opFromFirstOperandOrThrow(buffer.op()));
                         var  vectorShape = getVectorShape(lookup(),arrayLoadOp.resultType());
-                        HATVectorOp.HATVectorLoadOp vLoadOp = HATPhaseUtils.isSharedOrPrivateView(arrayLoadOp)
+                        HATVectorOp.HATVectorLoadOp vLoadOp = HATPhaseUtils.isLocalSharedOrPrivate(arrayLoadOp)
                                 ? new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(
                                 name,
                                 CoreType.varType(arrayLoadOp.resultType()),
@@ -116,7 +116,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                                 ? (varOp).resultType()
                                 : ((CoreOp.VarOp) varOp).resultType();
                         var vectorShape = getVectorShape(lookup(),arrayStoreOp.operands().getLast().type());
-                        HATVectorOp.HATVectorStoreView vStoreOp = HATPhaseUtils.isSharedOrPrivateView(arrayStoreOp)
+                        HATVectorOp.HATVectorStoreView vStoreOp = HATPhaseUtils.isLocalSharedOrPrivate(arrayStoreOp)
                                 ? new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(
                                 name,
                                 resultType,
@@ -169,7 +169,7 @@ public record HATArrayViewPhase(KernelCallGraph kernelCallGraph) implements HATP
                         Op.Result r = resultFromFirstOperandOrThrow(varLoadOp);
                         Op.Result replacement;
                         if (r.op() instanceof CoreOp.VarOp) { // if this is the VarLoadOp after the .arrayView() InvokeOp
-                            replacement = (HATPhaseUtils.isSharedOrPrivateView(varLoadOp)) ?
+                            replacement = (HATPhaseUtils.isLocalSharedOrPrivate(varLoadOp)) ?
                                     resultFromFirstOperandOrNull(opFromFirstOperandOrThrow(r.op())) :
                                     bufferVarLoads.get(replaced.get(r).op()).result();
                         } else { // if this is a VarLoadOp loading the buffer

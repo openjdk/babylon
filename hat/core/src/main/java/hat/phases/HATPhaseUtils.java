@@ -121,16 +121,16 @@ public class HATPhaseUtils {
     }
 
     static public boolean isBufferArray(MethodHandles.Lookup lookup, Op op) {
-        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
-        return iop.invokeReference().name().toLowerCase().contains("arrayview"); // we need a better way
+        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
+        return iop != null && iop.invokeReference().name().toLowerCase().contains("arrayview"); // we need a better way
     }
 
     static public boolean isLocalSharedOrPrivate(Op op) {
-        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
+        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
         return iop != null
-                && (iop.invokeDescriptor().name().toLowerCase().contains("shared")
-                || iop.invokeDescriptor().name().toLowerCase().contains("local")
-                || iop.invokeDescriptor().name().toLowerCase().contains("private"));
+                && (iop.invokeReference().name().toLowerCase().contains("shared")
+                || iop.invokeReference().name().toLowerCase().contains("local")
+                || iop.invokeReference().name().toLowerCase().contains("private"));
     }
 
     static  public Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
