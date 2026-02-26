@@ -56,6 +56,23 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  */
 public final class LoweringTransform {
 
+    public static CodeTransformer getInstance(MethodHandles.Lookup lookup) {
+        return (block, op) -> switch (op) {
+            case JavaOp.JavaSwitchOp swOp -> {
+                Optional<LabelsAndTargets> opt = isCaseConstantSwitchWithIntegralSelector(swOp, lookup);
+                if (opt.isPresent()) {
+                    yield lowerToConstantLabelSwitchOp(block, block.transformer(), swOp, opt.get());
+                }
+                yield swOp.lower(block, null);
+            }
+            case Op.Lowerable lop -> lop.lower(block, null);
+            default -> {
+                block.op(op);
+                yield block;
+            }
+        };
+    }
+
     private static Block.Builder lowerToConstantLabelSwitchOp(Block.Builder block, CodeTransformer transformer,
                                                               JavaOp.JavaSwitchOp swOp, LabelsAndTargets labelsAndTargets) {
         List<Block> targets = labelsAndTargets.targets();
@@ -120,24 +137,11 @@ public final class LoweringTransform {
         return exit;
     }
 
-    public static CodeTransformer getInstance(MethodHandles.Lookup lookup) {
-        return (block, op) -> switch (op) {
-            case JavaOp.JavaSwitchOp swOp -> {
-                Optional<LabelsAndTargets> opt = isCaseConstantSwitchWithIntegralSelector(swOp, lookup);
-                if (opt.isPresent()) {
-                    yield lowerToConstantLabelSwitchOp(block, block.transformer(), swOp, opt.get());
-                }
-                yield swOp.lower(block, null);
-            }
-            case Op.Lowerable lop -> lop.lower(block, null);
-            default -> {
-                block.op(op);
-                yield block;
-            }
-        };
-    }
-
     public record LabelsAndTargets(List<Integer> labels, List<Block> targets) {}
+
+    // @@@ should we add these functionalities to the API ?
+    private static final Set<ClassType> integralReferenceTypes = Set.of(J_L_BYTE, J_L_CHARACTER, J_L_SHORT, J_L_INTEGER);
+    private static final Set<PrimitiveType> integralPrimitiveTypes = Set.of(BYTE, CHAR, SHORT, INT);
 
     public static Optional<LabelsAndTargets> isCaseConstantSwitchWithIntegralSelector(JavaOp.JavaSwitchOp swOp, MethodHandles.Lookup lookup) {
         //@@@ we only check for case constant switch that has integral type
@@ -205,10 +209,6 @@ public final class LoweringTransform {
         }
         return labels;
     }
-
-    // @@@ should we add these functionalities to the API ?
-    private static final Set<ClassType> integralReferenceTypes = Set.of(J_L_BYTE, J_L_CHARACTER, J_L_SHORT, J_L_INTEGER);
-    private static final Set<PrimitiveType> integralPrimitiveTypes = Set.of(BYTE, CHAR, SHORT, INT);
 
     private static Integer toInteger(Object o) {
         return switch (o) {
