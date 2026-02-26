@@ -69,22 +69,6 @@ public interface vec3 extends IfaceValue.vec{
         return vec3(scalar, scalar, scalar);
     }
 
-    static vec3 mul(float xl, float xr, float yl, float yr, float zl, float zr){
-        return vec3(xl*xr, yl*yr, zl*zr);
-    }
-
-    static vec3 mul(vec3 l, vec3 r){
-        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
-    }
-
-    static vec3 mul(float l, vec3 r){
-        return mul(l, r.x(), l, r.y(), l, r.z());
-    }
-
-    static vec3 mul(vec3 l, float r){
-        return mul(l.x(), r, l.y(), r, l.z(), r);
-    }
-
     static vec3 div(float xl, float xr, float yl, float yr, float zl, float zr){
         return vec3(xl/xr, yl/yr, zl/zr);
     }
@@ -131,6 +115,22 @@ public interface vec3 extends IfaceValue.vec{
 
     static vec3 sub(vec3 l, float r){
         return sub(l.x(), r, l.y(), r, l.z(), r);
+    }
+
+    static vec3 mul(float xl, float xr, float yl, float yr, float zl, float zr){
+        return vec3(xl*xr, yl*yr, zl*zr);
+    }
+
+    static vec3 mul(vec3 l, vec3 r){
+        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
+    }
+
+    static vec3 mul(float l, vec3 r){
+        return mul(l, r.x(), l, r.y(), l, r.z());
+    }
+
+    static vec3 mul(vec3 l, float r){
+        return mul(l.x(), r, l.y(), r, l.z(), r);
     }
 
     static vec3 pow(vec3 l, vec3 r){
@@ -256,6 +256,14 @@ public interface vec3 extends IfaceValue.vec{
             F32.smoothstep(e0.x(), e1.x(), v.x()),
             F32.smoothstep(e0.y(), e1.y(), v.y()),
             F32.smoothstep(e0.z(), e1.z(), v.z())
+        );
+    }
+
+    static vec3 step(vec3 e, vec3 v){
+        return vec3(
+            F32.step(e.x(), v.x()),
+            F32.step(e.y(), v.y()),
+            F32.step(e.z(), v.z())
         );
     }
 

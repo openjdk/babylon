@@ -109,6 +109,9 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
     VecAndMatBuilder f32Smoothstep( Consumer<VecAndMatBuilder> consumer) {
         return f32Call("smoothstep",consumer);
     }
+    VecAndMatBuilder f32Step( Consumer<VecAndMatBuilder> consumer) {
+        return f32Call("step",consumer);
+    }
     VecAndMatBuilder f32Inversesqrt( Consumer<VecAndMatBuilder> consumer) {
         return f32Call("inversesqrt",consumer);
     }
@@ -527,6 +530,30 @@ public class VecAndMatBuilder extends JavaCodeBuilder<VecAndMatBuilder> {
                                                                             .id("v").dot().idParen( n)
                                                             )
                                                     ).nl()
+                                    )
+                            )
+                    )
+            );
+
+           /*
+             static vec3 step(vec3 e0, vec3 v){
+        return vec3(
+                F32.step(e0.x(), v.x()),
+                F32.step(e0.y(), v.y()),
+                F32.step(e0.z(), v.z())
+        );
+    }
+            */
+            staticVecTypeFunc( "step", _ -> join(List.of("e","v"),_->cs(), this::vDecl),
+                    _ -> statement(_->
+                            returnKwSp().vName().paren( _ ->
+                                    indent(_ -> nl()
+                                            .separated(laneNames(), _->
+                                                            comma().nl(),
+                                                    n -> f32Step( _-> id("e").dot().idParen( n).cs()
+                                                            .id("v").dot().idParen( n)
+                                                    )
+                                            ).nl()
                                     )
                             )
                     )
