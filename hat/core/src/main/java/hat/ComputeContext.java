@@ -32,13 +32,20 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -111,6 +118,70 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         dispatchKernelWithComputeRange(ndRange, kernel);
     }
 
+    /**
+     * Function to dispatch a TileKernel in HAT. The dispatch takes the following parameters:
+     * @param tileRange
+     *  A Tile Range that specified the total number of tiles and the tile-size
+     * @param tileKernel
+     *  The tile kernel of offload and run on the hardware accelerator
+     */
+    public void dispatchTile(TileRange tileRange, Tile tileKernel) {
+        Quoted quoted = Op.ofQuotable(tileKernel).orElseThrow();
+        JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
+        IO.println("Lambda");
+        IO.println(lambdaOp.toText());
+        MethodRef methodRef = OpTk.getTargetInvokeOp(lambdaOp).invokeDescriptor();
+        try {
+            Method method = methodRef.resolveToMethod(accelerator.lookup);
+            CoreOp.FuncOp funcOp = Op.ofMethod(method).get();
+            IO.println("function: ");
+            IO.println(funcOp.toText());
+
+            // Analysis of fields to transform into constants
+            funcOp = funcOp.transform((blockBuilder, op) -> {
+                if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                    boolean isStaticField = fieldLoadOp.operands().isEmpty();
+                    if (isStaticField) {
+                        blockBuilder.op(fieldLoadOp);
+                        TypeElement typeElement = fieldLoadOp.resultType();
+                        if (typeElement instanceof PrimitiveType primitiveType) {
+                            JavaType basicType = primitiveType.toBasicType();
+                            if (basicType == JavaType.INT) {
+                                // Found the int field. we can replace it with a constant value
+                                try {
+                                    Field field = fieldLoadOp.fieldDescriptor().resolveToField(accelerator.lookup);
+                                    IO.println(field);
+                                    // We can pass null because, at this point, we know it is a static field
+                                    int anInt = field.getInt(null);
+                                    CoreOp.ConstantOp c = CoreOp.ConstantOp.constant(basicType, anInt);
+                                    Op.Result op1 = blockBuilder.op(c);
+                                    c.setLocation(fieldLoadOp.location());
+                                    blockBuilder.context().mapValue(fieldLoadOp.result(), op1);
+                                } catch (ReflectiveOperationException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        } else {
+                            blockBuilder.op(fieldLoadOp);
+                        }
+                    } else {
+                        blockBuilder.op(fieldLoadOp);
+                    }
+                } else {
+                    blockBuilder.op(op);
+                }
+                return blockBuilder;
+            });
+
+            IO.println("Transformed: " + funcOp.toText());
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+
+        // TODO: Dispatch the Tile-Range which include JIT Compilation + Execution
+
+    }
+
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private CallGraph getKernelCallGraph(Kernel kernel) {
@@ -176,5 +247,9 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     @Reflect
     @FunctionalInterface
     public interface Kernel extends Consumer<KernelContext> { }
+
+    @Reflect
+    @FunctionalInterface
+    public interface Tile extends Consumer<TileContext> { }
 
 }
