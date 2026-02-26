@@ -26,9 +26,7 @@
 package jdk.incubator.code.extern;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.impl.Tokens.TokenKind;
 import jdk.incubator.code.extern.impl.DescParser;
 import jdk.incubator.code.extern.impl.Lexer;
@@ -69,24 +67,6 @@ public final class OpParser {
      */
     public static List<Op> fromText(DialectFactory factory, String in) {
         return parse(factory.opFactory(), factory.typeElementFactory(), in);
-    }
-
-    /**
-     * Parses code model text using the Java {@link JavaOp#JAVA_DIALECT_FACTORY dialect factory}
-     * for construction of operations and type elements.
-     *
-     * @param in code model text
-     * @return the operation
-     * @throws IllegalArgumentException if parsing fails or if root operation
-     * of the code model is not an instance of {@link CoreOp.FuncOp}
-     */
-    public static Op fromTextWithJavaDialect(String in) {
-        // @@@ Remove once bytecode generator is fixed not to use it
-        Op op = fromText(JavaOp.JAVA_DIALECT_FACTORY, in).get(0);
-        if (!(op instanceof CoreOp.FuncOp)) {
-            throw new IllegalArgumentException("Op is not a FuncOp: " + op);
-        }
-        return op;
     }
 
     static List<Op> parse(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
