@@ -169,7 +169,6 @@ public final class BytecodeGenerator {
     private static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                           ClassDesc clName,
                                                                           SequencedMap<String, ? extends O> ops) {
-        var modelsToBuild = new LinkedHashMap<String, FuncOp>();
         byte[] classBytes = ClassFile.of().build(clName, clb -> {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             BitSet reflectableLambda = new BitSet();
@@ -179,6 +178,7 @@ public final class BytecodeGenerator {
                         (O)e.getValue().transform(CodeContext.create(), lowering));
                 generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, reflectableLambda);
             }
+            var modelsToBuild = new LinkedHashMap<String, FuncOp>();
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
                 if (reflectableLambda.get(i)) {
