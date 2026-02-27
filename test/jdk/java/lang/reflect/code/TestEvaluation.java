@@ -315,8 +315,12 @@ public class TestEvaluation {
     @Test
     void testInvalidConstants() {
         CoreOp.FuncOp funcOp = CoreOp.func("ic", CoreType.FUNCTION_TYPE_VOID).body(b -> {
+            // valid constant op result type but invalid values
             b.op(CoreOp.constant(J_L_STRING, null));
             b.op(CoreOp.constant(INT, new Object()));
+            // invalid constant op result type but valid values
+            b.op(CoreOp.constant(J_L_OBJECT, 1));
+            b.op(CoreOp.constant(J_L_BOOLEAN, true));
             b.op(CoreOp.return_());
         });
 

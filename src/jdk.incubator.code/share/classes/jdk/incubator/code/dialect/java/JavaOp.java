@@ -163,10 +163,11 @@ public sealed abstract class JavaOp extends Op {
 
         private static Object eval(MethodHandles.Lookup l, Op op) throws NonConstantExpression {
             return switch (op) {
-                case CoreOp.ConstantOp cop
-                        when cop.value() != null &&
-                        (cop.value().getClass().equals(String.class) || primitiveWrapperClasses.contains(cop.value().getClass())) ->
-                        cop.value();
+                case CoreOp.ConstantOp cop when
+                        cop.value() != null &&
+                        ((cop.resultType().equals(J_L_STRING) && cop.value().getClass().equals(String.class)) ||
+                        (cop.resultType() instanceof PrimitiveType && primitiveWrapperClasses.contains(cop.value().getClass())))
+                        -> cop.value();
                 case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) ->
                         eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp convOp -> {
