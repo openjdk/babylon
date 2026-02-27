@@ -34,6 +34,9 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
+// @@@ there are more methods than we need for op evaluation
+// e.g. conversion from PT to boolean and from boolean to PT
+// these methods are used by interpreter
 public final class ArithmeticAndConvOpImpls {
     public static boolean eq(Object a, Object b) {
         return a == b;
