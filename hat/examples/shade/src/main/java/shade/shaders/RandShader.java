@@ -33,7 +33,7 @@ import hat.types.vec4;
 import shade.Config;
 import shade.Shader;
 import shade.ShaderApp;
-import shade.Uniforms;
+import hat.buffer.Uniforms;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
@@ -49,6 +49,7 @@ import static hat.types.vec2.sub;
 import static hat.types.vec2.vec2;
 import static hat.types.vec3.mix;
 import static hat.types.vec3.vec3;
+import static hat.types.vec4.normalize;
 import static hat.types.vec4.vec4;
 
 /*
@@ -59,7 +60,7 @@ import static hat.types.vec4.vec4;
 // a programming language that has random functions. That way
 // you can generate the random values using the language and send
 // those values to the shader via uniforms.
-//
+/
 // But if you are using a system that only allows you to write
 // the shader code, such as ShaderToy, then you need to write your own
 // pseuo-random generators.
@@ -144,7 +145,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     else if(r.y > 0.1) {
         vec3 white = vec3(1.);
         vec2 q = (r-vec2(0.,0.25))*vec2(1.,20.);
-
         ret = mix(white, gray, coordinateGrid(q));
 
         // scale up the outcome of the sine function
@@ -236,13 +236,13 @@ public class RandShader implements Shader {
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-        vec2 p = div(fragCoord, fres);
+      //  vec2 p = div(fragCoord, fres);
         // vec2 r =  2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y;
-        vec2 r = div(mul(2f, sub(fragCoord, mul(5f, fres))), fres.y());
+        vec2 r = div(mul(2f, sub(fragCoord, mul(.5f, fres))), fres.y());
 
-        float xMax = fres.x() / fres.y();
+     ///   float xMax = fres.x() / fres.y();
 
-        vec3 bgCol = vec3(0.3f);
+        vec3 bgCol = vec3(0f);
         vec3 col1 = vec3(0.216f, 0.471f, 0.698f); // blue
         vec3 col2 = vec3(1.00f, 0.329f, 0.298f); // yellow
         vec3 col3 = vec3(0.867f, 0.910f, 0.247f); // red
@@ -275,7 +275,7 @@ public class RandShader implements Shader {
         } else if (r.y() > 0.1f) {
             // vec3 white = vec3(1f);
             //vec2 q = (r-vec2(0.,0.25))*vec2(1.,20.);
-            vec2 q = mul(sub(r, vec2(0f, 0.25f)), vec2(1f, 20f));
+            vec2 q = mul(sub(r, vec2(0f, 0f)), vec2(1f, 20f));
             // vec2 q = r.sub(vec2(0f, 0.25f)).mul(vec2(1f, 20f));
             ret = mix(white, gray, coordinateGrid(q));
 
@@ -311,10 +311,8 @@ public class RandShader implements Shader {
             // and vary different quantities of disks, such as
             // location and radius
             for (float i = 0.0f; i < 6.0f; i++) {
-                // change the seed and get different distributions
-                float seed = i + 0.0f;
-                vec2 pos = mul(sub(vec2(hash(seed), hash(seed + 0.5f)), -0.5f), 3f);
-                float radius = hash(seed + 3.5f);
+                vec2 pos = mul(vec2.sub(vec2(hash(i), hash(i + 0.5f)),0.5f),3f);
+                float radius = hash(i + .35f);
                 pos = mul(pos, vec2(1.0f, 0.3f));
                 ret = mix(ret, col1, disk(q, pos, 0.2f * radius));
             }
@@ -322,16 +320,16 @@ public class RandShader implements Shader {
 
         vec3 pixel = ret;
         fragColor = vec4(pixel, 1.0f);
-        return fragColor;
+        return normalize(fragColor);
     }
 
     ;
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "10")),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("targetFps", "15")),
             new RandShader()
     );
 

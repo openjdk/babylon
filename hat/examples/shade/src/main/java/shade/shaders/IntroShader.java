@@ -33,30 +33,28 @@ import hat.types.vec4;
 import shade.Config;
 import shade.Shader;
 import shade.ShaderApp;
-import shade.Uniforms;
+import hat.buffer.Uniforms;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
+import static hat.types.F32.PIx2;
 import static hat.types.F32.cos;
 import static hat.types.F32.floor;
 import static hat.types.F32.mod;
 import static hat.types.F32.pow;
 import static hat.types.F32.sin;
 import static hat.types.F32.smoothstep;
-import static hat.types.F32.step;
 import static hat.types.mat2.mat2;
 import static hat.types.mat2.mul;
 import static hat.types.vec2.add;
 import static hat.types.vec2.div;
 import static hat.types.vec2.length;
-//import static hat.types.vec2.mod;
 import static hat.types.vec2.mul;
 import static hat.types.vec2.sub;
 import static hat.types.vec2.vec2;
 import static hat.types.vec3.mix;
 import static hat.types.vec3.mul;
-import static hat.types.vec3.normalize;
 import static hat.types.vec3.sub;
 import static hat.types.vec3.vec3;
 import static hat.types.vec4.vec4;
@@ -176,90 +174,81 @@ public class IntroShader implements Shader {
     }
 
     mat2 rot(float th) {
+
         return mat2(cos(th), -sin(th), sin(th), cos(th));
     }
 
     @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+    public vec4 mainImage(final Uniforms uniforms, final vec4 fragColor, final vec2 fragCoord) {
         float G = 990623f; // compressed characters :-)
         float L = 69919f;
         float S = 991119f;
 
-        float t = uniforms.iTime();
+        float fTime = uniforms.iTime();
         vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-        vec2 r = div(sub(fragCoord, mul(vec2(-0.5f), fres)), vec2(fres.y()));
+        vec2 r = div(sub(fragCoord, mul(vec2(0.5f), fres)), vec2(fres.y()));
 
         float c = 0.05f;
+       // vec2 pL = (mod(r+vec2(cos(0.3*t),sin(0.3*t)), 2.0*c)-c)/c;
+        vec2 pL = div(sub(vec2.mod(add(r,vec2(cos(0.3f*fTime),sin(0.3f*fTime))), 2.0f*c),c),c);
+      //  float circ = 1f - smoothstep(0.75f, 0.8f, length(pL));
+        float circ = .5f - smoothstep(0.75f, 0.8f, length(pL));
+       // vec2 rG = mul(rot(2f * 3.1415f * smoothstep(0f, 1f, mod(1.5f * fTime, 4.0f))), r);
+        vec2 rG = mul(rot(PIx2 * smoothstep(0f, 1f, mod(fTime, 2.0f))), r);
 
-
-
-       // vec2 cos_3_sin_3 = vec2(cos(0.3f * t), sin(0.3f * t));
-       // vec2 rplus = add(r, cos_3_sin_3);
-       // vec2 cAsVec2 = vec2(c);
-        var added = add(r,vec2(cos(0.3f*t),sin(0.3f*t)));
-        vec2 pL = div(sub(vec2.mod(added, 2.0f*c),c),c);
-       // vec2 pL = div(sub(mod(rplus), cAsVec2), cAsVec2);
-        float circ = 1f - smoothstep(0.75f, 0.8f, length(pL));
-
-        vec2 rG = mul(rot(2f * 3.1415f * smoothstep(0f, 1f, mod(1.5f * t, 4.0f))), r);
-        vec2 rStripes = mul(rot(0.2f), r);
+        vec2 rStripes = mul(rot(0.02f), r);
 
 
         float xMax = 0.5f * fres.x() / fres.y();
-        float letterWidth = 2f * xMax * 0.9f / 4f;
+       // float letterWidth = 2f * xMax * 0.9f / 4f;
+        float letterWidth = 1.6f * xMax * 0.9f / 4f;
         float side = letterWidth / 4f;
-        float space = 2f * xMax * 0.1f / 5f;
+       // float space = 2f * xMax * 0.1f / 5f;
+        float space = 1.6f * xMax * 0.1f / 5f;
         vec2 letterWidthPlusSpace = vec2(letterWidth + space, 0f);
-        r = add(r, vec2(0.001f)); // to get rid off the y=0 horizontal blue line.
-        float maskGS = character(r, vec2(-xMax + space, -2.5f * side), G, side);
-        float maskG = character(rG, vec2(-xMax + space, -2.5f * side), G, side);
-        float maskL1 = character(r, add(vec2(-xMax + space, -2.5f * side)
-                , mul(letterWidthPlusSpace, vec2(1f))), L, side);
-        float maskSS = character(r, add(vec2(-xMax + space, -2.5f * side)
-                , mul(letterWidthPlusSpace, vec2(2f))), S, side);
+
+       // r = add(r, vec2(0.001f)); // to get rid of the y=0 horizontal blue line.
+        var bl = vec2(-xMax + space, -2.5f * side);
+        var lPos = mul(letterWidthPlusSpace, vec2(1f));
+        var sPos = mul(letterWidthPlusSpace, vec2(2f));
+        float maskGS = character(r, bl, G, side);
+        float maskG = character(rG, bl, G, side);
+        float maskL1 = character(r, add(bl, lPos), L, side);
+        float maskSS = character(r, add(bl, sPos), S, side);
 
         float maskS = character(r, add(
                 vec2(-xMax + space, -2.5f * side),
-                add(
-                        mul(
-                                vec2(letterWidth + space, 0f), vec2(2.0f)
-                        )
-                        , vec2(
-                                0.01f * sin(2.1f * t), 0.012f * cos(t))
-                )), S, side);
+                add(mul(vec2(letterWidth + space, 0f), vec2(2.0f)), vec2(0.01f * sin(2.1f * fTime), 0.012f * cos(fTime)))), S, side);
 
-        float maskL2 = character(r, add(vec2(-xMax + space, -2.5f * side), mul(letterWidthPlusSpace, vec2(3f))), L, side);
-        float maskStripes = step(0.25f, mod(rStripes.x() - 0.5f * t, 0.5f));
+        float maskL2 = character(r, add(bl, mul(letterWidthPlusSpace, vec2(3f))), L, side);
+        float maskStripes = smoothstep(0.1f,.25f, mod(rStripes.x() - 0.5f * fTime, 0.5f));
 
-        vec3 i255 = vec3(0.00392156862f);
+        vec3 i255 = vec3(0.0392156862f);
 
         vec3 blue = mul(vec3(43f, 172f, 181f), i255);
-        vec3 pink = mul(vec3(232f, 77f, 91f), i255);
-        //   vec3 dark = mul(vec3(59f, 59f, 59f),i255);
-        vec3 light = mul(vec3(245f, 236f, 217f), i255);
+        vec3 pink = mul(vec3(200f, 177f, 91f), i255);
+        vec3 light = mul(vec3(24f, 236f, 217f), i255);
         vec3 green = mul(vec3(180f, 204f, 18f), i255);
 
         vec3 pixel = blue;
         pixel = mix(pixel, light, maskGS);
         pixel = mix(pixel, light, maskSS);
-        pixel = sub(pixel, vec3(0.1f * maskStripes));
+        pixel = sub(pixel, vec3(.9f * maskStripes));
         pixel = mix(pixel, green, maskG);
         pixel = mix(pixel, pink, maskL1 * circ);
         pixel = mix(pixel, green, maskS);
         pixel = mix(pixel, pink, maskL2 * (1f - circ));
 
-        float dirt = .01f;// pow(texture(iChannel0, 4f*r).x, 4f);
-        pixel = sub(pixel, vec3((0.2f * dirt - 0.1f) * (maskG + maskS))); // dirt
         pixel = sub(pixel, vec3(smoothstep(0.45f, 2.5f, length(r))));
-        fragColor = vec4(normalize(pixel), 1f);
-        return fragColor;
+
+        return vec4.normalize(vec4(pixel, 1f));
     }
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "5")),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "320"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "320"))),
+            Integer.parseInt(System.getProperty("targetFps", "10")),
             new IntroShader()
     );
 

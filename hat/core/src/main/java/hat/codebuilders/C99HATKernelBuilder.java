@@ -27,6 +27,7 @@ package hat.codebuilders;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.buffer.F16Array;
+import hat.buffer.Uniforms;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
@@ -39,13 +40,18 @@ import hat.phases.HATFP16Phase;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types.F32;
 import hat.types._F16;
+import hat.types.vec2;
+import hat.types.vec3;
+import hat.types.vec4;
 import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
 import optkl.FuncOpParams;
@@ -57,6 +63,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.codebuilders.CodeBuilder;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -367,9 +374,42 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+
+
+// GRF
+    IfaceValue.vec.Shape getVecShape(java.lang.reflect.Type vecClass){
+        try {
+            Field field = ((Class<?>)vecClass).getField("shape");
+            return (IfaceValue.vec.Shape) field.get(null);
+        }catch (Throwable t){
+            throw new RuntimeException(t);
+        }
+    }
+    IfaceValue.vec.Shape getVecShape(JavaType javaType){
+        var resolved = OpHelper.classTypeToTypeOrThrow(scopedCodeBuilderContext().lookup(),(ClassType) javaType);
+        return  getVecShape(resolved);
+
+    }
+
+    String clName(JavaType javaType){
+        if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, vec4.class)) {
+            return "float4";
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, vec3.class)) {
+            return "float3";
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, vec2.class)) {
+           return "float2";
+        } else {
+            throw new RuntimeException("no cl name mapping for "+javaType);
+        }
+    }
+
     @Override
     public final  T type( JavaType javaType) {
-        if (javaType instanceof ClassType classType
+        // GRF hijacked for vec support
+
+        if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, MappableIface.vec.class)){
+            typeName(clName(javaType));
+        }else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
         ) {
@@ -756,11 +796,53 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract  T atomicInc( Op.Result instanceResult, String name);
 
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
+// GRF
+    static public String mapVecName(String vname){
+        return "float"+vname.substring(3);
+    }
 
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
+        // hacked for vec op calls.
+
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if (invoke.refIs(IfaceValue.class)) {
+        if (invoke.nameMatchesRegex("mainImage")){
+            funcName(invoke.op()).paren(_ ->
+                    commaSpaceSeparated(invoke.operandsAsResults(),operand-> recurse(operand.op()))
+            );
+        }else if (invoke.refIs(F32.class)) {
+            switch (invoke.name()){
+                case "cos","sin" -> identifier(invoke.name()).paren(_ ->
+                        commaSpaceSeparated(invoke.operandsAsResults(), operand -> recurse(operand.op())));
+                case "abs" -> identifier("f"+invoke.name()).paren(_ ->
+                        commaSpaceSeparated(invoke.operandsAsResults(), operand -> recurse(operand.op())));
+                default -> throw new RuntimeException("unmapped F32 call "+invoke.name());
+            }
+        }else if (invoke.refIs(Uniforms.class)) {
+            if (invoke.nameMatchesRegex("iResolution")) {
+                cast(_ -> type((JavaType) invoke.returnType())).paren(_ ->
+                        join(List.of("x", "y", "z"), _ -> commaSpace(), lane ->
+                                identifier("uniforms").rarrow().identifier(invoke.name()).dot().identifier(lane)
+                        )
+                );
+            }else   if (invoke.nameMatchesRegex("iTime")){
+                cast(_->identifier("float")).identifier("uniforms").rarrow().identifier(invoke.name());
+            }else {
+                throw new RuntimeException("some other uniform" + invoke.name());
+            }
+        }else if (invoke.refIs(IfaceValue.vec.class)) {
+            if (invoke.nameMatchesRegex("vec[234]")) {//  vec3.vec3(....)
+                paren(_ -> typeName(mapVecName(invoke.name()))).paren(_ ->
+                        commaSpaceSeparated(invoke.operandsAsResults(), operand -> recurse(operand.op()))
+                );
+            }else{
+               recurse(invoke.opFromFirstOperandOrNull()).dot().identifier(invoke.name());
+            }
+        }else if (invoke.refIs(IfaceValue.mat.class)) {
+          lineComment("call through mat !");
+          recurse(invoke.opFromFirstOperandOrNull()).dot().identifier(invoke.name());
+
+        }else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
@@ -823,8 +905,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     }
                 }
             }
-        } else { // General case
-            if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
+        } else  if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
                 // codegen for the math operation
                 generateMathIntrinsicOperation(invoke);
             } else {
@@ -837,7 +918,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                 })
                 );
             }
-        }
+
         return self();
     }
 

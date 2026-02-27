@@ -72,22 +72,6 @@ public interface vec4 extends IfaceValue.vec{
         return vec4(scalar, scalar, scalar, scalar);
     }
 
-    static vec4 mul(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
-        return vec4(xl*xr, yl*yr, zl*zr, wl*wr);
-    }
-
-    static vec4 mul(vec4 l, vec4 r){
-        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
-    }
-
-    static vec4 mul(float l, vec4 r){
-        return mul(l, r.x(), l, r.y(), l, r.z(), l, r.w());
-    }
-
-    static vec4 mul(vec4 l, float r){
-        return mul(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
-    }
-
     static vec4 div(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
         return vec4(xl/xr, yl/yr, zl/zr, wl/wr);
     }
@@ -134,6 +118,22 @@ public interface vec4 extends IfaceValue.vec{
 
     static vec4 sub(vec4 l, float r){
         return sub(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
+    }
+
+    static vec4 mul(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
+        return vec4(xl*xr, yl*yr, zl*zr, wl*wr);
+    }
+
+    static vec4 mul(vec4 l, vec4 r){
+        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
+    }
+
+    static vec4 mul(float l, vec4 r){
+        return mul(l, r.x(), l, r.y(), l, r.z(), l, r.w());
+    }
+
+    static vec4 mul(vec4 l, float r){
+        return mul(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
     static vec4 pow(vec4 l, vec4 r){
@@ -265,6 +265,15 @@ public interface vec4 extends IfaceValue.vec{
             F32.smoothstep(e0.y(), e1.y(), v.y()),
             F32.smoothstep(e0.z(), e1.z(), v.z()),
             F32.smoothstep(e0.w(), e1.w(), v.w())
+        );
+    }
+
+    static vec4 step(vec4 e, vec4 v){
+        return vec4(
+            F32.step(e.x(), v.x()),
+            F32.step(e.y(), v.y()),
+            F32.step(e.z(), v.z()),
+            F32.step(e.w(), v.w())
         );
     }
 

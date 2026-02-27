@@ -66,22 +66,6 @@ public interface vec2 extends IfaceValue.vec{
         return vec2(scalar, scalar);
     }
 
-    static vec2 mul(float xl, float xr, float yl, float yr){
-        return vec2(xl*xr, yl*yr);
-    }
-
-    static vec2 mul(vec2 l, vec2 r){
-        return mul(l.x(), r.x(), l.y(), r.y());
-    }
-
-    static vec2 mul(float l, vec2 r){
-        return mul(l, r.x(), l, r.y());
-    }
-
-    static vec2 mul(vec2 l, float r){
-        return mul(l.x(), r, l.y(), r);
-    }
-
     static vec2 div(float xl, float xr, float yl, float yr){
         return vec2(xl/xr, yl/yr);
     }
@@ -128,6 +112,22 @@ public interface vec2 extends IfaceValue.vec{
 
     static vec2 sub(vec2 l, float r){
         return sub(l.x(), r, l.y(), r);
+    }
+
+    static vec2 mul(float xl, float xr, float yl, float yr){
+        return vec2(xl*xr, yl*yr);
+    }
+
+    static vec2 mul(vec2 l, vec2 r){
+        return mul(l.x(), r.x(), l.y(), r.y());
+    }
+
+    static vec2 mul(float l, vec2 r){
+        return mul(l, r.x(), l, r.y());
+    }
+
+    static vec2 mul(vec2 l, float r){
+        return mul(l.x(), r, l.y(), r);
     }
 
     static vec2 pow(vec2 l, vec2 r){
@@ -247,6 +247,13 @@ public interface vec2 extends IfaceValue.vec{
         return vec2(
             F32.smoothstep(e0.x(), e1.x(), v.x()),
             F32.smoothstep(e0.y(), e1.y(), v.y())
+        );
+    }
+
+    static vec2 step(vec2 e, vec2 v){
+        return vec2(
+            F32.step(e.x(), v.x()),
+            F32.step(e.y(), v.y())
         );
     }
 

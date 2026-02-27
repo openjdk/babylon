@@ -24,6 +24,7 @@
  */
 package shade;
 
+import hat.buffer.Uniforms;
 import hat.types.vec3;
 import hat.types.vec4;
 import optkl.util.carriers.ArenaAndLookupCarrier;
