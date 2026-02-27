@@ -37,7 +37,6 @@ import jdk.incubator.code.internal.OpDeclaration;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -174,13 +173,6 @@ public sealed abstract class JavaOp extends Op {
                 case JavaOp.ConvOp convOp -> {
                     Value operand = op.operands().getFirst();
                     var v = eval(l, operand);
-                    // cast to String
-                    if (convOp.resultType().equals(J_L_STRING)) {
-                        if (!(v instanceof String)) {
-                            throw new NonConstantExpression();
-                        }
-                        yield v;
-                    }
                     // cast to primitive type
                     // cast from a primitive type to boolean or form boolean to a primitive type is not allowed in cast context
                     if ((convOp.resultType().equals(BOOLEAN) && !operand.type().equals(BOOLEAN)) ||
@@ -188,6 +180,18 @@ public sealed abstract class JavaOp extends Op {
                         throw new NonConstantExpression();
                     }
                     yield ArithmeticAndConvOpImpls.evaluate(convOp, v);
+                }
+                case CastOp castOp -> {
+                    Value operand = castOp.operands().getFirst();
+                    // we expect cast to String
+                    if (!castOp.resultType().equals(J_L_STRING) || !operand.type().equals(J_L_STRING)) {
+                        throw new NonConstantExpression();
+                    }
+                    Object v = eval(l, operand);
+                    if (!v.getClass().equals(String.class)) {
+                        throw new NonConstantExpression();
+                    }
+                    yield String.valueOf(v);
                 }
                 case ConcatOp concatOp -> {
                     Object first = eval(l, concatOp.operands().getFirst());

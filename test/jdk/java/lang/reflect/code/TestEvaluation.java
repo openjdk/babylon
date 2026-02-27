@@ -330,4 +330,37 @@ public class TestEvaluation {
             Assertions.assertTrue(opt.isEmpty());
         }
     }
+
+    @Test
+    void testCasts() {
+        // invalid
+        CoreOp.FuncOp iv = CoreOp.func("ic", CoreType.FUNCTION_TYPE_VOID).body(b -> {
+            // we can have cast to String but the value we cast has a non-type String
+            // this will not be allowed by the Java language
+            // e.g. String s = (String) 1;
+            b.op(JavaOp.cast(J_L_STRING, b.op(CoreOp.constant(INT, 1))));
+            b.op(CoreOp.return_());
+        });
+        List<JavaOp.CastOp> castOps = iv.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
+                .map(op -> (JavaOp.CastOp) op).toList();
+        for (JavaOp.CastOp castOp : castOps) {
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), castOp);
+            Assertions.assertTrue(opt.isEmpty());
+        }
+
+        // valid
+        CoreOp.FuncOp v = CoreOp.func("vc", CoreType.FUNCTION_TYPE_VOID).body(b -> {
+            // we can have cast to String but the value we cast has a non-type String
+            // this will not be allowed by the Java language
+            // e.g. String s = (String) 1;
+            b.op(JavaOp.cast(J_L_STRING, b.op(CoreOp.constant(J_L_STRING, "1"))));
+            b.op(CoreOp.return_());
+        });
+        List<JavaOp.CastOp> castOps2 = v.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
+                .map(op -> (JavaOp.CastOp) op).toList();
+        for (JavaOp.CastOp castOp : castOps2) {
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), castOp);
+            Assertions.assertTrue(opt.isPresent());
+        }
+    }
 }
