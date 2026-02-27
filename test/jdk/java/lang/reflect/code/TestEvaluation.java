@@ -87,18 +87,48 @@ public class TestEvaluation {
         return i;
     }
 
-//    @Reflect
-//    static int fcBlankFinalVar() {
-//        // @@@ should fail
-//        // currently we lack sufficent info to determine if a variable was declared final in source code
-//        int x = 1;
-//        return x;
-//    }
+    //@Reflect
+    static int fcEffectivelyFinalVar() {
+        // @@@ should fail
+        // currently we lack sufficent info to determine if a variable was declared final in source code
+        int x = 1;
+        return x;
+    }
 
-    public static final int y = 3;
+    static final int Y1 = 3;
     @Reflect
     static int staticFinalField() {
-        return y;
+        return Y1;
+    }
+    static final Integer Y2 = 3;
+    @Reflect
+    static Integer fcFieldOfWrongType() {
+        // field type not primitive nor String
+        return Y2;
+    }
+    enum E {A}
+    static final E e = E.A;
+    @Reflect
+    static E fcFieldOfWrongType2() {
+        return e;
+    }
+    static int Y4 = 3;
+    @Reflect
+    static int fcFieldNotDeclaredFinal() {
+        return Y4;
+    }
+    static final int Y3 = LocalDate.now().getDayOfMonth();
+    //@Reflect
+    static long fcFieldInitializedWithNonConstantExpr() {
+        return Y3;
+    }
+    static final String S;
+    static {
+        S = "A";
+    }
+    //@Reflect
+    static String fcFieldBlankFinal() {
+        return S;
     }
 
     @Reflect

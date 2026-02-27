@@ -158,8 +158,10 @@ public sealed abstract class JavaOp extends Op {
             throw new NonConstantExpression();
         }
 
-        List<Class<?>> primitiveWrapperClasses = List.of(Boolean.class, Byte.class, Short.class,
+        Set<Class<?>> primitiveWrapperClasses = Set.of(Boolean.class, Byte.class, Short.class,
                 Character.class, Integer.class, Long.class, Float.class, Double.class);
+        Set<Class<?>> primitiveClasses = Set.of(boolean.class, byte.class, short.class, char.class,
+                int.class, long.class, float.class, double.class);
 
         private static Object eval(MethodHandles.Lookup l, Op op) throws NonConstantExpression {
             return switch (op) {
@@ -210,11 +212,13 @@ public sealed abstract class JavaOp extends Op {
                     } catch (ReflectiveOperationException e) {
                         throw new IllegalArgumentException(e);
                     }
-                    if (field.isEnumConstant() ||
-                            ((field.getModifiers() & Modifier.STATIC) != 0 && (field.getModifiers() & Modifier.FINAL) != 0)) {
+                    if (((field.getModifiers() & Modifier.STATIC) != 0 && (field.getModifiers() & Modifier.FINAL) != 0) &&
+                            (primitiveClasses.contains(field.getType()) || field.getType().equals(String.class))) {
                         // @@@ why using field.get fails ?
                         yield vh.get();
                     }
+                    // looking at the bytecode, constant variable field has attribute ConstantValue
+                    // how to check for that using reflection API
                     throw new NonConstantExpression();
                 }
                 case JavaOp.UnaryOp unaryOp -> {
