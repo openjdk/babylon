@@ -30,24 +30,24 @@ import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
-import hat.types.F32;
-import hat.types.vec2;
-import hat.types.vec3;
-import hat.types.vec4;
+
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
 
-import static hat.types.vec2.vec2;
-import static hat.types.vec4.vec4;
+import hat.types.vec2;
+import hat.types.vec3;
+import hat.types.vec4;
+import static hat.types.F32.*;
+import static hat.types.vec2.*;
+import static hat.types.vec4.*;
 
 public class HATShader {
     @Reflect
     public static vec4 mainImage(@MappableIface.RO Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-      //  vec3 fres =  uniforms.iResolution();
         float fTime = uniforms.iTime();
         var v = vec4(1f);
-       // v = vec4.add(v,v);
-        return vec4(1f, F32.abs(F32.cos(fTime)),F32.sin(fTime),0f);
+        // v = vec4.add(v,v);
+        return vec4(1f, abs(cos(fTime)),sin(fTime),0f);
     }
 
     @Reflect

@@ -26,10 +26,12 @@ package shade.shaders;
 
 import hat.Accelerator;
 import hat.backend.Backend;
+import hat.types.F32;
+import static hat.types.F32.*;
 import hat.types.vec4;
 import static hat.types.vec4.*;
 import hat.types.vec2;
-
+import static hat.types.vec2.*;
 import shade.Config;
 import shade.Shader;
 import shade.ShaderApp;
@@ -44,12 +46,15 @@ public class HelloWorldShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        return normalize(vec4(uniforms.iTime(),2f,20f,0f));
+        float fTime = uniforms.iTime();
+        var v = vec4(1f);
+        // v = vec4.add(v,v);
+        return vec4(1f, abs(cos(fTime)),sin(fTime),0f);
     }
 
     static Config controls = Config.of(
-          // Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST)  : null,
-           new Accelerator(MethodHandles.lookup(), Backend.FIRST),
+           Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST)  : null,
+          // new Accelerator(MethodHandles.lookup(), Backend.FIRST),
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "2024"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "2024"))),
             Integer.parseInt(System.getProperty("targetFps", "60")),
