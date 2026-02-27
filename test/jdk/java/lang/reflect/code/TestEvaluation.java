@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -51,12 +52,48 @@ public class TestEvaluation {
         final int x = 1;
         return x;
     }
-
     @Reflect
-    static int constantVar2() {
-        int x = 1;
-        return x;
+    static String strConstantVar() {
+        final String s = "u";
+        return s;
     }
+    @Reflect
+    static String strConstantVar2() {
+        final int x = 1;
+        final String s = x == 1 ? "one" : "not one";
+        return s;
+    }
+    @Reflect
+    static String strConstantVar3() {
+        final String s = 123 + "456";
+        return s;
+    }
+    @Reflect
+    static String fcNotConstantVar() {
+        // initialized with a non-constant expression
+        final String s = LocalDate.now().toString();
+        return s;
+    }
+    @Reflect
+    static Object fcNotConstantVar2() {
+        // type not primitive nor String
+        final Object o = "s";
+        return o;
+    }
+    @Reflect
+    static int fcFinalVariableNotInitialized() {
+        final int i;
+        i = 1;
+        return i;
+    }
+
+//    @Reflect
+//    static int fcBlankFinalVar() {
+//        // @@@ should fail
+//        // currently we lack sufficent info to determine if a variable was declared final in source code
+//        int x = 1;
+//        return x;
+//    }
 
     public static final int y = 3;
     @Reflect

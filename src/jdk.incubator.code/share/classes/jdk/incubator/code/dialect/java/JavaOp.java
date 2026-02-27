@@ -168,8 +168,11 @@ public sealed abstract class JavaOp extends Op {
                         ((cop.resultType().equals(J_L_STRING) && cop.value().getClass().equals(String.class)) ||
                         (cop.resultType() instanceof PrimitiveType && primitiveWrapperClasses.contains(cop.value().getClass())))
                         -> cop.value();
-                case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isFinalVar(varLoadOp.varOp()) ->
-                        eval(l, varLoadOp.varOp().initOperand());
+                case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isVarNeverWrittenTo(varLoadOp.varOp()) &&
+                        (varLoadOp.varOp().varValueType() instanceof PrimitiveType ||
+                        varLoadOp.varOp().varValueType().equals(J_L_STRING)) &&
+                        !varLoadOp.varOp().operands().isEmpty()
+                        -> eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp convOp -> {
                     Value operand = op.operands().getFirst();
                     var v = eval(l, operand);
@@ -269,8 +272,8 @@ public sealed abstract class JavaOp extends Op {
             return eval(l, yop.yieldValue());
         }
 
-        private static boolean isFinalVar(CoreOp.VarOp varOp) {
-            return varOp.initOperand() != null && varOp.result().uses().stream().noneMatch(u -> u.op() instanceof CoreOp.VarAccessOp.VarStoreOp);
+        private static boolean isVarNeverWrittenTo(CoreOp.VarOp varOp) {
+            return varOp.result().uses().stream().noneMatch(u -> u.op() instanceof CoreOp.VarAccessOp.VarStoreOp);
         }
     }
 
