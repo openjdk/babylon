@@ -118,7 +118,7 @@ public class TestEvaluation {
         return Y4;
     }
     static final int Y3 = LocalDate.now().getDayOfMonth();
-    //@Reflect
+    @Reflect
     static long fcFieldInitializedWithNonConstantExpr() {
         return Y3;
     }
@@ -126,7 +126,7 @@ public class TestEvaluation {
     static {
         S = "A";
     }
-    //@Reflect
+    @Reflect
     static String fcFieldBlankFinal() {
         return S;
     }
