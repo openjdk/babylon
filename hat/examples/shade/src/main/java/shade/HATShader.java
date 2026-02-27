@@ -29,7 +29,10 @@ import hat.ComputeContext.Kernel;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.F32Array;
+import hat.buffer.Uniforms;
+import hat.types.F32;
 import hat.types.vec2;
+import hat.types.vec3;
 import hat.types.vec4;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
@@ -40,29 +43,37 @@ import static hat.types.vec4.vec4;
 public class HATShader {
     @Reflect
     public static vec4 mainImage(@MappableIface.RO Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        return vec4(0f, 0f, 1f, 0f);
+      //  vec3 fres =  uniforms.iResolution();
+        float fTime = uniforms.iTime();
+        var v = vec4(1f);
+       // v = vec4.add(v,v);
+        return vec4(1f, F32.abs(F32.cos(fTime)),F32.sin(fTime),0f);
     }
 
     @Reflect
-    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image) {
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array image) {
         if (kc.gix < kc.gsx) {
-            // The image is essentially a vec3 array
-            int width = (int) uniforms.iResolution().x();
-            int height = (int) uniforms.iResolution().y();
-            var fragCoord = vec2(kc.gix % width, kc.gix / width);
-            long offset = ((long) kc.gsx * height * 3) + (kc.gix * 3L);
-            var fragColor = mainImage(uniforms,
-                    vec4(image.array(offset + 0), image.array(offset + 1), image.array(offset + 2), 0f),
-                    fragCoord);
-            image.array(offset + 0, fragColor.x());
-            image.array(offset + 1, fragColor.y());
-            image.array(offset + 2, fragColor.z());
+            vec3 fres =  uniforms.iResolution();
+            int width = (int) fres.x();
+            int height = (int) fres.y();
+            int x= kc.gix % width;
+            int y= kc.gix / width;
+            int offsetx = kc.gix*3;
+            int offsety =offsetx+1;
+            int offsetz=offsety+1;
+            var fragCoord = vec2(x,y);
+            var fragColor = vec4(image.array(offsetx), image.array(offsety), image.array(offsetz),0f);
+            fragColor = mainImage(uniforms, fragColor, fragCoord);
+            image.array(offsetx, fragColor.x());
+            image.array(offsety, fragColor.y());
+            image.array(offsetz, fragColor.z());
         }
     }
 
 
     @Reflect
     static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+
         computeContext.dispatchKernel(
                 NDRange.of1D(width * height),               //0..S32Array2D.size()
                 (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));

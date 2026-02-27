@@ -26,6 +26,7 @@
 package shade;
 
 import hat.Accelerator.Compute;
+import hat.buffer.Uniforms;
 import hat.types.vec2;
 import hat.types.vec4;
 import jdk.incubator.code.Reflect;
@@ -118,8 +119,6 @@ public class ShaderViewer implements Runnable{
                                 var fwidth = frameControls.width();
                                 var fheight = frameControls.height();
                                 var f32Array = floatImage.f32Array();
-                                // the following failed!
-                                //   accelerator.compute((@Reflect Compute) cc ->compute(cc,funiforms,floatImage.f32Array(),fwidth,fheight));
                                 frameControls.accelerator().compute((@Reflect Compute) cc -> HATShader.compute(cc, funiforms, f32Array, fwidth, fheight));
                             }
                             floatImage.sync();

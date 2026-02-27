@@ -24,6 +24,7 @@
  */
 package shade;
 
+import hat.buffer.Uniforms;
 import hat.types.vec2;
 import hat.types.vec4;
 

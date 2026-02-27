@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package hat.buffer;
 
 import hat.types.ivec2;
 import hat.types.vec2;

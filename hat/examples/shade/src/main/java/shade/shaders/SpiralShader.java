@@ -28,12 +28,11 @@ import hat.Accelerator;
 import hat.backend.Backend;
 import hat.types.F32;
 import hat.types.vec2;
-import hat.types.vec3;
 import hat.types.vec4;
 import shade.Config;
 import shade.Shader;
 import shade.ShaderApp;
-import shade.Uniforms;
+import hat.buffer.Uniforms;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;

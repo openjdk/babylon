@@ -26,31 +26,17 @@ package shade.shaders;
 
 import hat.Accelerator;
 import hat.backend.Backend;
-import hat.types.F32;
 import hat.types.vec2;
-import hat.types.vec3;
 import hat.types.vec4;
 import shade.Config;
 import shade.Shader;
 import shade.ShaderApp;
-import shade.Uniforms;
+import hat.buffer.Uniforms;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
-import static hat.types.F32.abs;
-import static hat.types.F32.fract;
-import static hat.types.F32.sin;
-import static hat.types.F32.smoothstep;
-import static hat.types.vec2.div;
-import static hat.types.vec2.length;
-import static hat.types.vec2.mul;
-import static hat.types.vec2.sub;
-import static hat.types.vec2.vec2;
-import static hat.types.vec3.mix;
-import static hat.types.vec3.vec3;
 import static hat.types.vec4.normalize;
-import static hat.types.vec4.vec4;
 
 /*
 #define STEP 9.0

@@ -34,12 +34,11 @@ import hat.types.vec4;
 import shade.Config;
 import shade.Shader;
 import shade.ShaderApp;
-import shade.Uniforms;
+import hat.buffer.Uniforms;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
-import static hat.types.F32.PI;
 import static hat.types.F32.PIx2;
 import static hat.types.F32.abs;
 import static hat.types.F32.cos;
