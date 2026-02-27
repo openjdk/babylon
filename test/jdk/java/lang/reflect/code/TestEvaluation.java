@@ -30,22 +30,141 @@ import static jdk.incubator.code.dialect.java.PrimitiveType.*;
  * @run junit TestEvaluation
  */
 public class TestEvaluation {
-    // play with different ops and see if evaluate returns the correct result
-    // TODO tests for constant expr in compiler ?
     @Reflect
-    static int constant() {
+    static int primitiveLiteral() {
         return 1;
     }
-
     @Reflect
-    static String strLiteral() {
+    static String stringLiteral() {
         return "A";
     }
 
     @Reflect
-    static String concat() {
+    static int unaryOperator() {
+        return +1;
+    }
+    @Reflect
+    static int unaryOperator2() {
+        return -1;
+    }
+    @Reflect
+    static int unaryOperator3() {
+        return ~1;
+    }
+    @Reflect
+    static boolean unaryOperator4() {
+        return !false;
+    }
+
+    @Reflect
+    static int multiplicativeOperator() {
+        return 1 * 2;
+    }
+    @Reflect
+    static int multiplicativeOperator2() {
+        return 1 / 2;
+    }
+    @Reflect
+    static int multiplicativeOperator3() {
+        return 1 % 2;
+    }
+
+    @Reflect
+    static int additiveOperator() {
+        return 1 + 2;
+    }
+    @Reflect
+    static String additiveOperator2() {
         return "number " + 1;
     }
+    @Reflect
+    static int additiveOperator3() {
+        return 1 - 2;
+    }
+
+    @Reflect
+    static int shiftOperator() {
+        return 1 << 2;
+    }
+    @Reflect
+    static int shiftOperator2() {
+        return 1 >> 2;
+    }
+    @Reflect
+    static int shiftOperator3() {
+        return -1 >>> 2;
+    }
+
+    @Reflect
+    static boolean relationalOperator() {
+        return 1 < 2;
+    }
+    @Reflect
+    static boolean relationalOperator2() {
+        return 1 <= 2;
+    }
+    @Reflect
+    static boolean relationalOperator3() {
+        return 1 > 2;
+    }
+    @Reflect
+    static boolean relationalOperator4() {
+        return 1 >= 2;
+    }
+
+    @Reflect
+    static boolean equalityOperator() {
+        return 1 == 2;
+    }
+    @Reflect
+    static boolean equalityOperator2() {
+        return 1 != 2;
+    }
+    @Reflect
+    static boolean equalityOperator3() {
+        return "A" != "B";
+    }
+
+    @Reflect
+    static int bitwiseOperator() {
+        return 1 & 2;
+    }
+    @Reflect
+    static int bitwiseOperator2() {
+        return 1 | 2;
+    }
+    @Reflect
+    static int bitwiseOperator3() {
+        return 1 ^ 2;
+    }
+
+    @Reflect
+    static boolean logicalOperator() {
+        return true & false;
+    }
+    @Reflect
+    static boolean logicalOperator2() {
+        return false | true;
+    }
+    @Reflect
+    static boolean logicalOperator3() {
+        return true ^ false;
+    }
+
+    @Reflect
+    static boolean conditionalAndOperator() {
+        return true && false;
+    }
+    @Reflect
+    static boolean conditionalOrOperator() {
+        return true || false;
+    }
+
+    @Reflect
+    static int ternaryConditionalOperator() {
+        return 1 != 2 | 2 > 3 ? 3 : 4;
+    }
+
 
     @Reflect
     static int constantVar() {
@@ -131,137 +250,28 @@ public class TestEvaluation {
         return S;
     }
 
-    @Reflect
-    static int unaryOperator() {
-        return +1;
-    }
-    @Reflect
-    static int unaryOperator2() {
-        return -1;
-    }
-    @Reflect
-    static int unaryOperator3() {
-        return ~1;
-    }
-    @Reflect
-    static boolean unaryOperator4() {
-        return !false;
-    }
-    @Reflect
-    static int binaryOperator() {
-        return 1 + 2;
-    }
-    @Reflect
-    static int binaryOperator2() {
-        return 1 - 2;
-    }
-    @Reflect
-    static int binaryOperator3() {
-        return 1 * 2;
-    }
-    @Reflect
-    static int binaryOperator4() {
-        return 1 / 2;
-    }
-    @Reflect
-    static int binaryOperator5() {
-        return 1 % 2;
-    }
-    @Reflect
-    static int binaryOperator6() {
-        return 1 << 2;
-    }
-    @Reflect
-    static int binaryOperator7() {
-        return 1 >> 2;
-    }
-    @Reflect
-    static int binaryOperator8() {
-        return -1 >>> 2;
-    }
-    @Reflect
-    static int binaryOperator9() {
-        return 1 & 2;
-    }
-    @Reflect
-    static int binaryOperator10() {
-        return 1 | 2;
-    }
-    @Reflect
-    static int binaryOperator11() {
-        return 1 ^ 2;
-    }
-    @Reflect
-    static boolean binaryOperator12() {
-        return true & false;
-    }
-    @Reflect
-    static boolean binaryOperator13() {
-        return false | true;
-    }
-    @Reflect
-    static boolean binaryOperator14() {
-        return true ^ false;
-    }
-    @Reflect
-    static boolean binaryTestOp() {
-        return 1 < 2;
-    }
-    @Reflect
-    static boolean binaryTestOp2() {
-        return 1 <= 2;
-    }
-    @Reflect
-    static boolean binaryTestOp3() {
-        return 1 > 2;
-    }
-    @Reflect
-    static boolean binaryTestOp4() {
-        return 1 >= 2;
-    }
-    @Reflect
-    static boolean binaryTestOp5() {
-        return 1 == 2;
-    }
-    @Reflect
-    static boolean binaryTestOp6() {
-        return 1 != 2;
-    }
-    @Reflect
-    static boolean binaryTestOp7() {
-        return "A" != "B";
-    }
-    @Reflect
-    static int condExprOp() {
-        return 1 != 2 | 2 > 3 ? 3 : 4;
-    }
-    @Reflect
-    static boolean condAndOp() {
-        return true && false;
-    }
-    @Reflect
-    static boolean condOrOp() {
-        return true || false;
-    }
-
     @ParameterizedTest
-    @MethodSource("reflectableMethods")
+    @MethodSource("cases")
     void test(Method m) throws NoSuchMethodException {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
         Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (Op & JavaOp.JavaExpression) op);
-        Assertions.assertTrue(v.isPresent());
-        // TODO BytecodeGen
-        Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER));
-        Assertions.assertEquals(expected, v.get());
+        if (m.getName().startsWith("fc")) {
+            Assertions.assertTrue(v.isEmpty());
+        } else {
+            Assertions.assertTrue(v.isPresent());
+            // TODO use BytecodeGenerator instead of Interpreter
+            Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER));
+            Assertions.assertEquals(expected, v.get());
+        }
     }
 
-    static Stream<Method> reflectableMethods() {
+    static Stream<Method> cases() {
         return Arrays.stream(TestEvaluation.class.getDeclaredMethods())
-                .filter(m -> m.isAnnotationPresent(Reflect.class))
-                .filter(m -> !m.getName().startsWith("fc"));
+                .filter(m -> m.isAnnotationPresent(Reflect.class));
     }
+
     @Reflect
     static int fc2() {
         int x = 1;
@@ -294,23 +304,6 @@ public class TestEvaluation {
     @Reflect
     static String fc9() {
         return null;
-    }
-
-
-    @ParameterizedTest
-    @MethodSource("falseCases")
-    void testFalseCases(Method m) {
-        CoreOp.FuncOp f = Op.ofMethod(m).get();
-        Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
-        MethodHandles.Lookup l = MethodHandles.lookup();
-        Optional<Object> v = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (Op & JavaOp.JavaExpression) op);
-        Assertions.assertTrue(v.isEmpty());
-    }
-
-    static Stream<Method> falseCases() {
-        return Arrays.stream(TestEvaluation.class.getDeclaredMethods())
-                .filter(m -> m.isAnnotationPresent(Reflect.class))
-                .filter(m -> m.getName().startsWith("fc"));
     }
 
     static CoreOp.FuncOp conversionModel(TypeElement source, TypeElement target) {
@@ -417,10 +410,12 @@ public class TestEvaluation {
 
         // valid
         CoreOp.FuncOp v = CoreOp.func("vc", CoreType.FUNCTION_TYPE_VOID).body(b -> {
-            // we can have cast to String but the value we cast has a non-type String
-            // this will not be allowed by the Java language
-            // e.g. String s = (String) 1;
+            // cast of str literal
             b.op(JavaOp.cast(J_L_STRING, b.op(CoreOp.constant(J_L_STRING, "1"))));
+            // cast of value of type String
+            b.op(JavaOp.cast(J_L_STRING,
+                    b.op(JavaOp.concat(
+                            b.op(CoreOp.constant(INT, 1)), b.op(CoreOp.constant(J_L_STRING, "2"))))));
             b.op(CoreOp.return_());
         });
         List<JavaOp.CastOp> castOps2 = v.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
