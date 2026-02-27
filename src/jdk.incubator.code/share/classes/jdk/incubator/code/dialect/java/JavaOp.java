@@ -39,6 +39,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -202,7 +203,8 @@ public sealed abstract class JavaOp extends Op {
                     } catch (ReflectiveOperationException e) {
                         throw new IllegalArgumentException(e);
                     }
-                    if (field.isEnumConstant() || field.accessFlags().containsAll(Set.of(AccessFlag.STATIC, AccessFlag.FINAL))) {
+                    if (field.isEnumConstant() ||
+                            ((field.getModifiers() & Modifier.STATIC) != 0 && (field.getModifiers() & Modifier.FINAL) != 0)) {
                         // @@@ why using field.get fails ?
                         yield vh.get();
                     }
