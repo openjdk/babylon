@@ -28,6 +28,15 @@ package hat.types;
 
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
+import hat.types.vec4;
+import hat.types.vec3;
+import hat.types.vec2;
+import hat.types.vec4;
+import static hat.types.vec4.*;
+import hat.types.vec3;
+import static hat.types.vec3.*;
+import hat.types.vec2;
+import static hat.types.vec2.*;
 
 public interface vec2 extends IfaceValue.vec{
     Shape shape = Shape.of(JavaType.FLOAT, 2);
@@ -64,6 +73,22 @@ public interface vec2 extends IfaceValue.vec{
 
     static vec2 vec2(float scalar){
         return vec2(scalar, scalar);
+    }
+
+    static vec2 mul(float xl, float xr, float yl, float yr){
+        return vec2(xl*xr, yl*yr);
+    }
+
+    static vec2 mul(vec2 l, vec2 r){
+        return mul(l.x(), r.x(), l.y(), r.y());
+    }
+
+    static vec2 mul(float l, vec2 r){
+        return mul(l, r.x(), l, r.y());
+    }
+
+    static vec2 mul(vec2 l, float r){
+        return mul(l.x(), r, l.y(), r);
     }
 
     static vec2 div(float xl, float xr, float yl, float yr){
@@ -112,22 +137,6 @@ public interface vec2 extends IfaceValue.vec{
 
     static vec2 sub(vec2 l, float r){
         return sub(l.x(), r, l.y(), r);
-    }
-
-    static vec2 mul(float xl, float xr, float yl, float yr){
-        return vec2(xl*xr, yl*yr);
-    }
-
-    static vec2 mul(vec2 l, vec2 r){
-        return mul(l.x(), r.x(), l.y(), r.y());
-    }
-
-    static vec2 mul(float l, vec2 r){
-        return mul(l, r.x(), l, r.y());
-    }
-
-    static vec2 mul(vec2 l, float r){
-        return mul(l.x(), r, l.y(), r);
     }
 
     static vec2 pow(vec2 l, vec2 r){
@@ -229,7 +238,7 @@ public interface vec2 extends IfaceValue.vec{
     static vec2 normalize(vec2 v){
         float lenSq = sumOfSquares(v);
 
-        return (lenSq > 0f)?(mul(v, F32.inversesqrt(lenSq))):(vec2(0f));
+        return (lenSq >0f)?(mul(v, F32.inversesqrt(lenSq))):(vec2(0f));
     }
 
     static vec2 reflect(vec2 l, vec2 r){
@@ -243,17 +252,17 @@ public interface vec2 extends IfaceValue.vec{
         return F32.sqrt(dx*dx+dy*dy);
     }
 
-    static vec2 smoothstep(vec2 e0, vec2 e1, vec2 v){
+    static vec2 smoothstep(vec2 e1, vec2 e2, vec2 r){
         return vec2(
-            F32.smoothstep(e0.x(), e1.x(), v.x()),
-            F32.smoothstep(e0.y(), e1.y(), v.y())
+            F32.smoothstep(e1.x(), e2.x(), r.x()),
+            F32.smoothstep(e1.y(), e2.y(), r.y())
         );
     }
 
-    static vec2 step(vec2 e, vec2 v){
+    static vec2 step(vec2 e, vec2 r){
         return vec2(
-            F32.step(e.x(), v.x()),
-            F32.step(e.y(), v.y())
+            F32.step(e.x(), r.x()),
+            F32.step(e.y(), r.y())
         );
     }
 
@@ -264,90 +273,53 @@ public interface vec2 extends IfaceValue.vec{
         );
     }
 
-
-    static vec2 xy(vec3 vec3) {return vec2(vec3.x(), vec3.y());}
-    static vec2 xz(vec3 vec3) {return vec2(vec3.x(), vec3.z());}
-    static vec2 yz(vec3 vec3) {return vec2(vec3.y(), vec3.z());}
-
-
-    static vec2 mul(vec2 l, mat2 rhs) {return vec2(l.x()*rhs._00()+l.x()+rhs._01(),l.y()*rhs._10()+l.y()+rhs._11());}
-
-    static vec2 mod(vec2 v, float r){
+    static vec2 mix(vec2 l, vec2 r, vec2 v){
         return vec2(
-                F32.mod(v.x(),r),
-                F32.mod(v.y(),r)
+            F32.mix(l.x(), r.x(), v.x()),
+            F32.mix(l.y(), r.y(), v.y())
         );
     }
-    static vec2 mix(vec2 lhs,vec2 rhs, vec2 a){
+
+    static vec2 mod(vec2 l, vec2 r){
         return vec2(
-                F32.mix(lhs.x(),rhs.x(),a.x()),
-                F32.mix(lhs.y(),rhs.y(),a.y()));
+            F32.mod(l.x(), r.x()),
+            F32.mod(l.y(), r.y())
+        );
     }
 
+    static vec2 mod(vec2 l, float r){
+        return vec2(
+            F32.mod(l.x(), r),
+            F32.mod(l.y(), r)
+        );
+    }
 
-   /*
-   We should be able to use vec16 for mat4
+    static vec2 mul(vec2 l, mat2 r){
+        return vec2(
+            l.x()*r._00()+l.x()*r._01(),
+            l.y()*r._10()+l.y()*r._11()
+        );
+    }
 
+    static vec2 xx(vec3 v){
+        return vec2(v.x(), v.x());
+    }
 
-            float16 mat4_mul(float16 A, float16 B) {
-                float16 C;
+    static vec2 xy(vec3 v){
+        return vec2(v.x(), v.y());
+    }
 
-                // We compute C row by row
-                // Each row of C is the sum of the rows of B scaled by the components of A
+    static vec2 yy(vec3 v){
+        return vec2(v.y(), v.y());
+    }
 
-                // Row 0
-                C.s0123 = A.s0 * B.s0123 + A.s1 * B.s4567 + A.s2 * B.s89ab + A.s3 * B.scdef;
-                // Row 1
-                C.s4567 = A.s4 * B.s0123 + A.s5 * B.s4567 + A.s6 * B.s89ab + A.s7 * B.scdef;
-                // Row 2
-                C.s89ab = A.s8 * B.s0123 + A.s9 * B.s4567 + A.sa * B.s89ab + A.sb * B.scdef;
-                // Row 3
-                C.scdef = A.sc * B.s0123 + A.sd * B.s4567 + A.se * B.s89ab + A.sf * B.scdef;
+    static vec2 xz(vec3 v){
+        return vec2(v.x(), v.z());
+    }
 
-                return C;
-            }
+    static vec2 yz(vec3 v){
+        return vec2(v.y(), v.z());
+    }
 
-
-            #define TS 16 // Tile Size
-
-            __kernel void mat4_mul_tiled(__global const float16* A,\s
-                                         __global const float16* B,\s
-                                         __global float16* C,
-                                         const int Width) { // Width in terms of float16 units
-
-                // Local memory for tiles of float16 matrices
-                __local float16 tileA[TS][TS];
-                __local float16 tileB[TS][TS];
-
-                int row = get_local_id(1);
-                int col = get_local_id(0);
-                int globalRow = get_global_id(1);
-                int globalCol = get_global_id(0);
-
-                float16 accumulated = (float16)(0.0f);
-
-                // Loop over tiles
-                for (int t = 0; t < (Width / TS); t++) {
-
-                    // Cooperative Load: Each thread loads one float16 into local memory
-                    tileA[row][col] = A[globalRow * Width + (t * TS + col)];
-                    tileB[row][col] = B[(t * TS + row) * Width + globalCol];
-
-                    // Synchronize to ensure the tile is fully loaded
-                    barrier(CLK_LOCAL_MEM_FENCE);
-
-                    // Compute partial product for this tile
-                    for (int k = 0; k < TS; k++) {
-                        accumulated = mat4_mul_core(accumulated, tileA[row][k], tileB[k][col]);
-                    }
-
-                    // Synchronize before loading the next tile
-                    barrier(CLK_LOCAL_MEM_FENCE);
-                }
-
-                // Write result to global memory
-                C[globalRow * Width + globalCol] = accumulated;
-            }
-    */
 
 }
