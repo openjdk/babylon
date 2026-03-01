@@ -320,7 +320,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         return builder.toString();
     }
 
-
     private String sanitize(String s) {
         String[] split1 = s.split("\\.");
         if (split1.length == 1) {
@@ -328,7 +327,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
         s = split1[split1.length - 1];
         if (s.split("\\$").length > 1) {
-            s = sanitize(s.split("\\$")[1]);
+            int last = s.lastIndexOf("$");
+            s = s.substring(last + 1);
         }
         return s;
     }

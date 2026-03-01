@@ -31,6 +31,7 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -54,13 +55,14 @@ public class DeviceSchema<T extends NonMappableIface> {
     }
 
     public DeviceSchema(Class<T> klass) {
-        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(),null));
+        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(), null));
         this.klass = klass;
     }
+
     int currentLevel = 0;
 
     public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
-        DeviceSchema<T> deviceSchema =  new DeviceSchema<>(klass);
+        DeviceSchema<T> deviceSchema = new DeviceSchema<>(klass);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize();
         return deviceSchema;
@@ -71,6 +73,14 @@ public class DeviceSchema<T extends NonMappableIface> {
             members.add(new ArrayList<>());
         }
         this.members.get(currentLevel).add(fieldName);
+        return this;
+    }
+
+    public DeviceSchema<T> withFields(String... fields) {
+        if (members.isEmpty()) {
+            members.add(new ArrayList<>());
+        }
+        this.members.get(currentLevel).addAll(Arrays.stream(fields).toList());
         return this;
     }
 
@@ -108,58 +118,58 @@ public class DeviceSchema<T extends NonMappableIface> {
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
     private void materialize(C99CodeBuilder<?> builder, Class<?> klass) {
-            Method[] declaredMethods = klass.getDeclaredMethods();
-            builder.lt().identifier(klass.getName()).colon();
-            visited.add(klass.getName());
+        Method[] declaredMethods = klass.getDeclaredMethods();
+        builder.lt().identifier(klass.getName()).colon();
+        visited.add(klass.getName());
 
-            for (String fieldName : members.get(currentLevel)) {
-                boolean wasProcessed = false;
-                for (Method method : declaredMethods) {
-                    method.setAccessible(true);
-                    if (method.getName().equals(fieldName)) {
-                        Class<?> returnType = method.getReturnType();
-                        if (returnType.equals(void.class)) {
-                            continue;
-                        }
-
-                        if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
-                            // inspect the dependency and add it at the front of the string builder
-                            C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(builder.scopedCodeBuilderContext().lookup(),builder.scopedCodeBuilderContext().funcOp()));
-                            depsBuilder.preformatted(builder.getText());
-                            materialize(depsBuilder, returnType);
-                            builder = depsBuilder;
-                        }
-
-                        String type = returnType.getName();
-                        if (specialTypes.containsKey(klass)) {
-                            type = specialTypes.get(klass);
-                        }
-
-                        if (arraySize.containsKey(method.getName())) {
-                            builder.osbrace()                       // Array indicator
-                                    .colon()                        // separator
-                                    .typeName(type)                 // type
-                                    .colon()                        // separator
-                                    .identifier(method.getName())   // variableName
-                                    .colon()                        // separator
-                                    .identifier(Integer.toString(arraySize.get(method.getName()))) // Array size
-                                    .semicolon();                   // member separator
-                        } else {
-                            builder.identifier("s")            // scalar indicator
-                                    .colon()                        // separator
-                                    .typeName(type)                 // type
-                                    .colon()                        // separator
-                                    .identifier(method.getName())   // var name
-                                    .semicolon();                   // member separator
-                        }
-                        wasProcessed = true;
+        for (String fieldName : members.get(currentLevel)) {
+            boolean wasProcessed = false;
+            for (Method method : declaredMethods) {
+                method.setAccessible(true);
+                if (method.getName().equals(fieldName)) {
+                    Class<?> returnType = method.getReturnType();
+                    if (returnType.equals(void.class)) {
+                        continue;
                     }
+
+                    if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
+                        // inspect the dependency and add it at the front of the string builder
+                        C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(builder.scopedCodeBuilderContext().lookup(), builder.scopedCodeBuilderContext().funcOp()));
+                        depsBuilder.preformatted(builder.getText());
+                        materialize(depsBuilder, returnType);
+                        builder = depsBuilder;
+                    }
+
+                    String type = returnType.getName();
+                    if (specialTypes.containsKey(klass)) {
+                        type = specialTypes.get(klass);
+                    }
+
+                    if (arraySize.containsKey(method.getName())) {
+                        builder.osbrace()                       // Array indicator
+                                .colon()                        // separator
+                                .typeName(type)                 // type
+                                .colon()                        // separator
+                                .identifier(method.getName())   // variableName
+                                .colon()                        // separator
+                                .identifier(Integer.toString(arraySize.get(method.getName()))) // Array size
+                                .semicolon();                   // member separator
+                    } else {
+                        builder.identifier("s")            // scalar indicator
+                                .colon()                        // separator
+                                .typeName(type)                 // type
+                                .colon()                        // separator
+                                .identifier(method.getName())   // var name
+                                .semicolon();                   // member separator
+                    }
+                    wasProcessed = true;
                 }
-                if (!wasProcessed) {
-                    throw new RuntimeException("could not find method " + fieldName + " in class " + klass.getName());
-                }
-                currentLevel--;
             }
+            if (!wasProcessed) {
+                throw new RuntimeException("could not find method " + fieldName + " in class " + klass.getName());
+            }
+        }
+        currentLevel--;
         builder.gt();
     }
 

@@ -31,7 +31,8 @@ import hat.HATMath;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.Backend;
-import hat.test.TestDFT.ArrayComplex.Complex;
+import hat.device.DeviceSchema;
+import hat.device.NonMappableIface;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
@@ -43,6 +44,9 @@ import optkl.ifacemapper.MappableIface.WO;
 import optkl.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
+
+import static hat.test.TestDFT.ArrayComplex.Complex;
+import static hat.test.TestDFT.ArrayComplex.create;
 
 public class TestDFT {
 
@@ -126,14 +130,72 @@ public class TestDFT {
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         final int size = 8192;
-        ArrayComplex input = ArrayComplex.create(accelerator, size);
-        ArrayComplex outputSeq = ArrayComplex.create(accelerator, size);
-        ArrayComplex outputHAT = ArrayComplex.create(accelerator, size);
+        ArrayComplex input = create(accelerator, size);
+        ArrayComplex outputSeq = create(accelerator, size);
+        ArrayComplex outputHAT = create(accelerator, size);
         accelerator.compute((@Reflect Compute) computeContext -> dftCompute(computeContext, input, outputHAT));
         dftJava(input, outputSeq);
         for (int i = 0; i < outputSeq.length(); i++) {
             HATAsserts.assertEquals(outputSeq.complex(i).real(), outputHAT.complex(i).real(), 0.001f);
             HATAsserts.assertEquals(outputSeq.complex(i).imag(), outputHAT.complex(i).imag(), 0.001f);
+        }
+    }
+
+    // Simple test to check User Data Structures in Private Memory
+    public interface ArrayComplexPrivate extends NonMappableIface {
+        interface PrivateComplex extends Struct {
+            float real();
+            float imag();
+            void real(float real);
+            void imag(float imag);
+        }
+        PrivateComplex complex(long index);
+        DeviceSchema<ArrayComplexPrivate> schema =
+                DeviceSchema.of(ArrayComplexPrivate.class,
+                        complex ->
+                                complex.withArray("complex", 128)
+                                        .withDeps(PrivateComplex.class,
+                                                c2 -> c2.withFields("real", "imag")));
+        static ArrayComplexPrivate createPrivate() {
+            return null;
+        }
+    }
+
+    @Reflect
+    private static void testPrivateDS(@RW KernelContext kc,
+                                      @RO ArrayComplex input,
+                                      @WO ArrayComplex output) {
+        int idx = kc.gix;
+        ArrayComplexPrivate priv = ArrayComplexPrivate.createPrivate();
+        ArrayComplexPrivate.PrivateComplex complex = priv.complex(0);
+        complex.real(1.0f);
+        complex.imag(2.0f);
+        Complex complexOutput = output.complex(idx);
+        complexOutput.real(complex.real());
+        complexOutput.imag(complex.imag());
+    }
+
+
+    @Reflect
+    private static void complexNumbersInPrivate(@RW ComputeContext cc,
+                                   @RO ArrayComplex input,
+                                   @WO ArrayComplex output) {
+        var range = NDRange.of1D(input.length(), 128);
+        cc.dispatchKernel(range, kernelContext -> testPrivateDS(kernelContext, input, output));
+    }
+
+    @HatTest
+    public void complexNumbersInPrivate() {
+        var lookup = MethodHandles.lookup();
+        var accelerator = new Accelerator(lookup, Backend.FIRST);
+        final int size = 8192;
+        ArrayComplex input = create(accelerator, size);
+        ArrayComplex outputSeq = create(accelerator, size);
+        ArrayComplex outputHAT = create(accelerator, size);
+        accelerator.compute((@Reflect Compute) computeContext -> complexNumbersInPrivate(computeContext, input, outputHAT));
+        for (int i = 0; i < outputSeq.length(); i++) {
+            HATAsserts.assertEquals(1.0f, outputHAT.complex(i).real(), 0.001f);
+            HATAsserts.assertEquals(2.0f, outputHAT.complex(i).imag(), 0.001f);
         }
     }
 
