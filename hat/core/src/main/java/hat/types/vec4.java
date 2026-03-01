@@ -28,6 +28,15 @@ package hat.types;
 
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
+import hat.types.vec4;
+import hat.types.vec3;
+import hat.types.vec2;
+import hat.types.vec4;
+import static hat.types.vec4.*;
+import hat.types.vec3;
+import static hat.types.vec3.*;
+import hat.types.vec2;
+import static hat.types.vec2.*;
 
 public interface vec4 extends IfaceValue.vec{
     Shape shape = Shape.of(JavaType.FLOAT, 4);
@@ -70,6 +79,22 @@ public interface vec4 extends IfaceValue.vec{
 
     static vec4 vec4(float scalar){
         return vec4(scalar, scalar, scalar, scalar);
+    }
+
+    static vec4 mul(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
+        return vec4(xl*xr, yl*yr, zl*zr, wl*wr);
+    }
+
+    static vec4 mul(vec4 l, vec4 r){
+        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
+    }
+
+    static vec4 mul(float l, vec4 r){
+        return mul(l, r.x(), l, r.y(), l, r.z(), l, r.w());
+    }
+
+    static vec4 mul(vec4 l, float r){
+        return mul(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
     static vec4 div(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
@@ -118,22 +143,6 @@ public interface vec4 extends IfaceValue.vec{
 
     static vec4 sub(vec4 l, float r){
         return sub(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
-    }
-
-    static vec4 mul(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
-        return vec4(xl*xr, yl*yr, zl*zr, wl*wr);
-    }
-
-    static vec4 mul(vec4 l, vec4 r){
-        return mul(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
-    }
-
-    static vec4 mul(float l, vec4 r){
-        return mul(l, r.x(), l, r.y(), l, r.z(), l, r.w());
-    }
-
-    static vec4 mul(vec4 l, float r){
-        return mul(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
     static vec4 pow(vec4 l, vec4 r){
@@ -243,7 +252,7 @@ public interface vec4 extends IfaceValue.vec{
     static vec4 normalize(vec4 v){
         float lenSq = sumOfSquares(v);
 
-        return (lenSq > 0f)?(mul(v, F32.inversesqrt(lenSq))):(vec4(0f));
+        return (lenSq >0f)?(mul(v, F32.inversesqrt(lenSq))):(vec4(0f));
     }
 
     static vec4 reflect(vec4 l, vec4 r){
@@ -259,21 +268,21 @@ public interface vec4 extends IfaceValue.vec{
         return F32.sqrt(dx*dx+dy*dy+dz*dz+dw*dw);
     }
 
-    static vec4 smoothstep(vec4 e0, vec4 e1, vec4 v){
+    static vec4 smoothstep(vec4 e1, vec4 e2, vec4 r){
         return vec4(
-            F32.smoothstep(e0.x(), e1.x(), v.x()),
-            F32.smoothstep(e0.y(), e1.y(), v.y()),
-            F32.smoothstep(e0.z(), e1.z(), v.z()),
-            F32.smoothstep(e0.w(), e1.w(), v.w())
+            F32.smoothstep(e1.x(), e2.x(), r.x()),
+            F32.smoothstep(e1.y(), e2.y(), r.y()),
+            F32.smoothstep(e1.z(), e2.z(), r.z()),
+            F32.smoothstep(e1.w(), e2.w(), r.w())
         );
     }
 
-    static vec4 step(vec4 e, vec4 v){
+    static vec4 step(vec4 e, vec4 r){
         return vec4(
-            F32.step(e.x(), v.x()),
-            F32.step(e.y(), v.y()),
-            F32.step(e.z(), v.z()),
-            F32.step(e.w(), v.w())
+            F32.step(e.x(), r.x()),
+            F32.step(e.y(), r.y()),
+            F32.step(e.z(), r.z()),
+            F32.step(e.w(), r.w())
         );
     }
 
@@ -283,6 +292,33 @@ public interface vec4 extends IfaceValue.vec{
             F32.mix(l.y(), r.y(), v),
             F32.mix(l.z(), r.z(), v),
             F32.mix(l.w(), r.w(), v)
+        );
+    }
+
+    static vec4 mix(vec4 l, vec4 r, vec4 v){
+        return vec4(
+            F32.mix(l.x(), r.x(), v.x()),
+            F32.mix(l.y(), r.y(), v.y()),
+            F32.mix(l.z(), r.z(), v.z()),
+            F32.mix(l.w(), r.w(), v.w())
+        );
+    }
+
+    static vec4 mod(vec4 l, vec4 r){
+        return vec4(
+            F32.mod(l.x(), r.x()),
+            F32.mod(l.y(), r.y()),
+            F32.mod(l.z(), r.z()),
+            F32.mod(l.w(), r.w())
+        );
+    }
+
+    static vec4 mod(vec4 l, float r){
+        return vec4(
+            F32.mod(l.x(), r),
+            F32.mod(l.y(), r),
+            F32.mod(l.z(), r),
+            F32.mod(l.w(), r)
         );
     }
 

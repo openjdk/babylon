@@ -283,7 +283,7 @@ public class TruchetShader implements Shader {
         var uv = div(sub(mul(2f,fragCoord),fres),max(fres.x(),fres.y()));
 
        // uv *= rot(T*.095);
-        uv = mul(uv, rot(fTime * .095f));
+     //   uv = mul(uv, rot(fTime * .095f));
 
        // uv = vec2(log(length(uv)), atan(uv.y, uv.x)*6./PI2);
         // Original.
@@ -311,15 +311,15 @@ public class TruchetShader implements Shader {
         }
 
         // Output to screen
-       // color = pow(color, vec3(.4545f));
+        color = pow(color, vec3(.4545f));
         return normalize(vec4(color, 1.0f));
     }
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "800"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "800"))),
-            Integer.parseInt(System.getProperty("targetFps", "25")),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("targetFps", "5")),
             new TruchetShader()
     );
 
