@@ -28,6 +28,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
+import hat.phases.HATPhaseUtils;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
@@ -35,8 +36,9 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import static java.lang.invoke.MethodHandles.lookup;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -328,11 +330,22 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
+
+        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
+
         Value op1 = hatF16BinaryOp.operands().get(0);
         Value op2 = hatF16BinaryOp.operands().get(1);
-        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
-        List<Boolean> references = hatF16BinaryOp.references();
-        byte f32Mixed = hatF16BinaryOp.getByteFloatRepresentation();
+        boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), op1);
+        boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), op2);
+
+        final byte f32Mixed;
+        if (!isFirstOperandReference && HATPhaseUtils.isOperandF32(op1)) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
+        } else if (!isSecondOperandReference && HATPhaseUtils.isOperandF32(op2)) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
+        } else {
+            f32Mixed = 0x00;
+        }
 
         paren( _-> genReducedType(reducedFloatType)).obrace().oparen();
 
@@ -343,7 +356,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (op1 instanceof Op.Result r) {
             recurse(r.op());
         }
-        if (references.getFirst()) {
+        if (isFirstOperandReference) {
             rarrow().identifier("value");
         } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
             dot().identifier("value");
@@ -363,7 +376,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse( r.op());
         }
 
-        if (references.get(1)) {
+        if (isSecondOperandReference) {
             rarrow().identifier("value");
         } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
             dot().identifier("value");

@@ -38,7 +38,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.Regex;
 
@@ -46,11 +45,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Gatherer;
-import java.util.stream.Stream;
 
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
@@ -127,36 +122,14 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
 
     private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpEnum binaryOpEnum, ReducedFloatType reducedFloatType) {
         List<Value> operands = invokeOp.operands();
-
-        // Obtain the memory mapping for each operand
-        // if it comes from global memory, HAT replaces with a global* pointer to the inner struct,
-        // then, we will need to operate half using a->value, instead of half value directly.
-        boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), invokeOp.operands().get(0));
-        boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), invokeOp.operands().get(1));
-
-        byte valF32Conversion = 0x00;
-        if (!isFirstOperandReference && HATPhaseUtils.isOperandF32(invokeOp.operands().get(0))) {
-            valF32Conversion = HATF16Op.HATF16BinaryOp.FIRST_OP;
-        } else if (!isSecondOperandReference && HATPhaseUtils.isOperandF32(invokeOp.operands().get(1))) {
-            valF32Conversion = HATF16Op.HATF16BinaryOp.LAST_OP;
-        }
-
         TypeElement typeElement = invokeOp.resultType();
-        List<Boolean> refList = List.of(isFirstOperandReference, isSecondOperandReference);
-
-
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
         HATF16Op.HATF16BinaryOp binaryOp = switch (binaryOpEnum) {
-            case ADD ->
-                    new HATF16Op.HATF16BinaryOp.HATF16AddOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
-            case SUB ->
-                    new HATF16Op.HATF16BinaryOp.HATF16SubOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
-            case MUL ->
-                    new HATF16Op.HATF16BinaryOp.HATF16MulOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
-            case DIV ->
-                    new HATF16Op.HATF16BinaryOp.HATF16DivOp(typeElement, reducedFloatType, refList, valF32Conversion, outputOperands);
+            case ADD -> new HATF16Op.HATF16BinaryOp.HATF16AddOp(typeElement, reducedFloatType, outputOperands);
+            case SUB -> new HATF16Op.HATF16BinaryOp.HATF16SubOp(typeElement, reducedFloatType, outputOperands);
+            case MUL -> new HATF16Op.HATF16BinaryOp.HATF16MulOp(typeElement, reducedFloatType, outputOperands);
+            case DIV -> new HATF16Op.HATF16BinaryOp.HATF16DivOp(typeElement, reducedFloatType, outputOperands);
         };
-
         blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeOp, binaryOp)));
     }
 
@@ -170,8 +143,6 @@ public record HATFP16Phase(KernelCallGraph kernelCallGraph) implements HATPhase 
                     reducedFloatsType.put(invoke.op(), category);
                     if (invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp varOp) {
                         reducedFloatsType.put(varOp, category);
-                    } else {
-                        // We do get here.  Is this expected? so there is no varOp in the map on this path
                     }
                 });
 
