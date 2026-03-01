@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.device.NonMappableIface;
 import hat.HATMath;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
@@ -38,6 +39,7 @@ import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.util.Regex;
 
@@ -94,9 +96,16 @@ public class HATPhaseUtils {
         };
     }
 
+    static public boolean isVectorBinaryOp(MethodHandles.Lookup lookup, OpHelper.Invoke invoke) {
+        return isVectorOp(lookup, invoke.op()) && invoke.nameMatchesRegex("(add|sub|mul|div)");
+    }
+
     static public boolean isVectorOp(MethodHandles.Lookup lookup, Op op) {
         if (!op.operands().isEmpty()) {
-           TypeElement type = OpHelper.firstOperandOrThrow(op).type();
+            TypeElement type;
+            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp load) type = load.resultType();
+            else if (op instanceof JavaOp.ArrayAccessOp.ArrayStoreOp store) type = store.operands().getLast().type();
+            else type = OpHelper.firstOperandOrThrow(op).type();
            if (type instanceof ArrayType at) {
                type = at.componentType();
            }
@@ -111,16 +120,17 @@ public class HATPhaseUtils {
         return false;
     }
 
-    static public boolean isBufferArray(Op op) {
-        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
-        return iop.invokeReference().name().toLowerCase().contains("arrayview"); // we need a better way
+    static public boolean isBufferArray(MethodHandles.Lookup lookup, Op op) {
+        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
+        return iop != null && iop.invokeReference().name().toLowerCase().contains("arrayview"); // we need a better way
     }
 
     static public boolean isLocalSharedOrPrivate(Op op) {
-        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrThrow(op, JavaOp.InvokeOp.class);
-        return iop.invokeReference().name().toLowerCase().contains("local") || // we need a better way
-                iop.invokeReference().name().toLowerCase().contains("shared") || // also
-                iop.invokeReference().name().toLowerCase().contains("private"); // also
+        JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
+        return iop != null
+                && (iop.invokeReference().name().toLowerCase().contains("shared")
+                || iop.invokeReference().name().toLowerCase().contains("local")
+                || iop.invokeReference().name().toLowerCase().contains("private"));
     }
 
     static  public Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
@@ -143,7 +153,7 @@ public class HATPhaseUtils {
           }
     }
 
-    static public boolean isBufferInitialize(Op op) {
+    static public boolean isBufferInitialize(MethodHandles.Lookup lookup, Op op) {
         // first check if the return is an array type
         if (op instanceof CoreOp.VarOp vop) {
             if (!(vop.varValueType() instanceof ArrayType)){
@@ -154,7 +164,7 @@ public class HATPhaseUtils {
                 return false;
             }
         }
-        return isBufferArray(op);
+        return isBufferArray(lookup, op);
     }
 
     //recursive

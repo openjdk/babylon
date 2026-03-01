@@ -403,7 +403,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
             }
 
             auto *buffer = static_cast<Buffer *>(bufferState->vendorPtr);
-            if (kernelWroteToThisArg && compilationUnit->backend->config->alwaysCopy) {
+            if (kernelWroteToThisArg || compilationUnit->backend->config->alwaysCopy) {
                 compilationUnit->backend->queue->copyFromDevice(buffer);
                 bufferState->state = BufferState::HOST_OWNED;
                 if (compilationUnit->backend->config->traceCopies || compilationUnit->backend->config->traceEnqueues) {
