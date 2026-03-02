@@ -35,18 +35,14 @@ import java.util.Arrays;
 public class JavaMultiThreadedBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        if (kernelCallGraph.traits.usesArrayView) {
-            throw new RuntimeException("Java support for ArrayView not implemented");
-        }
+
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         instance().forEachInRange(kernelContext, (kc) -> {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
                 a[0] = kc;
                 kernelEntrypoint.method().invoke(null, a);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
+            } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
 

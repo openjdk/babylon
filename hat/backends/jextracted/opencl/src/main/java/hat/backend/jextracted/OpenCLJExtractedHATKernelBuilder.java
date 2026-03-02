@@ -24,6 +24,7 @@
  */
 package hat.backend.jextracted;
 
+import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
@@ -38,8 +39,8 @@ import java.util.Map;
 
 public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCLJExtractedHATKernelBuilder> {
 
-    protected OpenCLJExtractedHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(scopedCodeBuilderContext);
+    protected OpenCLJExtractedHATKernelBuilder(KernelCallGraph.State kernelCallGraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(kernelCallGraphState,scopedCodeBuilderContext);
     }
 
     @Override
