@@ -1,47 +1,48 @@
 /*
- * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
+* Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
+* DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+*
+* This code is free software; you can redistribute it and/or modify it
+* under the terms of the GNU General Public License version 2 only, as
+* published by the Free Software Foundation.  Oracle designates this
+* particular file as subject to the "Classpath" exception as provided
+* by Oracle in the LICENSE file that accompanied this code.
+*
+* This code is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+* version 2 for more details (a copy is included in the LICENSE file that
+* accompanied this code).
+*
+* You should have received a copy of the GNU General Public License version
+* 2 along with this work; if not, write to the Free Software Foundation,
+* Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+*
+* Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+* or visit www.oracle.com if you need additional information or have any
+* questions.
+*/
 package hat.types;
 
 // Auto generated DO NOT EDIT
 
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.java.JavaType;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicBoolean;
 import optkl.IfaceValue;
-import hat.types.F32;
-import static hat.types.F32.*;
+import hat.types.vec4;
+import hat.types.vec3;
+import hat.types.vec2;
+import hat.types.vec4;
+import static hat.types.vec4.*;
+import hat.types.vec3;
+import static hat.types.vec3.*;
+import hat.types.vec2;
+import static hat.types.vec2.*;
 
 public interface vec2 extends IfaceValue.vec{
-    Shape shape=Shape.of(JavaType.FLOAT, 2);
-
+    Shape shape = Shape.of(JavaType.FLOAT, 2);
     float x();
     float y();
 
-    AtomicInteger count=new AtomicInteger(0);
-    AtomicBoolean collect=new AtomicBoolean(false);
     /*
     This allows us to add this type to interface mapped segments
     */
@@ -66,8 +67,7 @@ public interface vec2 extends IfaceValue.vec{
         record Impl(float x, float y) implements vec2{
 
         }
-        // Uncomment to collect stats
-        //    if (collect.get())count.getAndIncrement();
+
         return new Impl(x, y);
     }
 
@@ -236,8 +236,9 @@ public interface vec2 extends IfaceValue.vec{
     }
 
     static vec2 normalize(vec2 v){
-        float lenSq =sumOfSquares(v);
-        return (lenSq > 0f)?mul(v, F32.inversesqrt(lenSq)):vec2(0f);
+        float lenSq = sumOfSquares(v);
+
+        return (lenSq >0f)?(mul(v, F32.inversesqrt(lenSq))):(vec2(0f));
     }
 
     static vec2 reflect(vec2 l, vec2 r){
@@ -251,105 +252,74 @@ public interface vec2 extends IfaceValue.vec{
         return F32.sqrt(dx*dx+dy*dy);
     }
 
-    static vec2 smoothstep(vec2 edge0, vec2 edge1, vec2 v){
+    static vec2 smoothstep(vec2 e1, vec2 e2, vec2 r){
         return vec2(
-                F32.smoothstep(edge0.x(), edge1.x(), v.x()),
-                F32.smoothstep(edge0.y(), edge1.y(), v.y())
+            F32.smoothstep(e1.x(), e2.x(), r.x()),
+            F32.smoothstep(e1.y(), e2.y(), r.y())
+        );
+    }
+
+    static vec2 step(vec2 e, vec2 r){
+        return vec2(
+            F32.step(e.x(), r.x()),
+            F32.step(e.y(), r.y())
         );
     }
 
     static vec2 mix(vec2 l, vec2 r, float v){
         return vec2(
-                F32.mix(l.x(), r.x(), v),
-                F32.mix(l.y(), r.y(), v)
+            F32.mix(l.x(), r.x(), v),
+            F32.mix(l.y(), r.y(), v)
         );
     }
 
-    /* safe to copy to here */
-
-    static vec2 xy(vec3 vec3) {return vec2(vec3.x(), vec3.y());}
-    static vec2 xz(vec3 vec3) {return vec2(vec3.x(), vec3.z());}
-    static vec2 yz(vec3 vec3) {return vec2(vec3.y(), vec3.z());}
-
-
-    static vec2 mul(vec2 l, mat2 rhs) {return vec2(l.x()*rhs._00()+l.x()+rhs._01(),l.y()*rhs._10()+l.y()+rhs._11());}
-
-    static vec2 mod(vec2 v, float r){
+    static vec2 mix(vec2 l, vec2 r, vec2 v){
         return vec2(
-                F32.mod(v.x(),r),
-                F32.mod(v.y(),r)
+            F32.mix(l.x(), r.x(), v.x()),
+            F32.mix(l.y(), r.y(), v.y())
         );
     }
-    static vec2 mix(vec2 lhs,vec2 rhs, vec2 a){
+
+    static vec2 mod(vec2 l, vec2 r){
         return vec2(
-                F32.mix(lhs.x(),rhs.x(),a.x()),
-                F32.mix(lhs.y(),rhs.y(),a.y()));
+            F32.mod(l.x(), r.x()),
+            F32.mod(l.y(), r.y())
+        );
     }
 
+    static vec2 mod(vec2 l, float r){
+        return vec2(
+            F32.mod(l.x(), r),
+            F32.mod(l.y(), r)
+        );
+    }
 
-   /*
-   We should be able to use vec16 for mat4
+    static vec2 mul(vec2 l, mat2 r){
+        return vec2(
+            l.x()*r._00()+l.x()*r._01(),
+            l.y()*r._10()+l.y()*r._11()
+        );
+    }
 
+    static vec2 xx(vec3 v){
+        return vec2(v.x(), v.x());
+    }
 
-            float16 mat4_mul(float16 A, float16 B) {
-                float16 C;
+    static vec2 xy(vec3 v){
+        return vec2(v.x(), v.y());
+    }
 
-                // We compute C row by row
-                // Each row of C is the sum of the rows of B scaled by the components of A
+    static vec2 yy(vec3 v){
+        return vec2(v.y(), v.y());
+    }
 
-                // Row 0
-                C.s0123 = A.s0 * B.s0123 + A.s1 * B.s4567 + A.s2 * B.s89ab + A.s3 * B.scdef;
-                // Row 1
-                C.s4567 = A.s4 * B.s0123 + A.s5 * B.s4567 + A.s6 * B.s89ab + A.s7 * B.scdef;
-                // Row 2
-                C.s89ab = A.s8 * B.s0123 + A.s9 * B.s4567 + A.sa * B.s89ab + A.sb * B.scdef;
-                // Row 3
-                C.scdef = A.sc * B.s0123 + A.sd * B.s4567 + A.se * B.s89ab + A.sf * B.scdef;
+    static vec2 xz(vec3 v){
+        return vec2(v.x(), v.z());
+    }
 
-                return C;
-            }
+    static vec2 yz(vec3 v){
+        return vec2(v.y(), v.z());
+    }
 
-
-            #define TS 16 // Tile Size
-
-            __kernel void mat4_mul_tiled(__global const float16* A,\s
-                                         __global const float16* B,\s
-                                         __global float16* C,
-                                         const int Width) { // Width in terms of float16 units
-
-                // Local memory for tiles of float16 matrices
-                __local float16 tileA[TS][TS];
-                __local float16 tileB[TS][TS];
-
-                int row = get_local_id(1);
-                int col = get_local_id(0);
-                int globalRow = get_global_id(1);
-                int globalCol = get_global_id(0);
-
-                float16 accumulated = (float16)(0.0f);
-
-                // Loop over tiles
-                for (int t = 0; t < (Width / TS); t++) {
-
-                    // Cooperative Load: Each thread loads one float16 into local memory
-                    tileA[row][col] = A[globalRow * Width + (t * TS + col)];
-                    tileB[row][col] = B[(t * TS + row) * Width + globalCol];
-
-                    // Synchronize to ensure the tile is fully loaded
-                    barrier(CLK_LOCAL_MEM_FENCE);
-
-                    // Compute partial product for this tile
-                    for (int k = 0; k < TS; k++) {
-                        accumulated = mat4_mul_core(accumulated, tileA[row][k], tileB[k][col]);
-                    }
-
-                    // Synchronize before loading the next tile
-                    barrier(CLK_LOCAL_MEM_FENCE);
-                }
-
-                // Write result to global memory
-                C[globalRow * Width + globalCol] = accumulated;
-            }
-    */
 
 }

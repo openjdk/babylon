@@ -135,10 +135,15 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     public T newKeyword() {
         return keyword("new");
     }
-
+    public T newKwSp() {
+        return newKeyword().space();
+    }
 
     public T staticKeyword() {
         return keyword("static");
+    }
+    public T staticKwSp() {
+        return staticKeyword().space();
     }
 
     public T constexprKeyword() {
@@ -197,6 +202,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     public T returnKeyword() {
         return keyword("return");
     }
+    public T returnKwSp() {
+        return returnKeyword().space();
+    }
 
     public T returnKeyword(String identifier) {
         return returnKeyword().space().identifier(identifier);
@@ -214,6 +222,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
 
     public T defaultKeyword() {
         return keyword("default");
+    }
+    public T defaultKwSp() {
+        return defaultKeyword().space();
     }
 
     public T defaultKeyword( String typeName) {
@@ -501,7 +512,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return self();
     }
 
-    public <I> T separated(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
+
+
+    public <I> T join(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
         var first = Mutable.of(true);
         iterable.forEach(t -> {
             if (first.get()) {
@@ -513,13 +526,21 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         });
         return self();
     }
+    public <I> T joinX2(Iterable<I> iterable1, Iterable<I> iterable2, Consumer<T> separator, BiConsumer<I,I> consumer) {
+        return join(iterable1,separator, $1 -> join(iterable2,separator, $2 -> consumer.accept($1, $2)));
+    }
+
+    // Join is a better name lets delegate for a while then deprecate
+    public <I> T separated(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
+        return join(iterable,separator,consumer);
+    }
 
     public <I> T commaSpaceSeparated(Iterable<I> iterable, Consumer<I> consumer) {
-        return separated(iterable, _ -> commaSpace(), consumer);
+        return join(iterable, _ -> commaSpace(), consumer);
     }
-   public <I> T commaSpaceSeparated(Iterable<I> list1, Iterable<I> list2, BiConsumer<I, I> consumer) {
-        return commaSpaceSeparated(list1, $1 -> commaSpaceSeparated(list2, $2 -> consumer.accept($1, $2)));
-    }
+ //  public <I> T commaSpaceSeparated(Iterable<I> list1, Iterable<I> list2, BiConsumer<I, I> consumer) {
+   //     return commaSpaceSeparated(list1, $1 -> commaSpaceSeparated(list2, $2 -> consumer.accept($1, $2)));
+   // }
 
     public T commaSpaceSeparated(Consumer<T>... consumers) {
         for (int i = 0; i < consumers.length; i++) {
@@ -690,9 +711,16 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return emitText(text);
     }
 
-    @Override
-    public T nl() {
-        return super.nl();
+   // @Override
+   // public T nl() {
+     //   return super.nl();
+   // }
+
+    public T nl(int n) {
+        for (int i=0; i< n;i++){
+            nl();
+        }
+       return self();
     }
 
     @Override

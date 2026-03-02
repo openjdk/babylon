@@ -95,7 +95,9 @@ public interface IfaceValue {
                     case 2 -> List.of("x","y");
                     case 3 -> List.of("x","y","z");
                     case 4 -> List.of("x","y","z","w");
-                    default -> throw new RuntimeException("We only support 2,3 or 4 lanes");
+                    case 8 -> List.of("_0","_1","_2","_3","_4","_5","_6","_7");
+                    case 16 -> List.of("_00","_01","_02","_03","_10","_11","_12","_13", "_20","_21","_22","_23","_30","_31","_32","_33");
+                    default -> throw new RuntimeException("We only support 2,3,4 or 8 lanes");
                 };
             }
         }
