@@ -236,17 +236,23 @@ public class TestEvaluation {
     static int fcFieldNotDeclaredFinal() {
         return Y4;
     }
-    static final int Y3 = LocalDate.now().getDayOfMonth();
-    @Reflect
-    static long fcFieldInitializedWithNonConstantExpr() {
+    static final int Y3 = Math.max(1, 2);
+    //@Reflect
+    static int fcFieldInitializedWithNonConstantExpr() {
+        // according to JLS, access to Y3 is not a constant expression
+        // because Y3 is not a constant variable, because it's initilaized with a non-constant expression,
+        // but we currently have a limitation in the API
         return Y3;
     }
     static final String S;
     static {
         S = "A";
     }
-    @Reflect
+    //@Reflect
     static String fcFieldBlankFinal() {
+        // according to JLS, access to S is not a constant expression
+        // because S is not a constant variable, because it lacks an initializer,
+        // but we currently have a limitation in the API
         return S;
     }
 

@@ -25,13 +25,6 @@
 
 package jdk.incubator.code.dialect.java;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.classfile.Attributes;
-import java.lang.classfile.ClassFile;
-import java.lang.classfile.ClassModel;
-import java.lang.classfile.FieldModel;
-import java.lang.classfile.attribute.ConstantValueAttribute;
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.DialectFactory;
@@ -129,6 +122,10 @@ public sealed abstract class JavaOp extends Op {
          * is not an instance of {@link Op.Result} or the operation does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
+         * @implNote Read access to a static final field of type primitive or String, that lack an initializer
+         * or initialized by a non-constant expression value, is considered a constant expression by this endpoint
+         * even though in JLS it's not.
+         *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
             try {
@@ -148,6 +145,9 @@ public sealed abstract class JavaOp extends Op {
          * does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
+         * @implNote Read access to a static final field of type primitive or String that lack an initializer,
+         * or initialized by a non-constant expression value, is considered a constant expression by this endpoint
+         * even though in JLS it's not.
          */
         static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op) {
             try {
@@ -219,25 +219,10 @@ public sealed abstract class JavaOp extends Op {
                     } catch (ReflectiveOperationException e) {
                         throw new IllegalArgumentException(e);
                     }
-                    if ((field.getModifiers() & Modifier.STATIC) == 0 || (field.getModifiers() & Modifier.FINAL) == 0 ||
-                            (!primitiveClasses.contains(field.getType()) && !field.getType().equals(String.class))) {
-                        throw new NonConstantExpression();
-                    }
-                    // field that's a constant variable has attribute ConstantValue
-                    Class<?> c = field.getDeclaringClass();
-                    InputStream resourceAsStream = c.getClassLoader().getResourceAsStream(c.getName() + ".class");
-                    byte[] bytes;
-                    try {
-                        bytes = resourceAsStream.readAllBytes();
-                    } catch (IOException e) {
-                        throw new NonConstantExpression();
-                    }
-                    ClassModel classModel = ClassFile.of().parse(bytes);
-                    FieldModel fieldModel = classModel.fields().stream().filter(f -> f.fieldName().stringValue().equals(field.getName()))
-                            .findFirst().orElseThrow(NonConstantExpression::new);
-                    Optional<ConstantValueAttribute> opt = fieldModel.findAttribute(Attributes.constantValue());
-                    if (opt.isPresent()) {
-                        yield opt.get().constant().constantValue();
+                    if (((field.getModifiers() & Modifier.STATIC) != 0 && (field.getModifiers() & Modifier.FINAL) != 0) &&
+                            (primitiveClasses.contains(field.getType()) || field.getType().equals(String.class))) {
+                        // @@@ why using field.get fails ?
+                        yield vh.get();
                     }
                     throw new NonConstantExpression();
                 }
