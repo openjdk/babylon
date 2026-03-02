@@ -28,8 +28,6 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.types.F16;
