@@ -37,7 +37,6 @@ import optkl.ParamVar;
 import optkl.util.Mutable;
 import optkl.util.ops.Precedence;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 import static optkl.OpHelper.FieldAccess.fieldAccess;
@@ -60,7 +59,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return paren(test).questionMark().paren(ifTrue).colon().paren(ifFalse);
     }
 
-   public T statement(Consumer<T> consumer){
+   public T stmnt(Consumer<T> consumer){
         consumer.accept(self());
         return semicolon();
     }

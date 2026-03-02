@@ -89,13 +89,19 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
         return keyword("record");
     }
 
-    public T record(String recordName, Consumer<T> args, Consumer<T> imple, Consumer<T> body) {
+    public T record(String recordName, Consumer<T> args, Consumer<T> impl, Consumer<T> body) {
          recordKeyword().space().typeName(recordName).paren(args);
-         if (imple != null){
+         if (impl != null){
              space().implementsKeyword().space();
-             imple.accept(self());
+             impl.accept(self());
          }
          return body(body).nl();
+    }
+    public T record(String recordName, Consumer<T> args, Consumer<T> impl) {
+       return record(recordName,args,impl, _->{});
+    }
+    public T record(String recordName, Consumer<T> args) {
+        return record(recordName,args,null, _->{});
     }
     public T extendsKeyword() {
         return keyword("extends");

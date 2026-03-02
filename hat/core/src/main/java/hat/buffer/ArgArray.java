@@ -263,7 +263,7 @@ public interface ArgArray extends Buffer {
 
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
         Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.method().getParameterAnnotations();
-        var bufferAccessList = kernelCallGraph.traits.bufferAccessList;
+        var bufferAccessList = kernelCallGraph.state.bufferAccessList;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all

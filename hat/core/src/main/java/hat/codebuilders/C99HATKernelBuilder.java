@@ -27,6 +27,7 @@ package hat.codebuilders;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.buffer.F16Array;
+import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
@@ -56,7 +57,6 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.codebuilders.CodeBuilder;
-
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -70,9 +70,10 @@ import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
-
-    protected C99HATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+    protected  final KernelCallGraph.State callgraphState;
+    protected C99HATKernelBuilder(KernelCallGraph.State callgraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
+        this.callgraphState = callgraphState;
     }
 
     public final T HAT_KERNEL() {
@@ -265,8 +266,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                     if (isLast && ifaceType.parent == null) {
                                         sbrace(_ -> literal(1));
                                     } else {
-                                      //  if (boundSchema != null) {
-                                          //  var done = StreamMutable.of(false);
                                             boundSchema.boundArrayFields().stream()
                                                     .filter(a->a.field.equals(ifaceField))
                                                     .findFirst()
@@ -275,9 +274,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                                             ()->{
                                                                 throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                                             });
-                                        //} else {
-                                          //  throw new IllegalStateException("bound schema is null  !");
-                                      //  }
                                     }
                                 } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
                                     sbrace(_ -> literal(Math.max(1, fixed.len)));
@@ -301,13 +297,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      * Generates a suffix from a set of n-random characters from a set of legal characters in C99.
      */
     public  final  T identifierWithRandomSuffix(String prefix, final int len) {
-        StringBuilder sb = new StringBuilder();
-        final String LEGAL_CHARS = "_$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        var sb = new StringBuilder();
+        final var LEGAL_CHARS = "_$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         ThreadLocalRandom.current() //
                 .ints(len, 0, LEGAL_CHARS.length()) //
                 .mapToObj(LEGAL_CHARS::charAt) //
                 .forEach(sb::append);
-        identifier(prefix+sb.toString());
+        identifier(prefix+sb);
         return self();
     }
 
@@ -369,7 +365,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
-        if (javaType instanceof ClassType classType
+        if (C99VecHandler.isVecType(scopedCodeBuilderContext().lookup(),javaType)){
+            C99VecHandler.handleType(self(),javaType);
+        }else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
         ) {
@@ -622,7 +620,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else {
             boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;// ?
             identifier("array").sbrace(_ -> {
-                paren(_ -> identifier("long"));
+                paren(_ -> identifier("long")); // is this a cast (long)  maybe cast(_->typeName("long"))?
                 paren(_ -> {
                     if (hatPtrOp.strides().size() > 1) {
                         paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(2)).op()));
@@ -760,7 +758,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if (invoke.refIs(IfaceValue.class)) {
+        if (C99VecHandler.isVecInvoke( invoke)){ // hacked for vec op calls.
+            C99VecHandler.handleInvoke(self(),invoke);
+        }else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc( instanceResult,
@@ -823,8 +823,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     }
                 }
             }
-        } else { // General case
-            if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
+        } else  if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
                 // codegen for the math operation
                 generateMathIntrinsicOperation(invoke);
             } else {
@@ -837,7 +836,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                 })
                 );
             }
-        }
+
         return self();
     }
 

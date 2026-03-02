@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
@@ -40,8 +41,8 @@ import java.util.Map;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    protected CudaHATKernelBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(scopedCodeBuilderContext);
+    protected CudaHATKernelBuilder(KernelCallGraph.State kernelCallGraphState,ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(kernelCallGraphState,scopedCodeBuilderContext);
     }
 
     private CudaHATKernelBuilder half2float() {

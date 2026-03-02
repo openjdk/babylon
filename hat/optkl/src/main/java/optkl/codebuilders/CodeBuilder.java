@@ -50,6 +50,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return semicolon().nl();
     }
 
+    public T commaNl() {
+        return comma().nl();
+    }
     public T comma() {
         return symbol(",");
     }
@@ -569,7 +572,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     }
 
     public <I> T semicolonNlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
-        return separated(iterable, _ -> semicolonNl(), consumer);
+        return join(iterable, _ -> semicolonNl(), consumer);
+    }
+
+    public <I> T colonNlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
+        return join(iterable, _ -> commaNl(), consumer);
     }
 
     public <I> T nlSeparated(Iterable<I> iterable, Consumer<I> consumer) {
@@ -618,10 +625,13 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     public final T intConstZero() {
         return constant("0");
     }
+
     public final T floatConstZero() {
         return constant("0f");
     }
-
+    public final T floatConst(float f) {
+        return constant(f+"f");
+    }
     public final T intConstOne() {
         return constant("1");
     }

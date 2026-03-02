@@ -86,12 +86,12 @@ public record FloatImage(
     }
 
     public void set(int i, vec4 outFragColor) {
-        data[i * 3 + 0] = outFragColor.x();
-        data[i * 3 + 1] = outFragColor.y();
-        data[i * 3 + 2] = outFragColor.z();
+        f32Array.array(i * 3 + 0,outFragColor.x());
+        f32Array.array(i * 3 + 1,outFragColor.y());
+        f32Array.array(i * 3 + 2,outFragColor.z());
     }
 
     public void sync() {
-        f32Array.copyFrom(data);
+        f32Array.copyTo(data);
     }
 }

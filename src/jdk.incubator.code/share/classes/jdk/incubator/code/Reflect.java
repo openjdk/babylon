@@ -62,6 +62,9 @@ import java.lang.reflect.Method;
  * the method and any lambda expressions (or method references) it contains are declared reflectable.
  * </li>
  * </ul>
+ * If a method or lambda expression (or method reference) is declared reflectable then the compiler generates an error
+ * message if it contains program elements that cannot be modeled (and therefore a code model cannot be produced).
+ * <p>
  * The annotation is ignored if it appears in any other valid syntactic location.
  * <p>
  * Declaring a reflectable lambda expression or method does not implicitly broaden the scope of what is reflectable to

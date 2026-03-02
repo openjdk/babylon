@@ -676,6 +676,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
                     .orElseThrow();
         }
 
+        default  Stream<Op.Result> operandsAsResults() {
+            return op().operands().stream().map(o->(Op.Result)o);
+        }
+
         sealed interface Virtual extends Invoke{
             default Op.Result instance() {
                     return (Op.Result) op().operands().getFirst();
