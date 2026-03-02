@@ -46,15 +46,18 @@ public class HelloWorldShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        float fTime = uniforms.iTime();
+        // If you are runnning with HAT this is not the mainImage you are looking for ;)
+        // See HATShader...
+        var  fTime = uniforms.iTime();
+        var vec2 = uniforms.iResolution();
         var v = vec4(1f);
         // v = vec4.add(v,v);
-        return vec4(1f, abs(cos(fTime)),sin(fTime),0f);
+        return vec4(vec2.x()/10f, abs(cos(fTime)),sin(fTime),0f);
     }
 
     static Config controls = Config.of(
-           Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST)  : null,
-          // new Accelerator(MethodHandles.lookup(), Backend.FIRST),
+        //   Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST)  : null,
+           new Accelerator(MethodHandles.lookup(), Backend.FIRST),
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "2024"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "2024"))),
             Integer.parseInt(System.getProperty("targetFps", "60")),

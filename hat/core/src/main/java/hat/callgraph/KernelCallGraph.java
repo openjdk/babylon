@@ -24,6 +24,14 @@
  */
 package hat.callgraph;
 
+import hat.Inliner;
+import hat.KernelContext;
+import hat.types.BF16;
+import hat.types.F16;
+import hat.types._F16;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
+import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import hat.BufferTagger;
@@ -33,21 +41,51 @@ import hat.phases.HATTier;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.*;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
-    public final Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
-    public static class Traits{
-        public final List<AccessType> bufferAccessList;
-        public boolean usesArrayView;
-        Traits(List<AccessType> bufferAccessList){
-            this.bufferAccessList=bufferAccessList;
+    public  final CoreOp.FuncOp inlinedEntryPoint;
+    public class State {
+        public  Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
+        public  List<AccessType> bufferAccessList;
+        public  Set<TypeElement> accessedTypes;
+        public  Set<Class<?>> accessedClasses;
+        public  boolean usesVecTypes;
+        public  boolean usesFp16;
+        public  boolean usesBarrier;
+        public  boolean usesAtomics;
+        public  Set<String> accessedKcFields;
+        public State(MethodHandles.Lookup lookup,CoreOp.FuncOp inlinedEntryPoint){
+            this.usesBarrier =  OpHelper.Invoke.stream(lookup,inlinedEntryPoint)
+                    .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
+            this.accessedKcFields =  new HashSet<>(OpHelper.FieldAccess.stream(lookup,inlinedEntryPoint)
+                    .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList());
+            this.accessedTypes  = new HashSet<>(inlinedEntryPoint.elements().filter(ce->ce instanceof Op).map(ce->((Op)ce).resultType()).toList());
+            this.accessedClasses = new HashSet<>(this.accessedTypes.stream().filter(te->te instanceof ClassType).map(te->(ClassType)te).map(ct->(Class<?>)OpHelper.classTypeToTypeOrThrow(lookup(),ct)).toList());
+            this.usesVecTypes = this.accessedClasses.stream().anyMatch(IfaceValue.vec.class::isAssignableFrom);
+            this.usesFp16 = this.accessedClasses.stream().anyMatch(
+                    clazz->clazz.isAssignableFrom(_F16.class) || clazz.isAssignableFrom( F16.class)|| clazz.isAssignableFrom(BF16.class));
+            this.usesAtomics = OpHelper.Invoke.stream(lookup,inlinedEntryPoint)
+                    .anyMatch(invoke -> invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex("(atomic.*)Inc"));
+                this.bufferAccessList=BufferTagger.getAccessList(computeContext.lookup(), inlinedEntryPoint);
+        }
+        @Override
+        public String toString(){
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("UsesVecTypes:").append(usesVecTypes).append(", ");
+            stringBuilder.append("UsesFp16:").append(usesFp16).append(", ");
+            stringBuilder.append("UsesAtomics:").append(usesAtomics).append(", ");
+            stringBuilder.append("UsesBarrier:").append(usesBarrier).append(", ");
+            stringBuilder.append("AccessedKernelContextFields:").append("[").append(String.join(", ",accessedKcFields)).append("]");
+            return stringBuilder.toString();
         }
     }
-    final public Traits traits;
+
+    public final State state;
 
 
     public interface KernelReachable {
@@ -83,8 +121,10 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(),null,  method, funcOp));
         this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        this.traits = new Traits(BufferTagger.getAccessList(computeContext.lookup(), entrypoint.funcOp()));
+        this.inlinedEntryPoint = Inliner.inlineEntrypoint(computeContext.lookup(),entrypoint.funcOp());
+        this.state = new State(computeCallGraph.lookup(),this.inlinedEntryPoint);
 
+     //   System.out.println(state);
         HATTier tier = new HATTier(this);
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
 
@@ -106,7 +146,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         Class<?> javaRefTypeClass = invoke.classOrThrow();
         if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
             // TODO this side effect seems scary lets do this in a separate pass
-            bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
+            state.bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
                     new KernelReachableUnresolvedIfaceMappedMethodCall(this, invoke.resolveMethodOrThrow())
             );
         } else {

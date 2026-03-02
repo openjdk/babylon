@@ -25,21 +25,21 @@
 
 package hat;
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
-import jdk.incubator.code.*;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.Inliner;
-import jdk.incubator.code.dialect.core.SSA;
-import jdk.incubator.code.dialect.java.*;
-import optkl.util.Mutable;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 
@@ -49,11 +49,10 @@ public class BufferTagger {
     static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
 
     // generates a list of AccessTypes matching the given FuncOp's parameter order
-    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        CoreOp.FuncOp inlinedFunc = inlineLoop(lookup, funcOp);
-        buildAccessMap(lookup, inlinedFunc);
+    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntryPoint) {
+        buildAccessMap(lookup, inlinedEntryPoint);
         ArrayList<AccessType> accessList = new ArrayList<>();
-        for (Block.Parameter p : inlinedFunc.body().entryBlock().parameters()) {
+        for (Block.Parameter p : inlinedEntryPoint.body().entryBlock().parameters()) {
             if (accessMap.containsKey(p)) {
                 accessList.add(accessMap.get(p)); // is an accessed buffer
             } else if (OpHelper.isAssignable(lookup, p.type(), MappableIface.class)) {
@@ -64,47 +63,7 @@ public class BufferTagger {
         }
         return accessList;
     }
-
-    // inlines functions found in FuncOp f until no more inline-able functions are present
-    public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        CoreOp.FuncOp ssaFunc =  SSA.transform( funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
-        var changed  = Mutable.of(true);
-        while (changed.get()) { // loop until no more inline-able functions
-            changed.set(false);
-            ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
-                if (invoke(lookup, op) instanceof Invoke invoke                         // always but pattern friendly
-                        && invoke.resolvedMethodOrNull() instanceof Method method
-                        && Op.ofMethod(method) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
-                        && optionalFuncOp.isPresent()
-                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
-                ){
-                    var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                    var exitBlockBuilder = Inliner.inline(
-                            blockbuilder, ssaInline,
-                            blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
-                                // intellij doesnt like value as var name so we use _value
-                            if (_value == null) {
-                               //   What is special about TestArrayView.Compute.lifePerIdx? it reaches here
-                                // I think its because it is void ? no return type.
-                                    //   throw new IllegalStateException("inliner returned  null processing "+method);
-                            }else{
-                                blockbuilder.context().mapValue(invoke.op().result(), _value);
-                            }
-                    });
-                    if (!exitBlockBuilder.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
-                    }
-                    changed.set(true);
-                    return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
-                }
-                blockbuilder.op(op);
-               return blockbuilder;
-            });
-        }
-        return ssaFunc;
-    }
-
-    public static boolean isReference(Invoke ioh) {
+    private  static boolean isReference(Invoke ioh) {
         return ioh.returns(IfaceValue.class)
                 && ioh.opFromOnlyUseOrNull() instanceof JavaOp.InvokeOp nextInvoke
                 && invoke(ioh.lookup(), nextInvoke) instanceof Invoke nextIoh
@@ -113,7 +72,7 @@ public class BufferTagger {
     }
 
     // creates the access map
-    public static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    private  static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         // build blockParams so that we can map params to "root" params later
         funcOp.elements()
                 .filter(elem -> elem instanceof Block)
@@ -166,7 +125,7 @@ public class BufferTagger {
     }
 
     // maps the parameters of a block to the values passed to a branch
-    public static void mapBranch(MethodHandles.Lookup lookup, Block.Reference blockReference) {
+    private static void mapBranch(MethodHandles.Lookup lookup, Block.Reference blockReference) {
         List<Value> args = blockReference.arguments();
         for (int i = 0; i < args.size(); i++) {
             Value key = blockParams.get(blockReference.targetBlock()).get(i);
@@ -189,7 +148,7 @@ public class BufferTagger {
     }
 
     // retrieves "root" value of an op, the origin of the parameter (or value) used by the op
-    public static Value getRootValue(Op op) {
+    private  static Value getRootValue(Op op) {
         if (op.operands().isEmpty()) {
             return op.result();
         } else if (op.operands().getFirst() instanceof Block.Parameter param) {
@@ -208,7 +167,7 @@ public class BufferTagger {
     }
 
     // updates accessMap
-    public static void updateAccessType(Value value, AccessType currentAccess) {
+    private  static void updateAccessType(Value value, AccessType currentAccess) {
         Value remappedValue = remappedVals.getOrDefault(value, value);
         AccessType storedAccess = accessMap.get(remappedValue);
         if (storedAccess == null) {
