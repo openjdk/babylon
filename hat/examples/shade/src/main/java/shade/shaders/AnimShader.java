@@ -33,7 +33,7 @@ import hat.types.vec4;
 import shade.Config;
 import shade.Shader;
 import shade.ShaderApp;
-import shade.Uniforms;
+import hat.buffer.Uniforms;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;

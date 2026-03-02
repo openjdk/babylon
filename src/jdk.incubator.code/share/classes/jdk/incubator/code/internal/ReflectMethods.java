@@ -53,6 +53,7 @@ import com.sun.tools.javac.comp.CodeReflectionTransformer;
 import com.sun.tools.javac.comp.TypeEnvs;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
+import com.sun.tools.javac.resources.CompilerProperties.*;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCArrayAccess;
@@ -124,9 +125,6 @@ import java.lang.invoke.MethodHandles;
 import javax.tools.JavaFileManager;
 import javax.tools.StandardLocation;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-
-import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
-import static com.sun.tools.javac.resources.CompilerProperties.Warnings.*;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
@@ -203,7 +201,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
         if (isReflectable) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS) || currentClassSym.isDirectlyOrIndirectlyLocal()) {
                 // Reflectable methods in local classes are not supported
-                log.warning(tree, ReflectableMethodInnerClass(currentClassSym.enclClass()));
+                if (reflectAll) {
+                    log.warning(tree, Warnings.ReflectableMethodInnerClass(currentClassSym.enclClass()));
+                } else {
+                    log.error(tree, Errors.ReflectableMethodInnerClass(currentClassSym.enclClass()));
+                }
                 super.visitMethodDef(tree);
                 return;
             } else {
@@ -215,7 +217,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 } catch (Exception e) {
                     if (reflectAll) {
                         // log as warning for debugging purposses when reflectAll enabled
-                        log.warning(tree, ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
+                        log.warning(tree, Warnings.ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
                         super.visitMethodDef(tree);
                         return;
                     }
@@ -223,7 +225,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
                 if (dumpIR) {
                     // dump the method IR if requested
-                    log.note(ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
+                    log.note(Notes.ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToMethodRef(tree.sym));
@@ -302,7 +304,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
         if (isReflectable) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS) || currentClassSym.isDirectlyOrIndirectlyLocal()) {
                 // Reflectable lambdas in local classes are not supported
-                log.warning(tree, ReflectableLambdaInnerClass(currentClassSym.enclClass()));
+                if (reflectAll) {
+                    log.warning(tree, Warnings.ReflectableLambdaInnerClass(currentClassSym.enclClass()));
+                } else {
+                    log.error(tree, Errors.ReflectableLambdaInnerClass(currentClassSym.enclClass()));
+                }
                 super.visitLambda(tree);
                 return;
             }
@@ -314,7 +320,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 funcOp = bodyScanner.scanLambda();
             } catch (Exception e) {
                 if (reflectAll) {
-                    log.warning(tree, ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
+                    log.warning(tree, Warnings.ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
                     super.visitLambda(tree);
                     return;
                 }
@@ -322,7 +328,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
             if (dumpIR) {
                 // dump the method IR if requested
-                log.note(ReflectableLambdaIrDump(funcOp.toText()));
+                log.note(Notes.ReflectableLambdaIrDump(funcOp.toText()));
             }
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
@@ -350,7 +356,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
         if (isReflectable(tree)) {
             if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
                 // Reflectable method references in local classes are not supported
-                log.warning(tree, ReflectableMrefInnerClass(currentClassSym.enclClass()));
+                if (reflectAll) {
+                    log.warning(tree, Warnings.ReflectableMrefInnerClass(currentClassSym.enclClass()));
+                } else {
+                    log.error(tree, Errors.ReflectableMrefInnerClass(currentClassSym.enclClass()));
+                }
                 super.visitReference(tree);
                 return;
             }
@@ -360,7 +370,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
-                log.note(ReflectableMrefIrDump(funcOp.toText()));
+                log.note(Notes.ReflectableMrefIrDump(funcOp.toText()));
             }
             // create a method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();

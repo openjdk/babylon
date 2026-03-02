@@ -25,6 +25,7 @@
 
 /*
  * @test
+ * @ignore Reflection on the contents of local classes is not supported.
  * @summary Smoke test for code reflection with local class creation expressions.
  * @modules jdk.incubator.code
  * @build LocalClassTest
