@@ -28,7 +28,10 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import hat.annotations.Kernel;
+import hat.annotations.Preformatted;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.F16;
 import hat.buffer.F16Array;
 import hat.device.DeviceSchema;
@@ -303,6 +306,22 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
+    public static void f16Ops_19(@RO KernelContext kernelContext, @RO F16Array a, @RO F32Array b, @WO F32Array c) {
+        if (kernelContext.gix < a.length()) {
+            float mul = F16.f16ToFloat(a.array(kernelContext.gix)) * b.array(kernelContext.gix);
+            c.array(kernelContext.gix, mul);
+        }
+    }
+
+    @Reflect
+    public static void f16Ops_20(@RO KernelContext kernelContext, @RO F16Array a, @RO F32Array b, @WO F32Array c) {
+        if (kernelContext.gix < a.length()) {
+            float mul = b.array(kernelContext.gix) * F16.f16ToFloat(a.array(kernelContext.gix));
+                    c.array(kernelContext.gix, mul);
+        }
+    }
+
+    @Reflect
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.copy01(kernelContext, a, b));
     }
@@ -385,6 +404,16 @@ builder -> builder.withArray("array", 1024)
     @Reflect
     public static void compute18(@RO ComputeContext computeContext, @RW F16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(1), kernelContext -> TestF16Type.f16Ops_18(kernelContext, a));
+    }
+
+    @Reflect
+    public static void compute19(@RO ComputeContext computeContext, @RO F16Array a, @RO F32Array b, F32Array c) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_19(kernelContext, a, b, c));
+    }
+
+    @Reflect
+    public static void compute20(@RO ComputeContext computeContext, @RO F16Array a, @RO F32Array b, F32Array c) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_20(kernelContext, a, b, c));
     }
 
     @HatTest
@@ -788,6 +817,48 @@ builder -> builder.withArray("array", 1024)
 
         F16 val = arrayA.array(0);
         HATAsserts.assertEquals(20.0f, F16.f16ToFloat(val), 0.01f);
+    }
+
+    @HatTest
+    @Reflect
+    public void testF16_19() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 512;
+
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+        F32Array arrayC = F32Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+        arrayB.array(0, r.nextFloat());
+
+        accelerator.compute(computeContext -> TestF16Type.compute19(computeContext, arrayA, arrayB, arrayC));
+
+        for (int i = 0; i < arrayC.length(); i++) {
+            HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) * arrayB.array(i), arrayC.array(i), 0.01f);
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void testF16_20() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 512;
+
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+        F32Array arrayC = F32Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+        arrayB.array(0, r.nextFloat());
+
+        accelerator.compute(computeContext -> TestF16Type.compute20(computeContext, arrayA, arrayB, arrayC));
+
+        for (int i = 0; i < arrayC.length(); i++) {
+            HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) * arrayB.array(i), arrayC.array(i), 0.01f);
+        }
     }
 
 }
