@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(cuda_backend)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 if(UNIX)
    if(NOT DEFINED ROCM_PATH)
       set(ROCM_PATH "/opt/rocm" CACHE STRING "Default ROCM installation directory.")
