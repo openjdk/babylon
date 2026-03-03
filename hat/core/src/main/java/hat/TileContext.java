@@ -87,4 +87,8 @@ public class TileContext {
     public TileData full(TileShape shape, int index) {
         return null;
     }
+
+    public TileData transpose(TileData inputTile) {
+        return null;
+    }
 }

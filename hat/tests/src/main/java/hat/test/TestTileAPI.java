@@ -4,11 +4,15 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Constant;
 import hat.TileContext;
+import hat.TileData;
+import hat.TileIndex2D;
 import hat.TileModel;
 import hat.TileOp;
 import hat.TileRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
+import hat.ifacemapper.MappableIface;
+import hat.ifacemapper.MappableIface.WO;
 import hat.test.annotation.HatTest;
 import jdk.incubator.code.Reflect;
 
@@ -444,5 +448,89 @@ public class TestTileAPI {
 
         accelerator.compute( computeContext ->
                 computetile_reduction(computeContext, input, result, tileSize));
+    }
+
+    // Matrix transpose example
+    @Reflect
+    @TileModel(model = """
+            func @loc="454:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"transposeKernel" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.F32Array", %2 : java.type:"hat.buffer.F32Array", %3 : java.type:"int", %4 : java.type:"int")java.type:"void" -> {
+                %5 : Var<java.type:"hat.TileContext"> = var %0 @loc="454:5" @"tileContext";
+                %6 : Var<java.type:"hat.buffer.F32Array"> = var %1 @loc="454:5" @"inputMatrix";
+                %7 : Var<java.type:"hat.buffer.F32Array"> = var %2 @loc="454:5" @"transposedMatrix";
+                %8 : Var<java.type:"int"> = var %3 @loc="454:5" @"tm";
+                %9 : Var<java.type:"int"> = var %4 @loc="454:5" @"tn";
+                %10 : java.type:"hat.TileContext" = var.load %5 @loc="456:20";
+                %11 : java.type:"int" = constant @loc="456:36" @0;
+                %12 : java.type:"int" = invoke %10 %11 @loc="456:20" @java.ref:"hat.TileContext::bid(int):int";
+                %13 : Var<java.type:"int"> = var %12 @loc="456:9" @"bidx";
+                %14 : java.type:"hat.TileContext" = var.load %5 @loc="457:20";
+                %15 : java.type:"int" = constant @loc="457:36" @1;
+                %16 : java.type:"int" = invoke %14 %15 @loc="457:20" @java.ref:"hat.TileContext::bid(int):int";
+                %17 : Var<java.type:"int"> = var %16 @loc="457:9" @"bidy";
+                %18 : java.type:"hat.TileContext" = var.load %5 @loc="458:25";
+                %19 : java.type:"hat.buffer.F32Array" = var.load %6 @loc="458:42";
+                %20 : java.type:"hat.TileContext" = var.load %5 @loc="458:55";
+                %21 : java.type:"int" = var.load %13 @loc="458:73";
+                %22 : java.type:"int" = var.load %17 @loc="458:79";
+                %23 : java.type:"hat.TileIndex2D" = invoke %20 %21 %22 @loc="458:55" @java.ref:"hat.TileContext::index(int, int):hat.TileIndex2D";
+                %24 : java.type:"hat.TileContext" = var.load %5 @loc="458:86";
+                %25 : java.type:"int" = var.load %8 @loc="458:104";
+                %26 : java.type:"int" = var.load %9 @loc="458:108";
+                %27 : java.type:"hat.TileShape" = invoke %24 %25 %26 @loc="458:86" @java.ref:"hat.TileContext::shape(int, int):hat.TileShape";
+                %28 : java.type:"hat.TileData" = invoke %18 %19 %23 %27 @loc="458:25" @java.ref:"hat.TileContext::load(hat.buffer.Buffer, hat.TileIndex2D, hat.TileShape):hat.TileData";
+                %29 : Var<java.type:"hat.TileData"> = var %28 @loc="458:9" @"inputTile";
+                %30 : java.type:"hat.TileContext" = var.load %5 @loc="459:30";
+                %31 : java.type:"hat.TileData" = var.load %29 @loc="459:52";
+                %32 : java.type:"hat.TileData" = invoke %30 %31 @loc="459:30" @java.ref:"hat.TileContext::transpose(hat.TileData):hat.TileData";
+                %33 : Var<java.type:"hat.TileData"> = var %32 @loc="459:9" @"transposedTile";
+                %34 : java.type:"hat.TileContext" = var.load %5 @loc="460:9";
+                %35 : java.type:"hat.buffer.F32Array" = var.load %7 @loc="460:27";
+                %36 : java.type:"hat.TileContext" = var.load %5 @loc="460:45";
+                %37 : java.type:"int" = var.load %17 @loc="460:63";
+                %38 : java.type:"int" = var.load %13 @loc="460:69";
+                %39 : java.type:"hat.TileIndex2D" = invoke %36 %37 %38 @loc="460:45" @java.ref:"hat.TileContext::index(int, int):hat.TileIndex2D";
+                %40 : java.type:"hat.TileData" = var.load %33 @loc="460:76";
+                invoke %34 %35 %39 %40 @loc="460:9" @java.ref:"hat.TileContext::store(hat.buffer.Buffer, hat.TileIndex2D, hat.TileData):void";
+                return @loc="454:5";
+            };
+            """)
+    public static void transposeKernel(@RO TileContext tileContext, @RO F32Array inputMatrix, @WO F32Array transposedMatrix, @Constant int tm, @Constant int tn) {
+        // In this example we get a 2D block.
+        // The block id 0 maps to a row from the input matrix.
+        // the block id 1 maps to a column from the input matrix.
+        int bidx = tileContext.bid(0);
+        int bidy = tileContext.bid(1);
+
+        // Load the tile with shape tm x tn into memory (e.g., registers, shared memory, or tensor memory)_
+        var inputTile = tileContext.load(inputMatrix, tileContext.index(bidx, bidy), tileContext.shape(tm, tn));
+
+        // compute the transpose function.
+        var transposedTile = tileContext.transpose(inputTile);
+
+        // store the resulting transposedTile into global memory.
+        // Note that the index used are swapped.
+        tileContext.store(transposedMatrix, tileContext.index(bidy, bidx), transposedTile);
+    }
+
+    @Reflect
+    public static void computeTransposeKernel(@RO ComputeContext computeContext, @RO F32Array input, @RO F32Array output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
+        computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
+                tileContext -> transposeKernel(tileContext, input, output, tm, tn));
+    }
+
+    @Reflect
+    @HatTest
+    public void test_hat_tile_04() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int M = 2048;
+        final int N = 512;
+        final int tileSize = 128;
+
+        F32Array input = F32Array.create(accelerator, M * N);
+        F32Array result = F32Array.create(accelerator, M * N);
+
+        accelerator.compute( computeContext ->
+                computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
     }
 }
