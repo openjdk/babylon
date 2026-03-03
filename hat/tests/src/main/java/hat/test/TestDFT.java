@@ -74,7 +74,7 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void dftKernel(@RW KernelContext kc,
+    private static void dftKernel(@RO KernelContext kc,
                                   @RO ArrayComplex input,
                                   @WO ArrayComplex output) {
         int size = input.length();
@@ -118,7 +118,7 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void dftCompute(@RW ComputeContext cc,
+    private static void dftCompute(@RO ComputeContext cc,
                                    @RO ArrayComplex input,
                                    @WO ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
