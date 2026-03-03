@@ -37,37 +37,37 @@ public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends 
     }
 
     public final T varName(HATMemoryVarOp hatLocalVarOp) {
-        identifier(hatLocalVarOp.varName());
+        id(hatLocalVarOp.varName());
         return self();
     }
 
     public final T varName(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-        identifier(hatVectorVarOp.varName());
+        id(hatVectorVarOp.varName());
         return self();
     }
 
     public final T varName(HATVectorOp.HATVectorLoadOp vectorLoadOp) {
-        identifier(vectorLoadOp.varName());
+        id(vectorLoadOp.varName());
         return self();
     }
 
     public final T varName(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
-        identifier(hatVectorStoreView.varName());
+        id(hatVectorStoreView.varName());
         return self();
     }
 
     public final T varName(HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
-        identifier(hatVectorBinaryOp.varName());
+        id(hatVectorBinaryOp.varName());
         return self();
     }
 
     public final T varName(HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
-        identifier(hatVectorVarLoadOp.varName());
+        id(hatVectorVarLoadOp.varName());
         return self();
     }
 
     public final T varName(HATF16Op.HATF16VarOp hatF16VarOp) {
-        identifier(hatF16VarOp.varName());
+        id(hatF16VarOp.varName());
         return self();
     }
 

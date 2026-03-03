@@ -97,75 +97,75 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final T HAT_GIX() {
-        return identifier("HAT_GIX");
+        return id("HAT_GIX");
     }
 
     public final T HAT_GIY() {
-        return identifier("HAT_GIY");
+        return id("HAT_GIY");
     }
 
     public final T HAT_GIZ() {
-        return identifier("HAT_GIZ");
+        return id("HAT_GIZ");
     }
 
     public final T HAT_GSX() {
-        return identifier("HAT_GSX");
+        return id("HAT_GSX");
     }
 
     public final T HAT_GSY() {
-        return identifier("HAT_GSY");
+        return id("HAT_GSY");
     }
 
     public final T HAT_GSZ() {
-        return identifier("HAT_GSZ");
+        return id("HAT_GSZ");
     }
 
     public final T HAT_LIX() {
-        return identifier("HAT_LIX");
+        return id("HAT_LIX");
     }
 
     public final T HAT_LIY() {
-        return identifier("HAT_LIY");
+        return id("HAT_LIY");
     }
 
     public final T HAT_LIZ() {
-        return identifier("HAT_LIZ");
+        return id("HAT_LIZ");
     }
 
     public final T HAT_LSX() {
-        return identifier("HAT_LSX");
+        return id("HAT_LSX");
     }
 
     public final T HAT_LSY() {
-        return identifier("HAT_LSY");
+        return id("HAT_LSY");
     }
 
     public final T HAT_LSZ() {
-        return identifier("HAT_LSZ");
+        return id("HAT_LSZ");
     }
 
     public final T HAT_BIX() {
-        return identifier("HAT_BIX");
+        return id("HAT_BIX");
     }
 
     public final T HAT_BIY() {
-        return identifier("HAT_BIY");
+        return id("HAT_BIY");
     }
 
     public final T HAT_BIZ() {
-        return identifier("HAT_BIZ");
+        return id("HAT_BIZ");
     }
 
     public final T HAT_BSX() {
-        return identifier("HAT_BSX");
+        return id("HAT_BSX");
     }
 
     public final T HAT_BSY() {
-        return identifier("HAT_BSY");
+        return id("HAT_BSY");
     }
 
     public final T HAT_BSZ() {
-        return identifier("HAT_BSZ");
+        return id("HAT_BSZ");
     }
 
     @Override
@@ -193,11 +193,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final T kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return HAT_KERNEL().space().voidType().space().funcName(funcOp);
+        return HAT_KERNEL().sp().voidType().sp().funcName(funcOp);
     }
 
     public final  T functionDeclaration( JavaType javaType, CoreOp.FuncOp funcOp) {
-        return HAT_FUNC().space().type(javaType).space().funcName(funcOp);
+        return HAT_FUNC().sp().type(javaType).sp().funcName(funcOp);
     }
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
@@ -212,9 +212,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword()
-                .space()
+                .sp()
                 .structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
-                .space()
+                .sp()
                 .suffix_s(ifaceType.iface.getSimpleName())
                 .braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
@@ -225,13 +225,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         boolean isLast = fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
                             if (isHalfType(ifaceType)) {
-                                typeName("half");
+                                type("half");
                             } else if (isbfloat16(ifaceType)) {
-                                typeName("BFLOAT16");
+                                type("BFLOAT16");
                             } else {
-                                typeName(primitiveField.type.getSimpleName());
+                                type(primitiveField.type.getSimpleName());
                             }
-                            space().typeName(primitiveField.name);
+                            sp().type(primitiveField.name);
                             if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
                                 if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray) {
                                     if (isLast && ifaceType.parent == null) {
@@ -260,7 +260,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             }
                         } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
                             suffix_t(ifaceField.ifaceType.iface);
-                            space().typeName(ifaceField.name);
+                            sp().type(ifaceField.name);
                             if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
                                 if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
                                     if (isLast && ifaceType.parent == null) {
@@ -282,7 +282,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                 }
                             }
                         } else if (field instanceof Schema.SchemaNode.Padding padding) {
-                            u08Type().space().identifierWithRandomSuffix("pad$",5).sbrace(_->intValue((int)(padding.len)));//; emitText(toC99(padding));
+                            u08Type().sp().identifierWithRandomSuffix("pad$",5).sbrace(_->intValue((int)(padding.len)));//; emitText(toC99(padding));
                         } else {
                             throw new IllegalStateException("hmm");
                         }
@@ -303,7 +303,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .ints(len, 0, LEGAL_CHARS.length()) //
                 .mapToObj(LEGAL_CHARS::charAt) //
                 .forEach(sb::append);
-        identifier(prefix+sb);
+        id(prefix+sb);
         return self();
     }
 
@@ -311,14 +311,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
 
     public final T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        return suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
+        return suffix_t(localArrayDeclaration.classType()).sp().varName(localArrayDeclaration.varOp());
     }
 
     public final T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
         return HAT_LOCAL_MEM()
-                .space() // we should be able to compose-call to privateDeclaration?
+                .sp() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType())
-                .space()
+                .sp()
                 .varName(localArrayDeclaration.varOp());
     }
 
@@ -341,8 +341,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final  T types() {
         return
-                 typedefKeyword().space().s08Type("byte").semicolonNl()
-                .typedefKeyword().space().s08Type("boolean").semicolonNl()
+                 typedefKeyword().sp().s08Type("byte").snl()
+                .typedefKeyword().sp().s08Type("boolean").snl()
                 .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl();
     }
 
@@ -371,15 +371,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
         ) {
-            HAT_GLOBAL_MEM().space().suffix_t(classType).asterisk();
+            HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
-            HAT_GLOBAL_MEM().space().suffix_t(KernelContext.class).asterisk();
+            HAT_GLOBAL_MEM().sp().suffix_t(KernelContext.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
-            HAT_GLOBAL_MEM().space().suffix_t(F16Impl.class).asterisk();
+            HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
-            HAT_GLOBAL_MEM().space().suffix_t(BF16Array.BF16Impl.class).asterisk();
+            HAT_GLOBAL_MEM().sp().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
-            typeName(javaType.toString());
+            type(javaType.toString());
         }
         return self();
     }
@@ -452,8 +452,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case ReducedFloatType.HalfFloat _ -> f16Type();
             case ReducedFloatType.BFloat16 _ ->  bf16Type();
             default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        }).space().assign(
-                _-> identifier(hatF16VarOp.varName()),
+        }).sp().assign(
+                _-> id(hatF16VarOp.varName()),
                 _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
     }
 
@@ -466,11 +466,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final T builtin_float2bfloat16() {
-        return identifier("floatTobfloat16");
+        return id("floatTobfloat16");
     }
 
     public final T builtin_bfloat16ToFloat() {
-        return identifier("bfloat16Tofloat");
+        return id("bfloat16Tofloat");
     }
 
     public static final String VALUE = "value";
@@ -489,15 +489,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                 List<Boolean> references = hatf16BinaryOp.references();
                 if (references.getFirst()) {
-                    rarrow().identifier(VALUE);
+                    rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
-                    dot().identifier(VALUE);
+                    dot().id(VALUE);
                 }
 
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
                     cparen(); //closed
                 }
-                space().identifier(hatf16BinaryOp.binaryOperationType().symbol()).space();
+                sp().id(hatf16BinaryOp.binaryOperationType().symbol()).sp();
 
                 if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
                     builtin_bfloat16ToFloat().oparen();
@@ -505,9 +505,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                 recurse(OpHelper.asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
                 if (references.get(1)) {
-                    rarrow().identifier(VALUE);
+                    rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
-                    dot().identifier(VALUE);
+                    dot().id(VALUE);
                 }
 
                 if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
@@ -530,18 +530,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             paren(_-> {
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
                 if (hatF16BinaryOp.references().getFirst()) {
-                    rarrow().identifier(VALUE);
+                    rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
-                    dot().identifier(VALUE);
+                    dot().id(VALUE);
                 } else {
                     blockComment("hatF16BinaryOp not a result !!");
                 }
-                space().identifier(hatF16BinaryOp.binaryOperationType().symbol()).space();
+                sp().id(hatF16BinaryOp.binaryOperationType().symbol()).sp();
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
                 if (hatF16BinaryOp.references().get(1)) {
-                    rarrow().identifier(VALUE);
+                    rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
-                    dot().identifier(VALUE);
+                    dot().id(VALUE);
                 }else {
                     blockComment("hatF16BinaryOp not a value !!");
                 }
@@ -551,12 +551,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
-        return identifier(hatF16VarLoadOp.varName()).dot().identifier(VALUE);
+        return id(hatF16VarLoadOp.varName()).dot().id(VALUE);
     }
 
     @Override
     public final T hatVectorMakeOf( HATVectorOp.HATVectorMakeOfOp hatVectorMakeOfOp) {
-        return identifier(hatVectorMakeOfOp.varName());
+        return id(hatVectorMakeOfOp.varName());
     }
 
     public abstract T genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp);
@@ -572,16 +572,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp) {
-        return suffix_t(hatPrivateInitVarOp.classType()).space()
+        return suffix_t(hatPrivateInitVarOp.classType()).sp()
                 .assign(
-                        _-> identifier(hatPrivateInitVarOp.varName()),
+                        _-> id(hatPrivateInitVarOp.varName()),
                         _->recurse(OpHelper.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
     }
 
     @Override
     public final T hatMemoryLoadOp( HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp) {
         return recurse( OpHelper.asResultOrThrow(hatMemoryLoadOp.operands().getFirst()).op())
-                .dot().identifier(hatMemoryLoadOp.memberName())
+                .dot().id(hatMemoryLoadOp.memberName())
                 .when(hatMemoryLoadOp.operands().size() > 1,_->// If the hatMemoryLoadOp has more than 1 operand, the second is the index
                    sbrace(_-> recurse( OpHelper.asResultOrThrow(hatMemoryLoadOp.operands().get(1)).op()))
                 );
@@ -605,7 +605,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     private T ptrAccess(HATPtrOp hatPtrOp) {
-        identifier(hatPtrOp.name());
+        id(hatPtrOp.name());
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
@@ -616,16 +616,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
         if (hatPtrOp instanceof HATPtrOp.HATPtrLengthOp) {
-            identifier("length");
+            id("length");
         } else {
             boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;// ?
-            identifier("array").sbrace(_ -> {
-                paren(_ -> identifier("long")); // is this a cast (long)  maybe cast(_->typeName("long"))?
+            id("array").sbrace(_ -> {
+                paren(_ -> id("long")); // is this a cast (long)  maybe cast(_->typeName("long"))?
                 paren(_ -> {
                     if (hatPtrOp.strides().size() > 1) {
                         paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(2)).op()));
-                        asterisk().identifier(hatPtrOp.name());
-                        either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).identifier(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
+                        asterisk().id(hatPtrOp.name());
+                        either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).id(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
                         add().paren(_ -> recurse( ((Op.Result) hatPtrOp.operands().get(1)).op()));
                     } else {
                         recurse( ((Op.Result) hatPtrOp.operands().get(1)).op());
@@ -656,10 +656,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return funcDef(_ -> f32Type(),
                        _ -> builtin_bfloat16ToFloat(),
                        _ -> u16Type(parameterName),
-                       _ -> bfloat16Type(b16).semicolonNl()
-                               .identifier(b16).dot().identifier(s).sbrace( _ -> intConstZero()).equals().intConstZero().semicolonNl()
-                               .identifier(b16).dot().identifier(s).sbrace( _ -> intConstOne()).equals().constant(parameterName).semicolonNl()
-                               .returnKeyword(_-> identifier(b16).dot().identifier(f)));
+                       _ -> bfloat16Type(b16).snl()
+                               .id(b16).dot().id(s).sbrace(_ -> intConstZero()).equals().intConstZero().snl()
+                               .id(b16).dot().id(s).sbrace(_ -> intConstOne()).equals().constant(parameterName).snl()
+                               .returnKeyword(_-> id(b16).dot().id(f)));
     }
 
     /**
@@ -687,15 +687,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 _ -> builtin_float2bfloat16(),
                 _ -> f32Type(parameterName),
                 _ -> assign(_ -> bfloat16Type(idBFloat16),
-                        _ ->  brace( _ -> identifier(parameterName)).semicolonNl())
-                        .assign( _ -> u32Type("bits"), _ -> identifier(idBFloat16).dot().identifier("i")).semicolonNl()
-                        .assign( _ -> u16Type("sign_bit"), _ -> cast( _ -> s16Type()).paren( _ -> paren( _ -> identifier("bits").ampersand().constant("0x80000000")).rightShift(16))).semicolonNl()
-                        .assign( _ -> s32Type("lsb"), _ -> identifier("bits").ampersand().constant("0x10000")).semicolonNl()
-                        .assign( _ -> s32Type("round"), _ -> identifier("bits").ampersand().constant("0x08000")).semicolonNl()
-                        .assign( _ -> s32Type("sticky"), _ -> identifier("bits").ampersand().constant("0x07FFF")).semicolonNl()
-                        .ifTrueCondition(_ -> identifier("round").space().ne().space().intConstZero().condAnd().paren( _ -> paren( _ -> identifier("lsb").bitwiseOR().identifier("sticky")).ne().intConstZero()),
-                                _ -> identifier("bits").space().plusEquals().space().constant("0x10000"))
-                        .returnKeyword( _ -> cast( _ ->u16Type()).paren( _ -> paren( _ -> paren( _-> identifier("bits").rightShift(16)).bitwiseOR().identifier("sign_bit")).ampersand().constant("0xffff"))));
+                        _ ->  brace( _ -> id(parameterName)).snl())
+                        .assign( _ -> u32Type("bits"), _ -> id(idBFloat16).dot().id("i")).snl()
+                        .assign( _ -> u16Type("sign_bit"), _ -> cast( _ -> s16Type()).paren( _ -> paren( _ -> id("bits").ampersand().constant("0x80000000")).rightShift(16))).snl()
+                        .assign( _ -> s32Type("lsb"), _ -> id("bits").ampersand().constant("0x10000")).snl()
+                        .assign( _ -> s32Type("round"), _ -> id("bits").ampersand().constant("0x08000")).snl()
+                        .assign( _ -> s32Type("sticky"), _ -> id("bits").ampersand().constant("0x07FFF")).snl()
+                        .ifTrueCondition(_ -> id("round").sp().ne().sp().intConstZero().condAnd().paren(_ -> paren(_ -> id("lsb").bitwiseOR().id("sticky")).ne().intConstZero()),
+                                _ -> id("bits").sp().plusEquals().sp().constant("0x10000"))
+                        .returnKeyword( _ -> cast( _ ->u16Type()).paren( _ -> paren( _ -> paren( _-> id("bits").rightShift(16)).bitwiseOR().id("sign_bit")).ampersand().constant("0xffff"))));
     }
 
 
@@ -842,9 +842,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected void genFieldAccess(Value operand, boolean isReference) {
         if (isReference) {
-            rarrow().identifier(VALUE);
+            rarrow().id(VALUE);
         } else if (!OpHelper.isPrimitiveResult(operand)) {
-            dot().identifier(VALUE);
+            dot().id(VALUE);
         }
     }
 
@@ -856,7 +856,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             // For now this applies to F16 and bFloat16
             paren(_ -> genReducedType(reducedFloatType)).obrace();
         }
-        identifier(mapMathIntrinsic(invoke.name()));
+        id(mapMathIntrinsic(invoke.name()));
 
         // For each operand, obtain if it is a reference from global memory or device memory.
         List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
