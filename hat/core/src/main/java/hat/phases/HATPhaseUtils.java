@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.device.NonMappableIface;
 import hat.HATMath;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
@@ -102,10 +101,11 @@ public class HATPhaseUtils {
 
     static public boolean isVectorOp(MethodHandles.Lookup lookup, Op op) {
         if (!op.operands().isEmpty()) {
-            TypeElement type;
-            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp load) type = load.resultType();
-            else if (op instanceof JavaOp.ArrayAccessOp.ArrayStoreOp store) type = store.operands().getLast().type();
-            else type = OpHelper.firstOperandOrThrow(op).type();
+            TypeElement type = switch(op) {
+                case JavaOp.ArrayAccessOp.ArrayLoadOp load -> load.resultType();
+                case JavaOp.ArrayAccessOp.ArrayStoreOp store -> store.operands().getLast().type();
+                default -> OpHelper.firstOperandOrThrow(op).type();
+            };
            if (type instanceof ArrayType at) {
                type = at.componentType();
            }
@@ -130,7 +130,22 @@ public class HATPhaseUtils {
         return iop != null
                 && (iop.invokeReference().name().toLowerCase().contains("shared")
                 || iop.invokeReference().name().toLowerCase().contains("local")
-                || iop.invokeReference().name().toLowerCase().contains("private"));
+                || iop.invokeReference().name().toLowerCase().contains("private")
+        );
+    }
+
+    static public HATVectorOp buildArrayViewVector(Op op, String name, TypeElement resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operands) {
+        if (isLocalSharedOrPrivate(op)) {
+            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
+                return new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(name, resultType, vectorShape, operands);
+            }
+            return new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(name, resultType, vectorShape, operands);
+        } else {
+            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
+                return new HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp(name, resultType, vectorShape, operands);
+            }
+            return new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(name, resultType, vectorShape, operands);
+        }
     }
 
     static  public Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
@@ -155,16 +170,10 @@ public class HATPhaseUtils {
 
     static public boolean isBufferInitialize(MethodHandles.Lookup lookup, Op op) {
         // first check if the return is an array type
-        if (op instanceof CoreOp.VarOp vop) {
-            if (!(vop.varValueType() instanceof ArrayType)){
-                return false;
-            }
-        } else if (!(op instanceof JavaOp.ArrayAccessOp)) {
-            if (!(op.resultType() instanceof ArrayType)) {
-                return false;
-            }
-        }
-        return isBufferArray(lookup, op);
+        if (op instanceof CoreOp.VarOp vop && vop.varValueType() instanceof ArrayType
+                || op instanceof JavaOp.ArrayAccessOp
+                || op.resultType() instanceof ArrayType) return isBufferArray(lookup, op);
+        return false;
     }
 
     //recursive
