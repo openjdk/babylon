@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -219,6 +220,12 @@ public class TestEvaluation {
     static int staticFinalField() {
         return Y1;
     }
+    final String V = "X";
+    //@Reflect
+    String instanceField() {
+        // V is constant variable, but we can't get its value from the model
+        return V;
+    }
     static final Integer Y2 = 3;
     @Reflect
     static Integer fcFieldOfWrongType() {
@@ -267,8 +274,12 @@ public class TestEvaluation {
             Assertions.assertTrue(v.isEmpty());
         } else {
             Assertions.assertTrue(v.isPresent());
+            Object[] args = new Object[0];
+            if ((m.getModifiers() & Modifier.STATIC) == 0) { // instance method
+                args = new Object[] {this};
+            }
             // TODO use BytecodeGenerator instead of Interpreter
-            Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER));
+            Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER), args);
             Assertions.assertEquals(expected, v.get());
         }
     }

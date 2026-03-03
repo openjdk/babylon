@@ -115,16 +115,20 @@ public sealed abstract class JavaOp extends Op {
 
         /**
          * Evaluates an operation result whose operation models a constant expression.
-         *
+         * <p>
+         * A name that refers to a class variable or instance variable is modeled as field load operation.
+         * This model does not distinguish whether the referenced field is a constant variable.
+         * As a result, this method treats a static final field of a primitive type or {@code String} as constant variable,
+         * but does not treat instance fields as constant variables.
+         * <p>
+         * The modeling of local variables does not distinguish between names of effectively final and final variables
+         * so the former is treated as if the latter.
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
          * is not an instance of {@link Op.Result} or the operation does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
-         * @implNote Read access to a static final field of type primitive or String, that lack an initializer
-         * or initialized by a non-constant expression value, is considered a constant expression by this endpoint
-         * even though in JLS it's not.
          *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
@@ -135,9 +139,17 @@ public sealed abstract class JavaOp extends Op {
                 return Optional.empty();
             }
         }
+
         /**
          * Evaluates an operation that models a constant expression.
-         *
+         * <p>
+         * A name that refers to a class variable or instance variable is modeled as field load operation.
+         * This model does not distinguish whether the referenced field is a constant variable.
+         * As a result, this method treats a static final field of a primitive type or {@code String} as constant variable,
+         * but does not treat instance fields as constant variables.
+         * <p>
+         * The modeling of local variables does not distinguish between names of effectively final and final variables
+         * so the former is treated as if the latter.
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
          * @param <T> the type of the operation
@@ -145,9 +157,6 @@ public sealed abstract class JavaOp extends Op {
          * does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
-         * @implNote Read access to a static final field of type primitive or String that lack an initializer,
-         * or initialized by a non-constant expression value, is considered a constant expression by this endpoint
-         * even though in JLS it's not.
          */
         static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op) {
             try {
@@ -181,11 +190,17 @@ public sealed abstract class JavaOp extends Op {
                         (varLoadOp.varOp().varValueType() instanceof PrimitiveType ||
                         varLoadOp.varOp().varValueType().equals(J_L_STRING)) &&
                         !varLoadOp.varOp().operands().isEmpty()
+                        // Requirement: the local variable must be a constant variable.
+                        // Current checks:
+                        // 1) The variable is initialized, and the initializer is a constant expression.
+                        // 2) The variable type is a primitive or String.
+                        // Missing check:
+                        // 3) Ensure the variable is declared final
                         -> eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp convOp -> {
+                    // we expect cast to primitive type
                     Value operand = op.operands().getFirst();
                     var v = eval(l, operand);
-                    // cast to primitive type
                     // cast from a primitive type to boolean or form boolean to a primitive type is not allowed in cast context
                     if ((convOp.resultType().equals(BOOLEAN) && !operand.type().equals(BOOLEAN)) ||
                             (operand.type().equals(BOOLEAN) && !convOp.resultType().equals(BOOLEAN))) {
@@ -194,8 +209,8 @@ public sealed abstract class JavaOp extends Op {
                     yield ArithmeticAndConvOpImpls.evaluate(convOp, v);
                 }
                 case CastOp castOp -> {
-                    Value operand = castOp.operands().getFirst();
                     // we expect cast to String
+                    Value operand = castOp.operands().getFirst();
                     if (!castOp.resultType().equals(J_L_STRING) || !operand.type().equals(J_L_STRING)) {
                         throw new NonConstantExpression();
                     }
@@ -219,12 +234,24 @@ public sealed abstract class JavaOp extends Op {
                     } catch (ReflectiveOperationException e) {
                         throw new IllegalArgumentException(e);
                     }
-                    if (((field.getModifiers() & Modifier.STATIC) != 0 && (field.getModifiers() & Modifier.FINAL) != 0) &&
-                            (primitiveClasses.contains(field.getType()) || field.getType().equals(String.class))) {
+                    // Requirement: the field must be a constant variable.
+                    // Current checks:
+                    // 1) The field is declared final.
+                    // 2) The field type is a primitive or String.
+                    // Missing check:
+                    // 3) Verify the field is initialized and the initializer is a constant expression.
+                    if ((field.getModifiers() & Modifier.FINAL) == 0 ||
+                            (!primitiveClasses.contains(field.getType()) && !field.getType().equals(String.class))) {
+                        throw new NonConstantExpression();
+                    }
+                    if ((field.getModifiers() & Modifier.STATIC) != 0) {
                         // @@@ why using field.get fails ?
                         yield vh.get();
+                    } else {
+                        // we can't get the value of an instance field from the model
+                        // we need the value of the receiver
+                        throw new NonConstantExpression();
                     }
-                    throw new NonConstantExpression();
                 }
                 case JavaOp.UnaryOp unaryOp -> {
                     Object v = eval(l, unaryOp.operands().getFirst());
