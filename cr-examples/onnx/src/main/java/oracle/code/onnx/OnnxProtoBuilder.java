@@ -297,10 +297,10 @@ public final class OnnxProtoBuilder {
                     indexer.mapTupleLoad(tlo.result(), tlo.operands().getFirst(), tlo.index());
                 case CoreOp.TupleOp to ->
                     indexer.mapTupleElements(to.result(), to.operands());
-                case JavaOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class)) -> {
-                    if (io.invokeDescriptor().name().equals("get") && io.operands().getLast() instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co && co.value() instanceof Integer i) {
+                case JavaOp.InvokeOp io when io.invokeReference().refType().equals(JavaType.type(List.class)) -> {
+                    if (io.invokeReference().name().equals("get") && io.operands().getLast() instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co && co.value() instanceof Integer i) {
                         indexer.mapTupleLoad(io.result(), io.operands().getFirst(), i);
-                    } else if (io.invokeDescriptor().name().equals("of")) {
+                    } else if (io.invokeReference().name().equals("of")) {
                         indexer.mapTupleElements(io.result(), io.operands());
                     } else {
                         throw new UnsupportedOperationException(op.toText());

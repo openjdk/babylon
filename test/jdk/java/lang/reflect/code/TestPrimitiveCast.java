@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestPrimitiveCast
+ * @run main Unreflect TestPrimitiveCast
+ * @run junit TestPrimitiveCast
  */
 
 import jdk.incubator.code.Reflect;

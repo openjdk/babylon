@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @ignore Reflection on the contents of local classes is not supported.
  * @summary Smoke test for captured values in local classes.
  * @modules jdk.incubator.code
  * @run junit TestLocalCapture

@@ -152,16 +152,16 @@ public class TestErasure {
         List<TypeAndErasure<TypeVariableType>> typeVars = new ArrayList<>();
         for (int dims = 1 ; dims <= 3 ; dims++) {
             for (TypeAndErasure<ClassType> t : references()) {
-                typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+                typeVars.add(new TypeAndErasure<>(JavaType.typeVar("X", JavaType.J_L_OBJECT, t.type), t.erasure));
             }
             for (TypeAndErasure<ClassType> t : genericReferences()) {
-                typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+                typeVars.add(new TypeAndErasure<>(JavaType.typeVar("X", JavaType.J_L_OBJECT, t.type), t.erasure));
             }
             for (TypeAndErasure<ClassType> t : nestedReferences()) {
-                typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+                typeVars.add(new TypeAndErasure<>(JavaType.typeVar("X", JavaType.J_L_OBJECT, t.type), t.erasure));
             }
             for (TypeAndErasure<ArrayType> t : arrays()) {
-                typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+                typeVars.add(new TypeAndErasure<>(JavaType.typeVar("X", JavaType.J_L_OBJECT, t.type), t.erasure));
             }
         }
         return typeVars;

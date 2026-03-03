@@ -25,63 +25,147 @@
 package hat.codebuilders;
 
 import hat.Config;
+import hat.FFIConfigCreator;
+import optkl.codebuilders.C99CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
+import optkl.util.Mutable;
 
-public  class C99HATConfigBuilder extends C99HATCodeBuilder<C99HATConfigBuilder> {
+import java.lang.invoke.MethodHandles;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-   public  C99HATConfigBuilder staticConstInt(String name, int padWidth, int value) {
-        staticKeyword().space().constexprKeyword().space().s32Type().space().identifier(name, padWidth).space().equals().space().intHexValue(value).semicolon().nl();
+public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
+
+    public C99HATConfigBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(scopedCodeBuilderContext);
+    }
+
+    public final  C99HATConfigBuilder staticConstInt(String name, int padWidth, int value) {
+        staticKeyword().sp().constexprKeyword().sp().s32Type().sp().identifier(name, padWidth).sp().equals().sp().intHexValue(value).semicolon().nl();
         return this;
     }
 
-    public C99HATConfigBuilder staticConstIntShiftedOne(String name, int padWidth, int shift) {
-        staticKeyword().space().constexprKeyword().space().s32Type().space().identifier(name, padWidth).space().equals().space().intValue(1).leftShift().intHexValue(shift).semicolon().nl();
+    public final C99HATConfigBuilder staticConstIntShiftedOne(String name, int padWidth, int shift) {
+        staticKeyword().sp().constexprKeyword().sp().s32Type().sp().identifier(name, padWidth).sp().equals().sp().intValue(1).leftShift().intHexValue(shift).semicolon().nl();
         return this;
     }
 
-    public C99HATConfigBuilder className() {
-        return identifier("BasicConfig");
+    public final C99HATConfigBuilder className() {
+        return id("BasicConfig");
     }
 
-    public C99HATConfigBuilder bitNamesVar() {
-        return identifier("bitNames");
+    public final C99HATConfigBuilder bitNamesVar() {
+        return id("bitNames");
     }
 
-    public C99HATConfigBuilder bitDescriptionsVar() {
-        return identifier("bitDescriptions");
+    public final C99HATConfigBuilder bitDescriptionsVar() {
+        return id("bitDescriptions");
     }
 
-    public C99HATConfigBuilder configBitsVar() {
-        return identifier("configBits");
+    public final C99HATConfigBuilder configBitsVar() {
+        return id("configBits");
     }
 
-    public C99HATConfigBuilder configBitsAnd() {
-        return configBitsVar().space().ampersand().space();
+    public final C99HATConfigBuilder configBitsAnd() {
+        return configBitsVar().sp().ampersand().sp();
     }
 
-    public C99HATConfigBuilder configBitsAndBitName(String bitName) {
-        return configBitsAnd().identifier(bitName + "_BIT");
+    public final C99HATConfigBuilder configBitsAndBitName(String bitName) {
+        return configBitsAnd().id(bitName + "_BIT");
     }
 
-    public C99HATConfigBuilder camelExceptFirst(String s) {
-        return identifier(toCamelExceptFirst(s));
+    public final C99HATConfigBuilder camelExceptFirst(String s) {
+        return id(toCamelExceptFirst(s));
     }
 
-    C99HATConfigBuilder std(String s) {
-        return identifier("std").colon().colon().identifier(s);
+    public final C99HATConfigBuilder std(String s) {
+        return id("std").colon().colon().id(s);
     }
 
-    public C99HATConfigBuilder stdEndl() {
+    public final C99HATConfigBuilder stdEndl() {
         return std("endl");
     }
 
-    public C99HATConfigBuilder stdCout(String s) {
-        return std("cout").space().leftShift().space().dquote().literal(s).dquote();
+    public final C99HATConfigBuilder stdCout(String s) {
+        return std("cout").sp().leftShift().sp().dquote().literal(s).dquote();
+    }
+
+    public static String create(){
+        C99HATConfigBuilder cb = new C99HATConfigBuilder(new ScopedCodeBuilderContext(MethodHandles.lookup(),null));
+        cb.oracleCopyright();
+        cb.blockComment("""
+                You probably should not edit this this file!!!
+                It was auto generated""" + " " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()) + " by " + FFIConfigCreator.class.getName()
+        );
+        cb.pragma("once").nl();
+        cb.includeSys("iostream").nl();
+        final int START_BIT_INDEX = Config.bitList.stream().filter(bit -> bit.size() == 1).findFirst().get().index();
+
+        cb.structKeyword().sp().className().braceNlIndented((_) -> {
+            var i = Mutable.of(START_BIT_INDEX);
+            Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit -> {
+                cb.staticConstIntShiftedOne(bit.name() + "_BIT", 32, i.get());
+                i.set(i.get() + 1);
+            });
+            cb.constKeyword().sp().staticKeyword().sp().s08Type().sp().asterisk().bitNamesVar().osbrace().csbrace().semicolon().sp().lineComment("See below for initialization");
+            cb.constKeyword().sp().staticKeyword().sp().s08Type().sp().asterisk().bitDescriptionsVar().osbrace().csbrace().semicolon().sp().lineComment("See below for initialization");
+
+            cb.s32Type().sp().id("configBits").semicolon().nl();
+
+            Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
+                    cb.id("bool").sp().camelExceptFirst(bit.name()).semicolon().nl()
+            );
+
+            cb.s32Type().sp().id("platform").semicolon().nl();
+            cb.s32Type().sp().id("device").semicolon().nl();
+            cb.id("bool").sp().id("alwaysCopy").semicolon().nl();
+            //Constructor
+            cb.explicitKeyword().sp().className().paren((_) -> cb.s32Type().sp().configBitsVar()).colon().nl().indent((_) -> {
+                cb.configBitsVar().paren((_) -> cb.configBitsVar()).comma().nl();
+                Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
+                        cb.camelExceptFirst(bit.name()).paren((_) -> cb.paren((_) -> cb.configBitsAndBitName(bit.name())).eq().id(bit.name() + "_BIT")).comma().nl()
+                );
+                cb.id("platform").paren((_) -> cb.configBitsAnd().intHexValue(0xf)).comma().nl();
+                cb.id("alwaysCopy").paren(_ -> cb.pling().camelExceptFirst("MINIMIZE_COPIES")).comma().nl();
+                cb.id("device").paren(_ ->
+                        cb.paren(_ -> cb.configBitsAnd().intHexValue(0xf0)).sp().rightShift().sp().intValue(4)).braceNlIndented(_ ->
+                        cb.ifKeyword().paren(_ -> cb.id("showDeviceInfo")).braceNlIndented(_ -> {
+                            cb.nlSeparated(
+                                    Config.bitList.stream().filter(bit -> bit.size() == 1),
+                                    bit -> cb.stdCout("native " + cb.toCamelExceptFirst(bit.name()) + " ").sp().leftShift().sp().camelExceptFirst(bit.name()).sp().leftShift().sp().stdEndl().semicolon()
+                            );
+                            cb.nl().stdCout("native platform ").sp().leftShift().sp().id("platform").sp().leftShift().sp().stdEndl().semicolon();
+                            cb.nl().stdCout("native device ").sp().leftShift().sp().id("device").sp().leftShift().sp().stdEndl().semicolon();
+                        })
+                );
+            }).nl();
+
+            cb.virtualKeyword().sp().tilde().className().ocparen().equals().sp().defaultKeyword().semicolon();
+        }).semicolon().nl().nl();
+
+
+        cb.hashIfdef("shared_cpp", (_) -> {
+            cb.constKeyword().sp().s08Type().sp().asterisk().className().colon().colon().bitNamesVar().ocsbrace().equals().brace((_) -> {
+                cb.nl();
+                Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
+                        cb.dquote().id(bit.name() + "_BIT").dquote().comma().nl()
+                );
+            }).semicolon().nl();
+            cb.constKeyword().sp().s08Type().sp().asterisk().className().colon().colon().bitDescriptionsVar().ocsbrace().equals().brace((_) -> {
+                cb.nl();
+                Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
+                        cb.dquote().id(bit.description()).dquote().comma().nl()
+                );
+            }).semicolon().nl();
+        });
+        return cb.toString();
+
     }
 
     static public void main(){
-        var c = Config.fromSpec("INFO,SHOW_CODE,HEADLESS,NO_BUFFER_TAGGING,SHOW_KERNEL_MODEL,SHOW_COMPUTE_MODEL,PLATFORM:0,DEVICE:0");
+        var c = Config.fromSpec("INFO,SHOW_CODE,HEADLESS,SHOW_KERNEL_MODEL,SHOW_COMPUTE_MODEL,PLATFORM:0,DEVICE:0");
         System.out.println(c);
+        System.out.println(create());
         System.exit(1);
     }
-
 }

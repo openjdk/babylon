@@ -99,7 +99,7 @@ github
 ├── babylon
 │   ├── build
 │   │   └── XXXX-server-release
-│   │       ├── jdk
+│   │       ├── Makefile
 │   │       └── ...
 │   ├── hat
 │   │   ├── ...
@@ -114,7 +114,22 @@ make clean
 make images
 #Coffee time (about 10 mins?)
 ```
+You now should have
 
+```
+github
+├── babylon
+│   ├── build
+│   │   └── XXXX-server-release
+│   │       ├── Makefile
+│   │       └── jdk
+│   │       └── images
+│   │       └── hotspot
+│   │       └── ...
+│   ├── hat
+│   │   ├── ...
+
+```
 ### Run JTREG Tests
 If we included jtreg above we can run the `babylon` code reflection tests using
 

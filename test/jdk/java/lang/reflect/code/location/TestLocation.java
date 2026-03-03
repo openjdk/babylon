@@ -29,7 +29,6 @@
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -49,7 +48,7 @@ public class TestLocation {
         CoreOp.FuncOp f = getFuncOp(ClassWithReflectedMethod.class, "f");
         f.elements().forEach(ce -> {
             if (ce instanceof CoreOp.ConstantOp cop) {
-                Location loc = cop.location();
+                Op.Location loc = cop.location();
                 Assertions.assertNotNull(loc);
 
                 int actualLine = loc.line();
@@ -75,11 +74,11 @@ public class TestLocation {
         CoreOp.FuncOp f = getFuncOp(TestLocation.class, "f");
 
         CoreOp.FuncOp tf = f.transform(CodeTransformer.DROP_LOCATION_TRANSFORMER);
-        tf.setLocation(Location.NO_LOCATION);
+        tf.setLocation(Op.Location.NO_LOCATION);
         testNoLocations(tf);
 
         CoreOp.FuncOp tlf = lower(f).transform(CodeTransformer.DROP_LOCATION_TRANSFORMER);
-        tlf.setLocation(Location.NO_LOCATION);
+        tlf.setLocation(Op.Location.NO_LOCATION);
         testNoLocations(tlf);
     }
 
@@ -90,7 +89,7 @@ public class TestLocation {
         StringWriter w = new StringWriter();
         OpWriter.writeTo(w, f, OpWriter.LocationOption.DROP_LOCATION);
         String tfText = w.toString();
-        CoreOp.FuncOp tf = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, tfText).getFirst();
+        CoreOp.FuncOp tf = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, tfText).getFirst();
         testNoLocations(tf);
     }
 
@@ -100,7 +99,7 @@ public class TestLocation {
 
     static void testNoLocations(Op op) {
         boolean noLocations = op.elements().filter(ce -> ce instanceof Op)
-                .allMatch(ce -> ((Op) ce).location() == Location.NO_LOCATION);
+                .allMatch(ce -> ((Op) ce).location() == Op.Location.NO_LOCATION);
         Assertions.assertTrue(noLocations);
     }
 

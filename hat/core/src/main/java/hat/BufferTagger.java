@@ -25,57 +25,37 @@
 
 package hat;
 
-import hat.buffer.Buffer;
-import hat.ifacemapper.MappableIface;
-import hat.optools.OpTk;
-import jdk.incubator.code.*;
-import jdk.incubator.code.analysis.Inliner;
+import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.IfaceValue;
+import optkl.OpHelper;
+import optkl.ifacemapper.AccessType;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.*;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import static optkl.OpHelper.Invoke;
+import static optkl.OpHelper.Invoke.invoke;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
     static HashMap<Value, Value> remappedVals = new HashMap<>(); // maps values to their "root" parameter/value
     static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
 
-    public enum AccessType {
-        NA(1),
-        RO(2),
-        WO(4),
-        RW(6),
-        NOT_BUFFER(0);
-
-        public final int value;
-        AccessType(int i) {
-            value = i;
-        }
-    }
-
-    public static String convertAccessType(int i) {
-        switch (i) {
-            case 0 -> {return "NOT_BUFFER";}
-            case 1 -> {return "NA";}
-            case 2 -> {return "RO";}
-            case 4 -> {return "WO";}
-            case 6 -> {return "RW";}
-            default -> {return "";}
-        }
-    }
-
     // generates a list of AccessTypes matching the given FuncOp's parameter order
-    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup l, CoreOp.FuncOp f) {
-        CoreOp.FuncOp inlinedFunc = inlineLoop(l, f);
-        buildAccessMap(l, inlinedFunc);
+    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntryPoint) {
+        buildAccessMap(lookup, inlinedEntryPoint);
         ArrayList<AccessType> accessList = new ArrayList<>();
-        for (Block.Parameter p : inlinedFunc.body().entryBlock().parameters()) {
+        for (Block.Parameter p : inlinedEntryPoint.body().entryBlock().parameters()) {
             if (accessMap.containsKey(p)) {
                 accessList.add(accessMap.get(p)); // is an accessed buffer
-            } else if (OpTk.isAssignable(l, (JavaType) p.type(), MappableIface.class)) {
+            } else if (OpHelper.isAssignable(lookup, p.type(), MappableIface.class)) {
                 accessList.add(AccessType.NA); // is a buffer but not accessed
             } else {
                 accessList.add(AccessType.NOT_BUFFER); // is not a buffer
@@ -83,145 +63,119 @@ public class BufferTagger {
         }
         return accessList;
     }
-
-    // inlines functions found in FuncOp f until no more inline-able functions are present
-    public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup l, CoreOp.FuncOp f) {
-
-        var here = OpTk.CallSite.of(BufferTagger.class, "inlineLoop");
-        CoreOp.FuncOp ssaFunc = OpTk.SSATransformLower(here, f); // do we need this nesting?
-        AtomicBoolean changed = new AtomicBoolean(true);
-        while (changed.get()) { // loop until no more inline-able functions
-            changed.set(false);
-            ssaFunc = OpTk.transform(OpTk.CallSite.of(BufferTagger.class, "inlineLoop"),ssaFunc,(bb, op) -> {
-                if (op instanceof JavaOp.InvokeOp iop) {
-                    MethodRef methodRef = iop.invokeDescriptor();
-                    Method invokeOpCalledMethod;
-                    try {
-                        invokeOpCalledMethod = methodRef.resolveToMethod(l);
-                    } catch (ReflectiveOperationException _) {
-                        throw new IllegalStateException("Could not resolve invokeOp to method");
-                    }
-                    if (invokeOpCalledMethod instanceof Method method) { // if method isn't a buffer access (is code reflected)
-                        if (Op.ofMethod(method).isPresent()) {
-                            CoreOp.FuncOp inline = Op.ofMethod(method).get(); // method to be inlined
-                            CoreOp.FuncOp ssaInline = OpTk.SSATransformLower(here, inline);
-                            Block.Builder exit = Inliner.inline(bb, ssaInline, bb.context().getValues(iop.operands()), (_, v) -> {
-                                if (v != null) bb.context().mapValue(iop.result(), v);
-                            });
-                            if (!exit.parameters().isEmpty()) {
-                                bb.context().mapValue(iop.result(), exit.parameters().getFirst());
-                            }
-                            changed.set(true);
-                            return exit.rebind(bb.context(), bb.transformer()); // return exit in same context as block
-                        }
-                    }
-                }
-                bb.op(op);
-                return bb;
-            });
-        }
-        return ssaFunc;
+    private  static boolean isReference(Invoke ioh) {
+        return ioh.returns(IfaceValue.class)
+                && ioh.opFromOnlyUseOrNull() instanceof JavaOp.InvokeOp nextInvoke
+                && invoke(ioh.lookup(), nextInvoke) instanceof Invoke nextIoh
+                && nextIoh.refIs(IfaceValue.class)
+                && nextIoh.returnsVoid();
     }
 
     // creates the access map
-    public static void buildAccessMap(MethodHandles.Lookup l, CoreOp.FuncOp f) {
+    private  static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         // build blockParams so that we can map params to "root" params later
-        var here = OpTk.CallSite.of(BufferTagger.class, "buildAccessMap");
-        OpTk.elements(here, f).filter(elem -> elem instanceof Block)
-                .forEach(b -> blockParams.put((Block) b, ((Block) b).parameters()));
+        funcOp.elements()
+                .filter(elem -> elem instanceof Block)
+                .map(elem->(Block)elem)
+                .forEach(block -> blockParams.put(block, block.parameters()));
 
-        f.elements().forEach(op -> {
+        funcOp.elements().forEach(op -> {
             switch (op) {
-                case CoreOp.BranchOp b -> {
-                    mapBranch(l, b.branch());
-                }
+                case CoreOp.BranchOp b -> mapBranch(lookup, b.branch());
                 case CoreOp.ConditionalBranchOp cb -> {
-                    mapBranch(l, cb.trueBranch()); // handle true branch
-                    mapBranch(l, cb.falseBranch()); // handle false branch
+                    mapBranch(lookup, cb.trueBranch()); // handle true branch
+                    mapBranch(lookup, cb.falseBranch()); // handle false branch
                 }
-                case JavaOp.InvokeOp iop -> { // (almost) all the buffer accesses happen here
-                    // actually now that we have arrayview we'll need to map the corresponding arrays too
-                    if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), MappableIface.class)) {
-                        updateAccessType(getRootValue(iop), getAccessType(iop)); // update buffer access
-                        if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), Buffer.class)
-                                && iop.result() != null && !(iop.resultType() instanceof PrimitiveType)
-                                && (OpTk.isAssignable(l, (JavaType) iop.resultType(), MappableIface.class)
-                                    || iop.resultType() instanceof ArrayType)) {
+                case JavaOp.InvokeOp invokeOp -> {
+                    var ioh =  invoke(lookup,invokeOp);
+                    // we have to deal with  array views  too
+                    // should .arrayview() calls be marked as reads?
+                    if ( ioh.refIs(IfaceValue.class)) {
+                        // updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
+                        // if the invokeOp retrieves an element that is only written to, don't update the access type
+                        // (i.e. the only use is an invoke, the invoke is of MappableIface/HAType class, and is a write)
+                        if (!isReference(ioh)) { //     value retrieved and not just referenced?
+                            updateAccessType(getRootValue(invokeOp), ioh.returnsVoid()? AccessType.WO : AccessType.RO); // update buffer access
+                        }
+                        if (ioh.refIs(IfaceValue.class) && (ioh.returns(IfaceValue.class) || ioh.returnsArray())) {
                             // if we access a struct/union from a buffer, we map the struct/union to the buffer root
-                            remappedVals.put(iop.result(), getRootValue(iop));
+                            remappedVals.put(invokeOp.result(), getRootValue(invokeOp));
                         }
                     }
                 }
                 case CoreOp.VarOp vop -> { // map the new VarOp to the "root" param
-                    if (OpTk.isAssignable(l, (JavaType) vop.resultType().valueType(), Buffer.class)) {
+                    if (OpHelper.isAssignable(lookup,  vop.resultType().valueType(), Buffer.class)) {
                         remappedVals.put(vop.initOperand(), getRootValue(vop));
+                    }else{
+                        // or else maybe CoreOp.VarOp vop when ??? ->
                     }
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flop -> {
-                    if (OpTk.isAssignable(l, (JavaType) flop.fieldDescriptor().refType(), KernelContext.class)) {
+                    if (OpHelper.isAssignable(lookup,  flop.fieldReference().refType(), KernelContext.class)) {
                         updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
+                    }else{
+                        // or else
                     }
                 }
-                case JavaOp.ArrayAccessOp.ArrayLoadOp alop -> {
-                    updateAccessType(getRootValue(alop), AccessType.RO);
-                }
-                case JavaOp.ArrayAccessOp.ArrayStoreOp asop -> {
-                    updateAccessType(getRootValue(asop), AccessType.WO);
-                }
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alop -> updateAccessType(getRootValue(alop), AccessType.RO);
+                case JavaOp.ArrayAccessOp.ArrayStoreOp asop -> updateAccessType(getRootValue(asop), AccessType.WO);
                 default -> {}
             }
         });
     }
 
     // maps the parameters of a block to the values passed to a branch
-    public static void mapBranch(MethodHandles.Lookup l, Block.Reference b) {
-        List<Value> args = b.arguments();
+    private static void mapBranch(MethodHandles.Lookup lookup, Block.Reference blockReference) {
+        List<Value> args = blockReference.arguments();
         for (int i = 0; i < args.size(); i++) {
-            Value key = blockParams.get(b.targetBlock()).get(i);
-            Value val = args.get(i);
-
-            if (val instanceof Op.Result) {
-                // either find root param or it doesnt exist (is a constant for example)
-                if (OpTk.isAssignable(l, (JavaType) val.type(), MappableIface.class)) {
-                    val = getRootValue(((Op.Result) val).op());
-                    if (val instanceof Block.Parameter) {
-                        val = remappedVals.getOrDefault(val, val);
+            Value key = blockParams.get(blockReference.targetBlock()).get(i);
+            Value value = args.get(i);
+            if (value instanceof Op.Result result) {
+                // either find root param or it doesn't exist (is a constant for example)
+                if (OpHelper.isAssignable(lookup, value.type(), MappableIface.class)) {
+                    value = getRootValue(result.op());
+                    if (value instanceof Block.Parameter) {
+                        value = remappedVals.getOrDefault(value, value);
                     }
+                }else{
+                    // or else
                 }
+            }else{
+               // or else?
             }
-            remappedVals.put(key, val);
+            remappedVals.put(key, value);
         }
     }
 
     // retrieves "root" value of an op, the origin of the parameter (or value) used by the op
-    public static Value getRootValue(Op op) {
+    private  static Value getRootValue(Op op) {
         if (op.operands().isEmpty()) {
             return op.result();
         } else if (op.operands().getFirst() instanceof Block.Parameter param) {
             return param;
         }
-        while (op.operands().getFirst() instanceof Op.Result r) {
-            op = r.op();
+
+        while (op.operands().getFirst() instanceof Op.Result result) { // Only first?
+            op = result.op(); // we are changing our  par here I assume intended
             if (op.operands().isEmpty()) { // if the "root op" is an invoke
                 return op.result();
+            }else{
+                // or else
             }
         }
         return op.operands().getFirst();
     }
 
-    // retrieves accessType based on return value of InvokeOp
-    public static AccessType getAccessType(JavaOp.InvokeOp iop) {
-        return iop.invokeDescriptor().type().returnType().equals(JavaType.VOID) ? AccessType.WO : AccessType.RO;
-    }
-
     // updates accessMap
-    public static void updateAccessType(Value val, AccessType curAccess) {
-        Value remappedVal = remappedVals.getOrDefault(val, val);
-        AccessType storedAccess = accessMap.get(remappedVal);
+    private  static void updateAccessType(Value value, AccessType currentAccess) {
+        Value remappedValue = remappedVals.getOrDefault(value, value);
+        AccessType storedAccess = accessMap.get(remappedValue);
         if (storedAccess == null) {
-            accessMap.put(remappedVal, curAccess);
-        } else if (curAccess != storedAccess && storedAccess != AccessType.RW) {
-            accessMap.put(remappedVal, AccessType.RW);
+            accessMap.put(remappedValue, currentAccess);
+        } else if (currentAccess != storedAccess && storedAccess != AccessType.RW) {
+            accessMap.put(remappedValue, AccessType.RW);
+        } else {
+            // or else
         }
     }
 }

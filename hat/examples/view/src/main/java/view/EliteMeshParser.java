@@ -31,8 +31,9 @@
  */
 package view;
 
-import hat.util.Regex;
-import hat.util.StreamMutable;
+
+import optkl.util.Mutable;
+import optkl.util.Regex;
 import view.f32.F32;
 import view.f32.F32Mesh3D;
 
@@ -170,7 +171,7 @@ class EliteMeshParser {
     }
 
     void load(F32 f32, String name) {
-        final var mesh = StreamMutable.of((F32Mesh3D) null);
+        final var mesh = Mutable.of((F32Mesh3D) null);
         final var sm = new State.Machine().awaiting_name();
         new BufferedReader(
                 new InputStreamReader(EliteMeshParser.class.getResourceAsStream("/meshes/Elite.txt"), StandardCharsets.UTF_8))

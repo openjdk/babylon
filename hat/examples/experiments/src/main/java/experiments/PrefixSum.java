@@ -33,11 +33,14 @@ import hat.KernelContext;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
+import hat.device.DeviceSchema;
+import hat.device.NonMappableIface;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.codebuilders.JavaCodeBuilder;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
@@ -54,19 +57,19 @@ import java.util.List;
 
 public class PrefixSum {
     private static final int GROUP_SIZE = 32;
-    private interface SharedS32x256Array extends Buffer {
+    private interface SharedS32x256Array extends NonMappableIface {
         void array(long index, int value);
 
         int array(long index);
 
-        Schema<SharedS32x256Array> schema = Schema.of(SharedS32x256Array.class, $ -> $.array("array", 32));
+        DeviceSchema<SharedS32x256Array> schema = DeviceSchema.of(SharedS32x256Array.class, $ -> $.withArray("array", 32));
 
         static SharedS32x256Array create(Accelerator accelerator) {
-            return schema.allocate(accelerator); // Why would we get here?
+           return null;// return BoundSchema.of(accelerator ,schema).allocate(); // Why would we get here?
         }
 
         static SharedS32x256Array createLocal() {
-            return null;//schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST)); /// This is crazy? why
+            return null;
         }
     }
 
@@ -366,9 +369,14 @@ public class PrefixSum {
         }
     }
 
-    public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+    public static void main(String[] args) throws ReflectiveOperationException {
 
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var methodRef= MethodRef.method(PrefixSum.class, "compute", void.class, ComputeContext.class,S32Array.class);
+        var funcOp = CoreOp.FuncOp.ofMethod(methodRef.resolveToMethod(MethodHandles.lookup())).get();
+       Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(),funcOp);
+        JavaCodeBuilder jc = new JavaCodeBuilder(accelerator.lookup(),funcOp);
+        System.out.println(jc.toText());
         S32Array input = S32Array.create(accelerator, GROUP_SIZE * GROUP_SIZE);
 
         int result = 0;

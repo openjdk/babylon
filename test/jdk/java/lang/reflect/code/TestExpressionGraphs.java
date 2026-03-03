@@ -29,7 +29,7 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Test;

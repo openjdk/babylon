@@ -24,9 +24,11 @@
  */
 package wrap.opencl;
 
-import hat.buffer.Buffer;
-import hat.ifacemapper.BufferState;
+
 import opencl.opencl_h;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.BufferState;
+import optkl.ifacemapper.MappableIface;
 import wrap.ArenaHolder;
 import wrap.Wrap;
 
@@ -246,7 +248,7 @@ public class CLPlatform implements ArenaHolder {
                                 BufferState bufferState = BufferState.of(buffer);
 
                                 //System.out.println("Before possible write"+ bufferState);
-                                MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
+                                MemorySegment memorySegment = MappableIface.getMemorySegment(buffer);
 
                                 CLWrapComputeContext.ClMemPtr clmem = clWrapComputeContext.clMemMap.computeIfAbsent(memorySegment, k ->
                                         CLWrapComputeContext.ClMemPtr.of(arena(), opencl_h.clCreateBuffer(program.context.context,
@@ -344,7 +346,7 @@ public class CLPlatform implements ArenaHolder {
                             } else if (args[i] instanceof Buffer buffer) {
                                 //   System.out.println("Arg "+i+" is a buffer so checking if we need to read");
                                 BufferState bufferState = BufferState.of(buffer);
-                                MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
+                                MemorySegment memorySegment = MappableIface.getMemorySegment(buffer);
                                 CLWrapComputeContext.ClMemPtr clmem = clWrapComputeContext.clMemMap.get(memorySegment);
                                 // System.out.println("Before possible read "+ bufferState);
                                 if (bufferState.getState() == BufferState.HOST_OWNED) {

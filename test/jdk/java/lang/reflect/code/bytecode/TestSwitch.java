@@ -42,6 +42,9 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
+ * @library ../
+ * @run junit TestSwitch
+ * @run main Unreflect TestSwitch
  * @run junit TestSwitch
  */
 public class TestSwitch {
@@ -133,7 +136,6 @@ public class TestSwitch {
         "outOfOrderFallThrought",
         "nestedExpressions"
     })
-
     public void testSwitch(String methodName) throws Throwable {
         Method m = getMethod(methodName);
         CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();

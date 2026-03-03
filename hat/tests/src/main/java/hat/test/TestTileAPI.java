@@ -4,22 +4,19 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Constant;
 import hat.TileContext;
-import hat.TileData;
-import hat.TileIndex2D;
 import hat.TileModel;
 import hat.TileOp;
 import hat.TileRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.MappableIface.WO;
+
 import hat.test.annotation.HatTest;
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.*;
 
 /**
  * How to run?

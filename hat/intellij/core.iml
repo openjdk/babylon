@@ -8,6 +8,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="optkl" />
     <orderEntry type="module-library">
       <library name="testng">
         <CLASSES>

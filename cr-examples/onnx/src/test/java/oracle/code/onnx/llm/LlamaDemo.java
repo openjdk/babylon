@@ -23,6 +23,7 @@
 package oracle.code.onnx.llm;
 
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.nio.file.Path;
 import oracle.code.onnx.genai.OnnxGenRuntimeSession;
 
@@ -35,7 +36,7 @@ public class LlamaDemo {
         Path modelRoot = Path.of(LlamaDemo.class.getResource("LlamaDemo.class").toURI()).getParent();
         try (Arena arena = Arena.ofConfined()) {
             var modelInstance = new LlamaModel(arena);
-            try (OnnxGenRuntimeSession session = OnnxGenRuntimeSession.buildFromCodeReflection(modelInstance, "forward", modelRoot, "model.onnx", "model.data")) {
+            try (OnnxGenRuntimeSession session = OnnxGenRuntimeSession.buildFromCodeReflection(MethodHandles.lookup(), modelInstance, "forward", modelRoot, "model.onnx", "model.data")) {
                 session.prompt("""
                         <|start_header_id|>user<|end_header_id|>Hello, tell me a joke.<|eot_id|>
                         <|start_header_id|>assistant<|end_header_id|>

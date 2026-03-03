@@ -266,12 +266,20 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     // MethodTypeDesc factories
     // @@@ Where else to place them?
 
+    /**
+     * {@return a function type modeled after the provided nominal method type descriptor}
+     * @param d the method type descriptor to convert
+     */
     static FunctionType ofNominalDescriptor(MethodTypeDesc d) {
         return CoreType.functionType(
                 JavaType.type(d.returnType()),
                 d.parameterList().stream().map(JavaType::type).toList());
     }
 
+    /**
+     * {@return a nominal method type descriptor representing the signature of the given function type}
+     * @param t the function type to convert
+     */
     static MethodTypeDesc toNominalDescriptor(FunctionType t) {
         return MethodTypeDesc.of(
                 toClassDesc(t.returnType()),

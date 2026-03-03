@@ -25,7 +25,6 @@
 package oracle.code.samples;
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -34,7 +33,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -111,7 +109,7 @@ public class MathOptimizer {
         }
     }
 
-    static void main(String[] args) throws Throwable {
+    static void main() {
 
         Optional<Method> myFunction = Stream.of(MathOptimizer.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("myFunction"))
@@ -121,16 +119,9 @@ public class MathOptimizer {
 
         // Obtain the code model for the annotated method
         CoreOp.FuncOp codeModel = Op.ofMethod(myMathMethod).get();
-        System.out.println(codeModel.toText());
+        IO.println(codeModel.toText());
 
-        // In addition, we can generate bytecodes from a new code model that
-        // has been transformed.
-        MethodHandle mhNewTransform = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
-        // And invoke the method handle result
-        var resultBC = mhNewTransform.invoke( 10);
-        System.out.println("Result after BC generation: " + resultBC);
-
-        System.out.println("\nLet's transform the code");
+        IO.println("\nLet's transform the code");
         codeModel = codeModel.transform((blockBuilder, op) -> {
             switch (op) {
                 case JavaOp.InvokeOp invokeOp when whenIsMathPowFunction(invokeOp) -> {
@@ -201,37 +192,32 @@ public class MathOptimizer {
             return blockBuilder;
         });
 
-        System.out.println("AFTER TRANSFORM: ");
-        System.out.println(codeModel.toText());
+        IO.println("AFTER TRANSFORM: ");
+        IO.println(codeModel.toText());
         codeModel = codeModel.transform(LOWERING_TRANSFORMER);
-        System.out.println("After Lowering: ");
-        System.out.println(codeModel.toText());
-
-        System.out.println("\nEvaluate");
-        // The Interpreter Invoke should launch new exceptions
-        var result = Interpreter.invoke(MethodHandles.lookup(), codeModel, 10);
-        System.out.println(result);
+        IO.println("After Lowering: ");
+        IO.println(codeModel.toText());
 
         // Select invocation calls and display the lines
-        System.out.println("\nPlaying with Traverse");
+        IO.println("\nPlaying with Traverse");
         codeModel.elements().forEach(e -> {
             if (e instanceof JavaOp.InvokeOp invokeOp) {
-                System.out.println("Function Name: " + invokeOp.invokeDescriptor().name());
+                IO.println("Function Name: " + invokeOp.invokeReference().name());
 
                 // Maybe Location should throw a new exception instead of the NPE,
                 // since it is possible we don't have a location after a transformation has been done.
-                Location location = invokeOp.location();
+                Op.Location location = invokeOp.location();
                 if (location != null) {
                     int line = location.line();
-                    System.out.println("Line " + line);
-                    System.out.println("Class: " + invokeOp.getClass());
+                    IO.println("Line " + line);
+                    IO.println("Class: " + invokeOp.getClass());
                     // Detect Math::pow
-                    boolean contains = invokeOp.invokeDescriptor().equals(JAVA_LANG_MATH_POW);
+                    boolean contains = invokeOp.invokeReference().equals(JAVA_LANG_MATH_POW);
                     if (contains) {
-                        System.out.println("Method: " + invokeOp.invokeDescriptor().name());
+                        System.out.println("Method: " + invokeOp.invokeReference().name());
                     }
                 } else {
-                    System.out.println("[WARNING] Location is null");
+                    IO.println("[WARNING] Location is null");
                 }
             }
         });
@@ -240,33 +226,14 @@ public class MathOptimizer {
         // has been transformed.
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
-        var resultBC2 = methodHandle.invoke( 10);
-        System.out.println("Result after BC generation: " + resultBC2);
-    }
-
-    // Goal: obtain and check the value of the function parameters.
-    // The function inspectParameterRecursive implements this method
-    // in a much simpler and shorter manner. We can keep this first
-    // implementation as a reference.
-    private static boolean inspectParameter(Value operand, final int value) {
-        final Boolean[] isMultipliedByTwo = new Boolean[] { false };
-        if (operand instanceof Op.Result res) {
-            if (res.op() instanceof JavaOp.ConvOp convOp) {
-                convOp.operands().forEach(v -> {
-                    if (v instanceof Op.Result res2) {
-                        if (res2.op() instanceof CoreOp.ConstantOp constantOp) {
-                            if (constantOp.value() instanceof Integer parameter) {
-                                if (parameter.intValue() == value) {
-                                    // Transformation is valid
-                                    isMultipliedByTwo[0] = true;
-                                }
-                            }
-                        }
-                    }
-                });
-            }
+        try {
+            double result = (double) methodHandle.invoke(10);
+            double checkResult = myFunction(10);
+            IO.println("Result after BC generation: " + result);
+            IO.println("Is correct? " + (checkResult == result));
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
-        return isMultipliedByTwo[0];
     }
 
     // Inspect a value for a parameter
@@ -289,6 +256,6 @@ public class MathOptimizer {
     static final MethodRef JAVA_LANG_MATH_POW = MethodRef.method(Math.class, "pow", double.class, double.class, double.class);
 
     private static boolean whenIsMathPowFunction(JavaOp.InvokeOp invokeOp) {
-        return invokeOp.invokeDescriptor().equals(JAVA_LANG_MATH_POW);
+        return invokeOp.invokeReference().equals(JAVA_LANG_MATH_POW);
     }
 }

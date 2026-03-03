@@ -25,7 +25,10 @@
 package hat.buffer;
 
 import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import hat.types.F16;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface F16Array extends Buffer {
     int length();
@@ -42,6 +45,6 @@ public interface F16Array extends Buffer {
                             half -> half.fields("value")));
 
     static F16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+        return BoundSchema.of(accelerator,schema, length).allocate();
     }
 }

@@ -168,6 +168,9 @@ public class OperatorGen {
             w.write(") { }\n");
         }
 
+        for (String dl : s.doc().split("\\n")) {
+            w.write("/// " + dl + "\n");
+        }
         w.write("public static ");
 
         if (!s.type_constraints().isEmpty()) {

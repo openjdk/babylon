@@ -230,3 +230,5 @@ compiler.note.reflectable.mref.ir.dump
 compiler.warn.reflectable.method.inner.class
 compiler.warn.reflectable.lambda.inner.class
 compiler.warn.reflectable.mref.inner.class
+compiler.warn.reflectable.method.unsupported
+compiler.warn.reflectable.lambda.unsupported

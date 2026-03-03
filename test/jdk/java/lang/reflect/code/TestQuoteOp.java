@@ -35,18 +35,20 @@ public class TestQuoteOp {
 
         CoreOp.FuncOp funcOp = Quoted.embedOp(lop);
 
-        Object[] args = new Object[]{1, "a", this};
-        Quoted quoted = Quoted.extractOp(funcOp, args);
-        // op must have the same structure as lop
-        // for the moment, we don't have utility to check that
+        for (String stringArg : new String[] {"a", null}) {
+            Object[] args = new Object[] {1, stringArg, this};
+            Quoted<?> quoted = Quoted.extractOp(funcOp, args);
+            // op must have the same structure as lop
+            // for the moment, we don't have utility to check that
 
-        Assertions.assertTrue(lop.getClass().isInstance(quoted.op()));
+            Assertions.assertTrue(lop.getClass().isInstance(quoted.op()));
 
-        Iterator<Object> iterator = quoted.capturedValues().values().iterator();
+            Iterator<Object> iterator = quoted.capturedValues().values().iterator();
 
-        Assertions.assertEquals(args[0], ((CoreOp.Var) iterator.next()).value());
-        Assertions.assertEquals(args[1], ((CoreOp.Var) iterator.next()).value());
-        Assertions.assertEquals(args[2], iterator.next());
+            Assertions.assertEquals(args[0], ((CoreOp.Var<?>) iterator.next()).value());
+            Assertions.assertEquals(args[1], ((CoreOp.Var<?>) iterator.next()).value());
+            Assertions.assertEquals(args[2], iterator.next());
+        }
     }
 
     @Reflect
@@ -63,7 +65,7 @@ public class TestQuoteOp {
         CoreOp.FuncOp funcOp = Quoted.embedOp(invOp);
 
         Object[] args = {"abc", "b"};
-        Quoted quoted = Quoted.extractOp(funcOp, args);
+        Quoted<?> quoted = Quoted.extractOp(funcOp, args);
 
         Assertions.assertTrue(invOp.getClass().isInstance(quoted.op()));
 
@@ -80,18 +82,18 @@ public class TestQuoteOp {
         IntUnaryOperator q = (@Reflect IntUnaryOperator) x -> x + y + z + hashCode();
 
         // access FuncOp created by javac
-        Quoted quoted = Op.ofQuotable(q).orElseThrow();
+        Quoted<?> quoted = Op.ofLambda(q).orElseThrow();
         Op op = quoted.op();
         CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) op.ancestorOp());
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorOp());
 
         Object[] args = {this, 111};
-        Quoted quoted2 = Quoted.extractOp(fop, args);
+        Quoted<?> quoted2 = Quoted.extractOp(fop, args);
 
         Iterator<Object> iterator = quoted2.capturedValues().values().iterator();
 
-        Assertions.assertEquals(y, ((CoreOp.Var) iterator.next()).value());
-        Assertions.assertEquals(args[1], ((CoreOp.Var) iterator.next()).value());
+        Assertions.assertEquals(y, ((CoreOp.Var<?>) iterator.next()).value());
+        Assertions.assertEquals(args[1], ((CoreOp.Var<?>) iterator.next()).value());
         Assertions.assertEquals(args[0], iterator.next());
     }
 
@@ -327,7 +329,7 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
     @ParameterizedTest
     @MethodSource("invalidCases")
     void testInvalidCases(String model, Object[] args) {
-        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, model).get(0));
         Assertions.assertThrows(RuntimeException.class, () -> Quoted.extractOp(fop, args));
     }
 
@@ -460,8 +462,8 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
     @ParameterizedTest
     @MethodSource("validCases")
     void testValidCases(String model, Object[] args) {
-        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        Quoted quoted = Quoted.extractOp(fop, args);
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, model).get(0));
+        Quoted<?> quoted = Quoted.extractOp(fop, args);
 
         for (Map.Entry<Value, Object> e : quoted.capturedValues().entrySet()) {
             Value sv = e.getKey();
@@ -469,7 +471,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
             // assert only when captured value is block param, or result of VarOp initialized with block param
             if (sv instanceof Op.Result opr && opr.op() instanceof CoreOp.VarOp vop
                     && vop.initOperand() instanceof Block.Parameter p) {
-                Assertions.assertEquals(args[p.index()], ((CoreOp.Var) rv).value());
+                Assertions.assertEquals(args[p.index()], ((CoreOp.Var<?>) rv).value());
             } else if (sv instanceof Block.Parameter p) {
                 Assertions.assertEquals(args[p.index()], rv);
             }
@@ -534,7 +536,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
     @ParameterizedTest
     @MethodSource("numParamsCases")
     void testNumAndOrderOfParams(String model, int expectedNumParams) {
-        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
         CoreOp.FuncOp qm = Quoted.embedOp(funcOp.body().entryBlock().ops().getFirst());
         Assertions.assertEquals(expectedNumParams, qm.parameters().size());
 
@@ -551,6 +553,6 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
         for (Value p : expectedParams) {
             m.put(p, new Object());
         }
-        new Quoted(op, m);
+        new Quoted<>(op, m);
     }
 }

@@ -44,6 +44,10 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
+/**
+ * A code model interpreter that sequentially executes operations contained in an
+ * {@link Op.Invokable} operation, such as a function operation.
+ */
 public final class Interpreter {
     private Interpreter() {
     }
@@ -137,6 +141,9 @@ public final class Interpreter {
     }
 
 
+    /**
+     * Exception thrown by the interpreter when execution fails.
+     */
     @SuppressWarnings("serial")
     public static final class InterpreterException extends RuntimeException {
         private InterpreterException(Throwable cause) {
@@ -423,10 +430,8 @@ public final class Interpreter {
         oc.successor(cb, bValues);
     }
 
-
-
     @SuppressWarnings("unchecked")
-    public static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
+    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
         throw (E) e;
     }
 
@@ -469,19 +474,19 @@ public final class Interpreter {
                 case STATIC, INSTANCE -> l;
                 case SUPER -> l.in(target.parameterType(0));
             };
-            MethodHandle mh = resolveToMethodHandle(il, co.invokeDescriptor(), co.invokeKind());
+        MethodHandle mh = resolveToMethodHandle(il, co.invokeReference(), co.invokeKind());
 
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            MethodHandle mh = resolveToConstructorHandle(l, no.constructorDescriptor());
+        MethodHandle mh = resolveToConstructorHandle(l, no.constructorReference());
             return invoke(mh, values);
         } else if (o instanceof CoreOp.QuotedOp qo) {
             SequencedMap<Value, Object> capturedValues = qo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
-            return new Quoted(qo.quotedOp(), capturedValues);
+            return new Quoted<>(qo.quotedOp(), capturedValues);
         } else if (o instanceof JavaOp.LambdaOp lo) {
             SequencedMap<Value, Object> capturedValuesAndArguments = lo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
@@ -492,11 +497,11 @@ public final class Interpreter {
                     .asCollector(Object[].class, lo.parameters().size());
             Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
-            // If a quotable lambda proxy again to add method Quoted quoted()
-            if (lo.isQuotable()) {
+            // If a reflectable lambda proxy again to add method Quoted quoted()
+            if (lo.isReflectable()) {
                 return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
                         new InvocationHandler() {
-                            private final Quoted quoted = new Quoted(lo, capturedValuesAndArguments);
+                            private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(lo, capturedValuesAndArguments);
                             @Override
                             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                                 if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
@@ -507,7 +512,7 @@ public final class Interpreter {
                                 }
                             }
 
-                            private Quoted __internal_quoted() {
+                            private Quoted<JavaOp.LambdaOp> __internal_quoted() {
                                 return quoted;
                             }
                         });
@@ -543,31 +548,31 @@ public final class Interpreter {
             return tb.with(two.index(), oc.getValue(o.operands().get(1)));
         } else if (o instanceof JavaOp.FieldAccessOp.FieldLoadOp fo) {
             if (fo.operands().isEmpty()) {
-                VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
                 return vh.get();
             } else {
                 Object v = oc.getValue(o.operands().get(0));
-                VarHandle vh = fieldHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldHandle(l, fo.fieldReference());
                 return vh.get(v);
             }
         } else if (o instanceof JavaOp.FieldAccessOp.FieldStoreOp fo) {
             if (fo.operands().size() == 1) {
                 Object v = oc.getValue(o.operands().get(0));
-                VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
                 vh.set(v);
             } else {
                 Object r = oc.getValue(o.operands().get(0));
                 Object v = oc.getValue(o.operands().get(1));
-                VarHandle vh = fieldHandle(l, fo.fieldDescriptor());
+        VarHandle vh = fieldHandle(l, fo.fieldReference());
                 vh.set(r, v);
             }
             return null;
         } else if (o instanceof JavaOp.InstanceOfOp io) {
             Object v = oc.getValue(o.operands().get(0));
-            return isInstance(l, io.type(), v);
+            return isInstance(l, io.targetType(), v);
         } else if (o instanceof JavaOp.CastOp co) {
             Object v = oc.getValue(o.operands().get(0));
-            return cast(l, co.type(), v);
+            return cast(l, co.targetType(), v);
         } else if (o instanceof JavaOp.ArrayLengthOp) {
             Object a = oc.getValue(o.operands().get(0));
             return Array.getLength(a);
@@ -581,7 +586,7 @@ public final class Interpreter {
             Object v = oc.getValue(o.operands().get(2));
             Array.set(a, (int) index, v);
             return null;
-        } else if (o instanceof JavaOp.ArithmeticOperation || o instanceof JavaOp.TestOperation) {
+        } else if (o instanceof JavaOp.ArithmeticOperation) {
             // @@@ avoid use of opName
             MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
@@ -592,11 +597,11 @@ public final class Interpreter {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.AssertOp _assert) {
-            Body testBody = _assert.bodies.get(0);
+            Body testBody = _assert.bodies().get(0);
             boolean testResult = (boolean) interpretBody(l, testBody, oc, List.of());
             if (!testResult) {
-                if (_assert.bodies.size() > 1) {
-                    Body messageBody = _assert.bodies.get(1);
+                if (_assert.bodies().size() > 1) {
+                    Body messageBody = _assert.bodies().get(1);
                     String message = String.valueOf(interpretBody(l, messageBody, oc, List.of()));
                     throw new AssertionError(message);
                 } else {

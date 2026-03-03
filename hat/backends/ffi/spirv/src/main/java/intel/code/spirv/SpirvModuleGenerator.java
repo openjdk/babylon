@@ -599,7 +599,7 @@ public class SpirvModuleGenerator {
                             SpirvResult result;
                             int group = -1;
                             int index = -1;
-                            String fieldName = flo.fieldDescriptor().name();
+                            String fieldName = flo.fieldReference().name();
                             switch (fieldName) {
                                 case "x": group = 0; index = 0; break;
                                 case "y": group = 0; index = 1; break;
@@ -616,7 +616,7 @@ public class SpirvModuleGenerator {
                             addResult(flo.result(), result);
                         }
                         else if (flo.operands().get(0).type().equals(JavaType.type(KernelContext.class))) {
-                            String fieldName = flo.fieldDescriptor().name();
+                            String fieldName = flo.fieldReference().name();
                             SPIRVId fieldIndex = switch (fieldName) {
                                 case "x" -> getConst("long", 0);
                                 case "maxX" -> getConst("long", 1);
@@ -636,10 +636,10 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(intType, result, resultAddr, align("int")));
                             addResult(flo.result(), new SpirvResult(intType, resultAddr, result));
                         }
-                        else if (flo.fieldDescriptor().refType().equals(JavaType.type(ByteOrder.class))) {
+                        else if (flo.fieldReference().refType().equals(JavaType.type(ByteOrder.class))) {
                             // currently ignored
                         }
-                        else unsupported("field load", ((ClassType)flo.fieldDescriptor().refType()).toClassName() + "." + flo.fieldDescriptor().name());
+                        else unsupported("field load", ((ClassType)flo.fieldReference().refType()).toClassName() + "." + flo.fieldReference().name());
                     }
                     case SpirvOp.BranchOp bop -> {
                         SPIRVId label = symbols.getLabel(bop.branch().targetBlock()).getResultId();

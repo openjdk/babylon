@@ -39,9 +39,15 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * A writer of code models to the textual form.
+ * A writer of code model to code model text.
  * <p>
- * A code model in textual form may be parsed back into the runtime form by parsing it.
+ * The format of codel model text is unspecified.
+ * <p>
+ * Code model text may be {@link OpParser#fromText(DialectFactory, String) parsed} to produce a code model.
+ *
+ * @apiNote Code model text is designed to be human-readable and is intended for debugging, testing,
+ * and comprehension.
+ * @see OpParser
  */
 public final class OpWriter {
 
@@ -229,22 +235,23 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model (an operation) to the output stream, using the UTF-8 character set.
+     * Writes code model text of a code model to the output stream, using the UTF-8 character set.
      *
      * @param out the output stream
-     * @param op the code model
+     * @param op the code model, an operation
+     * @param options writer options
      */
     public static void writeTo(OutputStream out, Op op, Option... options) {
         writeTo(new OutputStreamWriter(out, StandardCharsets.UTF_8), op, options);
     }
 
     /**
-     * Writes a code model (an operation) to the character stream.
+     * Writes code model text of a code model to the character stream.
      * <p>
      * The character stream will be flushed after the model is writen.
      *
      * @param w the character stream
-     * @param op the code model
+     * @param op the code model, an operation
      * @param options the writer options
      */
     public static void writeTo(Writer w, Op op, Option... options) {
@@ -259,9 +266,9 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model (an operation) to a string.
+     * {@return the code model text of a code model}
      *
-     * @param op the code model
+     * @param op the code model, an operation
      * @param options the writer options
      */
     public static String toText(Op op, OpWriter.Option... options) {
@@ -271,7 +278,7 @@ public final class OpWriter {
     }
 
     /**
-     * An option that affects the writing operations.
+     * An option that affects the writing of code model text.
      */
     public sealed interface Option {
     }
@@ -282,14 +289,25 @@ public final class OpWriter {
     public sealed interface CodeItemNamerOption extends Option
             permits NamerOptionImpl {
 
+        /**
+         * {@return a code item naming option with the provided function}
+         *
+         * @param named the function used to name code items
+         */
         static CodeItemNamerOption of(Function<CodeItem, String> named) {
             return new NamerOptionImpl(named);
         }
 
+        /**
+         * {@return the default code item naming option}
+         */
         static CodeItemNamerOption defaultValue() {
             return of(new GlobalValueBlockNaming());
         }
 
+        /**
+         * {@return the associated naming function for code items}
+         */
         Function<CodeItem, String> namer();
     }
     private record NamerOptionImpl(Function<CodeItem, String> namer) implements CodeItemNamerOption {
@@ -304,6 +322,9 @@ public final class OpWriter {
         /** Drops location */
         DROP_LOCATION;
 
+        /**
+         * {@return the default location option}
+         */
         public static LocationOption defaultValue() {
             return WRITE_LOCATION;
         }
@@ -318,6 +339,9 @@ public final class OpWriter {
         /** Drops descendants of an operation, if any */
         DROP_DESCENDANTS;
 
+        /**
+         * {@return the default writing option for descendant operations}
+         */
         public static OpDescendantsOption defaultValue() {
             return WRITE_DESCENDANTS;
         }
@@ -332,6 +356,9 @@ public final class OpWriter {
         /** Drops void operation result */
         DROP_VOID;
 
+        /**
+         * {@return the default option for writing operation results}
+         */
         public static VoidOpResultOption defaultValue() {
             return DROP_VOID;
         }
@@ -344,9 +371,9 @@ public final class OpWriter {
     final boolean writeVoidOpResult;
 
     /**
-     * Creates a writer of code models (operations) to their textual form.
+     * Creates a writer of code model to code model text.
      *
-     * @param w the character stream writer to write the textual form.
+     * @param w the character stream writer to write code model text.
      */
     public OpWriter(Writer w) {
         this.w = new IndentWriter(w);
@@ -357,9 +384,9 @@ public final class OpWriter {
     }
 
     /**
-     * Creates a writer of code models (operations) to their textual form.
+     * Creates a writer of code model to code model text.
      *
-     * @param w the character stream writer to write the textual form.
+     * @param w the character stream writer to write code model text.
      * @param options the writer options
      */
     public OpWriter(Writer w, Option... options) {
@@ -401,9 +428,9 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model, an operation, to the character stream.
+     * Writes an operation.
      *
-     * @param op the code model
+     * @param op the operation
      */
     public void writeOp(Op op) {
         if (op.parent() != null) {
@@ -426,10 +453,10 @@ public final class OpWriter {
         }
 
         if (!dropLocation) {
-            Location location = op.location();
+            Op.Location location = op.location();
             if (location != null) {
                 write(" ");
-                writeAttribute(ATTRIBUTE_LOCATION, op.location());
+                writeLocation(location);
             }
         }
         Map<String, Object> attributes = op.externalize();
@@ -462,6 +489,15 @@ public final class OpWriter {
         }
 
         write(";");
+    }
+
+    void writeLocation(Op.Location location) {
+        StringBuilder s = new StringBuilder();
+        s.append(location.line()).append(":").append(location.column());
+        if (location.sourceRef() != null) {
+            s.append(":").append(location.sourceRef());
+        }
+        writeAttribute(ATTRIBUTE_LOCATION, s);
     }
 
     void writeSuccessor(Block.Reference successor) {

@@ -9,5 +9,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="core" />
+    <orderEntry type="module" module-name="optkl" />
+    <orderEntry type="module" module-name="example_shared" />
   </component>
 </module>

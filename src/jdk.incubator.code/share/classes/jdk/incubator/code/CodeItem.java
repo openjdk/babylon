@@ -26,7 +26,8 @@
 package jdk.incubator.code;
 
 /**
- * A code item, one of {@link CodeElement}, {@link Value}, or {@link TypeElement}.
+ * A code item, one of {@link CodeElement}, {@link Value}, or {@link TypeElement}, is
+ * an item in a code model.
  * @sealedGraph
  */
 public sealed interface CodeItem

@@ -24,8 +24,10 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+import optkl.ifacemapper.Schema;
 
 public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
     int width();
@@ -37,7 +39,7 @@ public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
             .arrayLen("width", "height").array("data")
     );
 
-    static U16GreyImage create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator,width,height);
+    static U16GreyImage create(ArenaAndLookupCarrier cc, int width, int height){
+        return BoundSchema.of(cc ,schema,width,height).allocate();
     }
 }

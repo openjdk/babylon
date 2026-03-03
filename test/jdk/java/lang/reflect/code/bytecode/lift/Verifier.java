@@ -135,7 +135,7 @@ public final class Verifier {
                         verifyBlockReferences(op, br.successors());
                 case CoreOp.ConditionalBranchOp cbr ->
                         verifyBlockReferences(op, cbr.successors());
-                case JavaOp.ArithmeticOperation _, JavaOp.TestOperation _ ->
+                case JavaOp.ArithmeticOperation _ ->
                         verifyOpHandleExists(op, op.externalizeOpName());
                 case JavaOp.ConvOp _ -> {
                     verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opType().returnType());

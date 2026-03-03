@@ -25,10 +25,10 @@
 
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState, u8_t accessor) {
+OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState) {
     OpenCLBuffer *openclBuffer = nullptr;
     if (bufferState->vendorPtr == nullptr || bufferState->state == BufferState::NEW_STATE) {
-        openclBuffer = new OpenCLBuffer(this, bufferState, accessor);
+        openclBuffer = new OpenCLBuffer(this, bufferState);
         if (config->trace) {
             std::cout << "[native] Device Buffer with size " << bufferState->length << " allocated" << std::endl;
         }

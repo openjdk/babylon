@@ -1,0 +1,26 @@
+--enable-preview
+--add-modules=jdk.incubator.code
+--enable-native-access=ALL-UNNAMED
+--class-path '\
+    build/hat-optkl-1.0.jar:\
+    build/hat-core-1.0.jar:\
+    build/hat-tools-1.0.jar:\
+    build/hat-backend-ffi-shared-1.0.jar:\
+    build/hat-backend-ffi-opencl-1.0.jar:\
+    build/hat-example-blackscholes-1.0.jar:\
+    build/hat-example-experiments-1.0.jar:\
+    build/hat-example-flashattention-1.0.jar:\
+    build/hat-example-heal-1.0.jar:\
+    build/hat-example-life-1.0.jar:\
+    build/hat-example-mandel-1.0.jar:\
+    build/hat-example-matmul-1.0.jar:\
+    build/hat-example-nbody-1.0.jar:\
+    build/hat-example-nbodygl-1.0.jar:\
+    build/hat-example-normmap-1.0.jar:\
+    build/hat-example-shade-1.0.jar:\
+    build/hat-example-shared-1.0.jar:\
+    build/hat-example-squares-1.0.jar:\
+    build/hat-example-view-1.0.jar:\
+    build/hat-example-violajones-1.0.jar:\
+'
+-Djava.library.path=build

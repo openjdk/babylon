@@ -31,7 +31,7 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -111,7 +111,7 @@ public class TestTransitiveInvokeModule {
 
             CoreOp.FuncOp tf = rf.f.transform(rf.r.toString(), (block, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
-                    MethodRef r = iop.invokeDescriptor();
+                    MethodRef r = iop.invokeReference();
                     Method em = null;
                     try {
                         em = r.resolveToMethod(l);

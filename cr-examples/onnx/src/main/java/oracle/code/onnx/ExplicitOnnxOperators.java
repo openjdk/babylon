@@ -127,6 +127,14 @@ class ExplicitOnnxOperators {
         return new SkipSimplifiedLayerNormalization<>((Tensor<T>)resultArray[0], (Tensor<Float>)resultArray[1], (Tensor<Float>)resultArray[2], (Tensor<Float>)resultArray[3]);
     }
 
+    // @@@ this should be generated from onnxruntime-extensions
+    public record CLIPTokenizer(Tensor<Long> input_ids, Tensor<Long> attention_mask, Tensor<Long> offset_mapping) { }
+    public static CLIPTokenizer CLIPTokenizer(Tensor<String> input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.CLIPTokenizer.class, List.of(input_text), List.of(vocab, merges, padding_length));
+        Object[] resultArray = (Object[]) result;
+        return new CLIPTokenizer((Tensor<Long>)resultArray[0], (Tensor<Long>)resultArray[1], (Tensor<Long>)resultArray[2]);
+    }
+
     // @@@ move to Tensor API
 
     private static boolean booleanValue(Tensor<Boolean> t) {

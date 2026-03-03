@@ -30,8 +30,8 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
-import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.MappableIface.RO;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -39,7 +39,7 @@ import hat.test.exceptions.HATAsserts;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.WO;
+import static optkl.ifacemapper.MappableIface.WO;
 
 public class TestBlackscholes {
 

@@ -252,24 +252,25 @@ public class AnfTransformer {
 
 
     private void bindFunApp(Block.Builder b, List<Value> args, Block target) {
-
+        // @@@ This approach is somewhat suspect relying on an exception
+        // when constructing the op, which throws because there is an operand
+        // whose declaring block is built i.e. it is not part of the model being built
         List<Value> synthArgs = new ArrayList<>();
         synthArgs.addAll(args);
         synthArgs.addFirst(funMap.get(target));
         try {
             b.op(AnfDialect.apply(synthArgs));
             return;
-        } catch (IllegalStateException e) {}
+        } catch (RuntimeException e) {}
 
         synthArgs.removeFirst();
         synthArgs.addFirst(funMap2.get(target));
 
         try {
             b.op(AnfDialect.apply(synthArgs));
-        } catch (IllegalStateException e) {
+        } catch (RuntimeException e) {
             throw new IllegalStateException("No valid mapping to FuncOp for apply");
         }
-
     }
 
 

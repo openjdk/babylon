@@ -27,91 +27,118 @@ package hat.callgraph;
 import hat.ComputeContext;
 import hat.Config;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.OpHelper.Invoke;
+import optkl.util.carriers.LookupCarrier;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
-public abstract class CallGraph<E extends Entrypoint> {
+import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.copyLocation;
+
+public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
+    @Override
+    public final MethodHandles.Lookup lookup() {
+        return computeContext.lookup();
+    }
+
     public final ComputeContext computeContext;
     public final E entrypoint;
-    public final Set<MethodCall> calls = new HashSet<>();
-    public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
+    public final Set<AbstractMethodCall> calls = new HashSet<>();
+    public final Map<MethodRef, AbstractMethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
+
     private CoreOp.ModuleOp moduleOp;
-    public CoreOp.ModuleOp getModuleOp(){
+
+    public CoreOp.ModuleOp getModuleOp() {
         return this.moduleOp;
     }
 
-    public void setModuleOp(CoreOp.ModuleOp moduleOp){
+    public void setModuleOp(CoreOp.ModuleOp moduleOp) {
         this.moduleOp = moduleOp;
     }
 
-    public Stream<MethodCall> callStream() {
-        return methodRefToMethodCallMap.values().stream();
+    CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup, Method entryMethod, CoreOp.FuncOp entry) {
+        record RefAndFunc(MethodRef methodRef, CoreOp.FuncOp funcOp) {
+        }
+
+        Deque<RefAndFunc> work = new ArrayDeque<>();
+
+        Invoke.stream(lookup, entry).forEach(invoke -> {
+            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp && !filterCalls(funcOp, invoke)) {
+                work.push(new RefAndFunc(invoke.op().invokeReference(), funcOp));
+            }
+        });
+
+        List<CoreOp.FuncOp> moduleFuncOps = new ArrayList<>();
+        LinkedHashSet<MethodRef> setOfVisitedMethodRefs = new LinkedHashSet<>();
+        while (!work.isEmpty() && work.pop() instanceof RefAndFunc refAndFunc && setOfVisitedMethodRefs.add(refAndFunc.methodRef)) {
+            CoreOp.FuncOp tf = refAndFunc.funcOp.transform(refAndFunc.methodRef.name(), (blockBuilder, op) -> {
+                if (invoke(lookup, op) instanceof Invoke iop && iop.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
+                    RefAndFunc call = new RefAndFunc(iop.op().invokeReference(), funcOp);
+                    work.push(call);
+                    blockBuilder.context().mapValue(op.result(), blockBuilder.op(copyLocation(funcOp, CoreOp.funcCall(
+                            call.methodRef.name(),
+                            call.funcOp.invokableType(),
+                            blockBuilder.context().getValues(iop.op().operands())))));
+                } else {
+                    assert op != null;
+                    blockBuilder.op(op);
+                }
+                return blockBuilder;
+            });
+            moduleFuncOps.addFirst(tf);
+        }
+
+        return CoreOp.module(moduleFuncOps);
     }
 
-    public abstract boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);
+
+    public abstract boolean filterCalls(CoreOp.FuncOp f, Invoke invoke);
+
+    public Config config() {
+        return computeContext.config();
+    }
 
     public interface Resolved {
         CoreOp.FuncOp funcOp();
+
         void funcOp(CoreOp.FuncOp funcOp);
     }
 
     public interface Unresolved {
     }
 
-    public abstract static class MethodCall {
+    public abstract static class AbstractMethodCall implements MethodCall {
         public CallGraph<?> callGraph;
-        public final Method method;
-        public final Class<?> declaringClass;
-        public final Set<MethodCall> calls = new HashSet<>();
-        public final Set<MethodCall> callers = new HashSet<>();
-        public final MethodRef targetMethodRef;
-        public boolean closed = false;
-        public int rank = 0;
+        private final Method method;
 
-        MethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method) {
+        AbstractMethodCall(CallGraph<?> callGraph, Method method) {
             this.callGraph = callGraph;
-            this.targetMethodRef = targetMethodRef;
             this.method = method;
-            this.declaringClass = method.getDeclaringClass();
         }
 
 
-        public void dump(String indent) {
-            System.out.println(indent + ((targetMethodRef == null ? "EntryPoint" : targetMethodRef)));
-            calls.forEach(call -> call.dump(indent + " -> "));
+        public Method method() {
+            return this.method;
         }
 
-
-        public void addCall(MethodCall methodCall) {
-            callGraph.calls.add(methodCall);
-            methodCall.callers.add(this);
-            this.calls.add(methodCall);
-        }
-
-        protected void rankRecurse(int value) {
-            calls.forEach(c -> c.rankRecurse(value + 1));
-            if (value > this.rank) {
-                this.rank = value;
-            }
-        }
-
-        public void rankRecurse() {
-            rankRecurse(0);
-        }
     }
 
-    public abstract static class ResolvedMethodCall extends MethodCall implements Resolved {
+    public abstract static class ResolvedMethodCall extends AbstractMethodCall implements Resolved {
         private CoreOp.FuncOp funcOp;
 
-        ResolvedMethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method,  CoreOp.FuncOp funcOp) {
-            super(callGraph, targetMethodRef, method);
+        ResolvedMethodCall(CallGraph<?> callGraph, Method method, CoreOp.FuncOp funcOp) {
+            super(callGraph, method);
             this.funcOp = funcOp;
         }
 
@@ -127,9 +154,9 @@ public abstract class CallGraph<E extends Entrypoint> {
     }
 
 
-    public abstract static class UnresolvedMethodCall extends MethodCall implements Unresolved {
-        UnresolvedMethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method) {
-            super(callGraph, targetMethodRef, method);
+    public abstract static class UnresolvedMethodCall extends AbstractMethodCall implements Unresolved {
+        UnresolvedMethodCall(CallGraph<?> callGraph, Method method) {
+            super(callGraph, method);
         }
     }
 

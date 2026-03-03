@@ -24,11 +24,13 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../
+ * @run junit TestNestedCapturingLambda
+ * @run main Unreflect TestNestedCapturingLambda
  * @run junit TestNestedCapturingLambda
  */
 
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -62,7 +64,7 @@ public class TestNestedCapturingLambda {
 
     static void test(QIntSupplier s, int a) {
         @SuppressWarnings("unchecked")
-        CoreOp.Var<Integer> capture = (CoreOp.Var<Integer>) Op.ofQuotable(s).get().capturedValues().values().iterator().next();
+        CoreOp.Var<Integer> capture = (CoreOp.Var<Integer>) Op.ofLambda(s).get().capturedValues().values().iterator().next();
         Assertions.assertEquals(a, capture.value().intValue());
     }
 

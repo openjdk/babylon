@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestConstants
+ * @run main Unreflect TestConstants
+ * @run junit TestConstants
  */
 
 import jdk.incubator.code.Reflect;

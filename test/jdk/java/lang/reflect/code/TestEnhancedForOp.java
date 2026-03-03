@@ -39,6 +39,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestEnhancedForOp
+ * @run main Unreflect TestEnhancedForOp
+ * @run junit TestEnhancedForOp
  */
 
 public class TestEnhancedForOp {

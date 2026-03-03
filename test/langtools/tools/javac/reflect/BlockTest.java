@@ -206,7 +206,7 @@ public class BlockTest {
     @Reflect
     @IR("""
             func @"test5" (%0 : java.type:"BlockTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isQuotable=true (%2 : java.type:"java.lang.String")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isReflectable=true (%2 : java.type:"java.lang.String")java.type:"void" -> {
                     %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
                     java.block ()java.type:"void" -> {
                         %4 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";

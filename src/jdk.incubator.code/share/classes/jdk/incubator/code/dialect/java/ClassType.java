@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * A class type.
+ * A class type
  */
 public final class ClassType implements TypeVariableType.Owner, JavaType {
 

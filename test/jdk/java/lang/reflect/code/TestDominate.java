@@ -26,6 +26,7 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.OpParser;
 import org.junit.jupiter.api.Assertions;
@@ -343,7 +344,7 @@ public class TestDominate {
                     %18 : java.type:"void" = return;
                 };
                 """;
-        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, m).get(0);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
         Assertions.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
@@ -384,7 +385,7 @@ public class TestDominate {
                     %18 : java.type:"void" = return;
                 };
                 """;
-        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, m).get(0);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
         Assertions.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));

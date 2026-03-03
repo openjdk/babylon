@@ -99,7 +99,7 @@ public class TritonTestExtension implements ParameterResolver {
             }
 
 
-            return (TritonOps.ModuleOp) OpParser.fromString(
+            return (TritonOps.ModuleOp) OpParser.fromText(
                     new DialectFactory(
                             TritonOps.DIALECT_FACTORY.opFactory().andThen(TritonTestOps.FACTORY),
                             TritonOps.DIALECT_FACTORY.typeElementFactory()),

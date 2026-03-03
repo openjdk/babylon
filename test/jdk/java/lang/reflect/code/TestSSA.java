@@ -24,7 +24,7 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
@@ -39,6 +39,8 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @run junit TestSSA
+ * @run main Unreflect TestSSA
  * @run junit TestSSA
  * @run junit/othervm -Dbabylon.ssa=cytron TestSSA
  */

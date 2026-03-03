@@ -30,22 +30,25 @@ import hat.KernelContext;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
-import hat.buffer.Buffer;
+import optkl.ifacemapper.Buffer;
 import hat.callgraph.KernelCallGraph;
-import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.Schema;
-import hat.optools.OpTk;
+import optkl.codebuilders.ScopedCodeBuilderContext;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
 public abstract class C99JExtractedBackend extends JExtractedBackend {
-    public C99JExtractedBackend(Config config,String libName) {
-        super(config,libName);
+    public C99JExtractedBackend(Arena arena, MethodHandles.Lookup lookup,Config config, String libName) {
+        super(arena,lookup,config,libName);
     }
     public static class CompiledKernel {
         public final C99JExtractedBackend c99NativeBackend;
@@ -60,9 +63,9 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph,  ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(), kernelCallGraph,  ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
@@ -76,33 +79,23 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
-        var here = OpTk.CallSite.of(C99JExtractedBackend.class, "createCode");
-        builder.defines().types();
-        Set<Schema.IfaceType> already = new LinkedHashSet<>();
+         builder.defines().types();
+
+        var visitedAlready  = new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
-                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
-                        if (!already.contains(t)) {
+                    BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
+                    boundSchema.schema().rootIfaceType.visitUniqueTypes(t -> {
+                        if (visitedAlready.add(t)) {
                             builder.typedef(boundSchema, t);
-                            already.add(t);
                         }
                     });
                 });
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.computeContext.accelerator.lookup
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup()
                 ,kernelCallGraph.entrypoint.funcOp());
-        // Sorting by rank ensures we don't need forward declarations
-        kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp()).nl());
-
         builder.nl().kernelEntrypoint(buildContext).nl();
-
-        System.out.println("Original");
-        System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
-        System.out.println("Lowered");
-        System.out.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
 
         return builder.toString();
     }

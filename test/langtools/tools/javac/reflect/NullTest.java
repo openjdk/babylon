@@ -428,7 +428,7 @@ public class NullTest {
     @Reflect
     @IR("""
             func @"test15" (%0 : java.type:"NullTest")java.type:"java.util.function.Supplier<java.lang.String>" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda @lambda.isQuotable=true ()java.type:"java.lang.String" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.String" -> {
                     %2 : java.type:"java.lang.String" = constant @null;
                     return %2;
                 };

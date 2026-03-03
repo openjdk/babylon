@@ -28,10 +28,11 @@ package hat.backend.ffi;
 import hat.Config;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
-import hat.buffer.Buffer;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,7 +63,7 @@ public abstract class FFIBackendDriver extends Backend {
                     this.name = name;
                 }
                 public void ndRange(ArgArray argArray) {
-                    this.ndrange_MPtr.invoke(handle, Buffer.getMemorySegment(argArray));
+                    this.ndrange_MPtr.invoke(handle, MappableIface.getMemorySegment(argArray));
                 }
                 void release() {
                     releaseKernel_MPtr.invoke(handle);
@@ -141,8 +142,8 @@ public abstract class FFIBackendDriver extends Backend {
             return compilationUnit(compilationUnitHandle, source);
         }
 
-        public Buffer getBufferFromDeviceIfDirty(Buffer buffer) {
-            MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
+        public MappableIface getBufferFromDeviceIfDirty(MappableIface buffer) {
+            MemorySegment memorySegment = MappableIface.getMemorySegment(buffer);
             if (!getBufferFromDeviceIfDirty_MPtr.invoke(handle, memorySegment, memorySegment.byteSize())){
                 throw new IllegalStateException("Failed to get buffer from backend");
             }
@@ -163,8 +164,8 @@ public abstract class FFIBackendDriver extends Backend {
     public final FFILib ffiLib;
     public final BackendBridge backendBridge;
 
-    public FFIBackendDriver(String libName, Config config) {
-        super(config);
+    public FFIBackendDriver(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
+        super(arena,lookup,config);
         this.ffiLib = new FFILib(libName);
         this.backendBridge = new BackendBridge(ffiLib, config);
     }

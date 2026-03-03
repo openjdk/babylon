@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,22 +25,23 @@
 
 package jdk.incubator.code;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A value, that is the result of an operation or a block parameter.
+ * <p>
+ * A value is considered unbuilt if it's {@link #declaringBlock() declaring block} is unbuilt and
+ * therefore is inaccessible. A value is considered built when the declaring block is built and
+ * therefore is accessible.
  * @sealedGraph
  */
-public sealed abstract class Value implements Comparable<Value>, CodeItem
+public sealed abstract class Value implements CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
     final TypeElement type;
     // @@@ In topological order?
     //     Can the representation be more efficient e.g. an array?
-    final Set<Op.Result> uses;
+    final SequencedSet<Op.Result> uses;
 
     Value(Block block, TypeElement type) {
         this.block = block;
@@ -54,13 +55,29 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
      * If the value is a block parameter then the declaring block is the block declaring the parameter.
      *
      * @return the value's declaring block.
-     * @throws IllegalStateException if the declaring block is partially built
+     * @throws IllegalStateException if this value is unbuilt because its declaring block is unbuilt.
      */
     public Block declaringBlock() {
-        if (!isBound()) {
-            throw new IllegalStateException("Declaring block is partially constructed");
+        if (!isBuilt()) {
+            throw new IllegalStateException("Declaring block is unbuilt");
         }
         return block;
+    }
+
+    /**
+     * Returns this value's declaring code element.
+     * <p>If the value is an operation result, then the declaring code element is the operation.
+     * If the value is a block parameter then the declaring code element is this value's declaring block.
+     *
+     * @return the value's declaring code element.
+     * @throws IllegalStateException if this value is a a block parameter and is unbuilt because its declaring block is
+     * unbuilt.
+     */
+    public CodeElement<?, ?> declaringElement() {
+        return switch (this) {
+            case Block.Parameter _ -> block;
+            case Op.Result r -> r.op();
+        };
     }
 
     /**
@@ -73,31 +90,57 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
     }
 
     /**
+     * Returns this value as an operation result.
+     *
+     * @return the value as an operation result.
+     * @throws IllegalStateException if the value is not an instance of an operation result.
+     */
+    public Op.Result result() {
+        if (this instanceof Op.Result r) {
+            return r;
+        }
+        throw new IllegalStateException("Value is not an instance of operation result");
+    }
+
+    /**
+     * Returns this value as a block parameter.
+     *
+     * @return the value as a block parameter.
+     * @throws IllegalStateException if the value is not an instance of a block parameter.
+     */
+    public Block.Parameter parameter() {
+        if (this instanceof Block.Parameter p) {
+            return p;
+        }
+        throw new IllegalStateException("Value is not an instance of block parameter");
+    }
+
+    /**
      * Returns the values this value directly depends on.
      * <p>
      * An operation result depends on the set of values whose members are the operation's operands and block arguments
      * of the operation's successors.
-     * A block parameter does not depend on any values.
+     * A block parameter does not depend on any values, and therefore this method returns an empty sequenced set.
      *
-     * @return the values this value directly depends on, as an unmodifiable set.
+     * @return the values this value directly depends on, as an unmodifiable sequenced set. For an operation result the
+     * operation's operands will occur first and then block arguments of each successor.
      */
-    // @@@ Consider an additional method that returns a lazy stream of all dependent values, in order.
-    public abstract Set<Value> dependsOn();
+    public abstract SequencedSet<Value> dependsOn();
 
     /**
      * Returns the uses of this value, specifically each operation result of an operation where this value is used as
      * an operand or as an argument of a block reference that is a successor.
      *
-     * @return the uses of this value, as an unmodifiable set.
-     * @throws IllegalStateException if the declaring block is partially built
+     * @return the uses of this value, as an unmodifiable sequenced set. The encouncter order is unspecified
+     * and determined by the order in which operations are built into blocks.
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
-    // @@@ Consider an additional method that returns a lazy stream of all uses, in order.
-    public Set<Op.Result> uses() {
-        if (!isBound()) {
-            throw new IllegalStateException("Users are partially constructed");
+    public SequencedSet<Op.Result> uses() {
+        if (!isBuilt()) {
+            throw new IllegalStateException("Users are are unbuilt");
         }
 
-        return Collections.unmodifiableSet(uses);
+        return Collections.unmodifiableSequencedSet(uses);
     }
 
     /**
@@ -116,7 +159,7 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
      *
      * @param dom the dominating value
      * @return {@code true} if this value is dominated by the given value {@code dom}.
-     * @throws IllegalStateException if the declaring block is partially built
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     public boolean isDominatedBy(Value dom) {
         if (this == dom) {
@@ -140,54 +183,28 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
         }
     }
 
-
-    @Override
-    public int compareTo(Value o) {
-        return compare(this, o);
+    /**
+     * Compares two values by comparing their declaring elements.
+     *
+     * @apiNote
+     * This method behaves is if it returns the result of the following expression but may be implemented more
+     * efficiently.
+     * {@snippet :
+     * Comparator.comparing(Value::declaringElement, CodeElement::compare).compare(a, b)
+     * }
+     * @param a the first value to compare
+     * @param b the second value to compare
+     * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a} is less than {@code b}; and {@code -1}
+     * if {@code a} is greater than {@code b}.
+     * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
+     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @see CodeElement#compare
+     */
+    public static int compare(Value a, Value b) {
+        return CodeElement.compare(a.declaringElement(), b.declaringElement());
     }
 
-    // @@@
-    public static int compare(Value v1, Value v2) {
-        if (v1 == v2) return 0;
-
-        Block b1 = v1.declaringBlock();
-        Block b2 = v2.declaringBlock();
-        if (b1 == b2) {
-            if (v1 instanceof Op.Result or1 && v2 instanceof Op.Result or2) {
-                List<Op> ops = b1.ops();
-                return Integer.compare(ops.indexOf(or1.op()), ops.indexOf(or2.op()));
-            } else if (v1 instanceof Op.Result) {
-                // v2 instanceof BlockParameter
-                return 1;
-            } else if (v2 instanceof Op.Result) {
-                // v1 instanceof BlockParameter
-                return -1;
-            } else { // v1 && v2 instanceof BlockParameter
-                assert v1 instanceof Block.Parameter && v2 instanceof Block.Parameter;
-                List<Block.Parameter> args = b1.parameters();
-                return Integer.compare(args.indexOf(v1), args.indexOf(v2));
-            }
-        }
-
-        Body r1 = b1.ancestorBody();
-        Body r2 = b2.ancestorBody();
-        if (r1 == r2) {
-            // @@@ order should be defined by CFG and dominator relations
-            List<Block> bs = r1.blocks();
-            return Integer.compare(bs.indexOf(b1), bs.indexOf(b2));
-        }
-
-        Op o1 = r1.ancestorOp();
-        Op o2 = r2.ancestorOp();
-        if (o1 == o2) {
-            List<Body> rs = o1.bodies();
-            return Integer.compare(rs.indexOf(r1), rs.indexOf(r2));
-        }
-
-        return compare(o1.result(), o2.result());
-    }
-
-    boolean isBound() {
-        return block.isBound();
+    boolean isBuilt() {
+        return block.isBuilt();
     }
 }

@@ -108,7 +108,7 @@ public class CodeReflectionTester {
         if (ir == null) return;
         // quotable
         Object quotable = field.get(null);
-        Quoted quoted = Op.ofQuotable(quotable).get();
+        Quoted<?> quoted = Op.ofLambda(quotable).get();
         String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
         checkModel(field, found, ir);
     }
@@ -122,7 +122,7 @@ public class CodeReflectionTester {
     static String canonicalizeModel(Member m, String d) {
         Op o;
         try {
-            o = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, d).get(0);
+            o = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }
@@ -136,7 +136,7 @@ public class CodeReflectionTester {
         return w.toString();
     }
 
-    static Op getModelOfQuotedOp(Quoted quoted) {
+    static Op getModelOfQuotedOp(Quoted<?> quoted) {
         return func("f", FUNCTION_TYPE_VOID).body(fblock -> {
             CodeContext cc = fblock.context();
             for (Value cv : quoted.capturedValues().keySet()) {

@@ -24,9 +24,11 @@
  */
 package hat.device;
 
-import hat.buffer.F16;
-import hat.codebuilders.C99HATCodeBuilder;
+import hat.types.F16;
+import optkl.codebuilders.C99CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,12 +39,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public class DeviceSchema<T extends DeviceType> {
+public class DeviceSchema<T extends NonMappableIface> {
 
     private final Class<T> klass;
     private final List<List<String>> members = new ArrayList<>();
     private final Map<String, Integer> arraySize = new HashMap<>();
-    private final C99HATCodeBuilder<?> representationBuilder = new C99HATCodeBuilder<>();
+    private final C99CodeBuilder<?> representationBuilder;
     private final Set<String> visited = new HashSet<>();
 
     private static final Map<Class<?>, String> specialTypes = new HashMap<>();
@@ -52,11 +54,12 @@ public class DeviceSchema<T extends DeviceType> {
     }
 
     public DeviceSchema(Class<T> klass) {
+        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(),null));
         this.klass = klass;
     }
     int currentLevel = 0;
 
-    public static <T extends DeviceType> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
+    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
         DeviceSchema<T> deviceSchema =  new DeviceSchema<>(klass);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize();
@@ -104,11 +107,9 @@ public class DeviceSchema<T extends DeviceType> {
     // then it recursively inspect its inner members.
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
-    private void materialize(C99HATCodeBuilder<?> builder, Class<?> klass) {
-        try {
-            Class<?> aClass = Class.forName(klass.getName());
-            Method[] declaredMethods = aClass.getDeclaredMethods();
-            builder.lt().identifier(klass.getName()).colon();
+    private void materialize(C99CodeBuilder<?> builder, Class<?> klass) {
+            Method[] declaredMethods = klass.getDeclaredMethods();
+            builder.lt().id(klass.getName()).colon();
             visited.add(klass.getName());
 
             for (String fieldName : members.get(currentLevel)) {
@@ -123,7 +124,7 @@ public class DeviceSchema<T extends DeviceType> {
 
                         if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
                             // inspect the dependency and add it at the front of the string builder
-                            C99HATCodeBuilder<?> depsBuilder = new C99HATCodeBuilder<>();
+                            C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(builder.scopedCodeBuilderContext().lookup(),builder.scopedCodeBuilderContext().funcOp()));
                             depsBuilder.preformatted(builder.getText());
                             materialize(depsBuilder, returnType);
                             builder = depsBuilder;
@@ -137,18 +138,18 @@ public class DeviceSchema<T extends DeviceType> {
                         if (arraySize.containsKey(method.getName())) {
                             builder.osbrace()                       // Array indicator
                                     .colon()                        // separator
-                                    .typeName(type)                 // type
+                                    .type(type)                 // type
                                     .colon()                        // separator
-                                    .identifier(method.getName())   // variableName
+                                    .id(method.getName())   // variableName
                                     .colon()                        // separator
-                                    .identifier(Integer.toString(arraySize.get(method.getName()))) // Array size
+                                    .id(Integer.toString(arraySize.get(method.getName()))) // Array size
                                     .semicolon();                   // member separator
                         } else {
-                            builder.identifier("s")            // scalar indicator
+                            builder.id("s")            // scalar indicator
                                     .colon()                        // separator
-                                    .typeName(type)                 // type
+                                    .type(type)                 // type
                                     .colon()                        // separator
-                                    .identifier(method.getName())   // var name
+                                    .id(method.getName())   // var name
                                     .semicolon();                   // member separator
                         }
                         wasProcessed = true;
@@ -159,10 +160,6 @@ public class DeviceSchema<T extends DeviceType> {
                 }
                 currentLevel--;
             }
-
-        } catch (ClassNotFoundException e) {
-            IO.println("Error during materialization of DeviceType: " + e.getMessage());
-        }
         builder.gt();
     }
 

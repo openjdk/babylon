@@ -1,6 +1,4 @@
-TestNoCodeReflectionInInnerClasses.java:12:21: compiler.warn.reflectable.method.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-TestNoCodeReflectionInInnerClasses.java:15:46: compiler.warn.reflectable.lambda.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-TestNoCodeReflectionInInnerClasses.java:19:46: compiler.warn.reflectable.mref.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-- compiler.err.warnings.and.werror
-1 error
-3 warnings
+TestNoCodeReflectionInInnerClasses.java:12:21: compiler.err.reflectable.method.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+TestNoCodeReflectionInInnerClasses.java:15:46: compiler.err.reflectable.lambda.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+TestNoCodeReflectionInInnerClasses.java:19:46: compiler.err.reflectable.mref.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+3 errors

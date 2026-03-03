@@ -48,7 +48,7 @@ import java.util.stream.Stream;
  *     <li>{@linkplain ClassType class types}, e.g. {@code String}, {@code List<? extends Number>}</li>
  *     <li>{@linkplain ArrayType array types}, e.g. {@code Object[][]}, {@code List<Runnable>[]}</li>
  *     <li>{@linkplain WildcardType wildcard types}, e.g. {@code ? extends Number}, {@code ? super ArrayList<String>}</li>
- *     <li>{@linkplain TypeVariableType type-variables}, e.g. {@code T extends Runnable}</li>
+ *     <li>{@linkplain TypeVariableType type variables}, e.g. {@code T extends Runnable}</li>
  * </ul>
  * Java types can be constructed from either {@linkplain ClassDesc nominal descriptors} or
  * {@linkplain Type reflective type mirrors}. Conversely, Java types can be
@@ -172,7 +172,7 @@ public sealed interface JavaType extends TypeElement
     ClassDesc toNominalDescriptor();
 
     /**
-     * Resolve this Java type to a reflective type mirror.
+     * Resolve this Java type to a reflective type mirror
      * @param lookup the lookup used to create the reflective type mirror
      * @return a reflective type mirror for this type
      * @throws ReflectiveOperationException if this Java type cannot be resolved
@@ -187,7 +187,7 @@ public sealed interface JavaType extends TypeElement
     // Factories
 
     /**
-     * A type element factory for Java type elements that is not composed with any other type element factory.
+     * A type element factory for Java type elements that is not composed with any other type element factory
      */
     TypeElementFactory JAVA_ONLY_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
         case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
@@ -197,12 +197,12 @@ public sealed interface JavaType extends TypeElement
 
     /**
      * A type element factory for core type elements composed with Java type elements, where the core type elements can
-     * refer to Java type elements.
+     * refer to Java type elements
      */
     TypeElementFactory JAVA_TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_ONLY_TYPE_FACTORY);
 
     /**
-     * Constructs a Java type from a reflective type mirror.
+     * {@return a Java type obtained from the provided reflective type mirror}
      *
      * @param reflectiveType the reflective type mirror
      */
@@ -218,7 +218,7 @@ public sealed interface JavaType extends TypeElement
             case java.lang.reflect.WildcardType wt -> wt.getLowerBounds().length == 0 ?
                     wildcard(BoundKind.EXTENDS, type(wt.getUpperBounds()[0])) :
                     wildcard(BoundKind.SUPER, type(wt.getLowerBounds()[0]));
-            case TypeVariable<?> tv -> typeVarRef(tv.getName(), owner(tv.getGenericDeclaration()), type(tv.getBounds()[0]));
+            case TypeVariable<?> tv -> typeVar(tv.getName(), owner(tv.getGenericDeclaration()), type(tv.getBounds()[0]));
             case GenericArrayType at -> array(type(at.getGenericComponentType()));
             default -> throw new InternalError();
         };
@@ -250,7 +250,7 @@ public sealed interface JavaType extends TypeElement
     }
 
     /**
-     * Constructs a Java type from a nominal descriptor.
+     * {@return a Java type from a nominal descriptor}
      *
      * @param desc the nominal descriptor
      */
@@ -277,7 +277,7 @@ public sealed interface JavaType extends TypeElement
     }
 
     /**
-     * Constructs a qualified Java type.
+     * {@return a qualified Java type with provided enclosing type and name}
      *
      * @param enclosing the enclosing type
      * @param nestedName the nested class name
@@ -291,28 +291,26 @@ public sealed interface JavaType extends TypeElement
     }
 
     /**
-     * Constructs a parameterized class type.
+     * {@return a parameterized class type with the given base type and type arguments}
      *
      * @param type the base type of the parameterized type
      * @param typeArguments the type arguments of the parameterized type
-     * @return a parameterized class type
      * @throws IllegalArgumentException if {@code type} is not a {@linkplain ClassType class type}
      * @throws IllegalArgumentException if {@code type} is {@linkplain ClassType class type} with
-     * a non-empty {@linkplain ClassType#typeArguments() type argument list}.
+     * a non-empty {@linkplain ClassType#typeArguments() type argument list}
      */
     static ClassType parameterized(JavaType type, JavaType... typeArguments) {
         return parameterized(type, List.of(typeArguments));
     }
 
     /**
-     * Constructs a parameterized class type.
+     * {@return a parameterized class type with the given base type and type arguments}
      *
      * @param type the base type of the parameterized type
      * @param typeArguments the type arguments of the parameterized type
-     * @return a parameterized class type
      * @throws IllegalArgumentException if {@code type} is not a {@linkplain ClassType class type}
      * @throws IllegalArgumentException if {@code type} is {@linkplain ClassType class type} with
-     * a non-empty {@linkplain ClassType#typeArguments() type argument list}.
+     * a non-empty {@linkplain ClassType#typeArguments() type argument list}
      */
     static ClassType parameterized(JavaType type, List<JavaType> typeArguments) {
         if (!(type instanceof ClassType ct)) {
@@ -325,10 +323,9 @@ public sealed interface JavaType extends TypeElement
     }
 
     /**
-     * Constructs an array type.
+     * {@return an array type with the given element type}
      *
-     * @param elementType the array type's element type.
-     * @return an array type.
+     * @param elementType the array type's element type
      */
     static ArrayType array(JavaType elementType) {
         Objects.requireNonNull(elementType);
@@ -336,12 +333,11 @@ public sealed interface JavaType extends TypeElement
     }
 
     /**
-     * Constructs an array type.
+     * {@return an array type with the given element type}
      *
-     * @param elementType the array type's element type.
+     * @param elementType the array type's element type
      * @param dims the array type dimension
-     * @return an array type.
-     * @throws IllegalArgumentException if {@code dims < 1}.
+     * @throws IllegalArgumentException if {@code dims < 1}
      */
     static ArrayType array(JavaType elementType, int dims) {
         Objects.requireNonNull(elementType);
@@ -355,31 +351,30 @@ public sealed interface JavaType extends TypeElement
     }
 
     /**
-     * Constructs an unbounded wildcard type.
-     *
-     * @return an unbounded wildcard type.
+     * {@return an unbounded wildcard type}
      */
     static WildcardType wildcard() {
         return new WildcardType(BoundKind.EXTENDS, JavaType.J_L_OBJECT);
     }
 
     /**
-     * Constructs a bounded wildcard type of the given kind.
+     * {@return a bounded wildcard type with the given bound type and bound kind}
      *
-     * @return a bounded wildcard type.
+     * @param bound the wildcard bound type
+     * @param kind the wildcard bound kind
      */
     static WildcardType wildcard(BoundKind kind, JavaType bound) {
         return new WildcardType(kind, bound);
     }
 
     /**
-     * Constructs a reference to a type-variable with the given owner.
+     * {@return a type variable type with the given owner, name and upper bound}
      *
-     * @param bound the type-variable bound.
-     * @param owner the type-variable owner.
-     * @return a type-variable reference.
+     * @param name the type variable name
+     * @param bound the type variable bound
+     * @param owner the type variable owner
      */
-    static TypeVariableType typeVarRef(String name, TypeVariableType.Owner owner, JavaType bound) {
+    static TypeVariableType typeVar(String name, TypeVariableType.Owner owner, JavaType bound) {
         return new TypeVariableType(name, owner, bound);
     }
 }

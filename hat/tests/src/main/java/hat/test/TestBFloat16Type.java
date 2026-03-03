@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,21 +29,19 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.Backend;
-import hat.buffer.BF16;
+import hat.types.BF16;
 import hat.buffer.BF16Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
-import hat.test.exceptions.HATExpectedFailureException;
 import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface.*;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
-
-import static hat.ifacemapper.MappableIface.*;
 
 public class TestBFloat16Type {
 
@@ -67,7 +65,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_03(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @RW BF16Array c) {
+    public static void bf16_03(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
@@ -79,7 +77,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_04(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @RW BF16Array c) {
+    public static void bf16_04(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
@@ -95,7 +93,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_05(@RO KernelContext kernelContext, @RW BF16Array a) {
+    public static void bf16_05(@RO KernelContext kernelContext, @WO BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 initVal = BF16.of( 2.1f);
@@ -104,7 +102,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_06(@RO KernelContext kernelContext, @RW BF16Array a) {
+    public static void bf16_06(@RO KernelContext kernelContext, @WO BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 initVal = BF16.of(kernelContext.gix);
             BF16 ha = a.array(kernelContext.gix);
@@ -113,7 +111,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_08(@RO KernelContext kernelContext, @RW BF16Array a) {
+    public static void bf16_08(@RO KernelContext kernelContext, @WO BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 initVal = BF16.float2bfloat16(kernelContext.gix);
             BF16 ha = a.array(kernelContext.gix);
@@ -133,7 +131,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_10(@RO KernelContext kernelContext, @RW BF16Array a) {
+    public static void bf16_10(@RO KernelContext kernelContext, @WO BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 f16 = BF16.of(1.1f);
@@ -143,7 +141,7 @@ public class TestBFloat16Type {
         }
     }
 
-    public interface LocalArray extends DeviceType {
+    public interface LocalArray extends NonMappableIface {
         BF16 array(int index);
         DeviceSchema<LocalArray> schema = DeviceSchema.of(LocalArray.class,
                 builder -> builder.withArray("array", 1024)
@@ -159,7 +157,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_11(@RO KernelContext kernelContext, @RO BF16Array a, @RW BF16Array b) {
+    public static void bf16_11(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
         LocalArray sm = LocalArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -174,7 +172,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_12(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @RW BF16Array c) {
+    public static void bf16_12(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
         // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
@@ -185,7 +183,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_13(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b,  @RW BF16Array c) {
+    public static void bf16_13(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b,  @WO BF16Array c) {
         // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
@@ -196,7 +194,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_14(@RO KernelContext kernelContext, @RO BF16Array a, @RW BF16Array b) {
+    public static void bf16_14(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
         // Testing mixed float types
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
@@ -206,7 +204,7 @@ public class TestBFloat16Type {
         }
     }
 
-    public interface PrivateArray extends DeviceType {
+    public interface PrivateArray extends NonMappableIface {
         BF16 array(int index);
         DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
                 builder -> builder.withArray("array", 256)
@@ -222,7 +220,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_15(@RO KernelContext kernelContext, @RO BF16Array a, @RW BF16Array b) {
+    public static void bf16_15(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
         PrivateArray privateArray = PrivateArray.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -282,17 +280,17 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void compute05(@RO ComputeContext computeContext, @RW BF16Array a) {
+    public static void compute05(@RO ComputeContext computeContext, @WO BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_05(kernelContext, a));
     }
 
     @Reflect
-    public static void compute06(@RO ComputeContext computeContext, @RW BF16Array a) {
+    public static void compute06(@RO ComputeContext computeContext, @WO BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_06(kernelContext, a));
     }
 
     @Reflect
-    public static void compute08(@RO ComputeContext computeContext, @RW BF16Array a) {
+    public static void compute08(@RO ComputeContext computeContext, @WO BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_08(kernelContext, a));
     }
 
@@ -302,32 +300,32 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void compute10(@RO ComputeContext computeContext, @RW BF16Array a) {
+    public static void compute10(@RO ComputeContext computeContext, @WO BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_10(kernelContext, a));
     }
 
     @Reflect
-    public static void compute11(@RO ComputeContext computeContext, @RO BF16Array a, @RW BF16Array b) {
+    public static void compute11(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length(),16), kernelContext -> TestBFloat16Type.bf16_11(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute12(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @RW BF16Array c) {
+    public static void compute12(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_12(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute13(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @RW BF16Array c) {
+    public static void compute13(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_13(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute14(@RO ComputeContext computeContext, @RO BF16Array a, @RW BF16Array b) {
+    public static void compute14(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_14(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute15(@RO ComputeContext computeContext, @RO BF16Array a, @RW BF16Array b) {
+    public static void compute15(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_15(kernelContext, a, b));
     }
 
@@ -409,11 +407,7 @@ public class TestBFloat16Type {
             BF16 val = arrayC.array(i);
             float fa = BF16.bfloat162float(arrayA.array(i));
             float fb = BF16.bfloat162float(arrayB.array(i));
-            try {
-                HATAsserts.assertEquals((fa + fb + fb), BF16.bfloat162float(val), 0.01f);
-            } catch (HATAssertionError hae) {
-                throw new HATExpectedPrecisionError(hae.getMessage());
-            }
+            HATAsserts.assertEquals((fa + fb + fb), BF16.bfloat162float(val), 0.01f);
         }
     }
 
@@ -449,11 +443,7 @@ public class TestBFloat16Type {
             BF16 r4 = BF16.add(r1, r2);
             BF16 r5 = BF16.add(r4, r3);
 
-            try {
-                HATAsserts.assertEquals(BF16.bfloat162float(r5), BF16.bfloat162float(gotResult), 0.01f);
-            } catch (HATAssertionError hatAssertionError) {
-                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
-            }
+            HATAsserts.assertEquals(BF16.bfloat162float(r5), BF16.bfloat162float(gotResult), 0.01f);
         }
     }
 
@@ -644,11 +634,7 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             BF16 result = arrayC.array(i);
-            try {
-                HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)), BF16.bfloat162float(result), 0.01f);
-             } catch (HATAssertionError hatAssertionError) {
-                throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
-            }
+            HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)), BF16.bfloat162float(result), 0.01f);
         }
     }
 

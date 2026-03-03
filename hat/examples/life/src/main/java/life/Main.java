@@ -29,8 +29,10 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
-import hat.buffer.Buffer;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
 import jdk.incubator.code.Reflect;
@@ -39,8 +41,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
-import static hat.ifacemapper.MappableIface.RO;
-import static hat.ifacemapper.MappableIface.RW;
+import static optkl.ifacemapper.MappableIface.RO;
+import static optkl.ifacemapper.MappableIface.RW;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
@@ -70,7 +72,7 @@ public class Main {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return schema.allocate(accelerator, width, height);
+            return BoundSchema.of(accelerator ,schema, width, height).allocate();
         }
 
         ValueLayout valueLayout = JAVA_BYTE;
@@ -78,7 +80,7 @@ public class Main {
 
         default void copySliceTo(byte[] bytes, int to) {
             long offset = headerOffset + to * valueLayout.byteOffset();
-            MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
+            MemorySegment.copy(MappableIface.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
 
         }
 
@@ -107,7 +109,7 @@ public class Main {
                         control.fields("from", "to"));//, "generation", "requiredFrameRate", "maxGenerations"));
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
-            var instance = schema.allocate(accelerator);
+            var instance = BoundSchema.of(accelerator ,schema).allocate();
             instance.from(cellGrid.width() * cellGrid.height());
             instance.to(0);
             return instance;
@@ -135,7 +137,7 @@ public class Main {
                 """;
 
         final static String codeVal = """
-                 inline int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
+                 int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
                      return CLWrapCellGrid->cellArray[((y * w) + x + from)] & 1;
                  }
                 """;
@@ -224,7 +226,7 @@ public class Main {
     static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
-        Arena arena = Arena.global();
+       // Arena arena = Arena.global();
         PatternData patternData = RleParser.readPatternData(
                 Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );

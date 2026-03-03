@@ -30,9 +30,10 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import optkl.ifacemapper.Buffer;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -112,7 +113,7 @@ public class Mesh {
                 .arrayLen("vertices").array("vertex", v -> v.fields("from", "to"))
         );
         static  MeshData create(Accelerator accelerator) {
-            return schema.allocate(accelerator,100,10);
+            return BoundSchema.of(accelerator ,schema,100,10).allocate();
         }
     }
 
@@ -139,13 +140,11 @@ public class Mesh {
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
-
-        var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
-        var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
+        var meshDataNew = BoundSchema.of(accelerator ,MeshData.schema,100,100).allocate();
         var meshDataOld = MeshData.create(accelerator);
 
-        String layoutNew = Buffer.getLayout(meshDataNew).toString();
-        String layoutOld = Buffer.getLayout(meshDataOld).toString();
+        String layoutNew = MappableIface.getLayout(meshDataNew).toString();
+        String layoutOld = MappableIface.getLayout(meshDataOld).toString();
         if (layoutOld.equals(layoutNew)) {
             MeshData meshData = MeshData.create(accelerator);
             Random random = new Random(System.currentTimeMillis());

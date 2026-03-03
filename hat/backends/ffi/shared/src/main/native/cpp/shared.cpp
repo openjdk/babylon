@@ -315,7 +315,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
 
                 BufferState *bufferState = BufferState::of(arg);
 
-                Buffer *buffer = compilationUnit->backend->getOrCreateBuffer(bufferState, arg->value.buffer.access);
+                Buffer *buffer = compilationUnit->backend->getOrCreateBuffer(bufferState);
 
                 bool kernelReadsFromThisArg =  arg->value.buffer.access == RW_BYTE
                                             || arg->value.buffer.access == RO_BYTE;

@@ -324,7 +324,7 @@ public class TranslateToSpirvModel  {
                     }
                     case JavaOp.InvokeOp inv -> {
                         List<Value> operands = mapOperands(inv);
-                        SpirvOp spirvCall = new SpirvOp.CallOp(inv.invokeDescriptor(), operands);
+                        SpirvOp spirvCall = new SpirvOp.CallOp(inv.invokeReference(), operands);
                         spirvBlock.op(spirvCall);
                         valueMap.put(inv.result(), spirvCall.result());
                     }
@@ -340,7 +340,7 @@ public class TranslateToSpirvModel  {
                         valueMap.put(cop.result(), scop.result());
                     }
                     case JavaOp.FieldAccessOp.FieldLoadOp flo -> {
-                        SpirvOp load = new SpirvOp.FieldLoadOp(flo.resultType(), flo.fieldDescriptor(), mapOperands(flo));
+                        SpirvOp load = new SpirvOp.FieldLoadOp(flo.resultType(), flo.fieldReference(), mapOperands(flo));
                         spirvBlock.op(load);
                         valueMap.put(flo.result(), load.result());
                     }

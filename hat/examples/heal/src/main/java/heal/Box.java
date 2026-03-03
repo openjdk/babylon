@@ -25,8 +25,9 @@
 package heal;
 
 import hat.Accelerator;
-import hat.buffer.Buffer;
-import hat.ifacemapper.Schema;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface Box extends Buffer {
     int x1();
@@ -57,7 +58,7 @@ public interface Box extends Buffer {
     );
 
     static Box create(Accelerator accelerator, int x1, int y1, int x2, int y2) {
-        Box box = schema.allocate(accelerator);
+        Box box = BoundSchema.of(accelerator ,schema).allocate();
         box.x1(x1);
         box.y1(y1);
         box.x2(x2);

@@ -25,14 +25,15 @@
 package hat.test;
 
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
+import hat.device.NonMappableIface;
+import hat.types.Float4;
 import jdk.incubator.code.Reflect;
 
 import hat.*;
 import hat.backend.Backend;
 import hat.buffer.*;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
@@ -159,7 +160,7 @@ public class TestVectorArrayView {
             Float4[] vC = c.float4ArrayView();
             Float4 floatA = vA[index * 4];
             Float4 floatB = vB[index * 4];
-            Float4 vD = Float4.sub(floatA, floatB);
+          //  Float4 vD = Float4.sub(floatA, floatB);
             Float4 vE = Float4.sub(floatA, floatB);
             vC[index * 4] = vE;
         }
@@ -217,7 +218,7 @@ public class TestVectorArrayView {
         }
     }
 
-    private interface SharedMemory extends DeviceType {
+    private interface SharedMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
@@ -249,7 +250,7 @@ public class TestVectorArrayView {
         }
     }
 
-    private interface PrivateMemory extends DeviceType {
+    private interface PrivateMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,

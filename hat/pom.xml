@@ -37,6 +37,7 @@ questions.
     <mac.lib.frameworks>/System/Library/Frameworks</mac.lib.frameworks>
   </properties>
   <modules>
+    <module>optkl</module>
     <module>core</module>
     <module>tools</module>
     <module>backends</module>

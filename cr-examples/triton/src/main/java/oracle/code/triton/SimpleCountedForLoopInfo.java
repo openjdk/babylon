@@ -27,7 +27,6 @@ package oracle.code.triton;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.Patterns;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -35,7 +34,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 
-import static jdk.incubator.code.analysis.Patterns.*;
+import static oracle.code.triton.Patterns.*;
 
 // @@@ Very basic, limited, and partially correct
 public class SimpleCountedForLoopInfo {

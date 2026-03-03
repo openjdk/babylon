@@ -21,7 +21,7 @@ import java.util.function.Function;
  * thereby separating the specifics of deserializing from construction.
  */
 public record ExternalizedOp(String name,
-                             Location location,
+                             Op.Location location,
                              List<Value> operands,
                              List<Block.Reference> successors,
                              TypeElement resultType,
@@ -33,6 +33,16 @@ public record ExternalizedOp(String name,
      */
     public static final Object NULL_ATTRIBUTE_VALUE = new Object();
 
+    /**
+     * Constructs a new externalized operation
+     * @param name            the operation name
+     * @param location        the source location associated with the operation, may be null
+     * @param operands        the list of operands
+     * @param successors      the list of successors
+     * @param resultType      the operation result type
+     * @param attributes      the operation's specific state as a map of attributes
+     * @param bodyDefinitions the list of body builders for building the operation's bodies
+     */
     public ExternalizedOp {
         attributes = Map.copyOf(attributes);
     }
@@ -54,6 +64,7 @@ public record ExternalizedOp(String name,
      *
      * @param name      the attribute name.
      * @param isDefault true if the attribute is a default attribute
+     * @param mapper    the function used to convert the attribute value
      * @param <T>       the converted attribute value type
      * @return the converted attribute value
      */

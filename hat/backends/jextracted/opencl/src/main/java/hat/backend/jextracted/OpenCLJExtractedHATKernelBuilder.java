@@ -24,22 +24,23 @@
  */
 package hat.backend.jextracted;
 
+import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codebuilders.CodeBuilder;
-import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATVectorOp;
+import optkl.codebuilders.CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCLJExtractedHATKernelBuilder> {
+
+    protected OpenCLJExtractedHATKernelBuilder(KernelCallGraph.State kernelCallGraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(kernelCallGraphState,scopedCodeBuilderContext);
+    }
 
     @Override
     public OpenCLJExtractedHATKernelBuilder defines() {
@@ -49,58 +50,58 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                 .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")                      // Enable Half type
-                .hashDefine("HAT_FUNC", _ -> keyword("inline"))
+                .hashDefine("HAT_FUNC", _ -> keyword(""))
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__local"))
-                .hashDefine("HAT_GIX", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstZero())))
-                .hashDefine("HAT_GIY", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstOne())))
-                .hashDefine("HAT_GIZ", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstTwo())))
-                .hashDefine("HAT_LIX", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstZero())))
-                .hashDefine("HAT_LIY", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstOne())))
-                .hashDefine("HAT_LIZ", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstTwo())))
-                .hashDefine("HAT_GSX", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstZero())))
-                .hashDefine("HAT_GSY", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstOne())))
-                .hashDefine("HAT_GSZ", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstTwo())))
-                .hashDefine("HAT_LSX", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstZero())))
-                .hashDefine("HAT_LSY", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstOne())))
-                .hashDefine("HAT_LSZ", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstTwo())))
-                .hashDefine("HAT_BIX", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstZero())))
-                .hashDefine("HAT_BIY", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstOne())))
-                .hashDefine("HAT_BIZ", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
-                .hashDefine("HAT_BARRIER", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen());
+                .hashDefine("HAT_GIX", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstZero())))
+                .hashDefine("HAT_GIY", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstOne())))
+                .hashDefine("HAT_GIZ", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstTwo())))
+                .hashDefine("HAT_LIX", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstZero())))
+                .hashDefine("HAT_LIY", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstOne())))
+                .hashDefine("HAT_LIZ", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstTwo())))
+                .hashDefine("HAT_GSX", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstZero())))
+                .hashDefine("HAT_GSY", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstOne())))
+                .hashDefine("HAT_GSZ", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstTwo())))
+                .hashDefine("HAT_LSX", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstZero())))
+                .hashDefine("HAT_LSY", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstOne())))
+                .hashDefine("HAT_LSZ", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstTwo())))
+                .hashDefine("HAT_BIX", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstZero())))
+                .hashDefine("HAT_BIY", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstOne())))
+                .hashDefine("HAT_BIZ", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstTwo())))
+                .hashDefine("HAT_BARRIER", _ -> id("barrier").oparen().id("CLK_LOCAL_MEM_FENCE").cparen());
         //         )
         // );
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
-        return identifier("atomic_inc").paren(_ -> ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name));
+    public OpenCLJExtractedHATKernelBuilder atomicInc( Op.Result instanceResult, String name) {
+        return id("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().id(name));
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
+    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
-        identifier("vstore" + hatVectorStoreView.vectorN())
+        id("vstore" + hatVectorStoreView.vectorShape().lanes())
                 .oparen()
                 .varName(hatVectorStoreView)
                 .comma()
-                .space()
+                .sp()
                 .intConstZero()
                 .comma()
-                .space()
+                .sp()
                 .ampersand();
 
         if (dest instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
-        either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
-        identifier("array").osbrace();
+        either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
+        id("array").osbrace();
 
         if (index instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
 
         csbrace().cparen();
@@ -108,104 +109,138 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
+    public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
 
         oparen();
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
 
         if (op1 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
-        space().identifier(hatVectorBinaryOp.operationType().symbol()).space();
+        sp().id(hatVectorBinaryOp.operationType().symbol()).sp();
 
         if (op2 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         cparen();
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
+    public OpenCLJExtractedHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-        identifier("vload" + hatVectorLoadOp.vectorN())
+        id("vload" + hatVectorLoadOp.vectorShape().lanes())
                 .oparen()
                 .intConstZero()
                 .comma()
-                .space()
+                .sp()
                 .ampersand();
 
         if (source instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse(r.op());
         }
 
-        either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
-        identifier("array").osbrace();
+        either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
+        id("array").osbrace();
         if (index instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         csbrace().cparen();
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
-        identifier(hatVSelectLoadOp.varName())
+    public OpenCLJExtractedHATKernelBuilder hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
+        id(hatVSelectLoadOp.varName())
                 .dot()
-                .identifier(hatVSelectLoadOp.mapLane());
+                .id(hatVSelectLoadOp.mapLane());
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
-        identifier(hatVSelectStoreOp.varName())
+    public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
+        id(hatVSelectStoreOp.varName())
                 .dot()
-                .identifier(hatVSelectStoreOp.mapLane())
-                .space().equals().space();
-        if (hatVSelectStoreOp.resultValue() != null) {
+                .id(hatVSelectStoreOp.mapLane())
+                .sp().equals().sp();
+        if (hatVSelectStoreOp.resolvedName() != null) {
             // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resultValue());
+            varName(hatVSelectStoreOp.resolvedName());
         } else if (hatVSelectStoreOp.operands().get(1) instanceof Op.Result r) {
-                recurse(buildContext, r.op());
+                recurse( r.op());
 
         }
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
-        paren(_->typeName("half"));
+    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
+        paren(_-> type("half"));
         if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp) {
-        typeName(hatVectorVarOp.buildType())
-                .space()
+    public OpenCLJExtractedHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
+        type(hatVectorVarOp.buildType())
+                .sp()
                 .varName(hatVectorVarOp)
-                .space().equals().space();
+                .sp().equals().sp();
 
         Value operand = hatVectorVarOp.operands().getFirst();
         if (operand instanceof Op.Result r) {
-            recurse(buildContext, r.op());
+            recurse( r.op());
         }
         return self();
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
-        return paren(_->identifier(hatVectorOfOp.buildType()));
+    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
+        return paren(_-> id(hatVectorOfOp.buildType()));
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        return paren(_-> f16Type()).identifier(hatF16ToFloatConvOp.varName());
+    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+        return paren(_-> f16Type()).id(hatF16ToFloatConvOp.varName());
+    }
+
+    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+    static {
+        MATH_FUNCTIONS.put("maxf", "max");
+        MATH_FUNCTIONS.put("maxd", "max");
+        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
+        MATH_FUNCTIONS.put("minf", "min");
+        MATH_FUNCTIONS.put("mind", "min");
+        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
+
+        MATH_FUNCTIONS.put("expf", "exp");
+        MATH_FUNCTIONS.put("expd", "exp");
+        MATH_FUNCTIONS.put("expf16", "half_exp");
+
+        MATH_FUNCTIONS.put("cosf", "cos");
+        MATH_FUNCTIONS.put("cosd", "cos");
+        MATH_FUNCTIONS.put("sinf", "sin");
+        MATH_FUNCTIONS.put("sind", "sin");
+        MATH_FUNCTIONS.put("tanf", "tan");
+        MATH_FUNCTIONS.put("tand", "tan");
+
+        MATH_FUNCTIONS.put("native_cosf", "native_cos");
+        MATH_FUNCTIONS.put("native_sinf", "native_sin");
+        MATH_FUNCTIONS.put("native_tanf", "native_tan");
+        MATH_FUNCTIONS.put("native_expf", "native_exp");
+
+        MATH_FUNCTIONS.put("sqrtf", "sqrt");
+        MATH_FUNCTIONS.put("sqrtd", "sqrt");
+    }
+
+    @Override
+    protected String mapMathIntrinsic(String hatMathIntrinsicName) {
+        return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 
 }

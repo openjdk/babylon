@@ -40,6 +40,11 @@ questions.
             <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-optkl</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
     <build>
         <pluginManagement>

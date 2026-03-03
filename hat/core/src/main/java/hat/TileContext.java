@@ -1,7 +1,7 @@
 package hat;
 
-import hat.buffer.Buffer;
 import hat.buffer.F32Array;
+import optkl.ifacemapper.Buffer;
 
 public class TileContext {
 

@@ -18,6 +18,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestSwitchExpressionOp
+ * @run main Unreflect TestSwitchExpressionOp
+ * @run junit TestSwitchExpressionOp
  */
 public class TestSwitchExpressionOp {
 

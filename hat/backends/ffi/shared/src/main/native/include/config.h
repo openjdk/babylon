@@ -24,12 +24,11 @@
 */
 /*
 You probably should not edit this this file!!!
-It was auto generated 2025-11-04 15:18:52.357 by hat.FFIConfigCreator
+It was auto generated 2026-01-08 12:22:32.577 by hat.FFIConfigCreator
 */
 #pragma once
 
 #include <iostream>
-
 
 struct BasicConfig{
     static constexpr int MINIMIZE_COPIES_BIT              = 1<<0x8;
@@ -54,6 +53,7 @@ struct BasicConfig{
     static constexpr int SHOW_LOWERED_KERNEL_MODEL_BIT    = 1<<0x1b;
     static constexpr int SHOW_COMPILATION_PHASES_BIT      = 1<<0x1c;
     static constexpr int PROFILE_CUDA_KERNEL_BIT          = 1<<0x1d;
+    static constexpr int SHOW_COMPUTE_MODEL_JAVA_CODE_BIT = 1<<0x1e;
     const static char *bitNames[]; // See below for initialization
     const static char *bitDescriptions[]; // See below for initialization
     int configBits;
@@ -79,6 +79,7 @@ struct BasicConfig{
     bool showLoweredKernelModel;
     bool showCompilationPhases;
     bool profileCudaKernel;
+    bool showComputeModelJavaCode;
     int platform;
     int device;
     bool alwaysCopy;
@@ -106,6 +107,7 @@ struct BasicConfig{
         showLoweredKernelModel((configBits & SHOW_LOWERED_KERNEL_MODEL_BIT)==SHOW_LOWERED_KERNEL_MODEL_BIT),
         showCompilationPhases((configBits & SHOW_COMPILATION_PHASES_BIT)==SHOW_COMPILATION_PHASES_BIT),
         profileCudaKernel((configBits & PROFILE_CUDA_KERNEL_BIT)==PROFILE_CUDA_KERNEL_BIT),
+        showComputeModelJavaCode((configBits & SHOW_COMPUTE_MODEL_JAVA_CODE_BIT)==SHOW_COMPUTE_MODEL_JAVA_CODE_BIT),
         platform(configBits & 0xf),
         alwaysCopy(!minimizeCopies),
         device((configBits & 0xf0) >> 4){
@@ -132,6 +134,7 @@ struct BasicConfig{
                 std::cout << "native showLoweredKernelModel " << showLoweredKernelModel << std::endl;
                 std::cout << "native showCompilationPhases " << showCompilationPhases << std::endl;
                 std::cout << "native profileCudaKernel " << profileCudaKernel << std::endl;
+                std::cout << "native showComputeModelJavaCode " << showComputeModelJavaCode << std::endl;
                 std::cout << "native platform " << platform << std::endl;
                 std::cout << "native device " << device << std::endl;
             }
@@ -163,6 +166,7 @@ const char *BasicConfig::bitNames[]={
     "SHOW_LOWERED_KERNEL_MODEL_BIT",
     "SHOW_COMPILATION_PHASES_BIT",
     "PROFILE_CUDA_KERNEL_BIT",
+    "SHOW_COMPUTE_MODEL_JAVA_CODE_BIT",
 };
 const char *BasicConfig::bitDescriptions[]={
     "FFI ONLY Try to minimize copies",
@@ -187,5 +191,6 @@ const char *BasicConfig::bitDescriptions[]={
     "Show (via OpWriter) Lowered Kernel Model",
     "Show HAT compilation phases",
     "Add -lineinfo to CUDA kernel compilation for profiling and debugging",
+    "Show java code view of compute model",
 };
 #endif

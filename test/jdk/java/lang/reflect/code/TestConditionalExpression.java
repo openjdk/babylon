@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestConditionalExpression
+ * @run main Unreflect TestConditionalExpression
+ * @run junit TestConditionalExpression
  */
 
 import jdk.incubator.code.Reflect;

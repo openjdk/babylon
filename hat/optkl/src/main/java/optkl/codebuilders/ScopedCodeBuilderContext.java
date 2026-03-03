@@ -1,0 +1,284 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package optkl.codebuilders;
+
+
+import optkl.util.carriers.LookupCarrier;
+import optkl.util.ops.VarLikeOp;
+
+import optkl.FuncOpParams;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+
+import java.lang.invoke.MethodHandles;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ScopedCodeBuilderContext implements LookupCarrier {
+    final public FuncOpParams paramTable;
+
+    public boolean isInFor() {
+        return (scope != null && scope.parent instanceof ForScope);
+    }
+
+    public static sealed abstract class Scope<O extends Op> permits ForScope, FuncScope, IfScope, LambdaScope, RootScope {
+        public final Scope<?> parent;
+        final O op;
+
+        public Scope(Scope<?> parent, O op) {
+            this.parent = parent;
+            this.op = op;
+        }
+
+        public Op resolve(Value value) {
+            if (value instanceof Op.Result result && result.op() instanceof CoreOp.VarOp varOp) {
+                return varOp;
+            }
+            if (value instanceof Op.Result result && result.op() instanceof VarLikeOp varOp) {
+                return (Op) varOp;
+            }
+            if (parent != null) {
+                return parent.resolve(value);
+            }
+            if (value instanceof Block.Parameter parameter){
+                return parameter.uses().iterator().next().op();
+            }
+            throw new IllegalStateException("failed to resolve VarOp for value " + value);
+        }
+    }
+
+    public static final class FuncScope extends Scope<CoreOp.FuncOp> {
+        final FuncOpParams paramTable;
+        FuncScope(Scope<?> parent, CoreOp.FuncOp funcOp) {
+            super(parent, funcOp);
+            paramTable = new FuncOpParams(funcOp);
+        }
+
+        @Override
+        public Op resolve(Value value) {
+            if (value instanceof Block.Parameter blockParameter) {
+                if (paramTable.parameterVarOpMap.containsFrom(blockParameter)) {
+                    return paramTable.parameterVarOpMap.getTo(blockParameter);
+                } else {
+                    return super.resolve(value);
+                }
+            } else {
+                return super.resolve(value);
+            }
+        }
+    }
+
+    public static final class ForScope extends Scope<JavaOp.ForOp> {
+        Map<Block.Parameter, CoreOp.VarOp> blockParamToVarOpMap = new HashMap<>();
+        ForScope(Scope<?> parent, JavaOp.ForOp forOp) {
+            super(parent, forOp);
+            var loopParams = forOp.loopBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var updateParams = forOp.update().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var condParams = forOp.cond().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var lastInitOp = forOp.init().entryBlock().ops().getLast();
+            var lastInitOpOperand0Result = (Op.Result) lastInitOp.operands().getFirst();
+            var lastInitOpOperand0ResultOp = lastInitOpOperand0Result.op();
+            CoreOp.VarOp[] varOps;
+            if (lastInitOpOperand0ResultOp instanceof CoreOp.TupleOp tupleOp) {
+                 /*
+                 for (int j = 1, i=2, k=3; j < size; k+=1,i+=2,j+=3) {
+                    float sum = k+i+j;
+                 }
+                 java.for
+                 ()Tuple<Var<int>, Var<int>, Var<int>> -> {
+                     %0 : int = constant @"1";
+                     %1 : Var<int> = var %0 @"j";
+                     %2 : int = constant @"2";
+                     %3 : Var<int> = var %2 @"i";
+                     %4 : int = constant @"3";
+                     %5 : Var<int> = var %4 @"k";
+                     %6 : Tuple<Var<int>, Var<int>, Var<int>> = tuple %1 %3 %5;
+                     yield %6;
+                 }
+                 (%7 : Var<int>, %8 : Var<int>, %9 : Var<int>)boolean -> {
+                     %10 : int = var.load %7;
+                     %11 : int = var.load %12;
+                     %13 : boolean = lt %10 %11;
+                     yield %13;
+                 }
+                 (%14 : Var<int>, %15 : Var<int>, %16 : Var<int>)void -> {
+                     %17 : int = var.load %16;
+                     %18 : int = constant @"1";
+                     %19 : int = add %17 %18;
+                     var.store %16 %19;
+                     %20 : int = var.load %15;
+                     %21 : int = constant @"2";
+                     %22 : int = add %20 %21;
+                     var.store %15 %22;
+                     %23 : int = var.load %14;
+                     %24 : int = constant @"3";
+                     %25 : int = add %23 %24;
+                     var.store %14 %25;
+                     yield;
+                 }
+                 (%26 : Var<int>, %27 : Var<int>, %28 : Var<int>)void -> {
+                     %29 : int = var.load %28;
+                     %30 : int = var.load %27;
+                     %31 : int = add %29 %30;
+                     %32 : int = var.load %26;
+                     %33 : int = add %31 %32;
+                     %34 : float = conv %33;
+                     %35 : Var<float> = var %34 @"sum";
+                     java.continue;
+                 };
+                 */
+                varOps = tupleOp.operands().stream().map(operand -> (CoreOp.VarOp) (((Op.Result) operand).op())).toList().toArray(new CoreOp.VarOp[0]);
+            } else {
+                 /*
+                 for (int j = 0; j < size; j+=1) {
+                    float sum = j;
+                 }
+                 java.for
+                    ()Var<int> -> {
+                        %0 : int = constant @"0";
+                        %1 : Var<int> = var %0 @"j";
+                        yield %1;
+                    }
+                    (%2 : Var<int>)boolean -> {
+                        %3 : int = var.load %2;
+                        %4 : int = var.load %5;
+                        %6 : boolean = lt %3 %4;
+                        yield %6;
+                    }
+                    (%7 : Var<int>)void -> {
+                        %8 : int = var.load %7;
+                        %9 : int = constant @"1";
+                        %10 : int = add %8 %9;
+                        var.store %7 %10;
+                        yield;
+                    }
+                    (%11 : Var<int>)void -> {
+                        %12 : int = var.load %11;
+                        %13 : float = conv %12;
+                        %14 : Var<float> = var %13 @"sum";
+                        java.continue;
+                    };
+
+                 */
+                varOps = new CoreOp.VarOp[]{(CoreOp.VarOp) lastInitOpOperand0ResultOp};
+            }
+            for (int i = 0; i < varOps.length; i++) {
+                blockParamToVarOpMap.put(condParams[i], varOps[i]);
+                blockParamToVarOpMap.put(updateParams[i], varOps[i]);
+                blockParamToVarOpMap.put(loopParams[i], varOps[i]);
+            }
+        }
+
+        @Override
+        public Op resolve(Value value) {
+            if (value instanceof Block.Parameter blockParameter) {
+                CoreOp.VarOp varOp = this.blockParamToVarOpMap.get(blockParameter);
+                if (varOp != null) {
+                    return varOp;
+                }
+            }
+            return super.resolve(value);
+        }
+    }
+
+    public static final class IfScope extends Scope<JavaOp.IfOp> {
+        IfScope(Scope<?> parent, JavaOp.IfOp op) {
+            super(parent, op);
+        }
+    }
+
+    public static final class RootScope extends Scope<Op> {
+        RootScope() {
+            super(null,null);
+        }
+    }
+    public static final class LambdaScope extends Scope<JavaOp.LambdaOp> {
+        LambdaScope(Scope<?> parent, JavaOp.LambdaOp lambdaOp) {
+            super(parent,lambdaOp);
+        }
+        @Override public Op resolve(Value value){
+            return super.resolve(value);
+        }
+    }
+
+    private void popScope() {
+        scope = scope.parent;
+    }
+
+    public  void ifScope(JavaOp.IfOp ifOp, Runnable r) {
+        scope = new IfScope(scope, ifOp);
+        r.run();
+        popScope();
+    }
+    public  void lambdaScope(JavaOp.LambdaOp lambdaOp, Runnable r) {
+        scope = new LambdaScope(scope, lambdaOp);
+        r.run();
+        popScope();
+    }
+
+    public  void funcScope(CoreOp.FuncOp funcOp, Runnable r) {
+       scope = new FuncScope(scope,funcOp);
+        r.run();
+        popScope();
+    }
+
+    public  void forScope(JavaOp.ForOp forOp, Runnable r) {
+        scope = new ForScope(scope,forOp);
+        r.run();
+        popScope();
+    }
+
+    private final  MethodHandles.Lookup lookup;
+    private final CoreOp.FuncOp funcOp;
+    private  Scope<?> scope = new RootScope();
+    @Override public MethodHandles.Lookup lookup(){
+        return lookup;
+    }
+
+    public Op resolve(Value value){
+        return scope.resolve(value);
+    }
+    public CoreOp.FuncOp funcOp(){
+        return funcOp;
+    }
+    public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        this.lookup = lookup;
+        this.funcOp= funcOp;
+        this.paramTable = new FuncOpParams(funcOp);
+    }
+
+    private Map<Op.Result, CoreOp.VarOp> finalVarOps = new HashMap<>();
+
+    public void setFinals(Map<Op.Result, CoreOp.VarOp> finalVars) {
+        this.finalVarOps = finalVars;
+    }
+
+    public boolean isVarOpFinal(CoreOp.VarOp varOp) {
+        return finalVarOps.containsKey(varOp.result());
+    }
+}

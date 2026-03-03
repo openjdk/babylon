@@ -36,11 +36,13 @@ import java.util.List;
 import java.util.Map;
 
 public final class HATBarrierOp extends HATOp {
-    public static final String INTRINSIC_NAME = "barrier";
-    private static final String NAME = "hat.dialect.sync."+INTRINSIC_NAME;
+    public static final String NAME = "barrier";
 
     public HATBarrierOp(List<Value> operands) {
         super(operands);
+    }
+    public HATBarrierOp() {
+        super(List.of());
     }
 
     public HATBarrierOp(HATBarrierOp hatBarrierOp, CodeContext copyContext) {
@@ -57,7 +59,7 @@ public final class HATBarrierOp extends HATOp {
         return JavaType.VOID;
     }
 
-    public Map<String, Object> externalize() {return Map.of(NAME, JavaOp.InvokeOp.InvokeKind.INSTANCE);
+    public Map<String, Object> externalize() {return Map.of("hat.dialect.sync."+NAME, JavaOp.InvokeOp.InvokeKind.INSTANCE);
     }
 
 }

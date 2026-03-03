@@ -243,7 +243,7 @@ public class JavaTypeUtils {
                             default -> throw unsupported(t);
                         });
                 JavaType bound = select(tree, 2, JavaTypeUtils::toJavaType);
-                yield JavaType.typeVarRef(tvarName, owner, bound);
+                yield JavaType.typeVar(tvarName, owner, bound);
             }
             case JAVA_TYPE_PRIMITIVE_NAME -> {
                 String primitiveName = select(tree, 0, JavaTypeUtils::typeToName);

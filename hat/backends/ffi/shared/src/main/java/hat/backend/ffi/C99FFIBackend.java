@@ -28,38 +28,40 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
+import hat.types.BF16;
+import hat.types.F16;
+import jdk.incubator.code.CodeTransformer;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.buffer.*;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.callgraph.KernelCallGraph;
-import hat.codebuilders.ScopedCodeBuilderContext;
+import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
-import hat.dialect.HATMemoryOp;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.BufferState;
-import hat.ifacemapper.Schema;
-import hat.optools.OpTk;
-import hat.phases.HATFinalDetectionPhase;
-import jdk.incubator.code.TypeElement;
+import hat.dialect.HATMemoryVarOp;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.BufferState;
+import optkl.ifacemapper.BufferTracker;
+import optkl.ifacemapper.MappableIface;
+import optkl.ifacemapper.Schema;
+import hat.phases.HATFinalDetector;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-    public C99FFIBackend(String libName, Config config) {
-        super(libName, config);
+    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
+        super(arena,lookup,libName, config);
     }
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
@@ -72,9 +74,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelBufferContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(),kernelCallGraph,  ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
@@ -151,9 +153,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // sanitize dsName
             dsName = sanitize(dsName);
             builder.typedefKeyword()
-                    .space()
+                    .sp()
                     .structKeyword()
-                    .space()
+                    .sp()
                     .suffix_s(dsName)
                     .obrace()
                     .nl();
@@ -181,14 +183,14 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 else
                     type = sanitize(type);
 
-                builder.typeName(type)
-                        .space()
-                        .identifier(name);
+                builder.type(type)
+                        .sp()
+                        .id(name);
 
                 if (isArray.equals("[")) {
-                    builder.space()
+                    builder.sp()
                             .osbrace()
-                            .identifier(lenValue)
+                            .id(lenValue)
                             .csbrace();
                 }
                 builder.semicolon().nl();
@@ -199,32 +201,30 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
-        var here = OpTk.CallSite.of(C99FFIBackend.class, "createCode");
         builder.defines().types();
-        Set<Schema.IfaceType> already = new LinkedHashSet<>();
+        var visitedAlready=  new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
-                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
-                        if (!already.contains(t)) {
+                    BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
+                    boundSchema.schema().rootIfaceType.visitUniqueTypes( t -> {
+                        if (visitedAlready.add(t)) { // true first time we see this type
                             builder.typedef(boundSchema, t);
-                            already.add(t);
                         }
                     });
                 });
 
-        var annotation = kernelCallGraph.entrypoint.method.getAnnotation(Kernel.class);
+        var annotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
         if (annotation!=null){
-            var typedef = kernelCallGraph.entrypoint.method.getAnnotation(TypeDef.class);
+            var typedef = kernelCallGraph.entrypoint.method().getAnnotation(TypeDef.class);
             if (typedef!=null){
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
-                builder.typedefKeyword().space().structKeyword().space().suffix_s(typedef.name()).braceNlIndented(_->
+                builder.typedefKeyword().sp().structKeyword().sp().suffix_s(typedef.name()).braceNlIndented(_->
                         builder.preformatted(typedef.body())
                 ).suffix_t(typedef.name()).semicolon().nl();
             }
-            var preformatted = kernelCallGraph.entrypoint.method.getAnnotation(Preformatted.class);
+            var preformatted = kernelCallGraph.entrypoint.method().getAnnotation(Preformatted.class);
             if (preformatted!=null){
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformatted.value());
@@ -232,82 +232,85 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(annotation.value());
         } else {
-            List<TypeElement> localIFaceList = new ArrayList<>();
-
-            kernelCallGraph.getModuleOp()
-                    .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
-                    .map(c -> ((HATMemoryOp) c).invokeType())
-                    .forEach(localIFaceList::add);
-
-            kernelCallGraph.entrypoint.funcOp()
-                    .elements()
-                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
-                    .map(c -> ((HATMemoryOp) c).invokeType())
-                    .forEach(localIFaceList::add);
-
-            // Dynamically build the schema for the user data type we are creating within the kernel.
-            // This is because no allocation was done from the host. This is kernel code, and it is reflected
-            // using the code reflection API
-            // 1. Add for struct for iface objects
             Set<String> typedefs = new HashSet<>();
 
             // Add HAT reserved types
             typedefs.add(F16.class.getName());
             typedefs.add(BF16.class.getName());
 
-            for (TypeElement typeElement : localIFaceList) {
-                try {
-                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);
-                    Field schemaField = clazz.getDeclaredField("schema");
-                    schemaField.setAccessible(true);
-                    var schema = (DeviceSchema<?>)schemaField.get(schemaField);
-                    // <1> We are creating text form of DeviceType schema
-                    String toText = schema.toText();
-                    if (toText != null) {
-                        // <2> just to then parse the text from above.
-                        // Lets get the model in a cleaner form
-                        generateDeviceTypeStructs(builder, toText, typedefs);
-                    } else {
-                        throw new RuntimeException("[ERROR] Could not find valid device schema ");
-                    }
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            /*
+             I think the kernelCallGraph module op was built before we inserted HATMemoryVarOps
 
-            ScopedCodeBuilderContext buildContext =
-                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
-                            kernelCallGraph.entrypoint.funcOp());
+             So we will likely never get any matches from the module op
 
-            // Sorting by rank ensures we don't need forward declarations
+             List<ClassType> localIFaceList = new ArrayList<>();
+             kernelCallGraph.getModuleOp()
+                    .elements()
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> (ClassType)((HATMemoryVarOp) c).invokeType())
+                    .forEach(localIFaceList::add);
+
+
+
+             However,the sentiment from above was correct as we may have kernel reachable methods that do indeed
+             have these HATMemoryVarOps.  I think if we called a method from the entrypoint with Device type accesses
+             we would miss them
+             */
+
+            // Dynamically build the schema for the user data type we are creating within the kernel.
+            // This is because no allocation was done from the host. This is kernel code, and it is reflected
+            // using the code reflection API
+            // 1. Add for struct for iface objects
+            kernelCallGraph.entrypoint.funcOp()
+                    .elements()
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryVarOp)
+                    .map(c -> (ClassType)((HATMemoryVarOp) c).invokeType())
+                    .forEach( classType-> {
+                         try {
+                             Class<?> clazz = (Class<?>) classType.resolve(kernelCallGraph.lookup());
+                             Field schemaField = clazz.getDeclaredField("schema");
+                             schemaField.setAccessible(true);
+                             var schema = (DeviceSchema<?>)schemaField.get(schemaField);
+                             // <1> We are creating text form of DeviceType schema
+                             String toText = schema.toText();
+                             if (toText != null) {
+                                 // <2> just to then parse the text from above.
+                                 // Lets get the model in a cleaner form
+                                 generateDeviceTypeStructs(builder, toText, typedefs);
+                             } else {
+                                 throw new RuntimeException("[ERROR] Could not find valid device schema ");
+                             }
+                         } catch (ReflectiveOperationException e) {
+                             throw new RuntimeException(e);
+                         }
+            });
+
+            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.entrypoint.funcOp());
+
             kernelCallGraph.getModuleOp().functionTable()
                     .forEach((_, funcOp) -> {
                         // TODO: did we just trash the callgraph sidetables?
-
                         //  Why are we transforming the callgraph here
-                        HATFinalDetectionPhase finals = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
-                        finals.apply(funcOp);
-
+                        HATFinalDetector finals = new HATFinalDetector(kernelCallGraph);
                         // Update the build context for this method to use the right constants-map
-                        buildContext.setFinals(finals.getFinalVars());
+                        buildContext.setFinals(finals.applied(funcOp));
                         builder.nl().kernelMethod(buildContext, funcOp).nl();
                     });
 
             // Update the constants-map for the main kernel
             // Why are we doing this here we should not be mutating the kernel callgraph at this point
-            HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
-            hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
-            buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
+            HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph);
+            buildContext.setFinals(hatFinalDetector.applied(kernelCallGraph.entrypoint.funcOp()));
+
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {
-                IO.println("Original");
+                IO.println("Non Lowered");
                 IO.println(kernelCallGraph.entrypoint.funcOp().toText());
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
+                IO.println(kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
             }
         }
         return builder.toString();
@@ -327,7 +330,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     @Override
-    public void preMutate(Buffer b) {
+    public void preMutate(MappableIface b) {
         switch (b.getState()) {
             case BufferState.NO_STATE:
             case BufferState.NEW_STATE:
@@ -355,7 +358,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     @Override
-    public void postMutate(Buffer b) {
+    public void postMutate(MappableIface b) {
         if (config().showState()) {
             System.out.print("in postMutate state = " + b.getStateString() + " no action to take ");
         }
@@ -368,7 +371,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     @Override
-    public void preAccess(Buffer b) {
+    public void preAccess(MappableIface b) {
         switch (b.getState()) {
             case BufferState.NO_STATE:
             case BufferState.NEW_STATE:
@@ -398,7 +401,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
 
     @Override
-    public void postAccess(Buffer b) {
+    public void postAccess(MappableIface b) {
         if (config().showState()) {
             System.out.println("in postAccess state = " + b.getStateString());
         }

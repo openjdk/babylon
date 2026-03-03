@@ -29,12 +29,12 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.F16;
+import hat.buffer.F32Array;
+import hat.types.F16;
 import hat.buffer.F16Array;
 import hat.device.DeviceSchema;
-import hat.device.DeviceType;
-import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
+import hat.device.NonMappableIface;
+import optkl.ifacemapper.MappableIface.*;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
@@ -48,7 +48,7 @@ import java.util.Random;
 public class TestF16Type {
 
     @Reflect
-    public static void copy01(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+    public static void copy01(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             b.array(kernelContext.gix).value(ha.value());
@@ -56,7 +56,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_02(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void f16Ops_02(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
@@ -68,7 +68,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_03(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void f16Ops_03(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
@@ -80,7 +80,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_04(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void f16Ops_04(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
@@ -96,7 +96,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_05(@RO KernelContext kernelContext, @RW F16Array a) {
+    public static void f16Ops_05(@RO KernelContext kernelContext, @WO F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 initVal = F16.of( 2.1f);
@@ -105,7 +105,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_06(@RO KernelContext kernelContext, @RW F16Array a) {
+    public static void f16Ops_06(@RO KernelContext kernelContext, @WO F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 initVal = F16.of(kernelContext.gix);
             F16 ha = a.array(kernelContext.gix);
@@ -114,7 +114,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_08(@RO KernelContext kernelContext, @RW F16Array a) {
+    public static void f16Ops_08(@RO KernelContext kernelContext, @WO F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 initVal = F16.floatToF16(kernelContext.gix);
             F16 ha = a.array(kernelContext.gix);
@@ -123,7 +123,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_09(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+    public static void f16Ops_09(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             float f = F16.f16ToFloat(ha);
@@ -134,7 +134,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_10(@RO KernelContext kernelContext, @RW F16Array a) {
+    public static void f16Ops_10(@RO KernelContext kernelContext, @WO F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 f16 = F16.of(1.1f);
@@ -144,7 +144,7 @@ public class TestF16Type {
         }
     }
 
-    public interface DeviceLocalArray extends DeviceType {
+    public interface DeviceLocalArray extends NonMappableIface {
         F16 array(int index);
         //void array(int index, F16 value);
 
@@ -162,7 +162,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_11(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+    public static void f16Ops_11(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
         DeviceLocalArray sm = DeviceLocalArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -178,7 +178,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_12(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b,  @RW F16Array c) {
+    public static void f16Ops_12(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b,  @WO F16Array c) {
         // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
@@ -189,7 +189,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_13(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b,  @RW F16Array c) {
+    public static void f16Ops_13(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b,  @WO F16Array c) {
         // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
@@ -200,7 +200,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_14(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+    public static void f16Ops_14(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
         // Testing mixed float types
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
@@ -210,7 +210,7 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-    interface DevicePrivateArray extends DeviceType {
+    interface DevicePrivateArray extends NonMappableIface {
         F16 array(int index);
         //void array(int index, F16 value);
 
@@ -228,7 +228,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_15(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+    public static void f16Ops_15(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
         DevicePrivateArray privateArray = DevicePrivateArray.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -242,7 +242,7 @@ builder -> builder.withArray("array", 1024)
         }
     }
 
-    interface DevicePrivateArray2 extends DeviceType {
+    interface DevicePrivateArray2 extends NonMappableIface {
         F16 array(int index);
         void array(int index, F16 value);
 
@@ -304,72 +304,88 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+    public static void f16Ops_19(@RO KernelContext kernelContext, @RO F16Array a, @RO F32Array b, @WO F32Array c) {
+        if (kernelContext.gix < a.length()) {
+            float mul = F16.f16ToFloat(a.array(kernelContext.gix)) * b.array(kernelContext.gix);
+            c.array(kernelContext.gix, mul);
+        }
+    }
+
+    @Reflect
+    public static void f16Ops_20(@RO KernelContext kernelContext, @RO F16Array a, @RO F32Array b, @WO F32Array c) {
+        if (kernelContext.gix < a.length()) {
+            float mul = b.array(kernelContext.gix) * F16.f16ToFloat(a.array(kernelContext.gix));
+                    c.array(kernelContext.gix, mul);
+        }
+    }
+
+    @Reflect
+    public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.copy01(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute02(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void compute02(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_02(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute03(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void compute03(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_03(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute04(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void compute04(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_04(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute05(@RO ComputeContext computeContext, @RW F16Array a) {
+    public static void compute05(@RO ComputeContext computeContext, @WO F16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_05(kernelContext, a));
     }
 
     @Reflect
-    public static void compute06(@RO ComputeContext computeContext, @RW F16Array a) {
+    public static void compute06(@RO ComputeContext computeContext, @WO F16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_06(kernelContext, a));
     }
 
     @Reflect
-    public static void compute08(@RO ComputeContext computeContext, @RW F16Array a) {
+    public static void compute08(@RO ComputeContext computeContext, @WO F16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_08(kernelContext, a));
     }
 
     @Reflect
-    public static void compute09(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+    public static void compute09(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_09(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute10(@RO ComputeContext computeContext, @RW F16Array a) {
+    public static void compute10(@RO ComputeContext computeContext, @WO F16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_10(kernelContext, a));
     }
 
     @Reflect
-    public static void compute11(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+    public static void compute11(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length(),16), kernelContext -> TestF16Type.f16Ops_11(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute12(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void compute12(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_12(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute13(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void compute13(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_13(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute14(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+    public static void compute14(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_14(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute15(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+    public static void compute15(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length(),16), kernelContext -> TestF16Type.f16Ops_15(kernelContext, a, b));
     }
 
@@ -386,6 +402,16 @@ builder -> builder.withArray("array", 1024)
     @Reflect
     public static void compute18(@RO ComputeContext computeContext, @RW F16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(1), kernelContext -> TestF16Type.f16Ops_18(kernelContext, a));
+    }
+
+    @Reflect
+    public static void compute19(@RO ComputeContext computeContext, @RO F16Array a, @RO F32Array b, F32Array c) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_19(kernelContext, a, b, c));
+    }
+
+    @Reflect
+    public static void compute20(@RO ComputeContext computeContext, @RO F16Array a, @RO F32Array b, F32Array c) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestF16Type.f16Ops_20(kernelContext, a, b, c));
     }
 
     @HatTest
@@ -789,6 +815,48 @@ builder -> builder.withArray("array", 1024)
 
         F16 val = arrayA.array(0);
         HATAsserts.assertEquals(20.0f, F16.f16ToFloat(val), 0.01f);
+    }
+
+    @HatTest
+    @Reflect
+    public void testF16_19() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 512;
+
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+        F32Array arrayC = F32Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+        arrayB.array(0, r.nextFloat());
+
+        accelerator.compute(computeContext -> TestF16Type.compute19(computeContext, arrayA, arrayB, arrayC));
+
+        for (int i = 0; i < arrayC.length(); i++) {
+            HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) * arrayB.array(i), arrayC.array(i), 0.01f);
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void testF16_20() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 512;
+
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F32Array arrayB = F32Array.create(accelerator, size);
+        F32Array arrayC = F32Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        arrayA.array(0).value(F16.floatToF16(10).value());
+        arrayB.array(0, r.nextFloat());
+
+        accelerator.compute(computeContext -> TestF16Type.compute20(computeContext, arrayA, arrayB, arrayC));
+
+        for (int i = 0; i < arrayC.length(); i++) {
+            HATAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) * arrayB.array(i), arrayC.array(i), 0.01f);
+        }
     }
 
 }

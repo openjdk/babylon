@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,11 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import hat.types.BF16;
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface BF16Array extends Buffer {
     int length();
@@ -33,17 +36,15 @@ public interface BF16Array extends Buffer {
     BF16Impl array(long index);
 
     interface BF16Impl extends Struct, BF16 {
-        String NAME = "F16Impl";
-
-        char value();
-        void value(char value);
+        short value();
+        void value(short value);
     }
 
     Schema<BF16Array> schema = Schema.of(BF16Array.class, bf16array ->
             bf16array.arrayLen("length")
                      .array("array", bfloat16 -> bfloat16.fields("value")));
 
-    static BF16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    static BF16Array create(ArenaAndLookupCarrier cc, int length){
+        return BoundSchema.of(cc ,schema, length).allocate();
     }
 }

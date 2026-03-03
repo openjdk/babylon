@@ -265,6 +265,8 @@ public class TypeConvertor {
                     return OnnxType.TENSOR_UINT8;
                 } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
                     return OnnxType.TENSOR_BOOL;
+                } else if (elementType.equals(JavaType.J_L_STRING)) {
+                    return OnnxType.TENSOR_STRING;
                 }
             } else if (isRecord(type)) {
                 return recordTypeToTupleType(ct);

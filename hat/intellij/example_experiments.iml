@@ -8,5 +8,8 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="core" />
+    <orderEntry type="module" module-name="optkl" />
+    <orderEntry type="module" module-name="backend_ffi_shared" />
+    <orderEntry type="module" module-name="backend_ffi_opencl" />
   </component>
 </module>

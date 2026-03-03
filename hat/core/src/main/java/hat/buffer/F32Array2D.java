@@ -24,10 +24,15 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface F32Array2D extends Buffer {
+    @Reflect default void schema(){array(width()*height());};
+    Schema<F32Array2D> schema = Schema.of(F32Array2D.class);
 
     int width();
 
@@ -45,11 +50,8 @@ public interface F32Array2D extends Buffer {
         array((long) y * width() + x, v);
     }
 
-    Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").stride(1).array("array"));
-
-    static F32Array2D create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator, width,height);
+    static F32Array2D create(ArenaAndLookupCarrier cc, int width, int height){
+        return BoundSchema.of(cc ,schema, width,height).allocate();
     }
 
     default float[][] arrayView() {

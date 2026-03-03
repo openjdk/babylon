@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,12 +24,28 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.annotations.Order;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.BoundSchema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface KernelBufferContext extends Buffer {
 
+    @Reflect
+    default void  schema(){
+        dimensions();          // Dimension (1D, 2D or 3D)
+        gix(); giy(); giz();   // global thread-id accesses
+        gsx(); gsy(); gsz();   // global sizes
+        lix(); liy(); liz();   // local (thread-ids)
+        lsx(); lsy(); lsz();   // local sizes
+        bix(); biy(); biz();   // block index
+        bsx(); bsy(); bsz();   // block sizes
+    }
+    Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
+
+    // ----------------------------------------------------------------------|
+    // Mapping between OpenCL, CUDA and HAT                                  |
     // ----------------------------------------------------------------------|
     //| OpenCL            | CUDA                                  | HAT      |
     //| ----------------- | ------------------------------------- |--------- |
@@ -84,16 +100,19 @@ public interface KernelBufferContext extends Buffer {
     int biz();
     void biz(int biz);
 
-    @Order({"dimensions",  // Dimension (1D, 2D or 3D)
-            "gix", "giy", "giz",   // global thread-id accesses
-            "gsx", "gsy", "gsz",   // global sizes
-            "lix", "liy", "liz",   // local (thread-ids)
-            "lsx", "lsy", "lsz",   // block size
-            "bix", "biy", "biz"}  ) Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
+    int bsx();
+    void bsx(int bsx);
+    int bsy();
+    void bsy(int bsy);
+    int bsz();
+    void bsz(int bsz);
 
-    static KernelBufferContext createDefault(Accelerator accelerator) {
-        KernelBufferContext kernelBufferContext = schema.allocate(accelerator);
+    static KernelBufferContext createDefault(ArenaAndLookupCarrier cc) {
+        KernelBufferContext kernelBufferContext = BoundSchema.of(cc ,schema).allocate();
+
+        // Set default value for each construct
         kernelBufferContext.dimensions(3);
+
         kernelBufferContext.gix(0);
         kernelBufferContext.giy(0);
         kernelBufferContext.giz(0);
@@ -113,6 +132,10 @@ public interface KernelBufferContext extends Buffer {
         kernelBufferContext.bix(0);
         kernelBufferContext.biy(0);
         kernelBufferContext.biz(0);
+
+        kernelBufferContext.bsx(0);
+        kernelBufferContext.bsy(0);
+        kernelBufferContext.bsz(0);
 
         return kernelBufferContext;
     }

@@ -40,6 +40,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import jdk.incubator.code.*;
 
@@ -59,6 +60,7 @@ import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 public final class OnnxRuntime {
 
     static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.OnnxRuntime.DEBUG");
+    static final System.Logger LOG = System.getLogger("oracle.code.onnx");
     static final JavaType TENSOR_RAW_TYPE = JavaType.type(Tensor.class);
     static final JavaType LIST_RAW_TYPE = JavaType.type(List.class);
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
@@ -66,33 +68,39 @@ public final class OnnxRuntime {
     private static OnnxRuntime INSTANCE;
 
     static {
-        String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
-        String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
-        String libResource;
-        if (os.contains("mac") || os.contains("darwin")) {
-            libResource = "/ai/onnxruntime/native/osx-" + arch + "/libonnxruntime.dylib";
-        } else if (os.contains("win")) {
-            libResource = "/ai/onnxruntime/native/win-" + arch + "/libonnxruntime.dll";
-        } else if (os.contains("nux")) {
-            libResource = "/ai/onnxruntime/native/linux-" + arch + "/libonnxruntime.so";
-        } else {
-            throw new IllegalStateException("Unsupported os:" + os);
-        }
         try {
-            // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the shutdown hook from already closed classloader
-            Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
+            System.loadLibrary("onnxruntime");
+        } catch (UnsatisfiedLinkError _) {
+            // fallback to extract the library from onnxruntime dependency jar
+            String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
+            String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+            String libResource;
+            if (os.contains("mac") || os.contains("darwin")) {
+                libResource = "/ai/onnxruntime/native/osx-" + arch + "/libonnxruntime.dylib";
+            } else if (os.contains("win")) {
+                libResource = "/ai/onnxruntime/native/win-" + arch + "/libonnxruntime.dll";
+            } else if (os.contains("nux")) {
+                libResource = "/ai/onnxruntime/native/linux-" + arch + "/libonnxruntime.so";
+            } else {
+                throw new IllegalStateException("Unsupported os:" + os);
+            }
+            try {
+                // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the shutdown hook from already closed classloader
+                Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
+            try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
+                var libFile = File.createTempFile("libonnxruntime", "");
+                Path libFilePath = libFile.toPath();
+                Files.copy(Objects.requireNonNull(libStream), libFilePath, StandardCopyOption.REPLACE_EXISTING);
+                System.load(libFilePath.toAbsolutePath().toString());
+                libFile.deleteOnExit();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
-        try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
-            var libFile = File.createTempFile("libonnxruntime", "");
-            Path libFilePath = libFile.toPath();
-            Files.copy(Objects.requireNonNull(libStream), libFilePath, StandardCopyOption.REPLACE_EXISTING);
-            System.load(libFilePath.toAbsolutePath().toString());
-            libFile.deleteOnExit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        LOG.log(System.Logger.Level.DEBUG, "ONNX Runtime initialized");
     }
 
     private final MemorySegment runtimeAddress, ret, envAddress, defaultAllocatorAddress;
@@ -106,6 +114,7 @@ public final class OnnxRuntime {
         envAddress = retAddr(OrtApi.CreateEnv.invoke(OrtApi.CreateEnv(runtimeAddress), ORT_LOGGING_LEVEL_ERROR(), arena.allocateFrom(LOG_ID), ret));
         defaultAllocatorAddress = retAddr(OrtApi.GetAllocatorWithDefaultOptions.invoke(OrtApi.GetAllocatorWithDefaultOptions(runtimeAddress), ret)).reinterpret(arena, null);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOG.log(System.Logger.Level.DEBUG, "ONNX Runtime released");
             OrtApi.ReleaseEnv.invoke(OrtApi.ReleaseEnv(runtimeAddress), envAddress);
         }));
     }
@@ -164,16 +173,18 @@ public final class OnnxRuntime {
     }
 
     public static <T> T execute(Arena arena, MethodHandles.Lookup l, Supplier<T> codeLambda, SessionOptions options) {
-        var q = Op.ofQuotable(codeLambda).orElseThrow();
+        var q = Op.ofLambda(codeLambda).orElseThrow();
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q, options);
 
-        List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
+        List<Tensor> arguments = Stream.concat(q.capturedValues().sequencedValues().stream(),
+                                               model.bypassedInitValues().stream())
                 .mapMulti(OnnxRuntime::expandArg)
                 .toList();
+        LOG.log(System.Logger.Level.DEBUG, "Running ONNX session " + codeLambda.getClass().getSimpleName().split("\\$")[0]);
         List<Tensor> ret = model.session().run(arena, arguments);
 
-        var lambdaOp = ((JavaOp.LambdaOp) q.op());
+        var lambdaOp = q.op();
         TypeElement type = lambdaOp.invokableType().returnType();
         if (type instanceof ArrayType) {
             return (T) ret.toArray(Tensor[]::new);
@@ -295,6 +306,26 @@ public final class OnnxRuntime {
                 ret)).reinterpret(arena, value -> OrtApi.ReleaseValue.invoke(OrtApi.ReleaseValue(runtimeAddress), value));
     }
 
+    public MemorySegment createStringTensor(Arena arena, String[] data, long[] shape) {
+        var allocatorInfo = retAddr(OrtApi.AllocatorGetInfo.invoke(OrtApi.AllocatorGetInfo(runtimeAddress), defaultAllocatorAddress, ret));
+        MemorySegment flatDataPlacholder = arena.allocate(data.length * 24L); // @@@ calling of CreateTensorAsOrtValue crashes
+        var tensor = retAddr(OrtApi.CreateTensorWithDataAsOrtValue.invoke(
+                OrtApi.CreateTensorWithDataAsOrtValue(runtimeAddress),
+                allocatorInfo,
+                flatDataPlacholder, flatDataPlacholder.byteSize(),
+                autoShape(arena, shape, data.length), (long) shape.length,
+                Tensor.ElementType.STRING.id,
+                ret));
+        for (int i = 0; i < data.length; i++) {
+            checkStatus(OrtApi.FillStringTensorElement.invoke(
+                    OrtApi.FillStringTensorElement(runtimeAddress),
+                    tensor,
+                    arena.allocateFrom(data[i]),
+                    (long)i));
+        }
+        return tensor.reinterpret(arena, value -> OrtApi.ReleaseValue.invoke(OrtApi.ReleaseValue(runtimeAddress), value));
+    }
+
     public Tensor.ElementType tensorElementType(MemorySegment tensorAddr) {
         var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape.invoke(OrtApi.GetTensorTypeAndShape(runtimeAddress), tensorAddr, ret));
         return Tensor.ElementType.fromOnnxId(retInt(OrtApi.GetTensorElementType.invoke(OrtApi.GetTensorElementType(runtimeAddress), infoAddr, ret)));
@@ -307,6 +338,20 @@ public final class OnnxRuntime {
             var shape = arena.allocate(C_LONG_LONG, dims);
             checkStatus(OrtApi.GetDimensions.invoke(OrtApi.GetDimensions(runtimeAddress), infoAddr, shape, dims));
             return shape.toArray(C_LONG_LONG);
+        }
+    }
+
+    public long tensorShapeElementCount(MemorySegment tensorAddr) {
+        var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape.invoke(OrtApi.GetTensorTypeAndShape(runtimeAddress), tensorAddr, ret));
+        return retLong(OrtApi.GetTensorShapeElementCount.invoke(OrtApi.GetTensorShapeElementCount(runtimeAddress), infoAddr, ret));
+    }
+
+    public String stringTensorElement(MemorySegment tensorAddr, long elementIndex) {
+        try (var arena = Arena.ofConfined()) {
+            long elemLen = retLong(OrtApi.GetStringTensorElementLength.invoke(OrtApi.GetStringTensorElementLength(runtimeAddress), tensorAddr, elementIndex, ret));
+            var buf = arena.allocate(ValueLayout.JAVA_BYTE, elemLen + 1);
+            checkStatus(OrtApi.GetStringTensorElement.invoke(OrtApi.GetStringTensorElement(runtimeAddress), tensorAddr, elemLen, elementIndex, buf));
+            return buf.getString(0);
         }
     }
 
@@ -437,18 +482,18 @@ public final class OnnxRuntime {
         }
     }
 
-    record SessionWithReturnType(Session session, TypeElement returnType) {
+    record SessionWithReturnType(Session session, TypeElement returnType, List<Object> bypassedInitValues) {
     }
 
     static class CachedSessionClassValue extends ClassValue<SessionWithReturnType> {
 
         private MethodHandles.Lookup l;
-        private Quoted q;
+        private Quoted<JavaOp.LambdaOp> q;
         private SessionOptions options;
 
         // Static helper for cache with options
         protected SessionWithReturnType computeIfAbsent(
-                Class<?> lambdaClass, MethodHandles.Lookup l, Quoted q, SessionOptions options) {
+                Class<?> lambdaClass, MethodHandles.Lookup l, Quoted<JavaOp.LambdaOp> q, SessionOptions options) {
             try {
                 this.l = l;
                 this.q = q;
@@ -467,7 +512,10 @@ public final class OnnxRuntime {
             OnnxTransformer.ModuleAndInitializers mi = OnnxTransformer.transform(l, q);
 
             String domainName = type.getSimpleName().split("\\$")[0];
-            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues()));
+            boolean bypassInits = options != null && options.bypassInitilizers;
+            List<Object> initValues = getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues());
+            LOG.log(System.Logger.Level.DEBUG, "Building ONNX binary " + domainName);
+            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), bypassInits ? List.of() : initValues);
 
             if (DEBUG) {
                 System.out.println(mi.module().toText());
@@ -480,6 +528,7 @@ public final class OnnxRuntime {
                 }
             }
 
+            LOG.log(System.Logger.Level.DEBUG, "Creating ONNX session " + domainName);
             // cached session must be created under its own auto arena
             Session session = (options != null) ?
                     getInstance().createSession(Arena.ofAuto(), protobufModel, options) :
@@ -487,7 +536,8 @@ public final class OnnxRuntime {
 
             return new SessionWithReturnType(
                     session,
-                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType());
+                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType(),
+                    bypassInits ? initValues : List.of());
 
 
         }
@@ -552,9 +602,15 @@ public final class OnnxRuntime {
 
         private final MemorySegment sessionOptionsAddress;
 
+        boolean bypassInitilizers = false;
+
         public SessionOptions(MemorySegment sessionOptionsAddress) {
             this.sessionOptionsAddress = sessionOptionsAddress;
             setInterOpNumThreads(1);
+        }
+
+        public void registerCustomOpsLibrary(MemorySegment path) {
+            checkStatus(OrtApi.RegisterCustomOpsLibrary_V2.invoke(OrtApi.RegisterCustomOpsLibrary_V2(runtimeAddress), sessionOptionsAddress, path));
         }
 
         public void setInterOpNumThreads(int numThreads) {
@@ -571,6 +627,10 @@ public final class OnnxRuntime {
 
         public MemorySegment getSessionOptionsAddress() {
             return sessionOptionsAddress;
+        }
+
+        public void bypassInitizers() {
+            bypassInitilizers = true;
         }
     }
 }

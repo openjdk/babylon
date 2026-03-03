@@ -24,29 +24,39 @@
  */
 package hat;
 
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.buffer.BufferTracker;
+import hat.callgraph.ComputeEntrypoint;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+import jdk.incubator.code.interpreter.Interpreter;
+import optkl.util.carriers.ArenaAndLookupCarrier;
+import optkl.util.carriers.ArenaCarrier;
+import optkl.util.carriers.LookupCarrier;
+import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.SegmentMapper;
-import hat.optools.OpTk;
+import optkl.ifacemapper.MappableIface;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.Optional;
+
+import static optkl.OpHelper.Invoke.getTargetInvoke;
+import static optkl.OpHelper.Lambda.lambda;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
@@ -55,7 +65,7 @@ import java.util.function.Consumer;
  * The Compute closure is created first, by walking the code model of the entrypoint, then transitively
  * visiting all conventional code reachable from this entrypoint.
  * <p/>
- * Generally all user defined methods reachable from the entrypoint (and the entrypoint intself) must be static methods of the same
+ * Generally all user defined methods reachable from the entrypoint (and the entrypoint itself) must be static methods of the same
  * enclosing classes.
  * <p/>
  * We do allow calls on the ComputeContext itself, and on the mapped interface buffers holding non uniform kernel data.
@@ -67,24 +77,58 @@ import java.util.function.Consumer;
  *
  * @author Gary Frost
  */
-public class ComputeContext implements BufferAllocator, BufferTracker {
+public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
+
+    @Override
+    public Arena arena() {
+        return accelerator.arena();
+    }
+
+    @Override
+    public MethodHandles.Lookup lookup() {
+        return accelerator.lookup();
+    }
+
+    public ComputeEntrypoint computeEntrypoint() {
+        return computeCallGraph.entrypoint;
+    }
+
+    public Config config() {
+        return accelerator().config();
+    }
+
+    public void invokeWithArgs(Object[] args) {
+        computeEntrypoint().invokeWithArgs(args);
+
+    }
+
+    public void interpretWithArgs(Object[] args) {
+        computeEntrypoint().interpretWithArgs( args);
+    }
 
     public enum WRAPPER {
-        MUTATE("Mutate"), ACCESS("Access");//, ESCAPE("Escape");
+        MUTATE("Mutate"), ACCESS("Access");
         final public MethodRef pre;
         final public MethodRef post;
 
         WRAPPER(String name) {
-            this.pre = MethodRef.method(ComputeContext.class, "pre" + name, void.class, Buffer.class);
-            this.post = MethodRef.method(ComputeContext.class, "post" + name, void.class, Buffer.class);
+            this.pre = MethodRef.method(ComputeContext.class, "pre" + name, void.class, MappableIface.class);
+            this.post = MethodRef.method(ComputeContext.class, "post" + name, void.class, MappableIface.class);
         }
     }
 
-    public final Accelerator accelerator;
+    private  final Accelerator accelerator;
+    final  public  Accelerator accelerator(){
+        return accelerator;
+    }
+
+    private  final ComputeCallGraph computeCallGraph;
+    final  public  ComputeCallGraph computeCallGraph(){
+        return computeCallGraph;
+    }
 
 
-    public final ComputeCallGraph computeCallGraph;
 
     /**
      * Called by the Accelerator when the accelerator is passed a compute entrypoint.
@@ -110,12 +154,46 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
-        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, Op.ofMethod(computeMethod).orElseThrow());
+        Optional<FuncOp> funcOp =  Op.ofMethod(computeMethod);
+        if (funcOp.isEmpty()) {
+            throw new RuntimeException("Failed to create ComputeCallGraph (did you miss @Reflect annotation?).");
+        }
+        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp.get());
         this.accelerator.backend.computeContextHandoff(this);
     }
+    record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
+    private Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+
+    /** Creating the kernel callsite involves
+         walking the code model of the lambda
+         analysing the callgraph and trsnsforming to HATDielect
+     So we cache the callsite against the location from the lambdaop.
+     */
     public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
-        dispatchKernelWithComputeRange(ndRange, kernel);
+        Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
+
+        var location = quoted.op().location();
+
+        KernelCallSite kernelCallSite;
+        if (kernelCallSiteCache.containsKey(location)) {
+            var oldKernelCallSite = kernelCallSiteCache.get(location);
+            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
+        } else {
+            kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
+                JavaOp.LambdaOp lambdaOp = quoted.op();
+                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeReference();
+                KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+                if (kernelCallGraph == null) {
+                    throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+                }
+                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
+            });
+        }
+        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method());
+        KernelContext kernelContext = accelerator.range(ndRange);
+        args[0] = kernelContext;
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);
     }
 
     /**
@@ -126,13 +204,13 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
      *  The tile kernel of offload and run on the hardware accelerator
      */
     public void dispatchTile(TileRange tileRange, Tile tileKernel) {
-        Quoted quoted = Op.ofQuotable(tileKernel).orElseThrow();
+        Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(tileKernel).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
         IO.println("Lambda");
         IO.println(lambdaOp.toText());
-        MethodRef methodRef = OpTk.getTargetInvokeOp(lambdaOp).invokeDescriptor();
+        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();
         try {
-            Method method = methodRef.resolveToMethod(accelerator.lookup);
+            Method method = methodRef.resolveToMethod(this.lookup());
             CoreOp.FuncOp funcOp = Op.ofMethod(method).get();
             IO.println("function: ");
             IO.println(funcOp.toText());
@@ -149,11 +227,11 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
                             if (basicType == JavaType.INT) {
                                 // Found the int field. we can replace it with a constant value
                                 try {
-                                    Field field = fieldLoadOp.fieldDescriptor().resolveToField(accelerator.lookup);
+                                    Field field = fieldLoadOp.fieldReference().resolveToField(this.lookup());
                                     IO.println(field);
                                     // We can pass null because, at this point, we know it is a static field
                                     int anInt = field.getInt(null);
-                                    CoreOp.ConstantOp c = CoreOp.ConstantOp.constant(basicType, anInt);
+                                    CoreOp.ConstantOp c = CoreOp.constant(basicType, anInt);
                                     Op.Result op1 = blockBuilder.op(c);
                                     c.setLocation(fieldLoadOp.location());
                                     blockBuilder.context().mapValue(fieldLoadOp.result(), op1);
@@ -182,42 +260,16 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     }
 
-    record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
-
-    private CallGraph getKernelCallGraph(Kernel kernel) {
-        Quoted quoted = Op.ofQuotable(kernel).orElseThrow();
-        JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef = OpTk.getTargetInvokeOp( lambdaOp).invokeDescriptor();
-        KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-        if (kernelCallGraph == null){
-            throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?) ");
-        }
-        return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
-    }
-
-    private void dispatchKernelWithComputeRange(NDRange<?, ?> ndRange, Kernel kernel) {
-        CallGraph cg = getKernelCallGraph(kernel);
-        try {
-            Object[] args = OpTk.getQuotedCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
-            KernelContext kernelContext = accelerator.range(ndRange);
-            args[0] = kernelContext;
-            accelerator.backend.dispatchKernel(cg.kernelCallGraph, kernelContext, args);
-        } catch (Throwable t) {
-            System.out.print("what?" + cg.methodRef + " " + t);
-            t.printStackTrace();
-            throw t;
-        }
-    }
 
     @Override
-    public void preMutate(Buffer b) {
+    public void preMutate(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.preMutate(b);
         }
     }
 
     @Override
-    public void postMutate(Buffer b) {
+    public void postMutate(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postMutate(b);
         }
@@ -225,7 +277,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public void preAccess(Buffer b) {
+    public void preAccess(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.preAccess(b);
         }
@@ -233,15 +285,10 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     }
 
     @Override
-    public void postAccess(Buffer b) {
+    public void postAccess(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postAccess(b);
         }
-    }
-
-    @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-        return accelerator.allocate(segmentMapper, boundSchema);
     }
 
     @Reflect

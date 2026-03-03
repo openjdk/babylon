@@ -24,10 +24,13 @@
  */
 package hat.backend.ffi;
 
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
+
 public class MockDeviceInfo {
 
     public static void main(String[] args) {
-        MockBackend mockBackend = new MockBackend();
+        MockBackend mockBackend = new MockBackend(Arena.global(), MethodHandles.lookup());
         mockBackend.backendBridge.showDeviceInfo();
     }
 }

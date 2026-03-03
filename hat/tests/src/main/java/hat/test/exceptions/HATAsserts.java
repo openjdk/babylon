@@ -24,8 +24,8 @@
  */
 package hat.test.exceptions;
 
-import hat.buffer.Float2;
-import hat.buffer.Float4;
+import hat.types.Float2;
+import hat.types.Float4;
 
 public class HATAsserts {
 
@@ -37,6 +37,12 @@ public class HATAsserts {
 
     public static void assertEquals(int expected, int actual) {
         if (expected != actual) {
+            throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
+        }
+    }
+
+    public static void assertEquals(String expected, String actual) {
+        if (!expected.equals(actual)) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }

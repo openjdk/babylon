@@ -32,8 +32,8 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
-import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.reflect.Method;

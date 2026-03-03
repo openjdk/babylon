@@ -27,20 +27,19 @@ package jdk.incubator.code;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
 import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
 /**
- * A code element, one of {@link Body body}, {@link Block block}, or {@link Op operation}.
+ * A code element, one of {@link Body body}, {@link Block block}, or {@link Op operation}, is an element in a code
+ * model.
  * <p>
- * A code may have a parent code element. An unbound code element is an operation, an unbound operation, that has no
- * parent block. An unbound operation may also be considered a root operation if never bound. A code element and all its
- * ancestors can be traversed, up to and including the unbound or root operation.
+ * Code elements form a tree. A code element may have a parent code element. A root code element is an operation,
+ * a root operation, that has no parent element (a block). A code element and all its ancestors can be traversed,
+ * up to and including the root operation.
  * <p>
- * A code element may have child code elements, and so on. An unbound or root operation and all its descendants can be
- * traversed, down to and including operations with no children. Bodies and blocks have at least one child element.
+ * A code element may have child code elements. A root code element and all its descendants can be
+ * traversed, down to and including elements with no children. Bodies and blocks have at least one child element.
  *
  * @param <E> the code element type
  * @param <C> the child code element type.
@@ -73,22 +72,20 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Returns the parent element, otherwise {@code null}
-     * if there is no parent.
+     * Returns the parent element, otherwise {@code null} if this element is an operation that has no parent block.
      *
      * @return the parent code element.
-     * @throws IllegalStateException if this element is an operation whose parent block is unbuilt.
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     CodeElement<?, E> parent();
 
     // Nearest ancestors
 
     /**
-     * Finds the nearest ancestor operation, otherwise {@code null}
-     * if there is no nearest ancestor.
+     * Finds the nearest ancestor operation, otherwise {@code null} if there is no nearest ancestor.
      *
      * @return the nearest ancestor operation.
-     * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     default Op ancestorOp() {
         return switch (this) {
@@ -106,11 +103,10 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Finds the nearest ancestor body, otherwise {@code null}
-     * if there is no nearest ancestor.
+     * Finds the nearest ancestor body, otherwise {@code null} if there is no nearest ancestor.
      *
      * @return the nearest ancestor body.
-     * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     default Body ancestorBody() {
         return switch (this) {
@@ -118,7 +114,7 @@ public sealed interface CodeElement<
             case Block block -> block.parent();
             // body -> op~ -> block? -> body
             case Body body -> {
-                // Throws ISE if block is partially constructed
+                // Throws ISE if block is not built
                 Block ancestor = body.parent().parent();
                 yield ancestor == null ? null : ancestor.parent();
             }
@@ -132,11 +128,10 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Finds the nearest ancestor block, otherwise {@code null}
-     * if there is no nearest ancestor.
+     * Finds the nearest ancestor block, otherwise {@code null} if there is no nearest ancestor.
      *
      * @return the nearest ancestor block.
-     * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     default Block ancestorBlock() {
         return switch (this) {
@@ -157,6 +152,7 @@ public sealed interface CodeElement<
      *
      * @param descendant the descendant element.
      * @return true if this element is an ancestor of the descendant element.
+     * @throws IllegalStateException if an unbuilt block is encountered.
      */
     default boolean isAncestorOf(CodeElement<?, ?> descendant) {
         Objects.requireNonNull(descendant);
@@ -175,8 +171,73 @@ public sealed interface CodeElement<
      */
     List<C> children();
 
-    // Siblings
-    // Left, right
+    /**
+     * Compares two code elements by comparing their pre-order traversal positions in the code model.
+     * <p>
+     * The pre-order traversal position of a code element, {@code e} say, is equivalent to result of
+     * the expression {@code root.elements().toList().indexOf(e)}, where {@code root} is the root
+     * code element of the code model containing {@code e}.
+     *
+     * @param a the first code element to compare
+     * @param b the second code element to compare
+     * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a}'s pre-order traversal position
+     * is less than {@code b}'s position; and {@code 1} if {@code a}'s pre-order traversal position
+     * is greater than {@code b}'s position
+     * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
+     * @throws IllegalStateException if an unbuilt block is encountered.
+     */
+    static int compare(CodeElement<?, ?> a, CodeElement<?, ?> b) {
+        if (a == b) {
+            return 0;
+        }
 
-    // Des
+        // Find the common ancestor of a and b and the respective children
+        int depthA = getDepth(a);
+        int depthB = getDepth(b);
+
+        CodeElement<?, ?> childA = a;
+        CodeElement<?, ?> childB = b;
+        while (depthA > depthB) {
+            childA = a;
+            a = a.parent();
+            depthA--;
+        }
+
+        while (depthB > depthA) {
+            childB = b;
+            b = b.parent();
+            depthB--;
+        }
+
+        while (a != b) {
+            childA = a;
+            a = a.parent();
+            childB = b;
+            b = b.parent();
+        }
+
+        if (a == null) {
+            // No common ancestor, a and b are not in the same code model
+            throw new IllegalArgumentException("Comparing code elements in different code models");
+        } else if (a == childA) {
+            // a is an ancestor of b
+            return -1;
+        } else if (a == childB) {
+            // b is an ancestor of a
+            return 1;
+        } else {
+            // a and b share a common ancestor
+            List<?> children = a.children();
+            return Integer.compare(children.indexOf(childA), children.indexOf(childB));
+        }
+    }
+
+    private static int getDepth(CodeElement<?, ?> a) {
+        int depth = 0;
+        while (a.parent() != null) {
+            a = a.parent();
+            depth++;
+        }
+        return depth;
+    }
 }

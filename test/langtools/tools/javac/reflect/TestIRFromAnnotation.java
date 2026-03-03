@@ -62,14 +62,11 @@ import javax.tools.ToolProvider;
 public class TestIRFromAnnotation {
 
     static final Set<String> EXCLUDED_TEST = Set.of(
-            "SuperTest.java",                   // @@@ Might be issue referencing auxiliary interface
-                                                // in method superInterfaceMethodInvocation
-            "LocalClassTest.java",              // name of local classes is not stable at annotation processing time
-            "TestLocalCapture.java",            // plain junit test
-            "TestCaptureQuoted.java",           // plain junit test
-            "TestCaptureQuotable.java",         // plain junit test
-            "QuotedSameInstanceTest.java",      // plain junit test
-            "CodeModelSameInstanceTest.java"    // plain junit test
+            "LocalClassTest.java",                      // name of local classes is not stable at annotation processing time
+            "TestLocalCapture.java",                    // plain junit test
+            "TestLambdaCapture.java",                   // plain junit test
+            "ReflectableLambdaSameInstanceTest.java",   // plain junit test
+            "CodeModelSameInstanceTest.java"            // plain junit test
     );
 
     public static void main(String... args) throws Exception {
@@ -179,7 +176,7 @@ public class TestIRFromAnnotation {
 
     // parses, and then serializes, dropping location information
     static String canonicalizeModel(String d) {
-        return serialize(OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, d).get(0));
+        return serialize(OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, d).get(0));
     }
 
     // serializes, dropping location information

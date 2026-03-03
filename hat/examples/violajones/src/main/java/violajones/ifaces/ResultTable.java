@@ -25,11 +25,9 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.ifacemapper.Schema;
-
-import java.lang.invoke.MethodHandles;
+import optkl.ifacemapper.BoundSchema;
+import optkl.ifacemapper.Buffer;
+import optkl.ifacemapper.Schema;
 
 public interface ResultTable extends Buffer {
 
@@ -68,7 +66,7 @@ public interface ResultTable extends Buffer {
     );
 
     static ResultTable create(Accelerator accelerator,int length){
-        return schema.allocate(accelerator,length);
+        return BoundSchema.of(accelerator ,schema,length).allocate();
     }
 
 }

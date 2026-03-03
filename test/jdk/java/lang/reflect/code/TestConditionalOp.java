@@ -40,6 +40,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestConditionalOp
+ * @run main Unreflect TestConditionalOp
+ * @run junit TestConditionalOp
  */
 
 public class TestConditionalOp {

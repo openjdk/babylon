@@ -29,13 +29,14 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.Inliner;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -111,11 +112,11 @@ public class MathOptimizerWithInlining {
         return funcOp;
     }
 
-    static void main(String[] args) {
+    static void main() {
 
         // Obtain the code model for the annotated method
         CoreOp.FuncOp codeModel = buildCodeModelForMethod(MathOptimizerWithInlining.class, "myFunction");
-        System.out.println(codeModel.toText());
+        IO.println(codeModel.toText());
 
         enum FunctionToUse {
             SHIFT,
@@ -196,13 +197,13 @@ public class MathOptimizerWithInlining {
             return blockBuilder;
         });
 
-        System.out.println("Code Model after the first transform (replace with a new method): ");
-        System.out.println(codeModel.toText());
+        IO.println("Code Model after the first transform (replace with a new method): ");
+        IO.println(codeModel.toText());
 
         // Let's now apply a second transformation
         // We want to inline the functions. Note that we can apply this transformation if any of the new functions
         // have been replaced.
-        System.out.println("Second transform: apply inlining for the new methods into the main code model");
+        IO.println("Second transform: apply inlining for the new methods into the main code model");
         if (replace.get() != FunctionToUse.GENERIC) {
 
             // Build code model for the functions we want to inline.
@@ -239,17 +240,22 @@ public class MathOptimizerWithInlining {
                 return blockBuilder;
             });
 
-            System.out.println("After inlining: " + codeModel.toText());
+            IO.println("After inlining: " + codeModel.toText());
         }
 
         codeModel = codeModel.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        System.out.println("After Lowering: ");
-        System.out.println(codeModel.toText());
+        IO.println("After Lowering: ");
+        IO.println(codeModel.toText());
 
-        System.out.println("\nEvaluate with Interpreter.invoke");
-        // The Interpreter Invoke should launch new exceptions
-        var result = Interpreter.invoke(MethodHandles.lookup(), codeModel, 10);
-        System.out.println(result);
+        IO.println("\nGenerate bytecode and execute");
+        MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
+        try {
+            var result = methodHandle.invoke(10);
+            IO.println(result);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     // Utility methods
@@ -291,15 +297,15 @@ public class MathOptimizerWithInlining {
     static final MethodRef JAVA_LANG_MATH_POW = MethodRef.method(Math.class, "pow", double.class, double.class, double.class);
 
     private static boolean whenIsMathPowFunction(JavaOp.InvokeOp invokeOp) {
-        return invokeOp.invokeDescriptor().equals(JAVA_LANG_MATH_POW);
+        return invokeOp.invokeReference().equals(JAVA_LANG_MATH_POW);
     }
 
     private static boolean isMethodWeWantToInline(JavaOp.InvokeOp invokeOp) {
-        return (invokeOp.invokeDescriptor().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionShift")
-                || invokeOp.invokeDescriptor().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionMult"));
+        return (invokeOp.invokeReference().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionShift")
+                || invokeOp.invokeReference().toString().startsWith("oracle.code.samples.MathOptimizerWithInlining::functionMult"));
     }
 
     private static boolean isShiftFunction(JavaOp.InvokeOp invokeOp) {
-        return invokeOp.invokeDescriptor().toString().contains("functionShift");
+        return invokeOp.invokeReference().toString().contains("functionShift");
     }
 }

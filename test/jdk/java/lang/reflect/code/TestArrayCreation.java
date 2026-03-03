@@ -37,6 +37,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestArrayCreation
+ * @run main Unreflect TestArrayCreation
+ * @run junit TestArrayCreation
  */
 
 public class TestArrayCreation {
@@ -80,6 +82,20 @@ public class TestArrayCreation {
         System.out.println(f.toText());
 
         Assertions.assertArrayEquals(f3(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
+    }
+
+    @Reflect
+    public static String[][] f4() {
+        return new String[][]{{"one", "two"}, {"three"}};
+    }
+
+    @Test
+    public void testf4() {
+        CoreOp.FuncOp f = getFuncOp("f4");
+
+        System.out.println(f.toText());
+
+        Assertions.assertArrayEquals(f4(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

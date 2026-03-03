@@ -25,6 +25,8 @@
  * @test
  * @modules jdk.incubator.code
  * @run junit TestPatterns
+ * @run main Unreflect TestPatterns
+ * @run junit TestPatterns
  * @enablePreview */
 
 import jdk.incubator.code.Reflect;

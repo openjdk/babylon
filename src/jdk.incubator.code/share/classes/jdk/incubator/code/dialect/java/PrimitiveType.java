@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * A primitive type.
+ * A primitive type
  */
 public final class PrimitiveType implements JavaType {
     // Fully qualified name

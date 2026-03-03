@@ -403,9 +403,9 @@ public class SpirvModuleGenerator {
                             SPIRVId elementType = vectorElementType(vectorType);
                             Op reduceOp = ((Op.Result)call.operands().get(1)).op();
                             if (reduceOp instanceof SpirvOps.FieldLoadOp flo) {
-                                assert flo.fieldDescriptor().refType().equals(JavaType.type(VectorOperators.class));
-                                assert flo.fieldDescriptor().name().equals("ADD");
-                                String operation = flo.fieldDescriptor().name();
+                                assert flo.fieldReference().refType().equals(JavaType.type(VectorOperators.class));
+                                assert flo.fieldReference().name().equals("ADD");
+                                String operation = flo.fieldReference().name();
                             }
                             else unsupported("operation expression", reduceOp.toText());
                             String tempTag = nextTempTag();
@@ -537,7 +537,7 @@ public class SpirvModuleGenerator {
                             SpirvResult result;
                             int group = -1;
                             int index = -1;
-                            String fieldName = flo.fieldDescriptor().name();
+                            String fieldName = flo.fieldReference().name();
                             switch(fieldName) {
                                 case "x": group = 0; index = 0; break;
                                 case "y": group = 0; index = 1; break;
@@ -556,13 +556,13 @@ public class SpirvModuleGenerator {
                         else if (((JavaType)flo.resultType()).equals(JavaType.type(VectorSpecies.class))) {
                             addResult(flo.result(), new SpirvResult(getType("int"), null, getConst("int_EIGHT")));
                         }
-                        else if (flo.fieldDescriptor().refType().equals(JavaType.type(VectorOperators.class))) {
+                        else if (flo.fieldReference().refType().equals(JavaType.type(VectorOperators.class))) {
                             // currently ignored
                         }
-                        else if (flo.fieldDescriptor().refType().equals(JavaType.type(ByteOrder.class))) {
+                        else if (flo.fieldReference().refType().equals(JavaType.type(ByteOrder.class))) {
                             // currently ignored
                         }
-                        else unsupported("field load", ((ClassType)flo.fieldDescriptor().refType()).toClassName() + "." + flo.fieldDescriptor().name());
+                        else unsupported("field load", ((ClassType)flo.fieldReference().refType()).toClassName() + "." + flo.fieldReference().name());
                     }
                     case SpirvOps.BranchOp bop -> {
                         SPIRVId trueLabel = symbols.getLabel(bop.branch()).getResultId();

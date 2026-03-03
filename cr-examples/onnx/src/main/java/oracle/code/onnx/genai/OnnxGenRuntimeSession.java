@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import oracle.code.onnx.OnnxProtoBuilder;
 import oracle.code.onnx.OnnxRuntime;
@@ -135,6 +134,8 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
  */
 public class OnnxGenRuntimeSession implements AutoCloseable {
 
+    static final System.Logger LOG = System.getLogger("oracle.code.onnx");
+
     /**
      * Loads {@code onnxruntime-genai} native library from the given folder.
      * This method unpacks required {@code onnxruntime} library from dependencies, if missing.
@@ -168,6 +169,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
 
     /**
      * Builds Onnx model from the provided Java model instance and loads it into a constructs the Onnx Generate API session.
+     * @param l lookup
      * @param codeReflectionModelInstance Instance of a class representing Onnx LLM model.
      * @param methodName Main model method name.
      * @param targetOnnxModelDir Target folder for generation of Onnx model and external tensor data file.
@@ -176,9 +178,8 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
      * @return a live session instance
      * @throws IOException In case of any IO problems during model generation.
      */
-    public static OnnxGenRuntimeSession buildFromCodeReflection(Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
+    public static OnnxGenRuntimeSession buildFromCodeReflection(MethodHandles.Lookup l, Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
         Method method = Stream.of(codeReflectionModelInstance.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(methodName)).findFirst().orElseThrow();
-        MethodHandles.Lookup l = MethodHandles.lookup();
         CoreOp.FuncOp javaModel = OnnxTransformer.evaluate(l, Op.ofMethod(method).orElseThrow());
         OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(l, javaModel);
         List<Object> initializers = OnnxRuntime.getInitValues(l, onnxModel.initializers(), List.of(codeReflectionModelInstance));
@@ -239,10 +240,13 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
      * @param outputConsumer Consumer receiving decoded model response from the model generator.
      */
     public void prompt(String prompt, Consumer<String> outputConsumer) {
+        LOG.log(System.Logger.Level.DEBUG, "Create sequences");
         var inputTokens = call(OgaCreateSequences(ret));
         try {
             call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(prompt), inputTokens));
+            LOG.log(System.Logger.Level.DEBUG, "Tokenizer encode");
             call(OgaGenerator_AppendTokenSequences(generator, inputTokens));
+            LOG.log(System.Logger.Level.DEBUG, "Generator loop");
             while (!OgaGenerator_IsDone(generator)) {
                 call(OgaGenerator_GenerateNextToken(generator));
                 int nextToken = call(OgaGenerator_GetNextTokens(generator, ret, count)).get(C_INT, 0);
@@ -250,6 +254,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
                 outputConsumer.accept(response);
             }
             outputConsumer.accept("\n");
+            LOG.log(System.Logger.Level.DEBUG, "Tokenizer stream decoded");
         } finally {
             OgaDestroySequences(inputTokens);
         }

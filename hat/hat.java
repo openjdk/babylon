@@ -55,8 +55,9 @@ static void help(){
 
              run:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ...] runnable  args
                       run ffi-opencl mandel
-                      run ffi-opencl nbody 4096
-                      run ffi-opencl -DHAT=SHOW_CODE nbody 4096
+                      run ffi-opencl nbody HAT
+                      run ffi-opencl nbodygl 4096
+                      run ffi-opencl -DHAT=SHOW_CODE nbodygl 4096
                       run ffi-opencl -DHAT=SHOW_KERNEL_MODEL heal
                       run ffi-opencl -DHAT=MINIMIZE_BUFFERS life
 
@@ -76,6 +77,15 @@ static void help(){
 static  void logoAndHelp(){
     logo();
     help();
+}
+
+private static class Colours {
+    public static String RED = "\u001b[31m";
+    public static String GREEN = "\u001b[32m";
+    public static String BLUE = "\u001b[34m";
+    public static String CYAN = "\u001b[36m";
+    public static String YELLOW = "\u001b[33m";
+    public static String RESET = "\u001b[0m";
 }
 
 public static void main(String[] argArr) throws IOException, InterruptedException {
@@ -121,7 +131,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         // These next three 'optional' dependencies use cmake to determine availability.  We delegate to cmake which
         //    a) determines if capability is available,
-        //    b) if they are, they extract from cmake vars (see conf/cmake-info/OpenCL/properties for example) information export headers and libs needed by JExtract
+        //    b) if they are, they extract from cmake vars (see conf/cmake-info/OpenCL/properties for example)
+        //       information export headers and libs needed by JExtract
         var jextractOpts = JExtract.Config.of(o -> o.command(true));
         var cmakeOpts = CMake.Config.of(o -> o.command(true));
         var openclCmakeInfo = new OpenCL(hat.id("cmake-info-opencl"), cmake);
@@ -129,9 +140,10 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var cudaCmakeInfo = new Cuda(hat.id("cmake-info-cuda"), cmake);
 
         // Now we just create jars and shared libs and declare dependencies
-        var core = hat.jar("core");
-        var tools = hat.jar("tools", core);
-        var tests = hat.jar("tests", core, tools);
+        var optkl = hat.jar("optkl");
+        var core = hat.jar("core", optkl);
+        //var tools = hat.jar("tools", core);
+        var tests = hat.jar("tests", core);
 
         var backend_ffi_native = hat.cmakeAndJar("backend{s}-ffi", core, cmake);
         var ffiSharedBackend = hat.jar("backend{s}-ffi-shared", backend_ffi_native);
@@ -143,24 +155,30 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var backend_mt_java = hat.jar("backend{s}-java-mt", core);
         var backend_seq_java = hat.jar("backend{s}-java-seq", core);
         var example_squares = hat.jar("example{s}-squares", core);
-        var example_matmul = hat.jar("example{s}-matmul", core);
         var example_blackscholes = hat.jar("example{s}-blackscholes", core);
         var example_view = hat.jar("example{s}-view", core);
         var example_normmap = hat.jar("example{s}-normmap", core); // will probabvly need shared when we hatify
 
         // example_shared allows us to break out common UI functions, views, even loops etc
         var example_shared = hat.jar("example{s}-shared", ui, core);
+        var example_nbody = hat.jar("example{s}-nbody", ui, core);
+
+        var example_flash_attention = hat.jar("example{s}-flashattention", core, example_shared);
+        var example_dft = hat.jar("example{s}-dft", core, example_shared);
+        var example_fft = hat.jar("example{s}-fft", core, example_shared);
+        var example_matmul = hat.jar("example{s}-matmul", core, example_shared);
 
         // These examples use example_shared, so they are UI based
         var example_mandel = hat.jar("example{s}-mandel", example_shared);
         var example_life = hat.jar("example{s}-life", example_shared);
         var example_heal = hat.jar("example{s}-heal", example_shared);
+        var example_shade = hat.jar("example{s}-shade", example_shared);
         var example_violajones = hat.jar("example{s}-violajones", example_shared);
 
         // experiments include code that expects an opencl backend, this is not idea, but we can accomodate
         var example_experiments = hat.jar("example{s}-experiments", core);
 
-        // Now we have the more complex nonsense for nbody (which needs opengl and opencl extracted)
+        // Now we have the more complex nonsense for nbodygl (which needs opengl and opencl extracted)
         var wrapped_shared = hat.jar("wrap{s}-shared");
         var jextracted_opencl = hat.jextract("extract{ions|ed}-opencl", jextract, openclCmakeInfo, core);
         var wrapped_jextracted_opencl = hat.jar("wrap{s}-opencl", jextracted_opencl, wrapped_shared);
@@ -174,9 +192,27 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         var wrapped_jextracted_opengl = hat.jar("wrap{s}-opengl", Set.of(excludedOpenGLWrapSrc), jextracted_opengl, wrapped_shared);
 
-        // Finally we have everything needed for nbody
-        var example_nbody = hat.jar("example{s}-nbody", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
+        // Finally we have everything needed for nbodygl
+        var example_nbodygl = hat.jar("example{s}-nbodygl", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
 
+        var listOfExamples = List.of(
+           example_squares,
+           example_matmul,
+           example_flash_attention,
+           example_blackscholes,
+           example_view,
+           example_normmap,
+           example_nbody,
+           example_mandel,
+           example_life,
+           example_heal,
+           example_shade,
+           example_violajones,
+           example_experiments,
+           example_nbodygl
+        );
+        //listOfExamples.forEach(jar->System.out.println(jar.id().projectRelativeHyphenatedName()));
+        //System.exit(1);
         var testEnginePackage = "hat.test.engine";
         var testEngineClassName = "HATTestEngine";
         while (!args.isEmpty()) {
@@ -198,7 +234,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     final var textSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
                     final var sourceSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
 
-                    Stream.of("hat", "core", "tools", "examples", "backends", "docs", "wraps")
+                    Stream.of("hat", "tests", "optkl", "core", "examples", "backends", "docs", "wraps")
                             .map(hat.rootPath()::resolve)
                             .forEach(dir -> {
                                 System.out.println("Checking " + dir);
@@ -221,7 +257,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                         if (hat.get(backendName) instanceof Jar backend) {
                             var javaOpts = commonJavaOpts.with(o -> o
                                     .collectVmOpts(args).mainClass(args.removeFirst(), "Main")
-                                    .startOnFirstThreadIf(o.packageName().equals("nbody") && mac.isAvailable()).collectArgs(args)
+                                    .startOnFirstThreadIf(o.packageName().equals("nbodygl") && mac.isAvailable()).collectArgs(args)
                             );
                             if (hat.get(javaOpts.packageName()) instanceof Jar runnable) {
                                 runnable.run(javaOpts, runnable, backend);
@@ -247,9 +283,23 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             var test_reports_txt = Paths.get("test_report.txt");
                             Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
                             var commonTestSuiteJavaOpts = commonJavaOpts.with(o -> o
-                                    .command(false).collectVmOpts(args).mainClass(testEnginePackage, testEngineClassName) //  note no app args as add them below
+                                    .command(false).collectVmOpts(args).mainClass(testEnginePackage, testEngineClassName)
+                                //  note no app args as add them below
                             );
 
+                            // First run - checking the total number of tests
+                            int[] totalTests = new int[]{0};
+                            tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_, matcher) -> {
+                                tests.run(Jar.JavaConfig.of(commonTestSuiteJavaOpts, o -> o.arg(matcher.group(1).replace('/', '.')).arg("--count-tests")), tests, backend);
+                                Path path = Path.of(".num_tests");
+                                try {
+                                    // accomulate the total number of tests
+                                    String content = Files.readString(path);
+                                    totalTests[0] += Integer.parseInt(content);
+                                } catch (IOException e) {}
+                            });
+
+                            // Second run - testing
                             tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_, matcher) ->
                                     tests.run(Jar.JavaConfig.of(commonTestSuiteJavaOpts, o -> o.arg(matcher.group(1).replace('/', '.'))), tests, backend)
                             );
@@ -266,6 +316,9 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                     return String.format("Global passed: %d, failed: %d, unsupported: %d, precision-errors: %d, pass-rate: %.2f%%\\n",
                                             passed, failed, unsupported, precisionError, ((float) (passed * 100 / (passed + failed + unsupported + precisionError))));
                                 }
+                                public int total() {
+                                    return passed + failed + unsupported + precisionError;
+                                }
                             }
                             var stats = new Stats();
                             Files.readAllLines(test_reports_txt).forEach(line -> {
@@ -279,7 +332,22 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                     stats.precisionError += Integer.parseInt(matcher.group(4));
                                 }
                             });
-                            System.out.println(stats);
+
+                            IO.println(Colours.BLUE);
+                            IO.println(stats);
+                            IO.println(Colours.RESET);
+
+                            if (stats.total() == totalTests[0]) {
+                                IO.println(Colours.GREEN);
+                                IO.println("[REPORT] OK: All tests launched. Total: " + totalTests[0]);
+                                IO.println(Colours.RESET);
+                            } else {
+                                IO.println(Colours.RED);
+                                IO.println("[REPORT] Test failed. Some tests were not launched. Common reasons: seg-faults, driver-issues. Please, check again.");
+                                IO.println("    - Expected to run: " + totalTests[0] + ". But launched " + stats.total());
+                                IO.println(Colours.RESET);
+                            }
+
                             if (stats.failed > 0) {
                                 System.exit(-1);
                             } else {

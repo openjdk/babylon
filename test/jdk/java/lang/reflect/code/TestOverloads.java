@@ -38,6 +38,8 @@ import java.util.List;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestOverloads
+ * @run main Unreflect TestOverloads
+ * @run junit TestOverloads
  */
 
 public class TestOverloads {
@@ -85,7 +87,7 @@ public class TestOverloads {
 
     @ParameterizedTest
     @MethodSource("testData")
-    public static void testOverloads(Class<?>[] paramTypes, Object[] params) {
+    public void testOverloads(Class<?>[] paramTypes, Object[] params) {
         try {
             Class<TestOverloads> clazz = TestOverloads.class;
             Method method = clazz.getDeclaredMethod("f", paramTypes);

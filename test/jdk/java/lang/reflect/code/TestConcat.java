@@ -41,6 +41,8 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @run junit TestConcat
+ * @run main Unreflect TestConcat
+ * @run junit TestConcat
  */
 
 public class TestConcat {
@@ -204,7 +206,7 @@ public class TestConcat {
 
     @ParameterizedTest
     @MethodSource("testData")
-    public static void testRun(TestMethodData t) {
+    public void testRun(TestMethodData t) {
         try {
             Object[] args = new Object[] {valMap.get(t.first), valMap.get(t.second)};
             Class<TestConcat> clazz = TestConcat.class;

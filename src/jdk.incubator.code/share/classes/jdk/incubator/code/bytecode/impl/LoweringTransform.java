@@ -38,16 +38,17 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.internal.BranchTarget;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
+import jdk.incubator.code.dialect.java.JavaType;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
@@ -103,7 +104,21 @@ public final class LoweringTransform {
         }
 
         Value selector = block.context().getValue(swOp.operands().get(0));
-        block.op(new ConstantLabelSwitchOp(selector, labelsAndTargets.labels(), blocks.stream().map(Block.Builder::successor).toList()));
+        if (ConstantLabelSwitchChecker.isIntegralReferenceType(selector.type())) {
+            // unbox selector
+            if (selector.type().equals(J_L_CHARACTER)) {
+                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "charValue", JavaType.CHAR), selector));
+            } else {
+                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "intValue", JavaType.INT), selector));
+            }
+        }
+        var labels = labelsAndTargets.labels();
+        if (!labels.contains(null)) {
+            // implicit default to exit
+            labels.add(null);
+            blocks.add(exit);
+        }
+        block.op(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::successor).toList()));
         return exit;
     }
 
@@ -164,11 +179,11 @@ public final class LoweringTransform {
                         (convOp.resultType() instanceof PrimitiveType || convOp.resultType().equals(J_L_STRING)) &&
                                 isConstantExpr(convOp.operands().get(0));
                 case JavaOp.InvokeOp invokeOp ->
-                        isBoxingMethod(invokeOp.invokeDescriptor()) && isConstantExpr(invokeOp.operands().get(0));
+                    isBoxingMethod(invokeOp.invokeReference()) && isConstantExpr(invokeOp.operands().get(0));
                 case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
                     Field field;
                     try {
-                        field = fieldLoadOp.fieldDescriptor().resolveToField(lookup);
+                field = fieldLoadOp.fieldReference().resolveToField(lookup);
                     } catch (ReflectiveOperationException e) {
                         throw new RuntimeException(e);
                     }
@@ -176,8 +191,8 @@ public final class LoweringTransform {
                 }
                 case JavaOp.UnaryOp unaryOp -> isConstantExpr(unaryOp.operands().get(0));
                 case JavaOp.BinaryOp binaryOp -> binaryOp.operands().stream().allMatch(this::isConstantExpr);
-                case JavaOp.BinaryTestOp binaryTestOp ->
-                        binaryTestOp.operands().stream().allMatch(this::isConstantExpr);
+                case JavaOp.CompareOp compareOp ->
+                        compareOp.operands().stream().allMatch(this::isConstantExpr);
                 case JavaOp.ConditionalExpressionOp cexpr -> // bodies must yield constant expressions
                         isConstantExpr(((YieldOp) cexpr.bodies().get(0).entryBlock().terminatingOp()).yieldValue()) &&
                                 isConstantExpr(((YieldOp) cexpr.bodies().get(1).entryBlock().terminatingOp()).yieldValue()) &&
@@ -203,7 +218,7 @@ public final class LoweringTransform {
             // EqOp for primitives, method invocation for Strings and Reference Types
             return switch (r.op()) {
                 case JavaOp.EqOp eqOp -> isConstantExpr(eqOp.operands().get(1));
-                case JavaOp.InvokeOp invokeOp when !invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS) -> false;
+                case JavaOp.InvokeOp invokeOp when !invokeOp.invokeReference().equals(OBJECTS_EQUALS) -> false;
                 case JavaOp.InvokeOp invokeOp -> {
                     // case null
                     if (invokeOp.operands().get(1) instanceof Op.Result opr && opr.op() instanceof CoreOp.ConstantOp cop && cop.value() == null) {
@@ -254,7 +269,7 @@ public final class LoweringTransform {
         var labels = new ArrayList<Integer>();
         switch (opr.op()) {
             case JavaOp.EqOp eqOp -> labels.add(extractConstantLabel(lookup, body, eqOp));
-            case JavaOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(OBJECTS_EQUALS) ->
+                case JavaOp.InvokeOp invokeOp when invokeOp.invokeReference().equals(OBJECTS_EQUALS) ->
                     labels.add(extractConstantLabel(lookup, body, invokeOp));
             case JavaOp.ConditionalOrOp cor -> {
                 for (Body corbody : cor.bodies()) {
@@ -276,7 +291,12 @@ public final class LoweringTransform {
                 if (!(capturedValue instanceof Op.Result r) || !(r.op() instanceof CoreOp.VarOp vop)) {
                     continue;
                 }
-                block.op(((Op.Result) vop.initOperand()).op());
+                Op cop = ((Op.Result) vop.initOperand()).op();
+                if (cop instanceof JavaOp.ConvOp) {
+                    // converted constant
+                    block.op(((Op.Result)cop.operands().getFirst()).op());
+                }
+                block.op(cop);
                 block.op(vop);
             }
             Op.Result last = null;
@@ -288,7 +308,15 @@ public final class LoweringTransform {
             }
             block.op(CoreOp.return_(last));
         });
-        Object res = Interpreter.invoke(lookup, funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER));
+        Object res;
+        try {
+            // @@@ workaround until JDK-8376974 Evaluate constant expressions
+            // Exposed evaluation of constant expressions should simplify this process.
+            // Then we can expose the computation of constant case values on the switch ops.
+            res = BytecodeGenerator.generate(lookup, funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER)).invoke();
+        } catch (Throwable t) {
+            throw new IllegalStateException(t);
+        }
         return switch (res) {
             case Byte b -> Integer.valueOf(b);
             case Short s -> Integer.valueOf(s);

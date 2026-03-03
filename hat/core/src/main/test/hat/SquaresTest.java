@@ -35,7 +35,7 @@ import java.lang.invoke.MethodHandles;
 
 /*
  * @test
- * @run testng hat.CustomOpTest
+ * @run testng hat.SquaresTest
  */
 
 public class SquaresTest {
