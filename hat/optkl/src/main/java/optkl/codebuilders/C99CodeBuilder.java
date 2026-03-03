@@ -46,15 +46,15 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T suffix_t(String name) {
-        return identifier(name).identifier("_t");
+        return id(name).id("_t");
     }
 
     public final T suffix_u(String name) {
-        return identifier(name).identifier("_u");
+        return id(name).id("_u");
     }
 
     public final T suffix_s(String name) {
-        return identifier(name).identifier("_s");
+        return id(name).id("_s");
     }
 
     public final T suffix_t(Class<?> klass) {
@@ -86,7 +86,7 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T externC() {
-        return externKeyword().space().dquote("C");
+        return externKeyword().sp().dquote("C");
     }
 
     public final T hashDefineKeyword() {
@@ -106,11 +106,11 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T hashIfdef(String value) {
-        return hashIfdefKeyword().space().constant(value).nl();
+        return hashIfdefKeyword().sp().constant(value).nl();
     }
 
     public final T hashIfndef(String value) {
-        return hashIfndefKeyword().space().constant(value).nl();
+        return hashIfndefKeyword().sp().constant(value).nl();
     }
 
     public final T hashIfdef(String value, Consumer<T> consumer) {
@@ -130,24 +130,24 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T hashDefine(String name, String... values) {
-        hashDefineKeyword().space().identifier(name);
+        hashDefineKeyword().sp().id(name);
         for (String value : values) {
-            space().constant(value);
+            sp().constant(value);
         }
         return nl();
     }
 
     public final T hashDefine(String name, Consumer<T> consumer) {
-        hashDefineKeyword().space().identifier(name);
-        space();
+        hashDefineKeyword().sp().id(name);
+        sp();
         consumer.accept(self());
         return nl();
     }
 
     public final T macro(String name, List<String> params, Consumer<T> body) {
-        hashDefineKeyword().space().identifier(name);
-        return paren( _ -> commaSpaceSeparated(params, this::identifier))
-               .space()
+        hashDefineKeyword().sp().id(name);
+        return paren( _ -> commaSpaceSeparated(params, this::id))
+               .sp()
                .paren( _ -> body.accept(self()))
                .nl();
     }
@@ -165,47 +165,47 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     public final T maxMacroBody(List<String> params) {
         final String a = params.getFirst();
         final String b = params.get(1);
-        paren(_ -> paren(_ -> identifier(a))
+        paren(_ -> paren(_ -> id(a))
                 .gt()
-                .paren(_ -> identifier(b)));
+                .paren(_ -> id(b)));
         questionMark()
-                .paren(_ -> identifier(a))
+                .paren(_ -> id(a))
                 .colon()
-                .paren(_ -> identifier(b));
+                .paren(_ -> id(b));
         return self();
     }
 
     public final T minMacroBody(List<String> params) {
         final String a = params.getFirst();
         final String b = params.get(1);
-        paren(_ -> paren( _ -> identifier(a))
+        paren(_ -> paren( _ -> id(a))
                 .lt()
-                .paren( _ -> identifier(b)));
+                .paren( _ -> id(b)));
         questionMark()
-                .paren( _ -> identifier(a))
+                .paren( _ -> id(a))
                 .colon()
-                .paren( _ -> identifier(b));
+                .paren( _ -> id(b));
         return self();
     }
 
     public final T pragma(String name, String... values) {
-        hash().pragmaKeyword().space().identifier(name);
+        hash().pragmaKeyword().sp().id(name);
         for (String value : values) {
-            space().constant(value);
+            sp().constant(value);
         }
         return nl();
     }
 
     public final T includeSys(String... values) {
         for (String value : values) {
-            hash().includeKeyword().space().lt().identifier(value).gt().nl();
+            hash().includeKeyword().sp().lt().id(value).gt().nl();
         }
         return self();
     }
 
     public final T include(String... values) {
         for (String value : values) {
-            hash().includeKeyword().space().dquote().identifier(value).dquote().nl();
+            hash().includeKeyword().sp().dquote().id(value).dquote().nl();
         }
         return nl();
     }
@@ -215,75 +215,75 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T u08Type() {
-        return typeName("unsigned").space().s08Type();
+        return type("unsigned").sp().s08Type();
     }
 
     public final T u08Type(String identifier) {
-        return u08Type().space().identifier(identifier);
+        return u08Type().sp().id(identifier);
     }
 
     public final T u08PtrType() {
-        return u08Type().space().asterisk();
+        return u08Type().sp().asterisk();
     }
 
     public final T u08PtrType(String identifier) {
-        return u08PtrType().identifier(identifier);
+        return u08PtrType().id(identifier);
     }
 
     public final T u32Type() {
-        return typeName("unsigned").space().s32Type();
+        return type("unsigned").sp().s32Type();
     }
 
     public final T u32Type(String identifier ) {
-        return u32Type().space().identifier(identifier);
+        return u32Type().sp().id(identifier);
     }
 
     public final T u64Type() {
-        return typeName("unsigned").space().s64Type();
+        return type("unsigned").sp().s64Type();
     }
 
     public final T u16Type() {
-        return typeName("unsigned").space().s16Type();
+        return type("unsigned").sp().s16Type();
     }
 
     public final T u16Type(String identifier) {
-        return u16Type().space().identifier(identifier);
+        return u16Type().sp().id(identifier);
     }
 
     public final T bfloat16Type(String identifier) {
-        return suffix_t("BFLOAT16_UNION").space().identifier(identifier);
+        return suffix_t("BFLOAT16_UNION").sp().id(identifier);
     }
 
     public final  T typedefStructOrUnion(boolean isStruct, Class<?> klass, Consumer<T> consumer) {
         return typedefKeyword()
-                .space()
+                .sp()
                 .structOrUnion(isStruct)
-                .space()
+                .sp()
                 .either(isStruct, _ -> suffix_s(klass), _ -> suffix_u(klass))
                 .braceNlIndented(consumer)
-                .suffix_t(klass).semicolonNl();
+                .suffix_t(klass).snl();
     }
 
     public final T typedefStruct(String name, Consumer<T> consumer) {
         return typedefKeyword()
-                .space()
+                .sp()
                 .structKeyword()
-                .space()
+                .sp()
                 .suffix_s(name)
                 .braceNlIndented(consumer)
                 .suffix_t(name)
-                .semicolonNl();
+                .snl();
     }
 
     public final T typedefUnion(String name, Consumer<T> consumer) {
         return typedefKeyword()
-                .space()
+                .sp()
                 .union()
-                .space()
+                .sp()
                 .suffix_s(name)
                 .braceNlIndented(consumer)
                 .suffix_t(name)
-                .semicolonNl();
+                .snl();
     }
 
     public final T typedefStruct(Class<?>clazz, Consumer<T> consumer) {
@@ -291,20 +291,20 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T typedefSingleValueStruct(String structName, String type) {
-        return typedefStruct(structName,_-> typeName(type).space().identifier("value").semicolon());
+        return typedefStruct(structName,_-> type(type).sp().id("value").semicolon());
     }
 
     public final T unionBfloat16() {
         return typedefUnion("BFLOAT16_UNION", _ -> {
-            typeName("float").space().identifier("f").semicolon().nl();
-            u16Type("s").sizeArray(2).semicolon().nl();
+            type("float").sp().id("f").snl();
+            u16Type("s").sbrace( _ -> intConst(2)).snl();
             u32Type("i").semicolon();
         });
     }
 
     public final T funcDef(Consumer<T> type, Consumer<T> name, Consumer<T> args, Consumer<T> body){
         type.accept(self());
-        space();
+        sp();
         name.accept(self());
         paren(args);
         braceNlIndented(body);
@@ -318,17 +318,17 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T ifTrueCondition(Consumer<T> condition, Consumer<T> ... trueStatements) {
-        return ifKeyword().space().paren( _-> condition.accept(self())).space().brace( _ ->
+        return ifKeyword().sp().paren(_-> condition.accept(self())).sp().brace(_ ->
                 nl().indent( _ -> {
                     for (Consumer<T> statement : trueStatements) {
                         statement.accept(self());
-                        semicolonNl();
+                        snl();
                     }
                 })).nl();
     }
 
     public final T call(String name,Consumer<T> ...args) {
-        return call(_->identifier(name),args);
+        return call(_-> id(name),args);
     }
 
 
@@ -337,7 +337,7 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T sizeof(String identifier) {
-        return sizeof(_->identifier(identifier));
+        return sizeof(_-> id(identifier));
     }
 
     public final T sizeof(Consumer<T> consumer) {
@@ -345,19 +345,19 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     }
 
     public final T voidPtrType() {
-        return voidType().space().asterisk();
+        return voidType().sp().asterisk();
     }
 
     public final T voidPtrType(String identifier) {
-        return voidPtrType().identifier(identifier);
+        return voidPtrType().id(identifier);
     }
 
     public final T sizeType() {
-        return typeName("size_t");
+        return type("size_t");
     }
 
     public final T sizeType(String identifier) {
-        return sizeType().space().identifier(identifier);
+        return sizeType().sp().id(identifier);
     }
 
 }
