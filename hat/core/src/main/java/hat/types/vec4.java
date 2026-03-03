@@ -225,14 +225,6 @@ public interface vec4 extends IfaceValue.vec{
         return vec4(0f-v.x(), 0f-v.y(), 0f-v.z(), 0f-v.w());
     }
 
-    static vec4 vec4(vec2 vec2, float z, float w){
-        return vec4(vec2.x(), vec2.y(), z, w);
-    }
-
-    static vec4 vec4(vec3 vec3, float w){
-        return vec4(vec3.x(), vec3.y(), vec3.z(), w);
-    }
-
     static float dot(vec4 l, vec4 r){
         return l.x()*r.x()+l.y()*r.y()+l.z()*r.z()+l.w()*r.w();
     }
@@ -318,6 +310,14 @@ public interface vec4 extends IfaceValue.vec{
             F32.mod(l.z(), r),
             F32.mod(l.w(), r)
         );
+    }
+
+    static vec4 vec4(vec2 vec2, float z, float w){
+        return vec4(vec2.x(), vec2.y(), z, w);
+    }
+
+    static vec4 vec4(vec3 vec3, float w){
+        return vec4(vec3.x(), vec3.y(), vec3.z(), w);
     }
 
 

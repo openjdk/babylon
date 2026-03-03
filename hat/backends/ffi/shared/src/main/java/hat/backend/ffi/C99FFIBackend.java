@@ -47,18 +47,14 @@ import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import hat.phases.HATFinalDetector;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -157,9 +153,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // sanitize dsName
             dsName = sanitize(dsName);
             builder.typedefKeyword()
-                    .space()
+                    .sp()
                     .structKeyword()
-                    .space()
+                    .sp()
                     .suffix_s(dsName)
                     .obrace()
                     .nl();
@@ -187,14 +183,14 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 else
                     type = sanitize(type);
 
-                builder.typeName(type)
-                        .space()
-                        .identifier(name);
+                builder.type(type)
+                        .sp()
+                        .id(name);
 
                 if (isArray.equals("[")) {
-                    builder.space()
+                    builder.sp()
                             .osbrace()
-                            .identifier(lenValue)
+                            .id(lenValue)
                             .csbrace();
                 }
                 builder.semicolon().nl();
@@ -224,7 +220,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             var typedef = kernelCallGraph.entrypoint.method().getAnnotation(TypeDef.class);
             if (typedef!=null){
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
-                builder.typedefKeyword().space().structKeyword().space().suffix_s(typedef.name()).braceNlIndented(_->
+                builder.typedefKeyword().sp().structKeyword().sp().suffix_s(typedef.name()).braceNlIndented(_->
                         builder.preformatted(typedef.body())
                 ).suffix_t(typedef.name()).semicolon().nl();
             }

@@ -28,7 +28,6 @@ import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.IfaceValue.vec;
@@ -38,7 +37,6 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,9 +48,8 @@ public class VecAndMatBuilder {
     private record Config(
             Path path,
             vec.Shape shape,
-            boolean collectStats,
-
-            List<vec.Shape> composableLanes) {
+            boolean collectStats
+    ) {
         public String vectorName() {
             return "vec" + shape.lanes();
         }
@@ -61,12 +58,8 @@ public class VecAndMatBuilder {
             return "mat" + shape.lanes();
         }
 
-        public static Config noStats(Path path, TypeElement typeElement, int lanes, List<Integer> composableLaneSizes) {
-            var composableLanes = new ArrayList<vec.Shape>();
-            for (var i : composableLaneSizes) {
-                composableLanes.add(vec.Shape.of(typeElement, i));
-            }
-            return new Config(path, vec.Shape.of(typeElement, lanes), false, composableLanes);
+        public static Config noStats(Path path, vec.Shape shape){
+            return new Config(path, shape, false);
         }
     }
 
@@ -156,16 +149,12 @@ public class VecAndMatBuilder {
             return config.shape.lanes();
         }
 
-        VecBuilder sp() {
-            return space();
-        }
-
         VecBuilder vType() {
-            return typeName(config.vectorName());
+            return type(config.vectorName());
         }
 
         VecBuilder mType() {
-            return typeName(config.matName());
+            return type(config.matName());
         }
 
         VecBuilder lType() {
@@ -173,7 +162,7 @@ public class VecAndMatBuilder {
         }
 
         VecBuilder vDecl(String id) {
-            return vType().space().id(id);
+            return vType().sp().id(id);
         }
 
         VecBuilder mDecl(String id) {
@@ -185,15 +174,7 @@ public class VecAndMatBuilder {
         }
 
         VecBuilder simpleClassName(Class<?> clazz) {
-            return typeName(clazz.getSimpleName());
-        }
-
-        VecBuilder cs() {
-            return commaSpace();
-        }
-
-        VecBuilder id(String name) {
-            return identifier(name);
+            return type(clazz.getSimpleName());
         }
 
         VecBuilder idSp(String name) {
@@ -207,22 +188,10 @@ public class VecAndMatBuilder {
         VecBuilder idDotIdParen(String n1, String n2) {
             return id(n1).dot().idParen(n2);
         }
-        VecBuilder idDotIdParen(String n1, char n2) {
-            return id(n1).dot().idParen(Character.toString(n2));
-        }
 
         VecBuilder idParen(String name) {
             return id(name).ocparen();
         }
-
-        VecBuilder snl() {
-            return semicolonNl();
-        }
-
-        VecBuilder cnl() {
-            return comma().nl();
-        }
-
 
         VecBuilder f32Call(String name, Consumer<VecBuilder> consumer) {
             return simpleClassName(F32.class).dot().idParen(name, consumer);
@@ -260,16 +229,16 @@ public class VecAndMatBuilder {
             vb.stmnt(_ ->
                     vb.assign(
                             _ -> vb.simpleClassName(vec.Shape.class).sp().id("shape"),
-                            _ -> vb.typeName("Shape").dot().idParen("of", _ -> {
+                            _ -> vb.type("Shape").dot().idParen("of", _ -> {
                                 vb.simpleClassName(JavaType.class).dot();
                                 vb.either(config.shape.typeElement() instanceof JavaType javaType && JavaType.FLOAT.equals(javaType),
-                                        _ -> vb.typeName("FLOAT"),
-                                        _ -> vb.typeName("INT"));
-                                vb.cs().intValue(vb.lanes());
+                                        _ -> vb.type("FLOAT"),
+                                        _ -> vb.type("INT"));
+                                vb.csp().intValue(vb.lanes());
                             })
                     )
             ).nl();
-            vb.stmnt(_ -> vb.join(vb.lNames(), _ -> vb.snl(), n -> vb.lType().sp().idParen(n))).nl(2);
+            vb.stmnt(_ -> vb.sep(vb.lNames(), _ -> vb.snl(), n -> vb.lType().sp().idParen(n))).nl(2);
 
             vb.when(config.collectStats,  _ ->
                     vb.stmnt(_ -> vb.assign(
@@ -277,39 +246,39 @@ public class VecAndMatBuilder {
                                     _ -> vb.newKwSp().simpleClassName(AtomicInteger.class).paren(_ -> vb.intConstZero())
                             )).nl().stmnt(_ -> vb.assign(
                                     _ -> vb.simpleClassName(AtomicBoolean.class).sp().id("collect"),
-                                    _ -> vb.newKwSp().simpleClassName(AtomicBoolean.class).paren(_ -> vb.booleanFalse())
+                                    _ -> vb.newKwSp().simpleClassName(AtomicBoolean.class).paren(_ -> vb.boolConst(false))
                             )
                     ).nl()
             );
 
                 vb.blockComment("This allows us to add this type to interface mapped segments ");
                 vb.interfaceKwSp().idSp("Field").extendsKwSp().vType().body(_ ->
-                        vb.stmnt(_ -> vb.join(vb.lNames(), _ -> vb.snl(), n -> vb.voidType().sp().idParen(n, _ -> vb.lDecl(n)))).nl()
-                                .defaultKwSp().func(_ -> vb.vType(), "of", _ -> vb.join(vb.lNames(), _ -> vb.cs(), vb::lDecl),
-                                        _ -> vb.stmnt(_ -> vb.join(vb.lNames(), _ -> vb.snl(), n -> vb.idParen(n, _ -> vb.id(n))).snl()
+                        vb.stmnt(_ -> vb.sep(vb.lNames(), _ -> vb.snl(), n -> vb.voidType().sp().idParen(n, _ -> vb.lDecl(n)))).nl()
+                                .defaultKwSp().func(_ -> vb.vType(), "of", _ -> vb.sep(vb.lNames(), _ -> vb.csp(), vb::lDecl),
+                                        _ -> vb.stmnt(_ -> vb.sep(vb.lNames(), _ -> vb.snl(), n -> vb.idParen(n, _ -> vb.id(n))).snl()
                                                 .returnKwSp().id("this"))
                                 )
                                 .defaultKwSp().func(_ -> vb.vType(), "of", _ -> vb.vType().sp().vName(),
-                                        _ -> vb.stmnt(_ -> vb.idParen("of", _ -> vb.join(vb.lNames(), _ -> vb.cs(), n -> vb.vName().dot().idParen(n))).snl()
+                                        _ -> vb.stmnt(_ -> vb.idParen("of", _ -> vb.sep(vb.lNames(), _ -> vb.csp(), n -> vb.vName().dot().idParen(n))).snl()
                                                 .returnKwSp().id("this")
                                         )
                                 )
                 ).nl(2);
 
 
-            vb.staticKwSp().func(_ -> vb.vType(),config.vectorName(), _ -> vb.join(vb.lNames(), _ -> vb.cs(), vb::lDecl),
+            vb.staticKwSp().func(_ -> vb.vType(),config.vectorName(), _ -> vb.sep(vb.lNames(), _ -> vb.csp(), vb::lDecl),
                     _ -> vb.record("Impl",
-                            _ -> vb.join(vb.lNames(), _ -> vb.cs(), vb::lDecl),
+                            _ -> vb.sep(vb.lNames(), _ -> vb.csp(), vb::lDecl),
                             _ -> vb.vName()
                     )
                             .when(config.collectStats, _ ->
                                     vb.ifKeyword().paren(_ -> vb.idDotIdParen("collect", "get")).braceNlIndented(_ -> vb.stmnt(_ -> vb.idDotIdParen("count", "getAndIncrement")))).nl()
-                            .returnKeyword(_ -> vb.newKwSp().typeName("Impl").paren(_ -> vb.join(vb.lNames(), _ -> vb.cs(), vb::identifier)))
+                            .returnKeyword(_ -> vb.newKwSp().type("Impl").paren(_ -> vb.sep(vb.lNames(), _ -> vb.csp(), vb::id)))
             );
             vb.staticKwSp().func(_ -> vb.vType(),config.vectorName(), _ -> vb.lDecl("scalar"),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().paren(_ ->
-                                    vb.join(vb.lNames(), _ -> vb.cs(), _ -> vb.id("scalar"))
+                                    vb.sep(vb.lNames(), _ -> vb.csp(), _ -> vb.id("scalar"))
                             )
                     )
             );
@@ -321,34 +290,34 @@ public class VecAndMatBuilder {
             );
             funcNameToBinaryOpMap.forEach((fName, sym) -> {
                 vb.staticKwSp().func(_ -> vb.vType(),fName,
-                        _ -> vb.joinX2(vb.lNames(), lnr, _ -> vb.cs(), (side, n) -> vb.lDecl(side + n)),
+                        _ -> vb.joinX2(vb.lNames(), lnr, _ -> vb.csp(), (side, n) -> vb.lDecl(side + n)),
                         _ -> vb.stmnt(_ ->
                                         vb.returnKwSp().vName().paren(_ ->
-                                                vb.join(vb.lNames(), _ -> vb.cs(), n -> vb.id(n + l).symbol(sym).id(n + r))
+                                                vb.sep(vb.lNames(), _ -> vb.csp(), n -> vb.id(n + l).symbol(sym).id(n + r))
                                         )
                         )
                 );
                 vb.staticKwSp().func(_ -> vb.vType(),fName,
-                        _ -> vb.join(lnr, _ -> vb.cs(), vb::vDecl),
+                        _ -> vb.sep(lnr, _ -> vb.csp(), vb::vDecl),
                         _ -> vb.stmnt(_ ->
                                         vb.returnKwSp().idParen(fName, _ ->
-                                                vb.joinX2(vb.lNames(), lnr, _ -> vb.cs(), (n, side) -> vb.idDotIdParen(side,n))
+                                                vb.joinX2(vb.lNames(), lnr, _ -> vb.csp(), (n, side) -> vb.idDotIdParen(side,n))
                                         )
                         )
                 );
                 vb.staticKwSp().func(_ -> vb.vType(),fName,
-                        _ -> vb.lDecl(l).cs().vDecl(r),
+                        _ -> vb.lDecl(l).csp().vDecl(r),
                         _ -> vb.stmnt(_ ->
                                         vb.returnKwSp().idParen(fName, _ ->
-                                                vb.join(vb.lNames(), _ -> vb.cs(), n -> vb.id(l).cs().idDotIdParen(r,n))
+                                                vb.sep(vb.lNames(), _ -> vb.csp(), n -> vb.id(l).csp().idDotIdParen(r,n))
                                         )
                         )
                 );
                 vb.staticKwSp().func(_ -> vb.vType(),fName,
-                        _ -> vb.vDecl(l).cs().lDecl(r),
+                        _ -> vb.vDecl(l).csp().lDecl(r),
                         _ -> vb.stmnt(_ ->
                                         vb.returnKwSp().idParen(fName, _ ->
-                                                vb.join(vb.lNames(), _ -> vb.cs(), n -> vb.idDotIdParen(l,n).cs().id(r))
+                                                vb.sep(vb.lNames(), _ -> vb.csp(), n -> vb.idDotIdParen(l,n).csp().id(r))
                                         )
                         )
                 );
@@ -357,25 +326,25 @@ public class VecAndMatBuilder {
             List.of(
                     "pow", "min", "max"
             ).forEach(fName -> {
-                        vb.staticKwSp().func(_ -> vb.vType(),fName, _ -> vb.join(lnr, _ -> vb.cs(), vb::vDecl),
+                        vb.staticKwSp().func(_ -> vb.vType(),fName, _ -> vb.sep(lnr, _ -> vb.csp(), vb::vDecl),
                                 _ -> vb.stmnt(_ ->
-                                        vb.returnKwSp().vName().paren(_ -> vb.join(vb.lNames(), _ -> vb.cs(), n ->
-                                                vb.f32Call(fName, _ -> vb.join(lnr, _ -> vb.cs(), side -> vb.idDotIdParen(side,n))))
+                                        vb.returnKwSp().vName().paren(_ -> vb.sep(vb.lNames(), _ -> vb.csp(), n ->
+                                                vb.f32Call(fName, _ -> vb.sep(lnr, _ -> vb.csp(), side -> vb.idDotIdParen(side,n))))
                                         )
                                 )
                         );
-                        vb.staticKwSp().func(_ -> vb.vType(),fName, _ -> vb.lDecl(l).cs().vDecl(r),
+                        vb.staticKwSp().func(_ -> vb.vType(),fName, _ -> vb.lDecl(l).csp().vDecl(r),
                                 _ -> vb.stmnt(_ ->
-                                        vb.returnKwSp().vName().paren(_ -> vb.join(vb.lNames(), _ -> vb.cs(), n ->
-                                                vb.f32Call(fName, _ -> vb.id(l).cs().idDotIdParen(r,n)))
+                                        vb.returnKwSp().vName().paren(_ -> vb.sep(vb.lNames(), _ -> vb.csp(), n ->
+                                                vb.f32Call(fName, _ -> vb.id(l).csp().idDotIdParen(r,n)))
                                         )
                                 )
 
                         );
-                        vb.staticKwSp().func(_ -> vb.vType(),fName, _ -> vb.vDecl(l).cs().lDecl(r),
+                        vb.staticKwSp().func(_ -> vb.vType(),fName, _ -> vb.vDecl(l).csp().lDecl(r),
                                 _ -> vb.stmnt(_ ->
-                                        vb.returnKwSp().vName().paren(_ -> vb.join(vb.lNames(), _ -> vb.cs(), n ->
-                                                vb.f32Call(fName, _ -> vb.idDotIdParen(l,n).cs().id(r)))
+                                        vb.returnKwSp().vName().paren(_ -> vb.sep(vb.lNames(), _ -> vb.csp(), n ->
+                                                vb.f32Call(fName, _ -> vb.idDotIdParen(l,n).csp().id(r)))
                                         )
                                 )
 
@@ -388,7 +357,7 @@ public class VecAndMatBuilder {
                     vb.staticKwSp().func(_ -> vb.vType(),fName, _ -> vb.vDecl("v"),
                             _ -> vb.stmnt(_ ->
                                     vb.returnKwSp().vName().paren(_ ->
-                                            vb.join(vb.lNames(), _ -> vb.cs(), n -> vb.f32Call(fName, _ -> vb.idDotIdParen("v",n)))
+                                            vb.sep(vb.lNames(), _ -> vb.csp(), n -> vb.f32Call(fName, _ -> vb.idDotIdParen("v",n)))
                                     )
                             )
                     )
@@ -397,34 +366,15 @@ public class VecAndMatBuilder {
             vb.staticKwSp().func(_ -> vb.vType(),"neg", _ -> vb.vDecl("v"),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().paren(_ ->
-                                    vb.join(vb.lNames(), _ -> vb.cs(), n -> vb.floatConstZero().minus().idDotIdParen("v",n))
+                                    vb.sep(vb.lNames(), _ -> vb.csp(), n -> vb.floatConstZero().minus().idDotIdParen("v",n))
                             )
                     )
             );
 
-                IntStream.range(2, vb.lanes()).forEach(lane -> {
-                    var argVecName = config.vectorName().substring(0, config.vectorName().length() - 1) + lane; //maps vec4 ->  vec2 ,vec3 etc
-                    var trailingArgs = vb.lNames().subList(lane, vb.lanes());
-                    vb.staticKwSp().func(_ -> vb.vType(),config.vectorName(),                    // name
-                            _ -> vb.typeName(argVecName).sp().id(argVecName).cs().join(trailingArgs, _ -> vb.cs(), vb::lDecl),
-                            _ -> vb.stmnt(_ ->
-                                    vb.returnKwSp().vName().paren(_ ->
-                                            IntStream.range(0, vb.lanes()).forEach(argPos ->
-                                                    vb.when(argPos > 0, _ -> vb.cs())
-                                                            .either(argPos < lane,
-                                                                    _ -> vb.typeName(argVecName).dot().idParen(vb.lNames().get(argPos)),
-                                                                    _ -> vb.id(vb.lNames().get(argPos))
-                                                            )
-                                            )
-                                    )
-                            )
-                    );
 
-                });
-
-            vb.staticKwSp().func(_ -> vb.lType(),"dot", _ -> vb.join(lnr, _ -> vb.cs(), vb::vDecl),
+            vb.staticKwSp().func(_ -> vb.lType(),"dot", _ -> vb.sep(lnr, _ -> vb.csp(), vb::vDecl),
                     _ -> vb.stmnt(_ ->
-                            vb.returnKwSp().join(vb.lNames(), _ -> vb.add(), n ->
+                            vb.returnKwSp().sep(vb.lNames(), _ -> vb.add(), n ->
                                     vb.idDotIdParen(l,n).mul().idDotIdParen(r,n)
                             )
                     )
@@ -433,7 +383,7 @@ public class VecAndMatBuilder {
             vb.staticKwSp().func(_ -> vb.lType(),"sumOfSquares", _ -> vb.vDecl("v"),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().idParen("dot", _ ->
-                                    vb.id("v").cs().id("v")
+                                    vb.id("v").csp().id("v")
                             )
                     )
             );
@@ -445,11 +395,11 @@ public class VecAndMatBuilder {
                             )
                     )
             );
-            vb.staticKwSp().func(_ -> vb.vType(),"clamp", _ -> vb.vDecl("v").cs().lDecl("min").cs().lDecl("max"),
+            vb.staticKwSp().func(_ -> vb.vType(),"clamp", _ -> vb.vDecl("v").csp().lDecl("min").csp().lDecl("max"),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().paren(_ ->
-                                    vb.join(vb.lNames(), _ -> vb.cs(), n -> vb.f32Call("clamp",_ ->
-                                            vb.idDotIdParen("v",n).cs().id("min").cs().id("max"))
+                                    vb.sep(vb.lNames(), _ -> vb.csp(), n -> vb.f32Call("clamp", _ ->
+                                            vb.idDotIdParen("v",n).csp().id("min").csp().id("max"))
                                     )
                             )
                     )
@@ -461,55 +411,55 @@ public class VecAndMatBuilder {
                         ).nl().stmnt(_ ->
                                 vb.returnKwSp().tern(
                                         _ -> vb.idSp("lenSq").gt().floatConstZero(),
-                                        _ -> vb.idParen("mul", _ -> vb.id("v").cs().f32Call("inversesqrt",_ -> vb.id("lenSq"))),
+                                        _ -> vb.idParen("mul", _ -> vb.id("v").csp().f32Call("inversesqrt", _ -> vb.id("lenSq"))),
                                         _ -> vb.vName().paren(_ -> vb.floatConstZero()))
                         )
                     );
 
-            vb.staticKwSp().func(_ -> vb.vType(),"reflect", _ -> vb.vDecl(l).cs().vDecl(r),
+            vb.staticKwSp().func(_ -> vb.vType(),"reflect", _ -> vb.vDecl(l).csp().vDecl(r),
                     _ -> vb.stmnt(_ -> vb.returnKwSp().vName().dot().idParen("sub", _ ->
-                                    vb.id(l).cs().idParen("mul", _ ->
-                                            vb.idParen("mul", _ -> vb.id(r).cs().id(l)).cs().floatConst(2f))
+                                    vb.id(l).csp().idParen("mul", _ ->
+                                            vb.idParen("mul", _ -> vb.id(r).csp().id(l)).csp().floatConst(2f))
                             ))
             );
 
-            vb.staticKwSp().func(_ -> vb.lType(),"distance", _ -> vb.join(lnr, _ -> vb.cs(), vb::vDecl), _ ->
-                        vb.stmnt(_ -> vb.join(vb.lNames(), _ -> vb.snl(), n ->
+            vb.staticKwSp().func(_ -> vb.lType(),"distance", _ -> vb.sep(lnr, _ -> vb.csp(), vb::vDecl), _ ->
+                        vb.stmnt(_ -> vb.sep(vb.lNames(), _ -> vb.snl(), n ->
                                 vb.assign(_ -> vb.lDecl("d" + n), _ -> vb.idDotIdParen(r,n).sub().idDotIdParen(l,n))
                         )).nl().stmnt(_ -> vb.returnKwSp().f32Call("sqrt",_ ->
-                                vb.join(vb.lNames(), _ -> vb.add(), n -> vb.id("d" + n).mul().id("d" + n))
+                                vb.sep(vb.lNames(), _ -> vb.add(), n -> vb.id("d" + n).mul().id("d" + n))
                         ))
                     );
 
-            vb.staticKwSp().func(_ -> vb.vType(),"smoothstep", _ -> vb.join(List.of(e1, e2, r), _ -> vb.cs(), vb::vDecl),
+            vb.staticKwSp().func(_ -> vb.vType(),"smoothstep", _ -> vb.sep(List.of(e1, e2, r), _ -> vb.csp(), vb::vDecl),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().parenNlIndented(_ ->
-                                    vb.join(vb.lNames(), _ -> vb.cnl(), n ->
+                                    vb.sep(vb.lNames(), _ -> vb.cnl(), n ->
                                                     vb.f32Call("smoothstep",_ ->
-                                                            vb.idDotIdParen(e1,n).cs().idDotIdParen(e2,n).cs().idDotIdParen(r,n)
+                                                            vb.idDotIdParen(e1,n).csp().idDotIdParen(e2,n).csp().idDotIdParen(r,n)
                                                     )
                                             )
                                     )
                     )
             );
 
-            vb.staticKwSp().func(_ -> vb.vType(),"step", _ -> vb.join(List.of(e, r), _ -> vb.cs(), vb::vDecl),
+            vb.staticKwSp().func(_ -> vb.vType(),"step", _ -> vb.sep(List.of(e, r), _ -> vb.csp(), vb::vDecl),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().parenNlIndented(_ ->
-                                    vb.join(vb.lNames(), _ -> vb.cnl(), n ->
+                                    vb.sep(vb.lNames(), _ -> vb.cnl(), n ->
                                                     vb.f32Call("step", _->
-                                                            vb.idDotIdParen(e,n).cs().idDotIdParen(r,n)
+                                                            vb.idDotIdParen(e,n).csp().idDotIdParen(r,n)
                                                     )
                                     )
                             )
                     )
             );
-            vb.staticKwSp().func(_ -> vb.vType(),"mix", _ -> vb.join(lnr, _ -> vb.cs(), vb::vDecl).cs().lDecl("v"),
+            vb.staticKwSp().func(_ -> vb.vType(),"mix", _ -> vb.sep(lnr, _ -> vb.csp(), vb::vDecl).csp().lDecl("v"),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().parenNlIndented(_ ->
-                                            vb.join(vb.lNames(), _ -> vb.cnl(), n ->
+                                            vb.sep(vb.lNames(), _ -> vb.cnl(), n ->
                                                     vb.f32Call("mix",_ ->
-                                                            vb.idDotIdParen(l,n).cs().idDotIdParen(r,n).cs().id("v")
+                                                            vb.idDotIdParen(l,n).csp().idDotIdParen(r,n).csp().id("v")
                                                     )
                                             )
                             )
@@ -517,126 +467,125 @@ public class VecAndMatBuilder {
 
             );
 
-            vb.staticKwSp().func(_ -> vb.vType(),"mix", _ -> vb.join(lnr, _ -> vb.cs(), vb::vDecl).cs().vDecl("v"),
+            vb.staticKwSp().func(_ -> vb.vType(),"mix", _ -> vb.sep(lnr, _ -> vb.csp(), vb::vDecl).csp().vDecl("v"),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().parenNlIndented(_ ->
-                                            vb.join(vb.lNames(), _ -> vb.cnl(), n ->
+                                            vb.sep(vb.lNames(), _ -> vb.cnl(), n ->
                                                             vb.f32Call("mix",_ ->
-                                                                    vb.idDotIdParen(l,n).cs().idDotIdParen(r,n).cs().idDotIdParen("v",n))
+                                                                    vb.idDotIdParen(l,n).csp().idDotIdParen(r,n).csp().idDotIdParen("v",n))
                                                     )
-                                    )//.nl()
+                                    )
                     )
 
             );
-            vb.staticKwSp().func(_ -> vb.vType(),"mod", _ -> vb.join(lnr, _ -> vb.cs(), vb::vDecl),
+            vb.staticKwSp().func(_ -> vb.vType(),"mod", _ -> vb.sep(lnr, _ -> vb.csp(), vb::vDecl),
                     _ -> vb.stmnt(_ ->
                             vb.returnKwSp().vName().parenNlIndented(_->
-                                                    vb.join(vb.lNames(), _ ->
+                                                    vb.sep(vb.lNames(), _ ->
                                                             vb.cnl(), n ->
-                                                            vb.f32Call("mod",_ -> vb.idDotIdParen(l,n).cs().idDotIdParen(r,n))
+                                                            vb.f32Call("mod",_ -> vb.idDotIdParen(l,n).csp().idDotIdParen(r,n))
                                                     )
                             )
                     )
 
             );
-            vb.staticKwSp().func(_ -> vb.vType(),"mod", _ ->  vb.vDecl(l).cs().lDecl(r),
+            vb.staticKwSp().func(_ -> vb.vType(),"mod", _ ->  vb.vDecl(l).csp().lDecl(r),
                     _ -> vb.stmnt(_ -> vb.returnKwSp().vName()
                             .parenNlIndented(_ ->
-                                            vb.join(vb.lNames(), _ ->
+                                            vb.sep(vb.lNames(), _ ->
                                                     vb.cnl(), n ->
-                                                    vb.f32Call("mod",_ -> vb.idDotIdParen(l,n).cs().id(r)))
+                                                    vb.f32Call("mod",_ -> vb.idDotIdParen(l,n).csp().id(r)))
                             )
                     )
 
             );
 
-
-            record SideAndPrefix(String side, String... idx){};
-            var matMul = switch (vb.lanes()){
-                case 2 ->List.of(
-                        new SideAndPrefix("x","_00","_01"),
-                        new SideAndPrefix("y","_10", "_11")
-                );
-                case 3 -> List.of(
-                        new SideAndPrefix("x","_00","_01","_02"),
-                        new SideAndPrefix("y","_10", "_11","_12"),
-                        new SideAndPrefix("z","_20", "_21","_22")
-                );
-                default -> null;
-            };
-            if (vb.lanes()==2 || vb.lanes()==3){
-                vb.staticKwSp().func(_ -> vb.vType(),"mul", _ -> vb.vDecl(l).cs().mDecl(r),
+            IntStream.range(2, vb.lanes()).forEach(lane -> {
+                var argVecName = config.vectorName().substring(0, config.vectorName().length() - 1) + lane; //maps vec4 ->  vec2 ,vec3 etc
+                var trailingArgs = vb.lNames().subList(lane, vb.lanes());
+                vb.staticKwSp().func(_ -> vb.vType(),config.vectorName(),                    // name
+                        _ -> vb.type(argVecName).sp().id(argVecName).csp().sep(trailingArgs, _ -> vb.csp(), vb::lDecl),
                         _ -> vb.stmnt(_ ->
-                                vb.returnKwSp().vName().parenNlIndented(_ ->
-                                                vb.join( matMul,_->vb.cnl(),i->
-                                                        vb.join(List.of(i.idx),_->vb.add(), i2->
-                                                                vb.idDotIdParen(l, i.side).mul().idDotIdParen(r, i2)
+                                vb.returnKwSp().vName().paren(_ ->
+                                        IntStream.range(0, vb.lanes()).forEach(argPos ->
+                                                vb.when(argPos > 0, _ -> vb.csp())
+                                                        .either(argPos < lane,
+                                                                _ -> vb.type(argVecName).dot().idParen(vb.lNames().get(argPos)),
+                                                                _ -> vb.id(vb.lNames().get(argPos))
                                                         )
-                                                )
                                         )
+                                )
                         )
                 );
-            }
+            });
 
-            if (vb.lanes()==2) {
-                var swizzles = List.of("xx","xy", "yy","xz", "yz");
-                swizzles.forEach(swizzle -> {
-                    char[] chars = new char[swizzle.length()];
-                    swizzle.getChars(0, swizzle.length(), chars, 0);
-                    var retVecName = config.vectorName().substring(0, config.vectorName().length() - 1) + (config.shape.lanes() +1); //maps vec2 ->  vec3
-
-                    vb.staticKwSp().func(_ -> vb.vType(),swizzle,
-                            _ -> vb.typeName(retVecName).sp().id("v"),
+            if (vb.lanes()==2 || vb.lanes()==3) {
+                if (vb.lanes() == 3) {
+                    vb.staticKwSp().func(_ -> vb.vType(),
+                            "cross",                    // name
+                            _ -> vb.sep(List.of(l, r), _ -> vb.csp(), vb::vDecl),
                             _ -> vb.stmnt(_ ->
-                                    vb.returnKwSp().vName().paren(_ ->
-                                            vb.idDotIdParen("v", chars[0]).cs().idDotIdParen("v",chars[1])
+                                    vb.returnKwSp().vName().parenNlIndented(_ -> vb
+                                            .idDotIdParen(l, "y").mul().idDotIdParen(r, "z").sub().idDotIdParen(l, "z").mul().idDotIdParen(r, "y").cnl()
+                                            .idDotIdParen(l, "z").mul().idDotIdParen(r, "x").sub().idDotIdParen(l, "x").mul().idDotIdParen(r, "z").cnl()
+                                            .idDotIdParen(l, "x").mul().idDotIdParen(r, "y").sub().idDotIdParen(l, "y").mul().idDotIdParen(r, "x")
                                     )
+
+                            )
+
+                    );
+
+
+                // Hack for vec3 until we have this working
+                vb.preformatted("""
+                                    static vec3 vec3(float x, vec2 yz) {
+                                       return vec3(x, yz.x(), yz.y());
+                                    }
+                        """).nl();
+            }
+                record SideAndPrefix(String side, String... idx) {
+                }
+
+                var matMul = switch (vb.lanes()) {
+                    case 2 -> List.of(
+                            new SideAndPrefix("x", "_00", "_01"),
+                            new SideAndPrefix("y", "_10", "_11")
+                    );
+                    case 3 -> List.of(
+                            new SideAndPrefix("x", "_00", "_01", "_02"),
+                            new SideAndPrefix("y", "_10", "_11", "_12"),
+                            new SideAndPrefix("z", "_20", "_21", "_22")
+                    );
+                    default -> null;
+                };
+                vb.staticKwSp().func(_ -> vb.vType(), "mul", _ -> vb.vDecl(l).csp().mDecl(r),
+                        _ -> vb.stmnt(_ ->
+                                vb.returnKwSp().vName().parenNlIndented(_ ->
+                                        vb.sep(matMul, _ -> vb.cnl(), i ->
+                                                vb.sep(List.of(i.idx), _ -> vb.add(), i2 ->
+                                                        vb.idDotIdParen(l, i.side).mul().idDotIdParen(r, i2)
+                                                )
+                                        )
+                                )
+                        )
+                );
+
+
+                var swizzles = (vb.lanes() == 2)
+                        ? List.of("xx", "xy", "yy", "xz", "yz")
+                        : List.of("xxx", "xxy", "xxz", "xyy", "xyz", "xzz", "yyy", "yyz", "yzz", "zzz");
+
+                swizzles.forEach(swizzle -> {
+                    var swizzleLaneName = swizzle.chars().mapToObj(Character::toString).toList();
+                    var retVecName = config.vectorName().substring(0, config.vectorName().length() - 1) + (config.shape.lanes() + 1); //maps vec2 ->  vec3
+
+                    vb.staticKwSp().func(_ -> vb.vType(), swizzle,
+                            _ -> vb.type(retVecName).sp().id("v"),
+                            _ -> vb.stmnt(_ ->
+                                    vb.returnKwSp().vName().paren(_ -> vb.sep(swizzleLaneName, _ -> vb.csp(), n -> vb.idDotIdParen("v", n)))
                             )
                     );
                 });
-            }else if (vb.lanes()==3){
-                var swizzles = List.of("xxx","xxy", "xxz","xyy", "xyz", "xzz", "yyy", "yyz","yzz","zzz");
-                swizzles.forEach(swizzle -> {
-                        char[] chars = new char[swizzle.length()];
-                        swizzle.getChars(0, swizzle.length(), chars, 0);
-                        var retVecName = config.vectorName().substring(0, config.vectorName().length() - 1) + (config.shape.lanes() +1); //maps vec2 ->  vec3
-
-                        vb.staticKwSp().func(_ -> vb.vType(),swizzle,
-                                _ -> vb.typeName(retVecName).sp().id("v"),
-                                _ -> vb.stmnt(_ ->
-                                        vb.returnKwSp().vName().paren(_ ->
-                                                vb.idDotIdParen("v", chars[0]).cs().idDotIdParen("v",chars[1]).cs().idDotIdParen("v", chars[2])
-                                        )
-                                )
-                        );
-                    });
- /*
-                  We should also be able to do this here
-                                static vec3 vec3(float x, vec2 yz) {
-                                   return vec3(x, yz.x(), yz.y());
-                                }
-                 */
-                // Hack for vec3 until we have this working
-                vb.preformatted("""
-                                static vec3 vec3(float x, vec2 yz) {
-                                   return vec3(x, yz.x(), yz.y());
-                                }
-                            """).nl();
-
-                vb.staticKwSp().func(_ -> vb.vType(),
-                        "cross",                    // name
-                        _ -> vb.join(List.of(l, r), _ -> vb.cs(), vb::vDecl),
-                        _ -> vb.stmnt(_ ->
-                                vb.returnKwSp().vName().parenNlIndented(_ -> vb
-                                        .idDotIdParen(l, "y").mul().idDotIdParen(r, "z").sub().idDotIdParen(l, "z").mul().idDotIdParen(r, "y").cnl()
-                                        .idDotIdParen(l, "z").mul().idDotIdParen(r, "x").sub().idDotIdParen(l, "x").mul().idDotIdParen(r, "z").cnl()
-                                        .idDotIdParen(l, "x").mul().idDotIdParen(r, "y").sub().idDotIdParen(l, "y").mul().idDotIdParen(r, "x")
-                                )
-
-                        )
-
-                );
-
             }
         });
     }
@@ -644,15 +593,13 @@ public class VecAndMatBuilder {
     static void main(String[] argv) throws IOException {
 
         var path = Files.createDirectories(Path.of(
-             //   "/Users/grfrost/github/babylon-grfrost-fork/hat/vecs/java/hat/types" // to test
-                   "/Users/grfrost/github/babylon-grfrost-fork/hat/core/src/main/java/hat/types" // for hat core
+                "/Users/grfrost/github/babylon-grfrost-fork/hat/vecs/java/hat/types" // to test
+                //   "/Users/grfrost/github/babylon-grfrost-fork/hat/core/src/main/java/hat/types" // for hat core
         ));
         List.of(
-                Config.noStats(path, JavaType.FLOAT, 2, List.of()),
-                Config.noStats(path,JavaType.FLOAT, 3, List.of(2)),
-                Config.noStats(path, JavaType.FLOAT, 4, List.of(2,3))
-              //  VecAndMatBuilder.Config.fieldButNoStats(JavaType.FLOAT, 8,List.of(2,3,4)),
-              //  VecAndMatBuilder.Config.fieldButNoStats(JavaType.FLOAT, 16,List.of(2,3,4,8))
+                Config.noStats(path, vec.Shape.of(JavaType.FLOAT, 2)),
+                Config.noStats(path,vec.Shape.of(JavaType.FLOAT, 3)),
+                Config.noStats(path, vec.Shape.of(JavaType.FLOAT, 4))
         ).forEach(c->createVecs(c).writeToFile( "java"));
 
     }

@@ -222,10 +222,6 @@ public interface vec3 extends IfaceValue.vec{
         return vec3(0f-v.x(), 0f-v.y(), 0f-v.z());
     }
 
-    static vec3 vec3(vec2 vec2, float z){
-        return vec3(vec2.x(), vec2.y(), z);
-    }
-
     static float dot(vec3 l, vec3 r){
         return l.x()*r.x()+l.y()*r.y()+l.z()*r.z();
     }
@@ -306,6 +302,22 @@ public interface vec3 extends IfaceValue.vec{
         );
     }
 
+    static vec3 vec3(vec2 vec2, float z){
+        return vec3(vec2.x(), vec2.y(), z);
+    }
+
+    static vec3 cross(vec3 l, vec3 r){
+        return vec3(
+            l.y()*r.z()-l.z()*r.y(),
+            l.z()*r.x()-l.x()*r.z(),
+            l.x()*r.y()-l.y()*r.x()
+        );
+    }
+
+            static vec3 vec3(float x, vec2 yz) {
+               return vec3(x, yz.x(), yz.y());
+            }
+
     static vec3 mul(vec3 l, mat3 r){
         return vec3(
             l.x()*r._00()+l.x()*r._01()+l.x()*r._02(),
@@ -352,18 +364,6 @@ public interface vec3 extends IfaceValue.vec{
 
     static vec3 zzz(vec4 v){
         return vec3(v.z(), v.z(), v.z());
-    }
-
-    static vec3 vec3(float x, vec2 yz) {
-       return vec3(x, yz.x(), yz.y());
-    }
-
-    static vec3 cross(vec3 l, vec3 r){
-        return vec3(
-            l.y()*r.z()-l.z()*r.y(),
-            l.z()*r.x()-l.x()*r.z(),
-            l.x()*r.y()-l.y()*r.x()
-        );
     }
 
 
