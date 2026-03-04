@@ -21,7 +21,7 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
  * @enablePreview
- * @compile TestIsCaseConstantSwitch.java
+ * @build TestIsCaseConstantSwitch
  * @run junit TestIsCaseConstantSwitch
  */
 public class TestIsCaseConstantSwitch {
@@ -168,84 +168,28 @@ public class TestIsCaseConstantSwitch {
                 .filter(o -> o instanceof SwitchExpressionOp)
                 .map(o -> ((SwitchExpressionOp) o)).toList();
         for (SwitchExpressionOp swExprOp : swExprOps) {
+            boolean actual = LoweringTransform.isCaseConstantSwitchWithIntegralSelector(swExprOp, MethodHandles.lookup()).isPresent();
             Assertions.assertEquals(
-                    new LoweringTransform.ConstantLabelSwitchChecker(swExprOp, MethodHandles.lookup()).isCaseConstantSwitch(),
                     expected,
+                    actual,
                     swExprOp.toText());
         }
     }
 
     @Test
     void testGettingLabels() throws NoSuchMethodException {
-        var expectedLabels = List.of(1, +2, -2, ~2, 12, 3 / 4, 3 % 4, 4 << 5, 10 >> 1,
+        var expectedLabels = new ArrayList<>(List.of(1, +2, -2, ~2, 12, 3 / 4, 3 % 4, 4 << 5, 10 >> 1,
                 8 >>> 1, 1 < 2 ? 9 : 10, 1 <= 2 ? 11 : 12, 1 > 2 ? 13 : 14, 1 >= 2 ? 15 : 16, 1 == 2 ? 17 : 18,
                 1 != 2 ? 19 : 20, 6 & 6, 7 ^ 8, 8 | 10, 2 > 3 && 5 > 6 ? 21 : 22, 2 > 3 || 5 > 6 ? 23 : 24, (20), 25,
-                C.x, 21, 30, (int) 31L, (int) 34f );
+                C.x, 21, 30, (int) 31L, (int) 34f));
+        expectedLabels.add(null); // null for default case
         var funcOp = Op.ofMethod(this.getClass().getDeclaredMethod("caseConstantSwitchExpressions")).get();
         System.out.println(funcOp.toText());
         var swOp = (JavaSwitchOp) funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaSwitchOp).findFirst().get();
-        List<Integer> actualLabels = getLabelsAndTargets(MethodHandles.lookup(), swOp);
+        Optional<LoweringTransform.LabelsAndTargets> opt = LoweringTransform.isCaseConstantSwitchWithIntegralSelector(swOp, MethodHandles.lookup());
+        Assertions.assertTrue(opt.isPresent());
+        List<Integer> actualLabels = opt.get().labels();
         System.out.println(actualLabels);
         Assertions.assertEquals(expectedLabels, actualLabels);
-    }
-
-    static ArrayList<Integer> getLabelsAndTargets(MethodHandles.Lookup lookup, JavaSwitchOp swOp) {
-        var labels = new ArrayList<Integer>();
-        for (int i = 0; i < swOp.bodies().size(); i += 2) {
-            Body labelBody = swOp.bodies().get(i);
-            labels.addAll(getLabels(lookup, labelBody));
-        }
-        return labels;
-    }
-
-    static List<Integer> getLabels(MethodHandles.Lookup lookup, Body body) {
-        if (body.blocks().size() != 1 || !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
-                !(yop.yieldValue() instanceof Result opr)) {
-            throw new IllegalStateException("Body of a java switch fails the expected structure");
-        }
-        var labels = new ArrayList<Integer>();
-        if (opr.op() instanceof EqOp eqOp) {
-            labels.add(extractConstantLabel(lookup, body, eqOp));
-        } else if (opr.op() instanceof InvokeOp invokeOp &&
-                invokeOp.invokeReference().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class))) {
-            labels.add(extractConstantLabel(lookup, body, invokeOp));
-        } else if (opr.op() instanceof ConditionalOrOp cor) {
-            for (Body corbody : cor.bodies()) {
-                labels.addAll(getLabels(lookup, corbody));
-            }
-        } else if (!(opr.op() instanceof CoreOp.ConstantOp)){ // not default label
-            throw new IllegalStateException();
-        }
-        return labels;
-    }
-
-    static Integer extractConstantLabel(MethodHandles.Lookup lookup, Body body, Op whenToStop) {
-        Op lastOp = body.entryBlock().ops().get(body.entryBlock().ops().indexOf(whenToStop) - 1);
-        CoreOp.FuncOp funcOp = CoreOp.func("f", CoreType.functionType(lastOp.result().type())).body(block -> {
-            // in case we refer to constant variables in the label
-            for (Value capturedValue : body.capturedValues()) {
-                if (!(capturedValue instanceof Result r) || !(r.op() instanceof CoreOp.VarOp vop)) {
-                    continue;
-                }
-                block.op(((Result) vop.initOperand()).op());
-                block.op(vop);
-            }
-            Result last = null;
-            for (Op op : body.entryBlock().ops()) {
-                if (op.equals(whenToStop)) {
-                    break;
-                }
-                last = block.op(op);
-            }
-            block.op(CoreOp.return_(last));
-        });
-        Object res = Interpreter.invoke(lookup, funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER));
-        return switch (res) {
-            case Byte b -> Integer.valueOf(b);
-            case Short s -> Integer.valueOf(s);
-            case Character c -> Integer.valueOf(c);
-            case Integer i -> i;
-            default -> throw new IllegalStateException(); // @@@ not going to happen
-        };
     }
 }
