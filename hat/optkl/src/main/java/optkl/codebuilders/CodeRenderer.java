@@ -25,15 +25,15 @@
 package optkl.codebuilders;
 
 public interface CodeRenderer<T extends CodeBuilder<T>>{
-    T identifier(String text);
+    T id(String text);
     T symbol(String text);
-    T typeName(String text);
+    T type(String text);
     T label(String text);
     T keyword(String text);
     T constant(String text);
     T literal(String text);
     T reserved(String text);
     T nl();
-    T space();
+    T sp();
     T comment(String text);
 }

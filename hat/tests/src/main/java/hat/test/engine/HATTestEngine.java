@@ -39,13 +39,16 @@ import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HATTestEngine {
 
-    public static boolean DETAIL_ERROR_STACK_TRACE = false;
+    private static final boolean DETAIL_ERROR_STACK_TRACE = false;
 
     public static final String TEST_REPORT_FILE_NAME = "test_report.txt";
 
@@ -64,6 +67,10 @@ public class HATTestEngine {
         public void incrementUnsupported() { unsupported++; }
         public void incrementPrevisionError() { precisionErrors++; }
 
+        public int total() {
+            return passed + failed + unsupported + precisionErrors;
+        }
+
         @Override
         public String toString() {
             return String.format("passed: %d, failed: %d, unsupported: %d, precision-errors: %d", passed, failed, unsupported, precisionErrors);
@@ -76,7 +83,7 @@ public class HATTestEngine {
             method.invoke(instance);
             HATTestFormatter.passed(builder);
             stats.incrementPassed();
-        } catch (HATAssertionError e) {
+        } catch (HATAssertionError _) {
             HATTestFormatter.fail(builder);
             stats.incrementFailed();
         } catch (HATExpectedFailureException failureException) {
@@ -134,11 +141,11 @@ public class HATTestEngine {
             writer.newLine();
             writer.newLine();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new HATTestException(e.getMessage());
         }
     }
 
-    public static void testClassEngine(String classNameToTest) {
+    public static int testClassEngine(String classNameToTest, boolean countMode) {
         String filterMethod = null;
         if (classNameToTest.contains("#")) {
             String[] split = classNameToTest.split("#");
@@ -160,10 +167,14 @@ public class HATTestEngine {
             }
 
             if (methodToTest.isEmpty()) {
-                throw new RuntimeException("No test methods found for class " + classNameToTest);
+                throw new HATTestException("No test methods found for class " + classNameToTest);
             }
 
             filterIfNeeded(filterMethod, methodToTest);
+
+            if (countMode) {
+                return methodToTest.size();
+            }
 
             Object instance = testClass.getDeclaredConstructor().newInstance();
 
@@ -176,21 +187,36 @@ public class HATTestEngine {
             }
             printStats(builder, stats);
             dumpStats(builder, stats);
-
+            return stats.total();
         } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException |
                  NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new HATTestException(e.getMessage());
         }
     }
 
     static void main(String[] args) {
-        IO.println(Colours.BLUE + "HAT Engine Testing Framework" + Colours.RESET);
-        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        IO.println(Colours.BLUE + "Testing Backend: " + accelerator.backend.getName() + Colours.RESET);
         // We get a set of classes from the arguments
         if (args.length < 1) {
-            throw new RuntimeException("No test classes provided");
+            throw new HATTestException("No test classes provided");
         }
-        testClassEngine(args[0]);
+        boolean countMode = false;
+        if (args.length > 1) {
+            countMode = args[1].equals("--count-tests");
+        }
+        if (!countMode) {
+            var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+            IO.println(Colours.BLUE + "HAT Engine Testing Framework." +" Backend: " + accelerator.backend.getName() + Colours.RESET);
+        }
+        int tests = testClassEngine(args[0], countMode);
+
+        // Store the total number of tests
+        Path path = Paths.get(".num_tests");
+        try {
+            Files.writeString(path, Integer.toString(tests));
+        } catch (IOException e) {
+            throw new HATTestException(e.getMessage());
+        }
     }
+
+    private HATTestEngine() {}
 }

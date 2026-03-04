@@ -52,7 +52,7 @@ public class SchemaBuilder extends CodeBuilder<SchemaBuilder> {
     }
 
     SchemaBuilder layout(MemoryLayout layout) {
-        either(layout.name().isPresent(), (_) -> identifier(layout.name().get()), (_) -> questionMark()).colon();
+        either(layout.name().isPresent(), (_) -> id(layout.name().get()), (_) -> questionMark()).colon();
         switch (layout) {
             case StructLayout structLayout ->
                 brace(_ ->
