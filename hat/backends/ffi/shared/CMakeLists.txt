@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(shared_backend)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 message("SHARED_BACKEND")
 if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
