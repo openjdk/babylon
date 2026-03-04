@@ -58,7 +58,9 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.codebuilders.CodeBuilder;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -768,62 +770,70 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     );
                 }
             } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
-                parenWhen(
-                        invoke.operandCount() > 1
-                                && invoke(scopedCodeBuilderContext().lookup(),instance.op()) instanceof Invoke invoke0
-                                && invoke0.returnsClassType()
-                        ,
-                        // When we have patterns like:
-                        //
-                        // myiFaceArray.array().value(storeAValue);
-                        //
-                        // We need to generate extra parenthesis to make the struct pointer accessor "->" correct.
-                        // This is a common pattern when we have a IFace type that contains a subtype based on
-                        // struct or union.
-                        // An example of this is for the type F16Array.
-                        // The following expression checks that the current invokeOp has at least 2 operands:
-                        // Why 2?
-                        // - The first one is another invokeOp to load the inner struct from an IFace data structure.
-                        //   The first operand is also assignable.
-                        // - The second one is the store value, but this depends on the semantics and definition
-                        //   of the user code.
-                        _->{
-                            when(invoke.returnsClassType(), _ -> ampersand());
-                            recurse( instance.op());
-                        });
 
-                // Check if the varOpLoad that could follow corresponds to a local/private type
-                boolean isLocalOrPrivateDS = (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                        && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof HATMemoryVarOp);
+                // Attention: Since F16.toFloat operations are supported, it should be possible to
+                // implement a load from global memory from an F16Array and directly use it for a math operation.
+                // In this case, we need to add an extra parenthesis.
+                SequencedSet<Op.Result> uses = invokeOp.result().uses();
+                boolean narrowTypeCast = uses.stream().anyMatch(node -> node.op() instanceof HATF16Op.HATF16ToFloatConvOp);
 
-                either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
+                parenWhen(narrowTypeCast, _ -> {
+                    parenWhen(
+                            invoke.operandCount() > 1
+                                    && invoke(scopedCodeBuilderContext().lookup(), instance.op()) instanceof Invoke invoke0
+                                    && invoke0.returnsClassType()
+                            ,
+                            // When we have patterns like:
+                            //
+                            // myiFaceArray.array().value(storeAValue);
+                            //
+                            // We need to generate extra parenthesis to make the struct pointer accessor "->" correct.
+                            // This is a common pattern when we have a IFace type that contains a subtype based on
+                            // struct or union.
+                            // An example of this is for the type F16Array.
+                            // The following expression checks that the current invokeOp has at least 2 operands:
+                            // Why 2?
+                            // - The first one is another invokeOp to load the inner struct from an IFace data structure.
+                            //   The first operand is also assignable.
+                            // - The second one is the store value, but this depends on the semantics and definition
+                            //   of the user code.
+                            _ -> {
+                                when(invoke.returnsClassType(), _ -> ampersand());
+                                recurse(instance.op());
+                            });
 
-                funcName(invoke.op());
+                    // Check if the varOpLoad that could follow corresponds to a local/private type
+                    boolean isLocalOrPrivateDS = (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                            && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof HATMemoryVarOp);
+                    either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
-                if (invoke.returnsVoid()) {//   setter
-                    switch (invoke.operandCount()) {
-                        case 2 -> {
-                            if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
-                                equals().recurse( op);
+                    funcName(invoke.op());
+
+                    if (invoke.returnsVoid()) {//   setter
+                        switch (invoke.operandCount()) {
+                            case 2 -> {
+                                if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
+                                    equals().recurse(op);
+                                }
                             }
-                        }
-                        case 3-> {
-                            if ( invoke.opFromOperandNOrThrow(1) instanceof Op op1
-                                    && invoke.opFromOperandNOrThrow(2) instanceof Op op2) {
-                                sbrace(_ -> recurse( op1)).equals().recurse( op2);
+                            case 3 -> {
+                                if (invoke.opFromOperandNOrThrow(1) instanceof Op op1
+                                        && invoke.opFromOperandNOrThrow(2) instanceof Op op2) {
+                                    sbrace(_ -> recurse(op1)).equals().recurse(op2);
+                                }
                             }
+                            default -> throw new IllegalStateException("How ");
                         }
-                        default -> throw new IllegalStateException("How ");
-                    }
-                } else {
-                    if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
-                        sbrace(_ -> recurse(op));
                     } else {
-                        // this is just call.
+                        if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
+                            sbrace(_ -> recurse(op));
+                        } else {
+                            // this is just call.
+                        }
                     }
-                }
+                });
             }
-        } else  if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
+        } else if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
                 // codegen for the math operation
                 generateMathIntrinsicOperation(invoke);
             } else {
