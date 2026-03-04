@@ -31,26 +31,60 @@ import hat.NDRange;
 import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
 
+import hat.types.F32;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
 
+import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
 import static hat.types.F32.*;
 import static hat.types.vec2.*;
+import static hat.types.vec3.*;
 import static hat.types.vec4.*;
 
 public class HATShader {
+    @Reflect static vec3 palette(float t) {
+        vec3 a = vec3.vec3(0.5f, 0.5f, 0.5f);
+        vec3 b = vec3.vec3(0.5f, 0.5f, 0.5f);
+        vec3 c = vec3.vec3(1.0f, 1.0f, 1.0f);
+        vec3 d = vec3.vec3(0.263f, 0.416f, 0.557f);
+        return add(a, mul(b, cos(mul(add(mul(c, vec3.vec3(t)), d), vec3.vec3(6.28318f)))));
+    }
+
     @Reflect
-    public static vec4 mainImage(@MappableIface.RO Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+    public static vec4 mainImage(@MappableIface.RO  Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        vec2 fResolution = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+        float fTime = uniforms.iTime();
+       vec2 uv = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());
+        vec2 uv0 = uv;
+        vec3 color = vec3(0f);
+        for (float i = 0f; i < 4f; i++) {
+            uv = sub(fract(mul(uv, 1.5f)), vec2(0.5f));
+          /*  vec3 col = palette(length(uv0) + i * .4f + fTime * .4f);
+            float d = length(uv) * exp(-length(uv0));
+            d = sin(d * 8f + fTime) / 8f;
+            d = abs(d);
+            d = pow(0.01f / d, 1.2f);
+            color = add(color, mul(col, d));*/
+        }
+
+        fragColor = vec4(color, 1.0f);
+        /*return normalize(fragColor);*/
+        return vec4(fResolution.x()/10f, abs(F32.cos(fTime)),sin(fTime),0f);
+    }
+
+
+   /* @Reflect
+    public static vec4 mainImageOld(@MappableIface.RO Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         var  fTime = uniforms.iTime();
         var vec2 = uniforms.iResolution();
         var v = vec4(1f);
         // v = vec4.add(v,v);
-        return vec4(vec2.x()/10f, abs(cos(fTime)),sin(fTime),0f);
+        return vec4(vec2.x()/10f, abs(F32.cos(fTime)),sin(fTime),0f);
 
-    }
+    } */
 
     @Reflect
     public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array image) {

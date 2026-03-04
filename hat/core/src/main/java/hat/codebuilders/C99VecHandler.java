@@ -106,6 +106,24 @@ public class C99VecHandler {
                 bldr.paren(_ -> bldr.type(C99VecHandler.mapVecName(invoke.name()))).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
                 );
+            }else   if (invoke.nameMatchesRegex("(mul|add|sub|div)")) {
+                bldr.recurse(invoke.opFromFirstOperandOrNull());
+                bldr.symbol(switch (invoke.name()){
+                    case "mul"->"*";
+                    case "add"->"+";
+                    case "div"->"/";
+                    case "sub"->"-";
+                    default -> throw new IllegalStateException("oh my");
+                });
+                bldr.recurse(invoke.opFromOperandNOrNull(1));
+               // .dot().id(invoke.name());
+            }else   if (invoke.nameMatchesRegex("(fract)")) {
+                bldr.lineComment("fract!");
+            //    bldr.id("magicfract").paren(_->
+            //        bldr.recurse(invoke.opFromOperandNOrNull(0)).csp().recurse(invoke.opFromOperandNOrNull(1));
+              //  );
+                 bldr.dot().id(invoke.name());
+
             } else {
                 bldr.recurse(invoke.opFromFirstOperandOrNull()).dot().id(invoke.name());
             }
