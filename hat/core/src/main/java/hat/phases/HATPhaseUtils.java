@@ -187,7 +187,7 @@ public class HATPhaseUtils {
         return isArrayReference(lookup,varLoadOp.operands().getFirst());
     }
 
-    static boolean isOperandF32(Value v) {
+    public static boolean isOperandF32(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
             case CoreOp.VarAccessOp varLoadOp -> varLoadOp.varType().valueType() == JavaType.FLOAT; //recurse
             case CoreOp.VarOp varOp -> varOp.resultType().valueType() == JavaType.FLOAT;
