@@ -36,7 +36,7 @@ public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> ex
     }
 
     public final T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
+        return type(typeElement.toString()).sp().id(name);
     }
 
     public final  T compute() {

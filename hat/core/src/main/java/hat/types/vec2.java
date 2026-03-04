@@ -91,20 +91,20 @@ public interface vec2 extends IfaceValue.vec{
         return mul(l.x(), r, l.y(), r);
     }
 
-    static vec2 div(float xl, float xr, float yl, float yr){
-        return vec2(xl/xr, yl/yr);
+    static vec2 sub(float xl, float xr, float yl, float yr){
+        return vec2(xl-xr, yl-yr);
     }
 
-    static vec2 div(vec2 l, vec2 r){
-        return div(l.x(), r.x(), l.y(), r.y());
+    static vec2 sub(vec2 l, vec2 r){
+        return sub(l.x(), r.x(), l.y(), r.y());
     }
 
-    static vec2 div(float l, vec2 r){
-        return div(l, r.x(), l, r.y());
+    static vec2 sub(float l, vec2 r){
+        return sub(l, r.x(), l, r.y());
     }
 
-    static vec2 div(vec2 l, float r){
-        return div(l.x(), r, l.y(), r);
+    static vec2 sub(vec2 l, float r){
+        return sub(l.x(), r, l.y(), r);
     }
 
     static vec2 add(float xl, float xr, float yl, float yr){
@@ -123,20 +123,20 @@ public interface vec2 extends IfaceValue.vec{
         return add(l.x(), r, l.y(), r);
     }
 
-    static vec2 sub(float xl, float xr, float yl, float yr){
-        return vec2(xl-xr, yl-yr);
+    static vec2 div(float xl, float xr, float yl, float yr){
+        return vec2(xl/xr, yl/yr);
     }
 
-    static vec2 sub(vec2 l, vec2 r){
-        return sub(l.x(), r.x(), l.y(), r.y());
+    static vec2 div(vec2 l, vec2 r){
+        return div(l.x(), r.x(), l.y(), r.y());
     }
 
-    static vec2 sub(float l, vec2 r){
-        return sub(l, r.x(), l, r.y());
+    static vec2 div(float l, vec2 r){
+        return div(l, r.x(), l, r.y());
     }
 
-    static vec2 sub(vec2 l, float r){
-        return sub(l.x(), r, l.y(), r);
+    static vec2 div(vec2 l, float r){
+        return div(l.x(), r, l.y(), r);
     }
 
     static vec2 pow(vec2 l, vec2 r){
@@ -237,13 +237,11 @@ public interface vec2 extends IfaceValue.vec{
 
     static vec2 normalize(vec2 v){
         float lenSq = sumOfSquares(v);
-
         return (lenSq >0f)?(mul(v, F32.inversesqrt(lenSq))):(vec2(0f));
     }
 
     static vec2 reflect(vec2 l, vec2 r){
-        // lhs - 2f * dot(rhs, lhs) * rhs
-        return vec2.sub(l, mul(mul(r, l), 2f));
+        return vec2.sub(l, mul(mul(r, l), 2.0f));
     }
 
     static float distance(vec2 l, vec2 r){

@@ -34,17 +34,12 @@ import java.lang.reflect.InvocationTargetException;
 public class JavaSequentialBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        if (kernelCallGraph.traits.usesArrayView) {
-            throw new RuntimeException("Java support for ArrayView not implemented");
-        }
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
                 args[0] = kernelContext;
                 kernelEntrypoint.method().invoke(null, args);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
+            } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
 

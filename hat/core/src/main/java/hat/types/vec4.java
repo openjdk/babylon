@@ -97,20 +97,20 @@ public interface vec4 extends IfaceValue.vec{
         return mul(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
-    static vec4 div(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
-        return vec4(xl/xr, yl/yr, zl/zr, wl/wr);
+    static vec4 sub(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
+        return vec4(xl-xr, yl-yr, zl-zr, wl-wr);
     }
 
-    static vec4 div(vec4 l, vec4 r){
-        return div(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
+    static vec4 sub(vec4 l, vec4 r){
+        return sub(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
     }
 
-    static vec4 div(float l, vec4 r){
-        return div(l, r.x(), l, r.y(), l, r.z(), l, r.w());
+    static vec4 sub(float l, vec4 r){
+        return sub(l, r.x(), l, r.y(), l, r.z(), l, r.w());
     }
 
-    static vec4 div(vec4 l, float r){
-        return div(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
+    static vec4 sub(vec4 l, float r){
+        return sub(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
     static vec4 add(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
@@ -129,20 +129,20 @@ public interface vec4 extends IfaceValue.vec{
         return add(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
-    static vec4 sub(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
-        return vec4(xl-xr, yl-yr, zl-zr, wl-wr);
+    static vec4 div(float xl, float xr, float yl, float yr, float zl, float zr, float wl, float wr){
+        return vec4(xl/xr, yl/yr, zl/zr, wl/wr);
     }
 
-    static vec4 sub(vec4 l, vec4 r){
-        return sub(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
+    static vec4 div(vec4 l, vec4 r){
+        return div(l.x(), r.x(), l.y(), r.y(), l.z(), r.z(), l.w(), r.w());
     }
 
-    static vec4 sub(float l, vec4 r){
-        return sub(l, r.x(), l, r.y(), l, r.z(), l, r.w());
+    static vec4 div(float l, vec4 r){
+        return div(l, r.x(), l, r.y(), l, r.z(), l, r.w());
     }
 
-    static vec4 sub(vec4 l, float r){
-        return sub(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
+    static vec4 div(vec4 l, float r){
+        return div(l.x(), r, l.y(), r, l.z(), r, l.w(), r);
     }
 
     static vec4 pow(vec4 l, vec4 r){
@@ -225,14 +225,6 @@ public interface vec4 extends IfaceValue.vec{
         return vec4(0f-v.x(), 0f-v.y(), 0f-v.z(), 0f-v.w());
     }
 
-    static vec4 vec4(vec2 vec2, float z, float w){
-        return vec4(vec2.x(), vec2.y(), z, w);
-    }
-
-    static vec4 vec4(vec3 vec3, float w){
-        return vec4(vec3.x(), vec3.y(), vec3.z(), w);
-    }
-
     static float dot(vec4 l, vec4 r){
         return l.x()*r.x()+l.y()*r.y()+l.z()*r.z()+l.w()*r.w();
     }
@@ -251,13 +243,11 @@ public interface vec4 extends IfaceValue.vec{
 
     static vec4 normalize(vec4 v){
         float lenSq = sumOfSquares(v);
-
         return (lenSq >0f)?(mul(v, F32.inversesqrt(lenSq))):(vec4(0f));
     }
 
     static vec4 reflect(vec4 l, vec4 r){
-        // lhs - 2f * dot(rhs, lhs) * rhs
-        return vec4.sub(l, mul(mul(r, l), 2f));
+        return vec4.sub(l, mul(mul(r, l), 2.0f));
     }
 
     static float distance(vec4 l, vec4 r){
@@ -320,6 +310,14 @@ public interface vec4 extends IfaceValue.vec{
             F32.mod(l.z(), r),
             F32.mod(l.w(), r)
         );
+    }
+
+    static vec4 vec4(vec2 vec2, float z, float w){
+        return vec4(vec2.x(), vec2.y(), z, w);
+    }
+
+    static vec4 vec4(vec3 vec3, float w){
+        return vec4(vec3.x(), vec3.y(), vec3.z(), w);
     }
 
 

@@ -37,38 +37,38 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
         importClasses(clazz);
         var split = clazz.getName().split("\\.");
         for (var suffix :suffices) {
-            importKeyword().space().staticKeyword().space();
+            importKeyword().sp().staticKeyword().sp();
             for (int i = 0; i < split.length; i++) {
-                identifier(split[i]).dot();
+                id(split[i]).dot();
             }
-            identifier(suffix).semicolonNl();
+            id(suffix).snl();
         }
         return self();
     }
     public T importClasses(Class<?> ...classes){
         for(var clazz :classes){
             var split = clazz.getName().split("\\.");
-            importKeyword().space().identifier(split[0]);
+            importKeyword().sp().id(split[0]);
             for (int i = 1; i < split.length; i++) {
-                dot().identifier(split[i]);
+                dot().id(split[i]);
             }
-             semicolonNl();
+             snl();
         }
         return self();
     }
     public T packageName(Package p){
         var split = p.getName().split("\\.");
-        packageKeyword().space().identifier(split[0]);
+        packageKeyword().sp().id(split[0]);
         for(int i = 1; i< split.length; i++){
-            dot().identifier(split[i]);
+            dot().id(split[i]);
         }
-        return semicolonNl();
+        return snl();
     }
     public T publicKeyword() {
         return keyword("public");
     }
     public T publicKwSp() {
-        return publicKeyword().space();
+        return publicKeyword().sp();
     }
     public T privateKeyword() {
         return keyword("private");
@@ -90,9 +90,9 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
     }
 
     public T record(String recordName, Consumer<T> args, Consumer<T> impl, Consumer<T> body) {
-         recordKeyword().space().typeName(recordName).paren(args);
+         recordKeyword().sp().type(recordName).paren(args);
          if (impl != null){
-             space().implementsKeyword().space();
+             sp().implementsKeyword().sp();
              impl.accept(self());
          }
          return body(body).nl();
@@ -107,20 +107,20 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
         return keyword("extends");
     }
     public T extendsKwSp() {
-        return extendsKeyword().space();
+        return extendsKeyword().sp();
     }
     public T implementsKeyword() {
         return keyword("implements");
     }
     public T implementsKwSp(){
-        return interfaceKeyword().space();
+        return interfaceKeyword().sp();
     }
     public T interfaceKeyword() {
         return keyword("interface");
     }
 
     public T interfaceKwSp() {
-        return interfaceKeyword().space();
+        return interfaceKeyword().sp();
     }
 
 
@@ -133,12 +133,12 @@ public class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends ScopeAwareJav
         String longName = javaType.toString();
         int lastIdx = Math.max(longName.lastIndexOf('$'),longName.lastIndexOf('.'));
         String shortName  = lastIdx>0?longName.substring(lastIdx+1):longName;
-        return typeName(shortName);
+        return type(shortName);
     }
 
     public T createJava(ScopedCodeBuilderContext buildContext) {
         buildContext.funcScope(buildContext.funcOp(), () -> {
-            typeName(buildContext.funcOp().resultType().toString()).space().funcName(buildContext.funcOp());
+            type(buildContext.funcOp().resultType().toString()).sp().funcName(buildContext.funcOp());
             parenNlIndented(_ ->
                     commaNlSeparated(
                             buildContext.paramTable.list(),

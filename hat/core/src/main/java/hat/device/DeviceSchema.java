@@ -109,7 +109,7 @@ public class DeviceSchema<T extends NonMappableIface> {
     // we avoid duplicates in the text form.
     private void materialize(C99CodeBuilder<?> builder, Class<?> klass) {
             Method[] declaredMethods = klass.getDeclaredMethods();
-            builder.lt().identifier(klass.getName()).colon();
+            builder.lt().id(klass.getName()).colon();
             visited.add(klass.getName());
 
             for (String fieldName : members.get(currentLevel)) {
@@ -138,18 +138,18 @@ public class DeviceSchema<T extends NonMappableIface> {
                         if (arraySize.containsKey(method.getName())) {
                             builder.osbrace()                       // Array indicator
                                     .colon()                        // separator
-                                    .typeName(type)                 // type
+                                    .type(type)                 // type
                                     .colon()                        // separator
-                                    .identifier(method.getName())   // variableName
+                                    .id(method.getName())   // variableName
                                     .colon()                        // separator
-                                    .identifier(Integer.toString(arraySize.get(method.getName()))) // Array size
+                                    .id(Integer.toString(arraySize.get(method.getName()))) // Array size
                                     .semicolon();                   // member separator
                         } else {
-                            builder.identifier("s")            // scalar indicator
+                            builder.id("s")            // scalar indicator
                                     .colon()                        // separator
-                                    .typeName(type)                 // type
+                                    .type(type)                 // type
                                     .colon()                        // separator
-                                    .identifier(method.getName())   // var name
+                                    .id(method.getName())   // var name
                                     .semicolon();                   // member separator
                         }
                         wasProcessed = true;
