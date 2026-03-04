@@ -70,12 +70,12 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
             Consumer<T> args,
             Consumer<T> body) {
         type.accept(self());
-        return space().identifier(funcName).paren(args).body(body).nl().nl();
+        return sp().id(funcName).paren(args).body(body).nl().nl();
     }
 
     public final T assign(Consumer<T> lhs, Consumer<T> rhs){
         lhs.accept(self());
-        space().equals().space();
+        sp().equals().sp();
         rhs.accept(self());
         return self();
     }
@@ -86,7 +86,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
     public final T returnKeyword(Consumer<T> exp){
       //  return returnKeyword().space().paren(_-> exp.accept(self())).semicolon(); // This looks wrong.  it is very rare for us to have to add trailing semicolons
-        returnKeyword().space();
+        returnKeyword().sp();
         exp.accept(self());
         return semicolon();
           }
@@ -94,9 +94,9 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return  forKeyword()
                 .paren(_->{
                     init.accept(self());
-                    semicolon().space();
+                    semicolon().sp();
                     test.accept(self());
-                    semicolon().space();mutate.accept(self());
+                    semicolon().sp();mutate.accept(self());
                 })
                 .braceNlIndented(body::accept);
     }
@@ -113,7 +113,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
     @Override
     public T type( JavaType javaType) {
-        return typeName(javaType.toString());
+        return type(javaType.toString());
     }
 
 
@@ -140,12 +140,12 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     @Override
     public final T varOp( CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
-            type( (JavaType) varOp.varValueType()).space().varName(varOp);
+            type( (JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
             if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
-                constKeyword().space();
+                constKeyword().sp();
             }
-            type( (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
+            type( (JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
             var first = varOp.operands().getFirst();
             if (first instanceof Op.Result result) {
                 parenthesisIfNeeded( varOp, result.op());
@@ -177,7 +177,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive() ) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
         } else {
-          identifier(fieldAccess.name());
+          id(fieldAccess.name());
         }
         return self();
     }
@@ -185,7 +185,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     @Override
     public final T fieldStoreOp( JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
         var fieldAccess = fieldAccess(scopedCodeBuilderContext().lookup(),fieldStoreOp);
-        identifier(fieldAccess.name()).space().equals().space();
+        id(fieldAccess.name()).sp().equals().sp();
         recurse(((Op.Result)fieldAccess.op().operands().get(0)).op());
         dot();
         recurse(((Op.Result)fieldAccess.op().operands().get(1)).op());
@@ -211,7 +211,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     @Override
     public final T conditionalOp( JavaOp.JavaConditionalOp logicalOp) {
         OpHelper.lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse( o));
-        space().symbol(logicalOp).space();
+        sp().symbol(logicalOp).sp();
         OpHelper.rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse( o));
         return self();
     }
@@ -295,7 +295,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     public final T breakOp( JavaOp.BreakOp breakOp) {
         breakKeyword();
         if (!breakOp.operands().isEmpty() && breakOp.operands().getFirst() instanceof Op.Result result) {
-            space();
+            sp();
             if (result.op() instanceof CoreOp.ConstantOp c) {
                 literal(c.value().toString());
             }
@@ -309,7 +309,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                 && continueOp.operands().getFirst() instanceof Op.Result result
                 && result.op() instanceof CoreOp.ConstantOp c
         ) {
-            continueKeyword().space().literal(c.value().toString());
+            continueKeyword().sp().literal(c.value().toString());
         } else if (scopedCodeBuilderContext().isInFor()) {
             // nope
         } else {
@@ -339,7 +339,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                     }
                     lastWasBody.set(true);
                 } else {
-                    when(idx>0,_-> elseKeyword().space());
+                    when(idx>0,_-> elseKeyword().sp());
                     ifKeyword().paren(_ ->
                             ifOp.bodies().get(idx).entryBlock()            // get the entryblock if bodies[c.value]
                                     .ops().stream().filter(o->o instanceof CoreOp.YieldOp) // we want all the yields
@@ -373,9 +373,9 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         scopedCodeBuilderContext().forScope(forOp, () ->
                 forKeyword().paren(_ -> {
                     forOp.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
-                    semicolon().space();
+                    semicolon().sp();
                     forOp.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
-                    semicolon().space();
+                    semicolon().sp();
                     commaSpaceSeparated(
                             OpHelper.Statement.statements(forOp.update().entryBlock()),
                             op -> recurse( op)
@@ -428,7 +428,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     @Override
     public final  T returnOp( CoreOp.ReturnOp returnOp) {
         returnKeyword().when(!returnOp.operands().isEmpty(),
-                $-> $.space().parenthesisIfNeeded( returnOp, ((Op.Result) returnOp.operands().getFirst()).op())
+                $-> $.sp().parenthesisIfNeeded( returnOp, ((Op.Result) returnOp.operands().getFirst()).op())
         );
         return self();
     }
@@ -451,12 +451,12 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     public final  T declareParam( FuncOpParams.Info param){
-        return  type((JavaType) param.parameter.type()).space().varName(param.varOp);
+        return  type((JavaType) param.parameter.type()).sp().varName(param.varOp);
     }
 
     @Override
     public T newOp( JavaOp.NewOp newOp) {
-         newKeyword().space().type((JavaType) newOp.type());
+         newKeyword().sp().type((JavaType) newOp.type());
        if (newOp.operands().isEmpty()){
            ocparen();
        }else {
@@ -493,7 +493,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     public T arrayStoreOp( JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp){
         recurse(((Op.Result)arrayStoreOp.operands().get(0)).op());
         sbrace(_-> recurse(((Op.Result)arrayStoreOp.operands().get(1)).op()));
-        space().equals().space();
+        sp().equals().sp();
         recurse(((Op.Result)arrayStoreOp.operands().get(2)).op());
         return self();
     }
@@ -502,7 +502,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     public T enhancedForOp(JavaOp.EnhancedForOp enhancedForOp){
         forKeyword().paren(_-> {
             enhancedForOp.initialization().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
-            space().colon().space().blockInlineComment("Get rid of = before this");
+            sp().colon().sp().blockInlineComment("Get rid of = before this");
             enhancedForOp.expression().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
         }).braceNlIndented(_->
             nlSeparated(OpHelper.Statement.bodyStatements(enhancedForOp.loopBody()),
@@ -538,7 +538,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                            );
                         });
                     //}
-                    space().rarrow().space();
+                    sp().rarrow().sp();
                     braceNlIndented(_ -> {
                         nlSeparated(OpHelper.Statement.bodyStatements(lambdaOp.body()),
                                 op->{

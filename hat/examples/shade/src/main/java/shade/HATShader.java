@@ -44,10 +44,12 @@ import static hat.types.vec4.*;
 public class HATShader {
     @Reflect
     public static vec4 mainImage(@MappableIface.RO Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        float fTime = uniforms.iTime();
+        var  fTime = uniforms.iTime();
+        var vec2 = uniforms.iResolution();
         var v = vec4(1f);
         // v = vec4.add(v,v);
-        return vec4(1f, abs(cos(fTime)),sin(fTime),0f);
+        return vec4(vec2.x()/10f, abs(cos(fTime)),sin(fTime),0f);
+
     }
 
     @Reflect

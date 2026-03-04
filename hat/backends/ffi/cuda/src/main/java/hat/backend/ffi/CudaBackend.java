@@ -393,7 +393,7 @@ public class CudaBackend extends C99FFIBackend {
         compiledKernel.dispatch(kernelContext, args);
     }
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph.state,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
     }
 
     ///   Same as OpenCL backend until here

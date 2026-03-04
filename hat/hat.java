@@ -79,6 +79,15 @@ static  void logoAndHelp(){
     help();
 }
 
+private static class Colours {
+    public static String RED = "\u001b[31m";
+    public static String GREEN = "\u001b[32m";
+    public static String BLUE = "\u001b[34m";
+    public static String CYAN = "\u001b[36m";
+    public static String YELLOW = "\u001b[33m";
+    public static String RESET = "\u001b[0m";
+}
+
 public static void main(String[] argArr) throws IOException, InterruptedException {
     var args = new ArrayList<>(List.of(argArr));
     if (args.isEmpty()) {
@@ -278,6 +287,19 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                 //  note no app args as add them below
                             );
 
+                            // First run - checking the total number of tests
+                            int[] totalTests = new int[]{0};
+                            tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_, matcher) -> {
+                                tests.run(Jar.JavaConfig.of(commonTestSuiteJavaOpts, o -> o.arg(matcher.group(1).replace('/', '.')).arg("--count-tests")), tests, backend);
+                                Path path = Path.of(".num_tests");
+                                try {
+                                    // accomulate the total number of tests
+                                    String content = Files.readString(path);
+                                    totalTests[0] += Integer.parseInt(content);
+                                } catch (IOException e) {}
+                            });
+
+                            // Second run - testing
                             tests.forEachMatchingEntry("(hat/test/Test[a-zA-Z0-9]*).class", (_, matcher) ->
                                     tests.run(Jar.JavaConfig.of(commonTestSuiteJavaOpts, o -> o.arg(matcher.group(1).replace('/', '.'))), tests, backend)
                             );
@@ -294,6 +316,9 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                     return String.format("Global passed: %d, failed: %d, unsupported: %d, precision-errors: %d, pass-rate: %.2f%%\\n",
                                             passed, failed, unsupported, precisionError, ((float) (passed * 100 / (passed + failed + unsupported + precisionError))));
                                 }
+                                public int total() {
+                                    return passed + failed + unsupported + precisionError;
+                                }
                             }
                             var stats = new Stats();
                             Files.readAllLines(test_reports_txt).forEach(line -> {
@@ -307,7 +332,22 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                                     stats.precisionError += Integer.parseInt(matcher.group(4));
                                 }
                             });
-                            System.out.println(stats);
+
+                            IO.println(Colours.BLUE);
+                            IO.println(stats);
+                            IO.println(Colours.RESET);
+
+                            if (stats.total() == totalTests[0]) {
+                                IO.println(Colours.GREEN);
+                                IO.println("[REPORT] OK: All tests launched. Total: " + totalTests[0]);
+                                IO.println(Colours.RESET);
+                            } else {
+                                IO.println(Colours.RED);
+                                IO.println("[REPORT] Test failed. Some tests were not launched. Common reasons: seg-faults, driver-issues. Please, check again.");
+                                IO.println("    - Expected to run: " + totalTests[0] + ". But launched " + stats.total());
+                                IO.println(Colours.RESET);
+                            }
+
                             if (stats.failed > 0) {
                                 System.exit(-1);
                             } else {
