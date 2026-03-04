@@ -31,6 +31,10 @@ import static optkl.ifacemapper.MappableIface.*;
  * <code>
  *   java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTileAPI#test_hat_tile_03
  * </code>
+ *
+ * <code>
+ *   java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTileAPI#test_hat_tile_04
+ * </code>
  */
 public class TestTileAPI {
 
