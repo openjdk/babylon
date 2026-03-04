@@ -593,8 +593,8 @@ public class VecAndMatBuilder {
     static void main(String[] argv) throws IOException {
 
         var path = Files.createDirectories(Path.of(
-                "/Users/grfrost/github/babylon-grfrost-fork/hat/vecs/java/hat/types" // to test
-                //   "/Users/grfrost/github/babylon-grfrost-fork/hat/core/src/main/java/hat/types" // for hat core
+               // "/Users/grfrost/github/babylon-grfrost-fork/hat/vecs/java/hat/types" // to test
+                   "/Users/grfrost/github/babylon-grfrost-fork/hat/core/src/main/java/hat/types" // for hat core
         ));
         List.of(
                 Config.noStats(path, vec.Shape.of(JavaType.FLOAT, 2)),

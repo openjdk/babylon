@@ -67,13 +67,16 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
         this.moduleOp = moduleOp;
     }
 
-    CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup, Method entryMethod, CoreOp.FuncOp entry) {
+    CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,  CoreOp.FuncOp entry) {
         record RefAndFunc(MethodRef methodRef, CoreOp.FuncOp funcOp) {
         }
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
 
         Invoke.stream(lookup, entry).forEach(invoke -> {
+            // TODO: filterCalls seems to have side effects.
+            //  Each call potentially updates state (list of called methods), this seems racey...
+            //  I think we should refactor this to avoid the side effects
             if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp && !filterCalls(funcOp, invoke)) {
                 work.push(new RefAndFunc(invoke.op().invokeReference(), funcOp));
             }
