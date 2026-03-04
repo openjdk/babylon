@@ -22,12 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package shade;
+package hat.types;
 
-import hat.types.F32;
-import hat.types.vec2;
-import hat.types.vec3;
-import hat.types.vec4;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.IfaceValue.vec;

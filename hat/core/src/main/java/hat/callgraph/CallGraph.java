@@ -86,6 +86,13 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
         LinkedHashSet<MethodRef> setOfVisitedMethodRefs = new LinkedHashSet<>();
         while (!work.isEmpty() && work.pop() instanceof RefAndFunc refAndFunc && setOfVisitedMethodRefs.add(refAndFunc.methodRef)) {
             CoreOp.FuncOp tf = refAndFunc.funcOp.transform(refAndFunc.methodRef.name(), (blockBuilder, op) -> {
+                if (op == null){
+                    throw new RuntimeException("op is null");
+                }
+                var in = invoke(lookup,op);
+              //  if (in == null){
+                //    throw new RuntimeException("in is null");
+               // }
                 if (invoke(lookup, op) instanceof Invoke iop && iop.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
                     RefAndFunc call = new RefAndFunc(iop.op().invokeReference(), funcOp);
                     work.push(call);
