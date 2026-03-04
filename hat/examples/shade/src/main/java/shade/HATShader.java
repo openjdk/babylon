@@ -45,34 +45,36 @@ import static hat.types.vec3.*;
 import static hat.types.vec4.*;
 
 public class HATShader {
-    @Reflect static vec3 palette(float t) {
-        vec3 a = vec3.vec3(0.5f, 0.5f, 0.5f);
-        vec3 b = vec3.vec3(0.5f, 0.5f, 0.5f);
-        vec3 c = vec3.vec3(1.0f, 1.0f, 1.0f);
-        vec3 d = vec3.vec3(0.263f, 0.416f, 0.557f);
-        return add(a, mul(b, cos(mul(add(mul(c, vec3.vec3(t)), d), vec3.vec3(6.28318f)))));
+    @Reflect public static vec3 palette(float t) {
+        vec3 a = vec3(0.5f, 0.5f, 0.5f);
+        vec3 b = vec3(0.5f, 0.5f, 0.5f);
+        vec3 c = vec3(1.0f, 1.0f, 1.0f);
+        vec3 d = vec3(0.263f, 0.416f, 0.557f);
+        return add(a, mul(b, cos(mul(add(mul(c, vec3(t)), d), vec3(6.28318f)))));
     }
 
     @Reflect
-    public static vec4 mainImage(@MappableIface.RO  Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+    static public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         vec2 fResolution = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         float fTime = uniforms.iTime();
-       vec2 uv = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());
+        vec2 uv = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());
         vec2 uv0 = uv;
         vec3 color = vec3(0f);
         for (float i = 0f; i < 4f; i++) {
-            uv = sub(fract(mul(uv, 1.5f)), vec2(0.5f));
-          /*  vec3 col = palette(length(uv0) + i * .4f + fTime * .4f);
+            var uv1_5 = mul(uv, 1.5f);
+            var f = fract(uv1_5);
+            uv = sub(f, vec2(0.5f));
+           vec3 col = palette(length(uv0) + i * .4f + fTime * .4f);
             float d = length(uv) * exp(-length(uv0));
             d = sin(d * 8f + fTime) / 8f;
             d = abs(d);
             d = pow(0.01f / d, 1.2f);
-            color = add(color, mul(col, d));*/
+            color = add(color, mul(col, d));
         }
 
         fragColor = vec4(color, 1.0f);
-        /*return normalize(fragColor);*/
-        return vec4(fResolution.x()/10f, abs(F32.cos(fTime)),sin(fTime),0f);
+      //  fragColor=vec4(1f,0f,0f,1f);
+        return normalize(fragColor);
     }
 
 

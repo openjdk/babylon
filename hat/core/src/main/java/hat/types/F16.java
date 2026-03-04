@@ -28,7 +28,7 @@ import optkl.IfaceValue;
 
 // Interface for Floating Point numbers of 16-bits
 // Values are stored in a short format.
-public interface F16 extends _F16 {
+public interface F16 extends _F16 , IfaceValue.Struct {
     short value();
     void value(short value);
     /**

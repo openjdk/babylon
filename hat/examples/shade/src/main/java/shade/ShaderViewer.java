@@ -140,7 +140,7 @@ public class ShaderViewer implements Runnable{
                 SwingUtilities.invokeLater(bufferedImageViewer::repaint);
 
                 try {
-                    Thread.sleep(2);
+                    Thread.sleep(1);
                 } catch (InterruptedException e) {
                 }
             }
