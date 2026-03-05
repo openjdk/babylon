@@ -89,7 +89,7 @@ public class HATShader {
     } */
 
     @Reflect
-    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array image) {
+    public static void penumbra(KernelContext kc, Uniforms uniforms, F32Array image) {
         if (kc.gix < kc.gsx) {
             vec3 fres =  uniforms.iResolution();
             int width = (int) fres.x();
