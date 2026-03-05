@@ -454,6 +454,60 @@ public class TestSwitchExpressionOp {
         };
     }
 
+    @Reflect
+    static String caseConstantPrimitiveWrapperSelector(Integer i) {
+        return switch (i) {
+            case 1 -> "one";
+            case 2, 3 -> "two or three";
+            default -> "else";
+        };
+    }
+
+    @Test
+    void testCaseConstantPrimitiveWrapperSelector() {
+        CoreOp.FuncOp lf = lower("caseConstantPrimitiveWrapperSelector");
+        Integer[] args = {1, 2, 3, 4};
+        for (Integer a : args) {
+            Assertions.assertEquals(caseConstantPrimitiveWrapperSelector(a),
+                    Interpreter.invoke(MethodHandles.lookup(), lf, a));
+        }
+    }
+
+    @Reflect
+    static String constantLabelCasted(int i) {
+        return switch (i) {
+            case (byte) 1 -> "one";
+            default -> "not one";
+        };
+    }
+
+    @Test
+    void testConstantLabelCasted() {
+        CoreOp.FuncOp lf = lower("constantLabelCasted");
+        int[] args = {-1, 1};
+        for (int a : args) {
+            Assertions.assertEquals(constantLabelCasted(a), Interpreter.invoke(MethodHandles.lookup(), lf, a));
+        }
+    }
+
+    @Reflect
+    static String caseConstantStringLiteral(String s) {
+        return switch (s) {
+            case "1" -> "one";
+            case "2", "3" -> "two or three";
+            default -> "else";
+        };
+    }
+
+    @Test
+    void testCeaseConstantStringLiteral() {
+        CoreOp.FuncOp lf = lower("caseConstantStringLiteral");
+        String[] args = {"1", "2", "3", ""};
+        for (String a : args) {
+            Assertions.assertEquals(caseConstantStringLiteral(a), Interpreter.invoke(MethodHandles.lookup(), lf, a));
+        }
+    }
+
     // we are not testing switch expr that has no default,
     // because to test for MatchException we need to set up separate compilation
     // in compiler tests we are checking that the code model contains a default case that throws MatchException

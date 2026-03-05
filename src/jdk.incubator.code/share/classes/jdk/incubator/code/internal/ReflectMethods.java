@@ -101,6 +101,7 @@ import javax.tools.JavaFileObject;
 import java.lang.constant.ClassDesc;
 import java.util.*;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -1643,7 +1644,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             boolean hasDefaultCase = false;
 
             for (JCTree.JCCase c : cases) {
-                Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
+                Body.Builder caseLabel = visitCaseLabel(tree, target, c);
                 Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType, cases.getLast() == c);
                 bodies.add(caseLabel);
                 bodies.add(caseBody);
@@ -1669,7 +1670,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             return bodies;
         }
 
-        private Body.Builder visitCaseLabel(JCTree tree, JCExpression selector, Value target, JCTree.JCCase c) {
+        private Body.Builder visitCaseLabel(JCTree tree, Value target, JCTree.JCCase c) {
             Body.Builder body;
             FunctionType caseLabelType = CoreType.functionType(JavaType.BOOLEAN, target.type());
 
@@ -1712,34 +1713,34 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 Value localTarget = stack.block.parameters().get(0);
                 final Value localResult;
-                if (c.labels.size() == 1) {
-                    Value expr = toValue(ccl.expr);
-                    // per java spec, constant type is compatible with the type of the selector expression
-                    // so, we convert constant to the type of the selector expression
-                    expr = convert(expr, selector.type);
-                    if (selector.type.isPrimitive()) {
-                        localResult = append(JavaOp.eq(localTarget, expr));
-                    } else {
-                        localResult = append(JavaOp.invoke(
-                                MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                localTarget, expr));
+                BiFunction<Value, JCTree.JCConstantCaseLabel, Value> processConstantLabel = (lt, label) -> {
+                    // if local target of type Character, Byte, Short or Integer, unbox it
+                    if (lt.type().equals(JavaType.J_L_CHARACTER) || lt.type().equals(JavaType.J_L_BYTE) ||
+                            lt.type().equals(JavaType.J_L_SHORT) || lt.type().equals(JavaType.J_L_INTEGER)) {
+                        PrimitiveType pt = ((ClassType) lt.type()).unbox().get();
+                        lt = convert(lt, typeElementToType(pt));
                     }
+                    Value expr = toValue(label.expr);
+                    if (lt.type().equals(JavaType.J_L_STRING)) {
+                        return append(JavaOp.invoke(
+                                MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                                lt, expr));
+                    } else {
+                        // primitive or enum
+                        // conversion may be needed for primitive, e.g. label (byte) 1 and selector of type int
+                        expr = convert(expr, typeElementToType(lt.type()));
+                        return append(JavaOp.eq(lt, expr));
+                    }
+                };
+                if (c.labels.size() == 1) {
+                    localResult = processConstantLabel.apply(localTarget, ccl);
                 } else {
                     List<Body.Builder> clBodies = new ArrayList<>();
                     for (JCTree.JCCaseLabel cl : c.labels) {
                         ccl = (JCTree.JCConstantCaseLabel) cl;
                         pushBody(ccl, CoreType.functionType(JavaType.BOOLEAN));
 
-                        Value expr = toValue(ccl.expr);
-                        expr = convert(expr, selector.type);
-                        final Value labelResult;
-                        if (selector.type.isPrimitive()) {
-                            labelResult = append(JavaOp.eq(localTarget, expr));
-                        } else {
-                            labelResult = append(JavaOp.invoke(
-                                    MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                    localTarget, expr));
-                        }
+                        final Value labelResult = processConstantLabel.apply(localTarget, ccl);
 
                         append(CoreOp.core_yield(labelResult));
                         clBodies.add(stack.body);
