@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
+import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.examples.common.HATExampleException;
 import hat.examples.common.ParseArgs;
@@ -112,6 +113,78 @@ public class Main {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.giy * size + k) * matrixB.array(k * size + kc.gix));
+                }
+                matrixC.array(kc.giy * size + kc.gix, acc);
+            }
+        }
+    }
+
+    @Reflect
+    @Kernel("""
+            #include <mma.h>
+            using namespace nvcuda;
+            HAT_KERNEL void matrixMultiplyKernel2DLIF16(
+                HAT_GLOBAL_MEM KernelContext_t* kc,
+                HAT_GLOBAL_MEM F16Array_t* matrixA,
+                HAT_GLOBAL_MEM F16Array_t* matrixB,
+                HAT_GLOBAL_MEM F32Array_t* matrixC,
+                int size
+            ){
+                int warpM = (blockIdx.x * blockDim.x + threadIdx.x) / warpSize;
+                int warpN = (blockIdx.y * blockDim.y + threadIdx.y);
+                int lda = 1024;
+                int ldb = 1024;
+                int ldc = 1024;
+
+                wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::col_major> a_frag;
+                wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::col_major> b_frag;
+                wmma::fragment<wmma::accumulator, 16, 16, 16, float> acc_frag;
+
+                wmma::fill_fragment(acc_frag, 0.0f);
+
+                half *a = (half *)matrixA;
+                half *b = (half *)matrixB;
+                float *c = (float *)matrixC;
+
+                const int headSize = 2; // header is one `int`, which is 2 `half` floats.
+
+                if(HAT_GIX<HAT_GSX){
+                    if(HAT_GIY<HAT_GSY){
+                        for(int i = 0; i<size; i += 16){
+                            int aRow = warpM * 16;
+                            int aCol = i;
+
+                            int bRow = i;
+                            int bCol = warpN * 16;
+
+                            if (aRow < 1024 && aCol < 1024 && bRow < 1024 && bCol < 1024) {
+                                // Load tensor
+                                wmma::load_matrix_sync(a_frag, a + headSize + aRow + aCol * lda, lda);
+                                wmma::load_matrix_sync(b_frag, b + headSize + bRow + bCol * ldb, ldb);
+
+                                wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
+                            }
+                        }
+                        int cRow = warpM * 16;
+                        int cCol = warpN * 16;
+
+                        const int headerC = 1; // the header for the output is 1 integer.
+                        wmma::store_matrix_sync(c + headerC + cRow + cCol * ldc, acc_frag, ldc, wmma::mem_col_major);
+                    }
+                }
+                return;
+            }
+            """)
+    public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+        if (kc.gix < kc.gsx) {
+            if (kc.giy < kc.gsy) {
+                float acc = 0.0f;
+                for (int k = 0; k < size; k++) {
+                    F16 ha = matrixA.array(kc.giy * size + k);
+                    F16 hb = matrixB.array(k * size + kc.gix);
+                    F16 hc = F16.mul(ha, hb);
+                    float fc = F16.f16ToFloat(hc);
+                    acc += fc;
                 }
                 matrixC.array(kc.giy * size + kc.gix, acc);
             }
@@ -705,6 +778,13 @@ public class Main {
     }
 
     @Reflect
+    public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
+        cc.dispatchKernel(of2D(2048, 64, 128, 4),
+                kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
+    @Reflect
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
@@ -785,6 +865,21 @@ public class Main {
         }
     }
 
+    private static void runSequential(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                float sum = 0.0f;
+                for (int k = 0; k < size; k++) {
+                    F16 a = matrixA.array((long) i * size + k);
+                    F16 b = matrixB.array((long) k * size + j);
+                    F16 mul = F16.mul(a, b);
+                    sum += F16.f16ToFloat(mul);
+                }
+                matrixC.array((long) i * size + j, sum);
+            }
+        }
+    }
+
     /**
      * Configuration to use in this example to represent a
      * 1D range or 2D range.
@@ -795,6 +890,7 @@ public class Main {
         ALG_1DFC, // 1D with multiple function calls: This is just for testing
         ALG_2D,   //
         ALG_2DLI,
+        ALG_2DLIF16,
         ALG_2DTILING,
         ALG_2DREGISTER_TILING,
         ALG_2DREGISTER_TILING_VECTORIZED,
@@ -817,6 +913,7 @@ public class Main {
                     case "1DFC" -> Configuration.ALG_1DFC;
                     case "2D" -> Configuration.ALG_2D;
                     case "2DLI" -> Configuration.ALG_2DLI;
+                    case "2DLIF16" -> Configuration.ALG_2DLIF16;
                     case "2DTILING" -> Configuration.ALG_2DTILING;
                     case "2DREGISTERTILING" -> Configuration.ALG_2DREGISTER_TILING;
                     case "2DREGISTERTILING_V" -> Configuration.ALG_2DREGISTER_TILING_VECTORIZED;
@@ -885,13 +982,18 @@ public class Main {
             matrixCPad = null;
             matrixBPad = null;
             matrixAPad = null;
-            if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16) {
-                matrixC = null;
+            if (configuration == Configuration.ALG_2DREGISTER_TILING_FP16 || configuration == Configuration.ALG_2DLIF16) {
                 matrixB = null;
                 matrixA = null;
                 matrixAHalf = F16Array.create(accelerator, size * size);
                 matrixBHalf = F16Array.create(accelerator, size * size);
-                matrixCHalf = F16Array.create(accelerator, size * size);
+                if (configuration == Configuration.ALG_2DLIF16) {
+                    matrixCHalf = null;
+                    matrixC = F32Array.create(accelerator, size * size);
+                } else {
+                    matrixC = null;
+                    matrixCHalf = F16Array.create(accelerator, size * size);
+                }
                 for (int j = 0; j < matrixAHalf.length(); j++) {
                     matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
                     matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
@@ -923,6 +1025,7 @@ public class Main {
             switch (configuration) {
                 case Configuration.ALG_2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
                 case Configuration.ALG_2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
+                case Configuration.ALG_2DLIF16 -> runSequential(matrixAHalf, matrixBHalf, resultSeq, size);
                 default -> runSequential(matrixA, matrixB, resultSeq, size);
             }
         }
@@ -940,6 +1043,8 @@ public class Main {
                         matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
                 case ALG_2DLI -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
+                case ALG_2DLIF16 -> accelerator.compute((@Reflect Compute) cc ->
+                        matrixMultiply2DLIF16(cc, matrixAHalf, matrixBHalf, matrixC, size));
                 case ALG_2DTILING -> accelerator.compute((@Reflect Compute) cc ->
                         matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
                 case ALG_2DREGISTER_TILING -> accelerator.compute((@Reflect Compute) cc ->

@@ -732,6 +732,17 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return camelCaseString.toString();
     }
 
+    public T using() {
+        return emitText("using");
+    }
+
+    public T namespace() {
+        return emitText("namespace");
+    }
+
+    public T builtin(String text) {
+        return emitText(text);
+    }
 
     final public T oracleCopyright(){
         return blockComment("""

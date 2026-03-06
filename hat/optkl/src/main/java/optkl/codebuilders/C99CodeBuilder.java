@@ -210,6 +210,10 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
         return nl();
     }
 
+    public final T namespace(String namespace) {
+        return using().sp().namespace().sp().id(namespace).semicolon().nl();
+    }
+
     public final T externKeyword() {
         return keyword("extern");
     }

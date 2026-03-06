@@ -27,7 +27,6 @@ package hat.codebuilders;
 import hat.dialect.*;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
-import optkl.codebuilders.JavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -80,6 +79,21 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
 
+    T hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp);
+
+    T hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp);
+
+    T hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp);
+
+    T hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp);
+
+    T hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp);
+
+    T hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp $);
+
+    T hatTensorLoadOp(HATTensorOp.TensorLoadOp $);
+
+    T hatTensorStoreOp(HATTensorOp.TensorStoreOp $);
 
     @Override
     default T recurse(Op op) {
@@ -108,6 +122,14 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp($);
                 case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
                 case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp($);
+                case HATTensorOp.TensorVarOp $ -> hatTensorVarOp($);
+                case HATTensorOp.TensorCreateOp $ -> hatTensorCreateOp($);
+                case HATTensorOp.TensorVarLoadOp $ -> hatTensorVarLoadOp($);
+                case HATTensorOp.TensorFillOp $ -> hatTensorFillOp($);
+                case HATTensorOp.TensorMMAOp $ -> hatTensorMMAOp($);
+                case HATTensorOp.TensorStoreLoadOp $ -> hatTensorStoreLoadOp($);
+                case HATTensorOp.TensorLoadOp $ -> hatTensorLoadOp($);
+                case HATTensorOp.TensorStoreOp $ -> hatTensorStoreOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {

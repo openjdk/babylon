@@ -35,13 +35,16 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Function;
 
-public class HATTier implements  LookupCarrier {
+public class HATTier implements LookupCarrier {
+
     KernelCallGraph kernelCallGraph;
+
     @Override
     public MethodHandles.Lookup lookup(){
         return kernelCallGraph.lookup();
     }
-    private List<HATPhase> hatPhases = new ArrayList<>();
+
+    private final List<HATPhase> hatPhases = new ArrayList<>();
 
     public HATTier(KernelCallGraph kernelCallGraph) {
         this.kernelCallGraph = kernelCallGraph;
@@ -80,6 +83,8 @@ public class HATTier implements  LookupCarrier {
         // F16 type
         hatPhases.add(new HATFP16Phase(kernelCallGraph));
 
+        // Tensors
+        hatPhases.add(new HATTensorsPhase(kernelCallGraph));
     }
 
     // It computes a set of function code model transformations from FuncOp to FuncOp'.

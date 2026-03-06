@@ -28,6 +28,7 @@ import hat.HATMath;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
+import hat.types.Tensor;
 import optkl.IfaceValue.Vector;
 import hat.types._F16;
 import jdk.incubator.code.Op;
@@ -260,6 +261,10 @@ public class HATPhaseUtils {
 
     public static boolean isInvokeFromMathLib(OpHelper.Invoke invoke) {
         return invoke.refIs(HATMath.class);
+    }
+
+    public static boolean isInvokeFromTensorLib(OpHelper.Invoke invoke) {
+        return invoke.refIs(Tensor.class);
     }
 
     public static Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int param) {

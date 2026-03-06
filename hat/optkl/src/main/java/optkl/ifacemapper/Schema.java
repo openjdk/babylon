@@ -160,39 +160,39 @@ public class Schema<T extends MappableIface> {
                         .map(ce -> (JavaOp.InvokeOp) ce)
                         .forEach(invokeOp -> {
                             String name = invokeOp.invokeReference().name();
-                            if (name.equals("schema")){
-                               //System.out.println("This could get recursive very quickly");
-                            }else if (name.equals("pad")) {
+                            if (name.equals("schema")) {
+                                //System.out.println("This could get recursive very quickly");
+                            } else if (name.equals("pad")) {
                                 if (invokeOp.operands().get(1) instanceof Op.Result result && result.op() instanceof CoreOp.ConstantOp constOp) {
                                     int padLength = switch (constOp.value()) {
                                         case Integer i -> i.intValue();
                                         case Long l -> l.intValue();
                                         default -> throw new RuntimeException("long or int const expected in pad()");
                                     };
-                                   // System.out.println("...pad("+padLength+")");
+                                    // System.out.println("...pad("+padLength+")");
                                     schemaBuilder.pad(padLength);
                                 } else {
                                     throw new RuntimeException("pad(x) long or int const expected as operand 1");
                                 }
-                            } else if (declared.contains(name) && !handled.contains(name)){
+                            } else if (declared.contains(name) && !handled.contains(name)) {
                                 var uses = invokeOp.result().uses();
-                                if (uses.isEmpty()){
-                                   // System.out.println("..."+name+"()");
+                                if (uses.isEmpty()) {
+                                    // System.out.println("..."+name+"()");
                                     schemaBuilder.field(name);
                                     handled.add(name);
-                                }else if (uses.size()==1){
+                                } else if (uses.size() == 1) {
                                     // assuming   @Reflect default void schema(){array(width()*height());};
                                     // The nature of the model is that we will find  methods 'width' and 'height' first and which are used to bind the dimensions of 'array'
                                     // So given that invokeOp -> width() and name == "width" we are interested in finding a method that consumes this (in our case  array(width()....))
                                     if (uses.iterator().next() instanceof Op.Result result) {// is might it a constant like we have only one, so probably a constant like length
                                         // we have a call which is possibly being passed to another method say we have width and we want to find invokeOp -> "array(width())"
-                                        if (consumedInvoke(invokeOp, result) instanceof Receiver  receiver
-                                              && receiver.args.stream().map(i->i.invokeReference().name()).filter(declared::contains).toList() instanceof List<String> containedConsumers
-                                               && receiver.args.size() == containedConsumers.size()){
+                                        if (consumedInvoke(invokeOp, result) instanceof Receiver receiver
+                                                && receiver.args.stream().map(i -> i.invokeReference().name()).filter(declared::contains).toList() instanceof List<String> containedConsumers
+                                                && receiver.args.size() == containedConsumers.size()) {
                                             // in our case we expect Reciever (array,[width, height])
                                             schemaBuilder.arrayLen(containedConsumers).array(receiver.arrayName());
                                             handled.add(receiver.arrayName());
-                                            containedConsumers.forEach(c->handled.add(c));
+                                            containedConsumers.forEach(c -> handled.add(c));
                                             //handled.add(consumerMethodName);
                                         } else {
                                             throw new IllegalStateException("Wait  a minute! the schema order is corrupt ");
@@ -200,11 +200,11 @@ public class Schema<T extends MappableIface> {
                                     } else {
                                         throw new IllegalStateException("how did we get here?");
                                     }
-                                }else {
-                                    throw new IllegalStateException("Schema order seems to use "+name+" in more than one binding!?");
+                                } else {
+                                    throw new IllegalStateException("Schema order seems to use " + name + " in more than one binding!?");
                                 }
-                            }else{
-                               // System.out.println("skipping "+name);
+                            } else {
+                                // System.out.println("skipping "+name);
                             }
 
                         });
@@ -223,8 +223,8 @@ public class Schema<T extends MappableIface> {
         rootIfaceType.toText("", stringConsumer);
     }
 
-    public static abstract sealed class IfaceType
-            permits IfaceType.Union, IfaceType.Struct {
+    public static abstract sealed class IfaceType permits IfaceType.Union, IfaceType.Struct {
+
         public final IfaceType parent;
         public List<FieldNode> fields = new ArrayList<>();
         public List<IfaceType> ifaceTypes = new ArrayList<>();
@@ -257,22 +257,22 @@ public class Schema<T extends MappableIface> {
             }
         }
 
-      //  public void visitTypes(int depth, Consumer<IfaceType> ifaceTypeNodeConsumer) {
+        //  public void visitTypes(int depth, Consumer<IfaceType> ifaceTypeNodeConsumer) {
         //    ifaceTypes.forEach(t -> t.visitTypes(depth + 1, ifaceTypeNodeConsumer));
-          //  ifaceTypeNodeConsumer.accept(this);
-       // }
+        //  ifaceTypeNodeConsumer.accept(this);
+        // }
         private void visitUniqueTypes(Set<Class<?>> classSet, int depth, Consumer<IfaceType> ifaceTypeNodeConsumer) {
             ifaceTypes.forEach(t -> {
                 if (!classSet.contains(t.iface)) {
                     classSet.add(t.iface);
-                    t.visitUniqueTypes(classSet,  depth + 1, ifaceTypeNodeConsumer);
+                    t.visitUniqueTypes(classSet, depth + 1, ifaceTypeNodeConsumer);
                 }
             });
             ifaceTypeNodeConsumer.accept(this);
         }
-        public void visitUniqueTypes(Consumer<IfaceType> ifaceTypeNodeConsumer) {
 
-            visitUniqueTypes(new HashSet<>(),0,ifaceTypeNodeConsumer);
+        public void visitUniqueTypes(Consumer<IfaceType> ifaceTypeNodeConsumer) {
+            visitUniqueTypes(new HashSet<>(), 0, ifaceTypeNodeConsumer);
         }
 
 
