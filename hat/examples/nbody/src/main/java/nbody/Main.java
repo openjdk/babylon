@@ -126,7 +126,7 @@ public class Main extends JFrame implements Runnable {
     }
 
     @Reflect
-    public static void run(int bodyIdx, int bodies, @MappableIface.RW F32Array xyzPos, @MappableIface.RW F32Array xyzVel, @MappableIface.RW S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
+    public static void run(int bodyIdx, int bodies, F32Array xyzPos, F32Array xyzVel, S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
         final int FAR = 500;
         final int MID = 300;
         final int NEAR = 100;
@@ -199,11 +199,11 @@ public class Main extends JFrame implements Runnable {
     @Reflect
 
     static public void nbodyKernel(
-            @MappableIface.RO KernelContext kc,
+            KernelContext kc,
             int bodies,
-            @MappableIface.RW F32Array xyzPos,
-            @MappableIface.RW F32Array xyzVel,
-            @MappableIface.RW S32RGBAImage image,
+            F32Array xyzPos,
+            F32Array xyzVel,
+            S32RGBAImage image,
             int imageWidth,
             float mass,
             float delT,
@@ -215,8 +215,8 @@ public class Main extends JFrame implements Runnable {
     @Reflect
 
     static public void clearImage(
-            @MappableIface.RO KernelContext kc,
-            @MappableIface.RW S32RGBAImage image
+            KernelContext kc,
+            S32RGBAImage image
     ) {
         image.data(kc.gix, 0);
     }

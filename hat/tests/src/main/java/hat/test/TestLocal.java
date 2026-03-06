@@ -58,7 +58,7 @@ public class TestLocal {
     }
 
     @Reflect
-    private static void compute(@MappableIface.RO KernelContext kernelContext, @MappableIface.WO F32Array data) {
+    private static void compute(KernelContext kernelContext, F32Array data) {
         MySharedArray mySharedArray = MySharedArray.createLocal();
         int lix = kernelContext.lix;
         int blockId = kernelContext.bix;

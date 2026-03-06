@@ -280,12 +280,8 @@ public interface ArgArray extends Buffer {
                 case Buffer buffer -> {
                     Annotation[] annotations = parameterAnnotations[i];
                     AccessType accessType = AccessType.NA;
-                    if (annotations.length > 0) {
-                        for (Annotation annotation : annotations) {
-                            accessType = AccessType.of(annotation);
-                        }
-                    } else {
-                        throw new IllegalArgumentException("Argument " + i + " has no access annotations");
+                    for (Annotation annotation : annotations) {
+                        accessType = AccessType.of(annotation);
                     }
                     MemorySegment segment = MappableIface.getMemorySegment(buffer);
                     arg.variant((byte) '&');
