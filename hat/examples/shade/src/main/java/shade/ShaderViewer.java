@@ -26,7 +26,6 @@
 package shade;
 
 import hat.Accelerator.Compute;
-import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
 import hat.types.vec2;
 import hat.types.vec4;
@@ -35,10 +34,8 @@ import optkl.util.carriers.ArenaAndLookupCarrier;
 import shade.ui.BufferedImageViewer;
 
 import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.stream.IntStream;
 
@@ -60,7 +57,7 @@ public class ShaderViewer implements Runnable{
 
         this.floatImage = FloatImage.of(arenaAndLookupCarrier, frameControls.width(), frameControls.height());
         this.uniforms = Uniforms.create(arenaAndLookupCarrier);
-        this.bufferedImageViewer = new BufferedImageViewer(doorBell, cyclicBarrier,floatImage.bufferedImage(), point -> {
+        this.bufferedImageViewer = new BufferedImageViewer(floatImage.bufferedImage(), point -> {
             uniforms.iMouse().x(point.x);
             uniforms.iMouse().y(point.y);
         });
@@ -73,30 +70,28 @@ public class ShaderViewer implements Runnable{
 
 @Override
         public void run() {
-
-            long startTimeNs = System.nanoTime();
-
-            double nsPerTick = 1000000000.0 / frameControls.targetFps(); // 2 Fixed Updates per second
-            double delta = 0;
-            long lastTimeNs = System.nanoTime();
+            //double delta = 0;
+    long startTimeNs = System.nanoTime();
+    uniforms.iFrame(uniforms.iFrame() + 1);
+    int w = floatImage.width();
+    int h = floatImage.height();
+    uniforms.iResolution().x(w);
+    uniforms.iResolution().y(h);
             while (running) {
-                long now = System.nanoTime();
-                delta += (now - lastTimeNs) / nsPerTick;
-                lastTimeNs = now;
-                uniforms.iResolution().x(floatImage.width());
-                uniforms.iResolution().y(floatImage.height());
 
-                while (delta >= 1) {
-                    long diffNs = lastTimeNs - startTimeNs;
 
-                    long diffMs = diffNs / 1000000;
+
+             ///   while (delta >= 10) {
+                    long diffNs = System.nanoTime() - startTimeNs;
+
+                    long diffMs = diffNs / 1_000_000;
                     float fdiffMs = (float) diffMs;
-                    uniforms.iTime(fdiffMs / 1000);
+                    uniforms.iTime(fdiffMs/1_000f);
                     long startNs = System.nanoTime();
 
-                    if (frameControls.running()) {
-                        uniforms.iFrame(uniforms.iFrame() + 1);
-                        synchronized (bufferedImageViewer) {
+                   // if (frameControls.running()) {
+
+                      //  synchronized (bufferedImageViewer) {
                             // We synchronize here and in the paint method.  To ensure that we don't copy memory segment mid compute.
 
                             if (frameControls.accelerator() == null) {
@@ -108,21 +103,22 @@ public class ShaderViewer implements Runnable{
                                 });
                             } else {
                                 var funiforms = uniforms;
-                                var fwidth = frameControls.width();
-                                var fheight = frameControls.height();
+                                var fwidth = w;
+                                var fheight = h;
                                 var f32Array = floatImage.f32Array();
                                 frameControls.accelerator().compute((@Reflect Compute) cc -> HATShader.compute(cc, funiforms, f32Array, fwidth, fheight));
                             }
                             floatImage.sync();
-                        }
-                    }
+                      //  }
+                    //}
                     long endNs = System.nanoTime();
-                    frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
+                    System.out.println("shader time us = "+((int) (endNs - startNs) / 1000));
+                 /*   frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
                             .actualFps((int) (uniforms.iFrame() * 1000 / diffMs))
                             .frameNumber((int) uniforms.iFrame())
-                            .elapsedMs((int) diffMs);
-                    delta -= 1f;
-                }
+                            .elapsedMs((int) diffMs);*/
+                //    delta -= 1f;
+              //  }
 
                 SwingUtilities.invokeLater(bufferedImageViewer::repaint);
 
@@ -130,6 +126,7 @@ public class ShaderViewer implements Runnable{
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
                 }
+                uniforms.iFrame(uniforms.iFrame() + 1);
             }
         }
         /*

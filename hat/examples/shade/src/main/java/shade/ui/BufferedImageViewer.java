@@ -36,11 +36,8 @@ import java.util.function.Consumer;
 
 public class BufferedImageViewer extends JComponent {
     private final BufferedImage bufferedImage;
-    private final CyclicBarrier cyclicBarrier;
-private final Object doorBell;
-    public BufferedImageViewer(Object doorBell, CyclicBarrier cyclicBarrier,BufferedImage bufferedImage, Consumer<Point> mouseLocationConsumer) {
-        this.cyclicBarrier = cyclicBarrier;
-        this.doorBell  =doorBell;
+    public BufferedImageViewer(BufferedImage bufferedImage, Consumer<Point> mouseLocationConsumer) {
+
         this.bufferedImage = bufferedImage;
         this.addMouseMotionListener(new MouseMotionListener() {
             @Override
@@ -57,14 +54,7 @@ private final Object doorBell;
 
     @Override
     public void paint(Graphics graphics) {
-
             graphics.drawImage(bufferedImage, 0, 0, this.getWidth(), this.getHeight(), null);
-
-       // try {
-         //   cyclicBarrier.await();
-       // }catch (BrokenBarrierException | InterruptedException e){
-//System.out.println("barrier ex");
-  //      }
     }
 
 }

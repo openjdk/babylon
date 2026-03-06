@@ -107,7 +107,7 @@ public class C99VecAndMatHandler {
                                 bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                     }
                 }
-                case "cos", "sin", "exp", "pow", "min", "max", "log", "smoothstep" -> bldr.id(invoke.name()).paren(_ ->
+                case "cos", "sqrt","sin", "exp", "pow", "min", "max", "log", "smoothstep", "clamp" -> bldr.id(invoke.name()).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                 case "abs" -> bldr.id("f" + invoke.name()).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
