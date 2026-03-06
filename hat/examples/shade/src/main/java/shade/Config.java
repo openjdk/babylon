@@ -34,8 +34,6 @@ import javax.swing.JToggleButton;
 public class Config {
     private final Accelerator accelerator;
 
-    private final boolean showAllocations;
-
     private final int width;
     private final int height;
     private final int targetFps;
@@ -45,10 +43,6 @@ public class Config {
 
     public Accelerator accelerator() {
         return accelerator;
-    }
-
-    public boolean showAllocations() {
-        return showAllocations;
     }
 
     public int width() {
@@ -136,7 +130,6 @@ public class Config {
             boolean showTargetFps,
             boolean showActualFps,
             boolean showShaderTimeUs,
-            boolean showAllocations,
             boolean showElapsedMs,
             boolean showFrameNumber
     ) {
@@ -149,18 +142,10 @@ public class Config {
         this.showTargetFps = showTargetFps;
         this.showActualFps = showActualFps;
         this.showShaderTimeUs = showShaderTimeUs;
-        this.showAllocations = showAllocations;
         this.showElapsedMs = showElapsedMs;
 
         this.showFrameNumber = showFrameNumber;
-        this.menu = new Menu(new JMenuBar())
-                .exit();
-        if (showAllocations) {
-            this.menu
-                    .label("Vectors + Mats")
-                    .sevenSegment(10, 15, $ -> allocations7Seg = $).space(20);
-        }
-
+        this.menu = new Menu(new JMenuBar()).exit();
         if (showShaderTimeUs) {
             this.menu
                     .label("Shader Time (us)")
@@ -191,12 +176,6 @@ public class Config {
                 .space(40);
     }
 
-    Config allocations(int v) {
-        if (showAllocations) {
-            allocations7Seg.set(v);
-        }
-        return this;
-    }
 
     Config shaderTimeUs(int v) {
         if (showShaderTimeUs) {
@@ -237,15 +216,14 @@ public class Config {
             boolean showTargetFps,
             boolean showActualFps,
             boolean showShaderTimeUs,
-            boolean showAllocations,
             boolean showElapsedMs,
             boolean showFrameNumber) {
-        return new Config(accelerator, width, height, targetFps, shaderName, shader, showTargetFps, showActualFps, showShaderTimeUs, showAllocations, showElapsedMs, showFrameNumber);
+        return new Config(accelerator, width, height, targetFps, shaderName, shader, showTargetFps, showActualFps, showShaderTimeUs, showElapsedMs, showFrameNumber);
     }
 
 
     public static Config of(Accelerator accelerator, int width, int height, int targetFps, String name, Shader shader) {
-        return new Config(accelerator, width, height, targetFps, name, shader, false, false, false, false, false, false);
+        return new Config(accelerator, width, height, targetFps, name, shader, false,  false, false, false, false);
     }
 
     public static Config of(Accelerator accelerator, int width, int height, int targetFps, Shader shader) {
@@ -253,7 +231,6 @@ public class Config {
                 Boolean.parseBoolean(System.getProperty("showTargetFps", "true")),
                 Boolean.parseBoolean(System.getProperty("showActualFps", "true")),
                 Boolean.parseBoolean(System.getProperty("showShaderTimeUs", "true")),
-                Boolean.parseBoolean(System.getProperty("showAllocations", "false")),
                 Boolean.parseBoolean(System.getProperty("showElapsedMs", "false")),
                 Boolean.parseBoolean(System.getProperty("showFrameCount", "false")));
     }

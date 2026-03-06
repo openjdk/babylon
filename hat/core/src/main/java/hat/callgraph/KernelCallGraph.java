@@ -121,10 +121,10 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
 
         entrypoint.funcOp(initialEntrypointFuncOp);
-        List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
 
         CoreOp.ModuleOp initialModuleOp = createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp());
 
+        List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
         initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
                 initialFuncOps.add( tier.apply(accessableFuncOp))
         );

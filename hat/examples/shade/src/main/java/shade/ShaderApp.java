@@ -25,6 +25,7 @@
 package shade;
 
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import java.awt.Rectangle;
 
 public class ShaderApp {
@@ -37,7 +38,8 @@ public class ShaderApp {
         jFrame.setContentPane(shaderViewer.bufferedImageViewer);
         jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jFrame.setVisible(true);
-        shaderViewer.startShader();
+       shaderViewer.startShader();
+       // SwingUtilities.invokeLater(shaderViewer::shaderLoop);
     }
 
 

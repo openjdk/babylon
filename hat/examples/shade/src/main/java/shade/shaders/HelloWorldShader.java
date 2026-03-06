@@ -58,8 +58,8 @@ public class HelloWorldShader implements Shader {
     static Config controls = Config.of(
         //   Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST)  : null,
            new Accelerator(MethodHandles.lookup(), Backend.FIRST),
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "2048"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "2048"))),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
             Integer.parseInt(System.getProperty("targetFps", "60")),
             new HelloWorldShader()
     );

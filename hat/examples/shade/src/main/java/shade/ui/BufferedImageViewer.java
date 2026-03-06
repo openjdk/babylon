@@ -30,14 +30,18 @@ import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.function.Consumer;
 
 public class BufferedImageViewer extends JComponent {
     private final BufferedImage bufferedImage;
-
-    public BufferedImageViewer(BufferedImage bufferedImage, Consumer<Point> mouseLocationConsumer) {
+    private final CyclicBarrier cyclicBarrier;
+private final Object doorBell;
+    public BufferedImageViewer(Object doorBell, CyclicBarrier cyclicBarrier,BufferedImage bufferedImage, Consumer<Point> mouseLocationConsumer) {
+        this.cyclicBarrier = cyclicBarrier;
+        this.doorBell  =doorBell;
         this.bufferedImage = bufferedImage;
-        //this.setPreferredSize(new Dimension(floatImage.width(),floatImage.height()));
         this.addMouseMotionListener(new MouseMotionListener() {
             @Override
             public void mouseDragged(MouseEvent e) {
@@ -53,9 +57,14 @@ public class BufferedImageViewer extends JComponent {
 
     @Override
     public void paint(Graphics graphics) {
-        synchronized (this) {
+
             graphics.drawImage(bufferedImage, 0, 0, this.getWidth(), this.getHeight(), null);
-        }
+
+       // try {
+         //   cyclicBarrier.await();
+       // }catch (BrokenBarrierException | InterruptedException e){
+//System.out.println("barrier ex");
+  //      }
     }
 
 }
