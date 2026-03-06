@@ -31,6 +31,8 @@ import hat.types.mat3;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
@@ -137,7 +139,15 @@ public class C99VecAndMatHandler {
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
                 );
             } else {
-                if (invoke.nameMatchesRegex("(mul|add|sub|div)")) {
+                // We have to catch vecn.mul(vecn, matn)
+                if (invoke.named("mul")
+                    && invoke.operandCount() == 2
+                            && invoke.resultFromOperandNOrNull(1) instanceof Op.Result r
+                            && r.type() instanceof ClassType cte
+                         && OpHelper.classTypeToTypeOrThrow(invoke.lookup(), cte) instanceof Class<?> c
+                    && IfaceValue.mat.class.isAssignableFrom(c)){
+                        bldr.id("vec2_mul_vec2_mat2").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                }else if (invoke.nameMatchesRegex("(mul|add|sub|div)")) {
                     // for opencl we can turn these into expressions. So vec3.mul(l,r) -> (l * r)
                     bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).symbol(switch (invoke.name()) {
                         case "mul" -> "*";
@@ -155,9 +165,16 @@ public class C99VecAndMatHandler {
                 }
             }
         } else if (invoke.refIs(IfaceValue.mat.class)) {
-            bldr.lineComment("call through mat !");
-            bldr.recurse(invoke.opFromFirstOperandOrNull()).dot().id(invoke.name());
+            if (invoke.nameMatchesRegex("mat[234]")) {
+                bldr.paren(_ -> bldr.type(invoke.name())).brace(_ ->
+                        bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
+                );
+            } else {
+                bldr.lineComment("other call through mat !");
+                bldr.recurse(invoke.opFromFirstOperandOrNull()).dot().id(invoke.name());
+            }
         }
+
     }
 
 
@@ -203,5 +220,16 @@ public class C99VecAndMatHandler {
         List.of(new NamedVecShape("vec2", vec2.shape), new NamedVecShape("vec3", vec3.shape),new NamedVecShape("vec4", vec4.shape)).forEach(ns->
              builder.typedefKeyword().sp().type("float"+ns.shape.lanes()).sp().type(ns.name).snl()
         );
+
+        builder.func(
+                _->builder.type("vec2"),
+                "vec2_mul_vec2_mat2",
+                _->builder.type("vec2").sp().id("l").csp().type("mat2").sp().id("r"),
+                _->builder.returnKeyword().sp().paren(_->builder.type("vec2")).paren(_->
+                                builder.preformatted("""
+                                        l.x*r._00+l.x*r._01,
+                                                        l.y*r._10+l.y*r._11
+                                        """)
+                ).semicolon());
     }
 }
