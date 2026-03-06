@@ -26,6 +26,7 @@
 package shade;
 
 import hat.Accelerator.Compute;
+import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
 import hat.types.vec2;
 import hat.types.vec4;
@@ -34,9 +35,13 @@ import optkl.util.carriers.ArenaAndLookupCarrier;
 import shade.ui.BufferedImageViewer;
 
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.stream.IntStream;
+
 
 public class ShaderViewer implements Runnable{
     final Config frameControls;
@@ -44,7 +49,8 @@ public class ShaderViewer implements Runnable{
     final BufferedImageViewer bufferedImageViewer;
     final Uniforms uniforms;
     volatile boolean running;
-
+    final CyclicBarrier cyclicBarrier = new CyclicBarrier(1);
+    private final Object doorBell = new Object();
     public ShaderViewer(Config frameControls) {
         this.frameControls = frameControls;
         // we need an arena even if we don't have an accelerator ;)
@@ -54,7 +60,7 @@ public class ShaderViewer implements Runnable{
 
         this.floatImage = FloatImage.of(arenaAndLookupCarrier, frameControls.width(), frameControls.height());
         this.uniforms = Uniforms.create(arenaAndLookupCarrier);
-        this.bufferedImageViewer = new BufferedImageViewer(floatImage.bufferedImage(), point -> {
+        this.bufferedImageViewer = new BufferedImageViewer(doorBell, cyclicBarrier,floatImage.bufferedImage(), point -> {
             uniforms.iMouse().x(point.x);
             uniforms.iMouse().y(point.y);
         });
@@ -65,7 +71,7 @@ public class ShaderViewer implements Runnable{
         new Thread(this).start();
     }
 
-        @Override
+@Override
         public void run() {
 
             long startTimeNs = System.nanoTime();
@@ -88,20 +94,6 @@ public class ShaderViewer implements Runnable{
                     uniforms.iTime(fdiffMs / 1000);
                     long startNs = System.nanoTime();
 
-                    if (frameControls.showAllocations()) {
-                      /*  ivec2.collect.set(true);
-                        vec2.collect.set(true);
-                        vec3.collect.set(true);
-                        vec4.collect.set(true);
-                        mat2.collect.set(true);
-                        mat3.collect.set(true);
-                        ivec2.count.set(0);
-                        vec2.count.set(0);
-                        vec3.count.set(0);
-                        vec4.count.set(0);
-                        mat2.count.set(0);
-                        mat3.count.set(0); */
-                    }
                     if (frameControls.running()) {
                         uniforms.iFrame(uniforms.iFrame() + 1);
                         synchronized (bufferedImageViewer) {
@@ -125,11 +117,6 @@ public class ShaderViewer implements Runnable{
                         }
                     }
                     long endNs = System.nanoTime();
-                    if (frameControls.showAllocations()) {
-                      //  frameControls.allocations(
-                        //        ivec2.count.get() + vec2.count.get() + vec3.count.get() + vec4.count.get() + mat2.count.get() + mat3.count.get()
-                       // );
-                    }
                     frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
                             .actualFps((int) (uniforms.iFrame() * 1000 / diffMs))
                             .frameNumber((int) uniforms.iFrame())
@@ -145,7 +132,148 @@ public class ShaderViewer implements Runnable{
                 }
             }
         }
+        /*
+    long startTimeNs = System.nanoTime();
+
+    public static FloatImage runShader(FloatImage floatImage,Config frameControls, Uniforms uniforms) {
+        if (frameControls.accelerator() == null) {
+            IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
+                vec2 fragCoord = vec2.vec2((float) i % floatImage.width(), (float) (floatImage.height() - (i / floatImage.width())));
+                vec4 inFragColor = vec4.vec4(0);
+                vec4 outFragColor = frameControls.shader().mainImage(uniforms, inFragColor, fragCoord);
+                floatImage.set(i, outFragColor);
+            });
+        } else {
+            var funiforms = uniforms;
+            var fwidth = frameControls.width();
+            var fheight = frameControls.height();
+            var f32Array = floatImage.f32Array();
+            frameControls.accelerator().compute((@Reflect Compute) cc -> HATShader.compute(cc, funiforms, f32Array, fwidth, fheight));
+        }
+        floatImage.sync();
+        return floatImage;
+    }
+
+    void loop(){
 
 
+            long nowNs = System.nanoTime();
+            uniforms.iResolution().x(floatImage.width());
+            uniforms.iResolution().y(floatImage.height());
+            while (true) {
+                long elapsedMs = (nowNs-startTimeNs) / 1000000;
+                uniforms.iTime((float)elapsedMs / 1000f);
+                long shaderStartNs = System.nanoTime();
 
+              ///  bufferedImageViewer.repaint();
+                long shaderEndNs = System.nanoTime();
+                frameControls.shaderTimeUs((int) ((shaderEndNs - shaderStartNs) / 1000))
+                        .frameNumber((int) uniforms.iFrame())
+                        .actualFps((int) (uniforms.iFrame() * 1000 / (elapsedMs+1)))
+                        .elapsedMs((int) elapsedMs);
+
+                SwingUtilities.invokeLater(bufferedImageViewer::repaint);
+                //try {
+                  //  cyclicBarrier.await();
+               // }catch (BrokenBarrierException | InterruptedException e){
+                 //   System.out.println("bar ex 2");
+               // }
+            }
+        }
+    }
+
+     void doit() {
+
+        SwingWorker<Void, FloatImage> worker = new SwingWorker<Void, FloatImage>() {
+            @Override
+            protected Void doInBackground() {
+                while (!isCancelled()) {
+                    FloatImage d = ShaderViewer.runShader();
+                            publish(d); // Sends data to the "process" method in batches
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(FloatImage chunks) {
+                // This runs on the EDT.
+                // If the loop is fast, 'chunks' contains multiple data points.
+                // for (Data d : chunks) {
+                //   canvas.addPoint(d);
+                // }
+              //  canvas.repaint();
+            }
+        };
+        worker.execute();
+    } */
+
+
+    /*
+    import javax.swing.*;
+import java.awt.*;
+import java.awt.image.*;
+
+public class FastRenderPanel extends JPanel {
+    private BufferedImage cpuBuffer;
+    private VolatileImage vramBuffer;
+    private int[] pixels;
+
+    public FastRenderPanel(int w, int h) {
+        // 1. Create the CPU-side buffer
+        cpuBuffer = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        // Grab the internal array for direct manipulation
+        pixels = ((DataBufferInt) cpuBuffer.getRaster().getDataBuffer()).getData();
+    }
+
+    public void startLoop() {
+        new Thread(() -> {
+            while (true) {
+                updateSimulation(); // Your hard loop updating 'pixels'
+                render();           // Custom render call
+
+                // Cap at ~60fps to keep the OS happy
+                try { Thread.sleep(16); } catch (InterruptedException e) {}
+            }
+        }).start();
+    }
+
+    private void updateSimulation() {
+        for (int i = 0; i < pixels.length; i++) {
+            // Example: Fill with random noise or logic
+            pixels[i] = (int)(Math.random() * 0xFFFFFF);
+        }
+    }
+
+    private void render() {
+        // Validation: VolatileImages can be "lost" if the window is resized or the OS
+        // reclaims VRAM. We must check its status every frame.
+        if (vramBuffer == null || vramBuffer.validate(getGraphicsConfiguration()) == VolatileImage.IMAGE_INCONSISTENT) {
+            vramBuffer = createVolatileImage(cpuBuffer.getWidth(), cpuBuffer.getHeight());
+        }
+
+        do {
+            // Check if the VRAM content was lost
+            if (vramBuffer.validate(getGraphicsConfiguration()) == VolatileImage.IMAGE_RESTORED) {
+                // Restoration logic if needed
+            }
+
+            // Copy CPU pixels to VRAM
+            Graphics2D gVram = vramBuffer.createGraphics();
+            gVram.drawImage(cpuBuffer, 0, 0, null);
+            gVram.dispose();
+
+            // Finally, paint the VRAM buffer to the UI
+            Graphics g = this.getGraphics();
+            if (g != null) {
+                g.drawImage(vramBuffer, 0, 0, null);
+                g.dispose();
+            }
+
+        } while (vramBuffer.contentsLost());
+
+        // Ensure smooth rendering on Linux/macOS
+        Toolkit.getDefaultToolkit().sync();
+    }
+}
+     */
 }
