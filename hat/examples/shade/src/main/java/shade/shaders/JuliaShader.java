@@ -173,7 +173,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   //  public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
 
 
-    static public vec4 createPixel(vec2 fres, float ftime, vec2 fragCoord){
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
 
         final int AA = 2;
         float scol = 0.0f;
@@ -198,8 +198,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec3 R = uniforms.iResolution();
-        return createPixel(vec2.vec2(R.x(),R.y()),uniforms.iTime(),fragCoord);
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     ;

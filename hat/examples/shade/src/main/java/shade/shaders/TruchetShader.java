@@ -273,7 +273,7 @@ public class TruchetShader implements Shader {
         return vec2(d, e);
     }
 
-    static public vec4 createPixel(vec2 fres, float ftime, vec2 fragCoord){
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
 
 
         vec3 color = vec3(0f);
@@ -315,8 +315,7 @@ public class TruchetShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec3 R = uniforms.iResolution();
-        return createPixel(vec2(R.x(),R.y()),uniforms.iTime(),fragCoord);
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     static Config controls = Config.of(

@@ -40,17 +40,14 @@ import static hat.types.vec4.vec4;
 
 //https://www.shadertoy.com/view/Md23DV
 public class MouseSensitiveShader implements Shader {
-
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-
-        float w = uniforms.iResolution().x();
-        float wDiv3 = uniforms.iResolution().x() / 3;
-        float h = uniforms.iResolution().y();
-        float hDiv3 = uniforms.iResolution().y() / 3;
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse,vec2 fragCoord){
+        float w = fres.x();
+        float wDiv3 = fres.x() / 3;
+        float h = fres.y();
+        float hDiv3 = fres.y() / 3;
         boolean midx = (fragCoord.x() > wDiv3 && fragCoord.x() < (w - wDiv3));
         boolean midy = (fragCoord.y() > hDiv3 && fragCoord.y() < (h - hDiv3));
-        if (uniforms.iMouse().x() > wDiv3) {
+        if (fmouse.x() > wDiv3) {
             if (midx && midy) {
                 return vec4(fragCoord.x(), .0f, fragCoord.y(), 0.f);
             } else {
@@ -60,6 +57,15 @@ public class MouseSensitiveShader implements Shader {
             return vec4(1f, 1f, .5f, 0f);
         }
     }
+
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+
+    }
+
+
+
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,

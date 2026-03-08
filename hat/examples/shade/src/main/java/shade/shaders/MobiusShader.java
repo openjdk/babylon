@@ -423,7 +423,7 @@ public class MobiusShader implements Shader {
     static public vec2 cdiv(vec2 a, vec2 b) {
         return div(cmul(a, vec2(b.x(), -b.y())), dot(b, b));
     }
-    static public vec4 createPixel(vec2 fres, float ftime, vec2 fragCoord){
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse,vec2 fragCoord){
         vec4 fragColor = vec4(1f, 1f, 1f, 1f);
         float aspect =fres.x() / fres.y();
         vec2 pos = sub(mul(div(fragCoord,fres.y()), 1.5f), vec2((1.5f * aspect - 1.0f) / 2.0f, 0.25f));
@@ -447,7 +447,9 @@ public class MobiusShader implements Shader {
     }
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),fragCoord);
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+
+
 
     }
 

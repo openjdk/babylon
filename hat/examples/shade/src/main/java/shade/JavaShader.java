@@ -26,13 +26,25 @@ package shade;
 
 import hat.types.vec2;
 import hat.types.vec4;
+import shade.shaders.GroovyShader;
+import shade.shaders.IntroShader;
+import shade.shaders.JuliaShader;
+import shade.shaders.MobiusShader;
+import shade.shaders.MouseSensitiveShader;
+import shade.shaders.PaintShader;
+import shade.shaders.SeaScapeShader;
+import shade.shaders.SpiralShader;
+import shade.shaders.Truchet2Shader;
 import shade.shaders.TruchetShader;
 import shade.shaders.TutorialShader;
+import shade.shaders.WavesShader;
 
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
@@ -116,16 +128,30 @@ public class JavaShader extends JPanel {
     public void updateSimulation(float elapsed) {
         ftime = elapsed;
         vec2 fres = vec2(width, height);
+        JComponent c = this;
+        var p = c.getMousePosition();
+        if (p == null){
+            p = new Point(0,0);
+        }
+     //   System.out.println("mouse "+p.x+","+p.y);
+        vec2 fmouse = vec2(p.x,p.y);
         long startNs = System.nanoTime();
         IntStream.range(0, width * height).parallel().forEach(idx -> {
             int invertedHeight = idx / width;
             vec2 fragCoord = vec2.vec2((float) idx % width, (float) (height - invertedHeight));
                 vec4 col =
-                        TruchetShader.createPixel(fres,ftime,fragCoord);
-            //   PaintShader.createPixel(fres,ftime,fragCoord);
-            // MobiusShader.createPixel(fres,ftime,fragCoord);
-            // JuliaShader.createPixel(fres,ftime,fragCoord);
-            // TutorialShader.createPixel(fres, ftime, fragCoord);
+                        //WavesShader.createPixel(fres,ftime,fmouse,fragCoord);
+                        // SeaScapeShader.createPixel(fres,ftime,fmouse,fragCoord);
+                        // Truchet2Shader.createPixel(fres,ftime,fmouse,fragCoord);
+           // TruchetShader.createPixel(fres,ftime,fmouse,fragCoord);
+                        GroovyShader.createPixel(fres,ftime,fmouse,fragCoord);
+           // IntroShader.createPixel(fres,ftime,fmouse,fragCoord);
+          // MouseSensitiveShader.createPixel(fres,ftime,fmouse,fragCoord);
+            //   PaintShader.createPixel(fres,ftime,fmouse,fragCoord);
+           // MobiusShader.createPixel(fres,ftime,fmouse,fragCoord);
+           //  JuliaShader.createPixel(fres,ftime,fmouse,fragCoord);
+                   //     SpiralShader.createPixel(fres, ftime, fmouse,fragCoord);
+            // TutorialShader.createPixel(fres, ftime, fmouse,fragCoord);
             f32x3Arr[idx * 3] = col.x();
             f32x3Arr[idx * 3 + 1] = col.y();
             f32x3Arr[idx * 3 + 2] = col.z();
@@ -137,9 +163,11 @@ public class JavaShader extends JPanel {
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("Java Pixel Shader");
-        frame.setSize(1024, 1024);
+        int width =1024;
+        int height=1024;
+        frame.setSize(width, height);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(new JavaShader(1024, 1024));
+        frame.add(new JavaShader(width, height));
         frame.setVisible(true);
     }
 }

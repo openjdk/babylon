@@ -106,7 +106,8 @@ public class TutorialShader implements Shader {
         vec3 d = vec3(0.263f, 0.416f, 0.557f);
         return add(a, mul(b, cos(mul(add(mul(c, vec3(t)), d), vec3(6.28318f)))));
     }
-    static public vec4 createPixel(vec2 fres, float ftime, vec2 fragCoord){
+
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
         vec2 uv = div(sub(mul(fragCoord, 2f), fres), fres.y());
         vec2 uv0 = uv;
         vec3 color = vec3(0f);
@@ -125,8 +126,7 @@ public class TutorialShader implements Shader {
 
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()), uniforms.iTime(),fragCoord);
-
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     static Config controls = Config.of(

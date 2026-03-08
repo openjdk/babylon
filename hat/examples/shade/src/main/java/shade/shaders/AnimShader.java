@@ -155,8 +155,6 @@ public class AnimShader implements Shader {
         return fragColor;
     }
 
-    ;
-
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),

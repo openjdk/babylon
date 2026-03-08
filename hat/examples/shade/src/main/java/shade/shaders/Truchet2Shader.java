@@ -178,20 +178,20 @@ public class Truchet2Shader implements Shader {
       static final float Thickness=0.1f;
     static final float  SuperQuadPower=8f;
     static final float   Fisheye =5f;
-    float rand(vec3 r) { return fract(sin(dot(vec2(r.x(),r.y()),vec2(1.38984f*sin(r.z()),1.13233f*cos(r.z()))))*653758.5453f); }
-    float truchetarc(vec3 pos) {
+    static public  float rand(vec3 r) { return fract(sin(dot(vec2(r.x(),r.y()),vec2(1.38984f*sin(r.z()),1.13233f*cos(r.z()))))*653758.5453f); }
+    static public    float truchetarc(vec3 pos) {
         float r=length(vec2(pos.x(), pos.y()));
         return pow(pow(abs(r-.5f),SuperQuadPower)+pow(abs(pos.z()-0.5f),SuperQuadPower),1.0f/SuperQuadPower)-Thickness;
     }
 
-    float truchetcell(vec3 pos) {
+    static public   float truchetcell(vec3 pos) {
         return min(min(
                         truchetarc(pos),
                         truchetarc(vec3(pos.z(),1.0f-pos.x(),pos.y()))),
                 truchetarc(vec3(1.0f-pos.y(),1.0f-pos.z(),pos.x())));
     }
 
-    float distfunc(vec3 pos) {
+    static public  float distfunc(vec3 pos) {
         vec3 cellpos=vec3.fract(pos);
         vec3 gridpos=vec3.floor(pos);
 
@@ -207,7 +207,7 @@ public class Truchet2Shader implements Shader {
         else  return truchetcell(vec3(1.0f-cellpos.y(),1.0f-cellpos.x(),1.0f-cellpos.z()));
     }
 
-    vec3 gradient(vec3 pos) {
+    static public  vec3 gradient(vec3 pos) {
                    float eps=0.0001f;
         float mid=distfunc(pos);
         return vec3(
@@ -216,7 +216,7 @@ public class Truchet2Shader implements Shader {
                 distfunc(add(pos,vec3(0.0f,0.0f,eps)))-mid);
     }
 
-    vec4 mainVR( vec4 fragColor,  vec2 fragCoord,  vec3 fragRayOri,  vec3 fragRayDir )
+    static public vec4 mainVR( vec4 fragColor,  vec2 fragCoord,  vec3 fragRayOri,  vec3 fragRayDir )
     {
         vec3 ray_dir=fragRayDir;
         vec3 ray_pos=fragRayOri;
@@ -251,15 +251,11 @@ public class Truchet2Shader implements Shader {
 
         return normalize(vec4(add(mul(col,light),mul(0.1f,env)),1.0f));
     }
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-        //    vec2 coords=(2.0*fragCoord.xy-iResolution.xy)/length(iResolution.xy);
-        //  //    vec2 coords=(2FragCoord-fres)/length(fres);
-        //vec2 coords=vec2.div(vec2.sub(vec2.mul(2.0f,fragCoord),fres)),length(fres));
+
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
         var twoFragCoord = mul(2f,fragCoord);
         vec2 coords = div(sub(twoFragCoord,fres),length(fres));
-        float a=uniforms.iTime()/3.0f;
+        float a=ftime/3.0f;
         mat3 m=mat3(
                 0.0f,1.0f,0.0f,
                 -sin(a),0.0f,cos(a),
@@ -277,19 +273,26 @@ public class Truchet2Shader implements Shader {
         vec3 ray_dir=vec3.mul(n,m);
 
 
-        float t=uniforms.iTime()/3.0f;
+        float t=ftime/3.0f;
         vec3 ray_pos=vec3(
                 2.0f*(sin(t+sin(2.0f*t)/2.0f)/2.0f+0.5f),
                 2.0f*(sin(t-sin(2.0f*t)/2.0f-PI/2.0f)/2.0f+0.5f),
                 2.0f*((-2.0f*(t-sin(4.0f*t)/4.0f)/PI)+0.5f+0.5f));
 
-        fragColor = mainVR(fragColor,fragCoord,ray_pos,ray_dir);
+        var fragColor = vec4.vec4(1f);
+
+         fragColor = mainVR(fragColor,fragCoord,ray_pos,ray_dir);
 
         float vignette=pow(1.0f-length(coords),0.3f);
 
         fragColor=vec4(mul(vec3(fragColor.x(),fragCoord.y(),fragColor.z()),vignette),1f);
 
         return normalize(fragColor);
+    }
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()), uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     static Config controls = Config.of(

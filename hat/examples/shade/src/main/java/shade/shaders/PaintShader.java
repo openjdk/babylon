@@ -77,7 +77,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
 //https://www.shadertoy.com/view/W33XW2
 public class PaintShader implements Shader {
-    static public vec4 createPixel(vec2 fres, float ftime, vec2 fragCoord){
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
         vec2 uv = div(sub(mul(2.0f,fragCoord),fres), min(fres.x(), fres.y()));
         for (float i = 2f; i < 13f; i++) {
             var cosyTime = cos(i * 2.0f * uv.y() + ftime);
@@ -99,7 +99,8 @@ public class PaintShader implements Shader {
     }
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),fragCoord);
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+
     }
 
     static Config controls = Config.of(
