@@ -77,31 +77,29 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
 //https://www.shadertoy.com/view/W33XW2
 public class PaintShader implements Shader {
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fragCoord){
+        vec2 uv = div(sub(mul(2.0f,fragCoord),fres), min(fres.x(), fres.y()));
+        for (float i = 2f; i < 13f; i++) {
+            var cosyTime = cos(i * 2.0f * uv.y() + ftime);
+            var cosxTime = cos(i * 2.0f * uv.x() + ftime);
+            var dx = 0.4f / i * cosyTime *cos(i * 1.5f * uv.y() + ftime);
+            var dy = 0.4f / i * cosxTime;
+            uv = vec2.add(uv, vec2(dx,dy));
+        }
+        vec3 col = cos(div(ftime, vec3.sub(4.0f, vec3(uv.x(),uv.y(),uv.x()))));
+        col = step(vec3.vec3(0.0f), col);
+        col = vec3(col.x(),col.y(),col.y());
 
+        // alpha for cineshader
+        float alpha = 0.0f;
+        if (col.y() > 0.0 || col.x() > 0.0f){
+            alpha = 0.6f;
+        }
+        return(vec4.vec4(col, alpha));
+    }
     @Override
     public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-       vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-            vec2 uv = div(sub(mul(2.0f,fragCoord),fres), min(fres.x(), fres.y()));
-             float ftime = uniforms.iTime();
-            for (float i = 2f; i < 13f; i++) {
-                var cosyTime = cos(i * 2.0f * uv.y() + ftime);
-                var cosxTime = cos(i * 2.0f * uv.x() + ftime);
-                var dx = 0.4f / i * cosyTime *cos(i * 1.5f * uv.y() + ftime);
-                var dy = 0.4f / i * cosxTime;
-                uv = vec2.add(uv, vec2(dx,dy));
-            }
-            vec3 col = cos(div(ftime, vec3.sub(4.0f, vec3(uv.x(),uv.y(),uv.x()))));
-            col = step(vec3.vec3(0.0f), col);
-            col = vec3(col.x(),col.y(),col.y());
-
-            // alpha for cineshader
-            float alpha = 0.0f;
-            if (col.y() > 0.0 || col.x() > 0.0f){
-                alpha = 0.6f;
-            }
-            fragColor = vec4.vec4(col, alpha);
-
-        return normalize(fragColor);
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),fragCoord);
     }
 
     static Config controls = Config.of(
