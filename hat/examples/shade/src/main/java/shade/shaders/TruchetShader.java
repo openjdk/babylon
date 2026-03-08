@@ -183,33 +183,33 @@ public class TruchetShader implements Shader {
             }
             """;
 
-    mat2 rot(float a) {
-       //  mat2 rot(float a) {return mat2(cos(a),sin(a),-sin(a),cos(a));}
+   static mat2 rot(float a) {
+        //  mat2 rot(float a) {return mat2(cos(a),sin(a),-sin(a),cos(a));}
         return mat2(cos(a), sin(a), -sin(a), cos(a));
     }
 
-    vec3 hue(float t, float f) {
-      //  return f+f*cos(PI2*t*(vec3(1,.75,.75)+vec3(.96,.57,.12)));
+   static vec3 hue(float t, float f) {
+        //  return f+f*cos(PI2*t*(vec3(1,.75,.75)+vec3(.96,.57,.12)));
         return add(f, mul(f, cos(mul(PIx2 * t,
                 add(vec3(1f, .75f, .75f), vec3(.96f, .57f, .12f))
         ))));
     }
 
-    float hash21(vec2 a) {
+   static float hash21(vec2 a) {
         // return fract(sin(dot(a,vec2(27.69,32.58)))*43758.53);
         return fract(sin(dot(a, vec2(27.69f, 32.58f))) * 43758.53f);
     }
 
-    float box(vec2 p, vec2 b) {
-       //vec2 d = abs(p)-b;
+   static  float box(vec2 p, vec2 b) {
+        //vec2 d = abs(p)-b;
         vec2 d = sub(abs(p), b);
         // return length(max(d,0.)) + min(max(d.x,d.y),0.);}
         return length(vec2.max(d, 0f)) + min(max(d.x(), d.y()), 0f);
     }
 
-    vec2 pattern(vec2 p, float sc) {
+    static vec2 pattern(vec2 p, float sc) {
         mat2 r90 = rot(1.5707f);
-       // vec2 uv = p;
+        // vec2 uv = p;
 
         //vec2 id = floor(p*sc);
         vec2 id = floor(mul(p, sc));
@@ -273,19 +273,17 @@ public class TruchetShader implements Shader {
         return vec2(d, e);
     }
 
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec3 R = uniforms.iResolution();
-        vec2 fres = vec2(R.x(),R.y());
-        float fTime = uniforms.iTime();
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fragCoord){
+
+
         vec3 color = vec3(0f);
-       // vec2 uv = (2.*F-R.xy)/max(R.x,R.y);
+        // vec2 uv = (2.*F-R.xy)/max(R.x,R.y);
         var uv = div(sub(mul(2f,fragCoord),fres),max(fres.x(),fres.y()));
 
-       // uv *= rot(T*.095);
-     //   uv = mul(uv, rot(fTime * .095f));
+        // uv *= rot(T*.095);
+        //   uv = mul(uv, rot(fTime * .095f));
 
-       // uv = vec2(log(length(uv)), atan(uv.y, uv.x)*6./PI2);
+        // uv = vec2(log(length(uv)), atan(uv.y, uv.x)*6./PI2);
         // Original.
         //uv = vec2(log(length(uv)), atan(uv.y, uv.x))*8./6.2831853;
 
@@ -294,8 +292,8 @@ public class TruchetShader implements Shader {
         float scale = 8f;
         for (float i = 0f; i < 4f; i++) {
             float ff = (i * .05f) + .2f;
-           // uv.x+=T*ff;
-            uv = add(uv, vec2(fTime * ff, 0f));
+            // uv.x+=T*ff;
+            uv = add(uv, vec2(ftime * ff, 0f));
 
             float fwidth = 0.0001f;
             float px = fwidth;//fwidth(uv.x*scale);
@@ -315,11 +313,16 @@ public class TruchetShader implements Shader {
         return normalize(vec4(color, 1.0f));
     }
 
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        vec3 R = uniforms.iResolution();
+        return createPixel(vec2(R.x(),R.y()),uniforms.iTime(),fragCoord);
+    }
+
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("targetFps", "5")),
             new TruchetShader()
     );
 

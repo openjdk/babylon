@@ -246,9 +246,8 @@ public class IntroShader implements Shader {
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "320"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "320"))),
-            Integer.parseInt(System.getProperty("targetFps", "10")),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
             new IntroShader()
     );
 

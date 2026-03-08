@@ -296,7 +296,6 @@ public class Truchet2Shader implements Shader {
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "260"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "260"))),
-            Integer.parseInt(System.getProperty("targetFps", "4")),
             new Truchet2Shader()
     );
 

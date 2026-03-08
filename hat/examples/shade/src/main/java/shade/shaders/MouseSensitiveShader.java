@@ -65,7 +65,6 @@ public class MouseSensitiveShader implements Shader {
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "30")),
             new MouseSensitiveShader()
     );
 

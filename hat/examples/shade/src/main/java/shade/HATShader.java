@@ -528,9 +528,9 @@ public class HATShader {
             int offsetz=offsety+1;
             var fragCoord = vec2(x,y);
             var fragColor = vec4(image.array(offsetx), image.array(offsety), image.array(offsetz),0f);
-           fragColor = mainImageTruchet(uniforms, fragColor, fragCoord);
+          // fragColor = mainImageTruchet(uniforms, fragColor, fragCoord);
           //  fragColor = mainImageTutorial(uniforms, fragColor, fragCoord);
-          //  fragColor = mainImageJulia(uniforms, fragColor, fragCoord);
+            fragColor = mainImageJulia(uniforms, fragColor, fragCoord);
         //    fragColor = mainImageMobius(uniforms, fragColor, fragCoord);
             image.array(offsetx, fragColor.x());
             image.array(offsety, fragColor.y());
