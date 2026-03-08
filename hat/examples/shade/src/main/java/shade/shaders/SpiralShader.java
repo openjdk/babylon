@@ -107,78 +107,79 @@ public class SpiralShader implements Shader {
      */
 
 
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        // variant of https://shadertoy.com/view/3llcDl
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
+
+            // variant of https://shadertoy.com/view/3llcDl
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
 
-        var fResolution = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-        vec2 U = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());//.sub(fResolution).div(fResolution.y());
-        // normalized coordinates
-        var z = sub(U, vec2(-1f, 0f));
 
-        U = sub(U, vec2(.5f, 0f));
-        U = div(
-                mul(U, mat2(z.x(), z.y(), -z.y(), z.x())),
-                dot(U, U)
-        );
-        // offset   spiral, zoom   phase            // spiraling
-        U = add(U, vec2(.5f, 0f));
-        //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
-        U = add(
-                add(
-                        mul(log(length(U)), vec2(.5f, 0.5f)),
-                        vec2(uniforms.iTime() / 8f)
-                ),
-                mul(
-                        div(F32.atan(U.x(), U.y()), 6.2832f),
-                        vec2(6f, 1f)
-                )
-        );
+            vec2 U = div(sub(mul(fragCoord, 2f), fres), fres.y());//.sub(fResolution).div(fResolution.y());
+            // normalized coordinates
+            var z = sub(U, vec2(-1f, 0f));
+
+            U = sub(U, vec2(.5f, 0f));
+            U = div(
+                    mul(U, mat2(z.x(), z.y(), -z.y(), z.x())),
+                    dot(U, U)
+            );
+            // offset   spiral, zoom   phase            // spiraling
+            U = add(U, vec2(.5f, 0f));
+            //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
+            U = add(
+                    add(
+                            mul(log(length(U)), vec2(.5f, 0.5f)),
+                            vec2(ftime / 8f)
+                    ),
+                    mul(
+                            div(F32.atan(U.x(), U.y()), 6.2832f),
+                            vec2(6f, 1f)
+                    )
+            );
 
 
-        U = div(mul(U, vec2(3f)), vec2(2f, 1f));
-        z = vec2(.001f);//fwidth(U); // this resamples the image.  Not sure how we do this!
-        U = mul(fract(U), 5f);
-        vec2 I = floor(U);
-        U = fract(U);             // subdiv big square in 5x5
-        I = vec2(mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
-        U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
-        float id = -1f;
-        if (I.x() != 4f) {
-            U = div(U, 2f);                                     // but small times
-            id = mod(floor(I.x() / 2f) + I.y(), 5f);
+            U = div(mul(U, vec2(3f)), vec2(2f, 1f));
+            z = vec2(.001f);//fwidth(U); // this resamples the image.  Not sure how we do this!
+            U = mul(fract(U), 5f);
+            vec2 I = floor(U);
+            U = fract(U);             // subdiv big square in 5x5
+            I = vec2(mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
+            U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
+            float id = -1f;
+            if (I.x() != 4f) {
+                U = div(U, 2f);                                     // but small times
+                id = mod(floor(I.x() / 2f) + I.y(), 5f);
+            }
+            U = sub(abs(mul(fract(U), 2f)), 1f);
+            float v = max(U.x(), U.y());          // dist to border
+
+            return
+                    normalize(
+                            smoothstep(
+                                    vec4(.7f),
+                                    vec4(-.7f),
+                                    mul(div(vec4(v - .95f), abs(z.x() - z.y()) > 1f
+                                                    ? .1f
+                                                    : z.y() * 8f
+                                            )
+                                            , id < 0f
+                                                    ? vec4(1f)
+                                                    : add(mul(vec4(.6f), .6f),
+                                                    cos(add(vec4(id), vec4(0f, 23f, 21f, 0f)))
+                                            )
+                                    )
+                            )
+                    );// color
         }
-        U = sub(abs(mul(fract(U), 2f)), 1f);
-        float v = max(U.x(), U.y());          // dist to border
-
-        return
-                normalize(
-                        smoothstep(
-                                vec4(.7f),
-                                vec4(-.7f),
-                                mul(div(vec4(v - .95f), abs(z.x() - z.y()) > 1f
-                                                ? .1f
-                                                : z.y() * 8f
-                                        )
-                                        , id < 0f
-                                                ? vec4(1f)
-                                                : add(mul(vec4(.6f), .6f),
-                                                cos(add(vec4(id), vec4(0f, 23f, 21f, 0f)))
-                                        )
-                                )
-                        )
-                );// color
-
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){
+        return createPixel(
+                vec2(uniforms.iResolution().x(), uniforms.iResolution().y()),  uniforms.iTime(),vec2(uniforms.iMouse().x(), uniforms.iMouse().y()), fragCoord);
     }
-
-    ;
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("targetFps", "30")),
             new SpiralShader()
     );
 

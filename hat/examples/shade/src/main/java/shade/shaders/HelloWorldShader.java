@@ -60,7 +60,6 @@ public class HelloWorldShader implements Shader {
            new Accelerator(MethodHandles.lookup(), Backend.FIRST),
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("targetFps", "60")),
             new HelloWorldShader()
     );
 

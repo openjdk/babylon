@@ -36,7 +36,6 @@ public class Config {
 
     private final int width;
     private final int height;
-    private final int targetFps;
     private final String shaderName;
     private final Shader shader;
 
@@ -52,11 +51,6 @@ public class Config {
 
     public int height() {
         return height;
-    }
-
-
-    public int targetFps() {
-        return targetFps;
     }
 
 
@@ -81,12 +75,6 @@ public class Config {
         return menu;
     }
 
-    private final boolean showTargetFps;
-
-    private boolean showTargetFps() {
-        return showTargetFps;
-    }
-
     private final boolean showActualFps;
 
     private boolean showFps() {
@@ -99,22 +87,13 @@ public class Config {
         return showShaderTimeUs;
     }
 
-
-    private final boolean showElapsedMs;
-
-    private boolean showElapsedMs() {
-        return showElapsedMs;
-    }
-
     private final boolean showFrameNumber;
 
     private boolean showFrameCount() {
         return showFrameNumber;
     }
 
-    private SevenSegmentDisplay allocations7Seg;
     private SevenSegmentDisplay shaderTimeUs7Seg;
-    private SevenSegmentDisplay targetFps7Seg;
     private SevenSegmentDisplay actualFps7Seg;
     private SevenSegmentDisplay frameCount7Seg;
     private SevenSegmentDisplay elapsedMs7Seg;
@@ -124,56 +103,35 @@ public class Config {
             Accelerator accelerator,
             int width,
             int height,
-            int targetFps,
             String shaderName,
             Shader shader,
-            boolean showTargetFps,
             boolean showActualFps,
             boolean showShaderTimeUs,
-            boolean showElapsedMs,
             boolean showFrameNumber
     ) {
         this.accelerator = accelerator;
         this.width = width;
         this.height = height;
-        this.targetFps = targetFps;
         this.shaderName = shaderName;
         this.shader = shader;
-        this.showTargetFps = showTargetFps;
         this.showActualFps = showActualFps;
         this.showShaderTimeUs = showShaderTimeUs;
-        this.showElapsedMs = showElapsedMs;
 
         this.showFrameNumber = showFrameNumber;
         this.menu = new Menu(new JMenuBar()).exit();
         if (showShaderTimeUs) {
             this.menu
-                    .label("Shader Time (us)")
+                    .label("Shader (us)")
                     .sevenSegment(6, 15, $ -> shaderTimeUs7Seg = $).space(20);
         }
         if (showFrameNumber) {
             this.menu
                     .label("Frame ").sevenSegment(6, 15, $ -> frameCount7Seg = $).space(20);
         }
-        if (showElapsedMs) {
-            this.menu
-                    .label(showElapsedMs, "Elapsed (ms)")
-                    .sevenSegment(6, 15, $ -> elapsedMs7Seg = $).space(20);
-        }
-        if (showTargetFps) {
-            this.menu.label("Target Frames (per sec)").sevenSegment(4, 15, $ -> {
-                targetFps7Seg = $;
-                targetFps7Seg.set(targetFps);
-            }).space(20);
-
-        }
         if (showActualFps) {
-            this.menu.label("Actual Frames (per sec)").sevenSegment(4, 15, $ -> actualFps7Seg = $).space(20);
+            this.menu.label("FPS").sevenSegment(4, 15, $ -> actualFps7Seg = $).space(20);
         }
-        this.menu
-                .toggle("Stop", "Go", true, $ -> running = $, _ -> {
-                })
-                .space(40);
+        this.menu.space(40);
     }
 
 
@@ -199,39 +157,28 @@ public class Config {
         return this;
     }
 
-    Config elapsedMs(int v) {
-        if (showElapsedMs) {
-            elapsedMs7Seg.set(v);
-        }
-        return this;
-    }
 
     public static Config of(
             Accelerator accelerator,
             int width,
             int height,
-            int targetFps,
             String shaderName,
             Shader shader,
-            boolean showTargetFps,
             boolean showActualFps,
             boolean showShaderTimeUs,
-            boolean showElapsedMs,
             boolean showFrameNumber) {
-        return new Config(accelerator, width, height, targetFps, shaderName, shader, showTargetFps, showActualFps, showShaderTimeUs, showElapsedMs, showFrameNumber);
+        return new Config(accelerator, width, height, shaderName, shader,  showActualFps, showShaderTimeUs,  showFrameNumber);
     }
 
 
-    public static Config of(Accelerator accelerator, int width, int height, int targetFps, String name, Shader shader) {
-        return new Config(accelerator, width, height, targetFps, name, shader, false,  false, false, false, false);
+    public static Config of(Accelerator accelerator, int width, int height, String name, Shader shader) {
+        return new Config(accelerator, width, height,  name, shader, false,  false, false);
     }
 
-    public static Config of(Accelerator accelerator, int width, int height, int targetFps, Shader shader) {
-        return new Config(accelerator, width, height, targetFps, shader.getClass().getSimpleName(), shader,
-                Boolean.parseBoolean(System.getProperty("showTargetFps", "true")),
+    public static Config of(Accelerator accelerator, int width, int height,  Shader shader) {
+        return new Config(accelerator, width, height,  shader.getClass().getSimpleName(), shader,
                 Boolean.parseBoolean(System.getProperty("showActualFps", "true")),
                 Boolean.parseBoolean(System.getProperty("showShaderTimeUs", "true")),
-                Boolean.parseBoolean(System.getProperty("showElapsedMs", "false")),
                 Boolean.parseBoolean(System.getProperty("showFrameCount", "false")));
     }
 }

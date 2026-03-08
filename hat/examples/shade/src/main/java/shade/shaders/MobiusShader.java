@@ -201,7 +201,7 @@ public class MobiusShader implements Shader {
                 return vec2(v.y, -v.x);
             }
      */
-    vec2 ortho(vec2 v) {
+    static public   vec2 ortho(vec2 v) {
         return vec2(v.y(), -v.x());
     }
 
@@ -212,7 +212,7 @@ public class MobiusShader implements Shader {
                 fragColor = mix(fragColor, color, alpha);
             }
      */
-    vec3 stroke(float dist, vec3 color, vec3 fragColor, float thickness, float aa) {
+    static public  vec3 stroke(float dist, vec3 color, vec3 fragColor, float thickness, float aa) {
         float alpha = smoothstep(0.5f * (thickness + aa), 0.5f * (thickness - aa), abs(dist));
         return mix(fragColor, color, alpha);
     }
@@ -226,7 +226,7 @@ public class MobiusShader implements Shader {
 
      */
 
-    vec3 fill(float dist, vec3 color, vec3 fragColor, float aa) {
+    static public vec3 fill(float dist, vec3 color, vec3 fragColor, float aa) {
         float alpha = smoothstep(0.5f * aa, -0.5f * aa, dist);
         return mix(fragColor, color, alpha);
     }
@@ -254,7 +254,7 @@ public class MobiusShader implements Shader {
                 stroke(min(abs(pos.x), abs(pos.y)), axes, fragColor, thickness, aa);
             }
      */
-    void renderGrid(vec2 pos, vec3 fragColor) {
+    static public  void renderGrid(vec2 pos, vec3 fragColor) {
         vec3 background = vec3(1.0f);
         vec3 axes = vec3(0.4f);
         vec3 lines = vec3(0.7f);
@@ -282,7 +282,7 @@ public class MobiusShader implements Shader {
                     return dot(pos - a, normalize(ortho(b - a)));
                 }
     */
-    float sdistLine(vec2 a, vec2 b, vec2 pos) {
+    static public  float sdistLine(vec2 a, vec2 b, vec2 pos) {
         return dot(sub(pos, a), vec2.normalize(ortho(sub(b, a))));
     }
     /*
@@ -294,7 +294,7 @@ public class MobiusShader implements Shader {
             }
  */
 
-    float sdistTri(vec2 a, vec2 b, vec2 c, vec2 pos) {
+    static public  float sdistTri(vec2 a, vec2 b, vec2 c, vec2 pos) {
         return max(sdistLine(a, b, pos),
                 max(sdistLine(b, c, pos),
                         sdistLine(c, a, pos)));
@@ -309,7 +309,7 @@ public class MobiusShader implements Shader {
                              sdistLine(d, a, pos))));
             }
      */
-    float sdistQuadConvex(vec2 a, vec2 b, vec2 c, vec2 d, vec2 pos) {
+    static public  float sdistQuadConvex(vec2 a, vec2 b, vec2 c, vec2 d, vec2 pos) {
         return max(sdistLine(a, b, pos),
                 max(sdistLine(b, c, pos),
                         max(sdistLine(c, d, pos),
@@ -334,7 +334,7 @@ public class MobiusShader implements Shader {
                 stroke(dist, vec3(0, 0, 1), fragColor, 0.007, length(fwidth(pos)));
             }
      */
-    vec3 renderUnitSquare(vec2 pos, vec3 fragColor) {
+    static public  vec3 renderUnitSquare(vec2 pos, vec3 fragColor) {
 
         float dist = sdistQuadConvex(vec2(0, 0),
                 vec2(1, 0),
@@ -373,7 +373,7 @@ public class MobiusShader implements Shader {
 
             }
      */
-    vec3 renderAxes(vec2 origin, vec2 pos, vec3 fragColor) {
+    static public   vec3 renderAxes(vec2 origin, vec2 pos, vec3 fragColor) {
         float len = 0.1f;
         float thickness = 0.0075f;
         float fwidthPos = 0.01f;
@@ -410,7 +410,7 @@ public class MobiusShader implements Shader {
                 return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x);
             }
 */
-    vec2 cmul(vec2 a, vec2 b) {
+    static public  vec2 cmul(vec2 a, vec2 b) {
         return vec2(a.x() * b.x() - a.y() * b.y(), a.x() * b.y() + a.y() * b.x());
     }
     /*
@@ -420,21 +420,19 @@ public class MobiusShader implements Shader {
             }
      */
 
-    vec2 cdiv(vec2 a, vec2 b) {
+    static public vec2 cdiv(vec2 a, vec2 b) {
         return div(cmul(a, vec2(b.x(), -b.y())), dot(b, b));
     }
-
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        fragColor = vec4(1f, 1f, 1f, 1f);
-        float aspect = uniforms.iResolution().x() / uniforms.iResolution().y();
-        vec2 pos = sub(mul(div(fragCoord, uniforms.iResolution().y()), 1.5f), vec2((1.5f * aspect - 1.0f) / 2.0f, 0.25f));
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse,vec2 fragCoord){
+        vec4 fragColor = vec4(1f, 1f, 1f, 1f);
+        float aspect =fres.x() / fres.y();
+        vec2 pos = sub(mul(div(fragCoord,fres.y()), 1.5f), vec2((1.5f * aspect - 1.0f) / 2.0f, 0.25f));
 
         // apply a Möbius transformation to the plane
-        vec2 a = vec2(1f, sin(0.4f * uniforms.iTime()));
+        vec2 a = vec2(1f, sin(0.4f * ftime));
         vec2 b = vec2(0f);
-        vec2 c = vec2(0.5f * cos(0.6f * uniforms.iTime()), 0.5f * sin(0.5f * uniforms.iTime()));
-        vec2 d = vec2(1f, cos(0.3f * uniforms.iTime()));
+        vec2 c = vec2(0.5f * cos(0.6f * ftime), 0.5f * sin(0.5f * ftime));
+        vec2 d = vec2(1f, cos(0.3f * ftime));
         pos = sub(pos, vec2(0.5f));
         pos = cdiv(add(cmul(a, pos), b), add(cmul(c, pos), d));
         pos = add(pos, vec2(0.5f));
@@ -447,12 +445,18 @@ public class MobiusShader implements Shader {
         fragColor = vec4(renderAxes(vec2(0f), pos, vec3(fragColor.x(),fragColor.y(),fragColor.z())), 1f);
         return normalize(fragColor);
     }
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+
+
+
+    }
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "5")),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
             new MobiusShader()
     );
 

@@ -46,7 +46,7 @@ import static hat.types.vec2.mul;
 import static hat.types.vec2.sub;
 import static hat.types.vec4.vec4;
 
-class JuliaShader implements Shader{
+public class JuliaShader implements Shader{
 /*
 // The MIT License
 // Copyright © 2013 Inigo Quilez
@@ -136,14 +136,14 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
  */
 
-    float calc(Uniforms uniforms, vec2 p, float time ) {
+    static float calc(vec2 fres , float ftime, vec2 p) {
         // non p dependent
-        float ltime = 0.5f-0.5f* F32.cos(time*0.06f);
+        float ltime = 0.5f-0.5f* F32.cos(ftime*0.06f);
         float zoom = F32.pow( 0.9f, 50.0f*ltime );
         vec2  cen = add(vec2.vec2( 0.2655f,0.301f ), zoom*0.8f*F32.cos(4.0f+2.0f*ltime));
 
         vec2 c = sub(vec2.vec2( -0.745f, 0.186f ) , 0.045f*zoom*(1.0f-ltime*0.5f));
-        vec2 fres  = vec2.vec2(uniforms.iResolution().x(), uniforms.iResolution().y());
+
 /*
    p = (2.0*p-iResolution.xy)/iResolution.y;
    vec2 z = cen + (p-cen)*zoom;
@@ -169,30 +169,36 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     }
 
 //    https://www.shadertoy.com/view/Mss3R8
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+  //  @Override
+  //  public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
 
-    final int AA = 2;
+
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
+
+        final int AA = 2;
         float scol = 0.0f;
         for( int j=0; j<AA; j++ )
             for( int i=0; i<AA; i++ ) {
                 vec2 of = add(-0.5f, div(vec2.vec2( (float)i, (float)j ),(float)AA));
                 var c = vec2.add(fragCoord,of);
-                scol += calc(uniforms, c, (float)uniforms.iTime() );
+                scol += calc(fres, ftime,c);
             }
         scol/=(float)AA*AA;
 
 
         vec3 vcol = vec3.pow( vec3.vec3(scol), vec3.vec3(0.9f,1.1f,1.4f) );
-        vec2 fres  = vec2.vec2(uniforms.iResolution().x(), uniforms.iResolution().y());
+
         vec2 uv = div(fragCoord,fres);//iResolution.xy;
-      //  vcol *= 0.7 + 0.3*pow(16.0*uv.x*uv.y*(1.0-uv.x)*(1.0-uv.y),0.25);
+        //  vcol *= 0.7 + 0.3*pow(16.0*uv.x*uv.y*(1.0-uv.x)*(1.0-uv.y),0.25);
         var p = F32.pow(16.0f*uv.x()*uv.y()*(1.0f-uv.x())*(1.0f-uv.y()),0.2f);
         vcol = vec3.mul(vcol,0.7f + 0.3f*p);
 
+        return vec4( vcol, 1.0f );
+    }
 
-        fragColor = vec4( vcol, 1.0f );
-        return fragColor;
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     ;
@@ -200,7 +206,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "6")),
             new JuliaShader()
     );
 

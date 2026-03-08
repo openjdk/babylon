@@ -490,19 +490,19 @@ public class SeaScapeShader implements Shader {
                   fragColor = vec4(pow(color,vec3(0.65)), 1.0);
             }
             """;
-    final int NUM_STEPS = 32;
+    static final int NUM_STEPS = 32;
     final float PI = 3.141592f;
-    final float EPSILON = 1e-3f;
+    static final float EPSILON = 1e-3f;
 
     // sea
-    final int ITER_GEOMETRY = 3;
-    final int ITER_FRAGMENT = 5;
-    final float SEA_HEIGHT = 0.6f;
-    final float SEA_CHOPPY = 4.0f;
-    final float SEA_SPEED = 0.8f;
-    final float SEA_FREQ = 0.16f;
-    final vec3 SEA_BASE = vec3(0.0f, 0.09f, 0.18f);
-    final vec3 SEA_WATER_COLOR = mul(vec3(0.8f, 0.9f, 0.6f), 0.6f);
+    final  static public int ITER_GEOMETRY = 3;
+    final   static public int ITER_FRAGMENT = 5;
+    final  static public  float SEA_HEIGHT = 0.6f;
+    final  static public  float SEA_CHOPPY = 4.0f;
+    final  static public  float SEA_SPEED = 0.8f;
+    final   static public float SEA_FREQ = 0.16f;
+    final  static public  vec3 SEA_BASE = vec3(0.0f, 0.09f, 0.18f);
+    final  static public  vec3 SEA_WATER_COLOR = mul(vec3(0.8f, 0.9f, 0.6f), 0.6f);
 
     final mat2 octave_m = mat2(1.6f, 1.2f, -1.2f, 1.6f);
 
@@ -518,7 +518,7 @@ public class SeaScapeShader implements Shader {
              return m;
        }
      */
-    mat3 fromEuler(vec3 ang) {
+    static public  mat3 fromEuler(vec3 ang) {
         vec2 a1 = vec2(sin(ang.x()), cos(ang.x()));
         vec2 a2 = vec2(sin(ang.y()), cos(ang.y()));
         vec2 a3 = vec2(sin(ang.z()), cos(ang.z()));
@@ -540,7 +540,7 @@ public class SeaScapeShader implements Shader {
            return fract(sin(h)*43758.5453123);
        }
      */
-    float hash(vec2 p) {
+    static public  float hash(vec2 p) {
         float h = dot(p, vec2(127.1f, 311.7f));
         return fract(sin(h) * 43758.5453123f);
     }
@@ -562,7 +562,7 @@ public class SeaScapeShader implements Shader {
                 );
        }
      */
-    float noise(vec2 p) {
+    static public  float noise(vec2 p) {
         vec2 i = floor(p);
         vec2 f = fract(p);
         vec2 u = mul(f, mul(f, sub(3.0f, mul(2.0f, f))));
@@ -601,12 +601,12 @@ public class SeaScapeShader implements Shader {
 
      */
 // lighting
-    float diffuse(vec3 n, vec3 l, float p) {
+    static public   float diffuse(vec3 n, vec3 l, float p) {
         return pow(dot(n, l) * 0.4f + 0.6f, p);
     }
 
-    float specular(vec3 n, vec3 l, vec3 e, float s) {
-        float nrm = (s + 8.0f) / (PI * 8.0f);
+    static public  float specular(vec3 n, vec3 l, vec3 e, float s) {
+        float nrm = (s + 8.0f) / (F32.PI * 8.0f);
         return pow(max(dot(reflect(e, n), l), 0.0f), s) * nrm;
     }
 
@@ -619,7 +619,7 @@ public class SeaScapeShader implements Shader {
 
      */
     // sky
-    vec3 getSkyColor(vec3 e) {
+    static public  vec3 getSkyColor(vec3 e) {
         e = vec3(e.x(), (max(e.y(), 0.0f) * 0.8f + 0.2f) * 0.8f, e.z());
         return vec3.mul(vec3(
                         F32.pow(1.0f - e.y(), 2.0f), 1.0f - e.y(), 0.6f + (1.0f - e.y()) * 0.4f),
@@ -637,7 +637,7 @@ public class SeaScapeShader implements Shader {
                 return pow(1.0-pow(wv.x * wv.y,0.65),choppy);
             }
             */
-    float sea_octave(vec2 uv, float choppy) {
+    static public  float sea_octave(vec2 uv, float choppy) {
         uv = add(uv, noise(uv));
         vec2 wv = sub(1.0f, abs(sin(uv)));
         vec2 swv = abs(cos(uv));
@@ -664,7 +664,7 @@ public class SeaScapeShader implements Shader {
                 return p.y - h;
             } */
 
-    float map(float SEA_TIME, mat2 octave_m, vec3 p) {
+    static public  float map(float SEA_TIME, mat2 octave_m, vec3 p) {
         float freq = SEA_FREQ;
         float amp = SEA_HEIGHT;
         float choppy = SEA_CHOPPY;
@@ -704,7 +704,7 @@ public class SeaScapeShader implements Shader {
             } */
 
 
-    float map_detailed(float SEA_TIME, mat2 octave_m, vec3 p) {
+    static public  float map_detailed(float SEA_TIME, mat2 octave_m, vec3 p) {
         float freq = SEA_FREQ;
         float amp = SEA_HEIGHT;
         float choppy = SEA_CHOPPY;
@@ -741,7 +741,7 @@ public class SeaScapeShader implements Shader {
             }
      */
 
-    vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
+    static public vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
 
         float fresnel = F32.clamp(1.0f - vec3.dot(n, neg(eye)), 0.0f, 1.0f);
         //  float fresnel = F32.clamp(F32.sub(1.0f,dot(n, vec3.neg(eye)), 0.0f, 1.0f);
@@ -772,7 +772,7 @@ public class SeaScapeShader implements Shader {
                 return normalize(n);
             } */
     // tracing
-    vec3 getNormal(float SEA_TIME, mat2 octave_m, vec3 p, float eps) {
+    static public    vec3 getNormal(float SEA_TIME, mat2 octave_m, vec3 p, float eps) {
         float ny = map_detailed(SEA_TIME, octave_m, p);
 
         vec3 n = vec3(
@@ -812,7 +812,7 @@ public class SeaScapeShader implements Shader {
     record floatAndVec3(float f, vec3 vec) {
     }
 
-    floatAndVec3 heightMapTracing(float SEA_TIME, mat2 octave_m, vec3 ori, vec3 dir, vec3 p) {
+    static public  floatAndVec3 heightMapTracing(float SEA_TIME, mat2 octave_m, vec3 ori, vec3 dir, vec3 p) {
         float tm = 0.0f;
         float tx = 1000.0f;
         float hx = map(SEA_TIME, octave_m, add(ori, mul(dir, tx)));
@@ -865,7 +865,7 @@ public class SeaScapeShader implements Shader {
 
      */
 
-    vec3 getPixel(float SEA_TIME, mat2 octave_m, vec2 fres, vec2 coord, float time) {
+    static public  vec3 getPixel(float SEA_TIME, mat2 octave_m, vec2 fres, vec2 coord, float time) {
         vec2 uv = div(coord, fres);
         uv = sub(mul(uv, 2.0f), 1.0f);
         uv = mul(uv, fres.x() / fres.y());
@@ -914,24 +914,19 @@ public class SeaScapeShader implements Shader {
             }
      */
 
-    //https://www.shadertoy.com/view/Ms2SD1
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        final vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-       // final vec2 fres = vec3.xy(uniforms.iResolution());
-        final float fTime = uniforms.iTime();
-        final vec2 fMouse = vec2(uniforms.iMouse().x(),uniforms.iMouse().y());
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
+
         final float EPSILON_NRM = 0.1f / fres.x();
-        final float SEA_TIME = 1f + fTime * SEA_SPEED;
+        final float SEA_TIME = 1f + ftime * SEA_SPEED;
         mat2 octave_m = mat2(1.6f, 1.2f, -1.2f, 1.6f);
-        float time = fTime * 0.3f + fMouse.x() * 0.01f;
+        float time = ftime * 0.3f + fmouse.x() * 0.01f;
 
         //   #ifdef AA
         vec3 color = vec3(0f);
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 vec2 uv = add(fragCoord, div(vec2(i, j), 3.0f));
-                var pix = getPixel(SEA_TIME, octave_m, fres, uv, fTime);
+                var pix = getPixel(SEA_TIME, octave_m, fres, uv, ftime);
                 color = add(color, pix);
             }
         }
@@ -941,9 +936,20 @@ public class SeaScapeShader implements Shader {
         // #endif
 
         // post
-        fragColor = vec4.vec4(vec3.pow(color, vec3(0.65f)), 1.0f);
+        return vec4.vec4(vec3.pow(color, vec3(0.65f)), 1.0f);
 
-        return fragColor;
+      //  return fragColor;
+    }
+
+    //https://www.shadertoy.com/view/Ms2SD1
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        final vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+       // final vec2 fres = vec3.xy(uniforms.iResolution());
+        final float fTime = uniforms.iTime();
+        final vec2 fMouse = vec2(uniforms.iMouse().x(),uniforms.iMouse().y());
+        return createPixel(fres,fTime,fMouse,fragCoord);
+
     }
 
     ;
@@ -951,7 +957,6 @@ public class SeaScapeShader implements Shader {
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "180"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "180"))),
-            Integer.parseInt(System.getProperty("targetFps", "2")),
             new SeaScapeShader()
     );
 

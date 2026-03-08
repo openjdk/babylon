@@ -223,7 +223,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "2")),
             new PiratesShader()
     );
 
