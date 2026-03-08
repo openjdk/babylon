@@ -31,7 +31,7 @@ jtreg -jdk:./build/macosx-x86_64-server-release/jdk/ -ea -esa -avm -va test/lang
 Specific runtime tests can be executed using `jtreg`, for example:
 
 ```
-jtreg -jdk:./build/macosx-x86_64-server-release/jdk/ -ea -esa -avm -va test/jdk/java/lang/reflect/code/
+jtreg -jdk:./build/macosx-x86_64-server-release/jdk/ -ea -esa -avm -va test/jdk/jdk/incubator/code
 ```
 
 In addition, the runtime tests can be executed using make with the test group

@@ -681,4 +681,4 @@ jdk_since_checks = \
    tools/sincechecker/
 
 jdk_lang_reflect_code = \
-   java/lang/reflect/code
+   jdk/incubator/code
