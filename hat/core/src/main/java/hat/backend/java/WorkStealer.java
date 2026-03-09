@@ -66,6 +66,7 @@ public class WorkStealer {
                         rendezvous(startBarrier);
                         //  System.out.println("Thread #"+Thread.currentThread()+" started");
 
+                        // The range should be initialised by now.
                         var ndRange1D = NDRange.of1D(range);
                         hat.KernelContext kernelContext = new KernelContext(ndRange1D);
                         try {
