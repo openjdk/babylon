@@ -844,25 +844,27 @@ public class Main {
         }
 
         // Check results
-        boolean isStreamsCorrect          = checkResult(O_java, O_streams, matrixSize);
-        boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
-        boolean isFlashAttentionCorrect   = checkResult(O_java, O_flashAttention, matrixSize);
+        if (options.checkResult()) {
+            boolean isStreamsCorrect = checkResult(O_java, O_streams, matrixSize);
+            boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
+            boolean isFlashAttentionCorrect = checkResult(O_java, O_flashAttention, matrixSize);
 
-        if (isStreamsCorrect) {
-            IO.println("Self-Attention Parallel Stream is correct");
-        } else {
-            IO.println("Self-Attention Parallel Stream  is wrong");
-        }
-        if (isHATSelfAttentionCorrect) {
-            IO.println("HAT-Self-Attention Result is correct");
-        } else {
-            IO.println("HAT-Self-Attention is wrong");
-        }
-        if (isFlashAttentionCorrect) {
-            IO.println("HAT-Flash-Attention is correct");
-        } else {
-            IO.println("HAT_Flash-Attention is wrong. Note: expected due to use of multiple Math.exp operations " +
-                    "not present in the self-attention version.");
+            if (isStreamsCorrect) {
+                IO.println("Self-Attention Parallel Stream is correct");
+            } else {
+                IO.println("Self-Attention Parallel Stream  is wrong");
+            }
+            if (isHATSelfAttentionCorrect) {
+                IO.println("HAT-Self-Attention Result is correct");
+            } else {
+                IO.println("HAT-Self-Attention is wrong");
+            }
+            if (isFlashAttentionCorrect) {
+                IO.println("HAT-Flash-Attention is correct");
+            } else {
+                IO.println("HAT_Flash-Attention is wrong. Note: expected due to use of multiple Math.exp operations " +
+                        "not present in the self-attention version.");
+            }
         }
 
         // Print Performance Metrics

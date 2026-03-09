@@ -255,6 +255,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
     };
 
     if (backend->config->info) {
+        backend->shortDeviceInfo();
         std::cout << "[INFO] OpenCLBackend::OpenCLQueue::dispatch" << std::endl;
         std::cout << "[INFO] numDimensions: " << numDimensions << std::endl;
         std::cout << "[INFO] GLOBAL [" << global_work_size[0] << "," << global_work_size[1] << "," << global_work_size[2] << "]" << std::endl;
