@@ -784,70 +784,16 @@ public class WavesShader implements Shader {
         return pow(clamp(mul(div(a, b), m2), 0.0f, 1.0f), vec3(1.0f / 2.2f));
 
     }
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord) {
 
-    //https://www.shadertoy.com/view/MdXyzX
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        /*
-          // get the ray
-            vec3 ray = getRay(fragCoord);
-            if(ray.y >= 0.0) {
-              // if ray.y is positive, render the sky
-              vec3 C = getAtmosphere(ray) + getSun(ray);
-              fragColor = vec4(aces_tonemap(C * 2.0),1.0);
-              return;
-            }
-
-            // now ray.y must be negative, water must be hit
-            // define water planes
-            vec3 waterPlaneHigh = vec3(0.0, 0.0, 0.0);
-            vec3 waterPlaneLow = vec3(0.0, -WATER_DEPTH, 0.0);
-
-            // define ray origin, moving around
-            vec3 origin = vec3(iTime * 0.2, CAMERA_HEIGHT, 1);
-
-            // calculate intersections and reconstruct positions
-            float highPlaneHit = intersectPlane(origin, ray, waterPlaneHigh, vec3(0.0, 1.0, 0.0));
-            float lowPlaneHit = intersectPlane(origin, ray, waterPlaneLow, vec3(0.0, 1.0, 0.0));
-            vec3 highHitPos = origin + ray * highPlaneHit;
-            vec3 lowHitPos = origin + ray * lowPlaneHit;
-
-            // raymatch water and reconstruct the hit pos
-            float dist = raymarchwater(origin, highHitPos, lowHitPos, WATER_DEPTH);
-            vec3 waterHitPos = origin + ray * dist;
-
-            // calculate normal at the hit position
-            vec3 N = normal(waterHitPos.xz, 0.01, WATER_DEPTH);
-
-            // smooth the normal with distance to avoid disturbing high frequency noise
-            N = mix(N, vec3(0.0, 1.0, 0.0), 0.8 * min(1.0, sqrt(dist*0.01) * 1.1));
-
-            // calculate fresnel coefficient
-            float fresnel = (0.04 + (1.0-0.04)*(pow(1.0 - max(0.0, dot(-N, ray)), 5.0)));
-
-            // reflect the ray and make sure it bounces up
-            vec3 R = normalize(reflect(ray, N));
-            R.y = abs(R.y);
-
-            // calculate the reflection and approximate subsurface scattering
-            vec3 reflection = getAtmosphere(R) + getSun(R);
-            vec3 scattering = vec3(0.0293, 0.0698, 0.1717) * 0.1 * (0.2 + (waterHitPos.y + WATER_DEPTH) / WATER_DEPTH);
-
-            // return the combined result
-            vec3 C = fresnel * reflection + scattering;
-            fragColor = vec4(aces_tonemap(C * 2.0), 1.0);
-         */
-        var fResolution = vec2(uniforms.iResolution().x(), uniforms.iResolution().y());
-        var fMouse = vec2(uniforms.iMouse().x(),uniforms.iMouse().y());
-        float fTime = uniforms.iTime();
         // get the ray
-        vec3 ray = getRay(fragCoord, fResolution, fMouse);
-
+        vec3 ray = getRay(fragCoord, fres, fmouse);
+        vec3 C;
         if (ray.y() >= 0.0f) {
             // if ray.y is positive, render the sky
-            vec3 C = add(getAtmosphere(fTime, ray), getSun(fTime, ray));
-            fragColor = vec4(aces_tonemap(mul(C, 2.0f)), 1.0f);
-            return fragColor;
+            C = add(getAtmosphere(ftime, ray), getSun(ftime, ray));
+            //return normalize(vec4(aces_tonemap(mul(C, 2.0f)), 1.0f));
+
         } else {
             // now ray.y must be negative, water must be hit
             // define water planes
@@ -862,7 +808,7 @@ public class WavesShader implements Shader {
             vec3 waterPlaneLow = vec3(0.0f, -WATER_DEPTH, 0.0f);
 
             // define ray origin, moving around
-            vec3 origin = vec3(fTime * 0.2f, CAMERA_HEIGHT, 1f);
+            vec3 origin = vec3(ftime * 0.2f, CAMERA_HEIGHT, 1f);
 
             // calculate intersections and reconstruct positions
              /*
@@ -881,12 +827,12 @@ public class WavesShader implements Shader {
              float dist = raymarchwater(origin, highHitPos, lowHitPos, WATER_DEPTH);
             vec3 waterHitPos = origin + ray * dist;
              */
-            float dist = raymarchwater(fTime, origin, highHitPos, lowHitPos, WATER_DEPTH);
+            float dist = raymarchwater(ftime, origin, highHitPos, lowHitPos, WATER_DEPTH);
             vec3 waterHitPos = add(origin, mul(ray, dist));
 
             // calculate normal at the hit position
             //  vec3 N = normal(waterHitPos.xz, 0.01, WATER_DEPTH);
-            vec3 N = normal(fTime, vec2(waterHitPos.x(), waterHitPos.y()), 0.01f, WATER_DEPTH);
+            vec3 N = normal(ftime, vec2(waterHitPos.x(), waterHitPos.y()), 0.01f, WATER_DEPTH);
 
             //  N = mix(N, vec3(0.0, 1.0, 0.0), 0.8 * min(1.0, sqrt(dist*0.01) * 1.1));
 
@@ -915,25 +861,34 @@ public class WavesShader implements Shader {
             vec3 scattering = vec3(0.0293, 0.0698, 0.1717) * 0.1 * (0.2 + (waterHitPos.y + WATER_DEPTH) / WATER_DEPTH);
 
              */
-            vec3 reflection = add(getAtmosphere(fTime, R), getSun(fTime, R));
+            vec3 reflection = add(getAtmosphere(ftime, R), getSun(ftime, R));
             //   vec3 scattering = mul(
             //         mul(vec3(0.0293f, 0.0698f, 0.1717f),0.1f),0.2f + (waterHitPos.y() + WATER_DEPTH) / WATER_DEPTH);
             vec3 scattering = mul(vec3(0.0293f, 0.0698f, 0.1717f), 0.1f * 0.2f + (waterHitPos.y() + WATER_DEPTH) / WATER_DEPTH);
 
             // return the combined result
-            vec3 C = add(mul(reflection, fresnel), scattering);
+             C = add(mul(reflection, fresnel), scattering);
             //fragColor = vec4(aces_tonemap(C * 2.0), 1.0);
-            fragColor = vec4(aces_tonemap(mul(C, 2.0f)), 1.0f);
-            return normalize(fragColor);
+
         }
+        return normalize(vec4(aces_tonemap(mul(C, 2.0f)), 1.0f));
     }
+    //https://www.shadertoy.com/view/MdXyzX
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){
+
+
+            return createPixel(
+                    vec2(uniforms.iResolution().x(), uniforms.iResolution().y()),  uniforms.iTime(),vec2(uniforms.iMouse().x(), uniforms.iMouse().y()), fragCoord);
+        }
+
+
 
     ;
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "2")),
             new WavesShader()
     );
 

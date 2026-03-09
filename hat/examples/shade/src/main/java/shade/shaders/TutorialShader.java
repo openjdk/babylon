@@ -99,7 +99,7 @@ vec3 palette( float t ) {
 public class TutorialShader implements Shader {
 
 
-    vec3 palette(float t) {
+   public static  vec3 palette(float t) {
         vec3 a = vec3(0.5f, 0.5f, 0.5f);
         vec3 b = vec3(0.5f, 0.5f, 0.5f);
         vec3 c = vec3(1.0f, 1.0f, 1.0f);
@@ -107,32 +107,32 @@ public class TutorialShader implements Shader {
         return add(a, mul(b, cos(mul(add(mul(c, vec3(t)), d), vec3(6.28318f)))));
     }
 
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fResolution = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-        float fTime = uniforms.iTime();
-        vec2 uv = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
+        vec2 uv = div(sub(mul(fragCoord, 2f), fres), fres.y());
         vec2 uv0 = uv;
         vec3 color = vec3(0f);
         for (float i = 0f; i < 4f; i++) {
             uv = sub(fract(mul(uv, 1.5f)), vec2(0.5f));
-            vec3 col = palette(length(uv0) + i * .4f + fTime * .4f);
+            vec3 col = palette(length(uv0) + i * .4f + ftime * .4f);
             float d = length(uv) * exp(-length(uv0));
-            d = sin(d * 8f + fTime) / 8f;
+            d = sin(d * 8f + ftime) / 8f;
             d = abs(d);
             d = pow(0.01f / d, 1.2f);
             color = add(color, mul(col, d));
         }
 
-        fragColor = vec4(color, 1.0f);
-        return normalize(fragColor);
+        return normalize(vec4(color, 1.0f));
+    }
+
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("targetFps", "12")),
             new TutorialShader()
     );
 

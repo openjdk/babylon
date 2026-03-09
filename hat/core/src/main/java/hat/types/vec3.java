@@ -94,20 +94,20 @@ public interface vec3 extends IfaceValue.vec{
         return mul(l.x(), r, l.y(), r, l.z(), r);
     }
 
-    static vec3 sub(float xl, float xr, float yl, float yr, float zl, float zr){
-        return vec3(xl-xr, yl-yr, zl-zr);
+    static vec3 div(float xl, float xr, float yl, float yr, float zl, float zr){
+        return vec3(xl/xr, yl/yr, zl/zr);
     }
 
-    static vec3 sub(vec3 l, vec3 r){
-        return sub(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
+    static vec3 div(vec3 l, vec3 r){
+        return div(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
     }
 
-    static vec3 sub(float l, vec3 r){
-        return sub(l, r.x(), l, r.y(), l, r.z());
+    static vec3 div(float l, vec3 r){
+        return div(l, r.x(), l, r.y(), l, r.z());
     }
 
-    static vec3 sub(vec3 l, float r){
-        return sub(l.x(), r, l.y(), r, l.z(), r);
+    static vec3 div(vec3 l, float r){
+        return div(l.x(), r, l.y(), r, l.z(), r);
     }
 
     static vec3 add(float xl, float xr, float yl, float yr, float zl, float zr){
@@ -126,20 +126,20 @@ public interface vec3 extends IfaceValue.vec{
         return add(l.x(), r, l.y(), r, l.z(), r);
     }
 
-    static vec3 div(float xl, float xr, float yl, float yr, float zl, float zr){
-        return vec3(xl/xr, yl/yr, zl/zr);
+    static vec3 sub(float xl, float xr, float yl, float yr, float zl, float zr){
+        return vec3(xl-xr, yl-yr, zl-zr);
     }
 
-    static vec3 div(vec3 l, vec3 r){
-        return div(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
+    static vec3 sub(vec3 l, vec3 r){
+        return sub(l.x(), r.x(), l.y(), r.y(), l.z(), r.z());
     }
 
-    static vec3 div(float l, vec3 r){
-        return div(l, r.x(), l, r.y(), l, r.z());
+    static vec3 sub(float l, vec3 r){
+        return sub(l, r.x(), l, r.y(), l, r.z());
     }
 
-    static vec3 div(vec3 l, float r){
-        return div(l.x(), r, l.y(), r, l.z(), r);
+    static vec3 sub(vec3 l, float r){
+        return sub(l.x(), r, l.y(), r, l.z(), r);
     }
 
     static vec3 pow(vec3 l, vec3 r){
@@ -219,7 +219,7 @@ public interface vec3 extends IfaceValue.vec{
     }
 
     static vec3 neg(vec3 v){
-        return vec3(0f-v.x(), 0f-v.y(), 0f-v.z());
+        return vec3(0.0f-v.x(), 0.0f-v.y(), 0.0f-v.z());
     }
 
     static float dot(vec3 l, vec3 r){
@@ -240,7 +240,7 @@ public interface vec3 extends IfaceValue.vec{
 
     static vec3 normalize(vec3 v){
         float lenSq = sumOfSquares(v);
-        return (lenSq >0f)?(mul(v, F32.inversesqrt(lenSq))):(vec3(0f));
+        return (lenSq >0.0f)?(mul(v, F32.inversesqrt(lenSq))):(vec3(0.0f));
     }
 
     static vec3 reflect(vec3 l, vec3 r){

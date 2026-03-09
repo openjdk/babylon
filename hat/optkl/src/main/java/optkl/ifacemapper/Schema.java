@@ -29,6 +29,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import optkl.IfaceValue;
 import optkl.ifacemapper.accessor.AccessorInfo;
 import optkl.ifacemapper.accessor.ValueType;
 
@@ -43,7 +44,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class Schema<T extends MappableIface> {
+public class Schema<T extends IfaceValue> {
     final public IfaceType rootIfaceType;
     public Class<T> iface;
 
@@ -68,7 +69,7 @@ public class Schema<T extends MappableIface> {
         this.rootIfaceType = rootIfaceType;
     }
 
-    public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<IfaceType> parentFieldConsumer) {
+    public static <T extends IfaceValue> Schema<T> of(Class<T> iface, Consumer<IfaceType> parentFieldConsumer) {
         var struct = new IfaceType.Struct(null, (Class<MappableIface>) (Object) iface); // why the need for this?
         parentFieldConsumer.accept(struct);
         return new Schema<>(iface, struct);

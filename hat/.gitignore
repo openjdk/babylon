@@ -27,3 +27,4 @@ stage/
 compile_flags.txt
 remoteTesting.conf
 test_report.txt
+var/*

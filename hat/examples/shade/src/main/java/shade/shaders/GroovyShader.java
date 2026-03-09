@@ -49,14 +49,11 @@ import static hat.types.vec4.vec4;
 
 //https://www.shadertoy.com/view/Md23DV
 public class GroovyShader implements Shader {
-
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        var fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse,vec2 fragCoord){
         var p = div(fragCoord, fres);
         var r = mul(div(sub(fragCoord, mul(fres, .5f)), fres.y()), 16f);
 
-        float t = ((float) uniforms.iFrame()) / 15f;
+        float t = ((float)ftime) ;
 
         float v1 = F32.sin(r.x() + t);
         float v2 = F32.sin(r.y() + t);
@@ -84,11 +81,17 @@ public class GroovyShader implements Shader {
         return clamp(mul(add(ret, .5f), .5f),0f,1f);
     }
 
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+
+    }
+
+
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
             Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
             Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("targetFps", "30")),
             new GroovyShader()
     );
 

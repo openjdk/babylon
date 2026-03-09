@@ -44,7 +44,6 @@ import jdk.incubator.code.dialect.java.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
@@ -71,7 +70,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                     clazz->clazz.isAssignableFrom(_F16.class) || clazz.isAssignableFrom( F16.class)|| clazz.isAssignableFrom(BF16.class));
             this.usesAtomics = OpHelper.Invoke.stream(lookup,inlinedEntryPoint)
                     .anyMatch(invoke -> invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex("(atomic.*)Inc"));
-                this.bufferAccessList=BufferTagger.getAccessList(computeContext.lookup(), inlinedEntryPoint);
+            this.bufferAccessList=BufferTagger.getAccessList(computeContext.lookup(), inlinedEntryPoint);
         }
         @Override
         public String toString(){
@@ -110,13 +109,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
     }
 
-
-    public Stream<KernelReachableResolvedMethodCall> kernelReachableResolvedStream() {
-        return methodRefToMethodCallMap.values().stream()
-                .filter(call -> call instanceof KernelReachableResolvedMethodCall)
-                .map(kernelReachable -> (KernelReachableResolvedMethodCall) kernelReachable);
-    }
-
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp funcOp) {
         super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(),null,  method, funcOp));
         this.entrypoint.callGraph = this;
@@ -129,10 +121,10 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
 
         entrypoint.funcOp(initialEntrypointFuncOp);
+
+        CoreOp.ModuleOp initialModuleOp = createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp());
+
         List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
-
-        CoreOp.ModuleOp initialModuleOp = createTransitiveInvokeModule(computeContext.lookup(), method,entrypoint.funcOp());
-
         initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
                 initialFuncOps.add( tier.apply(accessableFuncOp))
         );
@@ -142,17 +134,15 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, OpHelper.Invoke invoke) {
-        var methodRef = invoke.op().invokeReference();
-        Class<?> javaRefTypeClass = invoke.classOrThrow();
-        if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
+        if (Buffer.class.isAssignableFrom(invoke.classOrThrow())) {
             // TODO this side effect seems scary lets do this in a separate pass
-            state.bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
+            state.bufferAccessToMethodCallMap.computeIfAbsent(invoke.op().invokeReference(), _ ->
                     new KernelReachableUnresolvedIfaceMappedMethodCall(this, invoke.resolveMethodOrThrow())
             );
+            return true;
         } else {
             return false;
         }
-        return true;
     }
 
 

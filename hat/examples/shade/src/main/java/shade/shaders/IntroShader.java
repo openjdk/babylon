@@ -146,12 +146,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 //https://www.shadertoy.com/view/Md23DV
 public class IntroShader implements Shader {
 
-    float square(vec2 r, vec2 bottomLeft, float side) {
+    static public float square(vec2 r, vec2 bottomLeft, float side) {
         vec2 p = sub(r, bottomLeft);
         return (p.x() > 0f && p.x() < side && p.y() > 0f && p.y() < side) ? 1f : 0f;
     }
 
-    float character(vec2 r, vec2 bottomLeft, float charCode, float squareSide) {
+    static public  float character(vec2 r, vec2 bottomLeft, float charCode, float squareSide) {
         vec2 p = sub(r, bottomLeft);
         float ret = 0f;
         float num = charCode;
@@ -173,28 +173,25 @@ public class IntroShader implements Shader {
         return ret;
     }
 
-    mat2 rot(float th) {
+    static public mat2 rot(float th) {
 
         return mat2(cos(th), -sin(th), sin(th), cos(th));
     }
 
-    @Override
-    public vec4 mainImage(final Uniforms uniforms, final vec4 fragColor, final vec2 fragCoord) {
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse,vec2 fragCoord){
         float G = 990623f; // compressed characters :-)
         float L = 69919f;
         float S = 991119f;
 
-        float fTime = uniforms.iTime();
-        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         vec2 r = div(sub(fragCoord, mul(vec2(0.5f), fres)), vec2(fres.y()));
 
         float c = 0.05f;
        // vec2 pL = (mod(r+vec2(cos(0.3*t),sin(0.3*t)), 2.0*c)-c)/c;
-        vec2 pL = div(sub(vec2.mod(add(r,vec2(cos(0.3f*fTime),sin(0.3f*fTime))), 2.0f*c),c),c);
+        vec2 pL = div(sub(vec2.mod(add(r,vec2(cos(0.3f*ftime),sin(0.3f*ftime))), 2.0f*c),c),c);
       //  float circ = 1f - smoothstep(0.75f, 0.8f, length(pL));
         float circ = .5f - smoothstep(0.75f, 0.8f, length(pL));
        // vec2 rG = mul(rot(2f * 3.1415f * smoothstep(0f, 1f, mod(1.5f * fTime, 4.0f))), r);
-        vec2 rG = mul(rot(PIx2 * smoothstep(0f, 1f, mod(fTime, 2.0f))), r);
+        vec2 rG = mul(rot(PIx2 * smoothstep(0f, 1f, mod(ftime, 2.0f))), r);
 
         vec2 rStripes = mul(rot(0.02f), r);
 
@@ -218,10 +215,10 @@ public class IntroShader implements Shader {
 
         float maskS = character(r, add(
                 vec2(-xMax + space, -2.5f * side),
-                add(mul(vec2(letterWidth + space, 0f), vec2(2.0f)), vec2(0.01f * sin(2.1f * fTime), 0.012f * cos(fTime)))), S, side);
+                add(mul(vec2(letterWidth + space, 0f), vec2(2.0f)), vec2(0.01f * sin(2.1f * ftime), 0.012f * cos(ftime)))), S, side);
 
         float maskL2 = character(r, add(bl, mul(letterWidthPlusSpace, vec2(3f))), L, side);
-        float maskStripes = smoothstep(0.1f,.25f, mod(rStripes.x() - 0.5f * fTime, 0.5f));
+        float maskStripes = smoothstep(0.1f,.25f, mod(rStripes.x() - 0.5f * ftime, 0.5f));
 
         vec3 i255 = vec3(0.0392156862f);
 
@@ -244,11 +241,16 @@ public class IntroShader implements Shader {
         return vec4.normalize(vec4(pixel, 1f));
     }
 
+    @Override
+    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+
+    }
+
     static Config controls = Config.of(
             Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "320"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "320"))),
-            Integer.parseInt(System.getProperty("targetFps", "10")),
+            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
+            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
             new IntroShader()
     );
 

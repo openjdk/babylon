@@ -31,19 +31,29 @@ import hat.types.vec2;
 import hat.types.vec4;
 import jdk.incubator.code.Reflect;
 import optkl.util.carriers.ArenaAndLookupCarrier;
-import shade.ui.BufferedImageViewer;
 
+import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
+import java.awt.Graphics;
+import java.awt.Point;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
+import java.util.concurrent.CyclicBarrier;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
-public class ShaderViewer implements Runnable{
+
+public class ShaderViewer implements Runnable {
     final Config frameControls;
     final FloatImage floatImage;
     final BufferedImageViewer bufferedImageViewer;
     final Uniforms uniforms;
     volatile boolean running;
+    final CyclicBarrier cyclicBarrier = new CyclicBarrier(1);
+    private final Object doorBell = new Object();
 
     public ShaderViewer(Config frameControls) {
         this.frameControls = frameControls;
@@ -54,7 +64,7 @@ public class ShaderViewer implements Runnable{
 
         this.floatImage = FloatImage.of(arenaAndLookupCarrier, frameControls.width(), frameControls.height());
         this.uniforms = Uniforms.create(arenaAndLookupCarrier);
-        this.bufferedImageViewer = new BufferedImageViewer(floatImage.bufferedImage(), point -> {
+        this.bufferedImageViewer = new BufferedImageViewer(floatImage, point -> {
             uniforms.iMouse().x(point.x);
             uniforms.iMouse().y(point.y);
         });
@@ -65,87 +75,81 @@ public class ShaderViewer implements Runnable{
         new Thread(this).start();
     }
 
+    @Override
+    public void run() {
+        //double delta = 0;
+        long startTimeNs = System.nanoTime();
+        uniforms.iFrame(uniforms.iFrame() + 1);
+        int w = floatImage.width();
+        int h = floatImage.height();
+        uniforms.iResolution().x(w);
+        uniforms.iResolution().y(h);
+        while (running) {
+            long diffNs = System.nanoTime() - startTimeNs;
+
+            long diffMs = diffNs / 1_000_000;
+            float fdiffMs = (float) diffMs;
+            uniforms.iTime(fdiffMs / 1_000f);
+            long startNs = System.nanoTime();
+            synchronized (floatImage) {
+                if (frameControls.accelerator() == null) {
+                    IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
+                        vec2 fragCoord = vec2.vec2((float) i % floatImage.width(), (float) (floatImage.height() - (i / floatImage.width())));
+                        vec4 inFragColor = vec4.vec4(0);
+                        vec4 outFragColor = frameControls.shader().mainImage(uniforms, inFragColor, fragCoord);
+                        floatImage.set(i, outFragColor);
+                    });
+                } else {
+                    var funiforms = uniforms;
+                    var fwidth = w;
+                    var fheight = h;
+                    var f32Array = floatImage.f32Array();
+                    frameControls.accelerator().compute((@Reflect Compute) cc -> HATShader.compute(cc, funiforms, f32Array, fwidth, fheight));
+                }
+                floatImage.sync();
+            }
+            long endNs = System.nanoTime();
+            frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
+                    .actualFps((int) (uniforms.iFrame() * 1000 / diffMs))
+                    .frameNumber((int) uniforms.iFrame());
+
+
+            SwingUtilities.invokeLater(bufferedImageViewer::repaint);
+
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+            }
+            uniforms.iFrame(uniforms.iFrame() + 1);
+        }
+    }
+
+
+    public static class BufferedImageViewer extends JComponent {
+        private final FloatImage floatImage;
+
+        public BufferedImageViewer(FloatImage floatImage, Consumer<Point> mouseLocationConsumer) {
+
+            this.floatImage =floatImage;
+            this.addMouseMotionListener(new MouseMotionListener() {
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    mouseLocationConsumer.accept(e.getPoint());
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    mouseLocationConsumer.accept(e.getPoint());
+                }
+            });
+        }
+
         @Override
-        public void run() {
-
-            long startTimeNs = System.nanoTime();
-
-            double nsPerTick = 1000000000.0 / frameControls.targetFps(); // 2 Fixed Updates per second
-            double delta = 0;
-            long lastTimeNs = System.nanoTime();
-            while (running) {
-                long now = System.nanoTime();
-                delta += (now - lastTimeNs) / nsPerTick;
-                lastTimeNs = now;
-                uniforms.iResolution().x(floatImage.width());
-                uniforms.iResolution().y(floatImage.height());
-
-                while (delta >= 1) {
-                    long diffNs = lastTimeNs - startTimeNs;
-
-                    long diffMs = diffNs / 1000000;
-                    float fdiffMs = (float) diffMs;
-                    uniforms.iTime(fdiffMs / 1000);
-                    long startNs = System.nanoTime();
-
-                    if (frameControls.showAllocations()) {
-                      /*  ivec2.collect.set(true);
-                        vec2.collect.set(true);
-                        vec3.collect.set(true);
-                        vec4.collect.set(true);
-                        mat2.collect.set(true);
-                        mat3.collect.set(true);
-                        ivec2.count.set(0);
-                        vec2.count.set(0);
-                        vec3.count.set(0);
-                        vec4.count.set(0);
-                        mat2.count.set(0);
-                        mat3.count.set(0); */
-                    }
-                    if (frameControls.running()) {
-                        uniforms.iFrame(uniforms.iFrame() + 1);
-                        synchronized (bufferedImageViewer) {
-                            // We synchronize here and in the paint method.  To ensure that we don't copy memory segment mid compute.
-
-                            if (frameControls.accelerator() == null) {
-                                IntStream.range(0, floatImage.widthXHeight()).parallel().forEach(i -> {
-                                    vec2 fragCoord = vec2.vec2((float) i % floatImage.width(), (float) (floatImage.height() - (i / floatImage.width())));
-                                    vec4 inFragColor = vec4.vec4(0);
-                                    vec4 outFragColor = frameControls.shader().mainImage(uniforms, inFragColor, fragCoord);
-                                    floatImage.set(i, outFragColor);
-                                });
-                            } else {
-                                var funiforms = uniforms;
-                                var fwidth = frameControls.width();
-                                var fheight = frameControls.height();
-                                var f32Array = floatImage.f32Array();
-                                frameControls.accelerator().compute((@Reflect Compute) cc -> HATShader.compute(cc, funiforms, f32Array, fwidth, fheight));
-                            }
-                            floatImage.sync();
-                        }
-                    }
-                    long endNs = System.nanoTime();
-                    if (frameControls.showAllocations()) {
-                      //  frameControls.allocations(
-                        //        ivec2.count.get() + vec2.count.get() + vec3.count.get() + vec4.count.get() + mat2.count.get() + mat3.count.get()
-                       // );
-                    }
-                    frameControls.shaderTimeUs((int) (endNs - startNs) / 1000)
-                            .actualFps((int) (uniforms.iFrame() * 1000 / diffMs))
-                            .frameNumber((int) uniforms.iFrame())
-                            .elapsedMs((int) diffMs);
-                    delta -= 1f;
-                }
-
-                SwingUtilities.invokeLater(bufferedImageViewer::repaint);
-
-                try {
-                    Thread.sleep(2);
-                } catch (InterruptedException e) {
-                }
+        public void paint(Graphics graphics) {
+            synchronized (floatImage) {
+                graphics.drawImage(floatImage.bufferedImage(), 0, 0, this.getWidth(), this.getHeight(), null);
             }
         }
 
-
-
+    }
 }

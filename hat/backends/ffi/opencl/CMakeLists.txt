@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(opencl_backend)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(OpenCL)
 if(OPENCL_FOUND)
