@@ -112,6 +112,12 @@ CudaBackend::~CudaBackend() {
     CUDA_CHECK(cuCtxDestroy(context), "cuCtxDestroy");
 }
 
+void CudaBackend::shortDeviceInfo() override {
+    char name[100];
+    CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
+    std::cout << "[INFO] Using NVIDIA GPU: " << name << std::endl;
+}
+
 void CudaBackend::showDeviceInfo() {
     char name[100];
     CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");

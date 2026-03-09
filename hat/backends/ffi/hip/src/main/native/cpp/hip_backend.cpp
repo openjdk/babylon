@@ -249,6 +249,10 @@ int HipBackend::getMaxComputeUnits() {
     return value;
 }
 
+void HipBackend::shortDeviceInfo() override {
+    showDeviceInfo();
+}
+
 void HipBackend::showDeviceInfo() {
     char name[100];
     hipDeviceGetName(name, sizeof(name), device);

@@ -102,7 +102,7 @@ void Sled::show(std::ostream &out, void *argArray) {
 
 
 extern "C" void showDeviceInfo(long backendHandle) {
-        std::cout << "DEBUGGGGGGG through backendHandle to backend.showDeviceInfo()" << std::endl;
+        std::cout << "DEBUG through backendHandle to backend.showDeviceInfo()" << std::endl;
     if (INFO) {
         std::cout << "trampolining through backendHandle to backend.showDeviceInfo()" << std::endl;
     }
