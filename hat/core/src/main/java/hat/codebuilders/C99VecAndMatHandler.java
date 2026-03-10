@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 import hat.buffer.Uniforms;
 import hat.types.F32;
+import hat.types.ivec2;
 import hat.types.mat2;
 import hat.types.mat3;
 import hat.types.vec2;
@@ -75,6 +76,8 @@ public class C99VecAndMatHandler {
             return "mat2";
         } else if (OpHelper.isAssignable(lookup, javaType, mat3.class)) {
             return "mat2";
+        } else if (OpHelper.isAssignable(lookup, javaType, ivec2.class)) {
+            return "ivec2";
         } else {
             throw new RuntimeException("no cl name mapping for " + javaType);
         }
@@ -118,6 +121,11 @@ public class C99VecAndMatHandler {
             switch (invoke.name()) {
                 case "iResolution" -> bldr.paren(_ ->
                         bldr.sep(List.of("x", "y", "z"), _ -> bldr.csp(), lane ->
+                                bldr.id("uniforms").rarrow().id(invoke.name()).dot().id(lane)
+                        )
+                );
+                case "iMouse" -> bldr.paren(_ ->
+                        bldr.sep(List.of("x", "y"), _ -> bldr.csp(), lane ->
                                 bldr.id("uniforms").rarrow().id(invoke.name()).dot().id(lane)
                         )
                 );
@@ -220,7 +228,9 @@ public class C99VecAndMatHandler {
         List.of(new NamedVecShape("vec2", vec2.shape), new NamedVecShape("vec3", vec3.shape),new NamedVecShape("vec4", vec4.shape)).forEach(ns->
              builder.typedefKeyword().sp().type("float"+ns.shape.lanes()).sp().type(ns.name).snl()
         );
-
+        List.of(new NamedVecShape("ivec2", vec2.shape)).forEach(ns->
+                builder.typedefKeyword().sp().type("int"+ns.shape.lanes()).sp().type(ns.name).snl()
+        );
         builder.func(
                 _->builder.type("vec2"),
                 "vec2_mul_vec2_mat2",

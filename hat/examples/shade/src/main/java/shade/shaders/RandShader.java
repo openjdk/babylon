@@ -25,17 +25,21 @@
 package shade.shaders;
 
 import hat.Accelerator;
+import hat.ComputeContext;
+import hat.Accelerator.Compute;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 import hat.buffer.Uniforms;
-
-import java.io.IOException;
+import shade.ShaderViewer;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.abs;
@@ -195,23 +199,23 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
  */
 
 //https://www.shadertoy.com/view/Md23DV
-public class RandShader implements Shader {
+public class RandShader   {
 
-    static float hash(float seed) {
+    @Reflect public static float hash(float seed) {
         // Return a "random" number based on the "seed"
         return F32.fract(sin(seed) * 43758.5453f);
     }
 
-    static vec2 hashPosition(float x) {
+    @Reflect public static vec2 hashPosition(float x) {
         // Return a "random" position based on the "seed"
         return vec2(hash(x), hash(x * 1.1f));
     }
 
-    static float disk(vec2 r, vec2 center, float radius) {
+    @Reflect public static float disk(vec2 r, vec2 center, float radius) {
         return 1.0f - smoothstep(radius - 0.005f, radius + 0.005f, length(sub(r, center)));
     }
 
-    static float coordinateGrid(vec2 r) {
+    @Reflect public static float coordinateGrid(vec2 r) {
         vec3 axesCol = vec3(0.0f, 0.0f, 1.0f);
         vec3 gridCol = vec3(0.5f);
         float ret = 0.0f;
@@ -229,12 +233,11 @@ public class RandShader implements Shader {
         return ret;
     }
 
-    static float plot(vec2 r, float y, float thickness) {
+    @Reflect public static float plot(vec2 r, float y, float thickness) {
         return (abs(y - r.y()) < thickness) ? 1.0f : 0.0f;
     }
 
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+    @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
       //  vec2 p = div(fragCoord, fres);
         // vec2 r =  2.0*vec2(fragCoord.xy - 0.5*iResolution.xy)/iResolution.y;
@@ -323,17 +326,28 @@ public class RandShader implements Shader {
         return normalize(fragColor);
     }
 
-    ;
 
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            new RandShader()
-    );
-
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
     }
 
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
+
+    public static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, RandShader.class,1024, 1024, false);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
+    }
 }

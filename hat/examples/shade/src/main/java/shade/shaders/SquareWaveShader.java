@@ -26,16 +26,20 @@ package shade.shaders;
 
 
 import hat.Accelerator;
+import hat.ComputeContext;
+import hat.Accelerator.Compute;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 import hat.buffer.Uniforms;
-
-import java.io.IOException;
+import shade.ShaderViewer;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.abs;
@@ -64,7 +68,7 @@ import static hat.types.vec4.normalize;
 import static hat.types.vec4.vec4;
 
 //https://www.shadertoy.com/view/4tXSzM
-public class SquareWaveShader implements Shader {
+public class SquareWaveShader  {
     String glsSource = """
             // evening sketch by @mmalex
             // having a go at re-creating @vector_gl's lovely gif https://twitter.com/Vector_GL/status/612337298064150529
@@ -134,7 +138,8 @@ public class SquareWaveShader implements Shader {
     static final int moblur = 4;
     static final int harmonic = 20;
 
-    vec3 circle(vec2 uv, float rr, float cc, float ss) {
+    @Reflect
+    public static vec3 circle(vec2 uv, float rr, float cc, float ss) {
         uv = mul(uv, mat2(cc, ss, -ss, cc));
         if (rr < 0f) {
             uv = vec2(uv.x(), -uv.y());
@@ -147,7 +152,7 @@ public class SquareWaveShader implements Shader {
         return vec3(c, c * l, c * l);
     }
 
-    vec3 ima(vec2 uv, float th0) {
+    @Reflect public static vec3 ima(vec2 uv, float th0) {
         vec2 uv0 = uv;
         th0 -= max(0f, uv0.x() - 1.5f) * 2f;
         th0 -= max(0f, uv0.y() - 1.5f) * 2f;
@@ -188,8 +193,7 @@ public class SquareWaveShader implements Shader {
         return col;
     }
 
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+    @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
 
         vec2 uv = div(fragCoord, vec2(fres.y(), fres.y()));//iResolution.yy;
@@ -207,15 +211,27 @@ public class SquareWaveShader implements Shader {
         fragColor = vec4(col, 0f);
         return normalize(fragColor);
     }
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
+    }
 
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            new SquareWaveShader()
-    );
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
 
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    private static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, SquareWaveShader.class,1024, 1024, false);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }

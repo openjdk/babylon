@@ -25,16 +25,20 @@
 package shade.shaders;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
+import hat.ComputeContext;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 import hat.buffer.Uniforms;
-
-import java.io.IOException;
+import shade.ShaderViewer;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.abs;
@@ -64,7 +68,7 @@ import static hat.types.vec4.vec4;
 
 
 //https://shadertoy.com/view/3llcDl
-public class SpiralShader implements Shader {
+public class SpiralShader{
 
     /*
     // variant of https://shadertoy.com/view/3llcDl
@@ -107,7 +111,8 @@ public class SpiralShader implements Shader {
      */
 
 
-    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
+    @Reflect
+    public static vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
 
             // variant of https://shadertoy.com/view/3llcDl
 // inspired by https://www.facebook.com/eric.wenger.547/videos/2727028317526304/
@@ -170,22 +175,32 @@ public class SpiralShader implements Shader {
                             )
                     );// color
         }
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){
+    @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){
         return createPixel(
                 vec2(uniforms.iResolution().x(), uniforms.iResolution().y()),  uniforms.iTime(),vec2(uniforms.iMouse().x(), uniforms.iMouse().y()), fragCoord);
     }
 
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            new SpiralShader()
-    );
-
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
     }
 
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
 
+    public static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, SpiralShader.class,1024, 1024, false);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
+    }
 }
