@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @enablePreview
  * @run junit TestSwitchExpressionOp
  * @run main Unreflect TestSwitchExpressionOp
  * @run junit TestSwitchExpressionOp
@@ -505,6 +506,24 @@ public class TestSwitchExpressionOp {
         String[] args = {"1", "2", "3", ""};
         for (String a : args) {
             Assertions.assertEquals(caseConstantStringLiteral(a), Interpreter.invoke(MethodHandles.lookup(), lf, a));
+        }
+    }
+
+    @Reflect
+    static String casePatternWithCaseConstant2(int i) {
+        return switch (i) {
+            case 0 -> "zero";
+            case Integer j when j > 0 -> "positive";
+            case Integer _ -> "negative";
+        };
+    }
+
+    @Test
+    void testCasePatterWithCaseConstant() {
+        CoreOp.FuncOp lf = lower("casePatternWithCaseConstant2");
+        Integer[] args = {2, 0, -1};
+        for (Integer a : args) {
+            Assertions.assertEquals(casePatternWithCaseConstant2(a), Interpreter.invoke(MethodHandles.lookup(), lf, a));
         }
     }
 

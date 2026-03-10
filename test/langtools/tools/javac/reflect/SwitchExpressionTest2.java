@@ -1097,4 +1097,79 @@ public class SwitchExpressionTest2 {
             default -> "else";
         };
     }
+
+    @IR("""
+            func @"casePatternWithCaseConstant" (%0 : java.type:"int")java.type:"java.lang.String" -> {
+                  %1 : Var<java.type:"int"> = var %0 @"i";
+                  %2 : java.type:"int" = var.load %1;
+                  %3 : java.type:"java.lang.Integer" = constant @null;
+                  %4 : Var<java.type:"java.lang.Integer"> = var %3 @"j";
+                  %5 : java.type:"java.lang.Integer" = constant @null;
+                  %6 : Var<java.type:"java.lang.Integer"> = var %5;
+                  %7 : java.type:"java.lang.String" = java.switch.expression %2
+                      (%8 : java.type:"int")java.type:"boolean" -> {
+                          %9 : java.type:"int" = constant @0;
+                          %10 : java.type:"boolean" = eq %8 %9;
+                          yield %10;
+                      }
+                      ()java.type:"java.lang.String" -> {
+                          %11 : java.type:"java.lang.String" = constant @"zero";
+                          yield %11;
+                      }
+                      (%12 : java.type:"int")java.type:"boolean" -> {
+                          %13 : java.type:"boolean" = java.cand
+                              ()java.type:"boolean" -> {
+                                  %14 : java.type:"java.lang.Integer" = invoke %12 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                                  %15 : java.type:"boolean" = pattern.match %14
+                                      ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                          %16 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type @"j";
+                                          yield %16;
+                                      }
+                                      (%17 : java.type:"java.lang.Integer")java.type:"void" -> {
+                                          var.store %4 %17;
+                                          yield;
+                                      };
+                                  yield %15;
+                              }
+                              ()java.type:"boolean" -> {
+                                  %18 : java.type:"java.lang.Integer" = var.load %4;
+                                  %19 : java.type:"int" = invoke %18 @java.ref:"java.lang.Integer::intValue():int";
+                                  %20 : java.type:"int" = constant @0;
+                                  %21 : java.type:"boolean" = gt %19 %20;
+                                  yield %21;
+                              };
+                          yield %13;
+                      }
+                      ()java.type:"java.lang.String" -> {
+                          %22 : java.type:"java.lang.String" = constant @"positive";
+                          yield %22;
+                      }
+                      (%23 : java.type:"int")java.type:"boolean" -> {
+                          %24 : java.type:"java.lang.Integer" = invoke %23 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                          %25 : java.type:"boolean" = pattern.match %24
+                              ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                  %26 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type;
+                                  yield %26;
+                              }
+                              (%27 : java.type:"java.lang.Integer")java.type:"void" -> {
+                                  var.store %6 %27;
+                                  yield;
+                              };
+                          yield %25;
+                      }
+                      ()java.type:"java.lang.String" -> {
+                          %28 : java.type:"java.lang.String" = constant @"negative";
+                          yield %28;
+                      };
+                  return %7;
+              };
+            """)
+    @Reflect
+    static String casePatternWithCaseConstant(int i) {
+        return switch (i) {
+            case 0 -> "zero";
+            case Integer j when j > 0 -> "positive";
+            case Integer _ -> "negative";
+        };
+    }
 }
