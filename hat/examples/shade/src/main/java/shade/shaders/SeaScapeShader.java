@@ -367,9 +367,9 @@ public class SeaScapeShader  {
         vec2 f = fract(p);
         vec2 u = mul(f, mul(f, sub(3.0f, mul(2.0f, f))));
 
-        return F32.add(-1.0f,
-                F32.mul(
-                        2.0f,
+        return -1.0f +
+
+                        2.0f*
                         F32.mix(
                                 F32.mix(
                                         hash(
@@ -384,8 +384,8 @@ public class SeaScapeShader  {
                                         hash(add(i, vec2(0.0f, 1.0f))), hash(add(i, vec2(1.0f, 1.0f))), u.x()
                                 ),
                                 u.y()
-                        )
-                )
+
+
         );
     }
 

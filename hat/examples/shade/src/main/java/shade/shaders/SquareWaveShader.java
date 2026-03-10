@@ -179,10 +179,10 @@ public class SquareWaveShader  {
           if (uv0.y>=1.5) col.xy=vec2(smoothstep(0.,fwidth(uv.x),abs(uv.x)));
          */
         if (uv.y() > 0f && fract(uv0.y() * 10f) < 0.5f) {
-            col = vec3(col.x(), min(vec2.yz(col), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
+            col = vec3(col.x(), min(vec2(col.y(),col.z()), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
         }
         if (uv.x() > 0f && fract(uv0.x() * 10f) < 0.5f) {
-            col = vec3(col.x(), min(vec2.xz(col), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
+            col = vec3(col.x(), min(vec2(col.x(),col.z()), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
         }
         if (uv0.x() >= 1.5f) {
             col = vec3(vec2(smoothstep(0f, fwidthUvY, abs(uv.y()))), col.z());
@@ -231,7 +231,7 @@ public class SquareWaveShader  {
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, SquareWaveShader.class,1024, 1024, false);
+        var shader = ShaderViewer.of(acc, SquareWaveShader.class,1024, 1024, true);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }

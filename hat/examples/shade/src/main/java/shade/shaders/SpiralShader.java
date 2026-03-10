@@ -42,7 +42,6 @@ import shade.ShaderViewer;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.abs;
-import static hat.types.F32.div;
 import static hat.types.F32.floor;
 import static hat.types.F32.log;
 import static hat.types.F32.max;
@@ -136,7 +135,7 @@ public class SpiralShader{
                             vec2(ftime / 8f)
                     ),
                     mul(
-                            div(F32.atan(U.x(), U.y()), 6.2832f),
+                            F32.atan(U.x(), U.y())/ 6.2832f,
                             vec2(6f, 1f)
                     )
             );
@@ -200,7 +199,7 @@ public class SpiralShader{
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, SpiralShader.class,1024, 1024, false);
+        var shader = ShaderViewer.of(acc, SpiralShader.class,1024, 1024, true);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }

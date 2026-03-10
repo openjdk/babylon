@@ -97,7 +97,7 @@ public class C99VecAndMatHandler {
                     bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
             );
         } else if (invoke.refIs(F32.class)) {
-            System.out.println("IMPLEMENT F32." + invoke.name());
+           // System.out.println("IMPLEMENT F32." + invoke.name());
             switch (invoke.name()) {
                 case "fract" -> bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).sub().funcName("floor")
                         .paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull())));
@@ -110,10 +110,13 @@ public class C99VecAndMatHandler {
                                 bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                     }
                 }
-                case "cos", "sqrt","sin", "exp", "pow", "min", "max", "log", "smoothstep", "clamp" -> bldr.id(invoke.name()).paren(_ ->
+                case "cos", "sqrt","sin", "exp", "pow", "min", "max", "log", "smoothstep", "clamp","floor","step","mix" -> bldr.id(invoke.name()).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                 case "abs" -> bldr.id("f" + invoke.name()).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
+                case "mod"->bldr.id("f32_mod_f32_f32").paren(_->
+                    bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
+
                 default -> throw new RuntimeException("unmapped F32 call " + invoke.name());
             }
         } else if (invoke.refIs(Uniforms.class)) {
@@ -241,5 +244,14 @@ public class C99VecAndMatHandler {
                                                         l.y*r._10+l.y*r._11
                                         """)
                 ).semicolon());
+
+        builder.func(
+                _->builder.type("float"),
+                "f32_mod_f32_f32",
+                _->builder.type("float").sp().id("l").csp().type("float").sp().id("r"),
+                        _->builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor").paren(_->
+                                builder.id("l").div().id("r")).semicolon());
+
+                     //   "                // static float mod(float x, float y){return x - y * floor(x/y);}"
     }
 }
