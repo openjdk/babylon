@@ -25,53 +25,23 @@
 package shade.shaders;
 
 import hat.Accelerator;
+import hat.ComputeContext;
+import hat.Accelerator.Compute;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
-import hat.types.F32;
-import hat.types.mat3;
 import hat.types.vec2;
-import hat.types.vec3;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
-
-import java.io.IOException;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
+import shade.ShaderViewer;
 import java.lang.invoke.MethodHandles;
 
-import static hat.types.F32.abs;
-import static hat.types.F32.max;
-import static hat.types.F32.min;
-import static hat.types.F32.pow;
-import static hat.types.F32.sqrt;
-import static hat.types.mat2.mat2;
-import static hat.types.mat3.mat3;
-import static hat.types.vec2.add;
-import static hat.types.vec2.cos;
-import static hat.types.vec2.div;
-import static hat.types.vec2.dot;
-import static hat.types.vec2.length;
-import static hat.types.vec2.mul;
-import static hat.types.vec2.sub;
-import static hat.types.vec2.vec2;
-import static hat.types.vec3.add;
-import static hat.types.vec3.clamp;
-import static hat.types.vec3.cross;
-import static hat.types.vec3.distance;
-import static hat.types.vec3.div;
-import static hat.types.vec3.dot;
-import static hat.types.vec3.max;
-import static hat.types.vec3.mix;
-import static hat.types.vec3.mul;
-import static hat.types.vec3.neg;
-import static hat.types.vec3.normalize;
-import static hat.types.vec3.pow;
-import static hat.types.vec3.reflect;
-import static hat.types.vec3.sub;
-import static hat.types.vec3.vec3;
-import static hat.types.vec4.normalize;
 import static hat.types.vec4.vec4;
-class  PiratesShader implements Shader{
+class  PiratesShader{
 /*
 float fbm( vec2 p )
 {
@@ -142,7 +112,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
  */
 
-    float fbm( vec2 p )
+    @Reflect
+    public static float fbm(vec2 p )
     {
         float t1x = .1f;
         float t2x = .2f;
@@ -154,8 +125,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
                 0.0625f* t4x;//texture( iChannel1, p*8.04 ).x;
     }
 //    https://www.shadertoy.com/view/ldXXDj
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+@Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
 /* We need textures for this
         float time = F32.mod( uniforms.iTime(), 60.0f );
         vec2 p = div(sub(mul(2.0f,fragCoord),vec2(uniforms.iResolution().x(),uniforms.iResolution().y())), uniforms.iResolution().y());
@@ -218,15 +188,27 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         return vec4(1,1,1,1);
     }
 
-    ;
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            new PiratesShader()
-    );
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
+    }
 
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
+
+    public static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, PiratesShader.class,1024, 1024, false);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }

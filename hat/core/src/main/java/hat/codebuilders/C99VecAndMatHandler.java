@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 import hat.buffer.Uniforms;
 import hat.types.F32;
+import hat.types.ivec2;
 import hat.types.mat2;
 import hat.types.mat3;
 import hat.types.vec2;
@@ -75,6 +76,8 @@ public class C99VecAndMatHandler {
             return "mat2";
         } else if (OpHelper.isAssignable(lookup, javaType, mat3.class)) {
             return "mat2";
+        } else if (OpHelper.isAssignable(lookup, javaType, ivec2.class)) {
+            return "ivec2";
         } else {
             throw new RuntimeException("no cl name mapping for " + javaType);
         }
@@ -94,7 +97,7 @@ public class C99VecAndMatHandler {
                     bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
             );
         } else if (invoke.refIs(F32.class)) {
-            System.out.println("IMPLEMENT F32." + invoke.name());
+           // System.out.println("IMPLEMENT F32." + invoke.name());
             switch (invoke.name()) {
                 case "fract" -> bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).sub().funcName("floor")
                         .paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull())));
@@ -107,10 +110,13 @@ public class C99VecAndMatHandler {
                                 bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                     }
                 }
-                case "cos", "sqrt","sin", "exp", "pow", "min", "max", "log", "smoothstep", "clamp" -> bldr.id(invoke.name()).paren(_ ->
+                case "cos", "sqrt","sin", "exp", "pow", "min", "max", "log", "smoothstep", "clamp","floor","step","mix" -> bldr.id(invoke.name()).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                 case "abs" -> bldr.id("f" + invoke.name()).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
+                case "mod"->bldr.id("f32_mod_f32_f32").paren(_->
+                    bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
+
                 default -> throw new RuntimeException("unmapped F32 call " + invoke.name());
             }
         } else if (invoke.refIs(Uniforms.class)) {
@@ -118,6 +124,11 @@ public class C99VecAndMatHandler {
             switch (invoke.name()) {
                 case "iResolution" -> bldr.paren(_ ->
                         bldr.sep(List.of("x", "y", "z"), _ -> bldr.csp(), lane ->
+                                bldr.id("uniforms").rarrow().id(invoke.name()).dot().id(lane)
+                        )
+                );
+                case "iMouse" -> bldr.paren(_ ->
+                        bldr.sep(List.of("x", "y"), _ -> bldr.csp(), lane ->
                                 bldr.id("uniforms").rarrow().id(invoke.name()).dot().id(lane)
                         )
                 );
@@ -220,7 +231,9 @@ public class C99VecAndMatHandler {
         List.of(new NamedVecShape("vec2", vec2.shape), new NamedVecShape("vec3", vec3.shape),new NamedVecShape("vec4", vec4.shape)).forEach(ns->
              builder.typedefKeyword().sp().type("float"+ns.shape.lanes()).sp().type(ns.name).snl()
         );
-
+        List.of(new NamedVecShape("ivec2", vec2.shape)).forEach(ns->
+                builder.typedefKeyword().sp().type("int"+ns.shape.lanes()).sp().type(ns.name).snl()
+        );
         builder.func(
                 _->builder.type("vec2"),
                 "vec2_mul_vec2_mat2",
@@ -231,5 +244,14 @@ public class C99VecAndMatHandler {
                                                         l.y*r._10+l.y*r._11
                                         """)
                 ).semicolon());
+
+        builder.func(
+                _->builder.type("float"),
+                "f32_mod_f32_f32",
+                _->builder.type("float").sp().id("l").csp().type("float").sp().id("r"),
+                        _->builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor").paren(_->
+                                builder.id("l").div().id("r")).semicolon());
+
+                     //   "                // static float mod(float x, float y){return x - y * floor(x/y);}"
     }
 }
