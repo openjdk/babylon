@@ -128,7 +128,7 @@ public class Truchet2Shader  {
 
         float ao=1.0f-i/(float)Iterations;
      //  float what=pow(max(0.0,dot(normal,-ray_dir)),2.0);
-        var term = vec3.dot(normal,neg(ray_dir));
+        var term = vec3.dot(normal,mul(-1f,ray_dir));
         float what=F32.pow(F32.max(0.0f,term),2.0f);
         float light=ao*what*1.4f;
 
@@ -185,7 +185,6 @@ public class Truchet2Shader  {
         return normalize(fragColor);
     }
     @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()), uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
     @Reflect
