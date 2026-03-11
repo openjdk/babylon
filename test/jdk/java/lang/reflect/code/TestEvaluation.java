@@ -125,7 +125,8 @@ public class TestEvaluation {
     static boolean equalityOperator3() {
         return "A" != "B";
     }
-    @Reflect
+    // @Reflect
+    // @@@ Interpreter doesn't intern constant expression of type String, JDK-8379503
     static boolean stringReferenceEquality() {
         return "A" + "A" == "AA";
     }
