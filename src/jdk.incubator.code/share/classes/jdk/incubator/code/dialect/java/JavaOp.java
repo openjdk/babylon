@@ -119,10 +119,9 @@ public sealed abstract class JavaOp extends Op {
          * <p>
          * This method deviates from the language specification of a constant expression in the following cases.
          * <ul>
-         * <li>A name that refers to a final class variable is evaluated as if a constant variable.
+         * <li>A name that refers to a final class variable of primitive type or type String, is evaluated as if a constant variable.
          * Such referral is modeled as field load operation to a static final field. At runtime, it is not possible to
-         * determine if that class variable, the static final field, is initialized with a constant expression and what
-         * the result of that expression is.
+         * determine if that class variable, the static final field, is initialized with a constant expression.
          * <li>A name that refers to constant variable that is an instance variable is evaluated as if it is a
          * non-constant variable, and therefore any expression referring to such a variable is not considered a constant
          * expression.
@@ -157,10 +156,9 @@ public sealed abstract class JavaOp extends Op {
          * <p>
          * This method deviates from the language specification of a constant expression in the following cases.
          * <ul>
-         * <li>A name that refers to a final class variable is evaluated as if a constant variable.
+         * <li>A name that refers to a final class variable of primitive type or type String, is evaluated as if a constant variable.
          * Such referral is modeled as field load operation to a static final field. At runtime, it is not possible to
-         * determine if that class variable, the static final field, is initialized with a constant expression and what
-         * the result of that expression is.
+         * determine if that class variable, the static final field, is initialized with a constant expression.
          * <li>A name that refers to constant variable that is an instance variable is evaluated as if it is a
          * non-constant variable, and therefore any expression referring to such a variable is not considered a constant
          * expression.
