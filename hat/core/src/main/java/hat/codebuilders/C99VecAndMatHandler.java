@@ -75,17 +75,13 @@ public class C99VecAndMatHandler {
         }else if (OpHelper.isAssignable(lookup, javaType, mat2.class)) {
             return "mat2";
         } else if (OpHelper.isAssignable(lookup, javaType, mat3.class)) {
-            return "mat2";
+            return "mat3";
         } else if (OpHelper.isAssignable(lookup, javaType, ivec2.class)) {
             return "ivec2";
         } else {
             throw new RuntimeException("no cl name mapping for " + javaType);
         }
     }
-
-  //  static public String mapVecName(String vname) {
-    //    return "vec" + vname.substring(3);
-   // }
 
     public static boolean isVecInvoke(OpHelper.Invoke invoke) {
         return (invoke.named(SHADER_MAIN_IMAGE) || invoke.refIs(F32.class, Uniforms.class, IfaceValue.vec.class, IfaceValue.mat.class));
@@ -110,6 +106,9 @@ public class C99VecAndMatHandler {
                                 bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                     }
                 }
+                case "inversesqrt" ->
+                    bldr.id("rsqrt").paren(_ ->
+                            bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                 case "cos", "sqrt","sin", "exp", "pow", "min", "max", "log", "smoothstep", "clamp","floor","step","mix" -> bldr.id(invoke.name()).paren(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
                 case "abs" -> bldr.id("f" + invoke.name()).paren(_ ->
@@ -156,8 +155,15 @@ public class C99VecAndMatHandler {
                             && invoke.resultFromOperandNOrNull(1) instanceof Op.Result r
                             && r.type() instanceof ClassType cte
                          && OpHelper.classTypeToTypeOrThrow(invoke.lookup(), cte) instanceof Class<?> c
-                    && IfaceValue.mat.class.isAssignableFrom(c)){
-                        bldr.id("vec2_mul_vec2_mat2").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                    && mat2.class.isAssignableFrom(c)) {
+                    bldr.id("vec2_mul_vec2_mat2").paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                }else    if (invoke.named("mul")
+                            && invoke.operandCount() == 2
+                            && invoke.resultFromOperandNOrNull(1) instanceof Op.Result r
+                            && r.type() instanceof ClassType cte
+                            && OpHelper.classTypeToTypeOrThrow(invoke.lookup(), cte) instanceof Class<?> c
+                            && mat3.class.isAssignableFrom(c)){
+                        bldr.id("vec3_mul_vec3_mat3").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
                 }else if (invoke.nameMatchesRegex("(mul|add|sub|div)")) {
                     // for opencl we can turn these into expressions. So vec3.mul(l,r) -> (l * r)
                     bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).symbol(switch (invoke.name()) {
@@ -241,10 +247,20 @@ public class C99VecAndMatHandler {
                 _->builder.returnKeyword().sp().paren(_->builder.type("vec2")).paren(_->
                                 builder.preformatted("""
                                         l.x*r._00+l.x*r._01,
-                                                        l.y*r._10+l.y*r._11
+                                        l.y*r._10+l.y*r._11
                                         """)
                 ).semicolon());
-
+        builder.func(
+                _->builder.type("vec3"),
+                "vec3_mul_vec3_mat3",
+                _->builder.type("vec3").sp().id("l").csp().type("mat3").sp().id("r"),
+                _->builder.returnKeyword().sp().paren(_->builder.type("vec3")).paren(_->
+                        builder.preformatted("""
+                                l.x*r._00+l.x*r._01+l.x*r._02,
+                                l.y*r._10+l.y*r._11+l.y*r._12,
+                                l.z*r._20+l.z*r._21+l.z*r._22
+                                """)
+                ).semicolon());
         builder.func(
                 _->builder.type("float"),
                 "f32_mod_f32_f32",

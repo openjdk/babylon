@@ -125,7 +125,9 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
             case JavaOp.EnhancedForOp $ -> enhancedForOp($);
             case JavaOp.BlockOp   $ -> blockOp($);
             case JavaOp.ConcatOp $ -> concatOp($);
-            case CoreOp.UnreachableOp $ -> throw new IllegalStateException("Found CoreOp.Unreachable"+op);
+            case CoreOp.UnreachableOp $ -> {;}
+                //throw new IllegalStateException("Found CoreOp.Unreachable"+op);
+           // }
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

@@ -73,7 +73,6 @@ import static hat.types.vec3.div;
 import static hat.types.vec3.dot;
 import static hat.types.vec3.mix;
 import static hat.types.vec3.mul;
-import static hat.types.vec3.neg;
 import static hat.types.vec3.normalize;
 import static hat.types.vec3.reflect;
 import static hat.types.vec3.sub;
@@ -300,10 +299,6 @@ public class SeaScapeShader  {
     final  static public  float SEA_CHOPPY = 4.0f;
     final  static public  float SEA_SPEED = 0.8f;
     final   static public float SEA_FREQ = 0.16f;
-    final  static public  vec3 SEA_BASE = vec3(0.0f, 0.09f, 0.18f);
-    final  static public  vec3 SEA_WATER_COLOR = mul(vec3(0.8f, 0.9f, 0.6f), 0.6f);
-
-    final static mat2 octave_m = mat2(1.6f, 1.2f, -1.2f, 1.6f);
 
     /*
        mat3 fromEuler(vec3 ang) {
@@ -542,8 +537,11 @@ public class SeaScapeShader  {
      */
 
     @Reflect public static vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
+        vec3 SEA_BASE = vec3(0.0f, 0.09f, 0.18f);
+          vec3 SEA_WATER_COLOR = mul(vec3(0.8f, 0.9f, 0.6f), 0.6f);
 
-        float fresnel = F32.clamp(1.0f - vec3.dot(n, neg(eye)), 0.0f, 1.0f);
+
+        float fresnel = F32.clamp(1.0f - vec3.dot(n, mul(-1f,eye)), 0.0f, 1.0f);
         //  float fresnel = F32.clamp(F32.sub(1.0f,dot(n, vec3.neg(eye)), 0.0f, 1.0f);
         fresnel = min(fresnel * fresnel * fresnel, 0.5f);
 
@@ -621,7 +619,8 @@ public class SeaScapeShader  {
             return new floatAndVec3(tx, p);
         }
         float hm = map(SEA_TIME, octave_m, ori);
-        for (int i = 0; i < NUM_STEPS; i++) {
+        int brk=0;
+        for (int i = 0; brk != 1 && i < NUM_STEPS; i++) {
             float tmid = mix(tm, tx, hm / (hm - hx));
             p = add(ori, mul(dir, tmid));
             float hmid = map(SEA_TIME, octave_m, p);
@@ -632,7 +631,7 @@ public class SeaScapeShader  {
                 tm = tmid;
                 hm = hmid;
             }
-            if (abs(hmid) < EPSILON) break;
+            if (abs(hmid) < EPSILON) brk=1;
         }
         return new floatAndVec3(mix(tm, tx, hm / (hm - hx)), p);
     }
@@ -716,10 +715,10 @@ public class SeaScapeShader  {
 
     @Reflect public static vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
 
-        final float EPSILON_NRM = 0.1f / fres.x();
+        //final float EPSILON_NRM = 0.1f / fres.x();
         final float SEA_TIME = 1f + ftime * SEA_SPEED;
         mat2 octave_m = mat2(1.6f, 1.2f, -1.2f, 1.6f);
-        float time = ftime * 0.3f + fmouse.x() * 0.01f;
+     //   float time = ftime * 0.3f + fmouse.x() * 0.01f;
 
         //   #ifdef AA
         vec3 color = vec3(0f);
@@ -771,7 +770,7 @@ public class SeaScapeShader  {
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, SeaScapeShader.class,1024, 1024, false);
+        var shader = ShaderViewer.of(acc, SeaScapeShader.class,1024, 1024, true);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }
