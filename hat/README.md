@@ -158,7 +158,6 @@ public class ExampleHAT {
 
     static void main(String[] args) {
     	final int size = 4096;
-
         // Create a new accelerator object
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -188,7 +187,7 @@ public class ExampleHAT {
         } else {
             IO.println("Result is NOT correct");
         }
-	}
+    }
 }
 ```
 
