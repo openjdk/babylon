@@ -35,8 +35,8 @@ jtreg -jdk:./build/macosx-x86_64-server-release/jdk/ -ea -esa -avm -va test/jdk/
 ```
 
 In addition, the runtime tests can be executed using make with the test group
-`jdk_lang_reflect_code` as follows:
+`jdk_incubator_code` as follows:
 
 ```
-make test TEST=jdk_lang_reflect_code
+make test TEST=jdk_incubator_code
 ```
