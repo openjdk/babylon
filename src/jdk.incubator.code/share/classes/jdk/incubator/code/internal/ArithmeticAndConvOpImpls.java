@@ -33,10 +33,8 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.List;
 
-// @@@ there are more methods than we need for op evaluation
-// e.g. conversion from PT to boolean and from boolean to PT
-// these methods are used by interpreter
 public final class ArithmeticAndConvOpImpls {
     public static boolean eq(Object a, Object b) {
         return a == b;
@@ -640,9 +638,6 @@ public final class ArithmeticAndConvOpImpls {
     public static byte conv_byte(double i) {
         return (byte) i;
     }
-    public static boolean conv_boolean(double i) {
-        return ((int)i & 1) == 1;
-    }
 
     // float conversion
     public static double conv_double(float i) {
@@ -665,9 +660,6 @@ public final class ArithmeticAndConvOpImpls {
     }
     public static byte conv_byte(float i) {
         return (byte) i;
-    }
-    public static boolean conv_boolean(float i) {
-        return ((int)i & 1) == 1;
     }
 
     // long conversion
@@ -692,9 +684,6 @@ public final class ArithmeticAndConvOpImpls {
     public static byte conv_byte(long i) {
         return (byte) i;
     }
-    public static boolean conv_boolean(long i) {
-        return (i & 1) == 1;
-    }
 
     // int conversion
     public static double conv_double(int i) {
@@ -717,9 +706,6 @@ public final class ArithmeticAndConvOpImpls {
     }
     public static byte conv_byte(int i) {
         return (byte) i;
-    }
-    public static boolean conv_boolean(int i) {
-        return (i & 1) == 1;
     }
 
     // short conversion
@@ -744,9 +730,6 @@ public final class ArithmeticAndConvOpImpls {
     public static byte conv_byte(short i) {
         return (byte) i;
     }
-    public static boolean conv_boolean(short i) {
-        return (i & 1) == 1;
-    }
 
     // char conversion
     public static double conv_double(char i) {
@@ -769,9 +752,6 @@ public final class ArithmeticAndConvOpImpls {
     }
     public static byte conv_byte(char i) {
         return (byte) i;
-    }
-    public static boolean conv_boolean(char i) {
-        return (i & 1) == 1;
     }
 
     // byte conversion
@@ -796,32 +776,8 @@ public final class ArithmeticAndConvOpImpls {
     public static byte conv_byte(byte i) {
         return i;
     }
-    public static boolean conv_boolean(byte i) {
-        return (i & 1) == 1;
-    }
 
     // boolean conversion
-    public static double conv_double(boolean i) {
-        return i ? 1d : 0d;
-    }
-    public static float conv_float(boolean i) {
-        return i ? 1f : 0f;
-    }
-    public static long conv_long(boolean i) {
-        return i ? 1l : 0l;
-    }
-    public static int conv_int(boolean i) {
-        return i ? 1 : 0;
-    }
-    public static short conv_short(boolean i) {
-        return i ? (short)1 : 0;
-    }
-    public static char conv_char(boolean i) {
-        return i ? (char)1 : 0;
-    }
-    public static byte conv_byte(boolean i) {
-        return i ? (byte)1 : 0;
-    }
     public static boolean conv_boolean(boolean i) {
         return i;
     }
@@ -848,7 +804,7 @@ public final class ArithmeticAndConvOpImpls {
         }
     }
 
-    public static Object evaluate(Op op, Object... evaluatedOperands) throws NonConstantExpression {
+    public static Object evaluate(Op op, List<Object> evaluatedOperands) throws NonConstantExpression {
         String mn = op.externalizeOpName();
         if (op instanceof JavaOp.ConvOp) {
             mn = mn + "_" + op.resultType();
@@ -865,7 +821,7 @@ public final class ArithmeticAndConvOpImpls {
     }
 
     @SuppressWarnings("serial")
-    public static class NonConstantExpression extends Exception {
+    public static class NonConstantExpression extends RuntimeException {
         public NonConstantExpression() {}
     }
 }

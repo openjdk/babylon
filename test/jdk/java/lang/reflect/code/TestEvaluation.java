@@ -125,6 +125,10 @@ public class TestEvaluation {
     static boolean equalityOperator3() {
         return "A" != "B";
     }
+    @Reflect
+    static boolean stringReferenceEquality() {
+        return "A" + "A" == "AA";
+    }
 
     @Reflect
     static int bitwiseOperator() {
@@ -271,9 +275,9 @@ public class TestEvaluation {
         MethodHandles.Lookup l = MethodHandles.lookup();
         Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (Op & JavaOp.JavaExpression) op);
         if (m.getName().startsWith("fc")) {
-            Assertions.assertTrue(v.isEmpty());
+            Assertions.assertTrue(v.isEmpty(), m.getName());
         } else {
-            Assertions.assertTrue(v.isPresent());
+            Assertions.assertTrue(v.isPresent(), m.getName());
             Object[] args = new Object[0];
             if ((m.getModifiers() & Modifier.STATIC) == 0) { // instance method
                 args = new Object[] {this};
