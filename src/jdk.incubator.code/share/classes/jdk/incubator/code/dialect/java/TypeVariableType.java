@@ -37,6 +37,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.util.Objects;
 
 /**
  * A type variable type
@@ -117,13 +118,14 @@ public final class TypeVariableType implements JavaType {
     public boolean equals(Object o) {
         if (this == o) return true;
         return o instanceof TypeVariableType that &&
-                name.equals(that.name) &&
-                bound.equals(that.bound);
+                Objects.equals(name, that.name) &&
+                Objects.equals(owner, that.owner) &&
+                Objects.equals(bound, that.bound);
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return Objects.hash(name, owner, bound);
     }
 
     @Override
