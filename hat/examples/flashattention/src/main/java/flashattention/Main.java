@@ -419,7 +419,7 @@ public class Main {
 
             int kvTileRow = (tileId * blockN) + tid;
 
-            // Load the tiles K and V into shared memoru
+            // Load the tiles K and V into shared memory
             for (int k = 0; k < d; k++) {
                 sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
                 sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
