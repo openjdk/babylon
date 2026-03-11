@@ -330,11 +330,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         private static boolean isConstantType(TypeElement e) {
-            if (e instanceof PrimitiveType && !e.equals(VOID)) {
-                return true;
-            } else {
-                return e.equals(J_L_STRING);
-            }
+            return (e instanceof PrimitiveType && !VOID.equals(e)) || J_L_STRING.equals(e);
         }
     }
 
