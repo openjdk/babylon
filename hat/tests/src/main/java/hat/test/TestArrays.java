@@ -48,7 +48,7 @@ public class TestArrays {
     }
 
     @Reflect
-    public static void squareKernel(@RO KernelContext kc, @RW S32Array array) {
+    public static void squareKernel(KernelContext kc, S32Array array) {
         if (kc.gix < kc.gsx){
             int value = array.array(kc.gix);
             array.array(kc.gix, squareit(value));
@@ -63,7 +63,7 @@ public class TestArrays {
     }
 
     @Reflect
-    public static void vectorAddition(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
+    public static void vectorAddition(KernelContext kc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         if (kc.gix < kc.gsx) {
             int valueA = arrayA.array(kc.gix);
             int valueB = arrayB.array(kc.gix);
@@ -79,7 +79,7 @@ public class TestArrays {
     }
 
     @Reflect
-    public static void saxpy(@RO KernelContext kc, @RO F32Array arrayA, @RO F32Array arrayB, @WO F32Array arrayC, float alpha) {
+    public static void saxpy(KernelContext kc, F32Array arrayA, F32Array arrayB, F32Array arrayC, float alpha) {
         if (kc.gix < kc.gsx) {
             float valueA = arrayA.array(kc.gix);
             float valueB = arrayB.array(kc.gix);

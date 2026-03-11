@@ -37,7 +37,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
 import optkl.ifacemapper.MappableIface.WO;
 
 import jdk.incubator.code.Reflect;
@@ -46,12 +45,12 @@ public class Main {
     static Random rand;
 
     @Reflect
-    public static void blackScholesKernel(@RO KernelContext kc,
-                                          @WO F32Array call,
-                                          @WO F32Array put,
-                                          @RO F32Array sArray,
-                                          @RO F32Array xArray,
-                                          @RO F32Array tArray,
+    public static void blackScholesKernel(KernelContext kc,
+                                          F32Array call,
+                                          F32Array put,
+                                          F32Array sArray,
+                                          F32Array xArray,
+                                          F32Array tArray,
                                           float r,
                                           float v) {
         if (kc.gix < kc.gsx){
