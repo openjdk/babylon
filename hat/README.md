@@ -156,7 +156,8 @@ public class ExampleHAT {
     }
 
     static void main(String[] args) {
-    	final int size = 4096;
+        final int size = 4096;
+
         // Create a new accelerator object
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
