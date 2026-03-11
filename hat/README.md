@@ -192,7 +192,7 @@ public class ExampleHAT {
 ```
 
 Run this example in the `babylon/hat` directory.
-If you run from another directory, update the `classpath` file accordingly.
+If you run from another directory, update the `--class-path` parameter accordingly.
 Use the `java` version built with the Babylon JDK.
 
 ```bash
@@ -202,6 +202,24 @@ java --enable-preview \
    --class-path $PWD/build/hat-optkl-1.0.jar:$PWD/build/hat-core-1.0.jar:$PWD/build/hat-backend-ffi-shared-1.0.jar:$PWD/build/hat-backend-ffi-opencl-1.0.jar \
    -Djava.library.path=/Users/juanfumero/repos/babylon/hat/build \
    ExampleHAT
+```
+
+If you run with `HAT=INFO` you can see which accelerator was used:
+
+```bash
+$ HAT=INFO java --enable-preview ... ExampleHAT.java
+
+[INFO] Config Bits = 8000
+[INFO] Platform :"Apple"
+[INFO]   Version      :"OpenCL 1.2 (Jan 16 2026 07:22:26)"
+[INFO]   Name         :"Apple"
+[INFO]   Device Type  : GPU  4
+[INFO] OpenCLBackend::OpenCLQueue::dispatch
+[INFO] numDimensions: 1
+[INFO] GLOBAL [4096,1,1]
+[INFO] LOCAL  [ nullptr ] // The driver will setup a default value
+
+Result is correct
 ```
 
 ## Documentation
