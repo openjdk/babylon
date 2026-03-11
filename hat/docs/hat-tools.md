@@ -19,8 +19,8 @@
 * Implementation Details
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
     * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
+* [Running HAT with Docker on NVIDIA GPUs](hat-07-docker-build-nvidia.md)
 ---
-
 
 We have a few 'tools' in [hat/tools/src/main/java/hat/tools](https://github.com/openjdk/babylon/blob/code-reflection/hat/tools)
 which might be useful to others

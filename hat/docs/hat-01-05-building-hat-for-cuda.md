@@ -18,6 +18,7 @@
 * Implementation Details
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
     * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
+* [Running HAT with Docker on NVIDIA GPUs](hat-07-docker-build-nvidia.md)
 ---
 
 This guide provides step-by-step instructions to configure Babylon/HAT for CUDA-based GPU acceleration.

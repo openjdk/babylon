@@ -19,6 +19,7 @@
 * Implementation Details
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
     * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
+* [Running HAT with Docker on NVIDIA GPUs](hat-07-docker-build-nvidia.md)
 ---
 
 The [examples-package]() in HAT contains a list of of examples varying from matrix operations, DFT, Flash-Attention, nbody, shaders, and image detection.

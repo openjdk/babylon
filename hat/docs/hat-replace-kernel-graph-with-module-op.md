@@ -18,7 +18,9 @@
 * Implementation Details
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
     * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
+* [Running HAT with Docker on NVIDIA GPUs](hat-07-docker-build-nvidia.md)
 ---
+
 At present, we take the CodeModel (FuncOp rooted tree) of the kernel entrypoint, traverse it to
 locate calls. We recursively traverse those calls and end up closing over the complete 'graph' of reachable calls.
 
