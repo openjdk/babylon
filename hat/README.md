@@ -53,7 +53,7 @@ make images
 ### 2. Update JAVA_HOME and PATH
 
 ```bash
-export JAVA_HOME=<BABYLON-DIR>/build/macosx-aarch64-server-release/jdk/
+export JAVA_HOME=<BABYLON-DIR>/build/macosx-aarch64-server-release/images/jdk
 export PATH=$JAVA_HOME/bin:$PATH
 ```
 
@@ -61,7 +61,6 @@ export PATH=$JAVA_HOME/bin:$PATH
 
 ```bash
 sdk install jextract #if needed
-source env.bash
 cd hat
 java @.bld
 ```
@@ -199,7 +198,7 @@ Use the `java` version built with the Babylon JDK.
 java --enable-preview \
    --add-modules=jdk.incubator.code \
    --enable-native-access=ALL-UNNAMED \
-   --class-path $PWD/build/hat-optkl-1.0.jar:$PWD/build/hat-core-1.0.jar:$PWD/build/hat-backend-ffi-shared-1.0.jar:$PWD/build/hat-backend-ffi-opencl-1.0.jar \
+   --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar \
    -Djava.library.path=/Users/juanfumero/repos/babylon/hat/build \
    ExampleHAT
 ```
@@ -236,8 +235,8 @@ Contributions are welcome. Please see the [OpenJDK Developers' Guide](https://op
 2. Create a feature branch: `git checkout -b <branch>`
 3. Commit with clear messages
 4. Run formatting and tests:
-   1. For OpenCL: `java -cp hat/job.jar hat.java test-suite ffi-opencl`
-   1. For CUDA: `java -cp hat/job.jar hat.java test-suite ffi-cuda`
+   1. For OpenCL: `java @.est-suite ffi-opencl`
+   1. For CUDA: `java @.test-suite ffi-cuda`
 5. Submit a pull request
 
 
