@@ -27,8 +27,10 @@ package hat.callgraph;
 import hat.ComputeContext;
 import hat.Config;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper.Invoke;
+import optkl.util.Mutable;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
@@ -74,40 +76,40 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
         Deque<RefAndFunc> work = new ArrayDeque<>();
 
         Invoke.stream(lookup, entry).forEach(invoke -> {
+          //  System.out.print("considering  " + invoke.name()  );
             // TODO: filterCalls seems to have side effects.
             //  Each call potentially updates state (list of called methods), this seems racey...
             //  I think we should refactor this to avoid the side effects
-            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp && !filterCalls(funcOp, invoke)) {
-                work.push(new RefAndFunc(invoke.op().invokeReference(), funcOp));
+            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
+                if (!filterCalls(funcOp, invoke)) {
+                    work.push(new RefAndFunc(invoke.op().invokeReference(), funcOp));
+                }
             }
         });
-
         List<CoreOp.FuncOp> moduleFuncOps = new ArrayList<>();
         LinkedHashSet<MethodRef> setOfVisitedMethodRefs = new LinkedHashSet<>();
-        while (!work.isEmpty() && work.pop() instanceof RefAndFunc refAndFunc && setOfVisitedMethodRefs.add(refAndFunc.methodRef)) {
-            CoreOp.FuncOp tf = refAndFunc.funcOp.transform(refAndFunc.methodRef.name(), (blockBuilder, op) -> {
-                if (op == null){
-                    throw new RuntimeException("op is null");
-                }
-                var in = invoke(lookup,op);
-              //  if (in == null){
-                //    throw new RuntimeException("in is null");
-               // }
-                if (invoke(lookup, op) instanceof Invoke iop && iop.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
-                    RefAndFunc call = new RefAndFunc(iop.op().invokeReference(), funcOp);
-                    work.push(call);
-                    blockBuilder.context().mapValue(op.result(), blockBuilder.op(copyLocation(funcOp, CoreOp.funcCall(
-                            call.methodRef.name(),
-                            call.funcOp.invokableType(),
-                            blockBuilder.context().getValues(iop.op().operands())))));
-                } else {
-                    assert op != null;
-                    blockBuilder.op(op);
-                }
-                return blockBuilder;
-            });
-            moduleFuncOps.addFirst(tf);
+        while (!work.isEmpty() && work.pop() instanceof RefAndFunc refAndFunc){
+            if (!setOfVisitedMethodRefs.contains(refAndFunc.methodRef)) {
+                setOfVisitedMethodRefs.add(refAndFunc.methodRef);
+                CoreOp.FuncOp tf = refAndFunc.funcOp.transform(refAndFunc.methodRef.name(), (blockBuilder, op) -> {
+                    if (invoke(lookup, op) instanceof Invoke iop
+                         && iop.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
+                            RefAndFunc call = new RefAndFunc(iop.op().invokeReference(), funcOp);
+                            work.push(call);
+                            blockBuilder.context().mapValue(op.result(), blockBuilder.op(copyLocation(funcOp, CoreOp.funcCall(
+                                    call.methodRef.name(),
+                                    call.funcOp.invokableType(),
+                                    blockBuilder.context().getValues(iop.op().operands())))));
+                    } else {
+                        assert op != null;
+                        blockBuilder.op(op);
+                    }
+                    return blockBuilder;
+                });
+                moduleFuncOps.addFirst(tf);
+            }
         }
+
 
         return CoreOp.module(moduleFuncOps);
     }

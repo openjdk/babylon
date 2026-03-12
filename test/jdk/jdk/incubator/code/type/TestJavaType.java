@@ -185,6 +185,23 @@ public class TestJavaType {
         );
     }
 
+    @ParameterizedTest
+    @MethodSource("typesXtypes")
+    public void testTypeEquals(Type type1, Type type2) throws ReflectiveOperationException {
+        JavaType javaType1 = JavaType.type(type1);
+        JavaType javaType2 = JavaType.type(type2);
+        String typeString1 = replaceTypeVariables(javaType1).toString()
+                .replaceAll("::", "\\$");
+        String typeString2 = replaceTypeVariables(javaType2).toString()
+                .replaceAll("::", "\\$");
+        boolean equals = typeString1.equals(typeString2);
+        Assertions.assertEquals(equals, javaType1.equals(javaType2));
+        Assertions.assertEquals(equals, javaType2.equals(javaType1));
+        if (equals) {
+            Assertions.assertEquals(javaType1.hashCode(), javaType2.hashCode());
+        }
+    }
+
     JavaType replaceTypeVariables(JavaType type) {
         // This type transformation replaces type variables with simple class types.
         // This obtains a JavaType whose toString behaves the same as Type::getTypeName
@@ -449,5 +466,15 @@ public class TestJavaType {
 
         var local_c = (ClassType)JavaType.type(Class.forName("TestJavaType$InnerTypes$1Local_C"));
         Assertions.assertEquals(innertypes, local_c.enclosingType().get());
+    }
+
+    public static Object[][] typesXtypes() throws ReflectiveOperationException {
+        List<Object[]> types = new ArrayList<>();
+        for (Field f1 : TypeHolder.class.getDeclaredFields()) {
+            for (Field f2 : TypeHolder.class.getDeclaredFields()) {
+                types.add(new Object[]{f1.getGenericType(), f2.getGenericType()});
+            }
+        }
+        return types.stream().toArray(Object[][]::new);
     }
 }

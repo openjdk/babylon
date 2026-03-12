@@ -1,23 +1,26 @@
 
 ### FuncOpViewer and CodeModelFormatter
-----
 
+----
 * [Contents](hat-00.md)
-* House Keeping
-    * [Project Layout](hat-01-01-project-layout.md)
-    * [Building Babylon](hat-01-02-building-babylon.md)
-    * [Building HAT](hat-01-03-building-hat.md)
-* Programming Model
-    * [Programming Model](hat-03-programming-model.md)
+* Build Babylon and HAT
+    * [Quick Install](hat-01-quick-install.md)
+    * [Building Babylon with jtreg](hat-01-02-building-babylon.md)
+    * [Building HAT with jtreg](hat-01-03-building-hat.md)
+        * [Enabling the NVIDIA CUDA Backend](hat-01-05-building-hat-for-cuda.md)
+* [Testing Framework](hat-02-testing-framework.md)
+* [Running Examples](hat-03-examples.md)
+* [HAT Programming Model](hat-03-programming-model.md)
 * Interface Mapping
     * [Interface Mapping Overview](hat-04-01-interface-mapping.md)
     * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
-* Implementation Detail
+* Development
+    * [Project Layout](hat-01-01-project-layout.md)
+* Implementation Details
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
     * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
-
-----
-
+* [Running HAT with Docker on NVIDIA GPUs](hat-07-docker-build-nvidia.md)
+---
 
 We have a few 'tools' in [hat/tools/src/main/java/hat/tools](https://github.com/openjdk/babylon/blob/code-reflection/hat/tools)
 which might be useful to others

@@ -25,16 +25,21 @@
 package shade.shaders;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
+import hat.ComputeContext;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 import hat.buffer.Uniforms;
+import shade.ShaderViewer;
 
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.abs;
@@ -96,10 +101,10 @@ vec3 palette( float t ) {
         }
  */
 //https://www.shadertoy.com/view/mtyGWy
-public class TutorialShader implements Shader {
+public class TutorialShader  {
 
-
-    vec3 palette(float t) {
+@Reflect
+   public static  vec3 palette(float t) {
         vec3 a = vec3(0.5f, 0.5f, 0.5f);
         vec3 b = vec3(0.5f, 0.5f, 0.5f);
         vec3 c = vec3(1.0f, 1.0f, 1.0f);
@@ -107,36 +112,54 @@ public class TutorialShader implements Shader {
         return add(a, mul(b, cos(mul(add(mul(c, vec3(t)), d), vec3(6.28318f)))));
     }
 
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fResolution = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-        float fTime = uniforms.iTime();
-        vec2 uv = div(sub(mul(fragCoord, 2f), fResolution), fResolution.y());
+    @Reflect
+    static public vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
+        vec2 uv = div(sub(mul(fragCoord, 2f), fres), fres.y());
         vec2 uv0 = uv;
         vec3 color = vec3(0f);
         for (float i = 0f; i < 4f; i++) {
             uv = sub(fract(mul(uv, 1.5f)), vec2(0.5f));
-            vec3 col = palette(length(uv0) + i * .4f + fTime * .4f);
+            vec3 col = palette(length(uv0) + i * .4f + ftime * .4f);
             float d = length(uv) * exp(-length(uv0));
-            d = sin(d * 8f + fTime) / 8f;
+            d = sin(d * 8f + ftime) / 8f;
             d = abs(d);
             d = pow(0.01f / d, 1.2f);
             color = add(color, mul(col, d));
         }
 
-        fragColor = vec4(color, 1.0f);
-        return normalize(fragColor);
+        return normalize(vec4(color, 1.0f));
     }
 
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("targetFps", "10")),
-            new TutorialShader()
-    );
+    @Reflect public static  vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        var fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
+        var fmouse = vec2(uniforms.iMouse().x(),uniforms.iMouse().y());
+        return createPixel(
+                fres,
+                uniforms.iTime(),
+                fmouse,
+                fragCoord);
+    }
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
+    }
 
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
+
+    private static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, TutorialShader.class,1024, 1024, true);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }
