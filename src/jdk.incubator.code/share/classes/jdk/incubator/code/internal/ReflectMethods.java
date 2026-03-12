@@ -1670,6 +1670,26 @@ public class ReflectMethods extends TreeTranslatorPrev {
             return bodies;
         }
 
+        private Value processConstantLabel(Value target, JCTree.JCConstantCaseLabel label) {
+            if (target.type().equals(JavaType.J_L_STRING)) {
+                return append(JavaOp.invoke(
+                        MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                        target, toValue(label.expr)));
+            } else {
+                // target is primitive wrapper, primitive or enum
+                // if target of type Character, Byte, Short or Integer, unbox it
+                if (target.type().equals(JavaType.J_L_CHARACTER) || target.type().equals(JavaType.J_L_BYTE) ||
+                        target.type().equals(JavaType.J_L_SHORT) || target.type().equals(JavaType.J_L_INTEGER)) {
+                    PrimitiveType pt = ((ClassType) target.type()).unbox().get();
+                    target = convert(target, typeElementToType(pt));
+                }
+                Value expr = toValue(label.expr);
+                // conversion may be needed for primitive, e.g. label (byte) 1 and selector of type int
+                expr = convert(expr, typeElementToType(target.type()));
+                return append(JavaOp.eq(target, expr));
+            }
+        }
+
         private Body.Builder visitCaseLabel(JCTree tree, Value target, JCTree.JCCase c) {
             Body.Builder body;
             FunctionType caseLabelType = CoreType.functionType(JavaType.BOOLEAN, target.type());
@@ -1716,34 +1736,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 Value localTarget = stack.block.parameters().get(0);
                 final Value localResult;
-                BiFunction<Value, JCTree.JCConstantCaseLabel, Value> processConstantLabel = (lt, label) -> {
-                    if (lt.type().equals(JavaType.J_L_STRING)) {
-                        return append(JavaOp.invoke(
-                                MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                lt, toValue(label.expr)));
-                    } else {
-                        // target is primitive wrapper, primitive or enum
-                        // if target of type Character, Byte, Short or Integer, unbox it
-                        if (lt.type().equals(JavaType.J_L_CHARACTER) || lt.type().equals(JavaType.J_L_BYTE) ||
-                                lt.type().equals(JavaType.J_L_SHORT) || lt.type().equals(JavaType.J_L_INTEGER)) {
-                            PrimitiveType pt = ((ClassType) lt.type()).unbox().get();
-                            lt = convert(lt, typeElementToType(pt));
-                        }
-                        Value expr = toValue(label.expr);
-                        // conversion may be needed for primitive, e.g. label (byte) 1 and selector of type int
-                        expr = convert(expr, typeElementToType(lt.type()));
-                        return append(JavaOp.eq(lt, expr));
-                    }
-                };
                 if (c.labels.size() == 1) {
-                    localResult = processConstantLabel.apply(localTarget, ccl);
+                    localResult = processConstantLabel(localTarget, ccl);
                 } else {
                     List<Body.Builder> clBodies = new ArrayList<>();
                     for (JCTree.JCCaseLabel cl : c.labels) {
                         ccl = (JCTree.JCConstantCaseLabel) cl;
                         pushBody(ccl, CoreType.functionType(JavaType.BOOLEAN));
 
-                        final Value labelResult = processConstantLabel.apply(localTarget, ccl);
+                        final Value labelResult = processConstantLabel(localTarget, ccl);
 
                         append(CoreOp.core_yield(labelResult));
                         clBodies.add(stack.body);
