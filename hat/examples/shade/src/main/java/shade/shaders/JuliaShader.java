@@ -25,17 +25,21 @@
 package shade.shaders;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
+import hat.ComputeContext;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
 import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
-
-import java.io.IOException;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
+import shade.ShaderViewer;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.clamp;
@@ -46,7 +50,7 @@ import static hat.types.vec2.mul;
 import static hat.types.vec2.sub;
 import static hat.types.vec4.vec4;
 
-class JuliaShader implements Shader{
+public class JuliaShader {
 /*
 // The MIT License
 // Copyright © 2013 Inigo Quilez
@@ -136,14 +140,15 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
  */
 
-    float calc(Uniforms uniforms, vec2 p, float time ) {
+    @Reflect
+    public static float calc(vec2 fres , float ftime, vec2 p) {
         // non p dependent
-        float ltime = 0.5f-0.5f* F32.cos(time*0.06f);
+        float ltime = 0.5f-0.5f* F32.cos(ftime*0.06f);
         float zoom = F32.pow( 0.9f, 50.0f*ltime );
         vec2  cen = add(vec2.vec2( 0.2655f,0.301f ), zoom*0.8f*F32.cos(4.0f+2.0f*ltime));
 
         vec2 c = sub(vec2.vec2( -0.745f, 0.186f ) , 0.045f*zoom*(1.0f-ltime*0.5f));
-        vec2 fres  = vec2.vec2(uniforms.iResolution().x(), uniforms.iResolution().y());
+
 /*
    p = (2.0*p-iResolution.xy)/iResolution.y;
    vec2 z = cen + (p-cen)*zoom;
@@ -156,10 +161,13 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
         // full derivatives version
         vec2 dz = vec2.vec2( 1.0f, 0.0f );
-        for( int i=0; i<256; i++ ) {
+        int brk=0;
+        for( int i=0; brk==0 && i<256; i++ ) {
             dz = mul(2.0f,vec2.vec2(z.x()*dz.x()-z.y()*dz.y(), z.x()*dz.y() + z.y()*dz.x() ));
             z = add(vec2.vec2( z.x()*z.x() - z.y()*z.y(), 2.0f*z.x()*z.y() ), c);
-            if( dot(z,z)>200.0f ) break;
+            if( dot(z,z)>200.0f ){
+                brk=1;
+            }
         }
         float d = F32.sqrt( dot(z,z)/dot(dz,dz) )*F32.log(dot(z,z));
 
@@ -169,42 +177,58 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     }
 
 //    https://www.shadertoy.com/view/Mss3R8
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+  //  @Override
+  //  public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
 
-    final int AA = 2;
+
+    @Reflect public static vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
+
+        final int AA = 2;
         float scol = 0.0f;
         for( int j=0; j<AA; j++ )
             for( int i=0; i<AA; i++ ) {
                 vec2 of = add(-0.5f, div(vec2.vec2( (float)i, (float)j ),(float)AA));
                 var c = vec2.add(fragCoord,of);
-                scol += calc(uniforms, c, (float)uniforms.iTime() );
+                scol += calc(fres, ftime,c);
             }
         scol/=(float)AA*AA;
 
 
         vec3 vcol = vec3.pow( vec3.vec3(scol), vec3.vec3(0.9f,1.1f,1.4f) );
-        vec2 fres  = vec2.vec2(uniforms.iResolution().x(), uniforms.iResolution().y());
+
         vec2 uv = div(fragCoord,fres);//iResolution.xy;
-      //  vcol *= 0.7 + 0.3*pow(16.0*uv.x*uv.y*(1.0-uv.x)*(1.0-uv.y),0.25);
+        //  vcol *= 0.7 + 0.3*pow(16.0*uv.x*uv.y*(1.0-uv.x)*(1.0-uv.y),0.25);
         var p = F32.pow(16.0f*uv.x()*uv.y()*(1.0f-uv.x())*(1.0f-uv.y()),0.2f);
         vcol = vec3.mul(vcol,0.7f + 0.3f*p);
 
-
-        fragColor = vec4( vcol, 1.0f );
-        return fragColor;
+        return vec4( vcol, 1.0f );
     }
 
-    ;
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "512"))),
-            Integer.parseInt(System.getProperty("targetFps", "6")),
-            new JuliaShader()
-    );
+    @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+    }
 
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
+    }
+
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
+
+    public static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, JuliaShader.class,1024, 1024, true);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }

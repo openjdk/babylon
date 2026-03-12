@@ -119,6 +119,9 @@ public:
         return false;
     }
 
+    void shortDeviceInfo() override {
+        std::cout << "mock showMinInfo()" << std::endl;
+    }
 
     void showDeviceInfo() override {
         std::cout << "mock showDeviceInfo()" << std::endl;

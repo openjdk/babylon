@@ -33,10 +33,8 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.List;
 
-// @@@ there are more methods than we need for op evaluation
-// e.g. conversion from PT to boolean and from boolean to PT
-// these methods are used by interpreter
 public final class ArithmeticAndConvOpImpls {
     public static boolean eq(Object a, Object b) {
         return a == b;
@@ -848,7 +846,7 @@ public final class ArithmeticAndConvOpImpls {
         }
     }
 
-    public static Object evaluate(Op op, Object... evaluatedOperands) throws NonConstantExpression {
+    public static Object evaluate(Op op, List<Object> evaluatedOperands) throws NonConstantExpression {
         String mn = op.externalizeOpName();
         if (op instanceof JavaOp.ConvOp) {
             mn = mn + "_" + op.resultType();
@@ -865,7 +863,7 @@ public final class ArithmeticAndConvOpImpls {
     }
 
     @SuppressWarnings("serial")
-    public static class NonConstantExpression extends Exception {
+    public static class NonConstantExpression extends RuntimeException {
         public NonConstantExpression() {}
     }
 }

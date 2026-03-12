@@ -60,7 +60,6 @@ import optkl.codebuilders.CodeBuilder;
 import java.util.List;
 import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -367,8 +366,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
-        if (C99VecHandler.isVecType(scopedCodeBuilderContext().lookup(),javaType)){
-            C99VecHandler.handleType(self(),javaType);
+        if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(),javaType)){
+            C99VecAndMatHandler.handleType(self(),javaType);
         }else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
@@ -772,8 +771,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if (C99VecHandler.isVecInvoke( invoke)){ // hacked for vec op calls.
-            C99VecHandler.handleInvoke(self(),invoke);
+        if (C99VecAndMatHandler.isVecInvoke( invoke)){ // hacked for vec op calls.
+            C99VecAndMatHandler.handleInvoke(self(),invoke);
         }else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {

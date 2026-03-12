@@ -28,7 +28,7 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
-import hat.codebuilders.C99VecHandler;
+import hat.codebuilders.C99VecAndMatHandler;
 import hat.device.NonMappableIface;
 import hat.types.BF16;
 import hat.types.F16;
@@ -39,18 +39,14 @@ import hat.annotations.TypeDef;
 import hat.buffer.*;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.callgraph.KernelCallGraph;
-import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.device.DeviceSchema;
-import hat.dialect.HATMemoryVarOp;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BufferState;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
-import hat.phases.HATFinalDetector;
-import jdk.incubator.code.dialect.java.ClassType;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -59,7 +55,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
@@ -281,7 +276,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.entrypoint.funcOp());
 
             if (kernelCallGraph.state.usesVecTypes){
-                C99VecHandler.createVecFunctions(builder);
+                C99VecAndMatHandler.createVecFunctions(builder);
             }
             kernelCallGraph.getModuleOp().functionTable()
                     .forEach((_, funcOp) -> {
