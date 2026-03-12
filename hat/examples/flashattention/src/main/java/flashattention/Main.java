@@ -672,7 +672,6 @@ public class Main {
         return true;
     }
 
-    @Reflect
     static void main(String[] args) {
         IO.println("Example of Flash-Attention in HAT");
 
@@ -694,9 +693,9 @@ public class Main {
 
         // Configuration parameters
         final int sequenceLen = size;   // represent the number of tokens (or words)
-        final int headDim = 64;        // vector representation for a single token
-        final int blockM = 32;         // tile size
-        final int blockN = 32;         // tile size
+        final int headDim = 64;         // vector representation for a single token
+        final int blockM = 32;          // tile size
+        final int blockN = 32;          // tile size
         final float softmaxScale = (float) (1.0f / Math.sqrt(headDim));
 
         final int sharedMemorySize = blockM * headDim
