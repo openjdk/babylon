@@ -36,6 +36,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -105,19 +106,15 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ClassType typeDesc = (ClassType) o;
-
-        if (!type.equals(typeDesc.type)) return false;
-        return typeArguments.equals(typeDesc.typeArguments);
+        return o instanceof ClassType that &&
+                Objects.equals(enclosing, that.enclosing) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(typeArguments, that.typeArguments);
     }
 
     @Override
     public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + typeArguments.hashCode();
-        return result;
+        return Objects.hash(enclosing, type, typeArguments);
     }
 
     /**
