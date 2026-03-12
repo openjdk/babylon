@@ -1724,19 +1724,19 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 Value localTarget = stack.block.parameters().get(0);
                 final Value localResult;
                 BiFunction<Value, JCTree.JCConstantCaseLabel, Value> processConstantLabel = (lt, label) -> {
-                    // if local target of type Character, Byte, Short or Integer, unbox it
-                    if (lt.type().equals(JavaType.J_L_CHARACTER) || lt.type().equals(JavaType.J_L_BYTE) ||
-                            lt.type().equals(JavaType.J_L_SHORT) || lt.type().equals(JavaType.J_L_INTEGER)) {
-                        PrimitiveType pt = ((ClassType) lt.type()).unbox().get();
-                        lt = convert(lt, typeElementToType(pt));
-                    }
-                    Value expr = toValue(label.expr);
                     if (lt.type().equals(JavaType.J_L_STRING)) {
                         return append(JavaOp.invoke(
                                 MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                lt, expr));
+                                lt, toValue(label.expr)));
                     } else {
-                        // primitive or enum
+                        // target is primitive wrapper, primitive or enum
+                        // if target of type Character, Byte, Short or Integer, unbox it
+                        if (lt.type().equals(JavaType.J_L_CHARACTER) || lt.type().equals(JavaType.J_L_BYTE) ||
+                                lt.type().equals(JavaType.J_L_SHORT) || lt.type().equals(JavaType.J_L_INTEGER)) {
+                            PrimitiveType pt = ((ClassType) lt.type()).unbox().get();
+                            lt = convert(lt, typeElementToType(pt));
+                        }
+                        Value expr = toValue(label.expr);
                         // conversion may be needed for primitive, e.g. label (byte) 1 and selector of type int
                         expr = convert(expr, typeElementToType(lt.type()));
                         return append(JavaOp.eq(lt, expr));
