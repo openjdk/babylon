@@ -1683,20 +1683,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 pushBody(pcl, caseLabelType);
 
                 Value localTarget = stack.block.parameters().get(0);
-                Function<Value, Value> boxIfNeeded = (v) -> {
-                    if (v.type() instanceof PrimitiveType) {
-                        Type wrapperType = types.boxedClass(typeElementToType(v.type())).asType();
-                        v = convert(v, wrapperType);
-                    }
-                    return v;
-                };
                 final Value localResult;
                 if (c.guard != null) {
                     List<Body.Builder> clBodies = new ArrayList<>();
 
                     pushBody(pcl.pat, CoreType.functionType(JavaType.BOOLEAN));
 
-                    localTarget = boxIfNeeded.apply(localTarget);
+                    localTarget = boxIfNeeded(localTarget);
                     Value patVal = scanPattern(pcl.pat, localTarget);
                     append(CoreOp.core_yield(patVal));
                     clBodies.add(stack.body);
@@ -1709,7 +1702,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     localResult = append(JavaOp.conditionalAnd(clBodies));
                 } else {
-                    localTarget = boxIfNeeded.apply(localTarget);
+                    localTarget = boxIfNeeded(localTarget);
                     localResult = scanPattern(pcl.pat, localTarget);
                 }
                 // Yield the boolean result of the condition
