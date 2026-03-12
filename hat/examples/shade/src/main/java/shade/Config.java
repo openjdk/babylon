@@ -37,7 +37,7 @@ public class Config {
     private final int width;
     private final int height;
     private final String shaderName;
-    private final Shader shader;
+    private final Object shader;
 
 
     public Accelerator accelerator() {
@@ -54,7 +54,7 @@ public class Config {
     }
 
 
-    public Shader shader() {
+    public Object shader() {
         return shader;
     }
 
@@ -104,7 +104,7 @@ public class Config {
             int width,
             int height,
             String shaderName,
-            Shader shader,
+            Object shader,
             boolean showActualFps,
             boolean showShaderTimeUs,
             boolean showFrameNumber
@@ -163,7 +163,7 @@ public class Config {
             int width,
             int height,
             String shaderName,
-            Shader shader,
+            Object shader,
             boolean showActualFps,
             boolean showShaderTimeUs,
             boolean showFrameNumber) {
@@ -171,11 +171,11 @@ public class Config {
     }
 
 
-    public static Config of(Accelerator accelerator, int width, int height, String name, Shader shader) {
+    public static Config of(Accelerator accelerator, int width, int height, String name, Object shader) {
         return new Config(accelerator, width, height,  name, shader, false,  false, false);
     }
 
-    public static Config of(Accelerator accelerator, int width, int height,  Shader shader) {
+    public static Config of(Accelerator accelerator, int width, int height,  Object shader) {
         return new Config(accelerator, width, height,  shader.getClass().getSimpleName(), shader,
                 Boolean.parseBoolean(System.getProperty("showActualFps", "true")),
                 Boolean.parseBoolean(System.getProperty("showShaderTimeUs", "true")),
