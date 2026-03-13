@@ -72,11 +72,12 @@ public  class ShaderViewer {
     private int width;
     private int height;
     private boolean useHat;
+    private boolean showFps;
     private Class shaderClass;
     private Method mainImageMethod;
 
 
-    ShaderViewer(Accelerator acc, Class shaderClass, int width, int height, boolean useHat) {
+    ShaderViewer(Accelerator acc, Class shaderClass, int width, int height, boolean useHat, boolean showFps) {
         this.acc = acc;
         this.shaderClass = shaderClass;
         try {
@@ -89,6 +90,7 @@ public  class ShaderViewer {
         this.width = width;
         this.height = height;
         this.useHat = useHat;
+        this.showFps = showFps;
         this.view = new JComponent() {
         };
         this.view.setSize(width, height);
@@ -141,25 +143,25 @@ public  class ShaderViewer {
                         shader.update(uniforms, f32Array);
                     }else {
                         IntStream.range(0, width * height).parallel().forEach(idx -> {
-                            vec2 fragCoord = vec2.vec2((float) (idx % width), (float)  (idx / width));
-                            vec4 fragColor = null;
+                            vec2 fragCoord = vec2.vec2((float) (idx % width), (float)  (height -(idx / width)));
                             try {
-                                fragColor = (vec4) mainImageMethod.invoke(null,uniforms, vec4.vec4(1f), fragCoord);
-                            } catch (IllegalAccessException e) {
-                                throw new RuntimeException(e);
-                            } catch (InvocationTargetException e) {
+                                vec4 fragColor  = (vec4) mainImageMethod.invoke(null,uniforms, vec4.vec4(1f), fragCoord);
+                                f32Array.array(idx * 3, fragColor.x());
+                                f32Array.array(idx * 3 + 1, fragColor.y());
+                                f32Array.array(idx * 3 + 2, fragColor.z());
+                            } catch (IllegalAccessException | InvocationTargetException e) {
                                 throw new RuntimeException(e);
                             }
-                            f32Array.array(idx * 3, fragColor.x());
-                            f32Array.array(idx * 3 + 1, fragColor.y());
-                            f32Array.array(idx * 3 + 2, fragColor.z());
                         });
                     }
                     f32Array.copyTo(f32x3Arr);
                     uniforms.iFrame(uniforms.iFrame()+1);
                     long endNs = System.nanoTime();
-                //    System.out.println((endNs - startNs) / 1000000);
-
+                    long shaderMs = (endNs - startNs) / 1000000;
+                  //  System.out.println("Shader time ms= "+shaderMs);
+                    if (showFps) {
+                        System.out.println("Using HAT = "+useHat+" FPS = " + (1000f / shaderMs));
+                    }
                     Graphics2D volatileGraphics2D = volatileImage.createGraphics();
                     volatileGraphics2D.drawImage(buffer, 0, 0, null);
                     volatileGraphics2D.dispose();
@@ -176,8 +178,8 @@ public  class ShaderViewer {
         }).start();
     }
 
-    public static ShaderViewer of(Accelerator acc, Class<?> shaderClass, int width, int height, boolean useHat){
-        var shader =   new ShaderViewer(acc,shaderClass, width,height, useHat);
+    public static ShaderViewer of(Accelerator acc, Class<?> shaderClass, int width, int height){
+        var shader =   new ShaderViewer(acc,shaderClass, width,height, Boolean.getBoolean("useHAT"), Boolean.getBoolean("showFPS"));
         JFrame frame = new JFrame(shaderClass.getSimpleName());
         frame.setSize(shader.view.getWidth(),shader.view.getHeight());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

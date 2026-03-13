@@ -175,8 +175,7 @@ public class SpiralShader{
                     );// color
         }
     @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){
-        return createPixel(
-                vec2(uniforms.iResolution().x(), uniforms.iResolution().y()),  uniforms.iTime(),vec2(uniforms.iMouse().x(), uniforms.iMouse().y()), fragCoord);
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     @Reflect
@@ -200,7 +199,7 @@ public class SpiralShader{
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, SpiralShader.class,1024, 1024, true);
+        var shader = ShaderViewer.of(acc, SpiralShader.class,1024, 1024);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }
