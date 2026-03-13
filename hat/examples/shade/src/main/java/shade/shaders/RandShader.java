@@ -347,7 +347,7 @@ public class RandShader   {
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, RandShader.class,1024, 1024, false);
+        var shader = ShaderViewer.of(acc, RandShader.class,1024, 1024, true);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }

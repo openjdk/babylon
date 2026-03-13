@@ -63,7 +63,6 @@ import static hat.types.vec3.distance;
 import static hat.types.vec3.div;
 import static hat.types.vec3.dot;
 
-import static hat.types.vec3.neg;
 import static hat.types.vec3.max;
 import static hat.types.vec3.mix;
 import static hat.types.vec3.mul;
@@ -634,7 +633,7 @@ public class WavesShader  {
              */
             // calculate fresnel coefficient
             //  float fresnel = (0.04 + (1.0-0.04)*(pow(1.0 - max(0.0, dot(-N, ray)), 5.0)));
-            float fresnel = (0.04f + (1.0f - 0.04f) * (pow(1.0f - max(0.0f, dot(neg(N), ray)), 5.0f)));
+            float fresnel = (0.04f + (1.0f - 0.04f) * (pow(1.0f - max(0.0f, dot(mul(-1f,N), ray)), 5.0f)));
 
             // reflect the ray and make sure it bounces up
             /*
