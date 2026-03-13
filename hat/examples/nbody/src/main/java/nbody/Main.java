@@ -32,6 +32,7 @@ import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.F32Array;
 import hat.buffer.S32RGBAImage;
+
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
 
@@ -46,6 +47,11 @@ import java.awt.image.DataBufferInt;
 import java.awt.image.WritableRaster;
 import java.lang.invoke.MethodHandles;
 import java.util.stream.IntStream;
+
+import  hat.types.vec3;
+import static hat.types.vec3.*;
+import hat.types.F32;
+import static hat.types.F32.*;
 
 public class Main extends JFrame implements Runnable {
     public enum Mode {HAT, JavaMt, JavaSeq}
@@ -126,7 +132,7 @@ public class Main extends JFrame implements Runnable {
     }
 
     @Reflect
-    public static void run(int bodyIdx, int bodies, @MappableIface.RW F32Array xyzPos, @MappableIface.RW F32Array xyzVel, @MappableIface.RW S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
+    public static void runSansVec(int bodyIdx, int bodies, @MappableIface.RW F32Array xyzPos, @MappableIface.RW F32Array xyzVel, @MappableIface.RW S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
         final int FAR = 500;
         final int MID = 300;
         final int NEAR = 100;
@@ -169,6 +175,61 @@ public class Main extends JFrame implements Runnable {
         int x = (int) fx;
         int y = (int) fy;
         int z = (int) fz;
+        if (x > 1 && x < imageWidth - 2 && y > 1 && y < imageWidth - 2) {
+            // Calculate brightness based on depth (Z)
+            int brightness = (255 - (z / imageWidth * 255));
+            int color = (brightness << 16) | (brightness << 8) | brightness;
+            int pos = ((y * imageWidth) + x);
+            image.data(pos, color);
+            if (z < FAR) {
+                image.data(pos + 1, color);
+                image.data(pos - 1, color);
+                image.data(pos + imageWidth, color);
+                image.data(pos - imageWidth, color);
+                if (z < MID) {
+                    image.data(pos + imageWidth + 1, color);
+                    image.data(pos + imageWidth - 1, color);
+                    image.data(pos - imageWidth + 1, color);
+                    image.data(pos - imageWidth - 1, color);
+                    if (z < NEAR) {
+                        image.data(pos + imageWidth * 2 + 2, color);
+                        image.data(pos + imageWidth * 2 - 2, color);
+                        image.data(pos - imageWidth * 2 + 2, color);
+                        image.data(pos - imageWidth * 2 - 2, color);
+                    }
+                }
+            }
+        }
+    }
+
+    @Reflect
+    public static void run(int bodyIdx, int bodies, @MappableIface.RW F32Array xyzPos, @MappableIface.RW F32Array xyzVel, @MappableIface.RW S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
+        final int FAR = 500;
+        final int MID = 300;
+        final int NEAR = 100;
+        var acc = vec3(0f);
+        var idx = bodyIdx * 4;
+        var myPos = vec3(xyzPos.array(idx),xyzPos.array(idx+1),xyzPos.array(idx+2));
+        var myVel = vec3(xyzVel.array(idx),xyzVel.array(idx+1),xyzVel.array(idx+2));
+        for (int i = 0; i < bodies*4; i+=4) {
+            var delta = sub(vec3(xyzPos.array(i),xyzPos.array(i+1),xyzPos.array(i+2)),myPos);
+            float invDist = inversesqrt(dot(delta,delta)+espSqr);
+            acc = vec3.add(acc,mul(delta,pow(invDist,3f)*mass));
+        }
+        acc = mul(acc,delT);
+        var f = vec3.add(myPos,mul(vec3.add(myVel,mul(acc,.5f)),delT));
+
+        xyzPos.array(idx, f.x());
+        xyzPos.array(idx+1, f.y());
+        xyzPos.array(idx+2, f.z());
+
+        xyzVel.array(idx, myVel.x() + acc.x());
+        xyzVel.array(idx+1, myVel.y() + acc.y());
+        xyzVel.array(idx+2, myVel.z() + acc.z());
+
+        int x = (int) f.x();
+        int y = (int) f.y();
+        int z = (int) f.z();
         if (x > 1 && x < imageWidth - 2 && y > 1 && y < imageWidth - 2) {
             // Calculate brightness based on depth (Z)
             int brightness = (255 - (z / imageWidth * 255));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,14 +37,11 @@ import optkl.util.ops.VarLikeOp;
 import java.util.List;
 import java.util.Map;
 
-
-public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp
-        permits HATF16Op.HATF16BinaryOp, HATF16Op.HATF16ConvOp, HATF16Op.HATF16ToFloatConvOp, HATF16Op.HATF16VarLoadOp, HATF16Op.HATF16VarOp {
-
+public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
 
     private String varName;
 
-    public HATF16Op(String varName, List<Value> operands) {
+    protected HATF16Op(String varName, List<Value> operands) {
         super(operands);
         this.varName = varName;
     }
@@ -221,33 +218,26 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp
 
     }
 
-    public abstract sealed static class HATF16BinaryOp extends HATF16Op
-            permits HATF16BinaryOp.HATF16AddOp, hat.dialect.HATF16Op.HATF16BinaryOp.HATF16DivOp, hat.dialect.HATF16Op.HATF16BinaryOp.HATF16MulOp, hat.dialect.HATF16Op.HATF16BinaryOp.HATF16SubOp {
+    public abstract static sealed class HATF16BinaryOp extends HATF16Op {
 
         protected final TypeElement elementType;
         protected final BinaryOpEnum operationType;
-        protected final List<Boolean> references;
         private final ReducedFloatType reducedFloatType;
-        protected final byte byteFloatRepresentation;
 
         public static final byte FIRST_OP = 0x01;
         public static final byte LAST_OP = 0x10;
 
-        public HATF16BinaryOp(TypeElement typeElement, ReducedFloatType reducedFloatType, BinaryOpEnum operationType, List<Boolean> references, byte byteFloatRepresentation, List<Value> operands) {
+        protected HATF16BinaryOp(TypeElement typeElement, ReducedFloatType reducedFloatType, BinaryOpEnum operationType, List<Value> operands) {
             super("", operands);
             this.elementType = typeElement;
             this.operationType = operationType;
-            this.references = references;
-            this.byteFloatRepresentation = byteFloatRepresentation;
             this.reducedFloatType = reducedFloatType;
         }
 
-        public HATF16BinaryOp(HATF16BinaryOp op, CodeContext copyContext) {
+        protected HATF16BinaryOp(HATF16BinaryOp op, CodeContext copyContext) {
             super(op, copyContext);
             this.elementType = op.elementType;
             this.operationType = op.operationType;
-            this.references = op.references;
-            this.byteFloatRepresentation = op.byteFloatRepresentation;
             this.reducedFloatType = op.reducedFloatType;
         }
 
@@ -265,22 +255,14 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp
             return operationType;
         }
 
-        public List<Boolean> references() {
-            return references;
-        }
-
-        public byte getByteFloatRepresentation() {
-            return byteFloatRepresentation;
-        }
-
         public ReducedFloatType reducedFloatType() {
             return reducedFloatType;
         }
 
         public static final class HATF16AddOp extends HATF16BinaryOp implements Precedence.Additive {
 
-            public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.ADD, references, f32, operands);
+            public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
+                super(typeElement, reducedFloatType, BinaryOpEnum.ADD, operands);
             }
 
             public HATF16AddOp(HATF16AddOp op, CodeContext copyContext) {
@@ -295,8 +277,8 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp
 
         public static final class HATF16DivOp extends HATF16BinaryOp implements Precedence.Multiplicative {
 
-            public HATF16DivOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.DIV, references, f32, operands);
+            public HATF16DivOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
+                super(typeElement, reducedFloatType, BinaryOpEnum.DIV, operands);
             }
 
             public HATF16DivOp(HATF16DivOp op, CodeContext copyContext) {
@@ -311,8 +293,8 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp
 
         public static final class HATF16MulOp extends HATF16BinaryOp implements Precedence.Multiplicative {
 
-            public HATF16MulOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.MUL, references, f32, operands);
+            public HATF16MulOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
+                super(typeElement, reducedFloatType, BinaryOpEnum.MUL, operands);
             }
 
             public HATF16MulOp(HATF16MulOp op, CodeContext copyContext) {
@@ -327,8 +309,8 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp
 
         public static final class HATF16SubOp extends HATF16BinaryOp implements Precedence.Additive {
 
-            public HATF16SubOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Boolean> references, byte f32, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.SUB, references, f32, operands);
+            public HATF16SubOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
+                super(typeElement, reducedFloatType, BinaryOpEnum.SUB, operands);
             }
 
             public HATF16SubOp(HATF16SubOp op, CodeContext copyContext) {

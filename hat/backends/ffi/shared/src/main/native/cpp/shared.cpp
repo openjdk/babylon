@@ -102,7 +102,7 @@ void Sled::show(std::ostream &out, void *argArray) {
 
 
 extern "C" void showDeviceInfo(long backendHandle) {
-        std::cout << "DEBUGGGGGGG through backendHandle to backend.showDeviceInfo()" << std::endl;
+        std::cout << "DEBUG through backendHandle to backend.showDeviceInfo()" << std::endl;
     if (INFO) {
         std::cout << "trampolining through backendHandle to backend.showDeviceInfo()" << std::endl;
     }
@@ -403,7 +403,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
             }
 
             auto *buffer = static_cast<Buffer *>(bufferState->vendorPtr);
-            if (kernelWroteToThisArg && compilationUnit->backend->config->alwaysCopy) {
+            if (kernelWroteToThisArg || compilationUnit->backend->config->alwaysCopy) {
                 compilationUnit->backend->queue->copyFromDevice(buffer);
                 bufferState->state = BufferState::HOST_OWNED;
                 if (compilationUnit->backend->config->traceCopies || compilationUnit->backend->config->traceEnqueues) {

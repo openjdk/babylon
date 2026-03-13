@@ -59,18 +59,5 @@ public interface F32 {
     static float max(float lhs, float rhs){ return Math.max(lhs,rhs);}
     // watch out ! Shader version is min,max, value!!
     static float clamp(float value,float min, float max){return Math.clamp(value,min,max);}
-    static float  mul(float lhs, float rhs) {
-        return lhs*rhs;
-    }
-    static float  add(float lhs, float rhs) {
-        return lhs+rhs;
-    }
-    static float  sub(float lhs, float rhs) {
-        return lhs-rhs;
-    }
-    static float  div(float lhs, float rhs) {
-        return lhs/rhs;
-    }
-    static float neg(float f) {return -f;}
     static float round(float f) {return Math.round(f);}
 }

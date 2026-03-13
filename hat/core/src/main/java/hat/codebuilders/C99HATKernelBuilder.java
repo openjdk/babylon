@@ -60,7 +60,6 @@ import optkl.codebuilders.CodeBuilder;
 import java.util.List;
 import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -367,8 +366,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
-        if (C99VecHandler.isVecType(scopedCodeBuilderContext().lookup(),javaType)){
-            C99VecHandler.handleType(self(),javaType);
+        if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(),javaType)){
+            C99VecAndMatHandler.handleType(self(),javaType);
         }else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
@@ -459,7 +458,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
     }
 
-    private boolean isMixedFirstOperand(byte f32Mixed) {
+    protected boolean isMixedFirstOperand(byte f32Mixed) {
         return f32Mixed != 0 && f32Mixed != HATF16Op.HATF16BinaryOp.FIRST_OP;
     }
 
@@ -478,7 +477,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String VALUE = "value";
 
     private final T binaryOperationsForBfloat16( HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
-        byte f32Mixed = hatf16BinaryOp.getByteFloatRepresentation();
+
+        boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatf16BinaryOp.operands().get(0));
+        boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatf16BinaryOp.operands().get(1));
+        final byte f32Mixed;
+        if (!isFirstOperandReference && HATPhaseUtils.isOperandF32(hatf16BinaryOp.operands().get(0))) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
+        } else if (!isSecondOperandReference && HATPhaseUtils.isOperandF32(hatf16BinaryOp.operands().get(1))) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
+        } else {
+            f32Mixed = 0x00;
+        }
+
         paren(_-> bf16Type());
         brace(_-> {
             paren(_-> {
@@ -489,8 +499,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 }
                 recurse( OpHelper.asResultOrThrow(hatf16BinaryOp.operands().getFirst()).op());
 
-                List<Boolean> references = hatf16BinaryOp.references();
-                if (references.getFirst()) {
+                if (isFirstOperandReference) {
                     rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
                     dot().id(VALUE);
@@ -506,7 +515,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 }
 
                 recurse(OpHelper.asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
-                if (references.get(1)) {
+                if (isSecondOperandReference) {
                     rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
                     dot().id(VALUE);
@@ -531,7 +540,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return brace(_->
             paren(_-> {
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
-                if (hatF16BinaryOp.references().getFirst()) {
+                boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatF16BinaryOp.operands().get(0));
+                boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatF16BinaryOp.operands().get(1));
+                if (isFirstOperandReference) {
                     rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
                     dot().id(VALUE);
@@ -540,7 +551,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 }
                 sp().id(hatF16BinaryOp.binaryOperationType().symbol()).sp();
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
-                if (hatF16BinaryOp.references().get(1)) {
+                if (isSecondOperandReference) {
                     rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
                     dot().id(VALUE);
@@ -760,8 +771,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if (C99VecHandler.isVecInvoke( invoke)){ // hacked for vec op calls.
-            C99VecHandler.handleInvoke(self(),invoke);
+        if (C99VecAndMatHandler.isVecInvoke( invoke)){ // hacked for vec op calls.
+            C99VecAndMatHandler.handleInvoke(self(),invoke);
         }else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {

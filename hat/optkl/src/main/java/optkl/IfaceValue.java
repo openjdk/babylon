@@ -117,6 +117,13 @@ public interface IfaceValue {
                 }
                 return new Impl(typeElement, rows,cols);
             }
+            default  List<String> rowColNames(){
+                return switch (cols()){
+                    case 2 -> List.of("_00","_01","_10","_11");
+                    case 3 -> List.of("_00","_01","_02","_10","_11","_12","_20","_21","_22");
+                          default -> throw new RuntimeException("We only support 2x2 and 3x3 matrices");
+                };
+            }
         }
     }
 

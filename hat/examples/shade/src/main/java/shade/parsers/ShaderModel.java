@@ -148,7 +148,7 @@ public class ShaderModel extends TextModel {
     // Example usage
     public static void main(String[] args) {
         ShaderModel shaderModel = new ShaderModel();
-        shaderModel.parse(WavesShader.glslSource);
+        shaderModel.parse("");
         shaderModel.replace((lhs, rhs) -> Char.isA(lhs, $ -> $.is("#")) && Seq.isA(rhs, $ -> $.is("define")), HashDefine::new);
 
         shaderModel.replace(t -> Seq.isA(t, $ -> $.matches(FloatConst.regex)), FloatConst::new);  // "[0-9][0-9]*" ->FloatConst

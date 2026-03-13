@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(opencl_backend)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (MOCK_BACKEND "${CMAKE_SOURCE_DIR}")

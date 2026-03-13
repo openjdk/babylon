@@ -554,6 +554,8 @@ public:
 
     virtual Buffer *getOrCreateBuffer(BufferState *bufferState) = 0;
 
+    virtual void shortDeviceInfo() = 0;
+
     virtual void showDeviceInfo() = 0;
 
     virtual void computeStart() = 0;

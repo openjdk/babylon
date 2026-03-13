@@ -48,8 +48,6 @@ public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolved
         this.lookup = lookup;
     }
 
-
-
     public CoreOp.FuncOp lazyLower(){
         if (lowered == null) {
             lowered =funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
@@ -71,5 +69,4 @@ public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolved
             throw new RuntimeException(e);
         }
     }
-
 }

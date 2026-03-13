@@ -87,8 +87,8 @@ public final class WildcardType implements JavaType {
     public boolean equals(Object o) {
         if (this == o) return true;
         return o instanceof WildcardType that &&
-                kind.equals(that.kind) &&
-                boundType.equals(that.boundType);
+                Objects.equals(kind, that.kind) &&
+                Objects.equals(boundType, that.boundType);
     }
 
     @Override

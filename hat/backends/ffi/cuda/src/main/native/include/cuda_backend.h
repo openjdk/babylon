@@ -173,6 +173,7 @@ private:
     CUdevice device;
     CUcontext context;
 public:
+    void shortDeviceInfo() override;
     void showDeviceInfo() override;
     CudaModule * compile(const CudaSource *cudaSource);
     CudaModule * compile(const CudaSource &cudaSource);

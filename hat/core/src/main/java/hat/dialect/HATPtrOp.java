@@ -35,12 +35,29 @@ import java.util.Map;
 public abstract sealed class HATPtrOp extends HATOp
         permits HATPtrOp.HATPtrLengthOp, HATPtrOp.HATPtrLoadOp, HATPtrOp.HATPtrStoreOp {
 
-    private final TypeElement resultType;
-    private final Class<?> bufferClass;
-    private final List<String> strides;
-    private final String name;
+    private TypeElement resultType;
+    private List<String> strides;
+    private String name;
 
     private static final String NAME = "HATPtrOp";
+
+    public HATPtrOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        this(operands);
+        this.resultType = resultType;
+        this.strides = getFieldsOfBuffer(bufferClass);
+        this.name = name;
+    }
+
+    public HATPtrOp(List<Value> operands) {
+        super(operands);
+    }
+
+    public HATPtrOp(HATPtrOp op, CodeContext copyContext) {
+        super(op, copyContext);
+        this.resultType = op.resultType;
+        this.strides = op.strides;
+        this.name = op.name;
+    }
 
     public static List<String> getFieldsOfBuffer(Class<?> clazz) {
         List<String> retValue = List.of();
@@ -59,21 +76,6 @@ public abstract sealed class HATPtrOp extends HATOp
             }
         }
         return retValue;
-    }
-    public HATPtrOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
-        super(operands);
-        this.resultType = resultType;
-        this.bufferClass = bufferClass;
-        this.strides = getFieldsOfBuffer(bufferClass);
-        this.name = name;
-    }
-
-    public HATPtrOp(HATPtrOp op, CodeContext copyContext) {
-        super(op, copyContext);
-        this.resultType = op.resultType;
-        this.bufferClass = op.bufferClass;
-        this.strides = op.strides;
-        this.name = op.name;
     }
 
     @Override
@@ -102,6 +104,10 @@ public abstract sealed class HATPtrOp extends HATOp
             super(name, resultType, bufferClass, operands);
         }
 
+        public HATPtrStoreOp(List<Value> operands) {
+            super(operands);
+        }
+
         public HATPtrStoreOp(HATPtrStoreOp op, CodeContext copyContext) {
             super(op, copyContext);
         }
@@ -126,6 +132,10 @@ public abstract sealed class HATPtrOp extends HATOp
             super(name, resultType, bufferClass, operands);
         }
 
+        public HATPtrLoadOp(List<Value> operands) {
+            super(operands);
+        }
+
         public HATPtrLoadOp(HATPtrLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
         }
@@ -147,6 +157,10 @@ public abstract sealed class HATPtrOp extends HATOp
 
         public HATPtrLengthOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
+        }
+
+        public HATPtrLengthOp(List<Value> operands) {
+            super(operands);
         }
 
         public HATPtrLengthOp(HATPtrLengthOp op, CodeContext copyContext) {

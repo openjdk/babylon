@@ -25,17 +25,20 @@
 package shade.shaders;
 
 import hat.Accelerator;
+import hat.ComputeContext;
+import hat.Accelerator.Compute;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.F32;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 import hat.buffer.Uniforms;
-
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.PI;
@@ -47,6 +50,8 @@ import static hat.types.F32.pow;
 import static hat.types.F32.sin;
 
 import  hat.types.mat3;
+import shade.ShaderViewer;
+
 import static hat.types.mat3.mat3;
 import static hat.types.vec2.div;
 import static hat.types.vec2.dot;
@@ -61,137 +66,27 @@ import static hat.types.vec3.vec3;
 import static hat.types.vec4.normalize;
 import static hat.types.vec4.vec4;
 // https://www.shadertoy.com/view/ldfGWn
-public class Truchet2Shader implements Shader {
-    static String glslSource = """
-            float rand(vec3 r) { return fract(sin(dot(r.xy,vec2(1.38984*sin(r.z),1.13233*cos(r.z))))*653758.5453); }
+public class Truchet2Shader  {
 
-               #define Iterations 64
-               #define Thickness 0.1
-               #define SuperQuadPower 8.0
-               #define Fisheye 0.5
-
-               float truchetarc(vec3 pos)
-               {
-                  float r=length(pos.xy);
-               //   return max(abs(r-0.5),abs(pos.z-0.5))-Thickness;
-               //   return length(vec2(r-0.5,pos.z-0.5))-Thickness;
-                  return pow(pow(abs(r-0.5),SuperQuadPower)+pow(abs(pos.z-0.5),SuperQuadPower),1.0/SuperQuadPower)-Thickness;
-               }
-
-               float truchetcell(vec3 pos)
-               {
-                  return min(min(
-                  truchetarc(pos),
-                  truchetarc(vec3(pos.z,1.0-pos.x,pos.y))),
-                  truchetarc(vec3(1.0-pos.y,1.0-pos.z,pos.x)));
-               }
-
-               float distfunc(vec3 pos)
-               {
-                  vec3 cellpos=fract(pos);
-                  vec3 gridpos=floor(pos);
-
-                  float rnd=rand(gridpos);
-
-                  if(rnd<1.0/8.0) return truchetcell(vec3(cellpos.x,cellpos.y,cellpos.z));
-                  else if(rnd<2.0/8.0) return truchetcell(vec3(cellpos.x,1.0-cellpos.y,cellpos.z));
-                  else if(rnd<3.0/8.0) return truchetcell(vec3(1.0-cellpos.x,cellpos.y,cellpos.z));
-                  else if(rnd<4.0/8.0) return truchetcell(vec3(1.0-cellpos.x,1.0-cellpos.y,cellpos.z));
-                  else if(rnd<5.0/8.0) return truchetcell(vec3(cellpos.y,cellpos.x,1.0-cellpos.z));
-                  else if(rnd<6.0/8.0) return truchetcell(vec3(cellpos.y,1.0-cellpos.x,1.0-cellpos.z));
-                  else if(rnd<7.0/8.0) return truchetcell(vec3(1.0-cellpos.y,cellpos.x,1.0-cellpos.z));
-                  else  return truchetcell(vec3(1.0-cellpos.y,1.0-cellpos.x,1.0-cellpos.z));
-               }
-
-               vec3 gradient(vec3 pos)
-               {
-                  const float eps=0.0001;
-                  float mid=distfunc(pos);
-                  return vec3(
-                  distfunc(pos+vec3(eps,0.0,0.0))-mid,
-                  distfunc(pos+vec3(0.0,eps,0.0))-mid,
-                  distfunc(pos+vec3(0.0,0.0,eps))-mid);
-               }
-
-               void mainVR( out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 fragRayDir )
-               {
-                   vec3 ray_dir=fragRayDir;
-                  vec3 ray_pos=fragRayOri;
-
-                  float i=float(Iterations);
-                  for(int j=0;j<Iterations;j++)
-                  {
-                     float dist=distfunc(ray_pos);
-                     ray_pos+=dist*ray_dir;
-
-                     if(abs(dist)<0.001) { i=float(j); break; }
-                  }
-
-                  vec3 normal=normalize(gradient(ray_pos));
-
-                  float ao=1.0-i/float(Iterations);
-                  float what=pow(max(0.0,dot(normal,-ray_dir)),2.0);
-                  float light=ao*what*1.4;
-
-                  float z=ray_pos.z/2.0;
-               //   vec3 col=(sin(vec3(z,z+pi/3.0,z+pi*2.0/3.0))+2.0)/3.0;
-                  vec3 col=(cos(ray_pos/2.0)+2.0)/3.0;
-
-                  vec3 reflected=reflect(ray_dir,normal);
-                  vec3 env=texture(iChannel0,reflected*reflected*reflected).xyz;
-
-                  fragColor=vec4(col*light+0.1*env,1.0);
-               }
-
-               void mainImage( out vec4 fragColor, in vec2 fragCoord )
-               {
-                  const float pi=3.141592;
-
-                  vec2 coords=(2.0*fragCoord.xy-iResolution.xy)/length(iResolution.xy);
-
-                  float a=iTime/3.0;
-                  mat3 m=mat3(
-                  0.0,1.0,0.0,
-                  -sin(a),0.0,cos(a),
-                  cos(a),0.0,sin(a));
-                  m*=m;
-                  m*=m;
-
-               //   vec3 ray_dir=m*normalize(vec3(1.4*coords,-1.0+Fisheye*(coords.x*coords.x+coords.y*coords.y)));
-                  vec3 ray_dir=m*normalize(vec3(2.0*coords,-1.0+dot(coords,coords)));
-
-
-                  float t=iTime/3.0;
-                  vec3 ray_pos=vec3(
-                   2.0*(sin(t+sin(2.0*t)/2.0)/2.0+0.5),
-                   2.0*(sin(t-sin(2.0*t)/2.0-pi/2.0)/2.0+0.5),
-                   2.0*((-2.0*(t-sin(4.0*t)/4.0)/pi)+0.5+0.5));
-
-                   mainVR(fragColor,fragCoord,ray_pos,ray_dir);
-
-                     float vignette=pow(1.0-length(coords),0.3);
-                  fragColor.xyz*=vec3(vignette);
-               }
-
-            """;
       static final int  Iterations=64;
       static final float Thickness=0.1f;
     static final float  SuperQuadPower=8f;
     static final float   Fisheye =5f;
-    float rand(vec3 r) { return fract(sin(dot(vec2(r.x(),r.y()),vec2(1.38984f*sin(r.z()),1.13233f*cos(r.z()))))*653758.5453f); }
-    float truchetarc(vec3 pos) {
+    @Reflect
+    public static  float rand(vec3 r) { return fract(sin(dot(vec2(r.x(),r.y()),vec2(1.38984f*sin(r.z()),1.13233f*cos(r.z()))))*653758.5453f); }
+    @Reflect public static    float truchetarc(vec3 pos) {
         float r=length(vec2(pos.x(), pos.y()));
         return pow(pow(abs(r-.5f),SuperQuadPower)+pow(abs(pos.z()-0.5f),SuperQuadPower),1.0f/SuperQuadPower)-Thickness;
     }
 
-    float truchetcell(vec3 pos) {
+    @Reflect public static   float truchetcell(vec3 pos) {
         return min(min(
                         truchetarc(pos),
                         truchetarc(vec3(pos.z(),1.0f-pos.x(),pos.y()))),
                 truchetarc(vec3(1.0f-pos.y(),1.0f-pos.z(),pos.x())));
     }
 
-    float distfunc(vec3 pos) {
+    @Reflect public static  float distfunc(vec3 pos) {
         vec3 cellpos=vec3.fract(pos);
         vec3 gridpos=vec3.floor(pos);
 
@@ -207,7 +102,7 @@ public class Truchet2Shader implements Shader {
         else  return truchetcell(vec3(1.0f-cellpos.y(),1.0f-cellpos.x(),1.0f-cellpos.z()));
     }
 
-    vec3 gradient(vec3 pos) {
+    @Reflect public static vec3 gradient(vec3 pos) {
                    float eps=0.0001f;
         float mid=distfunc(pos);
         return vec3(
@@ -216,7 +111,7 @@ public class Truchet2Shader implements Shader {
                 distfunc(add(pos,vec3(0.0f,0.0f,eps)))-mid);
     }
 
-    vec4 mainVR( vec4 fragColor,  vec2 fragCoord,  vec3 fragRayOri,  vec3 fragRayDir )
+    @Reflect public static vec4 mainVR( vec4 fragColor,  vec2 fragCoord,  vec3 fragRayOri,  vec3 fragRayDir )
     {
         vec3 ray_dir=fragRayDir;
         vec3 ray_pos=fragRayOri;
@@ -233,7 +128,7 @@ public class Truchet2Shader implements Shader {
 
         float ao=1.0f-i/(float)Iterations;
      //  float what=pow(max(0.0,dot(normal,-ray_dir)),2.0);
-        var term = vec3.dot(normal,neg(ray_dir));
+        var term = vec3.dot(normal,mul(-1f,ray_dir));
         float what=F32.pow(F32.max(0.0f,term),2.0f);
         float light=ao*what*1.4f;
 
@@ -251,15 +146,11 @@ public class Truchet2Shader implements Shader {
 
         return normalize(vec4(add(mul(col,light),mul(0.1f,env)),1.0f));
     }
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
-        vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
-        //    vec2 coords=(2.0*fragCoord.xy-iResolution.xy)/length(iResolution.xy);
-        //  //    vec2 coords=(2FragCoord-fres)/length(fres);
-        //vec2 coords=vec2.div(vec2.sub(vec2.mul(2.0f,fragCoord),fres)),length(fres));
+
+    @Reflect public static vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord){
         var twoFragCoord = mul(2f,fragCoord);
         vec2 coords = div(sub(twoFragCoord,fres),length(fres));
-        float a=uniforms.iTime()/3.0f;
+        float a=ftime/3.0f;
         mat3 m=mat3(
                 0.0f,1.0f,0.0f,
                 -sin(a),0.0f,cos(a),
@@ -277,13 +168,15 @@ public class Truchet2Shader implements Shader {
         vec3 ray_dir=vec3.mul(n,m);
 
 
-        float t=uniforms.iTime()/3.0f;
+        float t=ftime/3.0f;
         vec3 ray_pos=vec3(
                 2.0f*(sin(t+sin(2.0f*t)/2.0f)/2.0f+0.5f),
                 2.0f*(sin(t-sin(2.0f*t)/2.0f-PI/2.0f)/2.0f+0.5f),
                 2.0f*((-2.0f*(t-sin(4.0f*t)/4.0f)/PI)+0.5f+0.5f));
 
-        fragColor = mainVR(fragColor,fragCoord,ray_pos,ray_dir);
+        var fragColor = vec4.vec4(1f);
+
+         fragColor = mainVR(fragColor,fragCoord,ray_pos,ray_dir);
 
         float vignette=pow(1.0f-length(coords),0.3f);
 
@@ -291,17 +184,31 @@ public class Truchet2Shader implements Shader {
 
         return normalize(fragColor);
     }
+    @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()), uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
+    }
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
+    }
 
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "260"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "260"))),
-            Integer.parseInt(System.getProperty("targetFps", "4")),
-            new Truchet2Shader()
-    );
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
 
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    private static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, Truchet2Shader.class,1024, 1024, true);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 
 }

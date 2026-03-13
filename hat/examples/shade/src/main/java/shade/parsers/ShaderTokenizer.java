@@ -317,7 +317,7 @@ public class ShaderTokenizer {
     // Example usage
     public static void main(String[] args) {
 
-        List<Token> tokens = tokenize(WavesShader.glslSource);
+        List<Token> tokens = tokenize("");
         var ansi = ANSI.of(System.out);
 
         tokens.forEach(token -> {

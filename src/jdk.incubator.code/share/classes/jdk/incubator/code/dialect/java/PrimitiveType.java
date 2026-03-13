@@ -32,6 +32,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Type;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -63,11 +64,8 @@ public final class PrimitiveType implements JavaType {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PrimitiveType typeDesc = (PrimitiveType) o;
-
-        return type.equals(typeDesc.type);
+        return o instanceof PrimitiveType that &&
+                Objects.equals(type, that.type);
     }
 
     @Override

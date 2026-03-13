@@ -29,6 +29,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
+import java.util.Objects;
 
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
@@ -92,7 +93,7 @@ public final class ArrayType implements JavaType {
     public boolean equals(Object o) {
         if (this == o) return true;
         return o instanceof ArrayType that &&
-                componentType.equals(that.componentType);
+                Objects.equals(componentType, that.componentType);
     }
 
     @Override

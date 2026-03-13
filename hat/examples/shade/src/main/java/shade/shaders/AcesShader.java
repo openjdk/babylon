@@ -26,17 +26,22 @@
 package shade.shaders;
 
 import hat.Accelerator;
+import hat.ComputeContext;
+import hat.Accelerator.Compute;
+import hat.ComputeContext.Kernel;
+import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.types.mat3;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
-import shade.Config;
-import shade.Shader;
-import shade.ShaderApp;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 import hat.buffer.Uniforms;
+import shade.ShaderViewer;
 
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 import static hat.types.F32.PI;
@@ -92,8 +97,9 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
  */
 
 // https://www.shadertoy.com/view/XsGfWV
-public class AcesShader implements Shader {
-    static vec3 aces_tonemap(vec3 color) {
+public class AcesShader  {
+    @Reflect
+    public static vec3 aces_tonemap(vec3 color) {
         mat3 m1 = mat3(
                 0.59719f, 0.07600f, 0.02840f,
                 0.35458f, 0.90834f, 0.13383f,
@@ -110,8 +116,7 @@ public class AcesShader implements Shader {
         return clamp(pow(mul(div(a, b), m2), 1.0f / 2.2f), 0f, 1f);
     }
 
-    @Override
-    public vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
+    @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         vec2 fres = vec2(uniforms.iResolution().x(),uniforms.iResolution().y());
         vec2 position = sub(mul(div(fragCoord, fres), 2f), 1);
         //fragCoord.div(vec2(uniforms.iResolution())).mul(2f).sub(1f); //fragCoord/iResolution.xy)* 2.0 - 1.0;
@@ -129,15 +134,28 @@ public class AcesShader implements Shader {
         return fragColor;
     }
 
-    static Config controls = Config.of(
-            Boolean.getBoolean("hat") ? new Accelerator(MethodHandles.lookup(), Backend.FIRST) : null,
-            Integer.parseInt(System.getProperty("width", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("height", System.getProperty("size", "1024"))),
-            Integer.parseInt(System.getProperty("targetFps", "30")),
-            new AcesShader()
-    );
 
-    static void main(String[] args) throws IOException {
-        new ShaderApp(controls);
+    @Reflect
+    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+        int width = (int) uniforms.iResolution().x();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        f32Array.array(kc.gix * 3, fragColor.x());
+        f32Array.array(kc.gix * 3+1, fragColor.y());
+        f32Array.array(kc.gix * 3+2, fragColor.z());
+    }
+
+    @Reflect
+    static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
+        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+    }
+
+    public static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {
+        acc.compute((@Reflect Compute) cc -> compute(cc, uniforms, f32Array, width, height));
+    }
+
+    static void main(String[] args) {
+        var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var shader = ShaderViewer.of(acc, AcesShader.class,1024, 1024, false);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }

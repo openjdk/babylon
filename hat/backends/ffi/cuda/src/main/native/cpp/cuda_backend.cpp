@@ -27,6 +27,8 @@
 #include <chrono>
 #include "cuda_backend.h"
 #include <iostream>
+#include <cstdlib>
+#include <filesystem>
 
 PtxSource::PtxSource()
     : Text(0L) {
@@ -73,9 +75,9 @@ uint64_t timeSinceEpochMillisec() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
-std::string tmpFileName(uint64_t time, const std::string &suffix) {
+std::string tmpFileName(uint64_t time, const std::string directoryName, const std::string &suffix) {
     std::stringstream timestamp;
-    timestamp << "./tmp" << time << suffix;
+    timestamp << directoryName << "/tmp_" << time << suffix;
     return timestamp.str();
 }
 
@@ -110,6 +112,12 @@ CudaBackend::~CudaBackend() {
     CUDA_CHECK(cuCtxDestroy(context), "cuCtxDestroy");
 }
 
+void CudaBackend::shortDeviceInfo() {
+    char name[100];
+    CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
+    std::cout << "[INFO] Using NVIDIA GPU: " << name << std::endl;
+}
+
 void CudaBackend::showDeviceInfo() {
     char name[100];
     CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
@@ -142,13 +150,20 @@ void CudaBackend::showDeviceInfo() {
 }
 
 PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
+
+    // create var/cuda directory
+    std::string localDirectory = "./var/cuda";
+    std::filesystem::create_directories(localDirectory);
+    // create temp file for cuda generarated code
     const uint64_t time = timeSinceEpochMillisec();
-    const std::string ptxPath = tmpFileName(time, ".ptx");
-    const std::string cudaPath = tmpFileName(time, ".cu");
+    const std::string ptxPath = tmpFileName(time, localDirectory, ".ptx");
+    const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
+
+    // compile the generated code
     int pid;
     cudaSource->write(cudaPath);
     if ((pid = fork()) == 0) { //child
-        const auto path = "/usr/local/cuda/bin/nvcc";
+        const auto path = "nvcc";
         std::vector<std::string> command;
         command.push_back(path);
         command.push_back("-ptx");

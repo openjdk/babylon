@@ -419,7 +419,7 @@ public class Main {
 
             int kvTileRow = (tileId * blockN) + tid;
 
-            // Load the tiles K and V into shared memoru
+            // Load the tiles K and V into shared memory
             for (int k = 0; k < d; k++) {
                 sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
                 sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
@@ -672,7 +672,6 @@ public class Main {
         return true;
     }
 
-    @Reflect
     static void main(String[] args) {
         IO.println("Example of Flash-Attention in HAT");
 
@@ -694,9 +693,9 @@ public class Main {
 
         // Configuration parameters
         final int sequenceLen = size;   // represent the number of tokens (or words)
-        final int headDim = 64;        // vector representation for a single token
-        final int blockM = 32;         // tile size
-        final int blockN = 32;         // tile size
+        final int headDim = 64;         // vector representation for a single token
+        final int blockM = 32;          // tile size
+        final int blockN = 32;          // tile size
         final float softmaxScale = (float) (1.0f / Math.sqrt(headDim));
 
         final int sharedMemorySize = blockM * headDim
@@ -844,25 +843,27 @@ public class Main {
         }
 
         // Check results
-        boolean isStreamsCorrect          = checkResult(O_java, O_streams, matrixSize);
-        boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
-        boolean isFlashAttentionCorrect   = checkResult(O_java, O_flashAttention, matrixSize);
+        if (options.checkResult()) {
+            boolean isStreamsCorrect = checkResult(O_java, O_streams, matrixSize);
+            boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
+            boolean isFlashAttentionCorrect = checkResult(O_java, O_flashAttention, matrixSize);
 
-        if (isStreamsCorrect) {
-            IO.println("Self-Attention Parallel Stream is correct");
-        } else {
-            IO.println("Self-Attention Parallel Stream  is wrong");
-        }
-        if (isHATSelfAttentionCorrect) {
-            IO.println("HAT-Self-Attention Result is correct");
-        } else {
-            IO.println("HAT-Self-Attention is wrong");
-        }
-        if (isFlashAttentionCorrect) {
-            IO.println("HAT-Flash-Attention is correct");
-        } else {
-            IO.println("HAT_Flash-Attention is wrong. Note: expected due to use of multiple Math.exp operations " +
-                    "not present in the self-attention version.");
+            if (isStreamsCorrect) {
+                IO.println("Self-Attention Parallel Stream is correct");
+            } else {
+                IO.println("Self-Attention Parallel Stream  is wrong");
+            }
+            if (isHATSelfAttentionCorrect) {
+                IO.println("HAT-Self-Attention Result is correct");
+            } else {
+                IO.println("HAT-Self-Attention is wrong");
+            }
+            if (isFlashAttentionCorrect) {
+                IO.println("HAT-Flash-Attention is correct");
+            } else {
+                IO.println("HAT_Flash-Attention is wrong. Note: expected due to use of multiple Math.exp operations " +
+                        "not present in the self-attention version.");
+            }
         }
 
         // Print Performance Metrics
