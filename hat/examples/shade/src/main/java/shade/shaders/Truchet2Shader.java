@@ -131,7 +131,7 @@ public class Truchet2Shader  {
         float what=F32.pow(F32.max(0.0f,term),2.0f);
         float light=ao*what*1.4f;
 
-        float z=ray_pos.z()/2.0f;
+       // float z=ray_pos.z()/2.0f;
         //   vec3 col=(sin(vec3(z,z+pi/3.0,z+pi*2.0/3.0))+2.0)/3.0;
          //   vec3 col=(cos(ray_pos/2.0)+2.0)/3.0;
         var rayPosDiv2 = vec3.div(ray_pos,2f);
@@ -189,7 +189,8 @@ public class Truchet2Shader  {
     @Reflect
     public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
         int width = (int) uniforms.iResolution().x();
-        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        int height = (int) uniforms.iResolution().y();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(height-(kc.gix / width))));
         f32Array.array(kc.gix * 3, fragColor.x());
         f32Array.array(kc.gix * 3+1, fragColor.y());
         f32Array.array(kc.gix * 3+2, fragColor.z());
@@ -206,7 +207,7 @@ public class Truchet2Shader  {
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, Truchet2Shader.class,1024, 1024, true);
+        var shader = ShaderViewer.of(acc, Truchet2Shader.class,1024, 1024);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 
