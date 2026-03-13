@@ -66,7 +66,7 @@ public class TestReductions {
      * @param partialSums
      */
     @Reflect
-    private static void reduceGlobal(@MappableIface.RO KernelContext context, @MappableIface.RW S32Array input, @MappableIface.WO S32Array partialSums) {
+    private static void reduceGlobal(KernelContext context, S32Array input, S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
         int blockId = context.bix;
@@ -95,7 +95,7 @@ public class TestReductions {
      * @param partialSums
      */
     @Reflect
-    private static void reduceLocal(@MappableIface.RO KernelContext context, @MappableIface.RO S32Array input, @MappableIface.WO S32Array partialSums) {
+    private static void reduceLocal(KernelContext context, S32Array input, S32Array partialSums) {
         int localId = context.lix;
         int localSize = context.lsx;
         int blockId = context.bix;
