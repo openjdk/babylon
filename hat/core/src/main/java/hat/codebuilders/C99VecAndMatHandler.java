@@ -149,7 +149,11 @@ public class C99VecAndMatHandler {
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
                 );
             } else {
-                // We have to catch vecn.mul(vecn, matn)
+                if (invoke.named("mod")) {
+                    bldr.id("vec2_mod_vec2_f32").paren(_ ->
+                            bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
+                }else
+                // We have to catch vecn.mul(x, x)
                 if (invoke.named("mul")
                     && invoke.operandCount() == 2
                             && invoke.resultFromOperandNOrNull(1) instanceof Op.Result r
@@ -186,6 +190,9 @@ public class C99VecAndMatHandler {
                 bldr.paren(_ -> bldr.type(invoke.name())).brace(_ ->
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
                 );
+            }else   if (invoke.named("mul")) {
+            // for opencl we can turn these into expressions. So vec3.mul(l,r) -> (l * r)
+                bldr.id("vec2_mul_mat2_vec2").paren(_->    bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
             } else {
                 bldr.lineComment("other call through mat !");
                 bldr.recurse(invoke.opFromFirstOperandOrNull()).dot().id(invoke.name());
@@ -261,12 +268,39 @@ public class C99VecAndMatHandler {
                                 l.z*r._20+l.z*r._21+l.z*r._22
                                 """)
                 ).semicolon());
+
+        builder.func(
+                _->builder.type("mat2"),
+                "mat2_mul_mat2_mat2",
+                _->builder.type("mat2").sp().id("l").csp().type("mat2").sp().id("r"),
+                _->builder.returnKeyword().sp().paren(_->builder.type("mat2")).brace(_->
+                        builder.preformatted("""
+                                l._00*r._00,l._01*r._01, l._10*r._10,l._11*r._11
+                                """)
+                ).semicolon());
+        builder.func(
+                _->builder.type("vec2"),
+                "vec2_mul_mat2_vec2",
+                _->builder.type("mat2").sp().id("l").csp().type("vec2").sp().id("r"),
+                _->builder.returnKeyword().sp().paren(_->builder.type("vec2")).paren(_->
+                        builder.preformatted("""
+                                  l._00*r.x+l._01*r.y,
+                                  l._10*r.x+l._11*r.y
+                                """)
+                ).semicolon());
         builder.func(
                 _->builder.type("float"),
                 "f32_mod_f32_f32",
                 _->builder.type("float").sp().id("l").csp().type("float").sp().id("r"),
                         _->builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor").paren(_->
                                 builder.id("l").div().id("r")).semicolon());
+
+        builder.func(
+                _->builder.type("vec2"),
+                "vec2_mod_vec2_f32",
+                _->builder.type("vec2").sp().id("l").csp().type("float").sp().id("r"),
+                _->builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor").paren(_->
+                        builder.id("l").div().id("r")).semicolon());
 
                      //   "                // static float mod(float x, float y){return x - y * floor(x/y);}"
     }
