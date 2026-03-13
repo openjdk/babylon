@@ -152,9 +152,10 @@ public class C99VecAndMatHandler {
                 if (invoke.named("mod")) {
                     bldr.id("vec2_mod_vec2_f32").paren(_ ->
                             bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
-                }else
-                // We have to catch vecn.mul(x, x)
-                if (invoke.named("mul")
+                }else if (invoke.named("reflect")) {
+                        bldr.id("vec3_reflect_vec3_vec3").paren(_ ->
+                                bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
+                }else if (invoke.named("mul")
                     && invoke.operandCount() == 2
                             && invoke.resultFromOperandNOrNull(1) instanceof Op.Result r
                             && r.type() instanceof ClassType cte
@@ -191,8 +192,9 @@ public class C99VecAndMatHandler {
                         bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
                 );
             }else   if (invoke.named("mul")) {
+                String matType = clName(bldr.scopedCodeBuilderContext().lookup(),(JavaType)invoke.returnType());
             // for opencl we can turn these into expressions. So vec3.mul(l,r) -> (l * r)
-                bldr.id("vec2_mul_mat2_vec2").paren(_->    bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
+                bldr.id(matType+"_mul_"+matType+"_"+matType).paren(_->    bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
             } else {
                 bldr.lineComment("other call through mat !");
                 bldr.recurse(invoke.opFromFirstOperandOrNull()).dot().id(invoke.name());
@@ -269,15 +271,23 @@ public class C99VecAndMatHandler {
                                 """)
                 ).semicolon());
 
+        List.of("mat2", "mat3").forEach(matType->
         builder.func(
-                _->builder.type("mat2"),
-                "mat2_mul_mat2_mat2",
-                _->builder.type("mat2").sp().id("l").csp().type("mat2").sp().id("r"),
-                _->builder.returnKeyword().sp().paren(_->builder.type("mat2")).brace(_->
-                        builder.preformatted("""
-                                l._00*r._00,l._01*r._01, l._10*r._10,l._11*r._11
-                                """)
-                ).semicolon());
+                _->builder.type(matType),
+                matType+"_mul_"+matType+"_"+matType,
+                _->builder.type(matType).sp().id("l").csp().type(matType).sp().id("r"),
+                _->builder.returnKeyword().sp().paren(_->builder.type(matType)).brace(_->
+                        builder.either(matType.equals("mat2"),
+                                _-> builder.preformatted("""
+                                          l._00*r._00,l._01*r._01, l._10*r._10,l._11*r._11
+                                        """),
+                                _-> builder.preformatted("""
+                                            l._00*r._00,l._01*r._01,l._02*r._02,
+                                            l._10*r._10,l._11*r._11,l._12*r._12,
+                                            l._20*r._20,l._21*r._21,l._22*r._22
+                                        """))
+                                ).semicolon())
+        );
         builder.func(
                 _->builder.type("vec2"),
                 "vec2_mul_mat2_vec2",
@@ -301,6 +311,19 @@ public class C99VecAndMatHandler {
                 _->builder.type("vec2").sp().id("l").csp().type("float").sp().id("r"),
                 _->builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor").paren(_->
                         builder.id("l").div().id("r")).semicolon());
+
+        builder.func(
+                _->builder.type("vec3"),
+                "vec3_reflect_vec3_vec3",
+                _->builder.type("vec3").sp().id("l").csp().type("vec3").sp().id("r"),
+                _->builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("l").sp().mul().floatConst(2)
+                        //.paren(_->
+                       //builder.preformatted(" return vec2.sub(l, mul(mul(r, l), 2.0f));")
+                .semicolon());
+
+        //  static vec2 reflect(vec2 l, vec2 r){
+        //        return vec2.sub(l, mul(mul(r, l), 2.0f));
+        //    }
 
                      //   "                // static float mod(float x, float y){return x - y * floor(x/y);}"
     }

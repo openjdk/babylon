@@ -131,7 +131,7 @@ public class Truchet2Shader  {
         float what=F32.pow(F32.max(0.0f,term),2.0f);
         float light=ao*what*1.4f;
 
-        float z=ray_pos.z()/2.0f;
+       // float z=ray_pos.z()/2.0f;
         //   vec3 col=(sin(vec3(z,z+pi/3.0,z+pi*2.0/3.0))+2.0)/3.0;
          //   vec3 col=(cos(ray_pos/2.0)+2.0)/3.0;
         var rayPosDiv2 = vec3.div(ray_pos,2f);

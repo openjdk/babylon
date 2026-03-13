@@ -607,16 +607,15 @@ public class SeaScapeShader  {
                 return mix(tm, tx, hm / (hm - hx));
             } */
 
-    record floatAndVec3(float f, vec3 vec) {
-    }
 
-    @Reflect public static  floatAndVec3 heightMapTracing(float SEA_TIME, mat2 octave_m, vec3 ori, vec3 dir, vec3 p) {
+
+    @Reflect public static  float heightMapTracingFloat(float SEA_TIME, mat2 octave_m, vec3 ori, vec3 dir, vec3 p) {
         float tm = 0.0f;
         float tx = 1000.0f;
         float hx = map(SEA_TIME, octave_m, add(ori, mul(dir, tx)));
         if (hx > 0.0) {
             p = add(ori, mul(dir, tx));
-            return new floatAndVec3(tx, p);
+            return tx;
         }
         float hm = map(SEA_TIME, octave_m, ori);
         int brk=0;
@@ -633,7 +632,33 @@ public class SeaScapeShader  {
             }
             if (abs(hmid) < EPSILON) brk=1;
         }
-        return new floatAndVec3(mix(tm, tx, hm / (hm - hx)), p);
+        return mix(tm, tx, hm / (hm - hx));
+    }
+
+    @Reflect public static  vec3 heightMapTracingVec3(float SEA_TIME, mat2 octave_m, vec3 ori, vec3 dir, vec3 p) {
+        float tm = 0.0f;
+        float tx = 1000.0f;
+        float hx = map(SEA_TIME, octave_m, add(ori, mul(dir, tx)));
+        if (hx > 0.0) {
+            p = add(ori, mul(dir, tx));
+            return p;
+        }
+        float hm = map(SEA_TIME, octave_m, ori);
+        int brk=0;
+        for (int i = 0; brk != 1 && i < NUM_STEPS; i++) {
+            float tmid = mix(tm, tx, hm / (hm - hx));
+            p = add(ori, mul(dir, tmid));
+            float hmid = map(SEA_TIME, octave_m, p);
+            if (hmid < 0.0) {
+                tx = tmid;
+                hx = hmid;
+            } else {
+                tm = tmid;
+                hm = hmid;
+            }
+            if (abs(hmid) < EPSILON) brk=1;
+        }
+        return  p;
     }
     /*
 
@@ -678,8 +703,9 @@ public class SeaScapeShader  {
 
         // tracing
         vec3 p = vec3(0f);
-        floatAndVec3 floatAndVec3 = heightMapTracing(SEA_TIME, octave_m, ori, dir, p);
-        vec3 dist = sub(floatAndVec3.vec(), ori);
+        //float floatV = heightMapTracingFloat(SEA_TIME, octave_m, ori, dir, p);
+        vec3 vec3v  = heightMapTracingVec3(SEA_TIME, octave_m, ori, dir, p);
+        vec3 dist = sub(vec3v, ori);
         float EPSILON_NRM = 0.1f / fres.x();
         vec3 n = getNormal(SEA_TIME, octave_m, p, dot(dist, dist) * EPSILON_NRM);
         vec3 light = normalize(vec3(0.0f, 1.0f, 0.8f));

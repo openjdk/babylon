@@ -305,7 +305,7 @@ public class WavesShader  {
     static int ITERATIONS_RAYMARCH = 12; // waves iterations of raymarching
     static int ITERATIONS_NORMAL = 36; // waves iterations when calculating normals
 
-    @Reflect public static vec2 normalizedMouse(vec2 fMouse, vec2 fResolution) {
+    @Reflect public static vec2 normalizeMouse(vec2 fMouse, vec2 fResolution) {
         return div(fMouse, fResolution);
     } // normalize mouse coords
 
@@ -468,7 +468,7 @@ public class WavesShader  {
                            : NormalizedMouse.y) * 1.0) * 2.0 - 1.0)
                        )
                     * proj;*/
-            var normalizedMouse = normalizedMouse(fMouse, fres);
+            var normalizedMouse = normalizeMouse(fMouse, fres);
             var nmx = normalizedMouse.x();
             var nmy = normalizedMouse.y();
             var m1 = createRotMatAxisAngle(vec3(0.0f, -1.0f, 0.0f), 3.0f * ((nmx + 0.5f) * 2.0f - 1.0f));
