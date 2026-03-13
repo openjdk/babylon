@@ -61,7 +61,6 @@ import static hat.types.vec2.sub;
 import static hat.types.vec2.vec2;
 import static hat.types.vec3.add;
 import static hat.types.vec3.mul;
-import static hat.types.vec3.neg;
 import static hat.types.vec3.vec3;
 import static hat.types.vec4.normalize;
 import static hat.types.vec4.vec4;
