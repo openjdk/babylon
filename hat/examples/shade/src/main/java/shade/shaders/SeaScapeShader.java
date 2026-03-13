@@ -797,7 +797,7 @@ public class SeaScapeShader  {
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, SeaScapeShader.class,1024, 1024, true);
+        var shader = ShaderViewer.of(acc, SeaScapeShader.class,512, 512, true);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
     }
 }
