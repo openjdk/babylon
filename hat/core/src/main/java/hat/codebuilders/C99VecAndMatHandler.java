@@ -159,16 +159,26 @@ public class C99VecAndMatHandler {
                     && invoke.operandCount() == 2
                             && invoke.resultFromOperandNOrNull(1) instanceof Op.Result r
                             && r.type() instanceof ClassType cte
-                         && OpHelper.classTypeToTypeOrThrow(invoke.lookup(), cte) instanceof Class<?> c
-                    && mat2.class.isAssignableFrom(c)) {
-                    bldr.id("vec2_mul_vec2_mat2").paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                            && OpHelper.classTypeToTypeOrThrow(invoke.lookup(), cte) instanceof Class<?> c
+                            && (mat2.class.isAssignableFrom(c) || mat3.class.isAssignableFrom(c))) {
+                    if (mat2.class.isAssignableFrom(c)){
+                        bldr.id("vec2_mul_vec2_mat2").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                    }else{
+                        bldr.id("vec3_mul_vec3_mat3").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                    }
+
                 }else    if (invoke.named("mul")
                             && invoke.operandCount() == 2
-                            && invoke.resultFromOperandNOrNull(1) instanceof Op.Result r
+                            && invoke.resultFromOperandNOrNull(0) instanceof Op.Result r
                             && r.type() instanceof ClassType cte
                             && OpHelper.classTypeToTypeOrThrow(invoke.lookup(), cte) instanceof Class<?> c
-                            && mat3.class.isAssignableFrom(c)){
-                        bldr.id("vec3_mul_vec3_mat3").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                            && (mat2.class.isAssignableFrom(c) || mat3.class.isAssignableFrom(c))){
+                            if (mat2.class.isAssignableFrom(c)){
+                                bldr.id("vec2_mul_mat2_vec2").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                            }else{
+                                bldr.id("vec3_mul_mat3_vec3").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
+                            }
+                        bldr.id("vec3_mul_mat3_vec3").paren(_->bldr.recurse(invoke.opFromFirstOperandOrNull()).csp().recurse(invoke.opFromOperandNOrNull(1)));
                 }else if (invoke.nameMatchesRegex("(mul|add|sub|div)")) {
                     // for opencl we can turn these into expressions. So vec3.mul(l,r) -> (l * r)
                     bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).symbol(switch (invoke.name()) {
