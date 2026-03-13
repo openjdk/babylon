@@ -62,11 +62,7 @@ import javax.tools.ToolProvider;
 public class TestIRFromAnnotation {
 
     static final Set<String> EXCLUDED_TEST = Set.of(
-            "LocalClassTest.java",                      // name of local classes is not stable at annotation processing time
-            "TestLocalCapture.java",                    // plain junit test
-            "TestLambdaCapture.java",                   // plain junit test
-            "ReflectableLambdaSameInstanceTest.java",   // plain junit test
-            "CodeModelSameInstanceTest.java"            // plain junit test
+            "LocalClassTest.java"                     // name of local classes is not stable at annotation processing time
     );
 
     public static void main(String... args) throws Exception {

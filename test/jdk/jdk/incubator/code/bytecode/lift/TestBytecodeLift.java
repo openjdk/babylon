@@ -26,7 +26,6 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.interpreter.Interpreter;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,6 +49,7 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../../lib
  * @enablePreview
  * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecodeLift
  */

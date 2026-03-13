@@ -190,10 +190,10 @@ public final class Verifier {
         return Object.class;
     }
 
-    static final Class<?> CLASS_INVOKABLE_LEAF_OPS;
+    static final Class<?> CLASS_ARITHMETIC_AND_CONV_OP_IMPLS;
     static {
         try {
-            CLASS_INVOKABLE_LEAF_OPS = Class.forName("jdk.incubator.code.interpreter.InvokableLeafOps");
+            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS = Class.forName("ArithmeticAndConvOpImpls");
         } catch (ReflectiveOperationException roe) {
             throw new InternalError(roe);
         }
@@ -202,7 +202,7 @@ public final class Verifier {
     private void verifyOpHandleExists(Op op, String opName) {
         try {
             var mt = MethodRef.toNominalDescriptor(op.opType()).resolveConstantDesc(lookup).erase();
-            CLASS_INVOKABLE_LEAF_OPS.getDeclaredMethod(opName, mt.parameterArray());
+            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
             error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opType());
         } catch (ReflectiveOperationException roe) {
