@@ -148,43 +148,40 @@ public class SquareWaveShader  {
         }
         rr = abs(rr);
         float r = length(uv) - rr;
-        float fwidthR = .1f;// fwidth(r);
-        float c = smoothstep(0f, fwidthR, abs(r));
-        float l = smoothstep(0f, fwidthR, abs(uv.x()) + step(uv.y(), 0f) + step(rr, uv.y()));
+        float pix = .01f;//fwidth(r);
+
+        float c = smoothstep(0f, pix, abs(r));
+        float l = smoothstep(0f, pix, abs(uv.x()) + step(uv.y(), 0f) + step(rr, uv.y()));
         return vec3(c, c * l, c * l);
     }
 
     @Reflect public static vec3 ima(vec2 uv, float th0) {
+        vec3 col = vec3(1f);
         vec2 uv0 = uv;
         th0 -= max(0f, uv0.x() - 1.5f) * 2f;
         th0 -= max(0f, uv0.y() - 1.5f) * 2f;
 
-        float lerpy = smoothstep(-0.6f, 0.2f, cos(th0 * 0.1f));
-        vec3 col = vec3(1f);
+        float lerpy = 1f;//smoothstep(-0.6f, 0.2f, cos(th0 * 0.1f));
+
         for (int i = 1; i < harmonic; i += 2) {
             float th = th0 * i;
             float fl = mod(i, 4f) - 2f;// used to be repeated assignment fl=-fl, but compiler bugs. :(
-            float cc = cos(th) * fl, ss = sin(th);
-            float trir = -fl / i * i;
-            float sqrr = 1f / i;
+            float cc = cos(th) * fl;
+            float ss = sin(th);
+            float trir = -fl / (i * i);
+            float sqrr = 1f / i; //? no op?
             float rr = mix(trir, sqrr, lerpy);
             col = min(col, circle(uv, rr, cc, ss));
             uv = add(uv, vec2(rr * ss, -rr * cc));
         }
-        float fwidthUv0X = .1f;//fwidth(uv0.x);
-        float fwidthUvX = .1f;
-        float fwidthUvY = .1f;
-        /*
-          if (uv.y>0. && fract(uv0.y*10.)<0.5) col.yz=min(col.yz,smoothstep(0.,pix,abs(uv.x)));
-          if (uv.x>0. && fract(uv0.x*10.)<0.5) col.yz=min(col.yz,smoothstep(0.,pix,abs(uv.y)));
-          if (uv0.x>=1.5) col.xy=vec2(smoothstep(0.,fwidth(uv.y),abs(uv.y)));
-          if (uv0.y>=1.5) col.xy=vec2(smoothstep(0.,fwidth(uv.x),abs(uv.x)));
-         */
+        float pix = .01f;//fwidth(uv0.x);
+        float fwidthUvX = .01f;
+        float fwidthUvY = .01f;
         if (uv.y() > 0f && fract(uv0.y() * 10f) < 0.5f) {
-            col = vec3(col.x(), min(vec2(col.y(),col.z()), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
+            col = vec3(col.x(), min(vec2(col.y(),col.z()), vec2(smoothstep(0f, pix, abs(uv.x())))));
         }
         if (uv.x() > 0f && fract(uv0.x() * 10f) < 0.5f) {
-            col = vec3(col.x(), min(vec2(col.x(),col.z()), vec2(smoothstep(0f, fwidthUv0X, abs(uv.x())))));
+            col = vec3(col.x(), min(vec2(col.y(),col.z()), vec2(smoothstep(0f, pix, abs(uv.y())))));
         }
         if (uv0.x() >= 1.5f) {
             col = vec3(vec2(smoothstep(0f, fwidthUvY, abs(uv.y()))), col.z());
@@ -203,14 +200,14 @@ public class SquareWaveShader  {
         uv = mul(uv, 5f);
         uv = sub(uv, vec2(1.5f));
         float th0 = uniforms.iTime() * 2f;
-        float dt = 2f / 60f / moblur;
-        vec3 col = vec3(.9f, 0.9f, 1f);
+        float dt = 2f / (60f / moblur);
+        vec3 col = vec3(0.f);
         for (int mb = 0; mb < moblur; ++mb) {
             col = add(col, ima(uv, th0));
             th0 += dt;
         }
         col = pow(mul(col, (1f / moblur)), vec3(1f / 2.2f));
-        fragColor = vec4(col, 0f);
+        fragColor = vec4(col, 1f);
         return normalize(fragColor);
     }
     @Reflect
