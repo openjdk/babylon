@@ -74,9 +74,9 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void dftKernel(@RW KernelContext kc,
-                                  @RO ArrayComplex input,
-                                  @WO ArrayComplex output) {
+    private static void dftKernel(KernelContext kc,
+                                  ArrayComplex input,
+                                  ArrayComplex output) {
         int size = input.length();
         int idx = kc.gix;
         if (idx < kc.gsx) {
@@ -118,7 +118,7 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void dftCompute(@RW ComputeContext cc,
+    private static void dftCompute(@RO ComputeContext cc,
                                    @RO ArrayComplex input,
                                    @WO ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
@@ -162,9 +162,9 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void testPrivateDS(@RW KernelContext kc,
-                                      @RO ArrayComplex input,
-                                      @WO ArrayComplex output) {
+    private static void testPrivateDS(KernelContext kc,
+                                      ArrayComplex input,
+                                      ArrayComplex output) {
         int idx = kc.gix;
         ArrayComplexPrivate priv = ArrayComplexPrivate.createPrivate();
         ArrayComplexPrivate.PrivateComplex complex = priv.complex(0);

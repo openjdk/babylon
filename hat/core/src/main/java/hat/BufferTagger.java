@@ -25,6 +25,7 @@
 
 package hat;
 
+import hat.phases.HATPhaseUtils;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
@@ -147,23 +148,22 @@ public class BufferTagger {
         }
     }
 
-    // retrieves "root" value of an op, the origin of the parameter (or value) used by the op
+    // retrieves "root" value of an op, which is how we track accesses
+    // we will map the return value of this method to the accessType
     private  static Value getRootValue(Op op) {
-        if (op.operands().isEmpty()) {
-            return op.result();
-        } else if (op.operands().getFirst() instanceof Block.Parameter param) {
-            return param;
-        }
+        // the op is a field load, an invoke, or something that reduces to one or the other
+        // first, check if we can retrieve a fieldloadop from the given op
+        Op fieldOp = HATPhaseUtils.findOpInResultFromFirstOperandsOrNull(op, JavaOp.FieldAccessOp.FieldLoadOp.class);
+        if (fieldOp != null) return fieldOp.operands().getFirst(); // if so, we use its first operand to map to accesses
 
-        while (op.operands().getFirst() instanceof Op.Result result) { // Only first?
-            op = result.op(); // we are changing our  par here I assume intended
-            if (op.operands().isEmpty()) { // if the "root op" is an invoke
-                return op.result();
-            }else{
-                // or else
-            }
+        // we then check if there's an invokeop that has no operands (meaning a shared or private buffer that was created)
+        // or if there's an invokeop with a parameter as its first operation (this is a global buffer)
+        Op invokeOp = HATPhaseUtils.findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
+        while (invokeOp != null && !invokeOp.operands().isEmpty()) {
+            if (invokeOp.operands().getFirst() instanceof Block.Parameter p) return p; // return the parameter that is the global buffer
+            invokeOp = HATPhaseUtils.findOpInResultFromFirstOperandsOrNull(invokeOp.operands().getFirst().result().op(), JavaOp.InvokeOp.class);
         }
-        return op.operands().getFirst();
+        return (invokeOp == null) ? null : invokeOp.result(); // return the shared/private buffer invokeop that creates the buffer
     }
 
     // updates accessMap
@@ -175,7 +175,7 @@ public class BufferTagger {
         } else if (currentAccess != storedAccess && storedAccess != AccessType.RW) {
             accessMap.put(remappedValue, AccessType.RW);
         } else {
-            // or else
+            // this is the same access type as what's already stored
         }
     }
 }

@@ -46,7 +46,7 @@ import java.util.stream.IntStream;
 public class TestHATMathLib {
 
     @Reflect
-    private static void testMathLib01(@RO KernelContext kc, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
+    private static void testMathLib01(KernelContext kc, F16Array a, F16Array b, F16Array c) {
         if (kc.gix < kc.gsx) {
             F16 ha = a.array(kc.gix);
             F16 hb = b.array(kc.gix);
@@ -63,7 +63,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib02(@RO KernelContext kc, @RO F32Array a, @RO F32Array b, @WO F32Array c) {
+    private static void testMathLib02(KernelContext kc, F32Array a, F32Array b, F32Array c) {
         if (kc.gix < kc.gsx) {
             float ha = a.array(kc.gix);
             float hb = b.array(kc.gix);
@@ -79,7 +79,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib03(@RO KernelContext kc, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void testMathLib03(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
         if (kc.gix < kc.gsx) {
             F16 ha = a.array(kc.gix);
             F16 hb = b.array(kc.gix);
@@ -100,7 +100,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib04(@RO KernelContext kc, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void testMathLib04(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
         if (kc.gix < kc.gsx) {
             F16 ha = a.array(kc.gix);
             F16 hb = b.array(kc.gix);
@@ -121,7 +121,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib05(@RO KernelContext kc, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void testMathLib05(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
         if (kc.gix < kc.gsx) {
             F16 ha = a.array(kc.gix);
             F16 hb = b.array(kc.gix);
@@ -142,7 +142,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib06(@RO KernelContext kc, @RO F16Array a, @WO F16Array b) {
+    private static void testMathLib06(KernelContext kc, F16Array a, F16Array b) {
         if (kc.gix < kc.gsx) {
             F16 ha = a.array(kc.gix);
             F16 result = HATMath.expf16(ha);
@@ -158,7 +158,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib07(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+    private static void testMathLib07(KernelContext kc, F32Array a, F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
             float result = HATMath.cosf(fa);
@@ -173,7 +173,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib08(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+    private static void testMathLib08(KernelContext kc, F32Array a, F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
             float result = HATMath.sinf(fa);
@@ -188,7 +188,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib09(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+    private static void testMathLib09(KernelContext kc, F32Array a, F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
             float result = HATMath.tanf(fa);
@@ -203,7 +203,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void testMathLib10(@RO KernelContext kc, @RO F32Array a, @WO F32Array b) {
+    private static void testMathLib10(KernelContext kc, F32Array a, F32Array b) {
         if (kc.gix < kc.gsx) {
             float fa = a.array(kc.gix);
             float result = HATMath.sqrtf(fa);

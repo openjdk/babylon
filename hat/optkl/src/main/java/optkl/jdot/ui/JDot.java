@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class JDot {
@@ -74,6 +75,16 @@ public class JDot {
     public static final String FloatPointRegex = FloatRegex + "," + FloatRegex;
     public static final Regex RectRegex = Regex.of(FloatPointRegex,  ",",FloatPointRegex);
     public static final Regex PointRegex = Regex.of(FloatPointRegex);
+
+    public static void digraph(String name, Consumer<DotBuilder.StringDotBuilder> db) {
+        JDot jDot = new JDot(DotBuilder.dotDigraph(name, db));
+        var frame = new JFrame();
+        frame.setLayout(new BorderLayout());
+        frame.getContentPane().add(jDot.pane);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
 
     public static class JsonQuery {
         public static JsonValue query(JsonValue jsonValue, String path) {
