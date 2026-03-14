@@ -29,9 +29,17 @@ import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
 import hat.types.vec2;
 import hat.types.vec4;
+import hat.util.ui.SevenSegmentDisplay;
 
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuBar;
+import javax.swing.JTextField;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -71,15 +79,21 @@ public  class ShaderViewer {
     private F32Array f32Array;
     private int width;
     private int height;
-    private boolean useHat;
+
     private boolean showFps;
-    private Class shaderClass;
+    private SevenSegmentDisplay fps;
+    private SevenSegmentDisplay shaderTimeMs;
+    private JComboBox<String> runWith;
+   // private Class shaderClass;
     private Method mainImageMethod;
 
 
-    ShaderViewer(Accelerator acc, Class shaderClass, int width, int height, boolean useHat, boolean showFps) {
+    ShaderViewer(Object junk1, SevenSegmentDisplay fps,Object junk2, SevenSegmentDisplay shaderTimeMs,  JComboBox<String> runWith, Accelerator acc, Class shaderClass, int width, int height) {
+        this.fps = fps;
+        this.shaderTimeMs =shaderTimeMs;
+        this.runWith = runWith;
         this.acc = acc;
-        this.shaderClass = shaderClass;
+     //   this.shaderClass = shaderClass;
         try {
             this.mainImageMethod = shaderClass.getDeclaredMethod("mainImage", Uniforms.class, vec4.class, vec2.class);
         }catch (NoSuchMethodException e){
@@ -89,10 +103,8 @@ public  class ShaderViewer {
         this.f32Array = F32Array.create(acc, width * height * 3);
         this.width = width;
         this.height = height;
-        this.useHat = useHat;
-        this.showFps = showFps;
-        this.view = new JComponent() {
-        };
+
+        this.view = new JComponent() {};
         this.view.setSize(width, height);
         this.view.addComponentListener(new ComponentAdapter() {
             @Override
@@ -139,29 +151,39 @@ public  class ShaderViewer {
                     uniforms.iMouse().y(mouse.y);
                     uniforms.iResolution().x(width);
                     uniforms.iResolution().y(height);
-                    if (useHat) {
-                        shader.update(uniforms, f32Array);
-                    }else {
-                        IntStream.range(0, width * height).parallel().forEach(idx -> {
-                            vec2 fragCoord = vec2.vec2((float) (idx % width), (float)  (height -(idx / width)));
-                            try {
-                                vec4 fragColor  = (vec4) mainImageMethod.invoke(null,uniforms, vec4.vec4(1f), fragCoord);
-                                f32Array.array(idx * 3, fragColor.x());
-                                f32Array.array(idx * 3 + 1, fragColor.y());
-                                f32Array.array(idx * 3 + 2, fragColor.z());
-                            } catch (IllegalAccessException | InvocationTargetException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+                    switch (runWith.getSelectedIndex()){
+                        case 0->
+                            IntStream.range(0, width * height).forEach(idx -> {
+                                vec2 fragCoord = vec2.vec2((float) (idx % width), (float)  (height -(idx / width)));
+                                try {
+                                    vec4 fragColor  = (vec4) mainImageMethod.invoke(null,uniforms, vec4.vec4(1f), fragCoord);
+                                    f32Array.array(idx * 3, fragColor.x());
+                                    f32Array.array(idx * 3 + 1, fragColor.y());
+                                    f32Array.array(idx * 3 + 2, fragColor.z());
+                                } catch (IllegalAccessException | InvocationTargetException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        case 1->
+                                IntStream.range(0, width * height).parallel().forEach(idx -> {
+                                    vec2 fragCoord = vec2.vec2((float) (idx % width), (float)  (height -(idx / width)));
+                                    try {
+                                        vec4 fragColor  = (vec4) mainImageMethod.invoke(null,uniforms, vec4.vec4(1f), fragCoord);
+                                        f32Array.array(idx * 3, fragColor.x());
+                                        f32Array.array(idx * 3 + 1, fragColor.y());
+                                        f32Array.array(idx * 3 + 2, fragColor.z());
+                                    } catch (IllegalAccessException | InvocationTargetException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                });
+                        case 2->shader.update(uniforms, f32Array);
                     }
                     f32Array.copyTo(f32x3Arr);
                     uniforms.iFrame(uniforms.iFrame()+1);
                     long endNs = System.nanoTime();
                     long shaderMs = (endNs - startNs) / 1000000;
-                  //  System.out.println("Shader time ms= "+shaderMs);
-                    if (showFps) {
-                        System.out.println("Using HAT = "+useHat+" FPS = " + (1000f / shaderMs));
-                    }
+                    fps.set((int)(1000 / shaderMs));
+                    shaderTimeMs.set((int)shaderMs);
                     Graphics2D volatileGraphics2D = volatileImage.createGraphics();
                     volatileGraphics2D.drawImage(buffer, 0, 0, null);
                     volatileGraphics2D.dispose();
@@ -178,9 +200,38 @@ public  class ShaderViewer {
         }).start();
     }
 
+    public static class Controls{
+        JMenuBar menuBar;
+        SevenSegmentDisplay sevenSegmentDisplay;
+        Controls(){
+            menuBar = new JMenuBar();
+            ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+            menuBar.add(Box.createHorizontalStrut(40));
+            menuBar.add(new JLabel("Search"));
+            sevenSegmentDisplay = (SevenSegmentDisplay) menuBar.add(
+                    new SevenSegmentDisplay(4,20, menuBar.getForeground(),menuBar.getBackground()));
+            // search = create ("Search ms");
+            // mask = create ("Mask ms");
+            // heal = create ("Heal ms");
+        }
+    }
+
     public static ShaderViewer of(Accelerator acc, Class<?> shaderClass, int width, int height){
-        var shader =   new ShaderViewer(acc,shaderClass, width,height, Boolean.getBoolean("useHAT"), Boolean.getBoolean("showFPS"));
+
         JFrame frame = new JFrame(shaderClass.getSimpleName());
+        var menuBar = new JMenuBar();
+        ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+      //  menuBar.add(new JLabel("FPS:"));
+      //  var fps = (SevenSegmentDisplay) menuBar.add(new SevenSegmentDisplay(4,20, menuBar.getForeground(),menuBar.getBackground()));
+     //   var runOption = (JComboBox<String>)menuBar.add(new JComboBox(new String[]{"Java Seq", "Java MT", "HAT"}));
+        frame.setJMenuBar(menuBar);
+        var shader = new ShaderViewer(
+                menuBar.add(new JLabel("FPS:")),
+                (SevenSegmentDisplay) menuBar.add(new SevenSegmentDisplay(4,20, menuBar.getForeground(),menuBar.getBackground())),
+                menuBar.add(new JLabel("Shader Time ms:")),
+                (SevenSegmentDisplay) menuBar.add(new SevenSegmentDisplay(6,20, menuBar.getForeground(),menuBar.getBackground())),
+                (JComboBox<String>)menuBar.add(new JComboBox(new String[]{"Java Seq", "Java MT", "HAT"})),
+                acc,shaderClass, width,height);
         frame.setSize(shader.view.getWidth(),shader.view.getHeight());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(shader.view);
