@@ -222,8 +222,6 @@ public class C99VecAndMatHandler {
             invoke.op().operands().forEach(o -> stringBuilder.append(" " + o.result().type()));
             stringBuilder.append(")");
             throw new RuntimeException(stringBuilder.toString());
-           // bldr.lineComment("other call through mat !");
-           // bldr.recurse(invoke.opFromFirstOperandOrNull()).dot().id(invoke.name());
         }
     }
 
@@ -280,22 +278,74 @@ public class C99VecAndMatHandler {
         List.of(new NamedVecShape("ivec2", vec2.shape)).forEach(ns ->
                 builder.typedefKeyword().sp().type("int" + ns.shape.lanes()).sp().type(ns.name).snl()
         );
-
+/*
+2. Vector * Matrix (vec2 * mat2)This treats the vector as a row. Mathematically, this is equivalent to multiplying the transpose of the matrix by the vector.$$\text{result}.x = (v.x \cdot m_{0}) + (v.y \cdot m_{1})$$$$\text{result}.y = (v.x \cdot m_{2}) + (v.y \cdot m_{3})$$Javapublic static float[] multiplyVec2Mat2(float[] v, float[] m) {
+    float x = v[0] * m[0] + v[1] * m[1];
+    float y = v[0] * m[2] + v[1] * m[3];
+     l.x * r.00 + l.y * r.01,l.x * r.10 + l.y * r.11;
+    return new float[]{x, y};
+}
+        */
         genFunc(builder, "vec2", "mul", "vec2", "mat2", _ ->
                 builder.returnKeyword().sp().paren(_ -> builder.type("vec2"))
-                        .paren(_ -> builder.preformatted("l.x*r._00+l.x*r._01, l.y*r._10+l.y*r._11"))
+                        .paren(_ -> builder.preformatted("l.x*r._00+l.y*r._01,l.x*r._10+l.y*r._11"))
                         .semicolon()
         );
+
+        /*
+        public static float[] multiplyMat2Vec2(float[] m, float[] v) {
+    float x = m[0] * v[0] + m[2] * v[1];
+    float y = m[1] * v[0] + m[3] * v[1];
+     l.00 * r.x + l.10 * r.y,
+     l.01 * r.x + l.11 * r.y
+    return new float[]{x, y};
+}
+
+
+         */
         genFunc(builder, "vec2", "mul", "mat2", "vec2", _ ->
                 builder.returnKeyword().sp().paren(_ -> builder.type("vec2")).paren(_ ->
-                        builder.preformatted(" l._00*r.x+l._01*r.y, l._10*r.x+l._11*r.y")
+                        builder.preformatted(" l._00*r.x+l._10*r.y,l._01*r.x+l._11*r.y")
                 ).semicolon());
 
+        /*
+          public static float[] multiplyVec3Mat3(float[] v, float[] m) {
+            float x = v[0] * m[0] + v[1] * m[1] + v[2] * m[2];
+            float y = v[0] * m[3] + v[1] * m[4] + v[2] * m[5];
+            float z = v[0] * m[6] + v[1] * m[7] + v[2] * m[8];
+           l.x * r._00 + l.y * r._01 + l.z * r._02,
+           l.x * r._10 + l.y * r._11 + l.z * r._12,
+           l.x * r._20 + l.y * r._21 + l.z * r._22,
+            return new float[]{x, y, z};
+        }
+         */
         genFunc(builder, "vec3", "mul", "vec3", "mat3", _ ->
                 builder.returnKeyword().sp().paren(_ -> builder.type("vec3")).paren(_ ->
-                        builder.preformatted("l.x*r._00+l.x*r._01+l.x*r._02, l.y*r._10+l.y*r._11+l.y*r._12, l.z*r._20+l.z*r._21+l.z*r._22")).semicolon()
+                builder.preformatted("l.x*r._00+l.y*r._01+l.z*r._02,l.x*r._10+l.y*r._11+l.z*r._12,l.x*r._20+l.y*r._21+l.z*r._22")).semicolon()
         );
 
+
+        /*
+        public static float[] multiplyMat3Vec3(float[] m, float[] v) {
+          //  float x = m[0] * v[0] + m[3] * v[1] + m[6] * v[2];
+          //  float y = m[1] * v[0] + m[4] * v[1] + m[7] * v[2];
+          //  float z = m[2] * v[0] + m[5] * v[1] + m[8] * v[2];
+            float x = m[0] * v[0] + m[3] * v[1] + m[6] * v[2];
+            float y = m[1] * v[0] + m[4] * v[1] + m[7] * v[2];
+            float z = m[2] * v[0] + m[5] * v[1] + m[8] * v[2];
+            return new float[]{x, y, z};
+        }
+        2. Vector * Matrix (vec3 * mat3)
+        This treats the vector as a row vector on the left. Effectively, you are calculating the dot product of the vector with each column of the matrix.
+
+        Java
+        public static float[] multiplyVec3Mat3(float[] v, float[] m) {
+            float x = v[0] * m[0] + v[1] * m[1] + v[2] * m[2];
+            float y = v[0] * m[3] + v[1] * m[4] + v[2] * m[5];
+            float z = v[0] * m[6] + v[1] * m[7] + v[2] * m[8];
+            return new float[]{x, y, z};
+        }
+*/
         genFunc(builder, "mat3", "mul", "mat3", "mat3", _ ->
                 builder.returnKeyword().sp().paren(_ -> builder.type("mat3")).brace(_ ->
                         builder.preformatted("""

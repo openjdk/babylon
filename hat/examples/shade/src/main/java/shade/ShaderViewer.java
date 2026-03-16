@@ -152,7 +152,7 @@ public  class ShaderViewer {
                     uniforms.iResolution().x(width);
                     uniforms.iResolution().y(height);
                     switch (runWith.getSelectedIndex()){
-                        case 0->
+                        case 2->
                             IntStream.range(0, width * height).forEach(idx -> {
                                 vec2 fragCoord = vec2.vec2((float) (idx % width), (float)  (height -(idx / width)));
                                 try {
@@ -176,7 +176,7 @@ public  class ShaderViewer {
                                         throw new RuntimeException(e);
                                     }
                                 });
-                        case 2->shader.update(uniforms, f32Array);
+                        case  0->shader.update(uniforms, f32Array);
                     }
                     f32Array.copyTo(f32x3Arr);
                     uniforms.iFrame(uniforms.iFrame()+1);
@@ -230,7 +230,7 @@ public  class ShaderViewer {
                 (SevenSegmentDisplay) menuBar.add(new SevenSegmentDisplay(4,20, menuBar.getForeground(),menuBar.getBackground())),
                 menuBar.add(new JLabel("Shader Time ms:")),
                 (SevenSegmentDisplay) menuBar.add(new SevenSegmentDisplay(6,20, menuBar.getForeground(),menuBar.getBackground())),
-                (JComboBox<String>)menuBar.add(new JComboBox(new String[]{"Java Seq", "Java MT", "HAT"})),
+                (JComboBox<String>)menuBar.add(new JComboBox(new String[]{"HAT", "Java MT", "Seq"})),
                 acc,shaderClass, width,height);
         frame.setSize(shader.view.getWidth(),shader.view.getHeight());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
