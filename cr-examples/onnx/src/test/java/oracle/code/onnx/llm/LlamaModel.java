@@ -43,6 +43,7 @@ public final class LlamaModel {
                              VOCAB_SIZE = 128256,
                              HEAD_SIZE = 64,
                              HIDEN_SIZE = 2048,
+                             KV_HIDEN_SIZE = 512,
                              CONTEXT_SIZE = 131072,
                              INTERMEDIATE_SIZE = 8192,
                              ATTN_WEIGHTS_SIZE = 3072;
@@ -83,10 +84,10 @@ public final class LlamaModel {
         for (int i = 0; i < LAYERS; i++) {
             attnQWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, HEAD_SIZE, 16);
             attnQScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, HEAD_SIZE);
-            attnKWeight[i] = modelData.nextTensor(UINT8, 512, HEAD_SIZE, 16);
-            attnKScales[i] = modelData.nextTensor(FLOAT, 512, HEAD_SIZE);
-            attnVWeight[i] = modelData.nextTensor(UINT8, 512, HEAD_SIZE, 16);
-            attnVScales[i] = modelData.nextTensor(FLOAT, 512, HEAD_SIZE);
+            attnKWeight[i] = modelData.nextTensor(UINT8, KV_HIDEN_SIZE, HEAD_SIZE, 16);
+            attnKScales[i] = modelData.nextTensor(FLOAT, KV_HIDEN_SIZE, HEAD_SIZE);
+            attnVWeight[i] = modelData.nextTensor(UINT8, KV_HIDEN_SIZE, HEAD_SIZE, 16);
+            attnVScales[i] = modelData.nextTensor(FLOAT, KV_HIDEN_SIZE, HEAD_SIZE);
             attnOWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, HEAD_SIZE, 16);
             attnOScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, HEAD_SIZE);
             mlpGateWeight[i] = modelData.nextTensor(UINT8, INTERMEDIATE_SIZE, HEAD_SIZE, 16);
@@ -115,16 +116,15 @@ public final class LlamaModel {
         Tensor<Float>[] presentValues = new Tensor[LAYERS];
 
         for (int i = 0; i < LAYERS; i++) {
-            GroupQueryAttention<Float> attn = GroupQueryAttention(
-                    MatMulNBits(input,
+            GroupQueryAttention<Float> attn = GroupQueryAttention(MatMulNBits(input,
                                 attnQWeight[i],
                                 attnQScales[i], empty(), empty(), empty(), HIDEN_SIZE, HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
                     of(MatMulNBits(input,
                                 attnKWeight[i],
-                                attnKScales[i], empty(), empty(), empty(), HIDEN_SIZE, 512, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                                attnKScales[i], empty(), empty(), empty(), HIDEN_SIZE, KV_HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                     of(MatMulNBits(input,
                                 attnVWeight[i],
-                                attnVScales[i], empty(), empty(), empty(), HIDEN_SIZE, 512, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                                attnVScales[i], empty(), empty(), empty(), HIDEN_SIZE, KV_HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                     of(pastKey[i]),
                     of(pastValue[i]),
                     amSL,
