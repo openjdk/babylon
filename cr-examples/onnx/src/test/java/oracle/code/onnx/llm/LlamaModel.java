@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,25 +50,28 @@ public final class LlamaModel {
                               SCALE = 0.125f;
 
     public final Tensor<Long> flat1, scalar1;
-    public final Tensor<Float> tokensWeights, initWeight, cosCache, sinCache, headScales;
+    public final Tensor<Float> tokensWeights, initWeight, cosCache, sinCache;
     public final Tensor<Float>[] postAttentionWeights = new Tensor[LAYERS],
                                  inputWeights = new Tensor[LAYERS],
-                                 attnQkvScales = new Tensor[LAYERS],
+                                 attnQScales = new Tensor[LAYERS],
+                                 attnKScales = new Tensor[LAYERS],
+                                 attnVScales = new Tensor[LAYERS],
                                  attnOScales = new Tensor[LAYERS],
                                  mlpGateScales = new Tensor[LAYERS],
                                  mlpUpScales = new Tensor[LAYERS],
                                  mlpDownScales = new Tensor[LAYERS];
-    public final Tensor<Byte>[] attnQkvWeight = new Tensor[LAYERS],
+    public final Tensor<Byte>[] attnQWeight = new Tensor[LAYERS],
+                                attnKWeight = new Tensor[LAYERS],
+                                attnVWeight = new Tensor[LAYERS],
                                 attnOWeight = new Tensor[LAYERS],
                                 mlpGateWeight = new Tensor[LAYERS],
                                 mlpUpWeight = new Tensor[LAYERS],
                                 mlpDownWeight = new Tensor[LAYERS];
-    public final Tensor<Byte> headWeight;
 
     public LlamaModel(Arena arena) throws IOException {
         flat1 = Tensor.ofFlat(arena, 1l);
         scalar1 = Tensor.ofScalar(arena, 1l);
-        var modelData = new TensorDataStream(arena, LlamaModel.class.getResource("model.onnx.data").getPath());
+        var modelData = new TensorDataStream(arena, LlamaModel.class.getResource("model_q4.onnx_data").getPath());
         tokensWeights = modelData.nextTensor(FLOAT, VOCAB_SIZE, HIDEN_SIZE);
         initWeight = modelData.nextTensor(FLOAT, HIDEN_SIZE);
         cosCache = modelData.nextTensor(FLOAT, CONTEXT_SIZE, HEAD_SIZE / 2);
@@ -78,19 +81,21 @@ public final class LlamaModel {
             inputWeights[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE);
         }
         for (int i = 0; i < LAYERS; i++) {
-            attnQkvWeight[i] = modelData.nextTensor(UINT8, ATTN_WEIGHTS_SIZE, HEAD_SIZE, 16);
-            attnQkvScales[i] = modelData.nextTensor(FLOAT, ATTN_WEIGHTS_SIZE * HEAD_SIZE);
+            attnQWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, HEAD_SIZE, 16);
+            attnQScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, HEAD_SIZE);
+            attnKWeight[i] = modelData.nextTensor(UINT8, 512, HEAD_SIZE, 16);
+            attnKScales[i] = modelData.nextTensor(FLOAT, 512, HEAD_SIZE);
+            attnVWeight[i] = modelData.nextTensor(UINT8, 512, HEAD_SIZE, 16);
+            attnVScales[i] = modelData.nextTensor(FLOAT, 512, HEAD_SIZE);
             attnOWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, HEAD_SIZE, 16);
-            attnOScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE * HEAD_SIZE);
+            attnOScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, HEAD_SIZE);
             mlpGateWeight[i] = modelData.nextTensor(UINT8, INTERMEDIATE_SIZE, HEAD_SIZE, 16);
-            mlpGateScales[i] = modelData.nextTensor(FLOAT, INTERMEDIATE_SIZE * HEAD_SIZE);
+            mlpGateScales[i] = modelData.nextTensor(FLOAT, INTERMEDIATE_SIZE, HEAD_SIZE);
             mlpUpWeight[i] = modelData.nextTensor(UINT8, INTERMEDIATE_SIZE, HEAD_SIZE, 16);
-            mlpUpScales[i] = modelData.nextTensor(FLOAT, INTERMEDIATE_SIZE * HEAD_SIZE);
+            mlpUpScales[i] = modelData.nextTensor(FLOAT, INTERMEDIATE_SIZE, HEAD_SIZE);
             mlpDownWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, 256, 16);
-            mlpDownScales[i] = modelData.nextTensor(FLOAT, INTERMEDIATE_SIZE * HEAD_SIZE);
+            mlpDownScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, 256);
         }
-        headWeight = modelData.nextTensor(UINT8, VOCAB_SIZE, HEAD_SIZE, 16);
-        headScales = modelData.nextTensor(FLOAT, VOCAB_SIZE * HEAD_SIZE);
     }
 
     public record ForwardResponse(Tensor<Float> logits,
@@ -112,10 +117,14 @@ public final class LlamaModel {
         for (int i = 0; i < LAYERS; i++) {
             GroupQueryAttention<Float> attn = GroupQueryAttention(
                     MatMulNBits(input,
-                                attnQkvWeight[i],
-                                attnQkvScales[i], empty(), empty(), empty(), HIDEN_SIZE, ATTN_WEIGHTS_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
-                    empty(),
-                    empty(),
+                                attnQWeight[i],
+                                attnQScales[i], empty(), empty(), empty(), HIDEN_SIZE, HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
+                    of(MatMulNBits(input,
+                                attnKWeight[i],
+                                attnKScales[i], empty(), empty(), empty(), HIDEN_SIZE, 512, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                    of(MatMulNBits(input,
+                                attnVWeight[i],
+                                attnVScales[i], empty(), empty(), empty(), HIDEN_SIZE, 512, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                     of(pastKey[i]),
                     of(pastValue[i]),
                     amSL,
@@ -150,9 +159,7 @@ public final class LlamaModel {
             presentValues[i] = attn.present_value();
         }
 
-        Tensor<Float> logits = MatMulNBits(input,
-                                           headWeight,
-                                           headScales, empty(), empty(), empty(), HIDEN_SIZE, VOCAB_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE);
+        Tensor<Float> logits = MatMul(input, Transpose(tokensWeights, of(new long[] {1L, 0L})));
 
         return new ForwardResponse(logits, presentKeys, presentValues);
     }
