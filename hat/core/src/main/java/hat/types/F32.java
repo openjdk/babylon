@@ -42,7 +42,7 @@ public interface F32 {
         float t=clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
         return t * t * (3.0f - 2.0f * t);
     }
-    static float step(float edge, float x ){return x<edge?x:1f;}
+    static float step(float edge, float x ){return x<edge?0:1f;}
     static float abs(float f){return Math.abs(f);}
     static float mod(float x, float y){return x - y * floor(x/y);}//  x - y * floor(x/y)
     static float fract(float f) {
