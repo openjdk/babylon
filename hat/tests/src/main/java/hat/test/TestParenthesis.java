@@ -40,7 +40,7 @@ import java.lang.invoke.MethodHandles;
 public class TestParenthesis {
 
     @Reflect
-    public static void compute(@RO KernelContext context, @WO S32Array data) {
+    public static void compute(KernelContext context, S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
@@ -49,7 +49,7 @@ public class TestParenthesis {
     }
 
     @Reflect
-    public static void compute2(@RO KernelContext context, @WO S32Array data) {
+    public static void compute2(KernelContext context, S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
@@ -58,7 +58,7 @@ public class TestParenthesis {
     }
 
     @Reflect
-    public static void compute3(@RO KernelContext context, @WO S32Array data) {
+    public static void compute3(KernelContext context, S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;

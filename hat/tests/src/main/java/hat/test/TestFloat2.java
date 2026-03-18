@@ -44,7 +44,7 @@ import java.util.Random;
 public class TestFloat2 {
 
     @Reflect
-    public static void vectorOps01(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
+    public static void vectorOps01(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -55,7 +55,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
+    public static void vectorOps02(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2.MutableImpl vA = a.float2View(index * 2);
@@ -66,7 +66,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps03(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
+    public static void vectorOps03(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
 
@@ -87,7 +87,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
+    public static void vectorOps04(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2.MutableImpl vA = a.float2View(index * 2);
@@ -98,7 +98,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps05(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
+    public static void vectorOps05(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -109,7 +109,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps06(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
+    public static void vectorOps06(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -121,7 +121,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps07(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
+    public static void vectorOps07(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -132,7 +132,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps08(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
+    public static void vectorOps08(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -143,7 +143,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps09(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c) {
+    public static void vectorOps09(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         // Checking composition
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -173,7 +173,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps10(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
+    public static void vectorOps10(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         SharedArray sm = SharedArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -205,7 +205,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps11(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
+    public static void vectorOps11(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         PrivateMemory pm = PrivateMemory.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -218,7 +218,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps12(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @WO F32ArrayPadded b) {
+    public static void vectorOps12(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         SharedArray sm = SharedArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -233,7 +233,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps14(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
+    public static void vectorOps14(KernelContext kernelContext, F32ArrayPadded a) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float2 vA = a.float2View(index * 2);
@@ -245,7 +245,7 @@ public class TestFloat2 {
 
 
     @Reflect
-    public static void vectorOps15(@RO KernelContext kernelContext, @WO F32ArrayPadded a) {
+    public static void vectorOps15(KernelContext kernelContext, F32ArrayPadded a) {
         // in this sample, we don't perform the vload, but rather the vstore directly
         // from a new float2.
         if (kernelContext.gix < kernelContext.gsx) {

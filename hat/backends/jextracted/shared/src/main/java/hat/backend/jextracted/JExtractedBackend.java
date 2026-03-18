@@ -41,10 +41,10 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        if (config().interpret()) {
-            computeContext.interpretWithArgs(args);
-        } else {
+       // if (config().interpret()) {
+         //   computeContext.interpretWithArgs(args);
+       // } else {
             computeContext.invokeWithArgs(args);
-        }
+       // }
     }
 }
