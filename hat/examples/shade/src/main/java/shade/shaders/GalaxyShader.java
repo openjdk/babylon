@@ -34,8 +34,6 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.buffer.Uniforms;
 
-import hat.types.F32;
-import hat.types.mat2;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
 import shade.ShaderViewer;
@@ -44,9 +42,9 @@ import java.lang.invoke.MethodHandles;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
+import hat.types.mat2;
 import static hat.types.F32.*;
 import static hat.types.mat2.*;
-import static hat.types.mat3.mat3;
 import static hat.types.vec2.*;
 import static hat.types.vec3.*;
 import static hat.types.vec4.*;
@@ -88,9 +86,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
    v2 *= smoothstep(.5, .0, len);
    v3 *= smoothstep(.9, .0, len);
 
-   vec3 col = vec3( v3 * (1.5 + sin(iTime * .2) * .4),
-               (v1 + v3) * .3,
-                v2) + smoothstep(0.2, .0, len) * .85 + smoothstep(.0, .6, v3) * .3;
+   vec3 col = vec3( v3 * (1.5 + sin(iTime * .2) * .4),(v1 + v3) * .3, v2)
+                + smoothstep(0.2, .0, len) * .85 + smoothstep(.0, .6, v3) * .3;
 
    fragColor=vec4(min(pow(abs(col), vec3(1.2)), 1.0), 1.0);
 }
@@ -113,9 +110,7 @@ public class GalaxyShader {
         float s = 0.0f;
         for (int i = 0; i < 90; i++) {
             vec3 p = mul(s, vec3(uv.x(),uv.y(), 0.0f));
-            var xy = mul(vec2(p.x(),p.y()),ma);
-            p = vec3(xy.x(),xy.y(),p.z());
-            //p.xy *= ma;
+            vec2 p_xy = mul(vec2(p.x(),p.y()),ma);p = vec3(p_xy.x(),p_xy.y(),p.z());  //p.xy *= ma;
             p = add(p,vec3(.22f, .3f, s - 1.5f - sin(ftime * .13f) * .1f));
             for (int i2 = 0; i2 < 8; i2++)   {
                 p = sub(div(abs(p), dot(p,p)),0.659f);
@@ -197,7 +192,7 @@ public class GalaxyShader {
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, GalaxyShader.class,1024, 1024);
-        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
+        var shader = ShaderViewer.of(acc, GalaxyShader.class,1200, 800);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getHeight()));
     }
 }
