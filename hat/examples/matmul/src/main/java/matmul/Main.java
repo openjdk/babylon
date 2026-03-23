@@ -85,7 +85,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
@@ -107,7 +107,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DLI(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
@@ -214,7 +214,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DTiling(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
 
         final int tileSize = 16;
         MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal();
@@ -327,7 +327,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTiling(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -449,7 +449,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO F32ArrayPadded matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingVectorized(KernelContext kc, F32ArrayPadded matrixA, F32ArrayPadded matrixB, F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -597,7 +597,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F16Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingHalf(KernelContext kc, F16Array matrixA, F16Array matrixB, F16Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -721,7 +721,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel1D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
@@ -737,7 +737,7 @@ public class Main {
      * 1D Matrix Multiply with function calls passing the kernel context ID. This is just for testing purposes.
      */
     @Reflect
-    public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel1DWithFunctionCalls(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);

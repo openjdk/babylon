@@ -81,9 +81,9 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttentionF16(@MappableIface.RO KernelContext kernelContext,
-                                         @MappableIface.RO F16Array Q, @MappableIface.RO F16Array K, @MappableIface.RO F16Array V,
-                                         @MappableIface.WO F16Array O, @MappableIface.RW F16Array m, @MappableIface.RW F16Array l,
+    public static void flashAttentionF16(KernelContext kernelContext,
+                                         F16Array Q, F16Array K, F16Array V,
+                                         F16Array O, F16Array m, F16Array l,
                                          final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;
@@ -254,9 +254,9 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttention(@MappableIface.RO KernelContext kernelContext,
-                                      @MappableIface.RO F32Array Q, @MappableIface.RO F32Array K, @MappableIface.RO F32Array V,
-                                      @MappableIface.WO F32Array O, @MappableIface.RW F32Array m, @MappableIface.RW F32Array l,
+    public static void flashAttention(KernelContext kernelContext,
+                                      F32Array Q, F32Array K, F32Array V,
+                                      F32Array O, F32Array m, F32Array l,
                                       final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;

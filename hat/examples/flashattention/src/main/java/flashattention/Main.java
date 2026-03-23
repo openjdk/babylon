@@ -105,10 +105,10 @@ public class Main {
      * @param softMaxScale
      */
     @Reflect
-    public static void selfAttentionV2HAT(@RO KernelContext kernelContext,
-                                          @RO F32Array Q, @RO F32Array K, @RO F32Array V,
-                                          @WO F32Array attentionMatrix, @WO F32Array O,
-                                          @RO final int N, @RO final int d, @RO final float softMaxScale) {
+    public static void selfAttentionV2HAT(KernelContext kernelContext,
+                                          F32Array Q, F32Array K, F32Array V,
+                                          F32Array attentionMatrix, F32Array O,
+                                          final int N, final int d, final float softMaxScale) {
         int idx = kernelContext.gix;
         if (idx < N) {
             // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
@@ -382,9 +382,9 @@ public class Main {
      * @param softmaxScale
      */
     @Reflect
-    public static void flashAttention(@RO KernelContext kernelContext,
-                                      @RO F32Array Q, @RO F32Array K, @RO F32Array V,
-                                      @WO F32Array O, @RW F32Array m, @RW F32Array l,
+    public static void flashAttention(KernelContext kernelContext,
+                                      F32Array Q, F32Array K, F32Array V,
+                                      F32Array O, F32Array m, F32Array l,
                                       final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;
@@ -525,9 +525,9 @@ public class Main {
     }
 
     @Reflect
-    public static void flashAttentionF16(@RO KernelContext kernelContext,
-                                      @RO F16Array Q, @RO F16Array K, @RO F16Array V,
-                                      @WO F16Array O, @RW F16Array m, @RW F16Array l,
+    public static void flashAttentionF16(KernelContext kernelContext,
+                                      F16Array Q, F16Array K, F16Array V,
+                                      F16Array O, F16Array m, F16Array l,
                                       final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;

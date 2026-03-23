@@ -26,7 +26,7 @@ package hat;
 
 import hat.callgraph.ComputeEntrypoint;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.interpreter.Interpreter;
+//import jdk.incubator.code.interpreter.Interpreter;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.util.carriers.ArenaCarrier;
 import optkl.util.carriers.LookupCarrier;
@@ -97,9 +97,9 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     }
 
-    public void interpretWithArgs(Object[] args) {
-        computeEntrypoint().interpretWithArgs( args);
-    }
+    //public void interpretWithArgs(Object[] args) {
+      //  computeEntrypoint().interpretWithArgs( args);
+   // }
 
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");

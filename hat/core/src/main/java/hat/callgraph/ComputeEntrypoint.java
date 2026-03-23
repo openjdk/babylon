@@ -28,7 +28,7 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
+//import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -55,9 +55,9 @@ public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolved
         return lowered;
     }
 
-    public void interpretWithArgs( Object[] args) {
-        Interpreter.invoke(lookup, lazyLower(), args);
-    }
+   // public void interpretWithArgs( Object[] args) {
+     //   Interpreter.invoke(lookup, lazyLower(), args);
+   // }
 
     public void invokeWithArgs(Object[] args) {
         try {
