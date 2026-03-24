@@ -1,20 +1,37 @@
 package jdk.incubator.code.runtime;
 
+import java.lang.classfile.ClassBuilder;
+import java.lang.classfile.ClassElement;
+import static java.lang.classfile.ClassFile.ACC_PRIVATE;
+import static java.lang.classfile.ClassFile.ACC_STATIC;
+import static java.lang.classfile.ClassFile.ACC_SYNCHRONIZED;
+import java.lang.classfile.ClassTransform;
+import java.lang.classfile.CodeBuilder;
+import java.lang.classfile.Opcode;
+import java.lang.classfile.TypeKind;
+import java.lang.classfile.constantpool.ConstantPoolBuilder;
+import java.lang.classfile.constantpool.MethodHandleEntry;
+import java.lang.classfile.constantpool.MethodRefEntry;
+import java.lang.classfile.constantpool.NameAndTypeEntry;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.internal.access.JavaLangInvokeAccess;
-import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import jdk.internal.access.SharedSecrets;
 
 import java.lang.constant.ClassDesc;
+import static java.lang.constant.ConstantDescs.*;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Provides runtime support for creating reflectable lambdas. A reflectable lambda is a lambda whose
@@ -23,6 +40,10 @@ import java.lang.invoke.MethodType;
  * @see Op#ofLambda(Object)
  */
 public class ReflectableLambdaMetafactory {
+
+    private static final String NAME_METHOD_QUOTED = "__internal_quoted";
+    private static final String QUOTED_FIELD_NAME = "quoted";
+    private static final String MODEL_FIELD_NAME = "model";
 
     private ReflectableLambdaMetafactory() {
         // nope
@@ -75,8 +96,11 @@ public class ReflectableLambdaMetafactory {
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
+        ReflectableLambdaInfo reflectableLambdaInfo = decodedName.reflectableLambdaInfo;
+        LambdaTransform transform = new LambdaTransform(caller, factoryType, implementation, reflectableLambdaInfo);
         return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
-                implementation, dynamicMethodType, decodedName.reflectableLambdaInfo);
+                implementation, dynamicMethodType, transform,
+                List.of(implementation, reflectableLambdaInfo.opHandle(), reflectableLambdaInfo.extractOpHandle()));
     }
 
     /**
@@ -125,10 +149,29 @@ public class ReflectableLambdaMetafactory {
                                           Object... args)
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, decodedName.reflectableLambdaInfo, args);
+        MethodHandle implementation = extractArg(args, 1, MethodHandle.class);
+        ReflectableLambdaInfo reflectableLambdaInfo = decodedName.reflectableLambdaInfo;
+        LambdaTransform transform = new LambdaTransform(caller, factoryType, implementation, reflectableLambdaInfo);
+        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, transform,
+                List.of(implementation, reflectableLambdaInfo.opHandle(), reflectableLambdaInfo.extractOpHandle()),
+                args);
+    }
+
+    private static <T> T extractArg(Object[] args, int index, Class<T> type) {
+        if (index >= args.length) {
+            throw new IllegalArgumentException("missing argument");
+        }
+        Object result = Objects.requireNonNull(args[index]);
+        if (!type.isInstance(result)) {
+            throw new IllegalArgumentException("argument has wrong type");
+        }
+        return type.cast(result);
     }
 
     static final JavaLangInvokeAccess JLI_ACCESS = SharedSecrets.getJavaLangInvokeAccess();
+
+    record ReflectableLambdaInfo(ClassDesc quotedClass, ClassDesc funcOpClass,
+                                 MethodHandle extractOpHandle, MethodHandle opHandle) { }
 
     record DecodedName(String name, ReflectableLambdaInfo reflectableLambdaInfo) { }
 
@@ -164,5 +207,163 @@ public class ReflectableLambdaMetafactory {
         }
         return new ReflectableLambdaInfo(Holder.QUOTED_CLASS_DESC, Holder.FUNC_OP_CLASS_DESC,
                 Holder.QUOTED_EXTRACT_OP_HANDLE, handle);
+    }
+
+    static class LambdaTransform implements ClassTransform {
+
+        final ReflectableLambdaInfo reflectableLambdaInfo;
+        final ClassDesc lambdaClassSymbol;
+        final MethodHandleInfo quotableOpGetterInfo;
+        final ClassDesc[] argDescs;
+
+        public LambdaTransform(MethodHandles.Lookup caller, MethodType factoryType, MethodHandle implementation, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
+            this.reflectableLambdaInfo = reflectableLambdaInfo;
+            this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(caller.lookupClass()).concat("$$Lambda"));
+            argDescs = factoryType.parameterList().stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
+            try {
+                quotableOpGetterInfo = caller.revealDirect(reflectableLambdaInfo.opHandle()); // may throw SecurityException
+            } catch (IllegalArgumentException e) {
+                throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
+            }
+            if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
+                throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpGetterInfo));
+            }
+
+        }
+
+
+        @Override
+        public void accept(ClassBuilder clb, ClassElement cle) {
+            clb.with(cle);
+        }
+
+        @Override
+        public void atEnd(ClassBuilder clb) {
+            // the field that will hold the quoted instance
+            clb.withField(QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass(), ACC_PRIVATE);
+            // the field that will hold the model
+            clb.withField(MODEL_FIELD_NAME, reflectableLambdaInfo.funcOpClass(),
+                    ACC_PRIVATE | ACC_STATIC);
+            generateQuotedMethod(clb);
+        }
+
+        /**
+        * Generate method #__internal_quoted()
+         */
+        private void generateQuotedMethod(ClassBuilder clb) {
+            clb.withMethodBody(NAME_METHOD_QUOTED, MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()), ACC_PRIVATE, (cob) ->
+                cob.aload(0)
+                        .invokevirtual(lambdaClassSymbol, "getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()))
+                        .areturn());
+            // generate helper methods
+            /*
+            synchronized Quoted getQuoted() {
+                Quoted v = quoted;
+                if (v == null) {
+                    v = quoted = Quoted.extractOp(getModel(), captures);
+                }
+                return v;
+            }
+            * */
+            clb.withMethodBody("getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()),
+                    ACC_PRIVATE + ACC_SYNCHRONIZED, cob ->
+                        cob.aload(0)
+                            .getfield(lambdaClassSymbol, QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
+                            .astore(1)
+                            .aload(1)
+                            .ifThen(Opcode.IFNULL, bcb -> {
+                                bcb.aload(0); // will be used by putfield
+
+                                // load class data: MH to Quoted.extractOp
+                                ConstantPoolBuilder cp = bcb.constantPool();
+                                MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
+                                NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
+                                bcb.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH));
+
+                                bcb.invokestatic(lambdaClassSymbol, "getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()));
+
+                                // load captured args in array
+                                int capturedArity = argDescs.length;
+                                bcb.loadConstant(capturedArity)
+                                        .anewarray(CD_Object);
+                                for (int i = 0; i < capturedArity; i++) {
+                                    bcb.dup()
+                                            .loadConstant(i)
+                                            .aload(0)
+                                            .getfield(lambdaClassSymbol, "arg$" + (i + 1), argDescs[i]);
+                                    boxIfTypePrimitive(bcb, TypeKind.from(argDescs[i]));
+                                    bcb.aastore();
+                                }
+
+                                // invoke Quoted.extractOp
+                                bcb.invokevirtual(CD_MethodHandle, "invokeExact", reflectableLambdaInfo.extractOpHandle().type().describeConstable().get())
+                                        .dup_x1()
+                                        .putfield(lambdaClassSymbol, QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
+                                        .astore(1);
+
+                            })
+                            .aload(1)
+                            .areturn());
+
+            /*
+            private static synchronized CoreOp.FuncOp getModel() {
+                FuncOp v = model;
+                if (v == null) {
+                    v = model = ...invoke lambda op building method...
+                }
+                return v;
+            }
+            * */
+            ClassDesc funcOpClassDesc = reflectableLambdaInfo.funcOpClass();
+            clb.withMethodBody("getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()),
+                    ACC_PRIVATE + ACC_STATIC + ACC_SYNCHRONIZED, cob ->
+                        cob.getstatic(lambdaClassSymbol, MODEL_FIELD_NAME, funcOpClassDesc)
+                            .astore(0)
+                            .aload(0)
+                            .ifThen(Opcode.IFNULL, bcb -> {
+                                // load class data: MH to op building method
+                                ConstantPoolBuilder cp = clb.constantPool();
+                                MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
+                                NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
+                                cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(1))), natMH));
+                                MethodType mtype = quotableOpGetterInfo.getMethodType();
+                                cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get())
+                                        .checkcast(funcOpClassDesc)
+                                        .dup()
+                                        .putstatic(lambdaClassSymbol, MODEL_FIELD_NAME, funcOpClassDesc)
+                                        .astore(0);
+                            })
+                            .aload(0)
+                            .areturn());
+        }
+
+
+        static void boxIfTypePrimitive(CodeBuilder cob, TypeKind tk) {
+            var cp = cob.constantPool();
+            switch (tk) {
+                case BOOLEAN -> cob.invokestatic(box(cp, CD_boolean, CD_Boolean));
+                case BYTE -> cob.invokestatic(box(cp, CD_byte, CD_Byte));
+                case CHAR -> cob.invokestatic(box(cp, CD_char, CD_Character));
+                case DOUBLE -> cob.invokestatic(box(cp, CD_double, CD_Double));
+                case FLOAT -> cob.invokestatic(box(cp, CD_float, CD_Float));
+                case INT -> cob.invokestatic(box(cp, CD_int, CD_Integer));
+                case LONG -> cob.invokestatic(box(cp, CD_long, CD_Long));
+                case SHORT -> cob.invokestatic(box(cp, CD_short, CD_Short));
+            }
+        }
+
+        private static MethodRefEntry box(ConstantPoolBuilder cp, ClassDesc primitive, ClassDesc target) {
+            return cp.methodRefEntry(target, "valueOf", MethodTypeDesc.of(target, primitive));
+        }
+
+        private static String sanitizedTargetClassName(Class<?> targetClass) {
+            String name = targetClass.getName();
+            if (targetClass.isHidden()) {
+                // use the original class name
+                name = name.replace('/', '_');
+            }
+            return name.replace('.', '/');
+        }
+
     }
 }

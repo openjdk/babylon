@@ -24,9 +24,9 @@
  */
 package java.lang.invoke;
 
-import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import sun.invoke.util.Wrapper;
 
+import java.lang.classfile.ClassTransform;
 import java.lang.reflect.Modifier;
 
 import static java.lang.invoke.MethodHandleInfo.*;
@@ -70,9 +70,8 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     final boolean isSerializable;             // Should the returned instance be serializable
     final Class<?>[] altInterfaces;           // Additional interfaces to be implemented
     final MethodType[] altMethods;            // Signatures of additional methods to bridge
-    final ReflectableLambdaInfo reflectableLambdaInfo;       // A holder for information pertinent to a reflectable lambda
-                                              // the quotable lambda's associated intermediate representation (can be null).
-    final MethodHandleInfo quotableOpGetterInfo;  // Info about the quotable getter method handle (can be null).
+    final ClassTransform transform;           // A transform to post-process lambda class (can be null)
+    final Object classdata;                   // Explicitly provided class data (can be null)
 
     /**
      * Meta-factory constructor.
@@ -121,7 +120,8 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                                         boolean isSerializable,
                                         Class<?>[] altInterfaces,
                                         MethodType[] altMethods,
-                                        ReflectableLambdaInfo reflectableLambdaInfo)
+                                        ClassTransform transform,
+                                        Object classdata)
             throws LambdaConversionException {
         if (!caller.hasFullPrivilegeAccess()) {
             throw new LambdaConversionException(String.format(
@@ -182,7 +182,8 @@ import static sun.invoke.util.Wrapper.isWrapperType;
         this.isSerializable = isSerializable;
         this.altInterfaces = altInterfaces;
         this.altMethods = altMethods;
-        this.reflectableLambdaInfo = reflectableLambdaInfo;
+        this.transform = transform;
+        this.classdata = classdata;
 
         if (interfaceMethodName.isEmpty() ||
                 interfaceMethodName.indexOf('.') >= 0 ||
@@ -208,19 +209,6 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                         "%s is not an interface",
                         c.getName()));
             }
-        }
-
-        if (reflectableLambdaInfo != null) {
-            try {
-                quotableOpGetterInfo = caller.revealDirect(reflectableLambdaInfo.opHandle()); // may throw SecurityException
-            } catch (IllegalArgumentException e) {
-                throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
-            }
-            if (quotableOpGetterInfo.getReferenceKind() != REF_invokeStatic) {
-                throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpGetterInfo));
-            }
-        } else {
-            quotableOpGetterInfo = null;
         }
     }
 

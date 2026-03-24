@@ -25,11 +25,9 @@
 
 package jdk.internal.access;
 
+import java.lang.classfile.ClassTransform;
 import jdk.internal.foreign.abi.NativeEntryPoint;
 
-import java.lang.constant.ClassDesc;
-import java.lang.constant.MethodHandleDesc;
-import java.lang.constant.MethodTypeDesc;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
@@ -177,20 +175,19 @@ public interface JavaLangInvokeAccess {
      */
     MethodHandle serializableConstructor(Class<?> decl, Constructor<?> ctorToCall) throws IllegalAccessException;
 
-    record ReflectableLambdaInfo(ClassDesc quotedClass, ClassDesc funcOpClass,
-                                 MethodHandle extractOpHandle, MethodHandle opHandle) { }
-
     CallSite metafactoryInternal(MethodHandles.Lookup caller,
                                                String interfaceMethodName,
                                                MethodType factoryType,
                                                MethodType interfaceMethodType,
                                                MethodHandle implementation,
                                                MethodType dynamicMethodType,
-                                               ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException;
+                                               ClassTransform transform,
+                                               Object classdata) throws LambdaConversionException;
 
     CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
                                     String interfaceMethodName,
                                     MethodType factoryType,
-                                    ReflectableLambdaInfo reflectableLambdaInfo,
+                                    ClassTransform transform,
+                                    Object classdata,
                                     Object... args) throws LambdaConversionException;
 }

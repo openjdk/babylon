@@ -25,7 +25,6 @@
 
 package java.lang.invoke;
 
-import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import jdk.internal.constant.ClassOrInterfaceDescImpl;
 import jdk.internal.misc.CDS;
 import jdk.internal.util.ClassFileDumper;
@@ -34,13 +33,11 @@ import sun.invoke.util.VerifyAccess;
 import java.io.Serializable;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeBuilder;
-import java.lang.classfile.Label;
 import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.classfile.constantpool.MethodHandleEntry;
-import java.lang.classfile.constantpool.NameAndTypeEntry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.Modifier;
@@ -73,22 +70,10 @@ import sun.invoke.util.Wrapper;
     private static final @Stable String[] ARG_NAME_CACHE = {"arg$1", "arg$2", "arg$3", "arg$4", "arg$5", "arg$6", "arg$7", "arg$8"};
     private static final ClassDesc[] EMPTY_CLASSDESC_ARRAY = ConstantUtils.EMPTY_CLASSDESC;
 
-    // Static builders to avoid lambdas
-    record MethodBody(Consumer<CodeBuilder> code) implements Consumer<MethodBuilder> {
-        @Override
-        public void accept(MethodBuilder mb) {
-            mb.withCode(code);
-        }
-    };
-
     // For dumping generated classes to disk, for debugging purposes
     private static final ClassFileDumper lambdaProxyClassFileDumper;
 
     private static final boolean disableEagerInitialization;
-
-    private static final String NAME_METHOD_QUOTED = "__internal_quoted";
-    private static final String QUOTED_FIELD_NAME = "quoted";
-    private static final String MODEL_FIELD_NAME = "model";
 
     static {
         // To dump the lambda proxy classes, set this system property:
@@ -159,11 +144,12 @@ import sun.invoke.util.Wrapper;
                                        boolean isSerializable,
                                        Class<?>[] altInterfaces,
                                        MethodType[] altMethods,
-                                       ReflectableLambdaInfo reflectableLambdaInfo)
+                                       ClassTransform transform,
+                                       Object classData)
             throws LambdaConversionException {
         super(caller, factoryType, interfaceMethodName, interfaceMethodType,
               implementation, dynamicMethodType,
-              isSerializable, altInterfaces, altMethods, reflectableLambdaInfo);
+              isSerializable, altInterfaces, altMethods, transform, classData);
         implMethodClassDesc = implClassDesc(implClass);
         implMethodName = implInfo.getName();
         implMethodDesc = methodDesc(implInfo.getMethodType());
@@ -324,7 +310,7 @@ import sun.invoke.util.Wrapper;
             interfaces = List.copyOf(itfs);
         }
         final boolean finalAccidentallySerializable = accidentallySerializable;
-        final byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
+        byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
             @Override
             public void accept(ClassBuilder clb) {
                 clb.withFlags(ACC_SUPER | ACC_FINAL | ACC_SYNTHETIC)
@@ -334,18 +320,11 @@ import sun.invoke.util.Wrapper;
                     clb.withField(argName(i), argDescs[i], ACC_PRIVATE | ACC_FINAL);
                 }
 
-                if (reflectableLambdaInfo != null) {
-                    // the field that will hold the quoted instance
-                    clb.withField(QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass(), ACC_PRIVATE);
-                    // the field that will hold the model
-                    clb.withField(MODEL_FIELD_NAME, reflectableLambdaInfo.funcOpClass(),
-                            ACC_PRIVATE | ACC_STATIC);
-                }
-
                 generateConstructor(clb);
 
-                generateClassInitializationMethod(clb);
-
+                if (factoryType.parameterCount() == 0 && disableEagerInitialization) {
+                    generateClassInitializer(clb);
+                }
 
                 // Forward the SAM method
                 clb.withMethodBody(interfaceMethodName,
@@ -367,37 +346,28 @@ import sun.invoke.util.Wrapper;
                     generateSerializationFriendlyMethods(clb);
                 else if (finalAccidentallySerializable)
                     generateSerializationHostileMethods(clb);
-
-                if (reflectableLambdaInfo != null) {
-                    generateQuotedMethod(clb);
-                }
             }
         });
+
+        // Class post-processing transformation
+        if (transform != null) {
+            classBytes = ClassFile.of().transformClass(ClassFile.of().parse(classBytes), transform);
+        }
 
         // Define the generated class in this VM.
 
         try {
             // this class is linked at the indy callsite; so define a hidden nestmate
-            List<?> classdata;
-            if (useImplMethodHandle || reflectableLambdaInfo != null) {
-                classdata = reflectableLambdaInfo == null ?
-                        List.of(implementation) :
-                        List.of(implementation, reflectableLambdaInfo.opHandle(), reflectableLambdaInfo.extractOpHandle());
-            } else {
-                classdata = null;
-            }
+            var cdata = classdata != null ? classdata : useImplMethodHandle ? implementation : null;
             return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, lambdaProxyClassFileDumper, NESTMATE_CLASS | STRONG_LOADER_LINK)
-                         .defineClass(!disableEagerInitialization, classdata);
+                         .defineClass(!disableEagerInitialization, cdata);
 
         } catch (Throwable t) {
             throw new InternalError(t);
         }
     }
 
-    private void generateClassInitializationMethod(ClassBuilder clb) {
-        if (!(factoryType.parameterCount() == 0 && disableEagerInitialization) && reflectableLambdaInfo == null) {
-            return;
-        }
+    private void generateClassInitializer(ClassBuilder clb) {
         clb.withMethodBody(CLASS_INIT_NAME, MTD_void, ACC_STATIC, new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {
@@ -491,110 +461,6 @@ import sun.invoke.util.Wrapper;
                            .areturn();
                     }
                 });
-    }
-
-    /**
-    * Generate method #__internal_quoted()
-     */
-    private void generateQuotedMethod(ClassBuilder clb) {
-        clb.withMethod(NAME_METHOD_QUOTED, MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()), ACC_PRIVATE, new MethodBody(new Consumer<CodeBuilder>() {
-            @Override
-            public void accept(CodeBuilder cob) {
-                cob.aload(0)
-                        .invokevirtual(lambdaClassEntry.asSymbol(), "getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()))
-                        .areturn();
-            }
-        }));
-        // generate helper methods
-        /*
-        synchronized Quoted getQuoted() {
-            Quoted v = quoted;
-            if (v == null) {
-                v = quoted = Quoted.extractOp(getModel(), captures);
-            }
-            return v;
-        }
-        * */
-        clb.withMethod("getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()),
-                ACC_PRIVATE + ACC_SYNCHRONIZED,
-                new MethodBody(new Consumer<CodeBuilder>() {
-                    @Override
-                    public void accept(CodeBuilder cob) {
-                        cob.aload(0)
-                                .getfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
-                                .astore(1)
-                                .aload(1)
-                                .ifThen(Opcode.IFNULL, bcb -> {
-                                    bcb.aload(0); // will be used by putfield
-
-                                    // load class data: MH to Quoted.extractOp
-                                    ConstantPoolBuilder cp = bcb.constantPool();
-                                    MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
-                                    NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
-                                    bcb.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH));
-
-                                    bcb.invokestatic(lambdaClassEntry.asSymbol(), "getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()));
-
-                                    // load captured args in array
-                                    int capturedArity = factoryType.parameterCount();
-                                    bcb.loadConstant(capturedArity)
-                                            .anewarray(CD_Object);
-                                    for (int i = 0; i < capturedArity; i++) {
-                                        bcb.dup()
-                                                .loadConstant(i)
-                                                .aload(0)
-                                                .getfield(lambdaClassEntry.asSymbol(), argName(i), argDescs[i]);
-                                        TypeConvertingMethodAdapter.boxIfTypePrimitive(bcb, TypeKind.from(argDescs[i]));
-                                        bcb.aastore();
-                                    }
-
-                                    // invoke Quoted.extractOp
-                                    bcb.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(reflectableLambdaInfo.extractOpHandle().type()))
-                                            .dup_x1()
-                                            .putfield(lambdaClassEntry.asSymbol(), QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
-                                            .astore(1);
-
-                                })
-                                .aload(1)
-                                .areturn();
-                    }
-                }));
-
-        /*
-        private static synchronized CoreOp.FuncOp getModel() {
-            FuncOp v = model;
-            if (v == null) {
-                v = model = ...invoke lambda op building method...
-            }
-            return v;
-        }
-        * */
-        clb.withMethod("getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()),
-                ACC_PRIVATE + ACC_STATIC + ACC_SYNCHRONIZED,
-                new MethodBody(new Consumer<CodeBuilder>() {
-                    @Override
-                    public void accept(CodeBuilder cob) {
-                        ClassDesc funcOpClassDesc = reflectableLambdaInfo.funcOpClass();
-                        cob.getstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc)
-                                .astore(0)
-                                .aload(0)
-                                .ifThen(Opcode.IFNULL, bcb -> {
-                                    // load class data: MH to op building method
-                                    ConstantPoolBuilder cp = pool;
-                                    MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
-                                    NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
-                                    cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(1))), natMH));
-                                    MethodType mtype = quotableOpGetterInfo.getMethodType();
-                                    cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get())
-                                            .checkcast(funcOpClassDesc)
-                                            .dup()
-                                            .putstatic(lambdaClassEntry.asSymbol(), MODEL_FIELD_NAME, funcOpClassDesc)
-                                            .astore(0);
-                                })
-                                .aload(0)
-                                .areturn();
-                    }
-                }));
     }
 
     /**

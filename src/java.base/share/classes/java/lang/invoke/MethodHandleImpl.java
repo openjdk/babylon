@@ -42,6 +42,7 @@ import sun.invoke.util.VerifyType;
 import sun.invoke.util.Wrapper;
 
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassTransform;
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles.Lookup;
@@ -1648,15 +1649,17 @@ abstract class MethodHandleImpl {
             @Override
             public CallSite metafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
                                                 MethodType interfaceMethodType, MethodHandle implementation,
-                                                MethodType dynamicMethodType, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
+                                                MethodType dynamicMethodType, ClassTransform transform,
+                                                Object classdata) throws LambdaConversionException {
                 return LambdaMetafactory.metafactoryInternal(caller, interfaceMethodName, factoryType,
-                        interfaceMethodType, implementation, dynamicMethodType, reflectableLambdaInfo);
+                        interfaceMethodType, implementation, dynamicMethodType, transform, classdata);
             }
 
             @Override
             public CallSite altMetafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
-                                                   ReflectableLambdaInfo reflectableLambdaInfo, Object... args) throws LambdaConversionException {
-                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, reflectableLambdaInfo, args);
+                                                   ClassTransform transform, Object classdata,
+                                                   Object... args) throws LambdaConversionException {
+                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, transform, classdata, args);
             }
         });
     }
