@@ -43,11 +43,11 @@ public abstract class FFIBackend extends FFIBackendDriver {
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
 
         backendBridge.computeStart();
-        if (config().interpret()) {
-            computeContext.interpretWithArgs(args);
-        } else {
+       // if (config().interpret()) {
+         //   computeContext.interpretWithArgs(args);
+       // } else {
             computeContext.invokeWithArgs(args);
-        }
+        //}
         backendBridge.computeEnd();
     }
 

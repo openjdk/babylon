@@ -243,6 +243,7 @@ public interface vec4 extends IfaceValue.vec{
 
     static vec4 normalize(vec4 v){
         float lenSq = sumOfSquares(v);
+       // return mul(v, F32.abs(F32.inversesqrt(lenSq)));//:(vec4(0.0f));
         return (lenSq >0.0f)?(mul(v, F32.inversesqrt(lenSq))):(vec4(0.0f));
     }
 

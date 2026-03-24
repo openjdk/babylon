@@ -32,6 +32,7 @@ import hat.types.vec4;
 import hat.types.vec3;
 import hat.types.vec2;
 import hat.types.vec4;
+
 import static hat.types.vec4.*;
 import hat.types.vec3;
 import static hat.types.vec3.*;
@@ -244,7 +245,8 @@ public interface vec3 extends IfaceValue.vec{
     }
 
     static vec3 reflect(vec3 l, vec3 r){
-        return vec3.sub(l, mul(mul(r, l), 2.0f));
+
+        return vec3.sub(l, vec3.mul(2f*vec3.dot(r, l),r));
     }
 
     static float distance(vec3 l, vec3 r){
@@ -320,9 +322,9 @@ public interface vec3 extends IfaceValue.vec{
 
     static vec3 mul(vec3 l, mat3 r){
         return vec3(
-            l.x()*r._00()+l.x()*r._01()+l.x()*r._02(),
-            l.y()*r._10()+l.y()*r._11()+l.y()*r._12(),
-            l.z()*r._20()+l.z()*r._21()+l.z()*r._22()
+                l.x()*r._00()+l.y()*r._01()+l.z()*r._02(),
+                l.x()*r._10()+l.y()*r._11()+l.z()*r._12(),
+                l.x()*r._20()+l.y()*r._21()+l.z()*r._22()
         );
     }
 

@@ -510,6 +510,66 @@ public class TestSwitchStatementOp {
         return r;
     }
 
+    @Reflect
+    static String caseConstantPrimitiveWrapperSelector(Integer i) {
+        String r = "";
+        switch (i) {
+            case 1 -> r += "one";
+            case 2, 3 -> r += "two or three";
+            default -> r += "else";
+        };
+        return r;
+    }
+
+    @Test
+    void testCaseConstantPrimitiveWrapperSelector() {
+        CoreOp.FuncOp lf = lower("caseConstantPrimitiveWrapperSelector");
+        Integer[] args = {1, 2, 3, 4};
+        for (Integer a : args) {
+            Assertions.assertEquals(caseConstantPrimitiveWrapperSelector(a),
+                    Interpreter.invoke(MethodHandles.lookup(), lf, a));
+        }
+    }
+
+    @Reflect
+    static String constantLabelCasted(int i) {
+        String r = "";
+        switch (i) {
+            case (byte) 1 -> r += "one";
+            default -> r += "not one";
+        };
+        return r;
+    }
+
+    @Test
+    void testConstantLabelCasted() {
+        CoreOp.FuncOp lf = lower("constantLabelCasted");
+        int[] args = {-1, 1};
+        for (int a : args) {
+            Assertions.assertEquals(constantLabelCasted(a), Interpreter.invoke(MethodHandles.lookup(), lf, a));
+        }
+    }
+
+    @Reflect
+    static String caseConstantStringLiteral(String s) {
+        String r = "";
+        switch (s) {
+            case "1" -> r += "one";
+            case "2", "3" -> r+= "two or three";
+            default -> r += "else";
+        };
+        return r;
+    }
+
+    @Test
+    void testCeaseConstantStringLiteral() {
+        CoreOp.FuncOp lf = lower("caseConstantStringLiteral");
+        String[] args = {"1", "2", "3", ""};
+        for (String a : args) {
+            Assertions.assertEquals(caseConstantStringLiteral(a), Interpreter.invoke(MethodHandles.lookup(), lf, a));
+        }
+    }
+
     @Test
     void testTryAndSwitch() {
         CoreOp.FuncOp lmodel = lower("tryAndSwitch");

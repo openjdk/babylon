@@ -59,7 +59,7 @@ public class TestPrivate {
     }
 
     @Reflect
-    private static void compute(@RO KernelContext kernelContext, @WO F32Array data) {
+    private static void compute(KernelContext kernelContext, F32Array data) {
         PrivateArray privateArray = PrivateArray.createPrivate();
         int lix = kernelContext.lix;
         int blockId = kernelContext.bix;

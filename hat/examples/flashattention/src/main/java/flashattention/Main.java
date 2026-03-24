@@ -105,10 +105,10 @@ public class Main {
      * @param softMaxScale
      */
     @Reflect
-    public static void selfAttentionV2HAT(@RO KernelContext kernelContext,
-                                          @RO F32Array Q, @RO F32Array K, @RO F32Array V,
-                                          @WO F32Array attentionMatrix, @WO F32Array O,
-                                          @RO final int N, @RO final int d, @RO final float softMaxScale) {
+    public static void selfAttentionV2HAT(KernelContext kernelContext,
+                                          F32Array Q, F32Array K, F32Array V,
+                                          F32Array attentionMatrix, F32Array O,
+                                          final int N, final int d, final float softMaxScale) {
         int idx = kernelContext.gix;
         if (idx < N) {
             // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
@@ -382,9 +382,9 @@ public class Main {
      * @param softmaxScale
      */
     @Reflect
-    public static void flashAttention(@RO KernelContext kernelContext,
-                                      @RO F32Array Q, @RO F32Array K, @RO F32Array V,
-                                      @WO F32Array O, @RW F32Array m, @RW F32Array l,
+    public static void flashAttention(KernelContext kernelContext,
+                                      F32Array Q, F32Array K, F32Array V,
+                                      F32Array O, F32Array m, F32Array l,
                                       final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;
@@ -419,7 +419,7 @@ public class Main {
 
             int kvTileRow = (tileId * blockN) + tid;
 
-            // Load the tiles K and V into shared memoru
+            // Load the tiles K and V into shared memory
             for (int k = 0; k < d; k++) {
                 sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
                 sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
@@ -525,9 +525,9 @@ public class Main {
     }
 
     @Reflect
-    public static void flashAttentionF16(@RO KernelContext kernelContext,
-                                      @RO F16Array Q, @RO F16Array K, @RO F16Array V,
-                                      @WO F16Array O, @RW F16Array m, @RW F16Array l,
+    public static void flashAttentionF16(KernelContext kernelContext,
+                                      F16Array Q, F16Array K, F16Array V,
+                                      F16Array O, F16Array m, F16Array l,
                                       final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;
@@ -672,7 +672,6 @@ public class Main {
         return true;
     }
 
-    @Reflect
     static void main(String[] args) {
         IO.println("Example of Flash-Attention in HAT");
 
@@ -694,9 +693,9 @@ public class Main {
 
         // Configuration parameters
         final int sequenceLen = size;   // represent the number of tokens (or words)
-        final int headDim = 64;        // vector representation for a single token
-        final int blockM = 32;         // tile size
-        final int blockN = 32;         // tile size
+        final int headDim = 64;         // vector representation for a single token
+        final int blockM = 32;          // tile size
+        final int blockN = 32;          // tile size
         final float softmaxScale = (float) (1.0f / Math.sqrt(headDim));
 
         final int sharedMemorySize = blockM * headDim

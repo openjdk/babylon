@@ -77,13 +77,13 @@ java @.run ffi-opencl matmul --size=1024
 OpenCL backend:
 
 ```bash
-java @.test-suite ffi-openclÂ
+java @.test-suite ffi-opencl
 ```
 
 CUDA backed:
 
 ```bash
-java @.test-suite ffi-cudaÂ
+java @.test-suite ffi-cuda
 ```
 
 
