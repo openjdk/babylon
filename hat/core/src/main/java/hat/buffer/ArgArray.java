@@ -24,19 +24,22 @@
  */
 package hat.buffer;
 
-import optkl.ifacemapper.AccessType;
+import hat.annotations.Kernel;
 import hat.callgraph.KernelCallGraph;
+import hat.exceptions.HATRuntimeException;
+import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.BoundSchema;
-import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import optkl.ifacemapper.SchemaBuilder;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
+
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static optkl.ifacemapper.MappableIface.getMemorySegment;
 
 public interface ArgArray extends Buffer {
     interface Arg extends Buffer.Struct{
@@ -283,18 +286,20 @@ public interface ArgArray extends Buffer {
                     for (Annotation annotation : annotations) {
                         accessType = AccessType.of(annotation);
                     }
-                    MemorySegment segment = MappableIface.getMemorySegment(buffer);
+                    MemorySegment segment = getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
-                    buf.access(bufferAccessList.get(i).value); // buf.access(accessType.value);
-                    assert bufferAccessList.get(i).value == accessType.value :
-                            (kernelCallGraph.entrypoint.method().getParameters()[i].toString()
-                                    + " in " + kernelCallGraph.entrypoint.method().getName()
-                                    + ": buffertagger " + bufferAccessList.get(i).value
-                                    + " doesn't match " + accessType.value);
+
+                    if (kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class) != null) {
+                        // If the annotation is present, then we keep the accessor defined for each parameter
+                        buf.access(accessType.value);
+                    } else {
+                        // otherwise, we rely on the buffer-tagger to set the accessor
+                        buf.access(bufferAccessList.get(i).value);
+                    }
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
