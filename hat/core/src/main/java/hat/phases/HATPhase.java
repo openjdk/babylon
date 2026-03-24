@@ -31,10 +31,15 @@ import optkl.util.carriers.LookupCarrier;
 import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
-public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
-        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATTensorsPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
+public sealed interface HATPhase extends Function<CoreOp.FuncOp, CoreOp.FuncOp>, LookupCarrier
+        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase,
+                HATTensorsPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase,
+                HATVectorStorePhase {
+
     KernelCallGraph kernelCallGraph();
-    @Override default MethodHandles.Lookup lookup(){
+
+    @Override
+    default MethodHandles.Lookup lookup() {
         return kernelCallGraph().lookup();
     }
 }

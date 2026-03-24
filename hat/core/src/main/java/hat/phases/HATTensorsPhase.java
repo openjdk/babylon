@@ -81,7 +81,6 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
         }
     }
 
-    // Probably, the fill and the mma operations can be comined in a single op, TensorMath
     private void transformTensorMMAOp(Block.Builder blockBuilder, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp loadOp -> {
@@ -159,7 +158,7 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
     }
 
     private CoreOp.FuncOp fillTensors(CoreOp.FuncOp funcOp) {
-        // 1. Analyse IR calls to Tensor.create
+        // 1. Analyse IR calls for Tensor.fill
         Set<Op> opsToProcess = new HashSet<>();
         OpHelper.Invoke.stream(lookup(), funcOp)
                 .filter(OpHelper.Invoke::returnsVoid)
@@ -168,12 +167,12 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                 .forEach(invoke -> {
                     opsToProcess.add(invoke.op());
                     Value varLoadValue = invoke.op().operands().getFirst();
-                    if (varLoadValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                    if (varLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         opsToProcess.add(varLoadOp);
                     }
                 });
 
-        // 2. Transform the IR
+        // 2. Transform the IR (tensor.fill into dialect.tensor.fill)
         return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorFillOp(blockBuilder, op);
             return blockBuilder;
@@ -189,7 +188,7 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                 .forEach(invoke -> {
                     opsToProcess.add(invoke.op());
                     Value varLoadValue = invoke.op().operands().getFirst();
-                    if (varLoadValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                    if (varLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         opsToProcess.add(varLoadOp);
                     }
                 });
@@ -212,8 +211,6 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                             .map(result -> (CoreOp.VarAccessOp.VarStoreOp) result.op())
                             .forEach(opsToProcess::add);
                 });
-
-        // 2. Transform the IR
         return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorLoadOp(blockBuilder, op);
             return blockBuilder;
@@ -227,8 +224,6 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("store"))
                 .forEach(invoke -> opsToProcess.add(invoke.op()));
-
-        // 2. Transform the IR
         return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorStoreOp(blockBuilder, op);
             return blockBuilder;
