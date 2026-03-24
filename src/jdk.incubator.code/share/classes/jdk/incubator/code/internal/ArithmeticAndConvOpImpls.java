@@ -791,6 +791,7 @@ public final class ArithmeticAndConvOpImpls {
         }
     }
 
+    // @@@ we might revisit the mechanism to resolve a method and cache the result - JDK-8378294
     private static MethodHandle opHandle(String methodName, FunctionType ft) {
         MethodType mt = resolveToMethodType(ft);
         if (mt == null) return null;
