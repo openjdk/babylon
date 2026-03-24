@@ -40,17 +40,14 @@ import java.util.function.Function;
 /**
  * The top-level operation class for core operations.
  * <p>
- * A code model, produced by the Java compiler from Java program source, may consist of core operations and Java
- * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
- * Java Language Specification.
- * <p>
  * Core operations model the foundational, language-agnostic structure of code, such as functions, modules,
- * variables, tuples, constants, and control flow. Core operations may appear on their own or together with Java
- * operations in the same code model.
+ * variables, tuples, constants, and control flow. Core operations may appear on their own or together with
+ * operations expressed in other dialects.
  * <p>
- * Lowering may transform Java operations to a representation composed only of core operations. A code model
- * consisting solely of core operations therefore captures program structure independently of any one source
- * language while preserving the meaning of the original program.
+ * {@linkplain jdk.incubator.code.Op.Lowerable#lower(Block.Builder, CodeTransformer) Lowering} may transform operations
+ * in other dialects to a representation composed only of core operations. A code model consisting solely of core
+ * operations therefore captures program structure independently of any one source language while preserving the meaning
+ * of the original program.
  */
 public sealed abstract class CoreOp extends Op {
 
