@@ -462,7 +462,7 @@ public class SwitchExpressionTest2 {
             func @"caseConstantOtherKindsOfExpr" (%0 : java.type:"int")java.type:"java.lang.String" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 %2 : java.type:"int" = constant @11;
-                %3 : Var<java.type:"int"> = var %2 @"eleven";
+                %3 : Var<java.type:"int"> = var %2 @"eleven" @var.declared.final=true;
                 %4 : java.type:"int" = var.load %1;
                 %5 : java.type:"java.lang.String" = java.switch.expression %4
                     (%6 : java.type:"int")java.type:"boolean" -> {
@@ -655,10 +655,10 @@ public class SwitchExpressionTest2 {
                 %1 : Var<java.type:"short"> = var %0 @"a";
                 %2 : java.type:"int" = constant @1;
                 %3 : java.type:"short" = conv %2;
-                %4 : Var<java.type:"short"> = var %3 @"s";
+                %4 : Var<java.type:"short"> = var %3 @"s" @var.declared.final=true;
                 %5 : java.type:"int" = constant @2;
                 %6 : java.type:"byte" = conv %5;
-                %7 : Var<java.type:"byte"> = var %6 @"b";
+                %7 : Var<java.type:"byte"> = var %6 @"b" @var.declared.final=true;
                 %8 : java.type:"short" = var.load %1;
                 %9 : java.type:"java.lang.String" = java.switch.expression %8
                     (%10 : java.type:"short")java.type:"boolean" -> {
@@ -718,7 +718,7 @@ public class SwitchExpressionTest2 {
                 %1 : Var<java.type:"java.lang.Byte"> = var %0 @"a";
                 %2 : java.type:"int" = constant @2;
                 %3 : java.type:"byte" = conv %2;
-                %4 : Var<java.type:"byte"> = var %3 @"b";
+                %4 : Var<java.type:"byte"> = var %3 @"b" @var.declared.final=true;
                 %5 : java.type:"java.lang.Byte" = var.load %1;
                 %6 : java.type:"java.lang.String" = java.switch.expression %5
                     (%7 : java.type:"java.lang.Byte")java.type:"boolean" -> {

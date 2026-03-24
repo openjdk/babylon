@@ -167,13 +167,13 @@ public class TryTest {
                 java.try
                     ()Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> -> {
                         %1 : java.type:"TryTest$A" = invoke %0 @java.ref:"TryTest::a():TryTest$A";
-                        %2 : Var<java.type:"TryTest$A"> = var %1 @"a";
+                        %2 : Var<java.type:"TryTest$A"> = var %1 @"a" @var.declared.final=true;
                         %3 : java.type:"TryTest$A" = var.load %2;
                         %4 : java.type:"TryTest$B" = field.load %3 @java.ref:"TryTest$A::b:TryTest$B";
                         %5 : java.type:"TryTest$A" = var.load %2;
                         %6 : java.type:"TryTest$B" = field.load %5 @java.ref:"TryTest$A::b:TryTest$B";
                         %7 : java.type:"TryTest$C" = field.load %6 @java.ref:"TryTest$B::c:TryTest$C";
-                        %8 : Var<java.type:"TryTest$C"> = var %7 @"c";
+                        %8 : Var<java.type:"TryTest$C"> = var %7 @"c"  @var.declared.final=true;
                         %9 : Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> = tuple %2 %4 %8;
                         yield %9;
                     }
