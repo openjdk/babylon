@@ -12,8 +12,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -212,10 +212,8 @@ public class TestEvaluation {
         return i;
     }
 
-    //@Reflect
+    @Reflect
     static int fcEffectivelyFinalVar() {
-        // @@@ should fail
-        // currently we lack sufficent info to determine if a variable was declared final in source code
         int x = 1;
         return x;
     }
@@ -270,7 +268,7 @@ public class TestEvaluation {
 
     @ParameterizedTest
     @MethodSource("cases")
-    void test(Method m) throws NoSuchMethodException {
+    void test(Method m) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
@@ -279,13 +277,7 @@ public class TestEvaluation {
             Assertions.assertTrue(v.isEmpty(), m.getName());
         } else {
             Assertions.assertTrue(v.isPresent(), m.getName());
-            Object[] args = new Object[0];
-            if ((m.getModifiers() & Modifier.STATIC) == 0) { // instance method
-                args = new Object[] {this};
-            }
-            // TODO use BytecodeGenerator instead of Interpreter
-            Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER), args);
-            Assertions.assertEquals(expected, v.get());
+            Assertions.assertEquals(m.invoke(this), v.get());
         }
     }
 

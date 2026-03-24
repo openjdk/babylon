@@ -312,6 +312,7 @@ public sealed abstract class JavaOp extends Op {
             return isConstantType(op.varValueType()) &&
                     !op.isUninitialized() &&
                     // @@@ Add to VarOp
+                    op.declaredFinal() &&
                     op.result().uses().stream().noneMatch(u -> u.op() instanceof CoreOp.VarAccessOp.VarStoreOp);
         }
 
