@@ -154,7 +154,9 @@ public class BufferTagger {
         // the op is a field load, an invoke, or something that reduces to one or the other
         // first, check if we can retrieve a fieldloadop from the given op
         Op fieldOp = HATPhaseUtils.findOpInResultFromFirstOperandsOrNull(op, JavaOp.FieldAccessOp.FieldLoadOp.class);
-        if (fieldOp != null) return fieldOp.operands().getFirst(); // if so, we use its first operand to map to accesses
+        if (fieldOp != null) {
+            return fieldOp.operands().isEmpty() ? fieldOp.result() : fieldOp.operands().getFirst();
+        }
 
         // we then check if there's an invokeop that has no operands (meaning a shared or private buffer that was created)
         // or if there's an invokeop with a parameter as its first operation (this is a global buffer)
