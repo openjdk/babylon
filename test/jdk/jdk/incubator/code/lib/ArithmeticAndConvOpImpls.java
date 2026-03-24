@@ -33,6 +33,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.List;
 
+// This a copy of jdk.incubator.code.internal.ArithmeticAndConvOpImpls, plus methods for converting from boolean to other primitive types
+// the additional methods are used by the TestBytecodeLift
 public final class ArithmeticAndConvOpImpls {
     public static boolean eq(Object a, Object b) {
         return a == b;
