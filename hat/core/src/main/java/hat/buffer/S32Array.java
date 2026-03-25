@@ -69,7 +69,7 @@ public interface S32Array extends Buffer {
         return ints;
     }
 
-    @Reflect default int[] arrayView() {
+    default int[] arrayView() {
         return this.copyTo(new int[this.length()]);
     }
 }
