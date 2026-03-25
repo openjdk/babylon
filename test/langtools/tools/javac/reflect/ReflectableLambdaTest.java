@@ -250,4 +250,23 @@ public class ReflectableLambdaTest {
             };
             """)
     static final IntUnaryOperator QUOTED_CAPTURE_THIS_REF = new ContextRef().capture();
+
+    @Reflect
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                      %2 : java.type:"int" = constant @1;
+                      %3 : Var<java.type:"int"> = var %2 @"i";
+                      %4 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                      %5 : java.type:"int" = var.load %3;
+                      invoke %4 %5 @java.ref:"java.io.PrintStream::println(int):void";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    static final Runnable r = () -> {
+        final int i = 1;
+        System.out.println(i);
+    };
 }

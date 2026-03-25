@@ -52,7 +52,7 @@ public class CaptureScanner extends TreeScanner {
     /**
      * The set of local variable declarations encountered in the tree under analysis.
      */
-    private final Set<Symbol.VarSymbol> seenVars = new HashSet<>();
+    protected final Set<Symbol.VarSymbol> seenVars = new HashSet<>();
 
     /**
      * The set of captured local variables accessed from within the tree under analysis.
