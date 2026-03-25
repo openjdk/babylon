@@ -350,15 +350,16 @@ public final class LambdaMetafactory {
     }
 
     static CallSite metafactoryInternal(MethodHandles.Lookup caller,
-                                               String interfaceMethodName,
-                                               MethodType factoryType,
-                                               MethodType interfaceMethodType,
-                                               MethodHandle implementation,
-                                               MethodType dynamicMethodType,
-                                               Consumer<ClassBuilder> finisher,
-                                               Object explicitClassdata)
+                                        String interfaceMethodName,
+                                        MethodType factoryType,
+                                        MethodType interfaceMethodType,
+                                        MethodHandle implementation,
+                                        MethodType dynamicMethodType,
+                                        Consumer<ClassBuilder> finisher,
+                                        Object explicitClassdata)
             throws LambdaConversionException {
-        AbstractValidatingLambdaMetafactory mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
+        AbstractValidatingLambdaMetafactory mf = new InnerClassLambdaMetafactory(
+                Objects.requireNonNull(caller),
                 Objects.requireNonNull(factoryType),
                 Objects.requireNonNull(interfaceMethodName),
                 Objects.requireNonNull(interfaceMethodType),
@@ -509,11 +510,11 @@ public final class LambdaMetafactory {
     }
 
     static CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
-                                          String interfaceMethodName,
-                                          MethodType factoryType,
-                                          Consumer<ClassBuilder> finisher,
-                                          Object explicitClassdata,
-                                          Object... args)
+                                           String interfaceMethodName,
+                                           MethodType factoryType,
+                                           Consumer<ClassBuilder> finisher,
+                                           Object explicitClassdata,
+                                           Object... args)
             throws LambdaConversionException {
         Objects.requireNonNull(caller);
         Objects.requireNonNull(interfaceMethodName);
@@ -536,7 +537,6 @@ public final class LambdaMetafactory {
                 argIndex += altInterfaceCount;
             }
         }
-
         if ((flags & FLAG_BRIDGES) != 0) {
             int altMethodCount = extractArg(args, argIndex++, Integer.class);
             if (altMethodCount < 0) {
@@ -564,16 +564,16 @@ public final class LambdaMetafactory {
 
         AbstractValidatingLambdaMetafactory mf
                 = new InnerClassLambdaMetafactory(caller,
-                factoryType,
-                interfaceMethodName,
-                interfaceMethodType,
-                implementation,
-                dynamicMethodType,
-                isSerializable,
-                altInterfaces,
-                altMethods,
-                finisher,
-                explicitClassdata);
+                                                  factoryType,
+                                                  interfaceMethodName,
+                                                  interfaceMethodType,
+                                                  implementation,
+                                                  dynamicMethodType,
+                                                  isSerializable,
+                                                  altInterfaces,
+                                                  altMethods,
+                                                  finisher,
+                                                  explicitClassdata);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
