@@ -28,13 +28,13 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
 public class TestStringConstantExpressionInterning {
 
     @Reflect
-    static boolean strLiteral() {
+    static boolean t_strLiteral() {
         return "A" + 1 == "A1";
     }
 
     static final String B = "B";
     @Reflect
-    static boolean classVariable() {
+    static boolean t_classVariable() {
         return B + 1 == "B1";
     }
 
@@ -43,7 +43,7 @@ public class TestStringConstantExpressionInterning {
         C = "C";
     }
     //@Reflect
-    static boolean classVariable2() {
+    static boolean f_classVariable2() {
         // C + 1 shouldn't be interned, but currently it's
         // that's a limitation in the evaluate API, as the API consider C a constant variable
         return C + 1 == "C1";
@@ -51,7 +51,7 @@ public class TestStringConstantExpressionInterning {
 
     static final String D = "D".toLowerCase();
     //@Reflect
-    static boolean classVariable3() {
+    static boolean f_classVariable3() {
         // D shouldn't be interned, but currently it's
         // that's a limitation in the evaluate API, as the API consider D a constant variable
         return D == "d";
@@ -59,7 +59,7 @@ public class TestStringConstantExpressionInterning {
 
     final String E = "E";
     //@Reflect
-    boolean instanceVariable() {
+    boolean t_instanceVariable() {
         // A + 1 should be interned, but currently it's not
         // because the op evaluate API considers E (and any instance field) a non constant variable
         // it's a limitation in the API
@@ -69,10 +69,9 @@ public class TestStringConstantExpressionInterning {
         return E + 1 == "E1";
     }
 
-    //@Reflect
-    static boolean localVariable() {
-        // s + 1 shouldn't be interned, but currently it's
-        // that's a limitation in the evaluate API, as the API consider s a constant variable
+    @Reflect
+    static boolean t_localVariable() {
+        // in the model, we broaden the notion of JLS constant variable to include effectively final variable
         String s = "A";
         return s + 1 == "A1";
     }
@@ -86,7 +85,7 @@ public class TestStringConstantExpressionInterning {
     @MethodSource("cases")
     void test(Method m) throws Throwable {
         FuncOp op = Op.ofMethod(m).get();
-        Object expected = m.invoke(this);
+        Object expected = m.getName().startsWith("t");
         MethodHandles.Lookup l = MethodHandles.lookup();
 
         Value rv = op.body().entryBlock().terminatingOp().operands().getFirst();
