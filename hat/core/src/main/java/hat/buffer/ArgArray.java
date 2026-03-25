@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import hat.annotations.Kernel;
 import optkl.ifacemapper.AccessType;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.BoundSchema;
@@ -289,12 +290,18 @@ public interface ArgArray extends Buffer {
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
-                    buf.access(bufferAccessList.get(i).value); // buf.access(accessType.value);
-                    assert bufferAccessList.get(i).value == accessType.value :
-                            (kernelCallGraph.entrypoint.method().getParameters()[i].toString()
-                                    + " in " + kernelCallGraph.entrypoint.method().getName()
-                                    + ": buffertagger " + bufferAccessList.get(i).value
-                                    + " doesn't match " + accessType.value);
+
+                    var annotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
+                    if (annotation != null) {
+                        buf.access(accessType.value);
+                    } else {
+                        buf.access(bufferAccessList.get(i).value); // buf.access(accessType.value);
+                        assert bufferAccessList.get(i).value == accessType.value :
+                                (kernelCallGraph.entrypoint.method().getParameters()[i].toString()
+                                        + " in " + kernelCallGraph.entrypoint.method().getName()
+                                        + ": buffertagger " + bufferAccessList.get(i).value
+                                        + " doesn't match " + accessType.value);
+                    }
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }

@@ -214,21 +214,21 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         var annotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
-        if (annotation!=null){
+        if (annotation != null) {
             // If we find an annotation we can't trust the data in kernelCllGraph's state.
-            kernelCallGraph.state.usesAtomics=true;
-            kernelCallGraph.state.usesFp16=true;
-            kernelCallGraph.state.usesBarrier=true;
-            kernelCallGraph.state.usesVecTypes=false;// maybe?
+            kernelCallGraph.state.usesAtomics = true;
+            kernelCallGraph.state.usesFp16 = true;
+            kernelCallGraph.state.usesBarrier = true;
+            kernelCallGraph.state.usesVecTypes = false; // maybe?
             var typedef = kernelCallGraph.entrypoint.method().getAnnotation(TypeDef.class);
-            if (typedef!=null){
+            if (typedef != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
-                builder.typedefKeyword().sp().structKeyword().sp().suffix_s(typedef.name()).braceNlIndented(_->
+                builder.typedefKeyword().sp().structKeyword().sp().suffix_s(typedef.name()).braceNlIndented(_ ->
                         builder.preformatted(typedef.body())
                 ).suffix_t(typedef.name()).semicolon().nl();
             }
             var preformatted = kernelCallGraph.entrypoint.method().getAnnotation(Preformatted.class);
-            if (preformatted!=null){
+            if (preformatted != null) {
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformatted.value());
             }

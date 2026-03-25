@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.annotations.Kernel;
+import hat.annotations.Preformatted;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -36,6 +37,11 @@ import hat.test.exceptions.HATAsserts;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Reflect;
+
+import static hat.NDRange.Global2D;
+import static hat.NDRange.Local2D;
+import static hat.NDRange.NDRange1D;
+import static hat.NDRange.NDRange2D;
 import static optkl.ifacemapper.MappableIface.RO;
 import static optkl.ifacemapper.MappableIface.WO;
 
@@ -106,11 +112,105 @@ public class TestTensors {
 //                return;
 //            }
 //            """)
+    @Kernel("""
+            HAT_KERNEL void matrixMultiplyKernel2DLIF16(
+                            HAT_GLOBAL_MEM KernelContext_t* kc,
+                            HAT_GLOBAL_MEM F16Array_t* matrixA,
+                            HAT_GLOBAL_MEM F16Array_t* matrixB,
+                            HAT_GLOBAL_MEM F32Array_t* matrixC,
+                            int size
+                        ){
+                int WMMA_M = 16;
+                int WMMA_N = 16;
+                int WMMA_K = 16;
+                int warpM = HAT_GIX;
+                int warpN = HAT_GIY;
+                int lda = 1024;
+                int ldb = 1024;
+                int ldc = 1024;
+
+                // wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::col_major> a_frag;
+                //      => Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.Shape(16, 16, 16), F16.class);
+                F16_t a_frag[256];
+
+                //wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::col_major> b_frag;
+                //      -> Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.Shape(16, 16, 16), F16.class);
+                F16_t b_frag[256];
+
+                // wmma::fragment<wmma::accumulator, 16, 16, 16, float> acc_frag;
+                float acc[16][16];
+
+                //wmma::fill_fragment(acc_frag, 0.0f);
+                for (int m = 0; m < WMMA_M; m++)
+                    for (int n = 0; n < WMMA_N; n++)
+                        acc[m][n] = 0.0f;
+
+                // this loop remains the same
+                for(int i = 0; i<size; i=i+WMMA_K){
+                    int aRow = warpM * WMMA_M;
+                    int aCol = i;
+                    int bRow = i;
+                    int bCol = warpN*WMMA_N;
+
+                    // wmma::load_matrix_sync(a_frag, a + headSize + aRow + aCol * lda, lda);
+                    for (int m = 0; m < WMMA_M; m++) {
+                        int rowA = aRow + m;
+                        for (int n = 0; n < WMMA_N; n++) {
+                            int colA = aCol + n;
+                            int idxA = rowA + colA * lda;
+                            HAT_GLOBAL_MEM F16Impl_t* ha = &matrixA->array[idxA];
+                            F16_t r = (F16_t){ha->value};
+                            a_frag[m * WMMA_M + n] = r;
+                        }
+                    }
+
+                    // wmma::load_matrix_sync(b_frag, b + headSize + bRow + bCol * ldb, ldb);
+                    for (int m = 0; m < WMMA_M; m++) {
+                        int rowB = bRow + m;
+                        for (int n = 0; n < WMMA_N; n++) {
+                            int colB = bCol + n;
+                            int idxB = rowB + colB * ldb;
+                            HAT_GLOBAL_MEM F16Impl_t* hb = &matrixB->array[idxB];
+                            F16_t r = (F16_t){hb->value};
+                            b_frag[m * WMMA_M + n] = r;
+                        }
+                    }
+
+                    // wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
+                    for (int m = 0; m < WMMA_M; m++) {
+                        for (int n = 0; n < WMMA_N; n++) {
+                            float sum = acc[m][n];
+                            for (int k = 0; k < WMMA_K; k++) {
+                                F16_t ha = a_frag[m * WMMA_M + k];
+                                F16_t hb = b_frag[k * WMMA_M + n];
+
+                                F16_t result = (F16_t){(ha.value * hb.value)};
+                                sum += (float)(result.value);
+                            }
+                            acc[m][n] = sum;
+                        }
+                    }
+                }
+
+                int cRow = warpM*WMMA_M;
+                int cCol = warpN*WMMA_N;
+                // wmma::store_sync
+                for (int m = 0; m < WMMA_M; m++) {
+                    int rowC = cRow + m;
+                    if (rowC >= size) continue;
+                    for (int n = 0; n < WMMA_N; n++) {
+                        int colC = cCol + n;
+                        if (colC >= size) continue;
+                        int idxC = (cRow + m) + (cCol + n) * ldc;  // Almost same index
+                        matrixC->array[idxC] = acc[m][n];
+                    }
+                }
+            }
+            """)
     public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        matrixC.array(kc.giy * size + kc.gix, 10);
         int warpM = kc.gix / kc.warpSize;
         int warpN = kc.giy;
 
@@ -147,7 +247,10 @@ public class TestTensors {
 
     @Reflect
     public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(of2D(2048, 64, 128, 4), kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize));
+        // var ndRange = of2D(2048, 64, 128, 4);  // When we launch using the CUDA backend
+        // For the OpenCL backend: [ (size / tile), (size / tile) ]
+        var ndRange = NDRange2D.of(Global2D.of(64, 64), Local2D.of(16, 4));
+        cc.dispatchKernel(ndRange, kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize));
     }
 
     private static void runSequential(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {
@@ -182,9 +285,7 @@ public class TestTensors {
             matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
 
-        for (int i = 0; i < 10; i++) {
-            accelerator.compute(cc -> matrixMultiply2DLIF16(cc, matrixAHalf, matrixBHalf, matrixC, size));
-        }
+        accelerator.compute(cc -> matrixMultiply2DLIF16(cc, matrixAHalf, matrixBHalf, matrixC, size));
 
         runSequential(matrixAHalf, matrixBHalf, resultSequential, size);
 
@@ -193,7 +294,6 @@ public class TestTensors {
                 final int index = j * size + i;
                 float expectedValue = resultSequential.array(index);
                 float gotValue = matrixC.array(index);
-                //IO.println(gotValue + " vs " + expectedValue);
                 HATAsserts.assertEquals(expectedValue, gotValue, 0.1f);
             }
         }
