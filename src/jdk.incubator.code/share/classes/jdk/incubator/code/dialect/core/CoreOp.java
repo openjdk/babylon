@@ -931,11 +931,9 @@ public sealed abstract class CoreOp extends Op {
          * The externalized attribute modelling the variable name
          */
         static final String ATTRIBUTE_NAME = NAME + ".name";
-        static final String ATTRIBUTE_DECLARED_FINAL = NAME + ".declared.final";
 
         final String varName;
         final VarType resultType;
-        final boolean declaredFinal;
 
         VarOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
@@ -948,18 +946,12 @@ public sealed abstract class CoreOp extends Op {
                         case null -> "";
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
-            boolean declaredFinal = def.extractAttributeValue(ATTRIBUTE_DECLARED_FINAL, false,
-                    v -> switch (v) {
-                        case Boolean b -> b;
-                        case null, default -> false;
-                    });
 
             // @@@ Cannot use canonical constructor because type is wrapped
             super(def.operands());
 
             this.varName = name;
             this.resultType = (VarType) def.resultType();
-            this.declaredFinal = declaredFinal;
         }
 
         VarOp(VarOp that, CodeContext cc) {
@@ -968,7 +960,6 @@ public sealed abstract class CoreOp extends Op {
             this.varName = that.varName;
             this.resultType = that.isResultTypeOverridable()
                     ? CoreType.varType(initOperand().type()) : that.resultType;
-            this.declaredFinal = that.declaredFinal;
         }
 
         boolean isResultTypeOverridable() {
@@ -980,24 +971,16 @@ public sealed abstract class CoreOp extends Op {
             return new VarOp(this, cc);
         }
 
-        VarOp(String varName, TypeElement type, Value init, boolean declaredFinal) {
+        VarOp(String varName, TypeElement type, Value init) {
             super(init == null ? List.of() : List.of(init));
 
             this.varName =  varName == null ? "" : varName;
             this.resultType = CoreType.varType(type);
-            this.declaredFinal = declaredFinal;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            Map<String, Object> m = new HashMap<>();
-            if (!isUnnamedVariable()) {
-                m.put("", varName);
-            }
-            if (declaredFinal) {
-                m.put(ATTRIBUTE_DECLARED_FINAL, declaredFinal);
-            }
-            return m;
+            return isUnnamedVariable() ? Map.of() : Map.of("", varName);
         }
 
         /**
@@ -1043,13 +1026,6 @@ public sealed abstract class CoreOp extends Op {
          */
         public boolean isUninitialized() {
             return operands().isEmpty();
-        }
-
-        /**
-         * {@return true if this variable operation models a variable declared final}
-         */
-        public boolean declaredFinal() {
-            return declaredFinal;
         }
     }
 
@@ -1638,22 +1614,7 @@ public sealed abstract class CoreOp extends Op {
      * @return the var operation
      */
     public static VarOp var(String name, TypeElement type, Value init) {
-        return new VarOp(name, type, init, false);
-    }
-
-    /**
-     * Creates a var operation modeling a variable, either a local variable or a parameter.
-     * <p>
-     * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
-     *
-     * @param name          the name of the var
-     * @param type          the type of the var's value
-     * @param init          the initial value of the var
-     * @param declaredFinal Whether the var is declared final
-     * @return the var operation
-     */
-    public static VarOp var(String name, TypeElement type, Value init, boolean declaredFinal) {
-        return new VarOp(name, type, init, declaredFinal);
+        return new VarOp(name, type, init);
     }
 
     /**

@@ -222,21 +222,4 @@ public class LocalVarTest {
         int x = ++i;
         int y = --i;
     }
-
-    @Reflect
-    @IR("""
-            func @"test10" (%0 : java.type:"LocalVarTest")java.type:"void" -> {
-                  %1 : java.type:"int" = constant @1;
-                  %2 : Var<java.type:"int"> = var %1 @"i" @var.declared.final=true;
-                  %3 : Var<java.type:"int"> = var @"j" @var.declared.final=true;
-                  %4 : java.type:"int" = constant @2;
-                  var.store %3 %4;
-                  return;
-            };
-            """)
-    void test10() {
-        final int i = 1;
-        final int j;
-        j = 2;
-    }
 }

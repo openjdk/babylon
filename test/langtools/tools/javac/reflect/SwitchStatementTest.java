@@ -582,7 +582,7 @@ public class SwitchStatementTest {
                 %2 : java.type:"java.lang.String" = constant @"";
                 %3 : Var<java.type:"java.lang.String"> = var %2 @"r";
                 %4 : java.type:"int" = constant @11;
-                %5 : Var<java.type:"int"> = var %4 @"eleven" @var.declared.final=true;
+                %5 : Var<java.type:"int"> = var %4 @"eleven";
                 %6 : java.type:"int" = var.load %1;
                 java.switch.statement %6
                     (%7 : java.type:"int")java.type:"boolean" -> {
@@ -817,10 +817,10 @@ public class SwitchStatementTest {
                 %1 : Var<java.type:"short"> = var %0 @"a";
                 %2 : java.type:"int" = constant @1;
                 %3 : java.type:"short" = conv %2;
-                %4 : Var<java.type:"short"> = var %3 @"s" @var.declared.final=true;
+                %4 : Var<java.type:"short"> = var %3 @"s";
                 %5 : java.type:"int" = constant @2;
                 %6 : java.type:"byte" = conv %5;
-                %7 : Var<java.type:"byte"> = var %6 @"b" @var.declared.final=true;
+                %7 : Var<java.type:"byte"> = var %6 @"b";
                 %8 : java.type:"java.lang.String" = constant @"";
                 %9 : Var<java.type:"java.lang.String"> = var %8 @"r";
                 %10 : java.type:"short" = var.load %1;
@@ -897,7 +897,7 @@ public class SwitchStatementTest {
                 %1 : Var<java.type:"java.lang.Byte"> = var %0 @"a";
                 %2 : java.type:"int" = constant @2;
                 %3 : java.type:"byte" = conv %2;
-                %4 : Var<java.type:"byte"> = var %3 @"b" @var.declared.final=true;
+                %4 : Var<java.type:"byte"> = var %3 @"b";
                 %5 : java.type:"java.lang.String" = constant @"";
                 %6 : Var<java.type:"java.lang.String"> = var %5 @"r";
                 %7 : java.type:"java.lang.Byte" = var.load %1;
