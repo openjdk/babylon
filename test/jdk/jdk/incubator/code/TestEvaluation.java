@@ -212,10 +212,9 @@ public class TestEvaluation {
         return i;
     }
 
-    //@Reflect
-    static int fcEffectivelyFinalVar() {
-        // @@@ should fail
-        // currently we lack sufficent info to determine if a variable was declared final in source code
+    @Reflect
+    static int effectivelyFinalVar() {
+        // the op evaluation API broaden the JLS notion of constant variable to include effectively final variable
         int x = 1;
         return x;
     }
