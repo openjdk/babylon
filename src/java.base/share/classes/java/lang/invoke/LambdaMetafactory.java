@@ -504,7 +504,7 @@ public final class LambdaMetafactory {
                                           MethodType factoryType,
                                           Object... args)
             throws LambdaConversionException {
-        return altMetafactoryInternal(caller, interfaceMethodName, factoryType, null, args);
+        return altMetafactoryInternal(caller, interfaceMethodName, factoryType, null, null, args);
     }
 
     static CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
