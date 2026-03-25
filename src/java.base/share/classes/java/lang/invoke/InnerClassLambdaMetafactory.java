@@ -309,7 +309,7 @@ import sun.invoke.util.Wrapper;
             interfaces = List.copyOf(itfs);
         }
         final boolean finalAccidentallySerializable = accidentallySerializable;
-        byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
+        final byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
             @Override
             public void accept(ClassBuilder clb) {
                 clb.withFlags(ACC_SUPER | ACC_FINAL | ACC_SYNTHETIC)
