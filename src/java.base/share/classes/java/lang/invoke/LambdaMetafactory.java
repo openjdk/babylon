@@ -26,10 +26,11 @@
 package java.lang.invoke;
 
 import java.io.Serializable;
-import java.lang.classfile.ClassTransform;
+import java.lang.classfile.ClassBuilder;
 import java.util.Arrays;
 import java.lang.reflect.Array;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import jdk.internal.vm.annotation.AOTSafeClassInitializer;
 
@@ -354,8 +355,8 @@ public final class LambdaMetafactory {
                                                MethodType interfaceMethodType,
                                                MethodHandle implementation,
                                                MethodType dynamicMethodType,
-                                               ClassTransform transform,
-                                               Object classdata)
+                                               Consumer<ClassBuilder> finisher,
+                                               Object explicitClassdata)
             throws LambdaConversionException {
         AbstractValidatingLambdaMetafactory mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
                 Objects.requireNonNull(factoryType),
@@ -366,8 +367,8 @@ public final class LambdaMetafactory {
                 false,
                 EMPTY_CLASS_ARRAY,
                 EMPTY_MT_ARRAY,
-                transform,
-                classdata);
+                finisher,
+                explicitClassdata);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
@@ -510,8 +511,8 @@ public final class LambdaMetafactory {
     static CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
                                           String interfaceMethodName,
                                           MethodType factoryType,
-                                          ClassTransform transform,
-                                          Object classdata,
+                                          Consumer<ClassBuilder> finisher,
+                                          Object explicitClassdata,
                                           Object... args)
             throws LambdaConversionException {
         Objects.requireNonNull(caller);
@@ -571,8 +572,8 @@ public final class LambdaMetafactory {
                 isSerializable,
                 altInterfaces,
                 altMethods,
-                transform,
-                classdata);
+                finisher,
+                explicitClassdata);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }

@@ -1,11 +1,9 @@
 package jdk.incubator.code.runtime;
 
-import java.lang.classfile.ClassBuilder;
-import java.lang.classfile.ClassElement;
 import static java.lang.classfile.ClassFile.ACC_PRIVATE;
 import static java.lang.classfile.ClassFile.ACC_STATIC;
 import static java.lang.classfile.ClassFile.ACC_SYNCHRONIZED;
-import java.lang.classfile.ClassTransform;
+import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
@@ -32,6 +30,7 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Provides runtime support for creating reflectable lambdas. A reflectable lambda is a lambda whose
@@ -97,7 +96,7 @@ public class ReflectableLambdaMetafactory {
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
         ReflectableLambdaInfo reflectableLambdaInfo = decodedName.reflectableLambdaInfo;
-        LambdaTransform transform = new LambdaTransform(caller, factoryType, implementation, reflectableLambdaInfo);
+        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, reflectableLambdaInfo);
         return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
                 implementation, dynamicMethodType, transform,
                 List.of(implementation, reflectableLambdaInfo.opHandle(), reflectableLambdaInfo.extractOpHandle()));
@@ -151,7 +150,7 @@ public class ReflectableLambdaMetafactory {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
         MethodHandle implementation = extractArg(args, 1, MethodHandle.class);
         ReflectableLambdaInfo reflectableLambdaInfo = decodedName.reflectableLambdaInfo;
-        LambdaTransform transform = new LambdaTransform(caller, factoryType, implementation, reflectableLambdaInfo);
+        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, reflectableLambdaInfo);
         return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, transform,
                 List.of(implementation, reflectableLambdaInfo.opHandle(), reflectableLambdaInfo.extractOpHandle()),
                 args);
@@ -209,14 +208,14 @@ public class ReflectableLambdaMetafactory {
                 Holder.QUOTED_EXTRACT_OP_HANDLE, handle);
     }
 
-    static class LambdaTransform implements ClassTransform {
+    static class LambdaFinisher implements Consumer<ClassBuilder> {
 
         final ReflectableLambdaInfo reflectableLambdaInfo;
         final ClassDesc lambdaClassSymbol;
         final MethodHandleInfo quotableOpGetterInfo;
         final ClassDesc[] argDescs;
 
-        public LambdaTransform(MethodHandles.Lookup caller, MethodType factoryType, MethodHandle implementation, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
+        public LambdaFinisher(MethodHandles.Lookup caller, MethodType factoryType, MethodHandle implementation, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
             this.reflectableLambdaInfo = reflectableLambdaInfo;
             this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(caller.lookupClass()).concat("$$Lambda"));
             argDescs = factoryType.parameterList().stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
@@ -231,14 +230,8 @@ public class ReflectableLambdaMetafactory {
 
         }
 
-
         @Override
-        public void accept(ClassBuilder clb, ClassElement cle) {
-            clb.with(cle);
-        }
-
-        @Override
-        public void atEnd(ClassBuilder clb) {
+        public void accept(ClassBuilder clb) {
             // the field that will hold the quoted instance
             clb.withField(QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass(), ACC_PRIVATE);
             // the field that will hold the model

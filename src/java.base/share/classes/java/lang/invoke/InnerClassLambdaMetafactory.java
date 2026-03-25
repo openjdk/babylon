@@ -33,7 +33,6 @@ import sun.invoke.util.VerifyAccess;
 import java.io.Serializable;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
-import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.Opcode;
@@ -144,12 +143,12 @@ import sun.invoke.util.Wrapper;
                                        boolean isSerializable,
                                        Class<?>[] altInterfaces,
                                        MethodType[] altMethods,
-                                       ClassTransform transform,
-                                       Object classData)
+                                       Consumer<ClassBuilder> finisher,
+                                       Object explicitClassData)
             throws LambdaConversionException {
         super(caller, factoryType, interfaceMethodName, interfaceMethodType,
               implementation, dynamicMethodType,
-              isSerializable, altInterfaces, altMethods, transform, classData);
+              isSerializable, altInterfaces, altMethods, finisher, explicitClassData);
         implMethodClassDesc = implClassDesc(implClass);
         implMethodName = implInfo.getName();
         implMethodDesc = methodDesc(implInfo.getMethodType());
@@ -346,19 +345,19 @@ import sun.invoke.util.Wrapper;
                     generateSerializationFriendlyMethods(clb);
                 else if (finalAccidentallySerializable)
                     generateSerializationHostileMethods(clb);
+
+                //
+                if (finisher != null) {
+                    finisher.accept(clb);
+                }
             }
         });
-
-        // Class post-processing transformation
-        if (transform != null) {
-            classBytes = ClassFile.of().transformClass(ClassFile.of().parse(classBytes), transform);
-        }
 
         // Define the generated class in this VM.
 
         try {
             // this class is linked at the indy callsite; so define a hidden nestmate
-            var cdata = classdata != null ? classdata : useImplMethodHandle ? implementation : null;
+            var cdata = explicitClassdata != null ? explicitClassdata : useImplMethodHandle ? implementation : null;
             return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, lambdaProxyClassFileDumper, NESTMATE_CLASS | STRONG_LOADER_LINK)
                          .defineClass(!disableEagerInitialization, cdata);
 

@@ -26,8 +26,9 @@ package java.lang.invoke;
 
 import sun.invoke.util.Wrapper;
 
-import java.lang.classfile.ClassTransform;
+import java.lang.classfile.ClassBuilder;
 import java.lang.reflect.Modifier;
+import java.util.function.Consumer;
 
 import static java.lang.invoke.MethodHandleInfo.*;
 import static sun.invoke.util.Wrapper.forPrimitiveType;
@@ -70,8 +71,8 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     final boolean isSerializable;             // Should the returned instance be serializable
     final Class<?>[] altInterfaces;           // Additional interfaces to be implemented
     final MethodType[] altMethods;            // Signatures of additional methods to bridge
-    final ClassTransform transform;           // A transform to post-process lambda class (can be null)
-    final Object classdata;                   // Explicitly provided class data (can be null)
+    final Consumer<ClassBuilder> finisher;    // Function called to finish lambda class build process (can be null)
+    final Object explicitClassdata;           // Explicitly provided class data (can be null)
 
     /**
      * Meta-factory constructor.
@@ -120,8 +121,8 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                                         boolean isSerializable,
                                         Class<?>[] altInterfaces,
                                         MethodType[] altMethods,
-                                        ClassTransform transform,
-                                        Object classdata)
+                                        Consumer<ClassBuilder> finisher,
+                                        Object explicitClassdata)
             throws LambdaConversionException {
         if (!caller.hasFullPrivilegeAccess()) {
             throw new LambdaConversionException(String.format(
@@ -182,8 +183,8 @@ import static sun.invoke.util.Wrapper.isWrapperType;
         this.isSerializable = isSerializable;
         this.altInterfaces = altInterfaces;
         this.altMethods = altMethods;
-        this.transform = transform;
-        this.classdata = classdata;
+        this.finisher = finisher;
+        this.explicitClassdata = explicitClassdata;
 
         if (interfaceMethodName.isEmpty() ||
                 interfaceMethodName.indexOf('.') >= 0 ||

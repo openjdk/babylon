@@ -41,8 +41,8 @@ import sun.invoke.util.ValueConversions;
 import sun.invoke.util.VerifyType;
 import sun.invoke.util.Wrapper;
 
+import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
-import java.lang.classfile.ClassTransform;
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles.Lookup;
@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -1649,17 +1650,17 @@ abstract class MethodHandleImpl {
             @Override
             public CallSite metafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
                                                 MethodType interfaceMethodType, MethodHandle implementation,
-                                                MethodType dynamicMethodType, ClassTransform transform,
-                                                Object classdata) throws LambdaConversionException {
+                                                MethodType dynamicMethodType, Consumer<ClassBuilder> finisher,
+                                                Object explicitClassdata) throws LambdaConversionException {
                 return LambdaMetafactory.metafactoryInternal(caller, interfaceMethodName, factoryType,
-                        interfaceMethodType, implementation, dynamicMethodType, transform, classdata);
+                        interfaceMethodType, implementation, dynamicMethodType, finisher, explicitClassdata);
             }
 
             @Override
             public CallSite altMetafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
-                                                   ClassTransform transform, Object classdata,
+                                                   Consumer<ClassBuilder> finisher, Object explicitClassdata,
                                                    Object... args) throws LambdaConversionException {
-                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, transform, classdata, args);
+                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, finisher, explicitClassdata, args);
             }
         });
     }

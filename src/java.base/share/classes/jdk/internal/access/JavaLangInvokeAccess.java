@@ -25,9 +25,9 @@
 
 package jdk.internal.access;
 
-import java.lang.classfile.ClassTransform;
 import jdk.internal.foreign.abi.NativeEntryPoint;
 
+import java.lang.classfile.ClassBuilder;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
@@ -40,6 +40,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public interface JavaLangInvokeAccess {
@@ -181,13 +182,13 @@ public interface JavaLangInvokeAccess {
                                                MethodType interfaceMethodType,
                                                MethodHandle implementation,
                                                MethodType dynamicMethodType,
-                                               ClassTransform transform,
-                                               Object classdata) throws LambdaConversionException;
+                                               Consumer<ClassBuilder> finisher,
+                                               Object explicitClassdata) throws LambdaConversionException;
 
     CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
                                     String interfaceMethodName,
                                     MethodType factoryType,
-                                    ClassTransform transform,
-                                    Object classdata,
+                                    Consumer<ClassBuilder> finisher,
+                                    Object explicitClassdata,
                                     Object... args) throws LambdaConversionException;
 }
