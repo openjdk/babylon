@@ -46,6 +46,20 @@ public class ReflectableLambdaMetafactory {
     private static final String QUOTED_FIELD_NAME = "quoted";
     private static final String MODEL_FIELD_NAME = "model";
 
+    static final ClassDesc QUOTED_CLASS_DESC = Quoted.class.describeConstable().get();
+    static final ClassDesc FUNC_OP_CLASS_DESC = FuncOp.class.describeConstable().get();
+    static final MethodHandle QUOTED_EXTRACT_OP_HANDLE;
+
+    static {
+        try {
+            QUOTED_EXTRACT_OP_HANDLE = MethodHandles.lookup()
+                    .findStatic(Quoted.class, "extractOp",
+                            MethodType.methodType(Quoted.class, FuncOp.class, Object[].class));
+        } catch (Throwable ex) {
+            throw new ExceptionInInitializerError(ex);
+        }
+    }
+
     private ReflectableLambdaMetafactory() {
         // nope
     }
@@ -97,11 +111,10 @@ public class ReflectableLambdaMetafactory {
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        ReflectableLambdaInfo reflectableLambdaInfo = decodedName.reflectableLambdaInfo;
-        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, reflectableLambdaInfo);
+        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, decodedName.opHandle);
         return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
                 implementation, dynamicMethodType, transform,
-                List.of(implementation, reflectableLambdaInfo.opHandle(), reflectableLambdaInfo.extractOpHandle()));
+                List.of(implementation, decodedName.opHandle, QUOTED_EXTRACT_OP_HANDLE));
     }
 
     /**
@@ -151,10 +164,9 @@ public class ReflectableLambdaMetafactory {
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
         MethodHandle implementation = extractArg(args, 1, MethodHandle.class);
-        ReflectableLambdaInfo reflectableLambdaInfo = decodedName.reflectableLambdaInfo;
-        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, reflectableLambdaInfo);
+        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, decodedName.opHandle);
         return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, transform,
-                List.of(implementation, reflectableLambdaInfo.opHandle(), reflectableLambdaInfo.extractOpHandle()),
+                List.of(implementation, decodedName.opHandle, QUOTED_EXTRACT_OP_HANDLE),
                 args);
     }
 
@@ -171,10 +183,7 @@ public class ReflectableLambdaMetafactory {
 
     static final JavaLangInvokeAccess JLI_ACCESS = SharedSecrets.getJavaLangInvokeAccess();
 
-    record ReflectableLambdaInfo(ClassDesc quotedClass, ClassDesc funcOpClass,
-                                 MethodHandle extractOpHandle, MethodHandle opHandle) { }
-
-    record DecodedName(String name, ReflectableLambdaInfo reflectableLambdaInfo) { }
+    record DecodedName(String name, MethodHandle opHandle) { }
 
     private static DecodedName findReflectableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) throws LambdaConversionException {
         String[] implNameParts = interfaceMethodName.split("=");
@@ -184,65 +193,42 @@ public class ReflectableLambdaMetafactory {
         try {
             return new DecodedName(
                     implNameParts[0],
-                    newReflectableLambdaInfo(lookup.findStatic(lookup.lookupClass(), implNameParts[1], MethodType.methodType(Op.class))));
+                    lookup.findStatic(lookup.lookupClass(), implNameParts[1], MethodType.methodType(Op.class)));
         } catch (ReflectiveOperationException ex) {
             throw new LambdaConversionException(ex);
         }
     }
 
-    private static ReflectableLambdaInfo newReflectableLambdaInfo(MethodHandle handle) {
-        class Holder {
-            static final ClassDesc QUOTED_CLASS_DESC = Quoted.class.describeConstable().get();
-            static final ClassDesc FUNC_OP_CLASS_DESC = FuncOp.class.describeConstable().get();
-            static final MethodHandle QUOTED_EXTRACT_OP_HANDLE;
-
-            static {
-                try {
-                    QUOTED_EXTRACT_OP_HANDLE = MethodHandles.lookup()
-                            .findStatic(Quoted.class, "extractOp",
-                                    MethodType.methodType(Quoted.class, FuncOp.class, Object[].class));
-                } catch (Throwable ex) {
-                    throw new ExceptionInInitializerError(ex);
-                }
-            }
-        }
-        return new ReflectableLambdaInfo(Holder.QUOTED_CLASS_DESC, Holder.FUNC_OP_CLASS_DESC,
-                Holder.QUOTED_EXTRACT_OP_HANDLE, handle);
-    }
-
     static class LambdaFinisher implements Consumer<ClassBuilder> {
 
-        final ReflectableLambdaInfo reflectableLambdaInfo;
         final ClassDesc lambdaClassSymbol;
         final MethodHandleInfo quotableOpGetterInfo;
         final ClassDesc[] argDescs;
 
-        public LambdaFinisher(MethodHandles.Lookup caller, MethodType factoryType, MethodHandle implementation, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
-            this.reflectableLambdaInfo = reflectableLambdaInfo;
+        public LambdaFinisher(MethodHandles.Lookup caller, MethodType factoryType, MethodHandle implementation, MethodHandle opHandle) throws LambdaConversionException {
             this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(caller.lookupClass()).concat("$$Lambda"));
             argDescs = factoryType.parameterList().stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
             try {
-                quotableOpGetterInfo = caller.revealDirect(reflectableLambdaInfo.opHandle()); // may throw SecurityException
+                quotableOpGetterInfo = caller.revealDirect(opHandle); // may throw SecurityException
             } catch (IllegalArgumentException e) {
                 throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
             }
             if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
                 throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpGetterInfo));
             }
-
         }
 
         @Override
         public void accept(ClassBuilder clb) {
             // the field that will hold the quoted instance
-            clb.withField(QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass(), ACC_PRIVATE);
+            clb.withField(QUOTED_FIELD_NAME, QUOTED_CLASS_DESC, ACC_PRIVATE);
             // the field that will hold the model
-            clb.withField(MODEL_FIELD_NAME, reflectableLambdaInfo.funcOpClass(),
+            clb.withField(MODEL_FIELD_NAME, FUNC_OP_CLASS_DESC,
                     ACC_PRIVATE | ACC_STATIC);
             // Generate method #__internal_quoted()
-            clb.withMethodBody(NAME_METHOD_QUOTED, MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()), ACC_PRIVATE, (cob) ->
+            clb.withMethodBody(NAME_METHOD_QUOTED, MethodTypeDesc.of(QUOTED_CLASS_DESC), ACC_PRIVATE, (cob) ->
                 cob.aload(0)
-                   .invokevirtual(lambdaClassSymbol, "getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()))
+                   .invokevirtual(lambdaClassSymbol, "getQuoted", MethodTypeDesc.of(QUOTED_CLASS_DESC))
                    .areturn());
             // generate helper methods
             /*
@@ -254,17 +240,17 @@ public class ReflectableLambdaMetafactory {
                 return v;
             }
             */
-            clb.withMethodBody("getQuoted", MethodTypeDesc.of(reflectableLambdaInfo.quotedClass()),
+            clb.withMethodBody("getQuoted", MethodTypeDesc.of(QUOTED_CLASS_DESC),
                     ACC_PRIVATE + ACC_SYNCHRONIZED, cob ->
                         cob.aload(0)
-                           .getfield(lambdaClassSymbol, QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
+                           .getfield(lambdaClassSymbol, QUOTED_FIELD_NAME, QUOTED_CLASS_DESC)
                            .astore(1)
                            .aload(1)
                            .ifThen(Opcode.IFNULL, bcb -> {
                                bcb.aload(0) // will be used by putfield
                                // load class data: MH to Quoted.extractOp
                                   .ldc(DynamicConstantDesc.ofNamed(BSM_CLASS_DATA_AT, DEFAULT_NAME, CD_MethodHandle, 2))
-                                  .invokestatic(lambdaClassSymbol, "getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()))
+                                  .invokestatic(lambdaClassSymbol, "getModel", MethodTypeDesc.of(FUNC_OP_CLASS_DESC))
                                // load captured args in array
                                   .loadConstant(argDescs.length)
                                   .anewarray(CD_Object);
@@ -277,9 +263,9 @@ public class ReflectableLambdaMetafactory {
                                    bcb.aastore();
                                }
                                // invoke Quoted.extractOp
-                               bcb.invokevirtual(CD_MethodHandle, "invokeExact", reflectableLambdaInfo.extractOpHandle().type().describeConstable().get())
+                               bcb.invokevirtual(CD_MethodHandle, "invokeExact", QUOTED_EXTRACT_OP_HANDLE.type().describeConstable().get())
                                   .dup_x1()
-                                  .putfield(lambdaClassSymbol, QUOTED_FIELD_NAME, reflectableLambdaInfo.quotedClass())
+                                  .putfield(lambdaClassSymbol, QUOTED_FIELD_NAME, QUOTED_CLASS_DESC)
                                   .astore(1);
 
                            })
@@ -294,18 +280,18 @@ public class ReflectableLambdaMetafactory {
                 return v;
             }
             */
-            clb.withMethodBody("getModel", MethodTypeDesc.of(reflectableLambdaInfo.funcOpClass()),
+            clb.withMethodBody("getModel", MethodTypeDesc.of(FUNC_OP_CLASS_DESC),
                     ACC_PRIVATE + ACC_STATIC + ACC_SYNCHRONIZED, cob ->
-                        cob.getstatic(lambdaClassSymbol, MODEL_FIELD_NAME, reflectableLambdaInfo.funcOpClass())
+                        cob.getstatic(lambdaClassSymbol, MODEL_FIELD_NAME, FUNC_OP_CLASS_DESC)
                            .astore(0)
                            .aload(0)
                            .ifThen(Opcode.IFNULL, bcb ->
                                // load class data: MH to op building method
                                bcb.ldc(DynamicConstantDesc.ofNamed(BSM_CLASS_DATA_AT, DEFAULT_NAME, CD_MethodHandle, 1))
                                   .invokevirtual(CD_MethodHandle, "invokeExact", quotableOpGetterInfo.getMethodType().describeConstable().get())
-                                  .checkcast(reflectableLambdaInfo.funcOpClass())
+                                  .checkcast(FUNC_OP_CLASS_DESC)
                                   .dup()
-                                  .putstatic(lambdaClassSymbol, MODEL_FIELD_NAME, reflectableLambdaInfo.funcOpClass())
+                                  .putstatic(lambdaClassSymbol, MODEL_FIELD_NAME, FUNC_OP_CLASS_DESC)
                                   .astore(0))
                            .aload(0)
                            .areturn());
