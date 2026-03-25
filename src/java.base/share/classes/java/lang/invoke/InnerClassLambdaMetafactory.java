@@ -346,7 +346,6 @@ import sun.invoke.util.Wrapper;
                 else if (finalAccidentallySerializable)
                     generateSerializationHostileMethods(clb);
 
-                //
                 if (finisher != null) {
                     finisher.accept(clb);
                 }
@@ -357,9 +356,9 @@ import sun.invoke.util.Wrapper;
 
         try {
             // this class is linked at the indy callsite; so define a hidden nestmate
-            var cdata = explicitClassdata != null ? explicitClassdata : useImplMethodHandle ? implementation : null;
+            var classdata = explicitClassdata != null ? explicitClassdata : useImplMethodHandle ? implementation : null;
             return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, lambdaProxyClassFileDumper, NESTMATE_CLASS | STRONG_LOADER_LINK)
-                         .defineClass(!disableEagerInitialization, cdata);
+                         .defineClass(!disableEagerInitialization, classdata);
 
         } catch (Throwable t) {
             throw new InternalError(t);
