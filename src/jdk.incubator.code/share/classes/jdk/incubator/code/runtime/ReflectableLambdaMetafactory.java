@@ -5,16 +5,13 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.constantpool.ConstantPoolBuilder;
-import java.lang.classfile.constantpool.MethodHandleEntry;
 import java.lang.classfile.constantpool.MethodRefEntry;
-import java.lang.classfile.constantpool.NameAndTypeEntry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
@@ -48,6 +45,7 @@ public class ReflectableLambdaMetafactory {
 
     static final ClassDesc QUOTED_CLASS_DESC = Quoted.class.describeConstable().get();
     static final ClassDesc FUNC_OP_CLASS_DESC = FuncOp.class.describeConstable().get();
+    static final ClassDesc OP_CLASS_DESC = Op.class.describeConstable().get();
     static final MethodHandle QUOTED_EXTRACT_OP_HANDLE;
 
     static {
@@ -111,9 +109,9 @@ public class ReflectableLambdaMetafactory {
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, decodedName.opHandle);
+        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList());
         return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
-                implementation, dynamicMethodType, transform,
+                implementation, dynamicMethodType, finisher,
                 List.of(implementation, decodedName.opHandle, QUOTED_EXTRACT_OP_HANDLE));
     }
 
@@ -164,8 +162,8 @@ public class ReflectableLambdaMetafactory {
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
         MethodHandle implementation = extractArg(args, 1, MethodHandle.class);
-        LambdaFinisher transform = new LambdaFinisher(caller, factoryType, implementation, decodedName.opHandle);
-        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, transform,
+        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList());
+        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, finisher,
                 List.of(implementation, decodedName.opHandle, QUOTED_EXTRACT_OP_HANDLE),
                 args);
     }
@@ -202,20 +200,11 @@ public class ReflectableLambdaMetafactory {
     static class LambdaFinisher implements Consumer<ClassBuilder> {
 
         final ClassDesc lambdaClassSymbol;
-        final MethodHandleInfo quotableOpGetterInfo;
         final ClassDesc[] argDescs;
 
-        public LambdaFinisher(MethodHandles.Lookup caller, MethodType factoryType, MethodHandle implementation, MethodHandle opHandle) throws LambdaConversionException {
-            this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(caller.lookupClass()).concat("$$Lambda"));
-            argDescs = factoryType.parameterList().stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
-            try {
-                quotableOpGetterInfo = caller.revealDirect(opHandle); // may throw SecurityException
-            } catch (IllegalArgumentException e) {
-                throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
-            }
-            if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
-                throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpGetterInfo));
-            }
+        public LambdaFinisher(Class<?> callerClass, List<Class<?>> parameterTypes) throws LambdaConversionException {
+            this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(callerClass).concat("$$Lambda"));
+            this.argDescs = parameterTypes.stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
         }
 
         @Override
@@ -288,7 +277,7 @@ public class ReflectableLambdaMetafactory {
                            .ifThen(Opcode.IFNULL, bcb ->
                                // load class data: MH to op building method
                                bcb.ldc(DynamicConstantDesc.ofNamed(BSM_CLASS_DATA_AT, DEFAULT_NAME, CD_MethodHandle, 1))
-                                  .invokevirtual(CD_MethodHandle, "invokeExact", quotableOpGetterInfo.getMethodType().describeConstable().get())
+                                  .invokevirtual(CD_MethodHandle, "invokeExact", MethodTypeDesc.of(OP_CLASS_DESC))
                                   .checkcast(FUNC_OP_CLASS_DESC)
                                   .dup()
                                   .putstatic(lambdaClassSymbol, MODEL_FIELD_NAME, FUNC_OP_CLASS_DESC)
