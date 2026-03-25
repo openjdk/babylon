@@ -27,6 +27,8 @@ package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.JavaOp.InvokeOp;
+import jdk.incubator.code.dialect.java.JavaOp.LambdaOp;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.internal.OpDeclaration;
@@ -43,11 +45,6 @@ import java.util.function.Function;
  * Core operations model the foundational, language-agnostic structure of code, such as functions, modules,
  * variables, tuples, constants, and control flow. Core operations may appear on their own or together with
  * operations expressed in other dialects.
- * <p>
- * {@linkplain jdk.incubator.code.Op.Lowerable#lower(Block.Builder, CodeTransformer) Lowering} may transform operations
- * in other dialects to a representation composed only of core operations. A code model consisting solely of core
- * operations therefore captures program structure independently of any one source language while preserving the meaning
- * of the original program.
  */
 public sealed abstract class CoreOp extends Op {
 
@@ -69,6 +66,8 @@ public sealed abstract class CoreOp extends Op {
     /**
      * The function operation, that can model a named function.
      * <p>
+     * In code models derived from Java source, function operations can model Java method declarations.
+     * <p>
      * A function operation has a {@linkplain #funcName() function name}, which should correspond to an entry in the
      * ancestor module's {@linkplain ModuleOp#functionTable() symbol table}, if any.
      * <p>
@@ -77,6 +76,8 @@ public sealed abstract class CoreOp extends Op {
      * of the function modeled by the function operation.
      * <p>
      * The result type of a function operation is {@link JavaType#VOID}.
+     *
+     * @jls 8.4 Method Declarations
      */
     @OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends CoreOp
@@ -163,7 +164,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * Transforms a function operation using the given function name and code transformer.
+         * Transforms a function operation using the given function name, code transformer and a new context.
          *
          * @param funcName the new function name
          * @param ot code transformer to apply to this function operation
@@ -413,11 +414,12 @@ public sealed abstract class CoreOp extends Op {
          *     <li>the root function operation</li>
          *     <li>a function operation referenced by an
          *     {@linkplain jdk.incubator.code.dialect.java.JavaOp.InvokeOp invoke operation}, where the reference
-         *     occurs in the body of a function already included and resolves to a function operation.</li>
+         *     occurs in the body of a function already included and the {@linkplain InvokeOp#invokeReference() method reference}
+         *     associated with the invoke operation resolves to a function operation.</li>
          * </ul>
          *
          * @param root the root function operation
-         * @param l    the lookup used to resolve {@linkplain MethodRef method references} nested in the root function operation
+         * @param l    the lookup used to resolve {@linkplain MethodRef method references}
          * @return a module operation containing the root and reachable function operations
          */
         public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp root, MethodHandles.Lookup l) {
@@ -472,13 +474,23 @@ public sealed abstract class CoreOp extends Op {
         /**
          * Creates a module operation from a lambda operation, a method handles lookup, and a name for the root
          * lambda.
-         * The symbol table of the returned module operation contains the function operation obtained from the
-         * provided lambda operation, followed by reachable function operations in encounter order.
+         * <p>
+         * This is equivalent to:
+         * {@snippet :
+         * ofFuncOp(root)
+         * }
+         * where {@code root} is derived as follows:
+         * <ul>
+         *     <li>if {@code lambdaOp} contains a {@linkplain LambdaOp#directInvocation() direct invocation}, and that
+         *     direct invocation can be resolved to a function operation, that operation is {@code root}</li>
+         *     <li>otherwise, {@code root} is the function operation obtained using
+         *     {@code lambdaOp.toFuncOp(lambdaName)}</li>
+         * </ul>
          *
          * @param lambdaOp   the lambda operation
-         * @param l          the lookup used to resolve method references nested in the lambda operation
+         * @param l          the lookup used to resolve {@linkplain MethodRef method references}
          * @param lambdaName the name to use for the root function operation, or {@code null}
-         * @return a module operation containing a root function operation and reachable function operations
+         * @return a module operation containing a (derived) root function operation and reachable function operations
          */
         public static CoreOp.ModuleOp ofLambdaOp(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, String lambdaName) {
             if (lambdaName == null) lambdaName = "";
@@ -673,7 +685,7 @@ public sealed abstract class CoreOp extends Op {
      * The yield operation, that can model exit from a body.
      * <p>
      * A yield operation is a body-terminating operation that accepts zero or one operand, corresponding to the value
-     * yielded from the body to the operation that owns that body.
+     * yielded from the body to its parent operation.
      * <p>
      * The result type of a yield operation is {@link JavaType#VOID}.
      */
@@ -729,7 +741,7 @@ public sealed abstract class CoreOp extends Op {
      * The unconditional branch operation, that can model transfer of control from one block to a successor block.
      * <p>
      * A branch operation is a block-terminating operation that accepts no operands and one successor, the next block
-     * to branch to. The values associated with that successor become the arguments to the target block.
+     * to branch to. The arguments of the successor are assigned to the parameters to the target block.
      * <p>
      * The result type of a branch operation is {@link JavaType#VOID}.
      */
@@ -789,8 +801,8 @@ public sealed abstract class CoreOp extends Op {
      * <p>
      * A conditional branch operation is a block-terminating operation that accepts one boolean operand and two
      * successors, the true successor and the false successor. When the operand is true the true successor is
-     * selected, otherwise the false successor is selected. The values associated with the selected successor become
-     * the arguments to the target block.
+     * selected, otherwise the false successor is selected. The arguments of the selected successor are assigned
+     * to the parameters to the target block.
      * <p>
      * The result type of a conditional branch operation is {@link JavaType#VOID}.
      */
