@@ -95,7 +95,7 @@ public class PaintShader  {
         col = step(vec3.vec3(0.0f), col);
         col = vec3(col.x(),col.y(),col.y());
 
-        return(vec4(col, 1f));
+        return vec4(col, 1f);
     }
     @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord) {
         return createPixel(vec2.vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2.vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);

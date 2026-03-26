@@ -323,6 +323,19 @@ public class C99VecAndMatHandler {
                 builder.returnKeyword().sp().paren(_ -> builder.type("vec3")).paren(_ ->
                 builder.preformatted("l.x*r._00+l.y*r._01+l.z*r._02,l.x*r._10+l.y*r._11+l.z*r._12,l.x*r._20+l.y*r._21+l.z*r._22")).semicolon()
         );
+        genFunc(builder, "vec3", "mul", "mat3", "vec3", _ ->
+                builder.returnKeyword().sp().paren(_ -> builder.type("vec3")).paren(_ ->
+                        builder.preformatted(
+                                "       l._00 * r.x + l._01 * r.y + l._02 * r.z," +
+                                "        l._10 * r.x + l._11 * r.y + l._12 * r.z," +
+                                "        l._20 * r.x + l._21 * r.y + l._22 * r.z")).semicolon()
+        );
+
+        /*
+          l._00() * r.x() + l._01() * r.y() + l._02() * r.z(),
+        l._10() * r.x() + l._11() * r.y() + l._12() * r.z(),
+        l._20() * r.x() + l._21() * r.y() + l._22() * r.z()
+         */
 
 
         /*

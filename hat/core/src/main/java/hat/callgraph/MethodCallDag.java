@@ -25,56 +25,24 @@
 package hat.callgraph;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
-import optkl.ifacemapper.Buffer;
-import optkl.jdot.ui.JDot;
-import optkl.util.carriers.LookupCarrier;
+import optkl.util.Dag;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
 
-public class MethodCallDAG implements LookupCarrier {
-
-    public MethodHandles.Lookup lookup;
-
-    @Override
-    public MethodHandles.Lookup lookup() {
-        return lookup;
-    }
-
-    public void view() {
-        JDot.digraph("dag", $ ->
-                edges.forEach((l, r) ->
-                        r.forEach(e ->
-                                $.edge(l.funcOp.funcName(), e.funcOp.funcName())
-                        )
-                ));
-    }
-
-    public boolean isDag() {
-        return edges.size()>1;
-    }
-
+public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
     static public class MethodInfo{
         public  CoreOp.FuncOp funcOp;
-        public int rank;
+
         public final MethodRef methodRef;
         public final Method method;
         MethodInfo(CoreOp.FuncOp funcOp, MethodRef methodRef, Method method){
@@ -101,81 +69,39 @@ public class MethodCallDAG implements LookupCarrier {
 
     final MethodInfo entryPoint;
     final CoreOp.FuncOp inlined;
-    final Set<MethodInfo> set = new HashSet<>();
-    final Map<MethodInfo, Set<MethodInfo>> edges = new HashMap<>();
 
-    MethodCallDAG(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp funcOp, CoreOp.FuncOp inlined) {
-        this.lookup = lookup;
+    MethodCallDag(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp funcOp, CoreOp.FuncOp inlined) {
+        super(lookup);
         this.inlined = inlined;
         this.entryPoint = MethodInfo.of(funcOp, null, method);// we dont have a methodRef for the root
-        set.add(this.entryPoint);
+        nodeSet.add(this.entryPoint);
+        fromToNodes.put(this.entryPoint,new HashSet<>());
     }
 
-
+    // recursive
     void addEdge(MethodInfo methodInfo, OpHelper.Invoke invoke) {
-        var edge = MethodInfo.of(invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow());
-        var edgeSet = edges.computeIfAbsent(methodInfo, _ -> new HashSet<>());
-        if (edgeSet.add(edge)) {
-            OpHelper.Invoke.stream(invoke.lookup(), edge.funcOp)
+        computeIfAbsent(methodInfo,MethodInfo.of(invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
+            OpHelper.Invoke.stream(invoke.lookup(), n.funcOp)
                     .filter(i -> i.targetMethodModelOrNull() != null)
-                    .forEach(i -> addEdge(edge, i));
-        }
+                    .forEach(i -> addEdge(n, i))
+        );
     }
 
-    static public MethodCallDAG of(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
-        var dag = new MethodCallDAG(lookup, method, entry, inlined);
+    static public MethodCallDag of(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
+        var dag = new MethodCallDag(lookup, method, entry, inlined);
         OpHelper.Invoke.stream(lookup, entry)
                 .filter(invoke -> invoke.targetMethodModelOrNull() != null)
                 .forEach(i -> dag.addEdge(dag.entryPoint, i));
+        dag.closeRanks();
         return dag;
     }
 
-    public void traverseDeclarationOrder(Consumer<MethodInfo> consumer) {
-        Map<MethodInfo, Integer> outDegree = new HashMap<>();
-        Map<MethodInfo, List<MethodInfo>> reverseEdges = new HashMap<>();
-        Queue<MethodInfo> queue = new LinkedList<>();
-
-        for (MethodInfo parent : edges.keySet()) {
-            outDegree.put(parent, edges.get(parent).size());
-            for (MethodInfo child : edges.get(parent)) {
-                reverseEdges.computeIfAbsent(child, k -> new ArrayList<>()).add(parent);
-                outDegree.putIfAbsent(child, 0);
-            }
-        }
-
-        for (Map.Entry<MethodInfo, Integer> entry : outDegree.entrySet()) {
-            if (entry.getValue() == 0) {
-                queue.add(entry.getKey());
-            }
-        }
-
-        while (!queue.isEmpty()) {
-            MethodInfo current = queue.poll();
-            consumer.accept(current);
-            List<MethodInfo> parents = reverseEdges.getOrDefault(current, Collections.emptyList());
-            for (MethodInfo parent : parents) {
-                int remainingChildren = outDegree.get(parent) - 1;
-                outDegree.put(parent, remainingChildren);
-                if (remainingChildren == 0) {
-                    queue.add(parent);
-                }
-            }
-        }
-    }
-
-    public List<MethodInfo> declarationOrder() {
-        List<MethodInfo> methodInfos = new ArrayList<>();
-        traverseDeclarationOrder(methodInfos::add);
-        return methodInfos;
-    }
 
 
     public CoreOp.ModuleOp toModuleOp() {
         List<CoreOp.FuncOp> moduleFuncOps = new ArrayList<>();
-        declarationOrder().forEach(methodInfo -> {
+        rankOrdered.forEach(methodInfo -> {
                     if (methodInfo.methodRef != null) {
-                      //  String methodName = methodInfo.methodRef.name();
-                       // FunctionType functionType = methodInfo.funcOp.invokableType();
                         CoreOp.FuncOp tf = methodInfo.funcOp.transform(methodInfo.methodRef.name(), (blockBuilder, op) -> {
                             if (invoke(lookup, op) instanceof OpHelper.Invoke invoke && invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
                                 var funcCall = copyLocation(funcOp,
