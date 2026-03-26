@@ -13,6 +13,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -93,14 +94,15 @@ public class TestStringConstantExpressionInterning {
         Assertions.assertEquals(expected, v, op.toText());
 
         Assertions.assertNotEquals(expected, Interpreter.invoke(l, op));
-
         Assertions.assertNotEquals(expected, BytecodeGenerator.generate(l, op).invoke());
 
-        op = op.transform(internStringConstantExpr);
+        FuncOp op2 = op.transform(internStringConstantExpr);
+        Assertions.assertEquals(expected, Interpreter.invoke(l, op2));
+        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op2).invoke());
 
-        Assertions.assertEquals(expected, Interpreter.invoke(l, op));
-
-        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invoke());
+        FuncOp op3 = op.transform(foldConstants);
+        Assertions.assertEquals(expected, Interpreter.invoke(l, op3));
+        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op3).invoke());
     }
 
     private static final MethodRef STRING_INTERN = MethodRef.method(J_L_STRING, "intern", J_L_STRING);
@@ -111,6 +113,27 @@ public class TestStringConstantExpressionInterning {
             r = b.op(JavaOp.invoke(STRING_INTERN, r));
         }
         b.context().mapValue(op.result(), r);
+        return b;
+    };
+
+    CodeTransformer foldConstants = (b, op) -> {
+        if (op instanceof JavaExpression) {
+            BiFunction<MethodHandles.Lookup, Value, Object> operandEvaluator = (l, operand) -> {
+                Value nv = b.context().getValue(operand);
+                if (nv instanceof Op.Result opr && opr.op() instanceof ConstantOp cop) {
+                    return cop.value();
+                }
+                return null;
+            };
+            // we extend JavaExpression.evaluate by passing an operand evaluator, to avoid re-evaluation of operands
+            Optional<Object> v = JavaExpression.evaluate(MethodHandles.lookup(), (Op & JavaExpression) op, operandEvaluator);
+            if (v.isPresent()) {
+                Result c = b.op(constant(op.resultType(), v.get()));
+                b.context().mapValue(op.result(), c);
+            }
+        } else {
+            b.op(op);
+        }
         return b;
     };
 }
