@@ -55,7 +55,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     public final ComputeCallGraph computeCallGraph;
     public final CoreOp.FuncOp inlinedEntryPoint;
-    public final MethodCallDAG callDag;
+    public final MethodCallDag callDag;
 
     public class State {
         public Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
@@ -129,11 +129,11 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         HATTier tier = new HATTier(this);
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
         entrypoint.funcOp(initialEntrypointFuncOp);
-        this.callDag = MethodCallDAG.of(lookup(), method, initialEntrypointFuncOp, this.inlinedEntryPoint);
+        this.callDag = MethodCallDag.of(lookup(), method, initialEntrypointFuncOp, this.inlinedEntryPoint);
         //  if (this.callDag.isDag()) {
-        //      this.callDag.view();
+            // this.callDag.view("kernelDag", n->n.funcOp.funcName());
         //  }
-       callDag.declarationOrder().stream()
+       callDag.rankOrdered.stream()
                 .filter(methodInfo -> methodInfo.methodRef != null && methodInfo.method.getDeclaringClass().isAssignableFrom(Buffer.class)).forEach(methodInfo ->
                         state.bufferAccessToMethodCallMap.computeIfAbsent(methodInfo.methodRef, _ ->
                                 new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodInfo.method)
