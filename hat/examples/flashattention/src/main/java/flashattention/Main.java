@@ -203,8 +203,8 @@ public class Main {
     }
 
     public static void selfAttentionStreamsV2(F32Array Q, F32Array K, F32Array V,
-                                       F32Array attentionMatrix, F32Array O,
-                                       final int N, final int d, final float softMaxScale) {
+                                              F32Array attentionMatrix, F32Array O,
+                                              final int N, final int d, final float softMaxScale) {
 
         // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
         IntStream.range(0, N).parallel().forEach(i -> {
@@ -514,7 +514,7 @@ public class Main {
                 //                + block_n * head_dim
                 //                + block_m * block_n;
                 arr -> arr.withArray("array", 7168)
-                .withDeps(F16.class, half -> half.withField("value")));
+                        .withDeps(F16.class, half -> half.withField("value")));
 
         static SharedF16Array createLocal() {
             return null;
@@ -528,7 +528,7 @@ public class Main {
         DeviceSchema<PrivateF16Array> schema = DeviceSchema.of(PrivateF16Array.class,
                 // SIZE = HEAD_DIM (e.g., 64)
                 arr -> arr.withArray("array", 64)
-                 .withDeps(F16.class, half -> half.withField("value")));
+                        .withDeps(F16.class, half -> half.withField("value")));
 
         static PrivateF16Array createPrivate() {
             return null;
@@ -537,9 +537,9 @@ public class Main {
 
     @Reflect
     public static void flashAttentionF16(KernelContext kernelContext,
-                                      F16Array Q, F16Array K, F16Array V,
-                                      F16Array O, F16Array m, F16Array l,
-                                      final int N, final int d, final float softmaxScale) {
+                                         F16Array Q, F16Array K, F16Array V,
+                                         F16Array O, F16Array m, F16Array l,
+                                         final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;
 
@@ -630,9 +630,7 @@ public class Main {
                 }
 
                 float m_new = Math.max(m_prev, m_block);
-                float prevScale = (m_prev == Float.MIN_NORMAL)
-                        ? 0.0f
-                        : (float) Math.exp(m_prev - m_new);
+                float prevScale = (m_prev == Float.MIN_NORMAL) ? 0.0f : (float) Math.exp(m_prev - m_new);
                 float blockScale = (float) Math.exp(m_block - m_new);
                 float l_new = prevScale * l_prev + blockScale * l_block;
 
