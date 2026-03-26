@@ -598,6 +598,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 } else if (tree.sym instanceof VarSymbol vsym &&
                         vsym.getConstValue() != null &&
                         !isVarSeen(vsym)) {
+                    // record the constant value associated with this
                     constantCaptures.put(tree.sym, vsym.getConstValue());
                 } else {
                     // might be a local capture
