@@ -107,9 +107,9 @@ import static sun.invoke.util.Wrapper.isWrapperType;
      *                      should implement.
      * @param altMethods Method types for additional signatures to be
      *                   implemented by invoking the implementation method
-     * @param finisher A function called at the end of the lambda class build process
-     *                 that returns an additional object to append to the class data.
-     *                 It may be null and it may return null
+     * @param finisher Function called at the end of the lambda class build process
+     *                 that returns an additional object to append to the class data,
+     *                 may be (@code null}, may return {@code null}.
      * @throws LambdaConversionException If any of the meta-factory protocol
      *         invariants are violated
      */
