@@ -52,7 +52,7 @@ public class CaptureScanner extends TreeScanner {
     /**
      * The set of local variable declarations encountered in the tree under analysis.
      */
-    protected final Set<Symbol.VarSymbol> seenVars = new HashSet<>();
+    private final Set<Symbol.VarSymbol> seenVars = new HashSet<>();
 
     /**
      * The set of captured local variables accessed from within the tree under analysis.
@@ -95,5 +95,9 @@ public class CaptureScanner extends TreeScanner {
     public List<Symbol.VarSymbol> analyzeCaptures() {
         scan(tree);
         return List.from(fvs);
+    }
+
+    public boolean isVarSeen(VarSymbol s) {
+        return seenVars.contains(s);
     }
 }

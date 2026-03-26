@@ -596,7 +596,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // a reference to an enclosing field or method, we need to capture 'this'
                     capturesThis = true;
                 } else if (tree.sym.kind == VAR && ((VarSymbol)tree.sym).getConstValue() != null
-                        && !seenVars.contains(tree.sym)) {
+                        && isVarSeen(((VarSymbol) tree.sym))) {
                     constantCaptures.put(tree.sym, ((VarSymbol)tree.sym).getConstValue());
                 } else {
                     // might be a local capture
