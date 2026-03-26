@@ -44,6 +44,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static java.lang.classfile.ClassFile.*;
 import java.lang.classfile.attribute.ExceptionsAttribute;
@@ -53,6 +54,7 @@ import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import static java.lang.constant.ConstantDescs.*;
 import static java.lang.invoke.MethodHandleNatives.Constants.NESTMATE_CLASS;
 import static java.lang.invoke.MethodHandleNatives.Constants.STRONG_LOADER_LINK;
+import java.util.ArrayList;
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.vm.annotation.Stable;
@@ -143,12 +145,11 @@ import sun.invoke.util.Wrapper;
                                        boolean isSerializable,
                                        Class<?>[] altInterfaces,
                                        MethodType[] altMethods,
-                                       Consumer<ClassBuilder> finisher,
-                                       Object explicitClassData)
+                                       Function<ClassBuilder, Object> finisher)
             throws LambdaConversionException {
         super(caller, factoryType, interfaceMethodName, interfaceMethodType,
               implementation, dynamicMethodType,
-              isSerializable, altInterfaces, altMethods, finisher, explicitClassData);
+              isSerializable, altInterfaces, altMethods, finisher);
         implMethodClassDesc = implClassDesc(implClass);
         implMethodName = implInfo.getName();
         implMethodDesc = methodDesc(implInfo.getMethodType());
@@ -309,6 +310,10 @@ import sun.invoke.util.Wrapper;
             interfaces = List.copyOf(itfs);
         }
         final boolean finalAccidentallySerializable = accidentallySerializable;
+        final List<Object> classdata = new ArrayList<>(2);
+        if (useImplMethodHandle) {
+            classdata.add(implementation);
+        }
         final byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
             @Override
             public void accept(ClassBuilder clb) {
@@ -347,7 +352,10 @@ import sun.invoke.util.Wrapper;
                     generateSerializationHostileMethods(clb);
 
                 if (finisher != null) {
-                    finisher.accept(clb);
+                    Object additionalClassdata = finisher.apply(clb);
+                    if (additionalClassdata != null) {
+                        classdata.add(additionalClassdata);
+                    }
                 }
             }
         });
@@ -356,7 +364,6 @@ import sun.invoke.util.Wrapper;
 
         try {
             // this class is linked at the indy callsite; so define a hidden nestmate
-            var classdata = explicitClassdata != null ? explicitClassdata : useImplMethodHandle ? implementation : null;
             return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, lambdaProxyClassFileDumper, NESTMATE_CLASS | STRONG_LOADER_LINK)
                          .defineClass(!disableEagerInitialization, classdata);
 

@@ -16,8 +16,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Consumer;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
@@ -30,6 +28,7 @@ import static java.lang.classfile.ClassFile.ACC_STATIC;
 import static java.lang.classfile.ClassFile.ACC_SYNCHRONIZED;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.constant.DynamicConstantDesc;
+import java.util.function.Function;
 
 /**
  * Provides runtime support for creating reflectable lambdas. A reflectable lambda is a lambda whose
@@ -43,20 +42,11 @@ public class ReflectableLambdaMetafactory {
     private static final String QUOTED_FIELD_NAME = "quoted";
     private static final String MODEL_FIELD_NAME = "model";
 
-    static final ClassDesc QUOTED_CLASS_DESC = Quoted.class.describeConstable().get();
-    static final ClassDesc FUNC_OP_CLASS_DESC = FuncOp.class.describeConstable().get();
-    static final ClassDesc OP_CLASS_DESC = Op.class.describeConstable().get();
-    static final MethodHandle QUOTED_EXTRACT_OP_HANDLE;
-
-    static {
-        try {
-            QUOTED_EXTRACT_OP_HANDLE = MethodHandles.lookup()
-                    .findStatic(Quoted.class, "extractOp",
-                            MethodType.methodType(Quoted.class, FuncOp.class, Object[].class));
-        } catch (Throwable ex) {
-            throw new ExceptionInInitializerError(ex);
-        }
-    }
+    static final ClassDesc CD_Quoted = Quoted.class.describeConstable().get();
+    static final ClassDesc CD_FuncOp = FuncOp.class.describeConstable().get();
+    static final ClassDesc CD_Op = Op.class.describeConstable().get();
+    static final MethodTypeDesc MTD_extractOp = MethodTypeDesc.of(CD_Quoted, CD_FuncOp, CD_Object.arrayType());
+    static final DynamicConstantDesc<?> DCD_CLASS_DATA = DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_List);
 
     private ReflectableLambdaMetafactory() {
         // nope
@@ -109,10 +99,9 @@ public class ReflectableLambdaMetafactory {
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList());
+        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), decodedName.opHandle);
         return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
-                implementation, dynamicMethodType, finisher,
-                List.of(implementation, decodedName.opHandle, QUOTED_EXTRACT_OP_HANDLE));
+                implementation, dynamicMethodType, finisher);
     }
 
     /**
@@ -161,22 +150,8 @@ public class ReflectableLambdaMetafactory {
                                           Object... args)
             throws LambdaConversionException {
         DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        MethodHandle implementation = extractArg(args, 1, MethodHandle.class);
-        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList());
-        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, finisher,
-                List.of(implementation, decodedName.opHandle, QUOTED_EXTRACT_OP_HANDLE),
-                args);
-    }
-
-    private static <T> T extractArg(Object[] args, int index, Class<T> type) {
-        if (index >= args.length) {
-            throw new IllegalArgumentException("missing argument");
-        }
-        Object result = Objects.requireNonNull(args[index]);
-        if (!type.isInstance(result)) {
-            throw new IllegalArgumentException("argument has wrong type");
-        }
-        return type.cast(result);
+        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), decodedName.opHandle);
+        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, finisher, args);
     }
 
     static final JavaLangInvokeAccess JLI_ACCESS = SharedSecrets.getJavaLangInvokeAccess();
@@ -197,27 +172,29 @@ public class ReflectableLambdaMetafactory {
         }
     }
 
-    static class LambdaFinisher implements Consumer<ClassBuilder> {
+    static class LambdaFinisher implements Function<ClassBuilder, Object> {
 
         final ClassDesc lambdaClassSymbol;
         final ClassDesc[] argDescs;
+        final MethodHandle opHandle;
 
-        public LambdaFinisher(Class<?> callerClass, List<Class<?>> parameterTypes) throws LambdaConversionException {
+        public LambdaFinisher(Class<?> callerClass, List<Class<?>> parameterTypes, MethodHandle opHandle) throws LambdaConversionException {
             this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(callerClass).concat("$$Lambda"));
             this.argDescs = parameterTypes.stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
+            this.opHandle = opHandle;
         }
 
         @Override
-        public void accept(ClassBuilder clb) {
+        public Object apply(ClassBuilder clb) {
             // the field that will hold the quoted instance
-            clb.withField(QUOTED_FIELD_NAME, QUOTED_CLASS_DESC, ACC_PRIVATE);
+            clb.withField(QUOTED_FIELD_NAME, CD_Quoted, ACC_PRIVATE);
             // the field that will hold the model
-            clb.withField(MODEL_FIELD_NAME, FUNC_OP_CLASS_DESC,
+            clb.withField(MODEL_FIELD_NAME, CD_FuncOp,
                     ACC_PRIVATE | ACC_STATIC);
             // Generate method #__internal_quoted()
-            clb.withMethodBody(NAME_METHOD_QUOTED, MethodTypeDesc.of(QUOTED_CLASS_DESC), ACC_PRIVATE, (cob) ->
+            clb.withMethodBody(NAME_METHOD_QUOTED, MethodTypeDesc.of(CD_Quoted), ACC_PRIVATE, (cob) ->
                 cob.aload(0)
-                   .invokevirtual(lambdaClassSymbol, "getQuoted", MethodTypeDesc.of(QUOTED_CLASS_DESC))
+                   .invokevirtual(lambdaClassSymbol, "getQuoted", MethodTypeDesc.of(CD_Quoted))
                    .areturn());
             // generate helper methods
             /*
@@ -229,17 +206,15 @@ public class ReflectableLambdaMetafactory {
                 return v;
             }
             */
-            clb.withMethodBody("getQuoted", MethodTypeDesc.of(QUOTED_CLASS_DESC),
+            clb.withMethodBody("getQuoted", MethodTypeDesc.of(CD_Quoted),
                     ACC_PRIVATE + ACC_SYNCHRONIZED, cob ->
                         cob.aload(0)
-                           .getfield(lambdaClassSymbol, QUOTED_FIELD_NAME, QUOTED_CLASS_DESC)
+                           .getfield(lambdaClassSymbol, QUOTED_FIELD_NAME, CD_Quoted)
                            .astore(1)
                            .aload(1)
                            .ifThen(Opcode.IFNULL, bcb -> {
                                bcb.aload(0) // will be used by putfield
-                               // load class data: MH to Quoted.extractOp
-                                  .ldc(DynamicConstantDesc.ofNamed(BSM_CLASS_DATA_AT, DEFAULT_NAME, CD_MethodHandle, 2))
-                                  .invokestatic(lambdaClassSymbol, "getModel", MethodTypeDesc.of(FUNC_OP_CLASS_DESC))
+                                  .invokestatic(lambdaClassSymbol, "getModel", MethodTypeDesc.of(CD_FuncOp))
                                // load captured args in array
                                   .loadConstant(argDescs.length)
                                   .anewarray(CD_Object);
@@ -252,11 +227,10 @@ public class ReflectableLambdaMetafactory {
                                    bcb.aastore();
                                }
                                // invoke Quoted.extractOp
-                               bcb.invokevirtual(CD_MethodHandle, "invokeExact", QUOTED_EXTRACT_OP_HANDLE.type().describeConstable().get())
+                               bcb.invokestatic(CD_Quoted, "extractOp", MTD_extractOp)
                                   .dup_x1()
-                                  .putfield(lambdaClassSymbol, QUOTED_FIELD_NAME, QUOTED_CLASS_DESC)
+                                  .putfield(lambdaClassSymbol, QUOTED_FIELD_NAME, CD_Quoted)
                                   .astore(1);
-
                            })
                            .aload(1)
                            .areturn());
@@ -269,21 +243,25 @@ public class ReflectableLambdaMetafactory {
                 return v;
             }
             */
-            clb.withMethodBody("getModel", MethodTypeDesc.of(FUNC_OP_CLASS_DESC),
+            clb.withMethodBody("getModel", MethodTypeDesc.of(CD_FuncOp),
                     ACC_PRIVATE + ACC_STATIC + ACC_SYNCHRONIZED, cob ->
-                        cob.getstatic(lambdaClassSymbol, MODEL_FIELD_NAME, FUNC_OP_CLASS_DESC)
+                        cob.getstatic(lambdaClassSymbol, MODEL_FIELD_NAME, CD_FuncOp)
                            .astore(0)
                            .aload(0)
                            .ifThen(Opcode.IFNULL, bcb ->
-                               // load class data: MH to op building method
-                               bcb.ldc(DynamicConstantDesc.ofNamed(BSM_CLASS_DATA_AT, DEFAULT_NAME, CD_MethodHandle, 1))
-                                  .invokevirtual(CD_MethodHandle, "invokeExact", MethodTypeDesc.of(OP_CLASS_DESC))
-                                  .checkcast(FUNC_OP_CLASS_DESC)
+                               // last item in the class data list is a method handle to get the op
+                               bcb.ldc(DCD_CLASS_DATA)
+                                  .invokeinterface(CD_List, "getLast", MethodTypeDesc.of(CD_Object))
+                                  .checkcast(CD_MethodHandle)
+                                  .invokevirtual(CD_MethodHandle, "invokeExact", MethodTypeDesc.of(CD_Op))
+                                  .checkcast(CD_FuncOp)
                                   .dup()
-                                  .putstatic(lambdaClassSymbol, MODEL_FIELD_NAME, FUNC_OP_CLASS_DESC)
+                                  .putstatic(lambdaClassSymbol, MODEL_FIELD_NAME, CD_FuncOp)
                                   .astore(0))
                            .aload(0)
                            .areturn());
+            // return opHandle as additional class data
+            return opHandle;
         }
 
         static void boxIfTypePrimitive(CodeBuilder cob, TypeKind tk) {

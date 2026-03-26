@@ -30,7 +30,7 @@ import java.lang.classfile.ClassBuilder;
 import java.util.Arrays;
 import java.lang.reflect.Array;
 import java.util.Objects;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 import jdk.internal.vm.annotation.AOTSafeClassInitializer;
 
@@ -346,7 +346,7 @@ public final class LambdaMetafactory {
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
         return metafactoryInternal(caller, interfaceMethodName, factoryType, interfaceMethodType,
-                implementation, dynamicMethodType, null, null);
+                implementation, dynamicMethodType, null);
     }
 
     static CallSite metafactoryInternal(MethodHandles.Lookup caller,
@@ -355,8 +355,7 @@ public final class LambdaMetafactory {
                                         MethodType interfaceMethodType,
                                         MethodHandle implementation,
                                         MethodType dynamicMethodType,
-                                        Consumer<ClassBuilder> finisher,
-                                        Object explicitClassdata)
+                                        Function<ClassBuilder, Object> finisher)
             throws LambdaConversionException {
         AbstractValidatingLambdaMetafactory mf = new InnerClassLambdaMetafactory(
                 Objects.requireNonNull(caller),
@@ -368,8 +367,7 @@ public final class LambdaMetafactory {
                 false,
                 EMPTY_CLASS_ARRAY,
                 EMPTY_MT_ARRAY,
-                finisher,
-                explicitClassdata);
+                finisher);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
@@ -506,14 +504,13 @@ public final class LambdaMetafactory {
                                           MethodType factoryType,
                                           Object... args)
             throws LambdaConversionException {
-        return altMetafactoryInternal(caller, interfaceMethodName, factoryType, null, null, args);
+        return altMetafactoryInternal(caller, interfaceMethodName, factoryType, null, args);
     }
 
     static CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
                                            String interfaceMethodName,
                                            MethodType factoryType,
-                                           Consumer<ClassBuilder> finisher,
-                                           Object explicitClassdata,
+                                           Function<ClassBuilder, Object> finisher,
                                            Object... args)
             throws LambdaConversionException {
         Objects.requireNonNull(caller);
@@ -572,8 +569,7 @@ public final class LambdaMetafactory {
                                                   isSerializable,
                                                   altInterfaces,
                                                   altMethods,
-                                                  finisher,
-                                                  explicitClassdata);
+                                                  finisher);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }

@@ -40,7 +40,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public interface JavaLangInvokeAccess {
@@ -182,13 +182,11 @@ public interface JavaLangInvokeAccess {
                                  MethodType interfaceMethodType,
                                  MethodHandle implementation,
                                  MethodType dynamicMethodType,
-                                 Consumer<ClassBuilder> finisher,
-                                 Object explicitClassdata) throws LambdaConversionException;
+                                 Function<ClassBuilder, Object> finisher) throws LambdaConversionException;
 
     CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
                                     String interfaceMethodName,
                                     MethodType factoryType,
-                                    Consumer<ClassBuilder> finisher,
-                                    Object explicitClassdata,
+                                    Function<ClassBuilder, Object> finisher,
                                     Object... args) throws LambdaConversionException;
 }

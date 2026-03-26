@@ -58,7 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -1650,17 +1649,15 @@ abstract class MethodHandleImpl {
             @Override
             public CallSite metafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
                                                 MethodType interfaceMethodType, MethodHandle implementation,
-                                                MethodType dynamicMethodType, Consumer<ClassBuilder> finisher,
-                                                Object explicitClassdata) throws LambdaConversionException {
+                                                MethodType dynamicMethodType, Function<ClassBuilder, Object> finisher) throws LambdaConversionException {
                 return LambdaMetafactory.metafactoryInternal(caller, interfaceMethodName, factoryType,
-                        interfaceMethodType, implementation, dynamicMethodType, finisher, explicitClassdata);
+                        interfaceMethodType, implementation, dynamicMethodType, finisher);
             }
 
             @Override
             public CallSite altMetafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
-                                                   Consumer<ClassBuilder> finisher, Object explicitClassdata,
-                                                   Object... args) throws LambdaConversionException {
-                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, finisher, explicitClassdata, args);
+                                                   Function<ClassBuilder, Object> finisher, Object... args) throws LambdaConversionException {
+                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, finisher, args);
             }
         });
     }
