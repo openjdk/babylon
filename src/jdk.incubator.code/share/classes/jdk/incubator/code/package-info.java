@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,29 @@
  * questions.
  */
 
-/**
- * Functionality for a code metamodel that is used to quote Java code as code models, build code models, and transform code models.
- */
+/// Defines an enhancement to the [core reflection][java.lang.reflect] API called _code reflection_.
+///
+/// Code reflection supports access to a model of code in a method or lambda expression, a
+/// [_code model_](#code-models), that is suited for analysis and [transformation](#transforming).
+///
+/// ## Declaring and accessing reflectable code
+///
+/// ## Code models
+///
+/// ## Traversing
+///
+/// ## Building
+///
+/// ## Transforming
+///
+/// ## Code model structure
+///
+/// ## Code model behavior
+///
+/// ## Dialects
+///
+/// ## Java code models
+///
+/// ## Modeling Java code
+///
 package jdk.incubator.code;
