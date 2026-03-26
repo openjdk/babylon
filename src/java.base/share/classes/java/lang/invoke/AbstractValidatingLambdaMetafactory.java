@@ -71,7 +71,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     final boolean isSerializable;             // Should the returned instance be serializable
     final Class<?>[] altInterfaces;           // Additional interfaces to be implemented
     final MethodType[] altMethods;            // Signatures of additional methods to bridge
-    final Function<ClassBuilder, Object> finisher;    // Function called to finish lambda class build process, returns additional class data (can be null)
+    final Function<ClassBuilder, Object> finisher; // Function called to finish lambda class build process, returns additional class data (can be null)
 
     /**
      * Meta-factory constructor.
@@ -107,7 +107,9 @@ import static sun.invoke.util.Wrapper.isWrapperType;
      *                      should implement.
      * @param altMethods Method types for additional signatures to be
      *                   implemented by invoking the implementation method
-     * @param reflectableLambdaInfo a holder for information pertinent to a reflectable lambda
+     * @param finisher A function called at the end of the lambda class build process
+     *                 that returns an additional object to append to the class data.
+     *                 It may be null and it may return null
      * @throws LambdaConversionException If any of the meta-factory protocol
      *         invariants are violated
      */
