@@ -26,7 +26,6 @@ package flashattention;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.HATMath;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -86,6 +85,8 @@ import static optkl.ifacemapper.MappableIface.WO;
  * </p>
  */
 public class Main {
+
+    private static final float DELTA = 0.01f;
 
     /**
      * Computes self-attention with HAT in a 1D parallel kernel. It fuses:
@@ -395,6 +396,8 @@ public class Main {
         final int blockN = 32;
 
         int startIndex = bx * blockM;
+        int row = startIndex + tid;
+        boolean rowValid = row < N;
 
         // We use a unique space in shared memory to compute matrices
         // Q, K, V and the intermediate one (S).
@@ -405,12 +408,11 @@ public class Main {
         int baseIndex = blockN * headDim;
         int sK_index = baseIndex;
         int sV_index = baseIndex * 2;
-        int sS_index = baseIndex * 3;
 
         // Load Q into shared memory (sQ_index)
         for (int k = 0; k < d; k++) {
-            sharedArray.array((tid * d + k) + sQ_index,
-                    Q.array((startIndex + (tid * d + k) * d + k)));
+            float qValue = rowValid ? Q.array(row * d + k) : 0.0f;
+            sharedArray.array((tid * d + k) + sQ_index, qValue);
         }
         kernelContext.barrier();
 
@@ -418,68 +420,76 @@ public class Main {
         for (int tileId = 0; tileId < numBlocks; tileId++) {
 
             int kvTileRow = (tileId * blockN) + tid;
+            boolean kvRowValid = kvTileRow < N;
 
             // Load the tiles K and V into shared memory
             for (int k = 0; k < d; k++) {
-                sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
-                sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
+                float kValue = kvRowValid ? K.array(kvTileRow * d + k) : 0.0f;
+                float vValue = kvRowValid ? V.array(kvTileRow * d + k) : 0.0f;
+                sharedArray.array((tid * d + k) + sK_index, kValue);
+                sharedArray.array((tid * d + k) + sV_index, vValue);
             }
             kernelContext.barrier();
 
-            // m we accumulate the max values
-            float m_prev = m.array(tileId * blockN + tid);
-            // in l we accumulate the sum values
-            float l_prev = l.array(tileId * blockN + tid);
-            float m_block = Float.MIN_VALUE; // for calculating max
-            float l_block = 0.0f; // for sum
+            float m_prev = rowValid ? m.array(row) : Float.MIN_NORMAL;
+            float l_prev = rowValid ? l.array(row) : 0.0f;
+            float m_block = Float.MIN_NORMAL;
+            float l_block = 0.0f;
 
             // Compute attention scores: S = Qi @ Kj^T * scale
-            // Then: rowmax(m_block)
+            // Then compute the row max for the current K/V tile.
             PrivateFloatArray privateFloatArray = PrivateFloatArray.createPrivate();
             for (int t = 0; t < blockN; t++) {
-                float score = 0.0f;
-                for (int k = 0; k < d; k++) {
-                    score += sharedArray.array((tid * d + k) + sQ_index)
-                            * sharedArray.array((t * d + k) + sK_index);
+                int col = tileId * blockN + t;
+                float score = Float.MIN_NORMAL;
+                if (rowValid && col < N) {
+                    score = 0.0f;
+                    for (int k = 0; k < d; k++) {
+                        score += sharedArray.array((tid * d + k) + sQ_index)
+                                * sharedArray.array((t * d + k) + sK_index);
+                    }
+                    score *= softmaxScale;
+                    m_block = Math.max(m_block, score);
                 }
-                score *= softmaxScale;
-                privateFloatArray.array((t) + sS_index, score);
-                m_block = Math.max(m_block, score);
+                privateFloatArray.array(t, score);
             }
 
-            // Compute local sum of Math.exp(p_i - m_block)
-            for (int t = 0; t < blockN; t++) {
-                float p = (float) Math.exp(privateFloatArray.array(t) - m_block);
-                privateFloatArray.array(t, p);
-                l_block += p;
-            }
-
-            // Update m and l with the new values
-            float m_new = Math.max(m_prev, m_block);
-            float l_new = (float) (Math.exp(m_prev - m_new) * l_prev + Math.exp(m_block - m_new) * l_block);
-
-            // Update the Output (O)
-            for (int k = 0; k < d; k++) {
-                float pv = 0.0f;
+            if (rowValid && m_block != Float.MIN_NORMAL) {
                 for (int t = 0; t < blockN; t++) {
-                    // MMA: P @ V (V in shared memory)
-                    pv += privateFloatArray.array(t) * sharedArray.array(t * d + k + sV_index);
+                    int col = tileId * blockN + t;
+                    if (col < N) {
+                        float p = (float) Math.exp(privateFloatArray.array(t) - m_block);
+                        privateFloatArray.array(t, p);
+                        l_block += p;
+                    } else {
+                        privateFloatArray.array(t, 0.0f);
+                    }
                 }
 
-                // compute the output value using the formula:
-                // diag(l_new)^-1 (diag(l_prev)*exp(m_prev-m_new) * O(current) + exp(m_block - m_new) * pv
-                int oldIndex = startIndex + (tileId * blockN + tid) * d + k;
-                int oIndex = (bx * blockN + tid) * d + k;
-                float value = O.array(oIndex);
-                float outVal = (float) ((l_prev * Math.exp(m_prev - m_new) * value +
-                        Math.exp(m_block - m_new) * pv) / l_new);
-                // write output
-                O.array(oIndex, outVal);
-            }
+                float m_new = Math.max(m_prev, m_block);
+                float prevScale = (m_prev == Float.MIN_NORMAL)
+                        ? 0.0f
+                        : (float) Math.exp(m_prev - m_new);
+                float blockScale = (float) Math.exp(m_block - m_new);
+                float l_new = prevScale * l_prev + blockScale * l_block;
 
-            // update m and l in global memory
-            m.array(tileId * blockN + tid, m_new);
-            l.array(tileId * blockN + tid, l_new);
+                // Update the output following Algorithm 1:
+                // O_new = (prevScale * l_prev * O_prev + blockScale * P_tile @ V_tile) / l_new
+                for (int k = 0; k < d; k++) {
+                    float pv = 0.0f;
+                    for (int t = 0; t < blockN; t++) {
+                        pv += privateFloatArray.array(t) * sharedArray.array(t * d + k + sV_index);
+                    }
+
+                    int oIndex = row * d + k;
+                    float value = O.array(oIndex);
+                    float outVal = ((prevScale * l_prev * value) + (blockScale * pv)) / l_new;
+                    O.array(oIndex, outVal);
+                }
+
+                m.array(row, m_new);
+                l.array(row, l_new);
+            }
 
             kernelContext.barrier();
         }
@@ -490,7 +500,8 @@ public class Main {
                                              @RO F32Array Q, @RO F32Array K, @RO F32Array V,
                                              @WO F32Array O, @RW F32Array m, @RW F32Array l,
                                              final int N, final int d, final float scale, final int blockSize) {
-        var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
+        int globalSize = ceilFunction(N, blockSize) * blockSize;
+        var ndRange = NDRange1D.of(Global1D.of(globalSize), Local1D.of(blockSize));
         computeContext.dispatchKernel(ndRange, kernelContext -> flashAttention(kernelContext, Q, K, V, O, m, l, N, d, scale));
     }
 
@@ -538,9 +549,8 @@ public class Main {
         final int blockN = 32;
 
         int startIndex = bx * blockM;
-
-        // scaling factor
-        F16 scale = F16.of(softmaxScale);
+        int row = startIndex + tid;
+        boolean rowValid = row < N;
 
         // We use a unique space in shared memory to compute matrices
         // Q, K, V and the intermediate one (S).
@@ -551,12 +561,15 @@ public class Main {
         int baseIndex = blockN * headDim;
         int sK_index = baseIndex;
         int sV_index = baseIndex * 2;
-        int sS_index = baseIndex * 3;
 
         // Load Q into shared memory (sQ_index)
         for (int k = 0; k < d; k++) {
-            F16 valQ = Q.array((startIndex + (tid * d + k) * d + k));
-            sharedArray.array((tid * d + k) + sQ_index).value(valQ.value());
+            F16 qValue = Q.array(row * d + k);
+            if (!rowValid) {
+                F16 init = F16.of(0.0f);
+                qValue.value(init.value());
+            }
+            sharedArray.array((tid * d + k) + sQ_index).value(qValue.value());
         }
 
         kernelContext.barrier();
@@ -565,89 +578,83 @@ public class Main {
         for (int tileId = 0; tileId < numBlocks; tileId++) {
 
             int kvTileRow = (tileId * blockN) + tid;
+            boolean kvRowValid = kvTileRow < N;
 
             // Load the tiles K and V into shared memory
             for (int k = 0; k < d; k++) {
-                F16 kVal = K.array(kvTileRow * d + k);
-                F16 vVal = V.array(kvTileRow * d + k);
-                sharedArray.array((tid * d + k) + sK_index).value(kVal.value());
-                sharedArray.array((tid + d + k) + sV_index).value(vVal.value());
+                F16 kValue = K.array(kvTileRow * d + k);
+                F16 vValue = V.array(kvTileRow * d + k);
+                F16 init = F16.of(0.0f);
+                if (!kvRowValid) {
+                    kValue.value(init.value());
+                    vValue.value(init.value());
+                }
+                sharedArray.array((tid * d + k) + sK_index).value(kValue.value());
+                sharedArray.array((tid * d + k) + sV_index).value(vValue.value());
             }
             kernelContext.barrier();
 
-            // m we accumulate the max values
-            F16 m_prev = m.array(tileId * blockN + tid);
-            // in l we accumulate the sum values
-            F16 l_prev = l.array(tileId * blockN + tid);
-            F16 m_block = F16.of(-100f); // for calculating max
-            F16 l_block = F16.of(0.0f); // for sum
+            float m_prev = rowValid ? F16.f16ToFloat(m.array(row)) : Float.MIN_NORMAL;
+            float l_prev = rowValid ? F16.f16ToFloat(l.array(row)) : 0.0f;
+            float m_block = Float.MIN_NORMAL;
+            float l_block = 0.0f;
 
             // Compute attention scores: S = Qi @ Kj^T * scale
-            // Then: rowmax(m_block)
-            PrivateF16Array privateFloatArray = PrivateF16Array.createPrivate();
+            // Then compute the row max for the current K/V tile.
+            PrivateFloatArray privateFloatArray = PrivateFloatArray.createPrivate();
             for (int t = 0; t < blockN; t++) {
-                F16 score = F16.of(0.0f);
-                for (int k = 0; k < d; k++) {
-                    F16 valQ = sharedArray.array((tid * d + k) + sQ_index);
-                    F16 valK = sharedArray.array((t * d + k) + sK_index);
-                    F16 mul = F16.mul(valQ, valK);
-                    score = F16.add(score, mul);
+                int col = tileId * blockN + t;
+                float score = Float.MIN_NORMAL;
+                if (rowValid && col < N) {
+                    score = 0.0f;
+                    for (int k = 0; k < d; k++) {
+                        score += F16.f16ToFloat(sharedArray.array((tid * d + k) + sQ_index))
+                                * F16.f16ToFloat(sharedArray.array((t * d + k) + sK_index));
+                    }
+                    score *= softmaxScale;
+                    m_block = Math.max(m_block, score);
                 }
-                score = F16.mul(score, scale);
-                privateFloatArray.array((t) + sS_index).value(score.value());
-                m_block = HATMath.maxf16(m_block, score);
+                privateFloatArray.array(t, score);
             }
 
-            // Compute local sum of Math.exp(p_i - m_block)
-            for (int t = 0; t < blockN; t++) {
-                F16 privateVal = privateFloatArray.array(t);
-                F16 sub = F16.sub(privateVal, m_block);
-                F16 p = HATMath.expf16(sub);
-                privateFloatArray.array(t).value(p.value());
-                l_block = F16.add(l_block, p);
-            }
-
-            // Update m and l with the new values
-            F16 m_new = HATMath.maxf16(m_prev, m_block);
-
-            F16 exp1 = HATMath.expf16(F16.sub(m_prev , m_new));
-            F16 mul1 = F16.mul(exp1, l_prev);
-            F16 exp2 = HATMath.expf16(F16.sub(m_block , m_new));
-            F16 mul2 = F16.mul(exp2, l_block);
-            F16 l_new = F16.add(mul1, mul2);
-
-            // Update the Output (O)
-            for (int k = 0; k < d; k++) {
-                F16 pv = F16.of(0.0f);
+            if (rowValid && m_block != Float.MIN_NORMAL) {
                 for (int t = 0; t < blockN; t++) {
-                    // MMA: P @ V (V in shared memory)
-                    F16 aux1 = sharedArray.array(t * d + k + sV_index);
-                    F16 aux2 = privateFloatArray.array(t);
-                    F16 mul = F16.mul(aux1, aux2);
-                    pv = F16.add(pv, mul);
+                    int col = tileId * blockN + t;
+                    if (col < N) {
+                        float p = (float) Math.exp(privateFloatArray.array(t) - m_block);
+                        privateFloatArray.array(t, p);
+                        l_block += p;
+                    } else {
+                        privateFloatArray.array(t, 0.0f);
+                    }
                 }
 
-                // compute the output value using the formula:
-                // diag(l_new)^-1 (diag(l_prev)*exp(m_prev-m_new) * O(current) + exp(m_block - m_new) * pv
-                int oIndex = (bx * blockN + tid) * d + k;
-                F16 value = O.array(oIndex);
+                float m_new = Math.max(m_prev, m_block);
+                float prevScale = (m_prev == Float.MIN_NORMAL)
+                        ? 0.0f
+                        : (float) Math.exp(m_prev - m_new);
+                float blockScale = (float) Math.exp(m_block - m_new);
+                float l_new = prevScale * l_prev + blockScale * l_block;
 
-                F16 expOut1 = HATMath.expf16(F16.sub(m_prev, m_new));
-                F16 multOut1 = F16.mul(l_prev, expOut1);
-                multOut1 = F16.mul(multOut1, value);
+                for (int k = 0; k < d; k++) {
+                    float pv = 0.0f;
+                    for (int t = 0; t < blockN; t++) {
+                        pv += privateFloatArray.array(t)
+                                * F16.f16ToFloat(sharedArray.array(t * d + k + sV_index));
+                    }
 
-                F16 expOut2 = HATMath.expf16(F16.sub(m_block, m_new));
-                F16 multOut2 = F16.mul(expOut2, pv);
-                F16 addOut = F16.add(multOut1, multOut2);
-                F16 outVal = F16.div(addOut, l_new);
+                    int oIndex = row * d + k;
+                    float value = F16.f16ToFloat(O.array(oIndex));
+                    float outVal = ((prevScale * l_prev * value) + (blockScale * pv)) / l_new;
+                    F16 outputVal = F16.floatToF16(outVal);
+                    O.array(oIndex).value(outputVal.value());
+                }
 
-                // write output
-                O.array(oIndex).value(outVal.value());
+                F16 r1 = F16.floatToF16(m_new);
+                F16 r2 = F16.floatToF16(l_new);
+                m.array(row).value(r1.value());
+                l.array(row).value(r2.value());
             }
-
-            // update m and l in global memory
-            m.array(tileId * blockN + tid).value(m_new.value());
-            l.array(tileId * blockN + tid).value(l_new.value());
 
             kernelContext.barrier();
         }
@@ -658,14 +665,39 @@ public class Main {
                                                 @RO F16Array Q, @RO F16Array K, @RO F16Array V,
                                                 @WO F16Array O, @RW F16Array m, @RW F16Array l,
                                                 final int N, final int d, final float scale, final int blockSize) {
-        var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
+        int globalSize = ceilFunction(N, blockSize) * blockSize;
+        var ndRange = NDRange1D.of(Global1D.of(globalSize), Local1D.of(blockSize));
         computeContext.dispatchKernel(ndRange, kernelContext -> flashAttentionF16(kernelContext, Q, K, V, O, m, l, N, d, scale));
+    }
+
+    private static void resetFlashAttentionState(F32Array O, F32Array m, F32Array l) {
+        IntStream.range(0, O.length()).forEach(i -> O.array(i, 0.0f));
+        IntStream.range(0, m.length()).forEach(i -> m.array(i, Float.MIN_NORMAL));
+        IntStream.range(0, l.length()).forEach(i -> l.array(i, 0.0f));
+    }
+
+    private static void resetFlashAttentionState(F16Array O, F16Array m, F16Array l) {
+        short zero = F16.of(0.0f).value();
+        short negInf = F16.floatToF16(Float.MIN_NORMAL).value();
+        IntStream.range(0, O.length()).forEach(i -> O.array(i).value(zero));
+        IntStream.range(0, m.length()).forEach(i -> m.array(i).value(negInf));
+        IntStream.range(0, l.length()).forEach(i -> l.array(i).value(zero));
     }
 
     public static boolean checkResult(F32Array O_reference, F32Array O, final int matrixSize) {
         for (int i = 0; i < matrixSize; i++) {
-            if (Math.abs(O_reference.array(i) - O.array(i)) > 0.1f) {
+            if (Math.abs(O_reference.array(i) - O.array(i)) > DELTA) {
                 IO.println("Iteration: #" + i + " " + O_reference.array(i) + " != " + O.array(i));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean checkResult(F32Array O_reference, F16Array O, final int matrixSize) {
+        for (int i = 0; i < matrixSize; i++) {
+            if (Math.abs(O_reference.array(i) - F16.f16ToFloat(O.array(i))) > DELTA) {
+                IO.println("Iteration: #" + i + " " + O_reference.array(i) + " != " + F16.f16ToFloat(O.array(i)));
                 return false;
             }
         }
@@ -710,8 +742,8 @@ public class Main {
         var Q = F32Array.create(accelerator, matrixSize);
         var K = F32Array.create(accelerator, matrixSize);
         var V = F32Array.create(accelerator, matrixSize);
-        var m = F32Array.create(accelerator, matrixSize);
-        var l = F32Array.create(accelerator, matrixSize);
+        var m = F32Array.create(accelerator, sequenceLen);
+        var l = F32Array.create(accelerator, sequenceLen);
         var O_java = F32Array.create(accelerator, matrixSize);
         var O_streams = F32Array.create(accelerator, matrixSize);
         var O_selfAttention = F32Array.create(accelerator, matrixSize);
@@ -720,8 +752,8 @@ public class Main {
         var Q16 = F16Array.create(accelerator, matrixSize);
         var K16 = F16Array.create(accelerator, matrixSize);
         var V16 = F16Array.create(accelerator, matrixSize);
-        var m16 = F16Array.create(accelerator, matrixSize);
-        var l16 = F16Array.create(accelerator, matrixSize);
+        var m16 = F16Array.create(accelerator, sequenceLen);
+        var l16 = F16Array.create(accelerator, sequenceLen);
         var O_flashAttention16 = F16Array.create(accelerator, matrixSize);
 
         F32Array attentionMatrix = F32Array.create(accelerator, sequenceLen * sequenceLen);
@@ -740,11 +772,8 @@ public class Main {
 
         }
 
-        IntStream.range(0, m.length()).forEach(k -> m.array(k, 0.0f));
-        IntStream.range(0, l.length()).forEach(k -> l.array(k, 1.0f));
-
-        IntStream.range(0, m.length()).forEach(k -> m16.array(k).value(F16.of(0.0f).value()));
-        IntStream.range(0, m.length()).forEach(k -> l16.array(k).value(F16.of(1.0f).value()));
+        resetFlashAttentionState(O_flashAttention, m, l);
+        resetFlashAttentionState(O_flashAttention16, m16, l16);
 
         List<Long> timersSelfAttentionJava = new ArrayList<>();
         List<Long> timersSelfAttentionStream = new ArrayList<>();
@@ -798,6 +827,7 @@ public class Main {
 
         // Run flashAttention in HAT
         for (int i = 0; i < options.iterations(); i++) {
+            resetFlashAttentionState(O_flashAttention, m, l);
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute)
                     cc -> Main.computeFlashAttention(
@@ -821,6 +851,7 @@ public class Main {
 
         // Run flashAttention in HAT
         for (int i = 0; i < options.iterations(); i++) {
+            resetFlashAttentionState(O_flashAttention16, m16, l16);
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute)
                     cc -> Main.computeFlashAttentionF16(
@@ -847,6 +878,7 @@ public class Main {
             boolean isStreamsCorrect = checkResult(O_java, O_streams, matrixSize);
             boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
             boolean isFlashAttentionCorrect = checkResult(O_java, O_flashAttention, matrixSize);
+            boolean isFlashAttentionFP16Correct = checkResult(O_java, O_flashAttention16, matrixSize);
 
             if (isStreamsCorrect) {
                 IO.println("Self-Attention Parallel Stream is correct");
@@ -861,8 +893,12 @@ public class Main {
             if (isFlashAttentionCorrect) {
                 IO.println("HAT-Flash-Attention is correct");
             } else {
-                IO.println("HAT_Flash-Attention is wrong. Note: expected due to use of multiple Math.exp operations " +
-                        "not present in the self-attention version.");
+                IO.println("HAT-Flash-Attention is wrong");
+            }
+            if (isFlashAttentionFP16Correct) {
+                IO.println("HAT-Flash-Attention-F16 is correct");
+            } else {
+                IO.println("HAT-Flash-Attention-F16 is wrong");
             }
         }
 
