@@ -29,22 +29,17 @@ import hat.ComputeContext;
 import hat.Config;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
 public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
-    public JExtractedBackend(Arena arena, MethodHandles.Lookup lookup,Config config, String libName) {
-        super(arena,lookup,config,libName);
+    public JExtractedBackend(Arena arena, MethodHandles.Lookup lookup, Config config, String libName) {
+        super(arena, lookup, config, libName);
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-       // if (config().interpret()) {
-         //   computeContext.interpretWithArgs(args);
-       // } else {
-            computeContext.invokeWithArgs(args);
-       // }
+        computeContext.invokeWithArgs(args);
     }
 }
