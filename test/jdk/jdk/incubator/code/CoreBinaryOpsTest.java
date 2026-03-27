@@ -24,6 +24,7 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit CoreBinaryOpsTest
  * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
@@ -38,7 +39,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.function.ThrowingSupplier;

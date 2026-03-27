@@ -198,13 +198,7 @@ public sealed abstract class JavaOp extends Op {
                         eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp _ -> {
                     // we expect cast to primitive type
-                    // cast from a primitive type to boolean or form boolean to a primitive type is not allowed in cast context
-                    Value operand = op.operands().getFirst();
-                    if ((op.resultType().equals(BOOLEAN) && !operand.type().equals(BOOLEAN)) ||
-                            (operand.type().equals(BOOLEAN) && !op.resultType().equals(BOOLEAN))) {
-                        throw new NonConstantExpression();
-                    }
-                    var v = eval(l, operand);
+                    var v = eval(l, op.operands().getFirst());
                     yield ArithmeticAndConvOpImpls.evaluate(op, List.of(v));
                 }
                 case CastOp castOp -> {
