@@ -1,6 +1,5 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.interpreter.Interpreter;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -14,6 +13,7 @@ import java.util.stream.IntStream;
  * @test
  * @summary test that invoking Op#ofLambda returns the same instance
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit ReflectableLambdaSameInstanceTest
  */
 

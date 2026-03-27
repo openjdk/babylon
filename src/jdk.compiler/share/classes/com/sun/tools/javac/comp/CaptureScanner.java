@@ -96,4 +96,8 @@ public class CaptureScanner extends TreeScanner {
         scan(tree);
         return List.from(fvs);
     }
+
+    public boolean isVarSeen(VarSymbol s) {
+        return seenVars.contains(s);
+    }
 }

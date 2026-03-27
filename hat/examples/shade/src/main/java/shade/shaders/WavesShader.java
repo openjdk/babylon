@@ -37,42 +37,17 @@ import hat.types.mat3;
 import hat.types.vec2;
 import hat.types.vec3;
 import hat.types.vec4;
+import static hat.types.F32.*;
+import static hat.types.mat3.*;
+import static hat.types.vec2.*;
+import static hat.types.vec3.*;
+import static hat.types.vec4.*;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.MappableIface;
 import hat.buffer.Uniforms;
 import shade.ShaderViewer;
 import java.lang.invoke.MethodHandles;
 
-import static hat.types.F32.abs;
-import static hat.types.F32.max;
-import static hat.types.F32.min;
-import static hat.types.F32.pow;
-import static hat.types.F32.sqrt;
-import static hat.types.mat3.mat3;
-import static hat.types.vec2.add;
-import static hat.types.vec2.div;
-import static hat.types.vec2.dot;
-import static hat.types.vec2.length;
-import static hat.types.vec2.mul;
-import static hat.types.vec2.sub;
-import static hat.types.vec2.vec2;
-import static hat.types.vec3.add;
-import static hat.types.vec3.clamp;
-import static hat.types.vec3.cross;
-import static hat.types.vec3.distance;
-import static hat.types.vec3.div;
-import static hat.types.vec3.dot;
-
-import static hat.types.vec3.max;
-import static hat.types.vec3.mix;
-import static hat.types.vec3.mul;
-import static hat.types.vec3.normalize;
-import static hat.types.vec3.pow;
-import static hat.types.vec3.reflect;
-import static hat.types.vec3.sub;
-import static hat.types.vec3.vec3;
-import static hat.types.vec4.normalize;
-import static hat.types.vec4.vec4;
 
 
 /*
@@ -406,8 +381,8 @@ public class WavesShader  {
                 )), special_trick);
 
 
-      //  vec3 bluesky = mul(div(vec3(5.5f, 13.0f, 22.4f), 22.4f), suncolor);
-        vec3 bluesky = div(vec3(5.5f, 13.0f, 22.4f), mul(22.4f, suncolor));//maybe
+        vec3 bluesky = mul(div(vec3(5.5f, 13.0f, 22.4f), 22.4f), suncolor);
+      //  vec3 bluesky = div(vec3(5.5f, 13.0f, 22.4f), mul(22.4f, suncolor));//maybe
         vec3 bluesky2 = max(vec3(0.0f), sub(bluesky, mul(vec3(5.5f, 13.0f, 22.4f), 0.002f * (special_trick + -6.0f * sundir.y() * sundir.y()))));
         bluesky2 = mul(bluesky2, special_trick * (0.24f + raysundt * 0.24f));
         return mul(bluesky2, 1.0f + F32.pow(1.0f - raydir.y(), 3.0f));
@@ -437,11 +412,15 @@ public class WavesShader  {
                 -0.53108f, 1.10813f, -0.07276f,
                 -0.07367f, -0.00605f, 1.07602f
         );
-        vec3 v = mul(color, m1);
+        vec3 v = mul(m1,color);
+       // vec3 v = mul(color, m1);
+
+        mul(color, m1);
         vec3 a = sub(mul(v, add(v, 0.0245786f)), 0.000090537f);
       //  vec3 b = add(mul(v, mul(0.983729f, add(v, 0.4329510f))), 0.238081f);
         vec3 b = add(mul(v, add(mul(0.983729f, v), 0.4329510f)), 0.238081f);
-        return pow(clamp(mul(div(a, b), m2), 0.0f, 1.0f), vec3(1.0f / 2.2f));
+        return pow(clamp(mul(m2,div(a, b)), 0.0f, 1.0f), vec3(1.0f / 2.2f));
+      //  return pow(clamp(mul(div(a, b), m2), 0.0f, 1.0f), vec3(1.0f / 2.2f));
 
     }
     @Reflect public static  vec4 createPixel(vec2 fres, float ftime, vec2 fmouse, vec2 fragCoord) {

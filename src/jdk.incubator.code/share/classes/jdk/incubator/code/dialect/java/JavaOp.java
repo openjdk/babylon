@@ -198,13 +198,7 @@ public sealed abstract class JavaOp extends Op {
                         eval(l, varLoadOp.varOp().initOperand());
                 case JavaOp.ConvOp _ -> {
                     // we expect cast to primitive type
-                    // cast from a primitive type to boolean or form boolean to a primitive type is not allowed in cast context
-                    Value operand = op.operands().getFirst();
-                    if ((op.resultType().equals(BOOLEAN) && !operand.type().equals(BOOLEAN)) ||
-                            (operand.type().equals(BOOLEAN) && !op.resultType().equals(BOOLEAN))) {
-                        throw new NonConstantExpression();
-                    }
-                    var v = eval(l, operand);
+                    var v = eval(l, op.operands().getFirst());
                     yield ArithmeticAndConvOpImpls.evaluate(op, List.of(v));
                 }
                 case CastOp castOp -> {
@@ -736,9 +730,9 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The terminating throw operation, that can model the Java language throw statement.
+     * The throw operation, that can model the Java language throw statement.
      * <p>
-     * Throw operations feature one operand, the value being thrown.
+     * A throw operation is a body-terminating operation that features one operand, the value being thrown.
      * <p>
      * The result type of a throw operation is {@link JavaType#VOID}.
      *
@@ -1295,6 +1289,7 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * Instance field accesses feature a receiver operand. Static field accesses have no receiver operand.
      *
+     * @see CoreOp.VarAccessOp
      * @jls 15.11 Field Access Expressions
      */
     public sealed abstract static class FieldAccessOp extends JavaOp
@@ -1333,6 +1328,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The field load operation, that can model Java language field access expressions used to read a field value.
          *
+         * @see CoreOp.VarAccessOp.VarLoadOp
          * @jls 15.11 Field Access Expressions
          */
         @OpDeclaration(FieldLoadOp.NAME)
@@ -1395,6 +1391,7 @@ public sealed abstract class JavaOp extends Op {
          * <p>
          * The result type is always {@link JavaType#VOID}.
          *
+         * @see CoreOp.VarAccessOp.VarStoreOp
          * @jls 15.11 Field Access Expressions
          */
         @OpDeclaration(FieldStoreOp.NAME)
@@ -1729,7 +1726,10 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The exception region start operation.
+     * The exception region start operation, that can model entry into an exception region.
+     * <p>
+     * An exception region start operation is a block-terminating operation whose first successor is the starting
+     * block of the exception region, and whose remaining successors are the catch blocks for that region.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
     public static final class ExceptionRegionEnter extends JavaOp
@@ -1793,7 +1793,10 @@ public sealed abstract class JavaOp extends Op {
     }
 
     /**
-     * The exception region end operation.
+     * The exception region end operation, that can model exit from an exception region.
+     * <p>
+     * An exception region end operation is a block-terminating operation whose first successor is the block that
+     * follows the exception region, and whose remaining successors are the catch blocks for that region.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
     public static final class ExceptionRegionExit extends JavaOp
@@ -2524,8 +2527,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * A statement target operation, that can model Java language statements associated with label identifiers.
      * <p>
-     * Statement target operations feature zero or one operand, the label identifier.
-     * If present, the label identifier is modeled as a {@link ConstantOp} value.
+     * A statement target operation is a body-terminating operation that features zero or one operand, the label
+     * identifier. If present, the label identifier is modeled as a {@link ConstantOp} value.
      * <p>
      * The result type of a statement target operation is {@link JavaType#VOID}.
      *
@@ -2616,7 +2619,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The break operation, that can model Java language break statements.
      * <p>
-     * Break operations feature zero or one operand, the label identifier.
+     * A break operation is a body-terminating statement target operation.
      *
      * @jls 14.15 The break Statement
      */
@@ -2650,7 +2653,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The continue operation, that can model Java language continue statements.
      * <p>
-     * Continue operations feature zero or one operand, the label identifier.
+     * A continue operation is a body-terminating statement target operation.
      *
      * @jls 14.16 The continue Statement
      */
@@ -2684,7 +2687,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The yield operation, that can model Java language yield statements.
      * <p>
-     * Yield operations feature one operand, the yielded value.
+     * A yield operation is a body-terminating operation that features one operand, the yielded value.
      * <p>
      * The result type of a yield operation is {@link JavaType#VOID}.
      *
@@ -3659,6 +3662,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The switch fall-through operation, that can model fall-through to the next statement in the switch block after
      * the last statement of the current switch label.
+     * <p>
+     * A switch fall-through operation is a body-terminating operation.
      */
     @OpDeclaration(SwitchFallthroughOp.NAME)
     public static final class SwitchFallthroughOp extends JavaOp

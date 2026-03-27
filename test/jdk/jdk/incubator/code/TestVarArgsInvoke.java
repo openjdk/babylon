@@ -24,6 +24,7 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit TestVarArgsInvoke
  * @run main Unreflect TestVarArgsInvoke
  * @run junit TestVarArgsInvoke
@@ -35,7 +36,6 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

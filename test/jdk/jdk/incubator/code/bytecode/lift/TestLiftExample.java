@@ -22,7 +22,6 @@
  */
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +34,7 @@ import java.util.function.Function;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.internal
+ * @library ../../lib
  * @run junit TestLiftExample
  */
 
