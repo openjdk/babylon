@@ -307,6 +307,7 @@ public interface ArgArray extends Buffer {
                         buf.access(accessType.value);
                     } else {
                         // otherwise, we rely on the buffer-tagger to set the accessor
+                        //buf.access(accessType.value);   // TODO: Temporary for tensors - remove this before the merge
                         buf.access(bufferAccessList.get(i).value);
                     }
                 }

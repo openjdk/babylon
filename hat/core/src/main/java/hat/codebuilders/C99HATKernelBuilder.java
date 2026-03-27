@@ -173,6 +173,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id("HAT_BSZ");
     }
 
+    public final T HAT_WARP_SIZE() {
+        return hatWarpSize();
+    }
+
+    protected abstract T hatWarpSize();
+
     @Override
     public final T hatThreadIdOp( HATThreadOp threadOp) {
         return (switch (threadOp) {
@@ -194,6 +200,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATThreadOp.HAT_BS.HAT_BSX _ -> HAT_BSX();
             case HATThreadOp.HAT_BS.HAT_BSY _ -> HAT_BSY();
             case HATThreadOp.HAT_BS.HAT_BSZ _ -> HAT_BSZ();
+            case HATThreadOp.HAT_WARP_SIZE  _ -> HAT_WARP_SIZE();
         });
     }
 

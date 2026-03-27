@@ -44,6 +44,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         super(kernelCallGraphState,scopedCodeBuilderContext);
     }
 
+    @Override
+    protected OpenCLHATKernelBuilder hatWarpSize() {
+        return constant("1");
+    }
+
     public OpenCLHATKernelBuilder vstore(int dims) {
         return id("vstore" + dims);
     }

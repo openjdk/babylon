@@ -47,6 +47,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         super(kernelCallGraphState,scopedCodeBuilderContext);
     }
 
+    @Override
+    protected CudaHATKernelBuilder hatWarpSize() {
+        return constant("32");
+    }
+
     private CudaHATKernelBuilder half2float() {
         return id("__half2float");
     }

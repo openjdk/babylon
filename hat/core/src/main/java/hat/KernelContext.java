@@ -70,7 +70,7 @@ public class KernelContext {
 
     final int dimensions;
 
-    public static final int warpSize = 32;
+    public int warpSize;
 
     public final NDRange<?,?> ndRange;
 
