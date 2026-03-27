@@ -143,12 +143,7 @@ public sealed abstract class JavaOp extends Op {
          *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
-            try {
-                Object o = new Evaluator(l).eval(v);
-                return Optional.of(o);
-            } catch (NonConstantExpression e) {
-                return Optional.empty();
-            }
+            return new Evaluator(l).evaluate(v);
         }
 
         /**
@@ -180,54 +175,49 @@ public sealed abstract class JavaOp extends Op {
          * @jls 15.29 Constant Expressions
          */
         static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op) {
-            try {
-                Object v = new Evaluator(l).eval(op);
-                return Optional.of(v);
-            } catch (NonConstantExpression e) {
-                return Optional.empty();
-            }
+            return new Evaluator(l).evaluate(op);
         }
 
-        static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op,
-                                                                         Function<Value, Object> operandEvaluator) {
-            try {
-                Object v = new Evaluator(operandEvaluator, l).eval(op);
-                return Optional.of(v);
-            } catch (NonConstantExpression e) {
-                return Optional.empty();
-            }
-        }
         class Evaluator {
-            private final Function<Value, Object> operandEvaluator;
             private final MethodHandles.Lookup l;
+            private final Map<Value, Object> m = new HashMap<>();
 
-            Evaluator(Function<Value, Object> operandEvaluator, MethodHandles.Lookup l) {
-                this.operandEvaluator = v -> {
-                    Object r = operandEvaluator.apply(v);
-                    if (r == null) {
-                        throw new NonConstantExpression();
-                    }
-                    return r;
-                };
+            public Evaluator(MethodHandles.Lookup l) {
                 this.l = l;
             }
 
-            Evaluator(MethodHandles.Lookup l) {
-                this.operandEvaluator = this::eval;
-                this.l = l;
+            public <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
+                try {
+                    Object v = this.eval(op);
+                    return Optional.of(v);
+                } catch (NonConstantExpression e) {
+                    return Optional.empty();
+                }
+            }
+
+            public Optional<Object> evaluate(Value v) {
+                try {
+                    Object o = this.eval(v);
+                    return Optional.of(o);
+                } catch (NonConstantExpression e) {
+                    return Optional.empty();
+                }
             }
 
             private Object eval(Op op) {
-                return switch (op) {
+                if (m.containsKey(op.result())) {
+                    return m.get(op.result());
+                }
+                Object r = switch (op) {
                     case ConstantOp cop when isConstant(cop) -> {
                         Object v = cop.value();
                         yield v instanceof String s ? s.intern() : v;
                     }
                     case VarAccessOp.VarLoadOp varLoadOp when isConstant(varLoadOp.varOp()) ->
-                            operandEvaluator.apply(varLoadOp.varOp().initOperand());
+                            eval(varLoadOp.varOp().initOperand());
                     case ConvOp _ -> {
                         // we expect cast to primitive type
-                        var v = (operandEvaluator.apply(op.operands().getFirst()));
+                        var v = eval(op.operands().getFirst());
                         yield ArithmeticAndConvOpImpls.evaluate(op, List.of(v));
                     }
                     case CastOp castOp -> {
@@ -236,15 +226,15 @@ public sealed abstract class JavaOp extends Op {
                         if (!castOp.resultType().equals(J_L_STRING) || !operand.type().equals(J_L_STRING)) {
                             throw new NonConstantExpression();
                         }
-                        Object v = (operandEvaluator.apply(operand));
+                        Object v = eval(operand);
                         if (!(v instanceof String s)) {
                             throw new NonConstantExpression();
                         }
                         yield s;
                     }
                     case ConcatOp concatOp -> {
-                        Object first = (operandEvaluator.apply(concatOp.operands().getFirst()));
-                        Object second = (operandEvaluator.apply(concatOp.operands().getLast()));
+                        Object first = eval(concatOp.operands().getFirst());
+                        Object second = eval(concatOp.operands().getLast());
                         yield (first.toString() + second).intern();
                     }
                     case FieldAccessOp.FieldLoadOp fieldLoadOp -> {
@@ -278,7 +268,7 @@ public sealed abstract class JavaOp extends Op {
                         yield v instanceof String s ? s.intern() : v;
                     }
                     case ArithmeticOperation _ -> {
-                        List<Object> values = op.operands().stream().map(operandEvaluator::apply).toList();
+                        List<Object> values = op.operands().stream().map(this::eval).toList();
                         yield ArithmeticAndConvOpImpls.evaluate(op, values);
                     }
                     case ConditionalExpressionOp _ -> {
@@ -299,6 +289,8 @@ public sealed abstract class JavaOp extends Op {
                     }
                     default -> throw new NonConstantExpression();
                 };
+                m.put(op.result(), r);
+                return r;
             }
 
             private Object eval(Value v) {

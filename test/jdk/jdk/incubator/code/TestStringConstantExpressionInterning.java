@@ -100,7 +100,7 @@ public class TestStringConstantExpressionInterning {
         Assertions.assertEquals(expected, Interpreter.invoke(l, op2));
         Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op2).invoke());
 
-        FuncOp op3 = op.transform(foldConstants);
+        FuncOp op3 = op.transform(TestConstantFolding.foldConstants);
         Assertions.assertEquals(expected, Interpreter.invoke(l, op3));
         Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op3).invoke());
     }
@@ -113,27 +113,6 @@ public class TestStringConstantExpressionInterning {
             r = b.op(JavaOp.invoke(STRING_INTERN, r));
         }
         b.context().mapValue(op.result(), r);
-        return b;
-    };
-
-    static final CodeTransformer foldConstants = (b, op) -> {
-        if (op instanceof JavaExpression) {
-            Function<Value, Object> operandEvaluator = operand -> {
-                Value nv = b.context().getValue(operand);
-                if (nv instanceof Op.Result opr && opr.op() instanceof ConstantOp cop) {
-                    return cop.value();
-                }
-                return null;
-            };
-            // we extend JavaExpression.evaluate by passing an operand evaluator, to avoid re-evaluation of operands
-            Optional<Object> v = JavaExpression.evaluate(MethodHandles.lookup(), (Op & JavaExpression) op, operandEvaluator);
-            if (v.isPresent()) {
-                Result c = b.op(constant(op.resultType(), v.get()));
-                b.context().mapValue(op.result(), c);
-            }
-        } else {
-            b.op(op);
-        }
         return b;
     };
 }
