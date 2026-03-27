@@ -30,31 +30,24 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.Set;import java.util.function.Function;
 
-public class Dag<N> implements LookupCarrier {
-
+public class Dag<N> extends BiMapOfSets<N> implements LookupCarrier {
     final public MethodHandles.Lookup lookup;
-
     @Override
     public MethodHandles.Lookup lookup() {
         return lookup;
     }
 
-    protected final Set<N> nodeSet = new HashSet<>();
     public final List<N> rankOrdered = new LinkedList<>();
 
-    protected final Map<N, Set<N>> fromToNodes = new HashMap<>();
     public void view(String name, Function<N,String> dotNodeLabelRenderer) {
         JDot.digraph(name, $ ->
-                fromToNodes.forEach((l, r) ->
+                fromTo.forEach((l, r) ->
                         r.forEach(e ->
                                 $.edge(dotNodeLabelRenderer.apply(l), dotNodeLabelRenderer.apply(e))
                         )
@@ -62,32 +55,19 @@ public class Dag<N> implements LookupCarrier {
     }
 
     public boolean isDag() {
-        return fromToNodes.size()>1;
+        return fromTo.size()>1;
     }
-
 
     protected Dag(MethodHandles.Lookup lookup) {
         this.lookup = lookup;
     }
 
-    protected void  computeIfAbsent(N from, N to, Consumer<N> ifAbsent){
-        if (!nodeSet.contains(to)) {
-            nodeSet.add(to);
-            fromToNodes.put(to, new HashSet<>());
-            ifAbsent.accept(to);
-        }
-        fromToNodes.get(from).add(to);
-    }
-
-
     public  void closeRanks() {
         Map<N, Integer> outDegree = new HashMap<>();
-        Map<N, List<N>> reverseEdges = new HashMap<>();
 
-        for (N parent : fromToNodes.keySet()) {
-            outDegree.put(parent, fromToNodes.get(parent).size());
-            for (N child : fromToNodes.get(parent)) {
-                reverseEdges.computeIfAbsent(child, k -> new ArrayList<>()).add(parent);
+        for (N parent : fromTo.keySet()) {
+            outDegree.put(parent, fromTo.get(parent).size());
+            for (N child :fromTo.get(parent)) {
                 outDegree.putIfAbsent(child, 0);
             }
         }
@@ -101,7 +81,7 @@ public class Dag<N> implements LookupCarrier {
         while (!queue.isEmpty()) {
             N current = queue.poll();
             rankOrdered.add(current);
-            List<N> parents = reverseEdges.getOrDefault(current, Collections.emptyList());
+            Set<N> parents = toFrom.getOrDefault(current, Collections.emptySet());
             for (N parent : parents) {
                 int remainingChildren = outDegree.get(parent) - 1;
                 outDegree.put(parent, remainingChildren);

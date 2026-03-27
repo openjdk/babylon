@@ -29,36 +29,19 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
-public class BiMapOfSets<From, To> {
-    private Map<From, Set<To>> fromTo = new LinkedHashMap<>();
-    private Map<To, Set<From>> toFrom = new LinkedHashMap<>();
+public class BiMapOfSets<N> {
+    public final Set<N> allNodes = new LinkedHashSet<>();
+    public final Map<N, Set<N>> fromTo = new LinkedHashMap<>();
+    public final  Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
-    public void add(From from, To to) {
+    public void add(N from, N to, Consumer<N> ifAbsent) {
         fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
         toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
-    }
-
-    public Set<From> getFrom(To to) {
-        return toFrom.get(to);
-    }
-
-    public Set<To> getTo(From from) {
-        return fromTo.get(from);
-    }
-
-    public boolean containsFrom(From from) {
-        return fromTo.containsKey(from);
-    }
-
-    public boolean containsTo(To to) {
-        return toFrom.containsKey(to);
-    }
-
-    public Iterable<From> fromKeys() {
-        return fromTo.keySet();
-    }
-    public Iterable<To> toKeys() {
-        return toFrom.keySet();
+        if (!allNodes.contains(to)){
+            allNodes.add(to);
+            ifAbsent.accept(to);
+        }
     }
 }

@@ -32,7 +32,6 @@ import optkl.util.Dag;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -42,7 +41,6 @@ import static optkl.OpHelper.copyLocation;
 public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
     static public class MethodInfo{
         public  CoreOp.FuncOp funcOp;
-
         public final MethodRef methodRef;
         public final Method method;
         MethodInfo(CoreOp.FuncOp funcOp, MethodRef methodRef, Method method){
@@ -57,7 +55,9 @@ public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
         }
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
+            if (this == o){
+                return true;
+            }
             return o instanceof MethodInfo that &&
                     Objects.equals(methodRef, that.methodRef) && Objects.equals(method, that.method);
         }
@@ -74,13 +74,11 @@ public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
         super(lookup);
         this.inlined = inlined;
         this.entryPoint = MethodInfo.of(funcOp, null, method);// we dont have a methodRef for the root
-        nodeSet.add(this.entryPoint);
-        fromToNodes.put(this.entryPoint,new HashSet<>());
     }
 
     // recursive
     void addEdge(MethodInfo methodInfo, OpHelper.Invoke invoke) {
-        computeIfAbsent(methodInfo,MethodInfo.of(invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
+        add(methodInfo,MethodInfo.of(invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
             OpHelper.Invoke.stream(invoke.lookup(), n.funcOp)
                     .filter(i -> i.targetMethodModelOrNull() != null)
                     .forEach(i -> addEdge(n, i))
