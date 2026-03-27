@@ -313,10 +313,7 @@ import sun.invoke.util.Wrapper;
             interfaces = List.copyOf(itfs);
         }
         final boolean finalAccidentallySerializable = accidentallySerializable;
-        final List<Object> classdata = new ArrayList<>(2);
-        if (useImplMethodHandle) {
-            classdata.add(implementation);
-        }
+        final Object[] additionalClassDataHolder = new Object[1];
         final byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
             @Override
             public void accept(ClassBuilder clb) {
@@ -355,10 +352,7 @@ import sun.invoke.util.Wrapper;
                     generateSerializationHostileMethods(clb);
 
                 if (finisher != null) {
-                    Object additionalClassdata = finisher.apply(clb);
-                    if (additionalClassdata != null) {
-                        classdata.add(additionalClassdata);
-                    }
+                    additionalClassDataHolder[0] = finisher.apply(clb);
                 }
             }
         });
@@ -367,6 +361,10 @@ import sun.invoke.util.Wrapper;
 
         try {
             // this class is linked at the indy callsite; so define a hidden nestmate
+            var additionalClassData = additionalClassDataHolder[0];
+            var classdata = additionalClassData == null
+                    ? useImplMethodHandle ? List.of(implementation) : null
+                    : useImplMethodHandle ? List.of(implementation, additionalClassData) : List.of(additionalClassData);
             return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, lambdaProxyClassFileDumper, NESTMATE_CLASS | STRONG_LOADER_LINK)
                          .defineClass(!disableEagerInitialization, classdata);
 
