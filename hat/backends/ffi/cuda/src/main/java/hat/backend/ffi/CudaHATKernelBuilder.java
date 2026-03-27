@@ -116,8 +116,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("BFLOAT16", _->keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
                 .typedefSingleValueStruct("BF16",  "BFLOAT16")
-                .includeSys("mma.h")  // only enable if tensor views are used
-                .namespace("nvcuda");         // only enable if tensor views are used
+                .includeSys("mma.h"); // only enable if tensor views are used
     }
 
     @Override
@@ -298,9 +297,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse( r.op());
         }
         if (!hatF16ToFloatConvOp.isLocal()) {
-            rarrow().id("value");
+            rarrow().id(VALUE);
         } else if (!hatF16ToFloatConvOp.wasFloat()) {
-            dot().id("value");
+            dot().id(VALUE);
         }
         cparen();
         return self();

@@ -125,6 +125,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return emitText(text);
     }
 
+    public final T constantHalf(Integer value) {
+        return emitText("(half)"+value);
+    }
+
 
     final public T blockComment(String block) {
         return comment("/*").nl().comment(block).nl().symbol("*/").nl();

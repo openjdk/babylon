@@ -38,7 +38,14 @@ import optkl.Trxfmr;
 import java.util.HashSet;
 import java.util.Set;
 
-import static hat.dialect.HATTensorOp.*;
+import static hat.dialect.HATTensorOp.TensorCreateOp;
+import static hat.dialect.HATTensorOp.TensorFillOp;
+import static hat.dialect.HATTensorOp.TensorLoadOp;
+import static hat.dialect.HATTensorOp.TensorMMAOp;
+import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
+import static hat.dialect.HATTensorOp.TensorStoreOp;
+import static hat.dialect.HATTensorOp.TensorVarLoadOp;
+import static hat.dialect.HATTensorOp.TensorVarOp;
 
 public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 

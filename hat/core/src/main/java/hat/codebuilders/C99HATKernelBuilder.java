@@ -41,6 +41,7 @@ import hat.phases.HATFP16Phase;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types.Tensor;
 import hat.types._F16;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.FieldRef;
@@ -929,11 +930,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // Second parameters: analysis of the shape
         int[] shape = new int[3];
         Value second = operands.get(1);
-        if (second instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp) {
+        if (second.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
             List<Value> shapeOperands = invokeOp.operands();
             for (int i = 0; i < shapeOperands.size(); i++) {
                 Value shapeOperand = shapeOperands.get(i);
-                if (shapeOperand instanceof Op.Result r2 && r2.op() instanceof CoreOp.ConstantOp constantOp) {
+                if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
                     shape[i] = (int) constantOp.value();
                 }
             }
@@ -943,7 +944,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // This parameter is another constant with the type
         Value classOperand = operands.get(2);
         Object klass = null;
-        if (classOperand instanceof Op.Result r2 && r2.op() instanceof CoreOp.ConstantOp constantOp) {
+        if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
             klass = constantOp.value();
         }
 
@@ -954,14 +955,26 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             type = "float";
         }
 
-        emitText("wmma::fragment<wmma::" + matrixOrder
+        emitText("nvcuda::wmma::fragment<nvcuda::wmma::" + matrixOrder
                 + ", " + shape[0] + "," + shape[1] + "," + shape[2]
                 + ", " + type);
 
         if (matrixOrder.equals("accumulator")) {
             emitText(">");
         } else {
-            emitText(", wmma::col_major>");
+            // infer from the last parameter
+            Value access = operands.getLast();
+            if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                // Expecting an invokeOp
+                var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+                if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                    emitText(", nvcuda::wmma::col_major>");
+                } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                    emitText(", nvcuda::wmma::row_major>");
+                } else {
+                    throw new RuntimeException("[Error]");
+                }
+            }
         }
         return self();
     }
@@ -979,7 +992,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-        id("wmma::fill_fragment").paren( _-> {
+        id("nvcuda::wmma::fill_fragment").paren( _-> {
             List<Value> operands = tensorFillOp.operands();
             if (operands.getFirst() instanceof Op.Result r) {
                 recurse(r.op());
@@ -995,7 +1008,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public T hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
 
-        id("wmma::mma_sync").paren( _-> {
+        id("nvcuda::wmma::mma_sync").paren( _-> {
             List<Value> operands = tensorMMAOp.operands();
             for (int i = 0, operandsSize = operands.size(); i < operandsSize; i++) {
                 Value operand = operands.get(i);
@@ -1010,6 +1023,48 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    public T ptrAddressForTensorLoad(List<Value> operands) {
+        Value reference2 = operands.get(0);
+        id("halfPtr_");
+        if (reference2 instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        plus().constantHalf(2).plus();
+        return self();
+    }
+
+    public T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
+        Value a = isColumnMajor ? iIndex : jIndex;
+        Value b = isColumnMajor ? jIndex : iIndex;
+
+        if (a instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        plus();
+        if (b instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        mul();
+        if (ldSize instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        return self();
+    }
+
+    private boolean isColumnMajor(Value tensorLayout) {
+        if (tensorLayout.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+            if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                return true;
+            } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                return false;
+            } else {
+                throw new RuntimeException("[Error]");
+            }
+        }
+        return false;
+    }
+
     @Override
     public T hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
 
@@ -1018,11 +1073,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // Find name tensor of the first argument
         String[] tensorName = new String[1];
         SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
+        HATTensorOp.TensorVarOp tensorVarOp = null;
         for (Op.Result result : uses) {
-            if (result instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
+            if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
                 // obtain first arg from tensorStoreOp
-                Value first = tensorStoreLoadOp.operands().getFirst();
-                if (first instanceof Op.Result r2 && r2.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+                Value first = storeLoadOp.operands().getFirst();
+                if (first.declaringElement() instanceof HATTensorOp.TensorVarOp varOp) {
+                    tensorVarOp = varOp;
                     tensorName[0] = tensorVarOp.varName();
                 }
             }
@@ -1041,26 +1098,22 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         semicolon().nl();
 
-        id("wmma::load_matrix_sync")
+        boolean isColumnMajor = true;
+        if (tensorVarOp != null) {
+            Value value = tensorVarOp.operands().getFirst();
+            if (value.declaringElement() instanceof HATTensorOp.TensorCreateOp createOp) {
+                Value tensorLayout = createOp.operands().getLast();
+                isColumnMajor = isColumnMajor(tensorLayout);
+            }
+        }
+
+        boolean finalIsColumnMajor = isColumnMajor;
+        id("nvcuda::wmma::load_matrix_sync")
                 .paren(_ -> {
                     id(tensorName[0]).comma();
-
-                    // Second operand as reference:
-                    Value reference2 = operands.get(0);
-                    id("halfPtr_");
-                    if (reference2 instanceof Op.Result r) {
+                    ptrAddressForTensorLoad(operands).indexForTensor(finalIsColumnMajor, operands.get(1), operands.get(2), operands.get(3)).comma();
+                    if (operands.get(3) instanceof Op.Result r) {
                         recurse(r.op());
-                    }
-                    plus().constant("(half)2").plus();
-
-                    for (int i = 1, operandsSize = operands.size(); i < operandsSize; i++) {
-                        Value operand = operands.get(i);
-                        if (operand instanceof Op.Result r) {
-                            recurse(r.op());
-                        }
-                        if (i < operandsSize - 1) {
-                            comma();
-                        }
                     }
                 });
 
@@ -1075,11 +1128,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         // Specific for the CUDA, we don't generate the left-hand side
         // (a = b)
-        // just the righ-hand side.
+        // just the right-hand side.
         List<Value> operands = hatTensorStoreLoadOp.operands();
         if (operands.getLast() instanceof Op.Result r) {
             recurse(r.op());
         }
+        return self();
+    }
+
+    public T pointerArithmeticStoreTensor(Value globalPtr) {
+        id("ptr_");
+        if (globalPtr instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        plus().constant("(int)1").plus();
         return self();
     }
 
@@ -1088,6 +1150,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // style: store_matrix_sync(c + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
 
         // Second operand as reference:
+        // Typecast to ptrs to be used as base address
         List<Value> operands = tensorStoreOp.operands();
         Value reference = operands.get(0);
         id("float * ptr_");
@@ -1100,24 +1163,50 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         semicolon().nl();
 
-        id("wmma::store_matrix_sync")
+
+        Value accessLayout = operands.get(5);
+        final boolean isColumnMajor = isColumnMajor(accessLayout);
+
+        // Syntax API: Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+
+        id("nvcuda::wmma::store_matrix_sync")
                 .paren(_ -> {
-                    // Second operand as reference:
-                    Value reference2 = operands.get(0);
-                    id("ptr_");
-                    if (reference2 instanceof Op.Result r) {
+                    // First operand as global memory reference:
+                    pointerArithmeticStoreTensor(operands.get(0));
+
+                    // Second param is the i-index
+                    Value iIndex = operands.get(1);
+                    Value jIndex = operands.get(2);
+                    Value tensorToStore = operands.get(3);
+                    Value ldSize = operands.get(4);
+
+                    indexForTensor(isColumnMajor, iIndex, jIndex, ldSize);
+                    comma();
+
+                    if (tensorToStore instanceof Op.Result r) {
                         recurse(r.op());
                     }
-                    plus().constant("(int)1").plus();
+                    comma();
 
-                    for (int i = 1, operandsSize = operands.size(); i < operandsSize; i++) {
-                        Value operand = operands.get(i);
-                        if (operand instanceof Op.Result r) {
-                            recurse(r.op());
-                        }
-                        comma();
+                    if (ldSize instanceof Op.Result r) {
+                        recurse(r.op());
                     }
-                    id("wmma::mem_col_major");
+                    comma();
+
+                    if (isColumnMajor) {
+                        id("nvcuda::wmma::mem_col_major");
+                    } else {
+                        id("nvcuda::wmma::mem_row_major");
+                    }
+
+//                    for (int i = 1, operandsSize = operands.size(); i < operandsSize; i++) {
+//                        Value operand = operands.get(i);
+//                        if (operand instanceof Op.Result r) {
+//                            recurse(r.op());
+//                        }
+//                        comma();
+//                    }
+//                    id("nvcuda::wmma::mem_col_major");
                 });
 
         return self();

@@ -72,7 +72,7 @@ public class KernelContext {
 
     public static final int warpSize = 32;
 
-    final public NDRange<?,?> ndRange;
+    public final NDRange<?,?> ndRange;
 
     public KernelContext(NDRange<?,?> ndRange) {
         this.ndRange = ndRange;
