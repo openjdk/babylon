@@ -24,10 +24,11 @@
  */
 package java.lang.invoke;
 
-import jdk.internal.access.JavaLangInvokeAccess.ReflectableLambdaInfo;
 import sun.invoke.util.Wrapper;
 
+import java.lang.classfile.ClassBuilder;
 import java.lang.reflect.Modifier;
+import java.util.function.Function;
 
 import static java.lang.invoke.MethodHandleInfo.*;
 import static sun.invoke.util.Wrapper.forPrimitiveType;
@@ -70,9 +71,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     final boolean isSerializable;             // Should the returned instance be serializable
     final Class<?>[] altInterfaces;           // Additional interfaces to be implemented
     final MethodType[] altMethods;            // Signatures of additional methods to bridge
-    final ReflectableLambdaInfo reflectableLambdaInfo;       // A holder for information pertinent to a reflectable lambda
-                                              // the quotable lambda's associated intermediate representation (can be null).
-    final MethodHandleInfo quotableOpGetterInfo;  // Info about the quotable getter method handle (can be null).
+    final Function<ClassBuilder, Object> finisher; // Function called to finish lambda class build process, returns additional class data (can be null)
 
     /**
      * Meta-factory constructor.
@@ -108,7 +107,9 @@ import static sun.invoke.util.Wrapper.isWrapperType;
      *                      should implement.
      * @param altMethods Method types for additional signatures to be
      *                   implemented by invoking the implementation method
-     * @param reflectableLambdaInfo a holder for information pertinent to a reflectable lambda
+     * @param finisher Function called at the end of the lambda class build process
+     *                 that returns an additional object to append to the class data,
+     *                 may be (@code null}, may return {@code null}.
      * @throws LambdaConversionException If any of the meta-factory protocol
      *         invariants are violated
      */
@@ -121,7 +122,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                                         boolean isSerializable,
                                         Class<?>[] altInterfaces,
                                         MethodType[] altMethods,
-                                        ReflectableLambdaInfo reflectableLambdaInfo)
+                                        Function<ClassBuilder, Object> finisher)
             throws LambdaConversionException {
         if (!caller.hasFullPrivilegeAccess()) {
             throw new LambdaConversionException(String.format(
@@ -182,7 +183,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
         this.isSerializable = isSerializable;
         this.altInterfaces = altInterfaces;
         this.altMethods = altMethods;
-        this.reflectableLambdaInfo = reflectableLambdaInfo;
+        this.finisher = finisher;
 
         if (interfaceMethodName.isEmpty() ||
                 interfaceMethodName.indexOf('.') >= 0 ||
@@ -208,19 +209,6 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                         "%s is not an interface",
                         c.getName()));
             }
-        }
-
-        if (reflectableLambdaInfo != null) {
-            try {
-                quotableOpGetterInfo = caller.revealDirect(reflectableLambdaInfo.opHandle()); // may throw SecurityException
-            } catch (IllegalArgumentException e) {
-                throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
-            }
-            if (quotableOpGetterInfo.getReferenceKind() != REF_invokeStatic) {
-                throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpGetterInfo));
-            }
-        } else {
-            quotableOpGetterInfo = null;
         }
     }
 
