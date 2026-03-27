@@ -26,7 +26,6 @@ package hat.buffer;
 
 import hat.annotations.Kernel;
 import hat.callgraph.KernelCallGraph;
-import hat.exceptions.HATRuntimeException;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -122,7 +121,7 @@ public interface ArgArray extends Buffer {
                 case 'B' -> Byte.toString(s8());
                 case 'S' -> Short.toString(s16());
                 case 'C' -> Character.toString(u16());
-                default -> throw new HATRuntimeException("Variant " + variant() + " not supported for arg");
+                default -> throw new IllegalStateException("Variant " + variant() + " not supported for arg");
             };
         }
 
@@ -256,7 +255,7 @@ public interface ArgArray extends Buffer {
                 case Double _ -> "(?:f64)";
                 case Buffer buffer -> "(?:" + SchemaBuilder.schema(buffer) + ")";
                 default ->
-                        throw new HATRuntimeException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
+                        throw new IllegalStateException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
             };
             if (i > 0) {
                 argSchema.append(",");
@@ -311,7 +310,7 @@ public interface ArgArray extends Buffer {
                         buf.access(bufferAccessList.get(i).value);
                     }
                 }
-                default -> throw new HATRuntimeException("Unexpected value: " + argObject);
+                default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
         }
     }
