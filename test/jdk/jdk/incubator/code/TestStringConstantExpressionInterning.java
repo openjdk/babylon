@@ -13,7 +13,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -116,9 +116,9 @@ public class TestStringConstantExpressionInterning {
         return b;
     };
 
-    CodeTransformer foldConstants = (b, op) -> {
+    static final CodeTransformer foldConstants = (b, op) -> {
         if (op instanceof JavaExpression) {
-            BiFunction<MethodHandles.Lookup, Value, Object> operandEvaluator = (l, operand) -> {
+            Function<Value, Object> operandEvaluator = operand -> {
                 Value nv = b.context().getValue(operand);
                 if (nv instanceof Op.Result opr && opr.op() instanceof ConstantOp cop) {
                     return cop.value();
