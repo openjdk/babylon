@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.util.stream.IntStream;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class BufferTagger {
@@ -73,34 +74,27 @@ public class BufferTagger {
                     mapBranch(lookup, cb.trueBranch()); // handle true branch
                     mapBranch(lookup, cb.falseBranch()); // handle false branch
                 }
-                case JavaOp.InvokeOp invokeOp -> {
-                    var ioh = invoke(lookup,invokeOp);
-                    if (ioh.refIs(KernelContext.class)) break; // if this is not referencing a buffer, we break
+                case JavaOp.InvokeOp $ when invoke(lookup, $) instanceof OpHelper.Invoke ioh && !ioh.refIs(KernelContext.class) -> {
                     if (ioh.returns(IfaceValue.class) || ioh.returnsArray()) { // if we receive a buffer from this invoke, we save its root value
                         for (Value operand : ioh.op().operands()) {
                             if (!(operand.type() instanceof PrimitiveType) && rootValues.containsKey(operand)) {
                                 if (operand instanceof Block.Parameter) updateAccessType(operand, AccessType.RO);
-                                else updateAccessType(getRootValue(operand.result().op()), AccessType.RO);
+                                else updateAccessType(operand.result().op(), AccessType.RO);
                             }
                         }
-                        rootValues.put(invokeOp.result(), getRootValue(invokeOp));
+                        rootValues.put(ioh.returnResult(), getRootValue(ioh.op()));
                     } else { // if we actually operate on a buffer instead of storing an element in a variable
-                        updateAccessType(rootValues.getOrDefault(invokeOp.result(), getRootValue(invokeOp)), ioh.returnsVoid() ? AccessType.WO : AccessType.RO); // update buffer access
+                        updateAccessType(ioh.op(), ioh.returnsVoid() ? AccessType.WO : AccessType.RO); // update buffer access
                     }
                 }
-                case CoreOp.VarOp vop -> { // map the new VarOp to the "root" param
-                    if (!OpHelper.isAssignable(lookup,  vop.resultType().valueType(), IfaceValue.class)) break;
-                    rootValues.put(vop.initOperand(), getRootValue(vop));
-                }
-                case JavaOp.FieldAccessOp.FieldLoadOp flop -> {
-                    if (!OpHelper.isAssignable(lookup,  flop.fieldReference().refType(), KernelContext.class)) break;
-                    updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
-                }
-                case JavaOp.ArrayAccessOp.ArrayLoadOp alop -> {
-                    if (alop.resultType() instanceof ArrayType) break;
-                    updateAccessType(getRootValue(alop), AccessType.RO);
-                }
-                case JavaOp.ArrayAccessOp.ArrayStoreOp asop -> updateAccessType(getRootValue(asop), AccessType.WO);
+                case CoreOp.VarOp vop when OpHelper.isAssignable(lookup, vop.varValueType(), IfaceValue.class) ->
+                        rootValues.put(vop.initOperand(), getRootValue(vop)); // map the new VarOp to the "root" param
+                case JavaOp.FieldAccessOp.FieldLoadOp flop when OpHelper.isAssignable(lookup, flop.fieldReference().refType(), KernelContext.class) ->
+                        updateAccessType(flop, AccessType.RO); // handle kc access
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alop when !(alop.resultType() instanceof ArrayType) ->
+                        updateAccessType(alop, AccessType.RO);
+                case JavaOp.ArrayAccessOp.ArrayStoreOp asop ->
+                        updateAccessType(asop, AccessType.WO);
                 default -> {}
             }
         });
@@ -110,13 +104,13 @@ public class BufferTagger {
     private static void mapBranch(MethodHandles.Lookup lookup, Block.Reference blockReference) {
         List<Value> inputArgs = blockReference.arguments();
         List<Block.Parameter> targetArgs = blockReference.targetBlock().parameters();
-        for (int i = 0; i < inputArgs.size(); i++) {
-            Value target = targetArgs.get(i);
-            Value input = inputArgs.get(i);
-            if (!(input instanceof Op.Result result && OpHelper.isAssignable(lookup, input.type(), IfaceValue.class))) break;
-            input = getRootValue(result.op());
-            rootValues.put(target, rootValues.getOrDefault(input, input));
-        }
+        IntStream.range(0, inputArgs.size()).filter(i ->
+                inputArgs.get(i) instanceof Op.Result && OpHelper.isAssignable(lookup, inputArgs.get(i).type(), IfaceValue.class))
+                .forEach(i -> {
+                    Value input = inputArgs.get(i);
+                    input = getRootValue(input.result().op());
+                    rootValues.put(targetArgs.get(i), rootValues.getOrDefault(input, input));
+                });
     }
 
     // retrieves "root" value of an op, which is how we track accesses
@@ -124,8 +118,7 @@ public class BufferTagger {
         // the op is a field load, an invoke, or something that reduces to one or the other
         Op rootOp = HATPhaseUtils.findOpInResultFromFirstOperandsOrNull(op, JavaOp.FieldAccessOp.FieldLoadOp.class, JavaOp.InvokeOp.class);
         switch (rootOp) {
-            case JavaOp.FieldAccessOp.FieldLoadOp fieldOp -> {
-                if (fieldOp.operands().isEmpty()) break; // e.g. handling kc.warpSize
+            case JavaOp.FieldAccessOp.FieldLoadOp fieldOp when !fieldOp.operands().isEmpty() -> {
                 return fieldOp.operands().getFirst();
             }
             case JavaOp.InvokeOp invokeOp -> {
@@ -140,22 +133,27 @@ public class BufferTagger {
         return null;
     }
 
+    // retrieves root value of op before updating the access map
+    private static void updateAccessType(Op op, AccessType currentAccess) {
+        updateAccessType(getRootValue(op), currentAccess);
+    }
+
     // updates the access map
     private static void updateAccessType(Value value, AccessType currentAccess) {
-        Value remappedValue = rootValues.getOrDefault(value, value);
-        AccessType storedAccess = accessMap.get(remappedValue);
+        AccessType storedAccess = accessMap.get(value);
         if (storedAccess == null) {
-            accessMap.put(remappedValue, currentAccess);
+            accessMap.put(value, currentAccess);
         } else if (currentAccess != storedAccess && storedAccess != AccessType.RW) {
-            accessMap.put(remappedValue, AccessType.RW);
+            accessMap.put(value, AccessType.RW);
         } // otherwise this is the same access type as what's already stored
     }
 
-    public static void printAccessList(CoreOp.FuncOp inlinedEntryPoint, List<AccessType> accessList) {
-        System.out.print("func " + inlinedEntryPoint.funcName() + " has parameters");
+    public static void printAccessList(CoreOp.FuncOp funcOp, List<AccessType> accessList) {
+        StringBuilder output = new StringBuilder();
+        output.append("func ").append(funcOp.funcName()).append(" has parameters");
         for (AccessType at : accessList) {
-            System.out.print(" " + at);
+            output.append(" ").append(at);
         }
-        System.out.println();
+        System.out.println(output);
     }
 }
