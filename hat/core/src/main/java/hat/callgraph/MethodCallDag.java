@@ -26,9 +26,7 @@ package hat.callgraph;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.ifacemapper.Buffer;
 import optkl.util.Dag;
 
 import java.lang.invoke.MethodHandles;
@@ -73,29 +71,28 @@ public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
     final MethodInfo entryPoint;
     final CoreOp.FuncOp inlined;
 
-    MethodCallDag(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp funcOp, CoreOp.FuncOp inlined) {
-        super(lookup);
-        this.inlined = inlined;
-        this.entryPoint = MethodInfo.of(funcOp, null, method);// we dont have a methodRef for the root
-        add(this.entryPoint,_->{});
-    }
-    public static Predicate<OpHelper.Invoke> invokePredicate = (invoke)-> invoke.targetMethodModelOrNull() != null;
-
     // recursive
     void addEdge(MethodInfo methodInfo, OpHelper.Invoke invoke) {
         add(methodInfo,MethodInfo.of(invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
-            OpHelper.Invoke.stream(invoke.lookup(), n.funcOp).filter(invokePredicate).forEach(i -> addEdge(n, i))
+                OpHelper.Invoke.stream(invoke.lookup(), n.funcOp).filter(invokePredicate).forEach(i -> addEdge(n, i))
         );
     }
 
+    MethodCallDag(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
+        this.inlined = inlined;
+        this.entryPoint = MethodInfo.of(entry, null, method);// we dont have a methodRef for the root
+        add(this.entryPoint,_->{});
+        OpHelper.Invoke.stream(lookup, entry).filter(invokePredicate).forEach(i -> addEdge(entryPoint, i));
+        closeRanks();
+    }
+    public static Predicate<OpHelper.Invoke> invokePredicate = (invoke)-> invoke.targetMethodModelOrNull() != null;
+
+
     static public MethodCallDag of(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
-        var dag = new MethodCallDag(lookup, method, entry, inlined);
-        OpHelper.Invoke.stream(lookup, entry).filter(invokePredicate).forEach(i -> dag.addEdge(dag.entryPoint, i));
-        dag.closeRanks();
-        return dag;
+        return new MethodCallDag(lookup, method, entry, inlined);
     }
 
-    public CoreOp.ModuleOp toModuleOp() {
+    public CoreOp.ModuleOp toModuleOp(MethodHandles.Lookup lookup) {
         List<CoreOp.FuncOp> moduleFuncOps = new ArrayList<>();
         rankOrdered.forEach(methodInfo -> {
                     if (methodInfo.methodRef != null) {

@@ -51,8 +51,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
-
-
     public final ComputeCallGraph computeCallGraph;
     public final CoreOp.FuncOp inlinedEntryPoint;
     public final MethodCallDag callDag;
@@ -131,8 +129,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
         entrypoint.funcOp(initialEntrypointFuncOp);
         this.callDag = MethodCallDag.of(lookup(), method, initialEntrypointFuncOp, this.inlinedEntryPoint);
-        if (this.callDag.isDag()) {
-          //  this.callDag.view("kernelDag", n->n.funcOp.funcName());
+        if (Boolean.getBoolean("showKernelCallDag") && this.callDag.isDag()) {
+            this.callDag.view("kernelCallDag", n->n.funcOp.funcName());
         }
 
         callDag.rankOrdered.stream()
@@ -141,7 +139,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                                 new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodInfo.method)
                         )
                 );
-        CoreOp.ModuleOp initialModuleOp = callDag.toModuleOp();
+        CoreOp.ModuleOp initialModuleOp = callDag.toModuleOp(lookup());
 
         List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
         initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
@@ -151,10 +149,12 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         setModuleOp(CoreOp.module(initialFuncOps));
 
         this.ifaceDag = IfaceDataDag.of(lookup(),initialEntrypointFuncOp);
-        if (this.ifaceDag.isDag()) {
-        //    this.ifaceDag.view("ifaceDag", n->n.clazz.getSimpleName());
+        if (Boolean.getBoolean("showKernelDataDag") && this.ifaceDag.isDag()) {
+            this.ifaceDag.view("kernelDataDag", n->n.clazz.getSimpleName());
         }
-        ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef "+ifaceInfo.classType));
+        if (Boolean.getBoolean("showProposedKernelTypeDefs")) {
+            ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType));
+        }
     }
 
     @Override

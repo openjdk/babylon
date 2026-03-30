@@ -24,37 +24,25 @@
  */
 package hat.callgraph;
 
-import hat.device.NonMappableIface;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.ifacemapper.Buffer;
 import optkl.util.Dag;
-
-import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static optkl.OpHelper.Invoke.invoke;
-import static optkl.OpHelper.copyLocation;
-
 public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
     static public class IfaceInfo{
         public final ClassType classType;
-        public final Class clazz;
-        IfaceInfo(ClassType classType, Class<?> clazz){
+        public final Class<IfaceValue> clazz;
+        IfaceInfo(ClassType classType, Class<IfaceValue> clazz){
             if (classType==null || clazz == null){
                 throw new RuntimeException("no nulls here ");
             }
@@ -70,17 +58,15 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
         @Override
         public boolean equals(Object o) {
             return (this == o)
-                    || (o instanceof IfaceInfo that && Objects.equals(classType, that.classType) && Objects.equals(clazz, that.clazz));
+                    || (o instanceof IfaceInfo that
+                    && Objects.equals(classType, that.classType)
+                    && Objects.equals(clazz, that.clazz)
+            );
         }
 
-        static IfaceInfo of(Class<?> clazz) {
+        static IfaceInfo of(Class<IfaceValue> clazz) {
             return new IfaceInfo((ClassType) JavaType.type(clazz.describeConstable().get()), clazz);
         }
-    }
-
-
-    IfaceDataDag(MethodHandles.Lookup lookup) {
-        super(lookup);
     }
 
     public static Predicate<Class<?>> ifacePredicate = IfaceValue.class::isAssignableFrom; // both mappable (for mem segments) and non mappable (for private/shared mem)
@@ -89,6 +75,7 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
         return Arrays.stream(iface.clazz.getDeclaredMethods())
                 .map(Method::getReturnType)
                 .filter(ifacePredicate)
+                .map(c->(Class<IfaceValue>)c)
                 .map(IfaceInfo::of);
     }
 
@@ -103,12 +90,12 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
     }
 
     static public IfaceDataDag of(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp) {
-        var dag = new IfaceDataDag(lookup);
+        var dag = new IfaceDataDag();
 
         inlinedEntrypointFuncOp.elements().filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
                 .filter(typeElement -> typeElement instanceof ClassType)
                 .map(typeElement -> (ClassType)typeElement)
-                .map(classType -> new IfaceInfo(classType,(Class<?>)OpHelper.classTypeToTypeOrThrow(lookup, classType)))
+                .map(classType -> new IfaceInfo(classType,(Class<IfaceValue>)OpHelper.classTypeToTypeOrThrow(lookup, classType)))
                 .filter(ifaceInfo->ifacePredicate.test(ifaceInfo.clazz)).forEach(iface->
                             dag.add(iface, _->
                                 declaredMethodIfaceReturnTypes(iface).forEach(retType ->

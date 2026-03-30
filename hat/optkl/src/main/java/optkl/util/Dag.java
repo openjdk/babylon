@@ -25,25 +25,35 @@
 package optkl.util;
 
 import optkl.jdot.ui.JDot;
-import optkl.util.carriers.LookupCarrier;
-
-import java.lang.invoke.MethodHandles;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class Dag<N> extends BiMapOfSets<N> implements LookupCarrier {
-    final public MethodHandles.Lookup lookup;
+public abstract class Dag<N> {
+    public final Set<N> allNodes = new LinkedHashSet<>();
+    public final Map<N, Set<N>> fromTo = new LinkedHashMap<>();
+    public final  Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
-    @Override
-    public MethodHandles.Lookup lookup() {
-        return lookup;
+    public void add(N n, Consumer<N> ifAbsent) {
+        if (!allNodes.contains(n)){
+            allNodes.add(n);
+            ifAbsent.accept(n);
+        }
     }
-
+    public void add(N from, N to, Consumer<N> ifAbsent) {
+        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
+        toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
+        add(from,ifAbsent);
+        add(to,ifAbsent);
+    }
     public final List<N> rankOrdered = new LinkedList<>();
 
     public void view(String name, Function<N, String> dotNodeLabelRenderer) {
@@ -59,13 +69,8 @@ public class Dag<N> extends BiMapOfSets<N> implements LookupCarrier {
         return fromTo.size() > 1;
     }
 
-    protected Dag(MethodHandles.Lookup lookup) {
-        this.lookup = lookup;
-    }
-
     public void closeRanks() {
         Map<N, Integer> outDegree = new HashMap<>();
-
         fromTo.keySet().forEach(parent -> {
             outDegree.put(parent, fromTo.get(parent).size());
             fromTo.get(parent).forEach(child ->
