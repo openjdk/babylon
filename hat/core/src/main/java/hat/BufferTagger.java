@@ -26,6 +26,7 @@
 package hat;
 
 import hat.phases.HATPhaseUtils;
+import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
@@ -76,12 +77,15 @@ public class BufferTagger {
                 }
                 case JavaOp.InvokeOp $ when invoke(lookup, $) instanceof OpHelper.Invoke ioh && !ioh.refIs(KernelContext.class) -> {
                     if (ioh.returns(IfaceValue.class) || ioh.returnsArray()) { // if we receive a buffer from this invoke, we save its root value
-                        for (Value operand : ioh.op().operands()) {
-                            if (!(operand.type() instanceof PrimitiveType) && rootValues.containsKey(operand)) {
-                                if (operand instanceof Block.Parameter) updateAccessType(operand, AccessType.RO);
-                                else updateAccessType(operand.result().op(), AccessType.RO);
-                            }
-                        }
+                        ioh.op().operands().stream()
+                                .filter(operand -> !(operand.type() instanceof PrimitiveType) && rootValues.containsKey(operand))
+                                .forEach(operand -> {
+                                    if (operand instanceof Block.Parameter) {
+                                        updateAccessType(operand, AccessType.RO);
+                                    } else {
+                                        updateAccessType(operand.result().op(), AccessType.RO);
+                                    }
+                                });
                         rootValues.put(ioh.returnResult(), getRootValue(ioh.op()));
                     } else { // if we actually operate on a buffer instead of storing an element in a variable
                         updateAccessType(ioh.op(), ioh.returnsVoid() ? AccessType.WO : AccessType.RO); // update buffer access
@@ -123,10 +127,14 @@ public class BufferTagger {
             }
             case JavaOp.InvokeOp invokeOp -> {
                 while (invokeOp != null && !invokeOp.operands().isEmpty()) { // we look for either the parameter or initialization for the buffer
-                    if (invokeOp.operands().getFirst() instanceof Block.Parameter p) return p; // return the parameter that is the global buffer
+                    if (invokeOp.operands().getFirst() instanceof Block.Parameter p) {
+                        return p; // return the parameter that is the global buffer
+                    }
                     invokeOp = (JavaOp.InvokeOp) HATPhaseUtils.findOpInResultFromFirstOperandsOrNull(invokeOp.operands().getFirst().result().op(), JavaOp.InvokeOp.class);
                 }
-                if (invokeOp != null) return invokeOp.result();
+                if (invokeOp != null) {
+                    return invokeOp.result();
+                }
             }
             case null, default -> {}
         }
