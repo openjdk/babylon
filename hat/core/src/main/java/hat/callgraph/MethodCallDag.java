@@ -26,7 +26,9 @@ package hat.callgraph;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.IfaceValue;
 import optkl.OpHelper;
+import optkl.ifacemapper.Buffer;
 import optkl.util.Dag;
 
 import java.lang.invoke.MethodHandles;
@@ -34,6 +36,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
@@ -74,27 +77,23 @@ public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
         super(lookup);
         this.inlined = inlined;
         this.entryPoint = MethodInfo.of(funcOp, null, method);// we dont have a methodRef for the root
+        add(this.entryPoint,_->{});
     }
+    public static Predicate<OpHelper.Invoke> invokePredicate = (invoke)-> invoke.targetMethodModelOrNull() != null;
 
     // recursive
     void addEdge(MethodInfo methodInfo, OpHelper.Invoke invoke) {
         add(methodInfo,MethodInfo.of(invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
-            OpHelper.Invoke.stream(invoke.lookup(), n.funcOp)
-                    .filter(i -> i.targetMethodModelOrNull() != null)
-                    .forEach(i -> addEdge(n, i))
+            OpHelper.Invoke.stream(invoke.lookup(), n.funcOp).filter(invokePredicate).forEach(i -> addEdge(n, i))
         );
     }
 
     static public MethodCallDag of(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
         var dag = new MethodCallDag(lookup, method, entry, inlined);
-        OpHelper.Invoke.stream(lookup, entry)
-                .filter(invoke -> invoke.targetMethodModelOrNull() != null)
-                .forEach(i -> dag.addEdge(dag.entryPoint, i));
+        OpHelper.Invoke.stream(lookup, entry).filter(invokePredicate).forEach(i -> dag.addEdge(dag.entryPoint, i));
         dag.closeRanks();
         return dag;
     }
-
-
 
     public CoreOp.ModuleOp toModuleOp() {
         List<CoreOp.FuncOp> moduleFuncOps = new ArrayList<>();

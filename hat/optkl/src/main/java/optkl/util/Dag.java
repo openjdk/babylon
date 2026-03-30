@@ -23,21 +23,22 @@
  * questions.
  */
 package optkl.util;
+
 import optkl.jdot.ui.JDot;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;import java.util.function.Function;
+import java.util.function.Function;
 
 public class Dag<N> extends BiMapOfSets<N> implements LookupCarrier {
     final public MethodHandles.Lookup lookup;
+
     @Override
     public MethodHandles.Lookup lookup() {
         return lookup;
@@ -45,7 +46,7 @@ public class Dag<N> extends BiMapOfSets<N> implements LookupCarrier {
 
     public final List<N> rankOrdered = new LinkedList<>();
 
-    public void view(String name, Function<N,String> dotNodeLabelRenderer) {
+    public void view(String name, Function<N, String> dotNodeLabelRenderer) {
         JDot.digraph(name, $ ->
                 fromTo.forEach((l, r) ->
                         r.forEach(e ->
@@ -55,40 +56,34 @@ public class Dag<N> extends BiMapOfSets<N> implements LookupCarrier {
     }
 
     public boolean isDag() {
-        return fromTo.size()>1;
+        return fromTo.size() > 1;
     }
 
     protected Dag(MethodHandles.Lookup lookup) {
         this.lookup = lookup;
     }
 
-    public  void closeRanks() {
+    public void closeRanks() {
         Map<N, Integer> outDegree = new HashMap<>();
 
-        for (N parent : fromTo.keySet()) {
+        fromTo.keySet().forEach(parent -> {
             outDegree.put(parent, fromTo.get(parent).size());
-            for (N child :fromTo.get(parent)) {
-                outDegree.putIfAbsent(child, 0);
-            }
-        }
-        final Queue<N> queue = new LinkedList<>();
-        for (Map.Entry<N, Integer> entry : outDegree.entrySet()) {
-            if (entry.getValue() == 0) {
-                queue.add(entry.getKey());
-            }
-        }
+            fromTo.get(parent).forEach(child ->
+                    outDegree.putIfAbsent(child, 0)
+            );
+        });
 
-        while (!queue.isEmpty()) {
-            N current = queue.poll();
+        Queue<N> queue = new LinkedList<>(outDegree.entrySet().stream().filter(e -> e.getValue() == 0).map(Map.Entry::getKey).toList());
+
+        while (queue.poll() instanceof N current) { // basically a null check
             rankOrdered.add(current);
-            Set<N> parents = toFrom.getOrDefault(current, Collections.emptySet());
-            for (N parent : parents) {
+            toFrom.getOrDefault(current, Collections.emptySet()).forEach(parent -> {
                 int remainingChildren = outDegree.get(parent) - 1;
                 outDegree.put(parent, remainingChildren);
                 if (remainingChildren == 0) {
                     queue.add(parent);
                 }
-            }
+            });
         }
     }
 }

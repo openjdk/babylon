@@ -56,6 +56,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final CoreOp.FuncOp inlinedEntryPoint;
     public final MethodCallDag callDag;
+    public final IfaceDataDag ifaceDag;
 
     public class State {
         public Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
@@ -130,10 +131,11 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
         entrypoint.funcOp(initialEntrypointFuncOp);
         this.callDag = MethodCallDag.of(lookup(), method, initialEntrypointFuncOp, this.inlinedEntryPoint);
-        //  if (this.callDag.isDag()) {
-            // this.callDag.view("kernelDag", n->n.funcOp.funcName());
-        //  }
-       callDag.rankOrdered.stream()
+        if (this.callDag.isDag()) {
+          //  this.callDag.view("kernelDag", n->n.funcOp.funcName());
+        }
+
+        callDag.rankOrdered.stream()
                 .filter(methodInfo -> methodInfo.methodRef != null && methodInfo.method.getDeclaringClass().isAssignableFrom(Buffer.class)).forEach(methodInfo ->
                         state.bufferAccessToMethodCallMap.computeIfAbsent(methodInfo.methodRef, _ ->
                                 new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodInfo.method)
@@ -147,6 +149,12 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         );
 
         setModuleOp(CoreOp.module(initialFuncOps));
+
+        this.ifaceDag = IfaceDataDag.of(lookup(),initialEntrypointFuncOp);
+        if (this.ifaceDag.isDag()) {
+        //    this.ifaceDag.view("ifaceDag", n->n.clazz.getSimpleName());
+        }
+        ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef "+ifaceInfo.classType));
     }
 
     @Override

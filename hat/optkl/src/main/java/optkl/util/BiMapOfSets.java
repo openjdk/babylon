@@ -36,12 +36,20 @@ public class BiMapOfSets<N> {
     public final Map<N, Set<N>> fromTo = new LinkedHashMap<>();
     public final  Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
+    public void add(N n, Consumer<N> ifAbsent) {
+        if (!allNodes.contains(n)){
+            allNodes.add(n);
+            ifAbsent.accept(n);
+        }
+    }
     public void add(N from, N to, Consumer<N> ifAbsent) {
         fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
         toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
-        if (!allNodes.contains(to)){
-            allNodes.add(to);
-            ifAbsent.accept(to);
-        }
+        add(from,ifAbsent);
+        add(to,ifAbsent);
+        //if (!allNodes.contains(to)){
+          //  allNodes.add(to);
+          //  ifAbsent.accept(to);
+       // }
     }
 }
