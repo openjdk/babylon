@@ -43,7 +43,6 @@ module jdk.incubator.code {
     exports jdk.incubator.code.dialect.core;
     exports jdk.incubator.code.dialect.java;
     exports jdk.incubator.code.bytecode;
-    exports jdk.incubator.code.interpreter;
     exports jdk.incubator.code.runtime;
 
     provides com.sun.tools.javac.comp.CodeReflectionTransformer with
