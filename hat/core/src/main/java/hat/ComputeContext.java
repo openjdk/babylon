@@ -25,11 +25,7 @@
 package hat;
 
 import hat.callgraph.ComputeEntrypoint;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-//import jdk.incubator.code.interpreter.Interpreter;
 import optkl.util.carriers.ArenaAndLookupCarrier;
-import optkl.util.carriers.ArenaCarrier;
-import optkl.util.carriers.LookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
@@ -164,7 +160,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
          analysing the callgraph and trsnsforming to HATDielect
      So we cache the callsite against the location from the lambdaop.
      */
-    public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
+    public void dispatchKernel(NDRange ndRange, Kernel kernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
