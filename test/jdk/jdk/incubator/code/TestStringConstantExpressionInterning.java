@@ -3,17 +3,15 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.core.CoreType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -77,6 +75,23 @@ public class TestStringConstantExpressionInterning {
         return s + 1 == "A1";
     }
 
+    @Reflect
+    static boolean t_case7() {
+        // @@@ we keep the conditional expr in the model
+        String s = 1 < 2 ? "A" + 1 : LocalDate.now().toString();
+        return s == "A1";
+    }
+
+    @Reflect
+    static boolean t_case8() {
+        int i = 1;
+        String s = switch(i) {
+            case 1 -> "A" + 2 + 4;
+            default -> "B";
+        };
+        return s == "A24";
+    }
+
     static Stream<Method> cases() {
         return Arrays.stream(TestStringConstantExpressionInterning.class.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Reflect.class));
@@ -89,30 +104,19 @@ public class TestStringConstantExpressionInterning {
         Object expected = m.getName().startsWith("t");
         MethodHandles.Lookup l = MethodHandles.lookup();
 
-        Value rv = op.body().entryBlock().terminatingOp().operands().getFirst();
-        Object v = JavaExpression.evaluate(l, rv).get();
-        Assertions.assertEquals(expected, v, op.toText());
-
-        Assertions.assertNotEquals(expected, Interpreter.invoke(l, op));
+        Assertions.assertNotEquals(expected, Interpreter.invoke(l, op.transform(CodeTransformer.LOWERING_TRANSFORMER)));
         Assertions.assertNotEquals(expected, BytecodeGenerator.generate(l, op).invoke());
 
-        FuncOp op2 = op.transform(internStringConstantExpr);
-        Assertions.assertEquals(expected, Interpreter.invoke(l, op2));
-        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op2).invoke());
+        // fold constant + lower
+        FuncOp transformed = op.transform(TestConstantFolding.foldConstants);
+        Assertions.assertEquals(expected, Interpreter.invoke(l, transformed.transform(CodeTransformer.LOWERING_TRANSFORMER)));
+        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, transformed).invoke());
 
-        FuncOp op3 = op.transform(TestConstantFolding.foldConstants);
-        Assertions.assertEquals(expected, Interpreter.invoke(l, op3));
-        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op3).invoke());
+        // lower + fold constant
+        FuncOp transformed2 = op.transform(CodeTransformer.LOWERING_TRANSFORMER)
+                .transform(TestConstantFolding.foldConstants);
+        Assertions.assertEquals(expected, Interpreter.invoke(l, transformed2));
+        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, transformed2).invoke());
     }
 
-    private static final MethodRef STRING_INTERN = MethodRef.method(J_L_STRING, "intern", J_L_STRING);
-    CodeTransformer internStringConstantExpr = (b, op) -> {
-        Result r = b.op(op);
-        Optional<Object> v = JavaExpression.evaluate(MethodHandles.lookup(), op.result());
-        if (v.isPresent() && v.get() instanceof String) {
-            r = b.op(JavaOp.invoke(STRING_INTERN, r));
-        }
-        b.context().mapValue(op.result(), r);
-        return b;
-    };
 }
