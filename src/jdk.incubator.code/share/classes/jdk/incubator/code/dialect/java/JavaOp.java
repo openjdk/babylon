@@ -182,11 +182,11 @@ public sealed abstract class JavaOp extends Op {
             private final MethodHandles.Lookup l;
             private final Map<Value, Object> m = new HashMap<>();
 
-            public Evaluator(MethodHandles.Lookup l) {
+            Evaluator(MethodHandles.Lookup l) {
                 this.l = l;
             }
 
-            public <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
+            <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
                 try {
                     Object v = this.eval(op);
                     return Optional.of(v);
@@ -195,7 +195,7 @@ public sealed abstract class JavaOp extends Op {
                 }
             }
 
-            public Optional<Object> evaluate(Value v) {
+            Optional<Object> evaluate(Value v) {
                 try {
                     Object o = this.eval(v);
                     return Optional.of(o);

@@ -1,8 +1,7 @@
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.ConstantFolder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -10,7 +9,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
@@ -54,19 +52,8 @@ public class TestConstantFolding {
     void test(Method m) throws NoSuchMethodException {
         CoreOp.FuncOp op = Op.ofMethod(m).get();
         System.out.println(op.toText());
-        CoreOp.FuncOp op2 = op.transform(foldConstants);
+        CoreOp.FuncOp op2 = op.transform(ConstantFolder.getInstance(MethodHandles.lookup()));
         System.out.println(op2.toText());
     }
 
-    static final JavaOp.JavaExpression.Evaluator evaluator = new JavaOp.JavaExpression.Evaluator(MethodHandles.lookup());
-    static final CodeTransformer foldConstants = (b, op) -> {
-        Optional<Object> v = evaluator.evaluate(op.result());
-        if (v.isPresent()) {
-            Op.Result c = b.op(constant(op.resultType(), v.get()));
-            b.context().mapValue(op.result(), c);
-        } else {
-            b.op(op);
-        }
-        return b;
-    };
 }
