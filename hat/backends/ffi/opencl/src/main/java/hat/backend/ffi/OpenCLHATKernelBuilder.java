@@ -27,13 +27,12 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
+import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
-import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,6 +41,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     protected OpenCLHATKernelBuilder(KernelCallGraph.State kernelCallGraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraphState,scopedCodeBuilderContext);
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatWarpSize() {
+        return constant("1");
     }
 
     public OpenCLHATKernelBuilder vstore(int dims) {
@@ -246,4 +250,45 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp $) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp $) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp $) {
+        return blockComment("Not supported yet");
+    }
+
 }

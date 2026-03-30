@@ -62,6 +62,9 @@ public class HATTier implements LookupCarrier {
         // ID's /thread access
         hatPhases.add(new HATThreadsPhase(kernelCallGraph));
 
+        // warpSize
+        hatPhases.add(new HATWarpSizePhase(kernelCallGraph));
+
         // MathLib phase
         hatPhases.add(new HATMathLibPhase(kernelCallGraph));
 

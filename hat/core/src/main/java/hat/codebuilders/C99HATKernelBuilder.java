@@ -41,6 +41,7 @@ import hat.phases.HATFP16Phase;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types.Tensor;
 import hat.types._F16;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.FieldRef;
@@ -172,6 +173,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id("HAT_BSZ");
     }
 
+    public final T HAT_WARP_SIZE() {
+        return hatWarpSize();
+    }
+
+    protected abstract T hatWarpSize();
+
     @Override
     public final T hatThreadIdOp( HATThreadOp threadOp) {
         return (switch (threadOp) {
@@ -193,6 +200,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATThreadOp.HAT_BS.HAT_BSX _ -> HAT_BSX();
             case HATThreadOp.HAT_BS.HAT_BSY _ -> HAT_BSY();
             case HATThreadOp.HAT_BS.HAT_BSZ _ -> HAT_BSZ();
+            case HATThreadOp.HAT_WARP_SIZE  _ -> HAT_WARP_SIZE();
         });
     }
 
@@ -903,226 +911,38 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
-    public T hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
-        recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
-        sp().id(tensorVarOp.varName());
-        return self();
-    }
-
-    public T hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
-        // infer first parameter
-        List<Value> operands = tensorCreateOp.operands();
-        Value first = operands.getFirst();
-        // The first operand  gives us the matrix order or accumulator
-        String matrixOrder = "";
-        if (first instanceof Op.Result r && r.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-            FieldRef fieldRef = fieldLoadOp.fieldReference();
-            if (fieldRef.name().equals("FIRST")) {
-                matrixOrder = "matrix_a";
-            } else if (fieldRef.name().equals("SECOND")) {
-                matrixOrder = "matrix_b";
-            } else {
-                matrixOrder = "accumulator";
-            }
-        }
-
-        // Second parameters: analysis of the shape
-        int[] shape = new int[3];
-        Value second = operands.get(1);
-        if (second instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp) {
-            List<Value> shapeOperands = invokeOp.operands();
-            for (int i = 0; i < shapeOperands.size(); i++) {
-                Value shapeOperand = shapeOperands.get(i);
-                if (shapeOperand instanceof Op.Result r2 && r2.op() instanceof CoreOp.ConstantOp constantOp) {
-                    shape[i] = (int) constantOp.value();
-                }
-            }
-        }
-
-        // The third parameter is the type. It could be `half` or `float` as first implementation
-        // This parameter is another constant with the type
-        Value classOperand = operands.get(2);
-        Object klass = null;
-        if (classOperand instanceof Op.Result r2 && r2.op() instanceof CoreOp.ConstantOp constantOp) {
-            klass = constantOp.value();
-        }
-
-        String type = "";
-        if (klass instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
-            type = "half";
-        } else if (klass instanceof PrimitiveType primitiveType && primitiveType == PrimitiveType.FLOAT) {
-            type = "float";
-        }
-
-        emitText("wmma::fragment<wmma::" + matrixOrder
-                + ", " + shape[0] + "," + shape[1] + "," + shape[2]
-                + ", " + type);
-
-        if (matrixOrder.equals("accumulator")) {
-            emitText(">");
-        } else {
-            emitText(", wmma::col_major>");
-        }
-        return self();
-    }
-
-    @Override
-    public T hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
-        Value operand = hatTensorVarLoadOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
-            varName(tensorVarOp.varName());
-        } else {
-            throw new RuntimeException("[ERROR] Expected HATTensorVarOp");
-        }
-        return self();
-    }
-
-    @Override
-    public T hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-        id("wmma::fill_fragment").paren( _-> {
-            List<Value> operands = tensorFillOp.operands();
-            if (operands.getFirst() instanceof Op.Result r) {
-                recurse(r.op());
-            }
-            comma();
-            if (operands.get(1) instanceof Op.Result r) {
-                recurse(r.op());
-            }
-        });
-        return self();
-    }
-
-    @Override
-    public T hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-
-        id("wmma::mma_sync").paren( _-> {
-            List<Value> operands = tensorMMAOp.operands();
-            for (int i = 0, operandsSize = operands.size(); i < operandsSize; i++) {
-                Value operand = operands.get(i);
-                if (operand instanceof Op.Result r) {
-                    recurse(r.op());
-                }
-                if (i < operandsSize - 1) {
-                    comma();
-                }
-            }
-        });
-        return self();
-    }
-
-    @Override
-    public T hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
-
-        //id("wmma::load_matrix_sync(a_frag, a + aRow + aCol * lda, lda);");
-
-        // Find name tensor of the first argument
-        String[] tensorName = new String[1];
-        SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
-        for (Op.Result result : uses) {
-            if (result instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
-                // obtain first arg from tensorStoreOp
-                Value first = tensorStoreLoadOp.operands().getFirst();
-                if (first instanceof Op.Result r2 && r2.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
-                    tensorName[0] = tensorVarOp.varName();
-                }
-            }
-        }
-
-        // Second operand as reference:
-        List<Value> operands = tensorLoadOp.operands();
-        Value reference = operands.get(0);
-        id("half * halfPtr_");
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        sp().equals().sp().id("(half *)");
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        semicolon().nl();
-
-        id("wmma::load_matrix_sync")
-                .paren(_ -> {
-                    id(tensorName[0]).comma();
-
-                    // Second operand as reference:
-                    Value reference2 = operands.get(0);
-                    id("halfPtr_");
-                    if (reference2 instanceof Op.Result r) {
-                        recurse(r.op());
-                    }
-                    plus().constant("(half)2").plus();
-
-                    for (int i = 1, operandsSize = operands.size(); i < operandsSize; i++) {
-                        Value operand = operands.get(i);
-                        if (operand instanceof Op.Result r) {
-                            recurse(r.op());
-                        }
-                        if (i < operandsSize - 1) {
-                            comma();
-                        }
-                    }
-                });
-
-        return self();
-    }
-
-    @Override
-    public T hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp hatTensorStoreLoadOp) {
-        // TODO: replace the StoreOpAfter a load with only a LoadOp
-
-        // The Store is useful when we do tensorA = tensorB.
-
-        // Specific for the CUDA, we don't generate the left-hand side
-        // (a = b)
-        // just the righ-hand side.
-        List<Value> operands = hatTensorStoreLoadOp.operands();
-        if (operands.getLast() instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        return self();
-    }
-
-    @Override
-    public T hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp) {
-        // style: store_matrix_sync(c + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
-
-        // Second operand as reference:
-        List<Value> operands = tensorStoreOp.operands();
-        Value reference = operands.get(0);
-        id("float * ptr_");
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        sp().equals().sp().id("(float *)");
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        semicolon().nl();
-
-        id("wmma::store_matrix_sync")
-                .paren(_ -> {
-                    // Second operand as reference:
-                    Value reference2 = operands.get(0);
-                    id("ptr_");
-                    if (reference2 instanceof Op.Result r) {
-                        recurse(r.op());
-                    }
-                    plus().constant("(int)1").plus();
-
-                    for (int i = 1, operandsSize = operands.size(); i < operandsSize; i++) {
-                        Value operand = operands.get(i);
-                        if (operand instanceof Op.Result r) {
-                            recurse(r.op());
-                        }
-                        comma();
-                    }
-                    id("wmma::mem_col_major");
-                });
-
-        return self();
-    }
-
-
     protected abstract String mapMathIntrinsic(String name);
+
+    protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
+        Value a = isColumnMajor ? iIndex : jIndex;
+        Value b = isColumnMajor ? jIndex : iIndex;
+
+        if (a instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        plus();
+        if (b instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        mul();
+        if (ldSize instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        return self();
+    }
+
+    protected boolean isColumnMajor(Value tensorLayout) {
+        if (tensorLayout.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+            if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                return true;
+            } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                return false;
+            } else {
+                throw new RuntimeException("[Error]");
+            }
+        }
+        return false;
+    }
+
 }

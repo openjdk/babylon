@@ -70,9 +70,9 @@ public class KernelContext {
 
     final int dimensions;
 
-    public static final int warpSize = 32;
+    public int warpSize;
 
-    final public NDRange<?,?> ndRange;
+    public final NDRange<?,?> ndRange;
 
     public KernelContext(NDRange<?,?> ndRange) {
         this.ndRange = ndRange;

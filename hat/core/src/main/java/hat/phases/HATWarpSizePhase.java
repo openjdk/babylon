@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,20 +24,34 @@
  */
 package hat.phases;
 
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.dialect.HATThreadOp;
+import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
+import optkl.OpHelper;
+import optkl.Trxfmr;
 
-import java.lang.invoke.MethodHandles;
-import java.util.function.Function;
+import java.util.HashSet;
+import java.util.Set;
 
-public sealed interface HATPhase extends Function<CoreOp.FuncOp, CoreOp.FuncOp>, LookupCarrier
-        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATTensorsPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase, HATWarpSizePhase {
+import static optkl.OpHelper.FieldAccess.fieldAccess;
 
-    KernelCallGraph kernelCallGraph();
+public record HATWarpSizePhase(KernelCallGraph kernelCallGraph) implements HATPhase {
 
     @Override
-    default MethodHandles.Lookup lookup() {
-        return kernelCallGraph().lookup();
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+        Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
+        return Trxfmr.of(this, funcOp)
+                .transform(c -> {
+                    if (fieldAccess(lookup(), c.op()) instanceof OpHelper.FieldAccess.Instance fieldAccess
+                            && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("warpSize")) {
+                        varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());
+                        c.replace(HATThreadOp.create(fieldAccess.name()));
+                    }
+                })
+                .remap(varAccessesToBeRemoved)
+                .remove(varAccessesToBeRemoved::contains)
+                .funcOp();
     }
 }

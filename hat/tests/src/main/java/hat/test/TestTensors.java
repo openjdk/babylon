@@ -218,8 +218,8 @@ public class TestTensors {
         final int ldb = 1024;
         final int ldc = 1024;
 
-        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.Shape(16, 16, 16), F16.class);  // by default is col-major
-        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.Shape(16, 16, 16), F16.class);  // by default is col-major
+        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.Shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
+        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.Shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
         Tensor acc = Tensor.create(Tensor.ACC, Tensor.Shape(16, 16, 16), float.class);
 
         Tensor.fill(acc, 0.0f);
@@ -233,8 +233,8 @@ public class TestTensors {
 
             if (aRow < lda && aCol < lda && bRow < ldb && bCol < ldb) {
 
-                tensorA = Tensor.load(matrixA, aRow + aCol * lda, lda);
-                tensorB = Tensor.load(matrixB, bRow + bCol * ldb, ldb);
+                tensorA = Tensor.load(matrixA, aRow, aCol, lda);
+                tensorB = Tensor.load(matrixB, bRow, bCol, ldb);
 
                 // acc = tensorA * tensorB + acc
                 Tensor.mma(acc, tensorA, tensorB, acc);
@@ -242,7 +242,7 @@ public class TestTensors {
         }
         int cRow = warpM * WMMA_M;
         int cCol = warpN * WMMA_N;
-        Tensor.store(matrixC, cRow + cCol * ldc, acc, ldc);
+        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
     }
 
     @Reflect
