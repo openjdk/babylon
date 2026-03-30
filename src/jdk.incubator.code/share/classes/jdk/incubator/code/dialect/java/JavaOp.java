@@ -213,8 +213,8 @@ public sealed abstract class JavaOp extends Op {
                         Object v = cop.value();
                         yield v instanceof String s ? s.intern() : v;
                     }
-                    case VarAccessOp.VarLoadOp varLoadOp when isConstant(varLoadOp.varOp()) ->
-                            eval(varLoadOp.varOp().initOperand());
+                    case VarAccessOp.VarLoadOp varLoadOp when varLoadOp.operands().getFirst() instanceof Result &&
+                            isConstant(varLoadOp.varOp()) -> eval(varLoadOp.varOp().initOperand());
                     case ConvOp _ -> {
                         // we expect cast to primitive type
                         var v = eval(op.operands().getFirst());

@@ -25,6 +25,8 @@
 
 package jdk.incubator.code;
 
+import jdk.incubator.code.dialect.core.CoreOp;
+
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -117,6 +119,17 @@ public interface CodeTransformer {
             builder.op(op);
             return builder;
         }
+    };
+
+    /**
+     * A transformer that drops unused {@link jdk.incubator.code.dialect.core.CoreOp.ConstantOp}.
+     */
+    CodeTransformer DROP_UNUSED_CONSTANT_TRANSFORMER = (builder, op) -> {
+        if (op instanceof CoreOp.ConstantOp && op.result().uses().isEmpty()) {
+            return builder;
+        }
+        builder.op(op);
+        return builder;
     };
 
     /**

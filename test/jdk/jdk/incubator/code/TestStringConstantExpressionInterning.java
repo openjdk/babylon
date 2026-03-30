@@ -4,7 +4,6 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.java.ConstantFolder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -105,19 +104,8 @@ public class TestStringConstantExpressionInterning {
         Object expected = m.getName().startsWith("t");
         MethodHandles.Lookup l = MethodHandles.lookup();
 
-        Assertions.assertNotEquals(expected, Interpreter.invoke(l, op.transform(CodeTransformer.LOWERING_TRANSFORMER)));
-        Assertions.assertNotEquals(expected, BytecodeGenerator.generate(l, op).invoke());
-
-        // fold constant + lower
-        FuncOp transformed = op.transform(ConstantFolder.getInstance(l));
-        Assertions.assertEquals(expected, Interpreter.invoke(l, transformed.transform(CodeTransformer.LOWERING_TRANSFORMER)));
-        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, transformed).invoke());
-
-        // lower + fold constant
-        FuncOp transformed2 = op.transform(CodeTransformer.LOWERING_TRANSFORMER)
-                .transform(ConstantFolder.getInstance(l));
-        Assertions.assertEquals(expected, Interpreter.invoke(l, transformed2));
-        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, transformed2).invoke());
+        Assertions.assertEquals(expected, Interpreter.invoke(l, op.transform(CodeTransformer.LOWERING_TRANSFORMER)));
+        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invoke());
     }
 
 }
