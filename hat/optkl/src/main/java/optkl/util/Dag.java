@@ -23,14 +23,12 @@
  * questions.
  */
 package optkl.util;
-import optkl.jdot.ui.JDot;
-import optkl.util.carriers.LookupCarrier;
 
-import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
+import optkl.jdot.ui.JDot;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -39,22 +37,28 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class Dag<N> implements LookupCarrier {
+public abstract class Dag<N> {
+    public final Set<N> allNodes = new LinkedHashSet<>();
+    public final Map<N, Set<N>> fromTo = new LinkedHashMap<>();
+    public final  Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
-    final public MethodHandles.Lookup lookup;
-
-    @Override
-    public MethodHandles.Lookup lookup() {
-        return lookup;
+    public void add(N n, Consumer<N> ifAbsent) {
+        if (!allNodes.contains(n)){
+            allNodes.add(n);
+            ifAbsent.accept(n);
+        }
     }
-
-    protected final Set<N> nodeSet = new HashSet<>();
+    public void add(N from, N to, Consumer<N> ifAbsent) {
+        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
+        toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
+        add(from,ifAbsent);
+        add(to,ifAbsent);
+    }
     public final List<N> rankOrdered = new LinkedList<>();
 
-    protected final Map<N, Set<N>> fromToNodes = new HashMap<>();
-    public void view(String name, Function<N,String> dotNodeLabelRenderer) {
+    public void view(String name, Function<N, String> dotNodeLabelRenderer) {
         JDot.digraph(name, $ ->
-                fromToNodes.forEach((l, r) ->
+                fromTo.forEach((l, r) ->
                         r.forEach(e ->
                                 $.edge(dotNodeLabelRenderer.apply(l), dotNodeLabelRenderer.apply(e))
                         )
@@ -62,53 +66,29 @@ public class Dag<N> implements LookupCarrier {
     }
 
     public boolean isDag() {
-        return fromToNodes.size()>1;
+        return fromTo.size() > 1;
     }
 
-
-    protected Dag(MethodHandles.Lookup lookup) {
-        this.lookup = lookup;
-    }
-
-    protected void  computeIfAbsent(N from, N to, Consumer<N> ifAbsent){
-        if (!nodeSet.contains(to)) {
-            nodeSet.add(to);
-            fromToNodes.put(to, new HashSet<>());
-            ifAbsent.accept(to);
-        }
-        fromToNodes.get(from).add(to);
-    }
-
-
-    public  void closeRanks() {
+    public void closeRanks() {
         Map<N, Integer> outDegree = new HashMap<>();
-        Map<N, List<N>> reverseEdges = new HashMap<>();
+        fromTo.keySet().forEach(parent -> {
+            outDegree.put(parent, fromTo.get(parent).size());
+            fromTo.get(parent).forEach(child ->
+                    outDegree.putIfAbsent(child, 0)
+            );
+        });
 
-        for (N parent : fromToNodes.keySet()) {
-            outDegree.put(parent, fromToNodes.get(parent).size());
-            for (N child : fromToNodes.get(parent)) {
-                reverseEdges.computeIfAbsent(child, k -> new ArrayList<>()).add(parent);
-                outDegree.putIfAbsent(child, 0);
-            }
-        }
-        final Queue<N> queue = new LinkedList<>();
-        for (Map.Entry<N, Integer> entry : outDegree.entrySet()) {
-            if (entry.getValue() == 0) {
-                queue.add(entry.getKey());
-            }
-        }
+        Queue<N> queue = new LinkedList<>(outDegree.entrySet().stream().filter(e -> e.getValue() == 0).map(Map.Entry::getKey).toList());
 
-        while (!queue.isEmpty()) {
-            N current = queue.poll();
+        while (queue.poll() instanceof N current) { // basically a null check
             rankOrdered.add(current);
-            List<N> parents = reverseEdges.getOrDefault(current, Collections.emptyList());
-            for (N parent : parents) {
+            toFrom.getOrDefault(current, Collections.emptySet()).forEach(parent -> {
                 int remainingChildren = outDegree.get(parent) - 1;
                 outDegree.put(parent, remainingChildren);
                 if (remainingChildren == 0) {
                     queue.add(parent);
                 }
-            }
+            });
         }
     }
 }

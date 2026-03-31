@@ -72,28 +72,28 @@ public class KernelContext {
 
     public int warpSize;
 
-    public final NDRange<?,?> ndRange;
+    final public NDRange ndRange;
 
-    public KernelContext(NDRange<?,?> ndRange) {
+    public KernelContext(NDRange ndRange) {
         this.ndRange = ndRange;
         switch (ndRange) {
             case NDRange.NDRange1D ndRange1D -> {
-                this.gsx = ((NDRange._1DX)(ndRange1D.global())).x();
+                this.gsx = ((NDRange.M1D)(ndRange1D.global())).x();
                 this.gsy = 1;
                 this.gsz = 1;
-                this.dimensions = ((NDRange._1DX)(ndRange1D.global())).dimension();
+                this.dimensions = ((NDRange.M1D)(ndRange1D.global())).dimension();
             }
             case NDRange.NDRange2D ndRange2D -> {
-                this.gsx = ((NDRange._2DXY)(ndRange2D.global())).x();
-                this.gsy = ((NDRange._2DXY)(ndRange2D.global())).y();
+                this.gsx = ((NDRange.M2D)(ndRange2D.global())).x();
+                this.gsy = ((NDRange.M2D)(ndRange2D.global())).y();
                 this.gsz = 1;
-                this.dimensions = ((NDRange._2DXY)(ndRange2D.global())).dimension();
+                this.dimensions = ((NDRange.M2D)(ndRange2D.global())).dimension();
             }
             case NDRange.NDRange3D ndRange3D -> {
-                this.gsx = ((NDRange._3DXYZ)(ndRange3D.global())).x();
-                this.gsy = ((NDRange._3DXYZ)(ndRange3D.global())).y();
-                this.gsz = ((NDRange._3DXYZ)(ndRange3D.global())).z();
-                this.dimensions = ((NDRange._3DXYZ)(ndRange3D.global())).dimension();
+                this.gsx = ((NDRange.M3D)(ndRange3D.global())).x();
+                this.gsy = ((NDRange.M3D)(ndRange3D.global())).y();
+                this.gsz = ((NDRange.M3D)(ndRange3D.global())).z();
+                this.dimensions = ((NDRange.M3D)(ndRange3D.global())).dimension();
             }
             case null, default ->
                 throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
