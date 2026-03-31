@@ -240,18 +240,11 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
 }
 
 void checkThreadBlockFits(OpenCLBackend *backend, KernelContext *kernelContext, size_t *local_work_size) {
-    cl_device_id device = backend->device_id;
-    size_t max_group_size = 0;
-    cl_uint err = clGetDeviceInfo(device,
-                      CL_DEVICE_MAX_WORK_GROUP_SIZE,
-                      sizeof(max_group_size),
-                      &max_group_size,
-                      nullptr);
-
-    if (err != CL_SUCCESS) {
-        OPENCL_CHECK(err, "clGetDeviceInfo");
-    }
-
+    //cl_device_id device = backend->device_id;
+    //size_t max_group_size = 0;
+    //OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size), &max_group_size, nullptr), "clGetDeviceInfo");
+    const PlatformInfo platformInfo(backend);
+    size_t max_group_size = platformInfo.deviceInfo.maxWorkGroupSize;
     long totalThreads = kernelContext->lsx * kernelContext->lsy * kernelContext->lsz;
     while (totalThreads > max_group_size) {
         if (local_work_size[0] >= 16) {
