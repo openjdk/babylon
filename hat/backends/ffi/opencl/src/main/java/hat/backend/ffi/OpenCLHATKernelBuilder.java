@@ -166,7 +166,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         } else {
             id(hatVSelectStoreOp.varName());
         }
-        dot().id(hatVSelectStoreOp.mapLane()).sp().equals().sp();
+        dot().id(hatVSelectStoreOp.mapLane()).assign();
         return either (hatVSelectStoreOp.resolvedName() != null,
                 _-> varName(hatVSelectStoreOp.resolvedName()),
                 _-> recurse(hatVSelectStoreOp.operands().get(1).result().op())
@@ -193,7 +193,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp).sp().equals().sp();
+        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp).assign();
         recurse( hatVectorVarOp.operands().getFirst().result().op());
         return self();
     }
@@ -399,12 +399,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
         forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).sp().equals().sp().intValue(from).semicolon();
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
             id(varA).sp().lt().sp().intValue(to).semicolon();
             id(varA).plusplus();
         }).sp().brace(_ -> {
             in().nl().forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).sp().equals().sp().intValue(from).semicolon();
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
                 id(varB).sp().lt().sp().intValue(to).semicolon();
                 id(varB).plusplus();
             }).sp().in();
@@ -415,7 +415,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                                 .id(Integer.toString(to))
                                 .plus()
                                 .id(varB))
-                                .sp().equals().sp()
+                                .assign()
                                 .constant(Float.toString(initValue)).id("f")
                                 .semicolon().nl();
             }).out().out();
@@ -484,23 +484,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final int to = shape[0];
 
         forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).sp().equals().sp().intValue(from).semicolon();
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
             id(varA).sp().lt().sp().intValue(to).semicolon();
             id(varA).plusplus();
         }).sp().brace(_ -> {
             in().nl().forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).sp().equals().sp().intValue(from).semicolon();
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
                 id(varB).sp().lt().sp().intValue(to).semicolon();
                 id(varB).plusplus();
             }).in();
 
             brace(_ -> {
-                nl().f32Type().sp().id(acc).sp().equals().sp().id(tensorC.varName()).sbrace( _-> {
+                nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace( _-> {
                     id(varA).mul().id(Integer.toString(shape[0])).sp().plus().id(varB);
                 }).semicolon().nl();
 
                 forKeyword().sp().paren(_ -> {
-                    s32Type().sp().id(varC).sp().equals().sp().intValue(from).semicolon();
+                    s32Type().sp().id(varC).assign().intValue(from).semicolon();
                     id(varC).sp().lt().sp().intValue(to).semicolon();
                     id(varC).plusplus();
                 }).sp().in();
@@ -510,13 +510,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     String ha = generateVariableName("ha_");
                     String hb = generateVariableName("hb_");
                     String resultTensor = generateVariableName("h_res_");
-                    f16Type().sp().id(ha).sp().equals().sp().id(tensorA.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).sp().plus().id(varC)).semicolon().nl();
-                    f16Type().sp().id(hb).sp().equals().sp().id(tensorB.varName()).sbrace( _ -> id(varC).mul().id(Integer.toString(shape[0])).sp().plus().id(varB)).semicolon().nl();
-                    f16Type().sp().id(resultTensor).sp().equals().sp().paren( _ -> f16Type()).brace( _ -> paren( _ -> id(ha).dot().id("value").mul().id(hb).dot().id("value"))).semicolon().nl();
+                    f16Type().sp().id(ha).assign().id(tensorA.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).sp().plus().id(varC)).semicolon().nl();
+                    f16Type().sp().id(hb).assign().id(tensorB.varName()).sbrace( _ -> id(varC).mul().id(Integer.toString(shape[0])).sp().plus().id(varB)).semicolon().nl();
+                    f16Type().sp().id(resultTensor).assign().paren( _ -> f16Type()).brace( _ -> paren( _ -> id(ha).dot().id("value").mul().id(hb).dot().id("value"))).semicolon().nl();
                     id(acc).sp().plusEquals().cast( _ -> f32Type()).paren( _-> id(resultTensor).dot().id("value")).semicolon().nl();
                 }).nl().out();
 
-                id(result.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).sp().plus().id(varB)).sp().equals().sp().id(acc).semicolon().nl();
+                id(result.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).sp().plus().id(varB)).assign().id(acc).semicolon().nl();
 
             }).semicolon().nl();
 
@@ -588,7 +588,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final int from = 0;
 
         forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).sp().equals().sp().intValue(from).semicolon();
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
             id(varA).sp().lt().sp().intValue(to).semicolon();
             id(varA).plusplus();
         }).in();
@@ -596,7 +596,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         String row = generateVariableName("row_");
 
         brace(_ -> {
-            nl().s32Type().sp().id(row).sp().equals().sp();
+            nl().s32Type().sp().id(row).assign();
 
             if (iIndexValue instanceof Op.Result r) {
                 recurse(r.op());
@@ -604,7 +604,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             plus().id(varA).semicolon().nl();
 
             forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).sp().equals().sp().intValue(from).semicolon();
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
                 id(varB).sp().lt().sp().intValue(to).semicolon();
                 id(varB).plusplus();
             }).sp().in();
@@ -612,7 +612,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             String col = generateVariableName("col_");
 
             brace(_ -> {
-                nl().s32Type().sp().id(col).sp().equals().sp();
+                nl().s32Type().sp().id(col).assign();
 
                 if (jIndexValue instanceof Op.Result r) {
                     recurse(r.op());
@@ -620,7 +620,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 plus().id(varB).semicolon().nl();
 
                 String index = generateVariableName("index_");
-                s32Type().sp().id(index).sp().equals().sp().id(row);
+                s32Type().sp().id(index).assign().id(row);
 
                 if (isColumnMajor) plus();
                 else mul();
@@ -637,7 +637,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 // memory regions of the accelerator
 
                 String ha = generateVariableName("ha_");
-                id("HAT_GLOBAL_MEM F16Impl_t").asterisk().sp().id(ha).sp().equals().sp().ampersand();
+                id("HAT_GLOBAL_MEM F16Impl_t").asterisk().sp().id(ha).assign().ampersand();
 
                 if (ptrValue instanceof  Op.Result r) {
                     recurse(r.op());
@@ -645,7 +645,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 rarrow().id("array").sbrace( _ -> id(index)).semicolon().nl();
 
                 String r = generateVariableName("r_");
-                f16Type().sp().id(r).sp().equals().sp().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id("value")).semicolon().nl();
+                f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id("value")).semicolon().nl();
 
                 // store into the acc
                 emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).plus().id(varB));
@@ -704,7 +704,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final int from = 0;
 
         forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).sp().equals().sp().intValue(from).semicolon();
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
             id(varA).sp().lt().sp().intValue(to).semicolon();
             id(varA).plusplus();
         }).in();
@@ -712,7 +712,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         String row = generateVariableName("row_");
 
         brace(_ -> {
-            nl().s32Type().sp().id(row).sp().equals().sp();
+            nl().s32Type().sp().id(row).assign();
 
             if (iIndexValue instanceof Op.Result r) {
                 recurse(r.op());
@@ -720,7 +720,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             plus().id(varA).semicolon().nl();
 
             forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).sp().equals().sp().intValue(from).semicolon();
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
                 id(varB).sp().lt().sp().intValue(to).semicolon();
                 id(varB).plusplus();
             }).sp().in();
@@ -728,7 +728,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             String col = generateVariableName("col_");
 
             brace(_ -> {
-                nl().s32Type().sp().id(col).sp().equals().sp();
+                nl().s32Type().sp().id(col).assign();
 
                 if (jIndexValue instanceof Op.Result r) {
                     recurse(r.op());
@@ -736,7 +736,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 plus().id(varB).semicolon().nl();
 
                 String index = generateVariableName("index_");
-                s32Type().sp().id(index).sp().equals().sp().id(row);
+                s32Type().sp().id(index).assign().id(row);
 
                 if (isColumnMajor) plus();
                 else mul();
@@ -754,7 +754,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 if (ptrValue instanceof  Op.Result r) {
                     recurse(r.op());
                 }
-                rarrow().id("array").sbrace( _ -> id(index)).sp().equals().sp();
+                rarrow().id("array").sbrace( _ -> id(index)).assign();
                 id(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).plus().id(varB));
                 semicolon().nl();
             }).out();
