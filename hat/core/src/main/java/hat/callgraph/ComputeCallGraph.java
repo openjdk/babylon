@@ -97,7 +97,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp funcOp) {
         super(computeContext, new ComputeEntrypoint(computeContext.lookup(),null, method, funcOp));
         entrypoint.callGraph = this; // This is bad we should be able to do better
-        setModuleOp(createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp()));
+        createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp());
     }
 
 

@@ -128,7 +128,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         HATTier tier = new HATTier(this);
         CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
         entrypoint.funcOp(initialEntrypointFuncOp);
-        this.callDag = MethodCallDag.of(lookup(), method, initialEntrypointFuncOp, this.inlinedEntryPoint);
+        this.callDag = new MethodCallDag(lookup(), method, initialEntrypointFuncOp, this.inlinedEntryPoint);
         if (Boolean.getBoolean("showKernelCallDag") && this.callDag.isDag()) {
             this.callDag.view("kernelCallDag", n->n.funcOp.funcName());
         }
@@ -139,20 +139,15 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                                 new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodInfo.method)
                         )
                 );
-        CoreOp.ModuleOp initialModuleOp = callDag.toModuleOp(lookup());
-
-        List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
-        initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
-                initialFuncOps.add(tier.apply(accessableFuncOp))
+        callDag.rankOrdered.forEach(f ->
+                f.funcOp = tier.apply(f.funcOp)
         );
 
-        setModuleOp(CoreOp.module(initialFuncOps));
-
-        this.ifaceDag = IfaceDataDag.of(lookup(),initialEntrypointFuncOp);
-        if (Boolean.getBoolean("showKernelDataDag") && this.ifaceDag.isDag()) {
-            this.ifaceDag.view("kernelDataDag", n->n.clazz.getSimpleName());
+        this.ifaceDag = new IfaceDataDag(lookup(),initialEntrypointFuncOp);
+        if ((Boolean.getBoolean("showKernelDataDag")) && this.ifaceDag.isDag()) {
+            this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }
-        if (Boolean.getBoolean("showProposedKernelTypeDefs")) {
+        if ((Boolean.getBoolean("showProposedKernelTypeDefs"))) {
             ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType));
         }
     }

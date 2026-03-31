@@ -59,15 +59,15 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public final Set<AbstractMethodCall> calls = new HashSet<>();
     public final Map<MethodRef, AbstractMethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
 
-    private CoreOp.ModuleOp moduleOp;
+   // private CoreOp.ModuleOp moduleOp;
 
-    public CoreOp.ModuleOp getModuleOp() {
-        return this.moduleOp;
-    }
+   // public CoreOp.ModuleOp getModuleOp() {
+      //  return this.moduleOp;
+   // }
 
-    public void setModuleOp(CoreOp.ModuleOp moduleOp) {
-        this.moduleOp = moduleOp;
-    }
+   // public void setModuleOp(CoreOp.ModuleOp moduleOp) {
+     //   this.moduleOp = moduleOp;
+   // }
 
     CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,  CoreOp.FuncOp entry) {
         record RefAndFunc(MethodRef methodRef, CoreOp.FuncOp funcOp) {

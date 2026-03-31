@@ -28,6 +28,7 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
+import hat.callgraph.MethodCallDag;
 import hat.codebuilders.C99VecAndMatHandler;
 import hat.device.NonMappableIface;
 import hat.types.BF16;
@@ -273,36 +274,27 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     }
             );
 
-            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.entrypoint.funcOp());
+            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp);
 
             if (kernelCallGraph.state.usesVecTypes){
                 C99VecAndMatHandler.createVecFunctions(builder);
             }
-            kernelCallGraph.getModuleOp().functionTable()
-                    .forEach((_, funcOp) -> {
-                        // TODO: did we just trash the callgraph sidetables?
-                        //  Why are we transforming the callgraph here
-                      //  HATFinalDetector finals = new HATFinalDetector(kernelCallGraph);
-                        // Update the build context for this method to use the right constants-map
-                       // buildContext.setFinals(finals.applied(funcOp));
-                        builder.nl().kernelMethod(buildContext, funcOp).nl();
-                    });
 
-            // Update the constants-map for the main kernel
-            // Why are we doing this here we should not be mutating the kernel callgraph at this point
-            //HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph);
-           // buildContext.setFinals(hatFinalDetector.applied(kernelCallGraph.entrypoint.funcOp()));
-
+            kernelCallGraph.callDag.rankOrdered
+                    .stream().filter(f->f.methodType.equals(MethodCallDag.MethodInfo.MethodType.Func))
+                    .forEach(f ->
+                        builder.nl().kernelMethod(buildContext, f.funcOp).nl()
+                    );
 
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {
                 IO.println("Non Lowered");
-                IO.println(kernelCallGraph.entrypoint.funcOp().toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp.toText());
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
             }
         }
         return builder.toString();

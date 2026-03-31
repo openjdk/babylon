@@ -24,12 +24,14 @@
  */
 package hat.callgraph;
 
+import hat.device.NonMappableIface;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
+import optkl.ifacemapper.MappableIface;
 import optkl.util.Dag;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -43,11 +45,21 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
         public final ClassType classType;
         public final Class<IfaceValue> clazz;
         IfaceInfo(ClassType classType, Class<IfaceValue> clazz){
-            if (classType==null || clazz == null){
-                throw new RuntimeException("no nulls here ");
-            }
             this.classType = classType;
             this.clazz = clazz;
+
+        }
+        boolean isStruct(){
+            return IfaceValue.Struct.class.isAssignableFrom(clazz);
+        }
+        boolean isUnion(){
+            return IfaceValue.Union.class.isAssignableFrom(clazz);
+        }
+        boolean isMappable(){
+            return MappableIface.class.isAssignableFrom(clazz);
+        }
+        boolean isNonMappable(){
+            return NonMappableIface.class.isAssignableFrom(clazz);
         }
 
         @Override
@@ -66,6 +78,21 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
 
         static IfaceInfo of(Class<IfaceValue> clazz) {
             return new IfaceInfo((ClassType) JavaType.type(clazz.describeConstable().get()), clazz);
+        }
+
+        public String dotName() {
+            var sb = new StringBuilder();
+            if (isStruct()){
+               sb.append("Struct_");
+            }else   if (isUnion()){
+                sb.append("Union_");
+            }else   if (isMappable()) {
+                sb.append("Buffer_");
+            }else {
+                sb.append("Unmapped_");
+            }
+            sb.append(clazz.getSimpleName());
+            return sb.toString();
         }
     }
 
@@ -88,22 +115,20 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
             add(from, to, _->{});
        }
     }
-
-    static public IfaceDataDag of(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp) {
-        var dag = new IfaceDataDag();
-
-        inlinedEntrypointFuncOp.elements().filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
+    public IfaceDataDag(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp){
+        inlinedEntrypointFuncOp.elements()
+                .filter(ce -> ce instanceof Op)
+                .map(ce -> ((Op) ce).resultType())
                 .filter(typeElement -> typeElement instanceof ClassType)
                 .map(typeElement -> (ClassType)typeElement)
                 .map(classType -> new IfaceInfo(classType,(Class<IfaceValue>)OpHelper.classTypeToTypeOrThrow(lookup, classType)))
                 .filter(ifaceInfo->ifacePredicate.test(ifaceInfo.clazz)).forEach(iface->
-                            dag.add(iface, _->
+                        add(iface, _->
                                 declaredMethodIfaceReturnTypes(iface).forEach(retType ->
-                                        dag.addEdge(iface, retType)
+                                        addEdge(iface, retType)
                                 )
-                            )
+                        )
                 );
-        dag.closeRanks();
-        return dag;
+        closeRanks();
     }
 }
