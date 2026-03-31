@@ -239,6 +239,33 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
     delete []events;
 }
 
+void checkThreadBlockFits(OpenCLBackend *backend, KernelContext *kernelContext, size_t *local_work_size) {
+    cl_device_id device = backend->device_id;
+    size_t max_group_size = 0;
+    cl_uint err = clGetDeviceInfo(device,
+                      CL_DEVICE_MAX_WORK_GROUP_SIZE,
+                      sizeof(max_group_size),
+                      &max_group_size,
+                      nullptr);
+
+    if (err != CL_SUCCESS) {
+        OPENCL_CHECK(err, "clGetDeviceInfo");
+    }
+
+    long totalThreads = kernelContext->lsx * kernelContext->lsy * kernelContext->lsz;
+    while (totalThreads > max_group_size) {
+        if (local_work_size[0] >= 16) {
+            local_work_size[0] /= 2;
+        } else if (local_work_size[1] >= 4) {
+            local_work_size[1] /= 2;
+        } else if (local_work_size[2] >= 1) {
+            local_work_size[2] /= 2;
+        }
+        totalThreads = local_work_size[0] * local_work_size[1] * local_work_size[2];
+        std::cout << "[Warning] Thread-Block size got automatically resized: " << local_work_size[0] << " " << local_work_size[1] << " " << local_work_size[2] << std::endl;
+    }
+}
+
 void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
     size_t numDimensions = kernelContext->dimensions;
 
@@ -253,6 +280,10 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
         static_cast<size_t>(kernelContext->lsy),
         static_cast<size_t>(kernelContext->lsz),
     };
+
+    // Check the local-sizes fit
+    auto backend = dynamic_cast<OpenCLBackend *>(this->backend);
+    checkThreadBlockFits(backend, kernelContext, local_work_size);
 
     if (backend->config->info) {
         backend->shortDeviceInfo();

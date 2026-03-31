@@ -27,8 +27,6 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -40,7 +38,6 @@ import jdk.incubator.code.Reflect;
 
 import static hat.NDRange.Global2D;
 import static hat.NDRange.Local2D;
-import static hat.NDRange.NDRange1D;
 import static hat.NDRange.NDRange2D;
 import static optkl.ifacemapper.MappableIface.RO;
 import static optkl.ifacemapper.MappableIface.WO;
@@ -207,7 +204,7 @@ public class TestTensors {
 //                }
 //            }
 //            """)
-    public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+    public static void mxmTensors(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
@@ -246,11 +243,11 @@ public class TestTensors {
     }
 
     @Reflect
-    public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void mxmTensors(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
         // var ndRange = of2D(2048, 64, 128, 4);  // When we launch using the CUDA backend
         // For the OpenCL backend: [ (size / tile), (size / tile) ]
-        var ndRange = NDRange2D.of(Global2D.of(64, 64), Local2D.of(16, 4));
-        cc.dispatchKernel(ndRange, kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize));
+        var ndRange = NDRange2D.of(Global2D.of(64, 64), Local2D.of(128, 4));
+        cc.dispatchKernel(ndRange, kc -> mxmTensors(kc, matrixA, matrixB, matrixC, globalSize));
     }
 
     private static void runSequential(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {
@@ -285,7 +282,9 @@ public class TestTensors {
             matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
 
-        accelerator.compute(cc -> matrixMultiply2DLIF16(cc, matrixAHalf, matrixBHalf, matrixC, size));
+        for (int i = 0; i < 10; i++) {
+            accelerator.compute(cc -> mxmTensors(cc, matrixAHalf, matrixBHalf, matrixC, size));
+        }
 
         runSequential(matrixAHalf, matrixBHalf, resultSequential, size);
 
