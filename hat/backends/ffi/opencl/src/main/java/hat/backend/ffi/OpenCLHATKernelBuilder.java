@@ -474,26 +474,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
-    @Override
-    public OpenCLHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-
-        // Tensor.mma(acc, tensorA, tensorB, acc)
-
-        var resulTensorValue = tensorMMAOp.operands().getFirst();
-        var tensorAValue = tensorMMAOp.operands().get(1);
-        var tensorBValue = tensorMMAOp.operands().get(2);
-        var tensorCValue = tensorMMAOp.operands().get(3);
-
-        var tensorA = findTensorVarOp(tensorAValue);
-        var tensorB = findTensorVarOp(tensorBValue);
-        var tensorC = findTensorVarOp(tensorCValue);
-        var tensorResult = findTensorVarOp(resulTensorValue);
-
-        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
-            throw new RuntimeException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
-        }
-        int[] shape = getShapeFromTensorVarOp(tensorA);
-
+    private OpenCLHATKernelBuilder generateTensorMMA(int[] shape, HATTensorOp.TensorVarOp tensorA, HATTensorOp.TensorVarOp tensorB, HATTensorOp.TensorVarOp tensorC, HATTensorOp.TensorVarOp result) {
         emitText("for (int m = 0; m < " + shape[0] + "; m++) {").nl();
         emitText("for (int n = 0; n < " + shape[1] + "; n++) {").nl();
         emitText(" float sum = ").nl();
@@ -504,11 +485,28 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         emitText("F16_t result = (F16_t){(ha.value * hb.value)};").nl();
         emitText("sum += (float)(result.value);").nl();
         cbrace().nl();
-        emitText(tensorResult.varName()+ "[ m * " + shape[0] + " + n] = sum;").nl();
+        emitText(result.varName()+ "[ m * " + shape[0] + " + n] = sum;").nl();
         cbrace().nl();
         cbrace().nl();
-
         return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
+        // Tensor.mma(acc, tensorA, tensorB, acc)
+        var resulTensorValue = tensorMMAOp.operands().getFirst();
+        var tensorAValue = tensorMMAOp.operands().get(1);
+        var tensorBValue = tensorMMAOp.operands().get(2);
+        var tensorCValue = tensorMMAOp.operands().get(3);
+        var tensorA = findTensorVarOp(tensorAValue);
+        var tensorB = findTensorVarOp(tensorBValue);
+        var tensorC = findTensorVarOp(tensorCValue);
+        var tensorResult = findTensorVarOp(resulTensorValue);
+        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
+            throw new RuntimeException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+        }
+        int[] shape = getShapeFromTensorVarOp(tensorA);
+        return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
     }
 
     @Override
