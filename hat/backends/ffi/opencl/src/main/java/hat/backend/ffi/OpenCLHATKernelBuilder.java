@@ -475,7 +475,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     private OpenCLHATKernelBuilder generateTensorMMA(int[] shape, HATTensorOp.TensorVarOp tensorA, HATTensorOp.TensorVarOp tensorB, HATTensorOp.TensorVarOp tensorC, HATTensorOp.TensorVarOp result) {
-
         String prefix = "index_$";
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
@@ -522,20 +521,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             }).semicolon().nl();
 
         }).out().out();
-
-//        emitText("for (int m = 0; m < " + shape[0] + "; m++) {").nl();
-//        emitText("for (int n = 0; n < " + shape[1] + "; n++) {").nl();
-//        emitText(" float sum = ").nl();
-//        emitText(tensorC.varName()).emitText("[m * " + shape[0] + " + n]").semicolon().nl();
-//        emitText("for (int k = 0; k < " + shape[2] + "; k++) {").nl();
-//        emitText("F16_t ha = " + tensorA.varName() + "[m * " + shape[0] + " + k];").nl();
-//        emitText("F16_t hb = " + tensorB.varName() + "[k * " + shape[2] + " + n];").nl();
-//        emitText("F16_t result = (F16_t){(ha.value * hb.value)};").nl();
-//        emitText("sum += (float)(result.value);").nl();
-//        cbrace().nl();
-//        emitText(result.varName()+ "[ m * " + shape[0] + " + n] = sum;").nl();
-//        cbrace().nl();
-//        cbrace().nl();
         return self();
     }
 
@@ -667,43 +652,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 equals().sp().id(r).semicolon().nl();
             }).out();
         }).out();
-
-
-//        emitText("for (int m = 0; m < " + shape[0] + "; m++) {").nl();
-//        emitText(" int rowA = ");
-//        if (iIndexValue instanceof Op.Result r) {
-//            recurse(r.op());
-//        }
-//        emitText(" + m;").nl();
-//        emitText("for (int n = 0; n < " + shape[1] + "; n++) {").nl();
-//        emitText(" int colA = ");
-//        if (jIndexValue instanceof Op.Result r) {
-//            recurse(r.op());
-//        }
-//        emitText(" + n;").nl();
-//
-//        emitText(" int idxA = ").id("rowA");
-//        if (isColumnMajor) plus(); else mul();
-//        id("colA");
-//        if (isColumnMajor) mul(); else plus();
-//        if (leadingDimension instanceof Op.Result r) {
-//            recurse(r.op());
-//        }
-//        semicolon().nl();
-//
-//        emitText("HAT_GLOBAL_MEM F16Impl_t* ha = &");
-//
-//        if (ptrValue instanceof  Op.Result r) {
-//            recurse(r.op());
-//        }
-//        emitText("->array[idxA]").semicolon().nl();
-//
-//        emitText("F16_t r = (F16_t){ha->value};").nl();
-//
-//        // store into the acc
-//        emitText(tensorVarOp.varName()).sbrace( _ -> id("m").mul().id(Integer.toString(shape[0])).plus().id("n"));
-//        equals().sp().id("r").semicolon().nl();
-//        cbrace().cbrace().nl();
         return self();
     }
 
@@ -800,6 +748,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 }
                 semicolon().nl();
 
+                // TODO: We assume a load from global memory. In
+                // future version, we will process loads from other
+                // memory regions of the accelerator
                 if (ptrValue instanceof  Op.Result r) {
                     recurse(r.op());
                 }
@@ -808,39 +759,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 semicolon().nl();
             }).out();
         }).out();
-
-
-//        emitText("for (int m = 0; m < " + shape[0] + "; m++) {").nl();
-//        emitText(" int rowC = ");
-//        if (iIndexValue instanceof Op.Result r) {
-//            recurse(r.op());
-//        }
-//        emitText(" + m;").nl();
-//        emitText("for (int n = 0; n < " + shape[1] + "; n++) {").nl();
-//        emitText(" int colC = ");
-//        if (jIndexValue instanceof Op.Result r) {
-//            recurse(r.op());
-//        }
-//        emitText(" + n;").nl();
-//
-//        emitText(" int idxC = ").id("rowC");
-//        if (isColumnMajor) plus(); else mul();
-//        id("colC");
-//        if (isColumnMajor) mul(); else plus();
-//        if (leadingDimension instanceof Op.Result r) {
-//            recurse(r.op());
-//        }
-//        semicolon().nl();
-//
-//        if (ptrValue instanceof  Op.Result r) {
-//            recurse(r.op());
-//        }
-//        emitText("->array[idxC]").sp().equals().sp();
-//
-//        emitText(tensorVarOp.varName()).sbrace( _ -> id("m").mul().id(Integer.toString(shape[0])).plus().id("n"));
-//        semicolon().nl();
-//
-//        cbrace().cbrace().nl();
         return self();
     }
 
