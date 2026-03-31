@@ -111,7 +111,7 @@ public abstract sealed class HATTensorOp extends HATOp {
 
         @Override
         public String externalizeOpName() {
-            return "hat.dialect.Tensor.Of";
+            return "hat.dialect.Tensor.CreateOp";
         }
     }
 

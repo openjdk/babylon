@@ -29,13 +29,23 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
+import hat.types.F16;
+import hat.types.Tensor;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -253,42 +263,428 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
-        return blockComment("Not supported yet");
+        recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
+        // We don't need to generate the name at this point, but rather during tensor create.
+        // That's the place we know all information, including type, shape, and name
+        // sp().id(tensorVarOp.varName());
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
-        return blockComment("Not supported yet");
+        List<Value> operands = tensorCreateOp.operands();
+
+        // Second parameters: analysis of the shape
+        int[] shape = new int[3];
+        Value second = operands.get(1);
+        if (second.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            List<Value> shapeOperands = invokeOp.operands();
+            for (int i = 0; i < shapeOperands.size(); i++) {
+                Value shapeOperand = shapeOperands.get(i);
+                if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+                    shape[i] = (int) constantOp.value();
+                }
+            }
+        }
+
+        // The third parameter is the type. It could be `half` or `float` as first implementation
+        // This parameter is another constant with the type
+        Value classOperand = operands.get(2);
+        Object klass = null;
+        if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+            klass = constantOp.value();
+        }
+
+        var tensorVarValue = tensorCreateOp.result().uses().getFirst();
+        String varTensorName = null;
+        if (tensorVarValue.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+            varTensorName = tensorVarOp.varName();
+        }
+        int size = shape[0] * shape[1];
+        if (klass instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
+            f16Type();
+        } else if (klass instanceof PrimitiveType primitiveType && primitiveType == PrimitiveType.FLOAT) {
+            type("float");
+        } else {
+            throw new RuntimeException("[ERROR] Codegen. Type " + klass + " not expected");
+        }
+        sp().varName(varTensorName).sbrace(_-> constant(Integer.toString(size)));
+        return self();
+    }
+
+    static HATTensorOp.TensorVarOp findTensorVarOp(Value varLoadOp) {
+        return switch (varLoadOp.declaringElement()) {
+            case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
+            case HATTensorOp.TensorVarOp tensorVarOp -> tensorVarOp;
+            case null, default -> null;
+        };
+    }
+
+    static float getValueConstantTensor(Value v) {
+        if ((v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constant)) {
+            Object valueConstant = constant.value();
+            return (float) valueConstant;
+
+        } else if (v instanceof Op.Result r) {
+            return getValueConstantTensor(r.op().operands().getFirst());
+        }
+        return -1.0f;
+    }
+
+    private int[] getShapeFromTensorCreateValue(Value tensorCreateValue) {
+        if (tensorCreateValue.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
+            // Second parameters: analysis of the shape
+            int[] shape = new int[3];
+            Value second = tensorCreateOp.operands().get(1);
+            if (second.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                List<Value> shapeOperands = invokeOp.operands();
+                for (int i = 0; i < shapeOperands.size(); i++) {
+                    Value shapeOperand = shapeOperands.get(i);
+                    if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+                        shape[i] = (int) constantOp.value();
+                    }
+                }
+            }
+            return shape;
+        }
+        return new int[]{};
+    }
+
+    private int[] getShapeFromTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
+        Value tensorCreateValueOp = tensorVarOp.operands().getFirst();
+        if (tensorCreateValueOp.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
+            // Second parameters: analysis of the shape
+            int[] shape = new int[3];
+            Value second = tensorCreateOp.operands().get(1);
+            if (second.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                List<Value> shapeOperands = invokeOp.operands();
+                for (int i = 0; i < shapeOperands.size(); i++) {
+                    Value shapeOperand = shapeOperands.get(i);
+                    if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+                        shape[i] = (int) constantOp.value();
+                    }
+                }
+            }
+            return shape;
+        }
+        return new int[]{};
+    }
+
+    private boolean isColumnMajorFromVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
+        Value tensorCreateValueOp = tensorVarOp.operands().getFirst();
+        if (tensorCreateValueOp.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
+            // Parameter 3 defines the access layout
+            Value valueLayout = tensorCreateOp.operands().get(3);
+            return isColumnMajor(valueLayout);
+        }
+        return false;
+    }
+
+    private String generateVariableName() {
+        String vocab = "abcdefghijklmnopqrstuvxyz";
+        String prefix = "index_$";
+        Random r = new Random();
+        StringBuilder varA = new StringBuilder(prefix);
+        for (int i = 0; i < 5; i++) {
+            varA.append(vocab.charAt(r.nextInt(vocab.length())));
+        }
+        return varA.toString();
+    }
+
+    private OpenCLHATKernelBuilder emitForLoopWithBound(int from, int to, HATTensorOp.TensorVarOp tensorVarOp, float initValue) {
+        //  emitText("for (int m = 0; m < " + shape[0] + "; m++) { " +
+        //           "for (int n = 0; n < " + shape[1] + "; n++) { " +
+        //            tensorVarOp.varName() + "[m * " + shape[0] + " + n] = " + initValue + "f;" + "}" + "}");
+        String varA = generateVariableName();
+        String varB = generateVariableName();
+        forKeyword().sp().paren(_ -> {
+            s32Type().sp().id(varA).sp().equals().sp().intValue(from).semicolon();
+            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).plusplus();
+        }).sp().brace(_ -> {
+            in().nl().forKeyword().sp().paren(_ -> {
+                s32Type().sp().id(varB).sp().equals().sp().intValue(from).semicolon();
+                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).plusplus();
+            }).sp().in();
+
+            brace(_ -> {
+                nl().id(tensorVarOp.varName()).sbrace(_ ->
+                        id(varA).mul()
+                                .id(Integer.toString(to))
+                                .plus()
+                                .id(varB))
+                                .sp().equals().sp()
+                                .constant(Float.toString(initValue)).id("f")
+                                .semicolon().nl();
+            }).out().out();
+        });
+        return self();
+    }
+
+    private OpenCLHATKernelBuilder emitTensorFill(int[] shape, HATTensorOp.TensorVarOp tensorVarOp, float initValue) {
+
+        return emitForLoopWithBound(0, shape[0], tensorVarOp, initValue);
     }
 
     @Override
     public OpenCLHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-        return blockComment("Not supported yet");
+
+        /*
+         From this expression:
+
+         Tensor.fill(acc, 0.0f);
+
+         We need to generate the following skeleton
+                for (int m = 0; m < SHAPE_1; m++)
+                    for (int n = 0; n < SHAPE_2; n++)
+                        tensor[m * SHAPE_1 + n] = initValue;
+         */
+
+        // 1. Access to the variable name
+        var tensorValue = tensorFillOp.operands().getFirst();
+        HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorValue);
+        if (tensorVarOp == null) {
+            throw new RuntimeException("[Error][Codegen] Expected a tensorVarOp, but found `null` instead");
+        }
+
+        // 2. Access the shape
+        // Second parameters: analysis of the shape
+        Value tensorAccDecl = tensorVarOp.operands().getFirst();
+        int[] shape = getShapeFromTensorCreateValue(tensorAccDecl);
+
+        // 3. Access the layout
+        var tensorInitValue = tensorFillOp.operands().get(1);
+        float initValue = getValueConstantTensor(tensorInitValue);
+
+        emitTensorFill(shape, tensorVarOp, initValue);
+
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
-        return blockComment("Not supported yet");
+        Value operand = hatTensorVarLoadOp.operands().getFirst();
+        if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+            varName(tensorVarOp.varName());
+        } else {
+            throw new RuntimeException("[ERROR] Expected HATTensorVarOp");
+        }
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        return blockComment("Not supported yet");
+
+        // Tensor.mma(acc, tensorA, tensorB, acc)
+
+        var resulTensorValue = tensorMMAOp.operands().getFirst();
+        var tensorAValue = tensorMMAOp.operands().get(1);
+        var tensorBValue = tensorMMAOp.operands().get(2);
+        var tensorCValue = tensorMMAOp.operands().get(3);
+
+        var tensorA = findTensorVarOp(tensorAValue);
+        var tensorB = findTensorVarOp(tensorBValue);
+        var tensorC = findTensorVarOp(tensorCValue);
+        var tensorResult = findTensorVarOp(resulTensorValue);
+
+        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
+            throw new RuntimeException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+        }
+        int[] shape = getShapeFromTensorVarOp(tensorA);
+
+        emitText("for (int m = 0; m < " + shape[0] + "; m++) {").nl();
+        emitText("for (int n = 0; n < " + shape[1] + "; n++) {").nl();
+        emitText(" float sum = ").nl();
+        emitText(tensorC.varName()).emitText("[m * " + shape[0] + " + n]").semicolon().nl();
+        emitText("for (int k = 0; k < " + shape[2] + "; k++) {").nl();
+        emitText("F16_t ha = " + tensorA.varName() + "[m * " + shape[0] + " + k];").nl();
+        emitText("F16_t hb = " + tensorB.varName() + "[k * " + shape[2] + " + n];").nl();
+        emitText("F16_t result = (F16_t){(ha.value * hb.value)};").nl();
+        emitText("sum += (float)(result.value);").nl();
+        cbrace().nl();
+        emitText(tensorResult.varName()+ "[ m * " + shape[0] + " + n] = sum;").nl();
+        cbrace().nl();
+        cbrace().nl();
+
+        return self();
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp $) {
-        return blockComment("Not supported yet");
+    public OpenCLHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp storeLoadOp) {
+        List<Value> operands = storeLoadOp.operands();
+        if (operands.getLast() instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        return self();
+    }
+
+    private HATTensorOp.TensorVarOp findTensorVarOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
+        var tensorStoreLoadValue = tensorLoadOp.result().uses().getFirst();
+        if (tensorStoreLoadValue.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
+            Value first = tensorStoreLoadOp.operands().getFirst();
+            if (first.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+                return tensorVarOp;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp $) {
-        return blockComment("Not supported yet");
+    public OpenCLHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
+        // tensorA = Tensor.load(matrixA, aRow, aCol, lda);
+
+        // 1. We need the global ptr
+        // 2. We need the indexes (i, j)
+        // 3. We need leading dimension
+        // 4. We need the name of the tensor
+        // 5. We need the shape
+        // 6. We need the access layout
+
+        List<Value> operands = tensorLoadOp.operands();
+        var ptrValue = operands.getFirst();
+        var iIndexValue = operands.get(1);
+        var jIndexValue = operands.get(2);
+        var leadingDimension = operands.get(3);
+        HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorLoadOp);
+        int[] shape;
+        boolean isColumnMajor;
+        if (tensorVarOp != null) {
+            shape = getShapeFromTensorVarOp(tensorVarOp);
+            isColumnMajor = isColumnMajorFromVarOp(tensorVarOp);
+        } else {
+            throw new RuntimeException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
+        }
+
+        emitText("for (int m = 0; m < " + shape[0] + "; m++) {").nl();
+        emitText(" int rowA = ");
+        if (iIndexValue instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        emitText(" + m;").nl();
+        emitText("for (int n = 0; n < " + shape[1] + "; n++) {").nl();
+        emitText(" int colA = ");
+        if (jIndexValue instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        emitText(" + n;").nl();
+
+        emitText(" int idxA = ").id("rowA");
+        if (isColumnMajor) plus(); else mul();
+        id("colA");
+        if (isColumnMajor) mul(); else plus();
+        if (leadingDimension instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        semicolon().nl();
+
+        emitText("HAT_GLOBAL_MEM F16Impl_t* ha = &");
+
+        if (ptrValue instanceof  Op.Result r) {
+            recurse(r.op());
+        }
+        emitText("->array[idxA]").semicolon().nl();
+
+        emitText("F16_t r = (F16_t){ha->value};").nl();
+
+        // store into the acc
+        emitText(tensorVarOp.varName()).sbrace( _ -> id("m").mul().id(Integer.toString(shape[0])).plus().id("n"));
+        equals().sp().id("r").semicolon().nl();
+
+//        emitText("""
+//            for (int m = 0; m < WMMA_M; m++) {
+//                int rowA = aRow + m;
+//                for (int n = 0; n < WMMA_N; n++) {
+//                    int colA = aCol + n;
+//                    int idxA = rowA + colA * lda;
+//                    HAT_GLOBAL_MEM F16Impl_t* ha = &matrixA->array[idxA];
+//                    F16_t r = (F16_t){ha->value};
+//                    tensorA[m * WMMA_M + n] = r;
+//                }
+//            }
+//            """);
+
+        cbrace().cbrace().nl();
+        return self();
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp $) {
-        return blockComment("Not supported yet");
+    public OpenCLHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp) {
+        // Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+
+        // 1. We need the global ptr
+        // 2. We need the indexes (i, j)
+        // 3. We need leading dimension
+        // 4. We need the name of the tensor
+        // 5. We need the shape
+        // 6. We need the access layout
+
+        List<Value> operands = tensorStoreOp.operands();
+        var ptrValue = operands.getFirst();
+        var iIndexValue = operands.get(1);
+        var jIndexValue = operands.get(2);
+        var tensorValue = operands.get(3);
+        var leadingDimension = operands.get(4);
+
+        HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorValue);
+        if (tensorVarOp == null) {
+            throw new RuntimeException("[Error][CodeGen] Expected to find a tensorVarOp, but `null` instead.");
+        }
+
+        int[] shape = getShapeFromTensorVarOp(tensorVarOp);
+
+        Value accessLayout = operands.get(5);
+        final boolean isColumnMajor = isColumnMajor(accessLayout);
+
+        emitText("for (int m = 0; m < " + shape[0] + "; m++) {").nl();
+        emitText(" int rowC = ");
+        if (iIndexValue instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        emitText(" + m;").nl();
+        emitText("for (int n = 0; n < " + shape[1] + "; n++) {").nl();
+        emitText(" int colC = ");
+        if (jIndexValue instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        emitText(" + n;").nl();
+
+        emitText(" int idxC = ").id("rowC");
+        if (isColumnMajor) plus(); else mul();
+        id("colC");
+        if (isColumnMajor) mul(); else plus();
+        if (leadingDimension instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        semicolon().nl();
+
+        if (ptrValue instanceof  Op.Result r) {
+            recurse(r.op());
+        }
+        emitText("->array[idxC]").sp().equals().sp();
+
+        emitText(tensorVarOp.varName()).sbrace( _ -> id("m").mul().id(Integer.toString(shape[0])).plus().id("n"));
+        semicolon().nl();
+
+        cbrace().cbrace().nl();
+//
+//        emitText("""
+//                for (int m = 0; m < WMMA_M; m++) {
+//                    int rowC = cRow + m;
+//                    if (rowC >= size) continue;
+//                    for (int n = 0; n < WMMA_N; n++) {
+//                        int colC = cCol + n;
+//                        if (colC >= size) continue;
+//                        int idxC = (cRow) + (cCol) * ldc;
+//                        matrixC->array[idxC] = acc[m * 16 + n];
+//                    }
+//                }
+//                """);
+        return self();
     }
 
 }
