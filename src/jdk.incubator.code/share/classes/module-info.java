@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,17 +23,17 @@
  * questions.
  */
 
-/**
- * A module which provides classes and interfaces for obtaining reflective information about
- * classes and objects.
- * {@incubating}
- *
- * @moduleGraph
- */
-
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.internal.javac.ParticipatesInPreview;
 
+/// Defines an enhancement to the [core reflection][java.lang.reflect] API called _code reflection_.
+///
+/// Code reflection supports access to a model of code in a method or lambda expression, a
+/// _code model_, that is suited for analysis and transformation.
+///
+/// {@incubating}
+///
+/// @moduleGraph
 @ParticipatesInPreview
 module jdk.incubator.code {
     requires transitive jdk.compiler;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,208 @@
  * questions.
  */
 
-/**
- * Functionality for a code metamodel that is used to quote Java code as code models, build code models, and transform code models.
- */
+/// Defines an enhancement to the [core reflection][java.lang.reflect] API called _code reflection_.
+///
+/// Code reflection supports access to a model of code in a method or lambda expression, a
+/// [_code model_](#code-models-heading), that is suited for analysis and [transformation](#transforming-heading).
+///
+/// ## Core reflection API
+///
+/// The core reflection API is a powerful feature that enables inspection of Java code at run time. For example,
+/// consider the following Java code that we want to inspect, a class containing one field and one method, and another
+/// class also containing one field and one method.
+///
+/// {@snippet lang="java" :
+/// static class Example {
+///     static Runnable R = () -> IO.println("Example:field:R");
+///     static int add(int a, int b) {
+///         IO.println("Example:method:add");
+///         return a + b;
+///     }
+///
+///     static class Nested {
+///         static Runnable R = () -> IO.println("Example.Nested:field:R");
+///         void m() { IO.println("Example.Nested:method:m"); }
+///     }
+/// }
+/// }
+///
+/// We can write a simple stream that uses core reflection and traverses program structure, a tree of annotated
+/// elements, starting from a given class and reporting elements in a topological order.
+///
+/// {@snippet lang="java" :
+/// static Stream<AnnotatedElement> elements(Class<?> c) {
+///     return Stream.of(c).mapMulti((e, mapper) -> traverse(e, mapper));
+/// }
+/// private static void traverse(AnnotatedElement e,
+///                              Consumer<? super AnnotatedElement> mapper) {
+///     mapper.accept(e);
+///     if (e instanceof Class<?>c) {
+///         for (Field df : c.getDeclaredFields()) { traverse(df, mapper); }
+///         for (Method dm : c.getDeclaredMethods()) { traverse(dm, mapper); }
+///         for (Class<?> dc : c.getDeclaredClasses()) { traverse(dc, mapper); }
+///     }
+/// }
+/// }
+///
+/// ([AnnotatedElement][java.lang.reflect.AnnotatedElement] is the common super type of [Class][java.lang.Class],
+/// [Field][java.lang.reflect.Field], and [Method][java.lang.reflect.Method].)
+///
+/// The `traverse` method recursively traverses a class's declared fields, methods, and enclosed class. Starting from
+/// `Example`, using a class literal expression, we can print out the fields, methods, and classes we encounter.
+///
+/// {@snippet lang="java" :
+/// elements(Example.class)
+///     .forEach(IO::println);
+/// }
+///
+/// More interestingly we can perform some simple analysis, such as counting the number of static fields whose type is
+/// [Runnable][java.lang.Runnable].
+///
+/// {@snippet lang="java" :
+/// static boolean isStaticRunnableField(Field f) {
+///     return f.accessFlags().contains(AccessFlag.STATIC)
+///         && Runnable.class.isAssignableFrom(f.getType());
+/// }
+/// assert 2 == elements(Example.class)
+///     .filter(e -> e instanceof Field f && isStaticRunnableField(f))
+///     .count();
+/// }
+///
+/// However, it is not possible to perform some analysis of the code in the lambda expressions and methods. The core
+/// reflection API can only inspect the classes, fields, and methods – it provides no facility to go deeper and inspect
+/// code.
+///
+/// ## Code reflection
+///
+/// Using code reflection we can go deeper. We can update `Example` so that the code of the lambda expressions and
+/// methods is accessible just like the fields and method.
+///
+/// {@snippet lang="java" :
+/// import jdk.incubator.code.*;
+/// import jdk.incubator.code.bytecode.*;
+/// import jdk.incubator.code.dialect.core.*;
+/// import jdk.incubator.code.dialect.java.*;
+/// import static jdk.incubator.code.dialect.core.CoreOp.*;
+/// import static jdk.incubator.code.dialect.java.JavaOp.*;
+///
+/// static class Example {
+///     @Reflect
+///     static Runnable R = () -> IO.println("Example:field:R");
+///     @Reflect
+///     static int add(int a, int b) {
+///         IO.println("Example:method:add");
+///         return a + b;
+///     }
+///
+///     static class Nested {
+///         @Reflect
+///         static Runnable R = () -> IO.println("Example.Nested:field:R");
+///         @Reflect
+///         void m() { IO.println("Example.Nested:method:m"); }
+///     }
+/// }
+/// }
+///
+/// We declare the lambda expressions and methods are reflectable by annotating their declarations with
+/// [Reflect][jdk.incubator.code.Reflect]. By doing so we grant access to their code. When the source of the `Example`
+/// class is compiled by javac it translates its internal model of method `add`’s code to a standard model, called a
+/// [_code model_](#code-models-heading), and stores the code model in a class file related to the `Example` class file
+/// where `add`’s code is compiled to bytecode. (The same occurs for the other method and lambda expressions.)
+///
+/// A code model is an immutable tree of [_code elements_][jdk.incubator.code.CodeElement], where each element models
+/// some Java statement or expression (for further details see the [Code models](#code-models-heading) section).
+///
+/// We can use code reflection to access the code model of an annotated element, which loads the corresponding code
+/// model that was stored in the related class file.
+///
+/// {@snippet lang="java" :
+/// static Object getStaticFieldValue(Field f) {
+///     try { return f.get(null); }
+///     catch (IllegalAccessException e) { throw new RuntimeException(e); }
+/// }
+/// static Optional<? extends CodeElement<?, ?>> getCodeModel(AnnotatedElement ae) { // @link substring="CodeElement" target="CodeElement"
+///     return switch (ae) {
+///         case Method m -> Op.ofMethod(m); // @link substring="Op.ofMethod" target="Op#ofMethod"
+///         case Field f when isStaticRunnableField(f) ->
+///                 Op.ofLambda(getStaticFieldValue(f)).map(Quoted::op); // @link substring="Op.ofLambda" target="Op#ofLambda"
+///         default -> Optional.empty();
+///    };
+/// }
+/// }
+///
+/// The method `getCodeModel` returns the code model for a reflectable method or lambda expression, a code element that
+/// is the root of the code model tree. By default, methods and lambda expressions are not reflectable, so we return an
+/// optional value. If the annotated element is a method we retrieve the code model from the method. If the annotated
+/// element is a static field whose type is `Runnable` we access its value, an instance of `Runnable` whose result is
+/// produced from a lambda expression, and from that instance we retrieve the lambda expression’s code model. The
+/// retrieval is slightly different for lambda expressions since they can capture values (for more details see the
+/// [Declaring and accessing reflectable code](#declaring-and-accessing-reflectable-code-heading) section).
+///
+/// We can use `getCodeModel` to map from `Example`’s annotated elements to their code models.
+///
+/// {@snippet lang="java" :
+/// elements(Example.class)
+///         // AnnotatedElement -> CodeModel?
+///         .flatMap(ae -> getCodeModel(ae).stream())
+///         .forEach(IO::println);
+/// }
+///
+/// More interestingly we can now perform some simple analysis of code, such as extracting the values of the string
+/// literal expressions that are printed.
+///
+/// {@snippet lang="java" :
+/// static final MethodRef PRINTLN = MethodRef.method(IO.class, "println", // @link substring="MethodRef" target="jdk.incubator.code.dialect.java.MethodRef"
+///         void.class, Object.class);
+/// static Optional<String> isPrintConstantString(CodeElement<?, ?> e) {
+///     if (e instanceof InvokeOp i && // @link substring="InvokeOp" target="jdk.incubator.code.dialect.java.JavaOp.InvokeOp"
+///             i.invokeDescriptor().equals(PRINTLN) &&
+///             i.operands().get(0).declaringElement() instanceof ConstantOp cop && // @link substring="ConstantOp" target="jdk.incubator.code.dialect.core.CoreOp.ConstantOp"
+///             cop.value() instanceof String s) {
+///         return Optional.of(s);
+///     } else {
+///         return Optional.empty();
+///     }
+/// }
+/// static List<String> analyzeCodeModel(CodeElement<?, ?> codeModel) {
+///     return codeModel.elements()
+///             // CodeElement -> String?
+///             .flatMap(e -> isPrintConstantString(e).stream())
+///             .toList();
+/// }
+/// }
+///
+/// The method `analyzeCodeModel` uses a stream to [traverse](#traversing-heading) over all elements of a code model and
+/// returns the list of string literal values passed to invocations of `IO.println`. We can then use `analyzeCodeModel`
+/// to further refine our steam expression to print out all such string literal values.
+///
+/// {@snippet lang="java" :
+/// elements(Example.class)
+///         // AnnotatedElement -> CodeModel?
+///         .flatMap(ae -> getCodeModel(ae).stream())
+///         // CodeModel -> List<String>
+///         .map(codeModel -> analyzeCodeModel(codeModel))
+///         .forEach(IO::println);
+/// }
+///
+/// ## Declaring and accessing reflectable code
+///
+/// ## Code models
+///
+/// ## Traversing
+///
+/// ## Building
+///
+/// ## Transforming
+///
+/// ## Code model structure
+///
+/// ## Code model behavior
+///
+/// ## Dialects
+///
+/// ## Java code models
+///
+/// ## Modeling Java code
+///
 package jdk.incubator.code;
