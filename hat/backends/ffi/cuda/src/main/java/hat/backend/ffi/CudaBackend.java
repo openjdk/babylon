@@ -416,7 +416,7 @@ public class CudaBackend extends C99FFIBackend {
         var here = CallSite.of(CudaBackend.class, "createPTX");
 
         kernelCallGraph.callDag.rankOrdered
-                .stream().filter(f->f.methodType.equals(MethodCallDag.MethodInfo.MethodType.Func))
+                .stream().filter(f->f.methodType.equals(MethodCallDag.MethodCall.MethodType.Func))
                 .forEach(f -> {
                     CoreOp.FuncOp loweredFunc = f.funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
                     loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);

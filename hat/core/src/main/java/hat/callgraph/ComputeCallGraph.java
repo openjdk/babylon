@@ -28,21 +28,19 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import optkl.OpHelper;
-import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
 
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 
-import java.util.*;
-
-import static optkl.OpHelper.Invoke.invoke;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     public Config config() {
@@ -93,27 +91,19 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public final Map<MethodRef, KernelCallGraph> kernelCallGraphMap = new HashMap<>();
 
-
-    public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp funcOp) {
-        super(computeContext, new ComputeEntrypoint(computeContext.lookup(),null, method, funcOp));
+    public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp entry) {
+        super(computeContext, new ComputeEntrypoint(computeContext.lookup(),null, method, entry));
         entrypoint.callGraph = this; // This is bad we should be able to do better
-        createTransitiveInvokeModule(computeContext.lookup(), entrypoint.funcOp());
+        OpHelper.Invoke.stream(computeContext.lookup(), entry).forEach(invoke -> {
+            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
+                Method resolvedMethod = invoke.resolveMethodOrThrow();
+                if (entrypoint.method().getDeclaringClass().equals(invoke.classOrThrow())
+                        && isValidKernelDispatch(computeContext.lookup(),resolvedMethod, funcOp)) {
+                    kernelCallGraphMap.computeIfAbsent( invoke.op().invokeReference(), _ ->
+                            new KernelCallGraph(this, resolvedMethod, funcOp)
+                    );
+                }
+            }
+        });
     }
-
-
-    @Override
-    public boolean filterCalls(CoreOp.FuncOp funcOp, OpHelper.Invoke invoke) {
-        Method method = invoke.resolveMethodOrThrow();
-        if (entrypoint.method().getDeclaringClass().equals(invoke.classOrThrow())
-                && isValidKernelDispatch(computeContext.lookup(),method, funcOp)) {
-            // TODO this side effect is not good.  we should do this when we construct !
-            kernelCallGraphMap.computeIfAbsent( invoke.op().invokeReference(), _ ->
-                    new KernelCallGraph(this, method, funcOp)
-            );
-            return true;
-        } else {
-            return false;
-        }
-    }
-
 }

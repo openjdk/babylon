@@ -148,21 +148,10 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }
         if ((Boolean.getBoolean("showProposedKernelTypeDefs"))) {
-            ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType));
+            ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType()));
         }
     }
 
-    @Override
-    public boolean filterCalls(CoreOp.FuncOp f, OpHelper.Invoke invoke) {
-        if (Buffer.class.isAssignableFrom(invoke.classOrThrow())) {
-            // TODO this side effect seems scary lets do this in a separate pass
-            state.bufferAccessToMethodCallMap.computeIfAbsent(invoke.op().invokeReference(), _ ->
-                    new KernelReachableUnresolvedIfaceMappedMethodCall(this, invoke.resolveMethodOrThrow())
-            );
-            return true;
-        } else {
-            return false;
-        }
-    }
+
 
 }

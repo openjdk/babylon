@@ -32,15 +32,18 @@ import optkl.util.Dag;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Objects;
+import java.util.stream.Stream;
 
-public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
-    static public class MethodInfo{
+public class MethodCallDag extends Dag<MethodCallDag.MethodCall> {
+
+
+    static public class MethodCall {
         public enum MethodType{Func,Entry};
         public final  MethodType methodType;
         public  CoreOp.FuncOp funcOp;
         public final MethodRef methodRef;
         public final Method method;
-        MethodInfo(MethodType methodType,CoreOp.FuncOp funcOp, MethodRef methodRef, Method method){
+        MethodCall(MethodType methodType, CoreOp.FuncOp funcOp, MethodRef methodRef, Method method){
             this.methodType = methodType;
             this.funcOp = funcOp;
             this.methodRef = methodRef;
@@ -55,33 +58,34 @@ public class MethodCallDag extends Dag<MethodCallDag.MethodInfo> {
         @Override
         public boolean equals(Object o) {
             return (this == o)
-                    || ( o instanceof MethodInfo that
+                    || ( o instanceof MethodCall that
                        && Objects.equals(methodType,that.methodType)&&Objects.equals(methodRef, that.methodRef) && Objects.equals(method, that.method)
             );
         }
-
-        static MethodInfo func(CoreOp.FuncOp funcOp, MethodRef methodRef, Method method) {
-            return new MethodInfo(MethodType.Func,funcOp, methodRef, method);
-        }
-        static MethodInfo entry(CoreOp.FuncOp funcOp,  Method method) {
-            return new MethodInfo(MethodType.Entry,funcOp, null, method);
-        }
     }
 
-    public final MethodInfo entryPoint;
+    public final MethodCall entryPoint;
     public final CoreOp.FuncOp inlined;
 
     // recursive
-    void addEdge(MethodInfo methodInfo, OpHelper.Invoke invoke) {
-        add(methodInfo,MethodInfo.func(invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
-                OpHelper.Invoke.stream(invoke.lookup(), n.funcOp).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i -> addEdge(n, i))
+    void addEdge(MethodCall methodCall, OpHelper.Invoke invoke) {
+        add(methodCall, new MethodCall(MethodCall.MethodType.Func,invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
+                OpHelper.Invoke.stream(invoke.lookup(), n.funcOp).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i ->
+                        addEdge(n, i) // recurse
+                )
         );
     }
 
     MethodCallDag(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
         this.inlined = inlined;
-        this.entryPoint = MethodInfo.entry(entry,  method);// we dont have a methodRef for the root
-        OpHelper.Invoke.stream(lookup, entry).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i -> addEdge(entryPoint, i));
+        this.entryPoint = new MethodCall(MethodCall.MethodType.Entry,entry, null, method);// we dont have a methodRef for the root
+        OpHelper.Invoke.stream(lookup, entry).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i ->
+                addEdge(entryPoint, i)
+        );
         closeRanks();
+    }
+
+    public Stream<MethodCall> rankOrderedFunctions() {
+        return rankOrdered.stream().filter(f->f.methodType.equals(MethodCallDag.MethodCall.MethodType.Func));
     }
 }

@@ -48,6 +48,7 @@ import optkl.ifacemapper.BufferState;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
+import optkl.util.Mutable;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -58,10 +59,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
-        super(arena,lookup,libName, config);
+public abstract class C99FFIBackend extends FFIBackend implements BufferTracker {
+    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
+        super(arena, lookup, libName, config);
     }
+
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
         public final KernelCallGraph kernelCallGraph;
@@ -75,7 +77,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.kernelBridge = kernelBridge;
             this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelBufferContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(),kernelCallGraph,  ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(), kernelCallGraph, ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
@@ -141,103 +143,70 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         // From here is text processing
         String[] split = toText.split(">");
         // Each item is a data struct
-        for (String s : split) {
+        for (String ss : split) {
             // curate: remove first character
-            s = s.substring(1);
-            String dsName = s.split(":")[0];
-            if (typedefs.contains(dsName)) {
-                continue;
+            final var finalS = ss.substring(1);
+            String dsName = finalS.split(":")[0];
+            if (typedefs.add(dsName)){
+                builder.typedefStruct(sanitize(dsName), _ -> {
+                    String[] members = finalS.split(";");
+                    builder.indent(_-> {
+                                for (int i = 0, j = 1; i < members.length; i++, j = 0) {
+                                    String[] field = members[i].split(":");
+                                    final boolean isArray = field[j++].equals("[");
+                                    String rawtype = field[j++];
+                                    builder.type(sanitize(rawtype)+((typedefs.contains(rawtype)?"_t":""))).sp().id( field[j++]);
+                                    if (isArray) {
+                                        final String lenValue = field[j];
+                                        builder.sp().sbrace(_ -> builder.id(lenValue));
+                                    }
+                                    builder.semicolon().nl();
+                                }
+                            });
+                });
+                builder.semicolon().nl().nl();
             }
-            typedefs.add(dsName);
-            // sanitize dsName
-            dsName = sanitize(dsName);
-            builder.typedefKeyword()
-                    .sp()
-                    .structKeyword()
-                    .sp()
-                    .suffix_s(dsName)
-                    .obrace()
-                    .nl();
-
-            String[] members = s.split(";");
-
-            int j = 0;
-            builder.in();
-            for (int i = 0; i < members.length; i++) {
-                String member = members[i];
-                String[] field = member.split(":");
-                if (i == 0) {
-                    j = 1;
-                }
-                String isArray = field[j++];
-                String type = field[j++];
-                String name = field[j++];
-                String lenValue = "";
-                if (isArray.equals("[")) {
-                    lenValue = field[j];
-                }
-                j = 0;
-                if (typedefs.contains(type))
-                    type = sanitize(type) + "_t";
-                else
-                    type = sanitize(type);
-
-                builder.type(type)
-                        .sp()
-                        .id(name);
-
-                if (isArray.equals("[")) {
-                    builder.sp()
-                            .osbrace()
-                            .id(lenValue)
-                            .csbrace();
-                }
-                builder.semicolon().nl();
-            }
-            builder.out();
-            builder.cbrace().suffix_t(dsName).semicolon().nl().nl();
         }
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
-        var visitedAlready=  new HashSet<Schema.IfaceType>();
+
+        var visitedAlready = new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema().rootIfaceType.visitUniqueTypes( t -> {
+                    boundSchema.schema().rootIfaceType.visitUniqueTypes(t -> {
                         if (visitedAlready.add(t)) { // true first time we see this type
                             builder.typedef(boundSchema, t);
                         }
                     });
                 });
 
-        var annotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
-        if (annotation!=null){
-            // If we find an annotation we can't trust the data in kernelCllGraph's state.
-            kernelCallGraph.state.usesAtomics=true;
-            kernelCallGraph.state.usesFp16=true;
-            kernelCallGraph.state.usesBarrier=true;
-            kernelCallGraph.state.usesVecTypes=false;// maybe?
-            var typedef = kernelCallGraph.entrypoint.method().getAnnotation(TypeDef.class);
-            if (typedef!=null){
+
+        var kernelAnnotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
+        if (kernelAnnotation != null) {
+            // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
+            kernelCallGraph.state.usesAtomics = true;
+            kernelCallGraph.state.usesFp16 = true;
+            kernelCallGraph.state.usesBarrier = true;
+            kernelCallGraph.state.usesVecTypes = false;// maybe?
+            var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method.getAnnotation(TypeDef.class);
+            if (typedefAnnotation != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
-                builder.typedefKeyword().sp().structKeyword().sp().suffix_s(typedef.name()).braceNlIndented(_->
-                        builder.preformatted(typedef.body())
-                ).suffix_t(typedef.name()).semicolon().nl();
+                builder.typedefStruct(typedefAnnotation.name(),_-> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
             }
-            var preformatted = kernelCallGraph.entrypoint.method().getAnnotation(Preformatted.class);
-            if (preformatted!=null){
+            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method.getAnnotation(Preformatted.class);
+            if (preformattedAnnotation != null) {
                 builder.lineComment("Preformatted text from @Preformatted annotation");
-                builder.preformatted(preformatted.value());
+                builder.preformatted(preformattedAnnotation.value());
             }
             builder.lineComment("Preformatted code body from @Kernel annotation");
-            builder.preformatted(annotation.value());
+            builder.preformatted(kernelAnnotation.value());
         } else {
             Set<String> typedefs = new HashSet<>();
-
             if (kernelCallGraph.state.usesFp16) {
                 // Add HAT reserved types
                 typedefs.add(F16.class.getName());
@@ -265,8 +234,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                                 } else {
                                     throw new RuntimeException("[ERROR] Could not find valid device schema ");
                                 }
-                            }else if (s instanceof Schema<?> schema){
-                                throw new RuntimeException("found "+schema+" in NonMappableIface "+c.getName());
+                            } else if (s instanceof Schema<?> schema) {
+                                throw new RuntimeException("found " + schema + " in NonMappableIface " + c.getName());
                             }
                         } catch (ReflectiveOperationException e) {
                             throw new RuntimeException(e);
@@ -276,15 +245,14 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
             var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp);
 
-            if (kernelCallGraph.state.usesVecTypes){
+            if (kernelCallGraph.state.usesVecTypes) {
                 C99VecAndMatHandler.createVecFunctions(builder);
             }
 
-            kernelCallGraph.callDag.rankOrdered
-                    .stream().filter(f->f.methodType.equals(MethodCallDag.MethodInfo.MethodType.Func))
-                    .forEach(f ->
-                        builder.nl().kernelMethod(buildContext, f.funcOp).nl()
-                    );
+            // This provides functions in reverse call order.  There may be none if the entrypojnt does it all
+            kernelCallGraph.callDag.rankOrderedFunctions().forEach(f ->
+                    builder.nl().kernelMethod(buildContext, f.funcOp).nl()
+            );
 
             builder.nl().kernelEntrypoint(buildContext).nl();
 
@@ -302,13 +270,12 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     private String sanitize(String s) {
         String[] split1 = s.split("\\.");
-        if (split1.length == 1) {
-            return s;
-        }
-        s = split1[split1.length - 1];
-        if (s.split("\\$").length > 1) {
-            int last = s.lastIndexOf("$");
-            s = s.substring(last + 1);
+        if (split1.length != 1) {
+            s = split1[split1.length - 1];
+            if (s.split("\\$").length > 1) {
+                int last = s.lastIndexOf("$");
+                s = s.substring(last + 1);
+            }
         }
         return s;
     }

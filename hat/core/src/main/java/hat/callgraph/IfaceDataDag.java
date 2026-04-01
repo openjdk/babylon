@@ -24,106 +24,60 @@
  */
 package hat.callgraph;
 
-import hat.device.NonMappableIface;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.ifacemapper.MappableIface;
 import optkl.util.Dag;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
-    static public class IfaceInfo{
-        public final ClassType classType;
-        public final Class<IfaceValue> clazz;
-        IfaceInfo(ClassType classType, Class<IfaceValue> clazz){
-            this.classType = classType;
-            this.clazz = clazz;
-
+    interface IfaceInfo {
+        ClassType classType();
+        Class<IfaceValue> clazz();
+           record Impl(ClassType classType, Class<IfaceValue> clazz) implements IfaceInfo {
         }
-        boolean isStruct(){
-            return IfaceValue.Struct.class.isAssignableFrom(clazz);
-        }
-        boolean isUnion(){
-            return IfaceValue.Union.class.isAssignableFrom(clazz);
-        }
-        boolean isMappable(){
-            return MappableIface.class.isAssignableFrom(clazz);
-        }
-        boolean isNonMappable(){
-            return NonMappableIface.class.isAssignableFrom(clazz);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(classType,clazz);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return (this == o)
-                    || (o instanceof IfaceInfo that
-                    && Objects.equals(classType, that.classType)
-                    && Objects.equals(clazz, that.clazz)
-            );
-        }
-
-        static IfaceInfo of(Class<IfaceValue> clazz) {
-            return new IfaceInfo((ClassType) JavaType.type(clazz.describeConstable().get()), clazz);
-        }
-
-        public String dotName() {
-            var sb = new StringBuilder();
-            if (isStruct()){
-               sb.append("Struct_");
-            }else   if (isUnion()){
-                sb.append("Union_");
-            }else   if (isMappable()) {
-                sb.append("Buffer_");
-            }else {
-                sb.append("Unmapped_");
+        default String dotName() {
+            if (IfaceValue.Struct.class.isAssignableFrom(clazz())) {
+                return clazz().getSimpleName()+"_s";
+            } else if (IfaceValue.Union.class.isAssignableFrom(clazz())) {
+                return clazz().getSimpleName()+"_u";
             }
-            sb.append(clazz.getSimpleName());
-            return sb.toString();
+            return clazz().getSimpleName();
         }
     }
-
-    public static Predicate<Class<?>> ifacePredicate = IfaceValue.class::isAssignableFrom; // both mappable (for mem segments) and non mappable (for private/shared mem)
-
-    static Stream<IfaceInfo> declaredMethodIfaceReturnTypes(IfaceInfo iface){
-        return Arrays.stream(iface.clazz.getDeclaredMethods())
+    static Stream<IfaceInfo> declaredMethodIfaceReturnTypes(IfaceInfo iface) {
+        return Arrays.stream(iface.clazz().getDeclaredMethods())
                 .map(Method::getReturnType)
-                .filter(ifacePredicate)
-                .map(c->(Class<IfaceValue>)c)
-                .map(IfaceInfo::of);
+                .filter(IfaceValue.class::isAssignableFrom)
+                .map(clazz -> new IfaceInfo.Impl((ClassType) JavaType.type(clazz.describeConstable().get()), (Class<IfaceValue>)clazz));
     }
 
     // recursive
-     void addEdge(IfaceInfo from, IfaceInfo to) {
-        if (!from.equals(to)){
+    void addEdge(IfaceInfo from, IfaceInfo to) {
+        if (!from.equals(to)) {
             declaredMethodIfaceReturnTypes(to).forEach(retType ->
-                addEdge(to,retType)
+                    addEdge(to, retType)
             );
-            add(from, to, _->{});
-       }
+            add(from, to, _ -> {
+            });
+        }
     }
-    public IfaceDataDag(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp){
+
+    public IfaceDataDag(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp) {
         inlinedEntrypointFuncOp.elements()
                 .filter(ce -> ce instanceof Op)
                 .map(ce -> ((Op) ce).resultType())
                 .filter(typeElement -> typeElement instanceof ClassType)
-                .map(typeElement -> (ClassType)typeElement)
-                .map(classType -> new IfaceInfo(classType,(Class<IfaceValue>)OpHelper.classTypeToTypeOrThrow(lookup, classType)))
-                .filter(ifaceInfo->ifacePredicate.test(ifaceInfo.clazz)).forEach(iface->
-                        add(iface, _->
+                .map(classType -> new IfaceInfo.Impl((ClassType) classType, (Class<IfaceValue>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) classType)))
+                .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz)).forEach(iface ->
+                        add(iface, _ ->
                                 declaredMethodIfaceReturnTypes(iface).forEach(retType ->
                                         addEdge(iface, retType)
                                 )
