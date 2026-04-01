@@ -221,7 +221,12 @@
 /// {@snippet lang="java" :
 /// Method addMethod = Example.class.getDeclaredMethod("add", int.class, int.class);
 /// CoreOp.FuncOp codeModel = Op.ofMethod(addMethod).orElseThrow(); // @link substring="CoreOp.FuncOp" target="jdk.incubator.code.dialect.core.CoreOp.FuncOp"
+/// assert codeModel == Op.ofMethod(addMethod).orElseThrow();
 /// }
+///
+/// We assert that if we obtain the code model for a second time the _same_ instance is returned. The identity
+/// of code elements (and more generally items) in the code model are stable, and therefore they can be used as
+/// stable keys for associating code elements with other information.
 ///
 /// The code model of a reflectable lambda expression (or method reference) is accessed by invoking
 /// [jdk.incubator.code.Op#ofLambda] with an argument that is an instance of a functional interface associated with the
@@ -246,7 +251,7 @@
 /// Runnable r = () -> IO.println(capture);
 /// Quoted<JavaOp.LambdaOp> quotedCodeModel = Op.ofLambda(r).orElseThrow();
 ///
-/// SequencedMap<Value, Object> capturedValues = quotedCodeModel.capturedValues(); // @link substring="capturedValues" target="jdk.incubator.code.Quoted#capturedValues"
+/// SequencedMap<Value, Object> capturedValues = quotedCodeModel.capturedValues(); // @link substring="capturedValues()" target="jdk.incubator.code.Quoted#capturedValues"
 /// assert capturedValues.size() == 1;
 /// assert capturedValues.values().contains(42);
 /// }
@@ -273,6 +278,142 @@
 /// constructs and behavior, traversing code models, building code models, and transforming code models.
 ///
 /// ## Traversing
+///
+/// A code model, a tree of code elements, can be traversed. One approach to write a recursive method that iterates
+/// over code elements and their children. That way we can get a sense of what a code model contains.
+///
+/// {@snippet lang="java" :
+/// Method addMethod = Example.class.getDeclaredMethod("add", int.class, int.class);
+/// CoreOp.FuncOp codeModel = Op.ofMethod(addMethod).orElseThrow();
+///
+/// static void traverse(int depth, CodeElement<?, ?> e) {
+///     IO.println("  ".repeat(depth) + e.getClass());
+///
+///     for (CodeElement<?, ?> c : e.children()) { // @link substring="children()" target="jdk.incubator.code.CodeElement#children"
+///         traverse(depth + 1, c);
+///     }
+/// }
+/// traverse(0, codeModel);
+/// }
+///
+/// The `traverse` method prints out the class of the code element it encounters and prefixes that with white space
+/// proportionate to the depth of the element in the code model tree. Invoking the `traverse` method with the code model
+/// of the `Example.add` method prints out the following:
+///
+/// {@snippet lang="text" :
+/// class jdk.incubator.code.dialect.core.CoreOp$FuncOp
+///   class jdk.incubator.code.Body
+///     class jdk.incubator.code.Block
+///       class jdk.incubator.code.dialect.core.CoreOp$VarOp
+///       class jdk.incubator.code.dialect.core.CoreOp$VarOp
+///       class jdk.incubator.code.dialect.core.CoreOp$ConstantOp
+///       class jdk.incubator.code.dialect.java.JavaOp$InvokeOp
+///       class jdk.incubator.code.dialect.core.CoreOp$VarAccessOp$VarLoadOp
+///       class jdk.incubator.code.dialect.core.CoreOp$VarAccessOp$VarLoadOp
+///       class jdk.incubator.code.dialect.java.JavaOp$AddOp
+///       class jdk.incubator.code.dialect.core.CoreOp$ReturnOp
+/// }
+///
+/// We can observe that the top of the tree is the [FuncOp][jdk.incubator.code.dialect.core.CoreOp.FuncOp] which
+/// contains one child, a [Body][jdk.incubator.code.Body], which in turn contains one child, a
+/// [Block][jdk.incubator.code.Block], which in turn contains a sequence of eight operations. Bodies and blocks provide
+/// additional structure for modeling code. Each operation models some part of the `add` methods code, for example
+/// variable declaration operations (instances of [VarOp][jdk.incubator.code.dialect.core.CoreOp.VarOp]) model Java
+/// variable declarations, in this case the method parameters, and the add operation (instance of
+/// [AddOp][jdk.incubator.code.dialect.java.JavaOp.AddOp]) models the Java + operator.
+///
+/// Alternatively, we can stream over elements of the code model (as we did previously when analyzing the code for
+/// string literals) in the same topologically sorted order using the
+/// [CodeElement.elements][jdk.incubator.code.CodeElement#elements] method.
+///
+/// {@snippet lang="java" :
+/// codeModel.elements().forEach((CodeElement<?, ?> e) -> {
+///     int depth = 0;
+///     var parent = e;
+///     while ((parent = parent.parent()) != null) depth++; // @link substring="parent()" target="jdk.incubator.code.CodeElement#parent"
+///     IO.println("  ".repeat(depth) + e.getClass());
+/// });
+/// }
+///
+/// We compute the depth for each code element by traversing back up the code model tree until the root element is
+/// reached. So, it is possible to traverse up and down the code model tree.
+///
+/// A superior way to view the contents of a code model is to convert the root of the code model, an operation, to code
+/// model text and print it out.
+///
+/// {@snippet lang="java" :
+/// IO.println(codeModel.toText()); // @link substring="toText()" target="jdk.incubator.code.Op#toText"
+/// }
+///
+/// The `toText` method will traverse the code elements in a similar manner as before but print out more detail.
+///
+/// {@snippet lang="text" :
+/// func @loc="22:5:string:///...Example.java" @"add" (
+///         %0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
+///     %2 : Var<java.type:"int"> = var %0 @loc="22:5" @"a";
+///     %3 : Var<java.type:"int"> = var %1 @loc="22:5" @"b";
+///     %4 : java.type:"java.lang.String" = constant @loc="24:20" @"Example:method:add";
+///     invoke %4 @loc="24:9" @java.ref:"java.lang.IO::println(java.lang.Object):void";
+///     %5 : java.type:"int" = var.load %2 @loc="25:16";
+///     %6 : java.type:"int" = var.load %3 @loc="25:20";
+///     %7 : java.type:"int" = add %5 %6 @loc="25:16";
+///     return %7 @loc="25:9";
+/// };
+/// }
+///
+/// A code model’s text is designed to be human-readable, primarily intended for debugging and testing. It is also
+/// invaluable for explaining code models. To aid debugging each operation has line number information, and the root
+/// operation also has source information from where the code model originated.
+///
+/// The code model text shows the code model’s root element is a function declaration (`func`) operation. The
+/// lambda-like expression represents the fusion of the function declaration operation’s single body and the body’s
+/// first and only block, called the _entry_ block. Then there is a sequence of operations in the entry block. For each
+/// operation there is an instance of a corresponding Java class, all of which extend from the abstract class
+/// [Op][jdk.incubator.code.Op] and which have already seen when we printed out the operation classes. The printed
+/// operations and printed operation classes occur in the same order since the `toText` method traverses the model in
+/// the same order as we explicitly traversed.
+///
+/// The entry block declares two values called [_block parameters_][jdk.incubator.code.Block.Parameter], `%0` and `%1`,
+/// which model the method’s initial values for parameters `a` and `b`. The method parameter declarations are modeled as
+/// embedded `var` operations, each initialized with a corresponding block parameter _used_ as the `var` operation’s
+/// single _operand_. The `var` operations produce values called [_operation results_][jdk.incubator.code.Op.Result],
+/// variable values `%2` and `%3`, which model the variables `a` and `b`. A variable value can be loaded from or stored
+/// to using variable access operations, respectively modeling an expression that denotes a variable and assignment to a
+/// variable. The expressions denoting parameters `a` and `b` are modeled as `var.load` operations that _use_ the
+/// variable values `%2` and `%3` respectively as _operands_. The operation results of these operations are _used_ as
+/// _operands_ of subsequent operations and so on, e.g., `%7` the result of the `add` operation modeling the `+`
+/// operator is used as an operand of the `return` operation modeling the `return` statement.
+///
+/// The source code of the `add` method might contain all sorts of syntactic details that `javac` rightly needs to know
+/// about but are extraneous for modeling purposes. This complexity is not present in the code model. For example, the
+/// same code model would be produced if the return statement’s expression was `((a) + (b))` instead of `a + b`.
+///
+/// In addition to the code model containing code elements forming a tree it also contains other items called
+/// [_code items_][jdk.incubator.code.CodeItem], [values][jdk.incubator.code.Value] (block parameters or operation
+/// results) we previously introduced, that form bidirectional dependency graphs between their declaration and their
+/// use. A value has a [_type element_][jdk.incubator.code.TypeElement], another code item, modeling the set of all
+/// possible values. In our example many of the type elements model Java types, and some model the type of variable
+/// values (the type element of the operation result of a var operation). In summary a code model contains five kinds of
+/// code item, operation, body, block, value, and type element.
+///
+/// Code models are in Static Single-Assignment ([SSA][SSA]) form, and there is no explicit distinction, as there is in
+/// the source code, between Java [statements][java-statements] and [expressions][java-expressions]. Block parameters
+/// and operation results are declared before they are used and cannot be reassigned (and we therefore require special
+/// operations and type elements to model variables as previously shown).
+///
+/// [SSA]: https://en.wikipedia.org/wiki/Static_single-assignment_form
+///
+/// [java-statements]: https://docs.oracle.com/javase/specs/jls/se25/html/jls-14.html
+///
+/// [java-expressions]: https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html
+///
+/// Finally, we can execute the code model by transforming it to byte code, wrapping it in a method handle, and invoking
+/// the handle.
+///
+/// {@snippet lang="java" :
+/// var handle = BytecodeGenerator.generate(MethodHandles.lookup(), addModel); // @link substring="generate(" target="jdk.incubator.code.bytecode.BytecodeGenerator#generate"
+/// assert ExampleAdd.add(1, 1) == (int) handle.invokeExact(1, 1);
+/// }
 ///
 /// ## Building
 ///
