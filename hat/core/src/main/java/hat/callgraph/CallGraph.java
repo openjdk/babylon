@@ -53,69 +53,9 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
     public final MethodHandles.Lookup lookup() {
         return computeContext.lookup();
     }
-
     public final ComputeContext computeContext;
     public final E entrypoint;
     public final Set<AbstractMethodCall> calls = new HashSet<>();
-    public final Map<MethodRef, AbstractMethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
-
-    private CoreOp.ModuleOp moduleOp;
-
-    public CoreOp.ModuleOp getModuleOp() {
-        return this.moduleOp;
-    }
-
-    public void setModuleOp(CoreOp.ModuleOp moduleOp) {
-        this.moduleOp = moduleOp;
-    }
-
-    CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,  CoreOp.FuncOp entry) {
-        record RefAndFunc(MethodRef methodRef, CoreOp.FuncOp funcOp) {
-        }
-
-        Deque<RefAndFunc> work = new ArrayDeque<>();
-
-        Invoke.stream(lookup, entry).forEach(invoke -> {
-          //  System.out.print("considering  " + invoke.name()  );
-            // TODO: filterCalls seems to have side effects.
-            //  Each call potentially updates state (list of called methods), this seems racey...
-            //  I think we should refactor this to avoid the side effects
-            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
-                if (!filterCalls(funcOp, invoke)) {
-                    work.push(new RefAndFunc(invoke.op().invokeReference(), funcOp));
-                }
-            }
-        });
-        List<CoreOp.FuncOp> moduleFuncOps = new ArrayList<>();
-        LinkedHashSet<MethodRef> setOfVisitedMethodRefs = new LinkedHashSet<>();
-        while (!work.isEmpty() && work.pop() instanceof RefAndFunc refAndFunc){
-            if (!setOfVisitedMethodRefs.contains(refAndFunc.methodRef)) {
-                setOfVisitedMethodRefs.add(refAndFunc.methodRef);
-                CoreOp.FuncOp tf = refAndFunc.funcOp.transform(refAndFunc.methodRef.name(), (blockBuilder, op) -> {
-                    if (invoke(lookup, op) instanceof Invoke iop
-                         && iop.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
-                            RefAndFunc call = new RefAndFunc(iop.op().invokeReference(), funcOp);
-                            work.push(call);
-                            blockBuilder.context().mapValue(op.result(), blockBuilder.op(copyLocation(funcOp, CoreOp.funcCall(
-                                    call.methodRef.name(),
-                                    call.funcOp.invokableType(),
-                                    blockBuilder.context().getValues(iop.op().operands())))));
-                    } else {
-                        assert op != null;
-                        blockBuilder.op(op);
-                    }
-                    return blockBuilder;
-                });
-                moduleFuncOps.addFirst(tf);
-            }
-        }
-
-
-        return CoreOp.module(moduleFuncOps);
-    }
-
-
-    public abstract boolean filterCalls(CoreOp.FuncOp f, Invoke invoke);
 
     public Config config() {
         return computeContext.config();
@@ -123,7 +63,6 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
     public interface Resolved {
         CoreOp.FuncOp funcOp();
-
         void funcOp(CoreOp.FuncOp funcOp);
     }
 

@@ -27,8 +27,6 @@ package hat.callgraph;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.MethodRef;
-//import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -43,8 +41,8 @@ public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolved
     private CoreOp.FuncOp lowered;
     private MethodHandle bytecodeGeneratedMethodHandle;
 
-    public ComputeEntrypoint(MethodHandles.Lookup lookup,CallGraph<ComputeEntrypoint> callGraph, Method method, CoreOp.FuncOp funcOp) {
-        super(callGraph,  method, funcOp);
+    public ComputeEntrypoint(MethodHandles.Lookup lookup,CallGraph<ComputeEntrypoint> callGraph, Method method, CoreOp.FuncOp entry) {
+        super(callGraph,  method, entry);
         this.lookup = lookup;
     }
 
@@ -54,10 +52,6 @@ public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolved
         }
         return lowered;
     }
-
-   // public void interpretWithArgs( Object[] args) {
-     //   Interpreter.invoke(lookup, lazyLower(), args);
-   // }
 
     public void invokeWithArgs(Object[] args) {
         try {

@@ -41,7 +41,7 @@ public class MockBackend extends FFIBackend {
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        System.out.println("Mock backend recieved closed closure");
+        System.out.println("Mock backend received closed closure");
         System.out.println("Mock backend will mutate  " + computeContext.computeEntrypoint() + computeContext.computeEntrypoint().method());
 
         computeContext.computeEntrypoint().funcOp(injectBufferTracking(config(),lookup(),computeContext.computeEntrypoint().funcOp()));
@@ -53,7 +53,7 @@ public class MockBackend extends FFIBackend {
         // Here we receive a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint
         // and rechable methods to a form that our mock backend can execute.
-        kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
+        kernelCallGraph.callDag.rankOrdered.forEach(f -> {
         });
     }
 }

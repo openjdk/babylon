@@ -26,6 +26,7 @@ package hat.device;
 
 import hat.types.F16;
 import optkl.codebuilders.C99CodeBuilder;
+import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.lang.invoke.MethodHandles;
@@ -125,44 +126,37 @@ public class DeviceSchema<T extends NonMappableIface> {
         for (String fieldName : members.get(currentLevel)) {
             boolean wasProcessed = false;
             for (Method method : declaredMethods) {
-                method.setAccessible(true);
-                if (method.getName().equals(fieldName)) {
-                    Class<?> returnType = method.getReturnType();
-                    if (returnType.equals(void.class)) {
-                        continue;
-                    }
-
-                    if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
-                        // inspect the dependency and add it at the front of the string builder
-                        C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(builder.scopedCodeBuilderContext().lookup(), builder.scopedCodeBuilderContext().funcOp()));
-                        depsBuilder.preformatted(builder.getText());
-                        materialize(depsBuilder, returnType);
-                        builder = depsBuilder;
-                    }
-
-                    String type = returnType.getName();
-                    if (specialTypes.containsKey(klass)) {
-                        type = specialTypes.get(klass);
-                    }
-
-                    if (arraySize.containsKey(method.getName())) {
-                        builder.osbrace()                       // Array indicator
-                                .colon()                        // separator
-                                .type(type)                 // type
-                                .colon()                        // separator
-                                .id(method.getName())   // variableName
-                                .colon()                        // separator
-                                .id(Integer.toString(arraySize.get(method.getName()))) // Array size
+                //method.setAccessible(true);// i think these are always accessible?
+                if (method.getName().equals(fieldName)
+                        && method.getReturnType() instanceof Class<?> returnType // alway true but we want the type below
+                        && !returnType.equals(void.class)
+                        && returnType.getName() instanceof String returnTypeName // always true but we want the name of the type below
+                ) {
+                        if (isInterfaceType(returnType) && !visited.contains(returnTypeName)) {
+                            // inspect the dependency and add it at the front of the string builder
+                            C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(
+                                    new ScopedCodeBuilderContext(
+                                            builder.scopedCodeBuilderContext().lookup(),
+                                            builder.scopedCodeBuilderContext().funcOp()
+                                    )
+                            );
+                            depsBuilder.preformatted(builder.getText());
+                            materialize(depsBuilder, returnType);
+                            builder = depsBuilder;
+                        }
+                        boolean isArray= arraySize.containsKey(method.getName());
+                        builder
+                                .either(isArray,
+                                        CodeBuilder::osbrace,                                           // [==array
+                                        $->$.id("s")                                                // s==scalar
+                                )
+                                .colon().type(specialTypes.getOrDefault(klass, returnTypeName))          // type
+                                .colon().id(method.getName())                                            // name
+                                .when(isArray,$-> $
+                                        .colon().id(Integer.toString(arraySize.get(method.getName())))   // Array size
+                                )
                                 .semicolon();                   // member separator
-                    } else {
-                        builder.id("s")            // scalar indicator
-                                .colon()                        // separator
-                                .type(type)                 // type
-                                .colon()                        // separator
-                                .id(method.getName())   // var name
-                                .semicolon();                   // member separator
-                    }
-                    wasProcessed = true;
+                        wasProcessed = true;
                 }
             }
             if (!wasProcessed) {

@@ -31,79 +31,58 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.util.Dag;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
-    static public class IfaceInfo{
-        public final ClassType classType;
-        public final Class<IfaceValue> clazz;
-        IfaceInfo(ClassType classType, Class<IfaceValue> clazz){
-            if (classType==null || clazz == null){
-                throw new RuntimeException("no nulls here ");
+    interface IfaceInfo {
+        ClassType classType();
+        Class<IfaceValue> clazz();
+           record Impl(ClassType classType, Class<IfaceValue> clazz) implements IfaceInfo {
+        }
+        default String dotName() {
+            if (IfaceValue.Struct.class.isAssignableFrom(clazz())) {
+                return clazz().getSimpleName()+"_s";
+            } else if (IfaceValue.Union.class.isAssignableFrom(clazz())) {
+                return clazz().getSimpleName()+"_u";
             }
-            this.classType = classType;
-            this.clazz = clazz;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(classType,clazz);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return (this == o)
-                    || (o instanceof IfaceInfo that
-                    && Objects.equals(classType, that.classType)
-                    && Objects.equals(clazz, that.clazz)
-            );
-        }
-
-        static IfaceInfo of(Class<IfaceValue> clazz) {
-            return new IfaceInfo((ClassType) JavaType.type(clazz.describeConstable().get()), clazz);
+            return clazz().getSimpleName();
         }
     }
-
-    public static Predicate<Class<?>> ifacePredicate = IfaceValue.class::isAssignableFrom; // both mappable (for mem segments) and non mappable (for private/shared mem)
-
-    static Stream<IfaceInfo> declaredMethodIfaceReturnTypes(IfaceInfo iface){
-        return Arrays.stream(iface.clazz.getDeclaredMethods())
+    static Stream<IfaceInfo> declaredMethodIfaceReturnTypes(IfaceInfo iface) {
+        return Arrays.stream(iface.clazz().getDeclaredMethods())
                 .map(Method::getReturnType)
-                .filter(ifacePredicate)
-                .map(c->(Class<IfaceValue>)c)
-                .map(IfaceInfo::of);
+                .filter(IfaceValue.class::isAssignableFrom)
+                .map(clazz -> new IfaceInfo.Impl((ClassType) JavaType.type(clazz.describeConstable().get()), (Class<IfaceValue>)clazz));
     }
 
     // recursive
-     void addEdge(IfaceInfo from, IfaceInfo to) {
-        if (!from.equals(to)){
+    void addEdge(IfaceInfo from, IfaceInfo to) {
+        if (!from.equals(to)) {
             declaredMethodIfaceReturnTypes(to).forEach(retType ->
-                addEdge(to,retType)
+                    addEdge(to, retType)
             );
-            add(from, to, _->{});
-       }
+            add(from, to, _ -> {
+            });
+        }
     }
 
-    static public IfaceDataDag of(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp) {
-        var dag = new IfaceDataDag();
-
-        inlinedEntrypointFuncOp.elements().filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
+    public IfaceDataDag(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp) {
+        inlinedEntrypointFuncOp.elements()
+                .filter(ce -> ce instanceof Op)
+                .map(ce -> ((Op) ce).resultType())
                 .filter(typeElement -> typeElement instanceof ClassType)
-                .map(typeElement -> (ClassType)typeElement)
-                .map(classType -> new IfaceInfo(classType,(Class<IfaceValue>)OpHelper.classTypeToTypeOrThrow(lookup, classType)))
-                .filter(ifaceInfo->ifacePredicate.test(ifaceInfo.clazz)).forEach(iface->
-                            dag.add(iface, _->
+                .map(classType -> new IfaceInfo.Impl((ClassType) classType, (Class<IfaceValue>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) classType)))
+                .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz)).forEach(iface ->
+                        add(iface, _ ->
                                 declaredMethodIfaceReturnTypes(iface).forEach(retType ->
-                                        dag.addEdge(iface, retType)
+                                        addEdge(iface, retType)
                                 )
-                            )
+                        )
                 );
-        dag.closeRanks();
-        return dag;
+        closeRanks();
     }
 }
