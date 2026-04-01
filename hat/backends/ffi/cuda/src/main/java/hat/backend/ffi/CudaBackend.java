@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.callgraph.MethodCallDag;
 import jdk.incubator.code.CodeTransformer;
 import optkl.Trxfmr;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -414,12 +415,13 @@ public class CudaBackend extends C99FFIBackend {
 
         var here = CallSite.of(CudaBackend.class, "createPTX");
 
-        kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
-            // TODO did we just trash any sidetables?
-            CoreOp.FuncOp loweredFunc = funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
-            loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
-            invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
-        });
+        kernelCallGraph.callDag.rankOrdered
+                .stream().filter(f->f.methodType.equals(MethodCallDag.MethodCall.MethodType.Func))
+                .forEach(f -> {
+                    CoreOp.FuncOp loweredFunc = f.funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
+                    loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
+                    invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+                });
 
         CoreOp.FuncOp lowered = kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
         CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.lookup(),lowered, argsMap, usedMathFns);
