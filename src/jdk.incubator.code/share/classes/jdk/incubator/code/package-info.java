@@ -209,7 +209,68 @@
 ///
 /// ## Declaring and accessing reflectable code
 ///
+/// In total there are four syntactic locations where the [jdk.incubator.code.Reflect] annotation can appear that
+/// govern what is declared reflectable. The locations are describe in detail in the [jdk.incubator.code.Reflect]
+/// documentation.
+///
+/// The code model of a reflectable method is accessed by invoking [jdk.incubator.code.Op#ofMethod] with an argument
+/// that is a `Method` instance (retrieved using the core reflection API) representing the reflectable method. The
+/// result is an optional value that contains the code model modeling the method. For example, we can access the
+/// code model for the `Example.add` method as follows:
+///
+/// {@snippet lang="java" :
+/// Method addMethod = Example.class.getDeclaredMethod("add", int.class, int.class);
+/// CoreOp.FuncOp codeModel = Op.ofMethod(addMethod).orElseThrow(); // @link substring="CoreOp.FuncOp" target="jdk.incubator.code.dialect.core.CoreOp.FuncOp"
+/// }
+///
+/// The code model of a reflectable lambda expression (or method reference) is accessed by invoking
+/// [jdk.incubator.code.Op#ofLambda] with an argument that is an instance of a functional interface associated with the
+/// reflectable lambda expression. The result is an optional value that contains a [jdk.incubator.code.Quoted] instance,
+/// from which may be retrieved the code model modelling the lambda expression. In addition, it is possible to retrieve
+/// a mapping of run time values to items in the code model that model final, or effectively final, variables used but
+/// not declared in the lambda expression. For example, we can access the code model for the lambda expression used to
+/// initialize the `Example.R` field as follows:
+///
+/// {@snippet lang="java" :
+/// Field rField = Example.class.getDeclaredField("R", Runnable.class);
+/// Object rFieldInstance = rField.get(null);
+/// Quoted<JavaOp.LambdaOp> quotedCodeModel = Op.ofLambda(rFieldInstance).orElseThrow(); // @link substring="Quoted" target="jdk.incubator.code.Quoted"
+/// JavaOp.LambdaOp codeModel = quotedCodeModel.op(); // @link substring="JavaOp.LambdaOp" target="jdk.incubator.code.dialect.java.JavaOp.LambdaOp"
+/// }
+///
+/// If a lambda expression captures values we can additionally access those values. For example,
+///
+/// {@snippet lang="java" :
+/// int capture = 42;
+/// @Reflect
+/// Runnable r = () -> IO.println(capture);
+/// Quoted<JavaOp.LambdaOp> quotedCodeModel = Op.ofLambda(r).orElseThrow();
+///
+/// SequencedMap<Value, Object> capturedValues = quotedCodeModel.capturedValues(); // @link substring="capturedValues" target="jdk.incubator.code.Quoted#capturedValues"
+/// assert capturedValues.size() == 1;
+/// assert capturedValues.values().contains(42);
+/// }
+///
 /// ## Code models
+///
+/// A code model is an _immutable_ instance of data structures that can, in general, model many kinds of code, be it
+/// Java code or foreign code. It has some properties like an Abstract Syntax Tree ([AST][AST]) used by a source
+/// compiler, such as modeling code as a tree of arbitrary depth, and some properties like an
+/// [intermediate representation][IR] used by an optimizing compiler, such as modeling control flow and data flow as
+/// graphs. These properties ensure code models can preserve many important details of code they model and ensure code
+/// models are suited for analysis and transformation.
+///
+/// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+///
+/// [IR]: https://en.wikipedia.org/wiki/Intermediate_representation
+///
+/// The primary data structure of a code model is a tree of [_code elements_][jdk.incubator.code.CodeElement]. There
+/// are three kinds of code elements, [operation][jdk.incubator.code.Op], [body][jdk.incubator.code.Body], and
+/// [block][jdk.incubator.code.Block]. The root of a code model is an operation, and descendant operations form a tree
+/// of arbitrary depth.
+///
+/// Code reflection supports representing the data structures of a code model, code elements for modeling Java language
+/// constructs and behavior, traversing code models, building code models, and transforming code models.
 ///
 /// ## Traversing
 ///
