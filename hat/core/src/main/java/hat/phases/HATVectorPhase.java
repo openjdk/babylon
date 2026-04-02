@@ -37,6 +37,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,13 +52,6 @@ import static optkl.OpHelper.copyLocation;
 public abstract sealed class HATVectorPhase implements HATPhase
         permits HATVectorPhase.AddPhase, HATVectorPhase.DivPhase, HATVectorPhase.Float2LoadPhase, HATVectorPhase.Float4LoadPhase
         , HATVectorPhase.MulPhase, HATVectorPhase.MakeMutable, HATVectorPhase.SubPhase, HATVectorPhase.Float4OfPhase {
-    private final KernelCallGraph kernelCallGraph;
-
-    @Override
-    public KernelCallGraph kernelCallGraph() {
-        return kernelCallGraph;
-    }
-
 
     public enum VectorOperation {
         FLOAT4_LOAD("float4View"),
@@ -77,8 +71,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
     private final VectorOperation vectorOperation;
 
-    public HATVectorPhase(KernelCallGraph kernelCallGraph, VectorOperation vectorOperation) {
-        this.kernelCallGraph = kernelCallGraph;
+    public HATVectorPhase( VectorOperation vectorOperation) {
         this.vectorOperation = vectorOperation;
     }
 
@@ -93,10 +86,10 @@ public abstract sealed class HATVectorPhase implements HATPhase
         blockBuilder.context().mapValue(varOp.result(), blockBuilder.op(copyLocation(varOp, memoryViewOp)));
     }
 
-    private CoreOp.FuncOp dialectifyVectorLoad(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
-        OpHelper.Named.Variable.stream(lookup(), funcOp).forEach(variable -> {
+        OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
             if (variable.firstOperandAsInvoke() instanceof Invoke invoke
                     && invoke.returns(Vector.class)
                     && invoke.named(vectorOperation.methodName)) {
@@ -107,8 +100,8 @@ public abstract sealed class HATVectorPhase implements HATPhase
             }
         });
 
-        return Trxfmr.of(this, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (Invoke.invoke(lookup(), op) instanceof Invoke invoke) {
+        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
+            if (Invoke.invoke(lookup, op) instanceof Invoke invoke) {
                 var varOp = invokeToVar.get(invoke.op());
                 Vector.Shape shape = HATPhaseUtils.getVectorShape(invoke.lookup(), invoke.returnType());
                 HATVectorOp memoryViewOp = HATPhaseUtils.isSharedOrPrivate(invoke.resultFromFirstOperandOrNull())
@@ -142,10 +135,10 @@ public abstract sealed class HATVectorPhase implements HATPhase
         };
     }
 
-    private CoreOp.FuncOp dialectifyVectorBinaryOps(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
-        OpHelper.Named.Variable.stream(lookup(), funcOp).forEach(variable -> {
+        OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
             if (variable.firstOperandAsInvoke() instanceof Invoke invoke
                     && invoke.named(vectorOperation.methodName)
                     && invoke.returns(Vector.class)) {
@@ -156,7 +149,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
             }
         });
 
-        return Trxfmr.of(this, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 var varOp = invokeToVar.get(invokeOp);
                 HATVectorOp memoryViewOp = buildVectorBinaryOp(
@@ -173,9 +166,9 @@ public abstract sealed class HATVectorPhase implements HATPhase
         }).funcOp();
     }
 
-    private Map<Op, Vector.Shape> getVectorShapeMap(CoreOp.FuncOp funcOp) {
+    private Map<Op, Vector.Shape> getVectorShapeMap(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        Invoke.stream(lookup(), funcOp).
+        Invoke.stream(lookup, funcOp).
                 filter(i -> i.returns(Vector.class)
                         && i.named(vectorOperation.methodName)
                         && i.opFromOnlyUseOrNull() instanceof CoreOp.VarOp)
@@ -188,10 +181,10 @@ public abstract sealed class HATVectorPhase implements HATPhase
     }
 
 
-    private CoreOp.FuncOp dialectifyVectorOf(CoreOp.FuncOp funcOp) {
-        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(funcOp);
+    private CoreOp.FuncOp dialectifyVectorOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
 
-        return Trxfmr.of(this, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 var vectorShape = vectorShapeMap.get(invokeOp);
                 HATVectorOp.HATVectorOfOp memoryViewOp = new HATVectorOp.HATVectorOfOp(
@@ -207,9 +200,9 @@ public abstract sealed class HATVectorPhase implements HATPhase
         }).funcOp();
     }
 
-    private CoreOp.FuncOp dialectifyMutableOf(CoreOp.FuncOp funcOp) {
-        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(funcOp);
-        return Trxfmr.of(this, funcOp).transform(ce -> vectorShapeMap.containsKey(ce), (blockBuilder, op) -> {
+    private CoreOp.FuncOp dialectifyMutableOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
+        return Trxfmr.of(lookup, funcOp).transform(ce -> vectorShapeMap.containsKey(ce), (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 var vectorShape = vectorShapeMap.get(invokeOp);
                 HATVectorOp.HATVectorMakeOfOp makeOf = new HATVectorOp.HATVectorMakeOfOp(
@@ -227,10 +220,10 @@ public abstract sealed class HATVectorPhase implements HATPhase
     }
 
 
-    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
         funcOp.elements().forEach(codeElement -> {
-            if (invoke(lookup(), codeElement) instanceof Invoke invoke
+            if (invoke(lookup, codeElement) instanceof Invoke invoke
                     && invoke.returns(Vector.class) && invoke.named(vectorOperation.methodName)) {
                 invoke.op().operands().stream()// this can't be replaced with findFirst
                         .filter(operand -> operand instanceof Op.Result && ((Op.Result) operand).op() instanceof CoreOp.VarAccessOp.VarLoadOp)
@@ -248,8 +241,8 @@ public abstract sealed class HATVectorPhase implements HATPhase
         });
 
 
-        return Trxfmr.of(this, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
-            if (invoke(lookup(), op) instanceof Invoke invoke) {
+        return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+            if (invoke(lookup, op) instanceof Invoke invoke) {
                 HATVectorOp memoryViewOp = buildVectorBinaryOp(
                         HATPhaseUtils.findVectorVarNameOrNull(invoke.op().operands().getFirst()),
                         BinaryOpEnum.of(invoke.op()),
@@ -271,73 +264,73 @@ public abstract sealed class HATVectorPhase implements HATPhase
     }
 
     @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         switch (Objects.requireNonNull(vectorOperation)) {
-            case FLOAT4_LOAD -> funcOp = dialectifyVectorLoad(funcOp);
-            case FLOAT2_LOAD -> funcOp = dialectifyVectorLoad(funcOp);
-            case OF -> funcOp = dialectifyVectorOf(funcOp);
-            case MAKE_MUTABLE -> funcOp = dialectifyMutableOf(funcOp);
+            case FLOAT4_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp);
+            case FLOAT2_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp);
+            case OF -> funcOp = dialectifyVectorOf(lookup,funcOp);
+            case MAKE_MUTABLE -> funcOp = dialectifyMutableOf(lookup,funcOp);
             default -> {
                 // Find binary operations
-                funcOp = dialectifyVectorBinaryOps(funcOp);
-                funcOp = dialectifyVectorBinaryWithConcatenationOps(funcOp);
+                funcOp = dialectifyVectorBinaryOps(lookup,funcOp);
+                funcOp = dialectifyVectorBinaryWithConcatenationOps(lookup,funcOp);
             }
         }
         return funcOp;
     }
 
     public static final class AddPhase extends HATVectorPhase {
-        public AddPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.ADD);
+        public AddPhase() {
+            super( VectorOperation.ADD);
         }
     }
 
     public static final class DivPhase extends HATVectorPhase {
 
-        public DivPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.DIV);
+        public DivPhase() {
+            super(VectorOperation.DIV);
         }
     }
 
     public static final class MakeMutable extends HATVectorPhase {
 
-        public MakeMutable(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.MAKE_MUTABLE);
+        public MakeMutable() {
+            super(VectorOperation.MAKE_MUTABLE);
         }
     }
 
     public static final class Float4LoadPhase extends HATVectorPhase {
 
-        public Float4LoadPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.FLOAT4_LOAD);
+        public Float4LoadPhase() {
+            super(VectorOperation.FLOAT4_LOAD);
         }
     }
 
     public static final class Float2LoadPhase extends HATVectorPhase {
 
-        public Float2LoadPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.FLOAT2_LOAD);
+        public Float2LoadPhase() {
+            super( VectorOperation.FLOAT2_LOAD);
         }
     }
 
     public static final class Float4OfPhase extends HATVectorPhase {
 
-        public Float4OfPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.OF);
+        public Float4OfPhase() {
+            super( VectorOperation.OF);
         }
     }
 
     public static final class MulPhase extends HATVectorPhase {
 
-        public MulPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.MUL);
+        public MulPhase() {
+            super( VectorOperation.MUL);
         }
     }
 
     public static final class SubPhase extends HATVectorPhase {
 
-        public SubPhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph, VectorOperation.SUB);
+        public SubPhase() {
+            super( VectorOperation.SUB);
         }
     }
 }

@@ -32,18 +32,18 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
 
 import static optkl.OpHelper.Invoke.invoke;
 
-public record HATBarrierPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
+public record HATBarrierPhase() implements HATPhase {
     @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
          Set<CodeElement<?,?>> removeMe = new HashSet<>();
-        // var invokeQuery = InvokeQuery.create(lookup());
-         return Trxfmr.of(this,funcOp).transform(ce->ce instanceof JavaOp.InvokeOp, c-> {
-                         if (invoke(lookup(),c.op()) instanceof OpHelper.Invoke.Virtual  virtual &&
+         return Trxfmr.of(lookup,funcOp).transform(ce->ce instanceof JavaOp.InvokeOp, c-> {
+                         if (invoke(lookup,c.op()) instanceof OpHelper.Invoke.Virtual  virtual &&
                                   virtual.isInstanceAccessedViaVarAccess()                  // we are called via var kc such as kc->XX()
                               && virtual.named(HATBarrierOp.NAME)){
                              removeMe.add(virtual.instanceVarAccess().op());

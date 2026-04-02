@@ -27,7 +27,16 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.Inliner;
 import hat.KernelContext;
+import hat.phases.HATArrayViewPhase;
+import hat.phases.HATBarrierPhase;
+import hat.phases.HATFP16Phase;
+import hat.phases.HATMathLibPhase;
+import hat.phases.HATMemoryPhase;
+import hat.phases.HATThreadsPhase;
 import hat.phases.HATTier;
+import hat.phases.HATVectorPhase;
+import hat.phases.HATVectorSelectPhase;
+import hat.phases.HATVectorStorePhase;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types._F16;
@@ -40,6 +49,7 @@ import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
+import optkl.util.Mutable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -52,22 +62,24 @@ import java.util.Set;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
-    public final CoreOp.FuncOp inlinedEntryPoint;
+
     public final MethodCallDag callDag;
     public final IfaceDataDag ifaceDag;
 
     public class State {
-        public Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
-        public List<AccessType> bufferAccessList;
-        public Set<TypeElement> accessedTypes;
-        public Set<Class<?>> accessedClasses;
-        public boolean usesVecTypes;
-        public boolean usesFp16;
-        public boolean usesBarrier;
-        public boolean usesAtomics;
-        public Set<String> accessedKcFields;
+        public final  CoreOp.FuncOp inlinedEntryPoint;
+        public final Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
+        public final List<AccessType> bufferAccessList;
+        public final Set<TypeElement> accessedTypes;
+        public final Set<Class<?>> accessedClasses;
+        public  boolean usesVecTypes;
+        public  boolean usesFp16;
+        public  boolean usesBarrier;
+        public  boolean usesAtomics;
+        public final Set<String> accessedKcFields;
 
         public State(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntryPoint) {
+            this.inlinedEntryPoint = inlinedEntryPoint;
             this.usesBarrier = OpHelper.Invoke.stream(lookup, inlinedEntryPoint)
                     .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
             this.accessedKcFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup, inlinedEntryPoint)
@@ -119,31 +131,30 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
     }
 
-    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp funcOp) {
-        super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(), null, method, funcOp));
+    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp entry) {
+        super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(), null, method, entry));
         this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        this.inlinedEntryPoint = Inliner.inlineEntrypoint(computeContext.lookup(), entrypoint.funcOp());
-        this.state = new State(computeCallGraph.lookup(), this.inlinedEntryPoint);
-        HATTier tier = new HATTier(this);
-        CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
-        entrypoint.funcOp(initialEntrypointFuncOp);
-        this.callDag = new MethodCallDag(lookup(), method, initialEntrypointFuncOp, this.inlinedEntryPoint);
+        var inlinedEntryPoint = Inliner.inlineEntrypoint(computeContext.lookup(), entrypoint.funcOp());
+        this.state = new State(computeCallGraph.lookup(), inlinedEntryPoint);
+
+        entrypoint.funcOp(HATTier.transform(HATTier.KernelPhases,lookup(),entrypoint.funcOp(), config().showCompilationPhases()));
+
+        this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), this.state.inlinedEntryPoint);
         if (Boolean.getBoolean("showKernelCallDag") && this.callDag.isDag()) {
             this.callDag.view("kernelCallDag", n->n.funcOp.funcName());
         }
-
         callDag.rankOrdered.stream()
                 .filter(methodInfo -> methodInfo.methodRef != null && methodInfo.method.getDeclaringClass().isAssignableFrom(Buffer.class)).forEach(methodInfo ->
                         state.bufferAccessToMethodCallMap.computeIfAbsent(methodInfo.methodRef, _ ->
                                 new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodInfo.method)
                         )
                 );
-        callDag.rankOrdered.forEach(f ->
-                f.funcOp = tier.apply(f.funcOp)
-        );
 
-        this.ifaceDag = new IfaceDataDag(lookup(),initialEntrypointFuncOp);
+        callDag.rankOrdered.forEach(f ->
+                f.funcOp=HATTier.transform(HATTier.KernelPhases,lookup(),f.funcOp, config().showCompilationPhases())
+        );
+        this.ifaceDag = new IfaceDataDag(lookup(),entrypoint.funcOp());
         if ((Boolean.getBoolean("showKernelDataDag")) && this.ifaceDag.isDag()) {
             this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }
@@ -151,7 +162,4 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType()));
         }
     }
-
-
-
 }

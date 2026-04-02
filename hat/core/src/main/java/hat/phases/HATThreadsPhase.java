@@ -32,20 +32,22 @@ import optkl.OpHelper.FieldAccess;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.util.carriers.LookupCarrier;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
 
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 
-public record HATThreadsPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
+public record HATThreadsPhase() implements HATPhase {
 
     @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
-        return Trxfmr.of(this, funcOp)
+        return Trxfmr.of(lookup, funcOp)
                 .transform(c -> {
-                    if (fieldAccess(lookup(), c.op()) instanceof FieldAccess.Instance fieldAccess
+                    if (fieldAccess(lookup, c.op()) instanceof FieldAccess.Instance fieldAccess
                             && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("[glb][is][xyz]")) {
                         varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());  // the var access will be removed the next transform
                         c.replace(HATThreadOp.create(fieldAccess.name()));

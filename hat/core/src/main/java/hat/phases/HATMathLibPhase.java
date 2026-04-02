@@ -32,11 +32,12 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
+public record HATMathLibPhase() implements HATPhase {
 
     private void transformHATMathWithVarOp(Block.Builder blockBuilder, Op op, Map<Op, ReducedFloatType> setTypeMap) {
         if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
@@ -55,9 +56,9 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
         }
     }
 
-    private Map<Op, ReducedFloatType> analyseIRForInvokeHATMath(CoreOp.FuncOp funcOp) {
+    private Map<Op, ReducedFloatType> analyseIRForInvokeHATMath(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
-        OpHelper.Invoke.stream(lookup(), funcOp)
+        OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke))
                 .forEach(invoke ->
                         // This detects a HATMathLib is stored either in a VarOp or a VarStoreOp
@@ -76,16 +77,16 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
         return setTypeMap;
     }
 
-    private CoreOp.FuncOp transformHATMathWithVarOp(CoreOp.FuncOp funcOp) {
-        Map<Op, ReducedFloatType> setTypeMap = analyseIRForInvokeHATMath(funcOp);
-        return Trxfmr.of(this, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
+    private CoreOp.FuncOp transformHATMathWithVarOp(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        Map<Op, ReducedFloatType> setTypeMap = analyseIRForInvokeHATMath(lookup,funcOp);
+        return Trxfmr.of(lookup, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
             transformHATMathWithVarOp(blockBuilder, op, setTypeMap);
             return blockBuilder;
         }).funcOp();
     }
 
     @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        return transformHATMathWithVarOp(funcOp);
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        return transformHATMathWithVarOp(lookup,funcOp);
     }
 }
