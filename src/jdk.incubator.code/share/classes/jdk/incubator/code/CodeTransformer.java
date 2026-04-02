@@ -122,17 +122,6 @@ public interface CodeTransformer {
     };
 
     /**
-     * A transformer that drops unused {@link jdk.incubator.code.dialect.core.CoreOp.ConstantOp}.
-     */
-    CodeTransformer DROP_UNUSED_CONSTANT_TRANSFORMER = (builder, op) -> {
-        if (op instanceof CoreOp.ConstantOp && op.result().uses().isEmpty()) {
-            return builder;
-        }
-        builder.op(op);
-        return builder;
-    };
-
-    /**
      * Transforms a body starting from a block builder.
      *
      * @implSpec

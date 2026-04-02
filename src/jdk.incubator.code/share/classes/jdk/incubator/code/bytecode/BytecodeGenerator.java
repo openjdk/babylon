@@ -63,6 +63,7 @@ import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.internal.OpBuilder;
+import jdk.incubator.code.internal.RemoveUnusedConstantTransformer;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -175,7 +176,7 @@ public final class BytecodeGenerator {
             CodeTransformer lowering = LoweringTransform.getInstance(lookup);
             for (var e : ops.sequencedEntrySet()) {
                 Op transformed = e.getValue().transform(CodeContext.create(), ConstantFolder.getInstance(lookup));
-                transformed = transformed.transform(CodeContext.create(), CodeTransformer.DROP_UNUSED_CONSTANT_TRANSFORMER);
+                transformed = transformed.transform(CodeContext.create(), RemoveUnusedConstantTransformer.getInstance());
                 O lowered = NormalizeBlocksTransformer.transform(
                         (O)transformed.transform(CodeContext.create(), lowering));
                 generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, reflectableLambda);
