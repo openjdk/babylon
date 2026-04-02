@@ -604,6 +604,53 @@
 ///
 /// ## Code model structure
 ///
+/// The primary data structure of a code model is a tree of [code elements][jdk.incubator.code.CodeElement]. There are
+/// three kinds of code elements, [operation][jdk.incubator.code.Op], [body][jdk.incubator.code.Body], and
+/// [block][jdk.incubator.code.Block]. An operation contains a [sequence][jdk.incubator.code.Op#bodies()] of zero or
+/// more bodies. A body contains a [sequence][jdk.incubator.code.Body#blocks()] of one or more blocks. A block contains
+/// a [sequence][jdk.incubator.code.Block#ops()] of one or more operations. The root of a code model is an operation,
+/// and descendant operations form a tree of arbitrary depth.
+///
+/// ### Bodies and blocks
+///
+/// The first block in a body is called the [entry block][jdk.incubator.code.Block#isEntryBlock()]. The last operation
+/// in a block is called a [terminating operation][jdk.incubator.code.Op.Terminating]. A terminating operation describes
+/// how control is passed from the operation’s [parent][jdk.incubator.code.Op#parent()] block to an ancestor operation,
+/// or how control is passed from the operation’s parent block to one or more non-entry sibling blocks. In the latter
+/// case the terminating operation declares a [sequence][jdk.incubator.code.Op#successors()] of one or more
+/// [references][jdk.incubator.code.Block.Reference] to blocks called successors.
+///
+/// Block references form a data structure that is a control flow graph, where blocks are nodes in the graph and
+/// references are directed edges in the graph. Blocks in a body occur in the same order as that produced by
+/// topological sorting the control flow graph in reverse post-order, where the entry block always occurs first (since
+/// it cannot be referenced) and any unreferenced blocks occur last (in any order). This ensures blocks are by default
+/// traversed in a program order.
+///
+/// ### Block parameters, operation results, and values
+///
+/// A block declares a [sequence][jdk.incubator.code.Block#parameters()] of zero or more
+/// [block parameters][jdk.incubator.code.Block.Parameter], values. An operation declares an
+/// [operation result][jdk.incubator.code.Op.Result], also a value. [Values][jdk.incubator.code.Value] are variables
+/// assigned exactly once, so code models are in static single-assignment (SSA) form.
+///
+/// A value declares a [type element][jdk.incubator.code.TypeElement], describing the set of values the value is a
+/// member of.
+///
+/// An operation uses zero or more values in a [sequence][jdk.incubator.code.Op#operands()] of operands and in a
+/// [sequence][jdk.incubator.code.Block.Reference#arguments()] of block arguments of any block references (the
+/// same value may be used more than once in both cases). A value can be used by an operation only after it has been
+/// declared and only if the operation's result is
+/// [dominated by][jdk.incubator.code.Value#isDominatedBy(jdk.incubator.code.Value)] the value.
+///
+/// The [declaring block][jdk.incubator.code.Value#declaringBlock()] of a value that is a block parameter is the block
+/// that declares the block parameter. The declaring block of a value that is an operation result is the parent block
+/// of the operation result’s operation.
+///
+/// Values form two data structures that are dependency graphs and use graphs. Given a value we can ask what values this
+/// value [depends on][jdk.incubator.code.Value#dependsOn()], and so on, to form a dependency graph. Or inversely we can
+/// ask what operation results [use][jdk.incubator.code.Value#uses()] this value in their operations' operands and
+/// successors (or what values depend on this value), and so on, to form a use graph.
+///
 /// ## Code model behavior
 ///
 /// ## Dialects
