@@ -134,10 +134,6 @@ public final class Interpreter {
             valuesAndArguments.put(capturedValues.get(i), args.get(parameters.size() + i));
         }
 
-        // ConstantFolder keeps op that are invokable, so casting should be safe
-        op = (T) op.transform(CodeContext.create(), ConstantFolder.getInstance(l));
-        op = (T) op.transform(CodeContext.create(), CodeTransformer.DROP_UNUSED_CONSTANT_TRANSFORMER);
-
         return interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), valuesAndArguments);
     }
 

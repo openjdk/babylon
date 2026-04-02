@@ -1,9 +1,8 @@
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.java.ConstantFolder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -104,7 +103,10 @@ public class TestStringConstantExpressionInterning {
         Object expected = m.getName().startsWith("t");
         MethodHandles.Lookup l = MethodHandles.lookup();
 
-        Assertions.assertEquals(expected, Interpreter.invoke(l, op.transform(CodeTransformer.LOWERING_TRANSFORMER)));
+        FuncOp lop = op.transform(CodeTransformer.LOWERING_TRANSFORMER);
+        FuncOp cfop = lop.transform(ConstantFolder.getInstance(l));
+        Assertions.assertEquals(expected, Interpreter.invoke(l, cfop));
+
         Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invoke());
     }
 
