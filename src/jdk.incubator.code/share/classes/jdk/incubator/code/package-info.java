@@ -348,7 +348,7 @@
 /// The `toText` method will traverse the code elements in a similar manner as before but print out more detail.
 ///
 /// {@snippet lang="text" :
-/// func @loc="22:5:string:///...Example.java" @"add" (
+/// func @loc="22:5:file:///...Example.java" @"add" (
 ///         %0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
 ///     %2 : Var<java.type:"int"> = var %0 @loc="22:5" @"a";
 ///     %3 : Var<java.type:"int"> = var %1 @loc="22:5" @"b";
@@ -361,9 +361,9 @@
 /// };
 /// }
 ///
-/// A code model’s text is designed to be human-readable, primarily intended for debugging and testing. It is also
-/// invaluable for explaining code models. To aid debugging each operation has line number information, and the root
-/// operation also has source information from where the code model originated.
+/// The format of code model’s text is unspsecified. It is designed to be human-readable, and intended for debugging and
+/// testing. It is also invaluable for explaining code models. To aid debugging each operation has line number
+/// information, and the root operation also has source information from where the code model originated.
 ///
 /// The code model text shows the code model’s root element is a function declaration (`func`) operation. The
 /// lambda-like expression represents the fusion of the function declaration operation’s single body and the body’s
@@ -417,7 +417,190 @@
 ///
 /// ## Building
 ///
+/// Code reflection provides functionality to build code models. We can use the API to build an equivalent model of the
+/// `Example.add` method we previously accessed and traversed.
+///
+/// {@snippet lang="java" :
+/// var builtCodeModel = func( // @link substring="func(" target="jdk.incubator.code.dialect.core.CoreOp#func"
+///     "add",
+///     CoreType.functionType(JavaType.INT, JavaType.INT, JavaType.INT))
+///     .body((Block.Builder builder) -> { // @link substring="builder" target="jdk.incubator.code.Block.Builder"
+///         // Check the entry block parameters
+///         assert builder.parameters().size() == 2;
+///         assert builder.parameters().stream().allMatch(
+///                 (Block.Parameter param) -> param.type().equals(JavaType.INT));
+///
+///         // int a
+///         VarOp varOpA = var("a", builder.parameters().get(0)); // @link substring="var(" target="jdk.incubator.code.dialect.core.CoreOp#var"
+///         Op.Result varA = builder.op(varOpA); // @link substring="builder.op(" target="jdk.incubator.code.Block.Builder#op"
+///
+///         // int b
+///         VarOp varOpB = var("b", builder.parameters().get(1));
+///         Op.Result varB = builder.op(varOpB);
+///
+///         // IO.println("A:method:m")
+///         builder.op(invoke(PRINTLN, // // @link substring="inovoke(" target="jdk.incubator.code.dialect.core.JavaOp#invoke"
+///                 builder.op(constant(JavaType.J_L_STRING, "A:method:m"))));
+///
+///         // return a + b;
+///         builder.op(return_(
+///                 builder.op(add( // @link substring="add(" target="jdk.incubator.code.dialect.java.JavaOp#add"
+///                         builder.op(varLoad(varA)),
+///                         builder.op(varLoad(varB))))));
+///     });
+/// IO.println(builtCodeModel.toText());
+/// }
+///
+/// The consuming lambda expression passed to the `body` method operates on a
+/// [block builder][jdk.incubator.code.Block.Builder], representing the
+/// [entry block][jdk.incubator.code.Block#isEntryBlock()] being built. We use that to append operations to the entry
+/// block. When an operation is appended it produces an operation result that can be _used_ as an _operand_ of a further
+/// operation and so on. When the `body` method returns a [body][jdk.incubator.code.Body] element and the
+/// entry [block][jdk.incubator.code.Block] element it contains will be fully built.
+///
+/// Building, like the text output, mirrors the source code structure. Building is carefully designed so that
+/// structurally invalid models cannot be built, either because it is correct by construction or because an exception is
+/// produced when given invalid input.
+///
+/// We can approximately test equivalence with our previously accessed model as follows.
+///
+/// {@snippet lang="java" :
+/// var builtCodeModelElements = builtCodeModel.elements()
+///         .map(CodeElement::getClass).toList();
+/// var codeModelElements = addModel.elements()
+///         .map(CodeElement::getClass).toList();
+/// assert builtCodeModelElements.equals(codeModelElements);
+/// }
+///
+/// We don’t anticipate most users will commonly build complete models of Java code, since it’s a rather verbose and
+/// tedious process, although potentially less so than other approaches e.g., building byte code, or method handle
+/// combinators. `Javac` already knows how to build models. In fact, `javac` uses the same API to build models, and the
+/// run time uses it to produce models that are accessed. Instead, we anticipate many users will build parts of models
+/// when they transform them.
+///
 /// ## Transforming
+///
+/// Code reflection supports the transformation of code models by combining traversing and building. A code model
+/// transformation is represented by a function that takes an operation, encountered in the (input) model being
+/// transformed, and a code model builder for the resulting transformed (output) model, and mediates how, if at all,
+/// that operation is transformed into other code elements that are built. We were inspired by the functional
+/// [transformation][cf-transformation] approach devised by the Class-File API and adapted that design to work on the
+/// nested structure of code models that are immutable trees of code elements.
+///
+/// [cf-transformation]: https://openjdk.org/jeps/484#Transforming-class-files
+///
+/// We can write a simple code model transformer that transforms our method’s code model, replacing the operation
+/// modeling the `+` operator with an invocation operation modeling an invocation expression to the method
+/// `Integer.sum`.
+///
+/// {@snippet lang="java" :
+/// final MethodRef SUM = MethodRef.method(Integer.class, "sum", int.class,
+///         int.class, int.class);
+/// CodeTransformer addToMethodTransformer = CodeTransformer.opTransformer(( // @link substring="opTransformer(" target="jdk.incubator.code.CodeTransformer#opTransformer"
+///         Function<Op, Op.Result> builder,
+///         Op inputOp,
+///         List<Value> outputOperands) -> {
+///     switch (inputOp) {
+///         // Replace a + b; with Integer.sum(a, b);
+///         case AddOp _ -> builder.apply(invoke(SUM, outputOperands));
+///         // Copy operation
+///         default -> builder.apply(inputOp);
+///     }
+/// });
+/// }
+///
+/// The code transformation function, passed as lambda expression to
+/// [CodeTransformer.opTransformer][jdk.incubator.code.CodeTransformer#opTransformer], accepts as parameters a block
+/// builder function, `builder`, an operation encountered when traversing the input code model, `inputOp`, and a list of
+/// values in the output model being built that are associated with input operation’s operands, `outputOperands`. We
+/// must have previously encountered and transformed the input operations whose results are associated with those
+/// values, since values can only be used after they have been declared.
+///
+/// In the code transformer we switch over the input operation, and in this case we just match on `add` operation and
+/// by default any other operation. In the latter case we apply the input operation to the builder function, which
+/// creates a new output operation that is a copy of the input operation, appends the new operation to the block being
+/// built, and associates the new operation’s result with the input operation’s result. When we match on an `add`
+/// operation we replace it by building part of a code model, a method `invoke` operation to the `Integer.sum` method
+/// constructed with the given output operands. The result of the output `invoke` operation is automatically associated
+/// with the result of the input `add` operation.
+///
+/// We can then transform the method’s code model by invoking the
+/// [FuncOp.transform][jdk.incubator.code.dialect.core.CoreOp.FuncOp#transform] method and passing the code transformer
+/// as an argument.
+///
+/// {@snippet lang="java" :
+/// FuncOp transformedCodeModel = codeModel.transform(addToMethodTransformer);
+/// IO.println(transformedCodeModel.toText());
+/// }
+///
+/// The transformed code model is naturally very similar to the input code model.
+///
+/// {@snippet lang="text" :
+/// func @loc="22:5:file:///...Example.java" @"add" (
+///         %0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
+///     %2 : Var<java.type:"int"> = var %0 @loc="22:5" @"a";
+///     %3 : Var<java.type:"int"> = var %1 @loc="22:5" @"b";
+///     %4 : java.type:"java.lang.String" = constant @loc="24:20" @"Example:method:add";
+///     invoke %4 @loc="24:9" @java.ref:"java.lang.IO::println(java.lang.Object):void";
+///     %5 : java.type:"int" = var.load %2 @loc="25:16";
+///     %6 : java.type:"int" = var.load %3 @loc="25:20";
+///     %7 : java.type:"int" = invoke %5 %6 @java.ref:"java.lang.Integer::sum(int, int):int";
+///     return %7 @loc="25:9";
+/// };
+/// }
+///
+/// We can observe the `add` operation has been replaced with the `invoke` operation. Also, by default, each operation
+/// that was copied preserves line number information. The code transformation function can also be applied unmodified
+/// to more complex code containing many `+` operators in arbitrarily nested positions.
+///
+/// ### Transforming primitive
+///
+/// The code transformation function previously shown is not a direct implementation of functional interface
+/// [CodeTransformer][jdk.incubator.code.CodeTransformer]. Instead, we adapted from another functional interface, which
+/// is easier to implement for simpler transformations on operations. Direct implementations of `CodeTransformer` are
+/// more complex but are also capable of more complex transformations, such as building new blocks and retaining more
+/// control over associating values in the input and output models.
+///
+/// The simple code transformer previously shown can implemented more directly as follows.
+///
+/// {@snippet lang="java" :
+/// CodeTransformer lowLevelAddToMethodTransformer = (
+///         Block.Builder builder,
+///         Op inputOp) -> {
+///     switch (inputOp) {
+///         // Replace a + b; with Integer.sum(a, b);
+///         case AddOp _ -> {
+///             // Get output operands mapped to input op's operands
+///             List<Value> outputOperands = builder.context().getValues(inputOp.operands());
+///
+///             Op.Result r = builder.op(invoke(SUM, outputOperands));
+///
+///             // Map intput op's result to output result of invocation operation
+///             builder.context().mapValue(inputOp.result(), r);
+///         }
+///         // Copy operation
+///         default -> builder.op(inputOp);
+///     }
+///     // Return the block builder to continue building from for next operation
+///     return builder;
+/// };
+/// }
+///
+/// Here we directly use a [block builder][jdk.incubator.code.Block.Builder]. In the prior example the block builder
+/// was hidden behind an implementation of the functional interface `Function<Op, Op.Result>` that manages the mapping
+/// of the the input operation's result to the output operation's result.
+///
+/// Code reflection provides complex code transformers, such as those for
+/// - progressively [lowering][jdk.incubator.code.CodeTransformer#LOWERING_TRANSFORMER] code models;
+/// - [transforming][jdk.incubator.code.dialect.core.SSA] models into pure SSA-form (where variable related operations
+///   are removed);
+/// - [inlining][jdk.incubator.code.dialect.core.Inliner] models into other models;
+/// - [normalizing][jdk.incubator.code.dialect.core.NormalizeBlocksTransformer] to remove redundant blocks; and
+/// - constant folding operations modeling Java expressions that are constant expressions.
+///
+/// Crucially, all of the above code transformers preserve the program behaviour of the input code model. However, in
+/// general, code transformers are not required to preserve program behaviour and some will intentionally not do so as
+/// they may transform into a different ouput programming domain that partially maps from the input programming domain.
 ///
 /// ## Code model structure
 ///
