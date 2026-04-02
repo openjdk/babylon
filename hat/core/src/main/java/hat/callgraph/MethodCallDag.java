@@ -64,14 +64,16 @@ public class MethodCallDag extends Dag<MethodCallDag.MethodCall> {
         }
     }
 
+
     public final MethodCall entryPoint;
     public final CoreOp.FuncOp inlined;
 
     // recursive
-    void addEdge(MethodCall methodCall, OpHelper.Invoke invoke) {
-        add(methodCall, new MethodCall(MethodCall.MethodType.Func,invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow()), n->
-                OpHelper.Invoke.stream(invoke.lookup(), n.funcOp).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i ->
-                        addEdge(n, i) // recurse
+    void addEdge(MethodCall from, OpHelper.Invoke invoke) {
+        var to = new MethodCall(MethodCall.MethodType.Func,invoke.targetMethodModelOrNull(), invoke.op().invokeReference(), invoke.resolveMethodOrThrow());
+        add(from,to, _->
+                OpHelper.Invoke.stream(invoke.lookup(), to.funcOp).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i ->
+                        addEdge(to, i) // recurse
                 )
         );
     }

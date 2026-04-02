@@ -41,7 +41,7 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
     interface IfaceInfo {
         ClassType classType();
         Class<IfaceValue> clazz();
-           record Impl(ClassType classType, Class<IfaceValue> clazz) implements IfaceInfo {
+        record Impl(ClassType classType, Class<IfaceValue> clazz) implements IfaceInfo {
         }
         default String dotName() {
             if (IfaceValue.Struct.class.isAssignableFrom(clazz())) {
@@ -51,22 +51,22 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
             }
             return clazz().getSimpleName();
         }
+        default Stream<IfaceInfo> declaredMethodIfaceReturnTypes() {
+            return Arrays.stream(clazz().getDeclaredMethods())
+                    .map(Method::getReturnType)
+                    .filter(IfaceValue.class::isAssignableFrom)
+                    .map(clazz -> new IfaceInfo.Impl((ClassType) JavaType.type(clazz.describeConstable().get()), (Class<IfaceValue>)clazz));
+        }
     }
-    static Stream<IfaceInfo> declaredMethodIfaceReturnTypes(IfaceInfo iface) {
-        return Arrays.stream(iface.clazz().getDeclaredMethods())
-                .map(Method::getReturnType)
-                .filter(IfaceValue.class::isAssignableFrom)
-                .map(clazz -> new IfaceInfo.Impl((ClassType) JavaType.type(clazz.describeConstable().get()), (Class<IfaceValue>)clazz));
-    }
+
 
     // recursive
     void addEdge(IfaceInfo from, IfaceInfo to) {
         if (!from.equals(to)) {
-            declaredMethodIfaceReturnTypes(to).forEach(retType ->
+            to.declaredMethodIfaceReturnTypes().forEach(retType ->
                     addEdge(to, retType)
             );
-            add(from, to, _ -> {
-            });
+            add(from, to);
         }
     }
 
@@ -77,10 +77,8 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
                 .filter(typeElement -> typeElement instanceof ClassType)
                 .map(classType -> new IfaceInfo.Impl((ClassType) classType, (Class<IfaceValue>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) classType)))
                 .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz)).forEach(iface ->
-                        add(iface, _ ->
-                                declaredMethodIfaceReturnTypes(iface).forEach(retType ->
-                                        addEdge(iface, retType)
-                                )
+                        iface.declaredMethodIfaceReturnTypes().forEach(retType ->
+                                addEdge(iface, retType)
                         )
                 );
         closeRanks();
