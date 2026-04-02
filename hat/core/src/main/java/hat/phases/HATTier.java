@@ -24,10 +24,9 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.util.Mutable;
-import optkl.util.carriers.LookupCarrier;
+import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
@@ -63,17 +62,15 @@ public class HATTier  {
                 new HATFP16Phase()
         );
 
-    public static CoreOp.FuncOp transform(List<HATPhase> phases, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, boolean showCompilationPhases){
-        var mf = Mutable.of(funcOp);
+    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){
         phases.forEach(phase -> {
             if (showCompilationPhases) {
-                System.out.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + mf.get().toText());
+                System.out.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
-            mf.set(phase.transform(lookup,mf.get()));
+            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp()));
             if (showCompilationPhases) {
-                System.out.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + mf.get().toText());
+                System.out.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
         });
-        return mf.get();
     }
 }

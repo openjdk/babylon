@@ -31,6 +31,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper.Invoke;
 import optkl.util.Mutable;
+import optkl.util.carriers.FuncOpCarrier;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
@@ -85,7 +86,7 @@ public abstract class CallGraph<E extends Entrypoint> implements LookupCarrier {
 
     }
 
-    public abstract static class ResolvedMethodCall extends AbstractMethodCall implements Resolved {
+    public abstract static class ResolvedMethodCall extends AbstractMethodCall implements Resolved, FuncOpCarrier {
         private CoreOp.FuncOp funcOp;
 
         ResolvedMethodCall(CallGraph<?> callGraph, Method method, CoreOp.FuncOp funcOp) {

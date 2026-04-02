@@ -138,11 +138,11 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         var inlinedEntryPoint = Inliner.inlineEntrypoint(computeContext.lookup(), entrypoint.funcOp());
         this.state = new State(computeCallGraph.lookup(), inlinedEntryPoint);
 
-        entrypoint.funcOp(HATTier.transform(HATTier.KernelPhases,lookup(),entrypoint.funcOp(), config().showCompilationPhases()));
+        HATTier.transform(HATTier.KernelPhases,lookup(),entrypoint, config().showCompilationPhases());
 
         this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), this.state.inlinedEntryPoint);
         if (Boolean.getBoolean("showKernelCallDag") && this.callDag.isDag()) {
-            this.callDag.view("kernelCallDag", n->n.funcOp.funcName());
+            this.callDag.view("kernelCallDag", n->n.funcOp().funcName());
         }
         callDag.rankOrdered.stream()
                 .filter(methodInfo -> methodInfo.methodRef != null && methodInfo.method.getDeclaringClass().isAssignableFrom(Buffer.class)).forEach(methodInfo ->
@@ -152,7 +152,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 );
 
         callDag.rankOrdered.forEach(f ->
-                f.funcOp=HATTier.transform(HATTier.KernelPhases,lookup(),f.funcOp, config().showCompilationPhases())
+                HATTier.transform(HATTier.KernelPhases,lookup(),f, config().showCompilationPhases())
         );
         this.ifaceDag = new IfaceDataDag(lookup(),entrypoint.funcOp());
         if ((Boolean.getBoolean("showKernelDataDag")) && this.ifaceDag.isDag()) {

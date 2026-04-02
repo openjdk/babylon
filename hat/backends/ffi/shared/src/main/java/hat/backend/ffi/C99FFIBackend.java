@@ -243,7 +243,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                     }
             );
 
-            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp);
+            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp());
 
             if (kernelCallGraph.state.usesVecTypes) {
                 C99VecAndMatHandler.createVecFunctions(builder);
@@ -251,18 +251,18 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
             // This provides functions in reverse call order.  There may be none if the entrypojnt does it all
             kernelCallGraph.callDag.rankOrderedFunctions().forEach(f ->
-                    builder.nl().kernelMethod(buildContext, f.funcOp).nl()
+                    builder.nl().kernelMethod(buildContext, f.funcOp()).nl()
             );
 
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {
                 IO.println("Non Lowered");
-                IO.println(kernelCallGraph.callDag.entryPoint.funcOp.toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp().toText());
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(kernelCallGraph.callDag.entryPoint.funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
             }
         }
         return builder.toString();

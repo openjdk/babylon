@@ -28,6 +28,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.util.Dag;
+import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -37,10 +38,10 @@ import java.util.stream.Stream;
 public class MethodCallDag extends Dag<MethodCallDag.MethodCall> {
 
 
-    static public class MethodCall {
+    static public class MethodCall implements FuncOpCarrier {
         public enum MethodType{Func,Entry};
         public final  MethodType methodType;
-        public  CoreOp.FuncOp funcOp;
+        private CoreOp.FuncOp funcOp;
         public final MethodRef methodRef;
         public final Method method;
         MethodCall(MethodType methodType, CoreOp.FuncOp funcOp, MethodRef methodRef, Method method){
@@ -61,6 +62,15 @@ public class MethodCallDag extends Dag<MethodCallDag.MethodCall> {
                     || ( o instanceof MethodCall that
                        && Objects.equals(methodType,that.methodType)&&Objects.equals(methodRef, that.methodRef) && Objects.equals(method, that.method)
             );
+        }
+
+        @Override
+        public CoreOp.FuncOp funcOp(){
+            return this.funcOp;
+        }
+        @Override
+        public void funcOp(CoreOp.FuncOp funcOp){
+            this.funcOp = funcOp;
         }
     }
 
