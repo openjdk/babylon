@@ -480,28 +480,19 @@ public sealed abstract class CoreOp extends Op {
             super(that, cc);
 
             this.quotedBody = that.quotedBody.transform(cc, ot).build(this);
-            this.quotedOp = that.quotedOp;
+            this.quotedOp = getQuotedOp(quotedBody);
         }
 
         @Override
-        public QuotedOp transform(CodeContext cc, CodeTransformer ot) {
-            return new QuotedOp(this, cc, ot);
+        public QuotedOp transform(CodeContext cc, CodeTransformer _ignored) {
+            return new QuotedOp(this, cc, CodeTransformer.COPYING_TRANSFORMER);
         }
 
         QuotedOp(Body.Builder bodyC) {
             super(List.of());
 
             this.quotedBody = bodyC.build(this);
-            if (quotedBody.blocks().size() > 1) {
-                throw new IllegalArgumentException();
-            }
-            if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
-                throw new IllegalArgumentException();
-            }
-            if (!(yop.yieldValue() instanceof Result r)) {
-                throw new IllegalArgumentException();
-            }
-            this.quotedOp = r.op();
+            this.quotedOp = getQuotedOp(quotedBody);
         }
 
         @Override
@@ -527,6 +518,19 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public TypeElement resultType() {
             return QUOTED_OP_TYPE;
+        }
+
+        private Op getQuotedOp(Body quotedBody) {
+            if (quotedBody.blocks().size() > 1) {
+                throw new IllegalArgumentException();
+            }
+            if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
+                throw new IllegalArgumentException();
+            }
+            if (!(yop.yieldValue() instanceof Result r)) {
+                throw new IllegalArgumentException();
+            }
+            return r.op();
         }
     }
 
