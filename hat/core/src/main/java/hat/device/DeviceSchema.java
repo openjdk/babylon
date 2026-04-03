@@ -62,7 +62,7 @@ public class DeviceSchema<T extends NonMappableIface> {
 
     int currentLevel = 0;
 
-    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
+    public static <T extends NonMappableIface> DeviceSchema<T> ofa(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
         DeviceSchema<T> deviceSchema = new DeviceSchema<>(klass);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize();

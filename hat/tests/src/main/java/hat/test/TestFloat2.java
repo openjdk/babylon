@@ -157,7 +157,7 @@ public class TestFloat2 {
     private interface SharedArray extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<SharedArray> schema = DeviceSchema.of(SharedArray.class,
+        DeviceSchema<SharedArray> deviceSchema = DeviceSchema.ofa(SharedArray.class,
                 arr -> arr.withArray("array", 1024));
         static SharedArray create(Accelerator accelerator) {
             return null;
@@ -189,7 +189,7 @@ public class TestFloat2 {
     private interface PrivateMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,
+        DeviceSchema<PrivateMemory> deviceSchema = DeviceSchema.ofa(PrivateMemory.class,
                 arr -> arr.withArray("array", 4));
         static PrivateMemory create(Accelerator accelerator) {
             return null;

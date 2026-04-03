@@ -219,7 +219,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             kernelCallGraph.accessedClassTypes.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
                     c -> {
                         try {
-                            Field schemaField = c.getDeclaredField("schema");
+                            Field schemaField = c.getDeclaredField("deviceSchema");
                             schemaField.setAccessible(true);
                             var s = schemaField.get(schemaField);
                             if (s instanceof DeviceSchema<?> deviceSchema) {

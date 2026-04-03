@@ -150,8 +150,8 @@ public class TestDFT {
             void imag(float imag);
         }
         PrivateComplex complex(long index);
-        DeviceSchema<ArrayComplexPrivate> schema =
-                DeviceSchema.of(ArrayComplexPrivate.class,
+        DeviceSchema<ArrayComplexPrivate> deviceSchema =
+                DeviceSchema.ofa(ArrayComplexPrivate.class,
                         complex ->
                                 complex.withArray("complex", 128)
                                         .withDeps(PrivateComplex.class,

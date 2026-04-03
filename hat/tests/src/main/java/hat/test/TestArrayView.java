@@ -586,7 +586,7 @@ public class TestArrayView {
     private interface SharedMemory extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.ofa(SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
 
         static SharedMemory createLocal() { return null; }
@@ -603,7 +603,7 @@ public class TestArrayView {
     public interface PrivateArray extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.ofa(PrivateArray.class,
                 arr -> arr.withArray("array", 16));
 
         static PrivateArray createPrivate() { return null; }
@@ -667,7 +667,7 @@ public class TestArrayView {
     public interface SharedNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedNonMappableIface> schema = DeviceSchema.of(SharedNonMappableIface.class,
+        DeviceSchema<SharedNonMappableIface> deviceSchema = DeviceSchema.ofa(SharedNonMappableIface.class,
                 arr -> arr.withArray("array", 1024));
         static SharedNonMappableIface create(Accelerator accelerator) {
             return null;
@@ -684,7 +684,7 @@ public class TestArrayView {
     public interface PrivateNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateNonMappableIface> schema = DeviceSchema.of(PrivateNonMappableIface.class,
+        DeviceSchema<PrivateNonMappableIface> deviceSchema = DeviceSchema.ofa(PrivateNonMappableIface.class,
                 arr -> arr.withArray("array", 32));
         static PrivateNonMappableIface create(Accelerator accelerator) {
             return null;
