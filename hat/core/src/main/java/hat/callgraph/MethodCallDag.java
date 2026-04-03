@@ -67,8 +67,10 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
         public void funcOp(CoreOp.FuncOp funcOp){
             this.funcOp = funcOp;
         }
-       // @Override
         public Method method(){return method;}
+        public MethodRef methodRef(){
+            return this.methodRef;
+        }
     }
 
     public static class EntryMethodCall extends Call {

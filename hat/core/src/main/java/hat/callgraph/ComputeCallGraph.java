@@ -51,12 +51,11 @@ public class ComputeCallGraph implements LookupCarrier {
         return computeContext.lookup();
     }
 
-    public static final boolean  showComputeCallDag = Boolean.getBoolean("showComputeCallDag");
+    public static final boolean  showComputeCallDag =Boolean.getBoolean("showComputeCallDag");
     public final ComputeContext computeContext;
     public final MethodCallDag callDag;
     private CoreOp.FuncOp lowered;
     private MethodHandle bytecodeGeneratedMethodHandle;
-
 
     static boolean isValidKernelDispatch(MethodHandles.Lookup lookup, Method calledMethod, CoreOp.FuncOp funcOp) {
         // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
@@ -97,22 +96,19 @@ public class ComputeCallGraph implements LookupCarrier {
         this.computeContext = computeContext;
         this.callDag = new MethodCallDag(lookup(), method,entry,null);
         if (showComputeCallDag){
-                this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
+            this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
         }
 
-        OpHelper.Invoke.stream(computeContext.lookup(), entry).forEach(invoke -> {
-            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
-                Method resolvedMethod = invoke.resolveMethodOrThrow();
-                if (this.callDag.entryPoint.method().getDeclaringClass().equals(invoke.classOrThrow())
-                        && isValidKernelDispatch(computeContext.lookup(),resolvedMethod, funcOp)) {
-                    kernelCallGraphMap.computeIfAbsent( invoke.op().invokeReference(), _ ->
-                            new KernelCallGraph(this, resolvedMethod, funcOp)
-                    );
-                }
-            }
-        });
-    }
+        callDag.methodCalls()
+                .filter(m->
+                        this.callDag.entryPoint.method().getDeclaringClass().equals(m.method().getDeclaringClass())
+                                && isValidKernelDispatch(computeContext.lookup(),m.method(),m.funcOp()))
+                .forEach(m-> kernelCallGraphMap.computeIfAbsent( m.methodRef(), _ ->
+                    new KernelCallGraph(this, m.method(), m.funcOp())
+            )
+        );
 
+    }
 
     public CoreOp.FuncOp lazyLower(){
         if (lowered == null) {
