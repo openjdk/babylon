@@ -37,8 +37,8 @@ import java.util.stream.Stream;
 
 public class MethodCallDag extends Dag<MethodCallDag.Call> {
     static abstract public class Call implements FuncOpCarrier {
-        public final MethodRef methodRef;
-        public final Method method;
+        private final MethodRef methodRef;
+        private final Method method;
         private CoreOp.FuncOp funcOp;
         Call(MethodRef methodRef, Method method, CoreOp.FuncOp funcOp){
             this.methodRef = methodRef;
@@ -67,6 +67,8 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
         public void funcOp(CoreOp.FuncOp funcOp){
             this.funcOp = funcOp;
         }
+       // @Override
+        public Method method(){return method;}
     }
 
     public static class EntryMethodCall extends Call {

@@ -33,20 +33,22 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
-import optkl.ifacemapper.Buffer;
+import optkl.util.carriers.FuncOpCarrier;
+import optkl.util.carriers.LookupCarrier;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
+public class KernelCallGraph implements LookupCarrier {
+    @Override public MethodHandles.Lookup lookup(){
+        return computeCallGraph.lookup();
+    }
     public static final boolean  showKernelCallDag = Boolean.getBoolean("showKernelCallDag");
     public static final  boolean  showKernelIfaceDag = Boolean.getBoolean("showKernelIfaceDag");
     public static final boolean  showKernelIfaceDagProposedTypedefs = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
@@ -73,20 +75,10 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         return stringBuilder.toString();
     }
 
-    public interface KernelReachable {
-    }
+    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp e) {
 
-    public static class KernelReachableResolvedMethodCall extends ResolvedMethodCall implements KernelReachable {
-        public KernelReachableResolvedMethodCall(CallGraph<KernelEntrypoint> callGraph, Method method, CoreOp.FuncOp funcOp) {
-            super(callGraph, method, funcOp);
-        }
-    }
-
-    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp entry) {
-        super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(), null, method, entry));
-        this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        var inlinedEntryPoint = Inliner.inlineEntrypoint(lookup(), entrypoint.funcOp());
+        var inlinedEntryPoint = Inliner.inlineEntrypoint(lookup(), e);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
         this.accessedKcFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
@@ -104,12 +96,14 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 .anyMatch(invoke -> invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex("(atomic.*)Inc"));
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
-        HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, config().showCompilationPhases());
+
+        var entrypoint = new FuncOpCarrier.Impl(e);
+        HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, computeCallGraph.computeContext.config().showCompilationPhases());
 
         this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
 
         callDag.rankOrdered.forEach(f ->
-                HATTier.transform(HATTier.KernelPhases, lookup(), f, config().showCompilationPhases())
+                HATTier.transform(HATTier.KernelPhases, lookup(), f, computeCallGraph.computeContext.config().showCompilationPhases())
         );
 
         if (showKernelCallDag) {

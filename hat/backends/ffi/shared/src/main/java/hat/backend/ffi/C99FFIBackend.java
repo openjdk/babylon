@@ -73,9 +73,9 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelBufferContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(), kernelCallGraph, ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeCallGraph.computeContext.accelerator(), kernelCallGraph, ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
@@ -184,19 +184,19 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                 });
 
 
-        var kernelAnnotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
+        var kernelAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class);
         if (kernelAnnotation != null) {
             // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
             kernelCallGraph.usesAtomics = true;
             kernelCallGraph.usesFp16 = true;
             kernelCallGraph.usesBarrier = true;
             kernelCallGraph.usesVecTypes = false;// maybe?
-            var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method.getAnnotation(TypeDef.class);
+            var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
             if (typedefAnnotation != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
                 builder.typedefStruct(typedefAnnotation.name(),_-> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
             }
-            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method.getAnnotation(Preformatted.class);
+            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
             if (preformattedAnnotation != null) {
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformattedAnnotation.value());
