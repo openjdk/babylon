@@ -71,10 +71,10 @@ import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
-    protected  final KernelCallGraph.State callgraphState;
-    protected C99HATKernelBuilder(KernelCallGraph.State callgraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+    protected  final KernelCallGraph kernelCallGraph;
+    protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
-        this.callgraphState = callgraphState;
+        this.kernelCallGraph = kernelCallGraph;
     }
 
     public final T HAT_KERNEL() {
@@ -203,7 +203,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return ifaceType.iface.isAssignableFrom(F16.class)
-                || ifaceType.iface.isAssignableFrom(F16Array.F16Impl.class);
+                || ifaceType.iface.isAssignableFrom(F16Impl.class);
     }
 
     public final boolean isbfloat16(Schema.IfaceType ifaceType) {

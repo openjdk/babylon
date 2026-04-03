@@ -38,21 +38,28 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class Dag<N> {
-    public final Set<N> allNodes = new LinkedHashSet<>();
+    private final Set<N> all = new LinkedHashSet<>();
     public final Map<N, Set<N>> fromTo = new LinkedHashMap<>();
     public final  Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
-    public void add(N n, Consumer<N> ifAbsent) {
-        if (!allNodes.contains(n)){
-            allNodes.add(n);
-            ifAbsent.accept(n);
-        }
+
+    public boolean add(N n) {
+         return all.add(n);
     }
+
     public void add(N from, N to, Consumer<N> ifAbsent) {
         fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
         toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
-        add(from,ifAbsent);
-        add(to,ifAbsent);
+        if (add(from)){
+            ifAbsent.accept(from);
+        }
+        if (add(to)){
+            ifAbsent.accept(to);
+        }
+    }
+
+    public void add(N from, N to) {
+        add(from,to,_->{});
     }
     public final List<N> rankOrdered = new LinkedList<>();
 

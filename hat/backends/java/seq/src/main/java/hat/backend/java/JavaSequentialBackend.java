@@ -27,18 +27,17 @@ package hat.backend.java;
 
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
 
 import java.lang.reflect.InvocationTargetException;
 
 public class JavaSequentialBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
+      //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
                 args[0] = kernelContext;
-                kernelEntrypoint.method().invoke(null, args);
+                kernelCallGraph.callDag.entryPoint.method().invoke(null, args);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
