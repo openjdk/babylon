@@ -2491,7 +2491,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
         CoreOp.FuncOp scanMethod(JCBlock body) {
             scan(body, ReflectMethods.this.currentNode());
             appendReturnOrUnreachable(body);
-            CoreOp.FuncOp func = CoreOp.func(name.toString(), stack.body);
+            MethodRef mref = symbolToMethodRef(((JCMethodDecl) tree).sym);
+            CoreOp.FuncOp func = CoreOp.func(mref, stack.body);
             func.setLocation(generateLocation(tree, true));
             return func;
         }

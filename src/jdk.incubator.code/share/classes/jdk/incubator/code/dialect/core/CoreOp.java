@@ -116,36 +116,44 @@ public sealed abstract class CoreOp extends Op {
          * The externalized attribute modelling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
+        static final String ATTRIBUTE_FUNC_MREF = NAME + ".mref";
 
-        final String funcName;
         final Body body;
+        final MethodRef mref;
 
         FuncOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
+            MethodRef mref = def.extractAttributeValue(ATTRIBUTE_FUNC_MREF, false,
                     v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                        case MethodRef r -> r;
+                        case null, default -> {
+                            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
+                                    u -> switch (u) {
+                                        case String s -> s;
+                                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
+                                    });
+                            yield MethodRef.method(null, funcName, def.bodyDefinitions().get(0).bodyType());
+                        }
                     });
 
-            this(funcName, def.bodyDefinitions().get(0));
+            this(mref, def.bodyDefinitions().get(0));
         }
 
         FuncOp(FuncOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
-            this.funcName = that.funcName;
             this.body = that.body.transform(cc, ot).build(this);
+            this.mref = that.mref;
         }
 
         FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
-            this.funcName = funcName;
             this.body = that.body.transform(cc, ot).build(this);
+            this.mref = MethodRef.method(that.mref.refType(), funcName, that.mref.type());
         }
 
         @Override
@@ -177,8 +185,15 @@ public sealed abstract class CoreOp extends Op {
         FuncOp(String funcName, Body.Builder bodyBuilder) {
             super(List.of());
 
-            this.funcName = funcName;
             this.body = bodyBuilder.build(this);
+            this.mref = MethodRef.method(null, funcName, body.bodyType());
+        }
+
+        FuncOp(MethodRef mref, Body.Builder bodyBuilder) {
+            super(List.of());
+
+            this.body = bodyBuilder.build(this);
+            this.mref = mref;
         }
 
         @Override
@@ -188,7 +203,13 @@ public sealed abstract class CoreOp extends Op {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", funcName);
+            Map<String, Object> m = new HashMap<>();
+            if (mref.refType() != null) { // mref.refType can be null e.g. a user built model providing the name only
+                m.put(ATTRIBUTE_FUNC_MREF, mref);
+            } else {
+                m.put("", mref.name());
+            }
+            return m;
         }
 
         @Override
@@ -200,7 +221,7 @@ public sealed abstract class CoreOp extends Op {
          * {@return the function name}
          */
         public String funcName() {
-            return funcName;
+            return mref.name();
         }
 
         @Override
@@ -1516,6 +1537,17 @@ public sealed abstract class CoreOp extends Op {
      */
     public static FuncOp func(String funcName, Body.Builder body) {
         return new FuncOp(funcName, body);
+    }
+
+    /**
+     * Creates a function operation.
+     *
+     * @param mref the method reference the function operation models
+     * @param body the body builder defining the function body
+     * @return the function operation
+     */
+    public static FuncOp func(MethodRef mref, Body.Builder body) {
+        return new FuncOp(mref, body);
     }
 
     /**
