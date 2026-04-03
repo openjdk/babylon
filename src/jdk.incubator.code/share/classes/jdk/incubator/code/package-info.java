@@ -653,6 +653,15 @@
 ///
 /// ## Code model behavior
 ///
+/// A code model's modeling of program behaviour is described by the arrangement of operations, bodies, and blocks. This
+/// arrangement has generic modeling of program behaviour common to all code models and specific modeling of program
+/// behaviour of a code model, giving rise to program meaning, as specified each operation's modeling of program
+/// behavior and the operations arrangement within in a code model.
+///
+/// We can describe the generic modeling of program behaviour using pseudo-Java code, which in effect serves as a
+/// generic interpreter of code models.
+///
+///
 /// ## Dialects
 ///
 /// ## Java code models
