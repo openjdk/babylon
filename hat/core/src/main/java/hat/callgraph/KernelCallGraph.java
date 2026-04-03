@@ -27,18 +27,7 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.Inliner;
 import hat.KernelContext;
-import hat.phases.HATArrayViewPhase;
-import hat.phases.HATBarrierPhase;
-import hat.phases.HATFP16Phase;
-import hat.phases.HATMathLibPhase;
-import hat.phases.HATMemoryPhase;
-import hat.phases.HATThreadsPhase;
 import hat.phases.HATTier;
-import hat.phases.HATVectorPhase;
-import hat.phases.HATVectorSelectPhase;
-import hat.phases.HATVectorStorePhase;
-import hat.types.BF16;
-import hat.types.F16;
 import hat.types._F16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
@@ -49,11 +38,8 @@ import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.Buffer;
-import optkl.util.Mutable;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,53 +47,32 @@ import java.util.Map;
 import java.util.Set;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
+    public static final boolean  showKernelCallDag = Boolean.getBoolean("showKernelCallDag");
+    public static final  boolean  showKernelIfaceDag = Boolean.getBoolean("showKernelIfaceDag");
+    public static final boolean  showKernelIfaceDagProposedTypedefs = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
     public final ComputeCallGraph computeCallGraph;
-
     public final MethodCallDag callDag;
     public final IfaceDataDag ifaceDag;
+    public final Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
+    public final List<AccessType> bufferAccessList;
+    public final Set<TypeElement> accessedTypes;
+    public final Set<Class<?>> accessedClassTypes;
+    public boolean usesVecTypes;
+    public boolean usesFp16;
+    public boolean usesBarrier;
+    public boolean usesAtomics;
+    public final Set<String> accessedKcFields;
 
-    public class State {
-        public final  CoreOp.FuncOp inlinedEntryPoint;
-        public final Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
-        public final List<AccessType> bufferAccessList;
-        public final Set<TypeElement> accessedTypes;
-        public final Set<Class<?>> accessedClasses;
-        public  boolean usesVecTypes;
-        public  boolean usesFp16;
-        public  boolean usesBarrier;
-        public  boolean usesAtomics;
-        public final Set<String> accessedKcFields;
-
-        public State(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntryPoint) {
-            this.inlinedEntryPoint = inlinedEntryPoint;
-            this.usesBarrier = OpHelper.Invoke.stream(lookup, inlinedEntryPoint)
-                    .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
-            this.accessedKcFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup, inlinedEntryPoint)
-                    .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList());
-            this.accessedTypes = new HashSet<>(inlinedEntryPoint.elements().filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType()).toList());
-            this.accessedClasses = new HashSet<>(this.accessedTypes.stream().filter(te -> te instanceof ClassType).map(te -> (ClassType) te).map(ct -> (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), ct)).toList());
-            this.usesVecTypes = this.accessedClasses.stream().anyMatch(IfaceValue.vec.class::isAssignableFrom);
-            this.usesFp16 = this.accessedClasses.stream().anyMatch(
-                    clazz -> clazz.isAssignableFrom(_F16.class) || clazz.isAssignableFrom(F16.class) || clazz.isAssignableFrom(BF16.class));
-            this.usesAtomics = OpHelper.Invoke.stream(lookup, inlinedEntryPoint)
-                    .anyMatch(invoke -> invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex("(atomic.*)Inc"));
-            this.bufferAccessList = BufferTagger.getAccessList(computeContext.lookup(), inlinedEntryPoint);
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("UsesVecTypes:").append(usesVecTypes).append(", ");
-            stringBuilder.append("UsesFp16:").append(usesFp16).append(", ");
-            stringBuilder.append("UsesAtomics:").append(usesAtomics).append(", ");
-            stringBuilder.append("UsesBarrier:").append(usesBarrier).append(", ");
-            stringBuilder.append("AccessedKernelContextFields:").append("[").append(String.join(", ", accessedKcFields)).append("]");
-            return stringBuilder.toString();
-        }
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("UsesVecTypes:").append(usesVecTypes).append(", ");
+        stringBuilder.append("UsesFp16:").append(usesFp16).append(", ");
+        stringBuilder.append("UsesAtomics:").append(usesAtomics).append(", ");
+        stringBuilder.append("UsesBarrier:").append(usesBarrier).append(", ");
+        stringBuilder.append("AccessedKernelContextFields:").append("[").append(String.join(", ", accessedKcFields)).append("]");
+        return stringBuilder.toString();
     }
-
-    public final State state;
-
 
     public interface KernelReachable {
     }
@@ -135,30 +100,48 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(), null, method, entry));
         this.entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        var inlinedEntryPoint = Inliner.inlineEntrypoint(computeContext.lookup(), entrypoint.funcOp());
-        this.state = new State(computeCallGraph.lookup(), inlinedEntryPoint);
+        var inlinedEntryPoint = Inliner.inlineEntrypoint(lookup(), entrypoint.funcOp());
+        this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
+                .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
+        this.accessedKcFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
+                .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList()
+        );
+        this.accessedTypes = new HashSet<>(inlinedEntryPoint.elements()
+                .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType()).toList()
+        );
+        this.accessedClassTypes = new HashSet<>(this.accessedTypes.stream()
+                .filter(te -> te instanceof ClassType).map(te -> (ClassType) te).map(ct -> (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), ct)).toList()
+        );
+        this.usesVecTypes = this.accessedClassTypes.stream().anyMatch(IfaceValue.vec.class::isAssignableFrom);
+        this.usesFp16 = this.accessedClassTypes.stream().anyMatch(_F16.class::isAssignableFrom);
+        this.usesAtomics = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
+                .anyMatch(invoke -> invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex("(atomic.*)Inc"));
+        this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
-        HATTier.transform(HATTier.KernelPhases,lookup(),entrypoint, config().showCompilationPhases());
+        HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, config().showCompilationPhases());
 
-        this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), this.state.inlinedEntryPoint);
-        if (Boolean.getBoolean("showKernelCallDag") && this.callDag.isDag()) {
-            this.callDag.view("kernelCallDag", n->n.funcOp().funcName());
-        }
+        this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
+
         callDag.rankOrdered.stream()
                 .filter(methodInfo -> methodInfo.methodRef != null && methodInfo.method.getDeclaringClass().isAssignableFrom(Buffer.class)).forEach(methodInfo ->
-                        state.bufferAccessToMethodCallMap.computeIfAbsent(methodInfo.methodRef, _ ->
+                        bufferAccessToMethodCallMap.computeIfAbsent(methodInfo.methodRef, _ ->
                                 new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodInfo.method)
                         )
                 );
 
         callDag.rankOrdered.forEach(f ->
-                HATTier.transform(HATTier.KernelPhases,lookup(),f, config().showCompilationPhases())
+                HATTier.transform(HATTier.KernelPhases, lookup(), f, config().showCompilationPhases())
         );
-        this.ifaceDag = new IfaceDataDag(lookup(),entrypoint.funcOp());
-        if ((Boolean.getBoolean("showKernelDataDag")) && this.ifaceDag.isDag()) {
+
+        if (showKernelCallDag) {
+            this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
+        }
+
+        this.ifaceDag = new IfaceDataDag(lookup(), entrypoint.funcOp());
+        if (showKernelIfaceDag) {
             this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }
-        if ((Boolean.getBoolean("showProposedKernelTypeDefs"))) {
+        if (showKernelIfaceDagProposedTypedefs) {
             ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType()));
         }
     }

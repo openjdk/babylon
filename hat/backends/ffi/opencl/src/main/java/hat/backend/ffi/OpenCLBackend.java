@@ -66,7 +66,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     String createC99(KernelCallGraph kernelCallGraph,  Object[] args){
-        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph.state, new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
+        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
     }
 
 }

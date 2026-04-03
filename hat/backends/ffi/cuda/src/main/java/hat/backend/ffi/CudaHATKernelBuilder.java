@@ -43,8 +43,8 @@ import static java.lang.invoke.MethodHandles.lookup;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    protected CudaHATKernelBuilder(KernelCallGraph.State kernelCallGraphState,ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(kernelCallGraphState,scopedCodeBuilderContext);
+    protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph,ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(kernelCallGraph,scopedCodeBuilderContext);
     }
 
     private CudaHATKernelBuilder half2float() {

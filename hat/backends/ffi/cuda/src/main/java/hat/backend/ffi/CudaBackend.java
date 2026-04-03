@@ -394,7 +394,7 @@ public class CudaBackend extends C99FFIBackend {
         compiledKernel.dispatch(kernelContext, args);
     }
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph.state,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
     }
 
     ///   Same as OpenCL backend until here
@@ -413,11 +413,9 @@ public class CudaBackend extends C99FFIBackend {
         out.append(builder.getText());
         builder.clear();
 
-        var here = CallSite.of(CudaBackend.class, "createPTX");
+     //   var here = CallSite.of(CudaBackend.class, "createPTX");
 
-        kernelCallGraph.callDag.rankOrdered
-                .stream().filter(f->f.methodType.equals(MethodCallDag.MethodCall.MethodType.Func))
-                .forEach(f -> {
+        kernelCallGraph.callDag.methodCalls().forEach(f -> {
                     CoreOp.FuncOp loweredFunc = f.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
                     loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
                     invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));

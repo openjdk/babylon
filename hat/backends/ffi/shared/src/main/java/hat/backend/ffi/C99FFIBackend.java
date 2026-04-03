@@ -28,7 +28,6 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
-import hat.callgraph.MethodCallDag;
 import hat.codebuilders.C99VecAndMatHandler;
 import hat.device.NonMappableIface;
 import hat.types.BF16;
@@ -48,7 +47,6 @@ import optkl.ifacemapper.BufferState;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
-import optkl.util.Mutable;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -189,10 +187,10 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
         var kernelAnnotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
         if (kernelAnnotation != null) {
             // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
-            kernelCallGraph.state.usesAtomics = true;
-            kernelCallGraph.state.usesFp16 = true;
-            kernelCallGraph.state.usesBarrier = true;
-            kernelCallGraph.state.usesVecTypes = false;// maybe?
+            kernelCallGraph.usesAtomics = true;
+            kernelCallGraph.usesFp16 = true;
+            kernelCallGraph.usesBarrier = true;
+            kernelCallGraph.usesVecTypes = false;// maybe?
             var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method.getAnnotation(TypeDef.class);
             if (typedefAnnotation != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
@@ -207,7 +205,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             builder.preformatted(kernelAnnotation.value());
         } else {
             Set<String> typedefs = new HashSet<>();
-            if (kernelCallGraph.state.usesFp16) {
+            if (kernelCallGraph.usesFp16) {
                 // Add HAT reserved types
                 typedefs.add(F16.class.getName());
                 typedefs.add(BF16.class.getName());
@@ -218,7 +216,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             // using the code reflection API
             // 1. Add for struct for iface objects
 
-            kernelCallGraph.state.accessedClasses.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
+            kernelCallGraph.accessedClassTypes.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
                     c -> {
                         try {
                             Field schemaField = c.getDeclaredField("schema");
@@ -245,12 +243,12 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
             var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp());
 
-            if (kernelCallGraph.state.usesVecTypes) {
+            if (kernelCallGraph.usesVecTypes) {
                 C99VecAndMatHandler.createVecFunctions(builder);
             }
 
             // This provides functions in reverse call order.  There may be none if the entrypojnt does it all
-            kernelCallGraph.callDag.rankOrderedFunctions().forEach(f ->
+            kernelCallGraph.callDag.methodCalls().forEach(f ->
                     builder.nl().kernelMethod(buildContext, f.funcOp()).nl()
             );
 

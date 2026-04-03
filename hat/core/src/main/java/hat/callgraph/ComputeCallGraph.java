@@ -43,6 +43,9 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
+    public static final boolean  showComputeCallDag = Boolean.getBoolean("showComputeCallDag");
+    public final MethodCallDag callDag;
+
     public Config config() {
         return computeContext.config();
     }
@@ -93,7 +96,12 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp entry) {
         super(computeContext, new ComputeEntrypoint(computeContext.lookup(),null, method, entry));
-        entrypoint.callGraph = this; // This is bad we should be able to do better
+        entrypoint.callGraph = this;// This is bad we should be able to do better
+        this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(),null);
+        if (showComputeCallDag){
+                this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
+        }
+
         OpHelper.Invoke.stream(computeContext.lookup(), entry).forEach(invoke -> {
             if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
                 Method resolvedMethod = invoke.resolveMethodOrThrow();
