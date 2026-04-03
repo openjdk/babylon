@@ -53,7 +53,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final MethodCallDag callDag;
     public final IfaceDataDag ifaceDag;
-    public final Map<MethodRef, AbstractMethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
     public final List<AccessType> bufferAccessList;
     public final Set<TypeElement> accessedTypes;
     public final Set<Class<?>> accessedClassTypes;
@@ -83,19 +82,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
     }
 
-    public static class KernelReachableUnresolvedMethodCall extends UnresolvedMethodCall implements KernelReachable {
-        KernelReachableUnresolvedMethodCall(CallGraph<KernelEntrypoint> callGraph, Method method) {
-            super(callGraph, method);
-        }
-    }
-
-
-    public static class KernelReachableUnresolvedIfaceMappedMethodCall extends KernelReachableUnresolvedMethodCall {
-        KernelReachableUnresolvedIfaceMappedMethodCall(CallGraph<KernelEntrypoint> callGraph, Method method) {
-            super(callGraph, method);
-        }
-    }
-
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp entry) {
         super(computeCallGraph.computeContext, new KernelEntrypoint(computeCallGraph.computeContext.lookup(), null, method, entry));
         this.entrypoint.callGraph = this;
@@ -121,13 +107,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, config().showCompilationPhases());
 
         this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
-
-        callDag.rankOrdered.stream()
-                .filter(methodInfo -> methodInfo.methodRef != null && methodInfo.method.getDeclaringClass().isAssignableFrom(Buffer.class)).forEach(methodInfo ->
-                        bufferAccessToMethodCallMap.computeIfAbsent(methodInfo.methodRef, _ ->
-                                new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodInfo.method)
-                        )
-                );
 
         callDag.rankOrdered.forEach(f ->
                 HATTier.transform(HATTier.KernelPhases, lookup(), f, config().showCompilationPhases())
