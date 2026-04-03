@@ -240,6 +240,10 @@ public sealed abstract class CoreOp extends Op {
         public TypeElement resultType() {
             return JavaType.VOID;
         }
+
+        public Optional<MethodRef> mref() {
+            return mref.refType() == null ? Optional.empty() : Optional.of(mref);
+        }
     }
 
     /**
