@@ -62,7 +62,7 @@ public abstract sealed class HATPtrOp extends HATOp
             } catch (IllegalAccessException | NoSuchFieldException e) {
                 try{
                     if (bufferClass.getField("deviceSchema").get(null) instanceof DeviceSchema<?> deviceSchema){
-                         System.out.println("We did find a device schema ! for "+bufferClass);
+                        // We did find a device schema !  I think we should not be getting here with device schemas
                     }else{
                         throw new RuntimeException("No schema or deviceSchema field ");
                     }
