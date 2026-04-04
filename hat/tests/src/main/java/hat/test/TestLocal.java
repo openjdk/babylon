@@ -46,7 +46,7 @@ public class TestLocal {
         float array(long index);
 
         DeviceSchema<MySharedArray> deviceSchema = DeviceSchema.of(MySharedArray.class,
-                builder -> builder.withArray("array", 16));
+                builder -> builder.array("array", 16));
 
         static MySharedArray create(Accelerator accelerator) {
             return null;

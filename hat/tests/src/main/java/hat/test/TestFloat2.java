@@ -158,7 +158,7 @@ public class TestFloat2 {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<SharedArray> deviceSchema = DeviceSchema.of(SharedArray.class,
-                arr -> arr.withArray("array", 1024));
+                arr -> arr.array("array", 1024));
         static SharedArray create(Accelerator accelerator) {
             return null;
         }
@@ -190,7 +190,7 @@ public class TestFloat2 {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<PrivateMemory> deviceSchema = DeviceSchema.of(PrivateMemory.class,
-                arr -> arr.withArray("array", 4));
+                arr -> arr.array("array", 4));
         static PrivateMemory create(Accelerator accelerator) {
             return null;
         }

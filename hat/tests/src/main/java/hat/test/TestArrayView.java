@@ -587,7 +587,7 @@ public class TestArrayView {
         void array(long index, int value);
         int array(long index);
         DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
-                arr -> arr.withArray("array", 1024));
+                arr -> arr.array("array", 1024));
 
         static SharedMemory createLocal() { return null; }
 
@@ -604,7 +604,7 @@ public class TestArrayView {
         void array(long index, int value);
         int array(long index);
         DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
-                arr -> arr.withArray("array", 16));
+                arr -> arr.array("array", 16));
 
         static PrivateArray createPrivate() { return null; }
 
@@ -668,7 +668,7 @@ public class TestArrayView {
         void array(long index, int value);
         int array(long index);
         DeviceSchema<SharedNonMappableIface> deviceSchema = DeviceSchema.of(SharedNonMappableIface.class,
-                arr -> arr.withArray("array", 1024));
+                arr -> arr.array("array", 1024));
         static SharedNonMappableIface create(Accelerator accelerator) {
             return null;
         }
@@ -685,7 +685,7 @@ public class TestArrayView {
         void array(long index, int value);
         int array(long index);
         DeviceSchema<PrivateNonMappableIface> deviceSchema = DeviceSchema.of(PrivateNonMappableIface.class,
-                arr -> arr.withArray("array", 32));
+                arr -> arr.array("array", 32));
         static PrivateNonMappableIface create(Accelerator accelerator) {
             return null;
         }

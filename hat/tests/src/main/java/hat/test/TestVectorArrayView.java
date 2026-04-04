@@ -222,7 +222,7 @@ public class TestVectorArrayView {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
-                arr -> arr.withArray("array", 1024));
+                arr -> arr.array("array", 1024));
         static SharedMemory createLocal() {
             return null;
         }
@@ -254,7 +254,7 @@ public class TestVectorArrayView {
         void array(long index, float value);
         float array(long index);
         DeviceSchema<PrivateMemory> deviceSchema = DeviceSchema.of(PrivateMemory.class,
-                arr -> arr.withArray("array", 4));
+                arr -> arr.array("array", 4));
         static PrivateMemory createPrivate() {
             return null;
         }

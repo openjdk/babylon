@@ -47,7 +47,7 @@ public class TestPrivate {
 
         DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
                 myPrivateArray -> myPrivateArray
-                        .withArray("array", 1));
+                        .array("array", 1));
 
         static PrivateArray create(Accelerator accelerator) {
             return null;

@@ -75,28 +75,29 @@ public class DeviceSchema<T extends NonMappableIface> {
     }
 
 
-    public DeviceSchema<T> withFields(String... fields) {
+    public DeviceSchema<T> fields(String... fields) {
         this.members.get(currentLevel).addAll(List.of(fields));
         return this;
     }
 
-    public DeviceSchema<T> withField(String fieldName) {
-        return withFields(fieldName);
+    public DeviceSchema<T> field(String fieldName) {
+        return fields(fieldName);
     }
 
-    public DeviceSchema<T> withArray(String fieldName, int size) {
-        withField(fieldName);//this.members.get(currentLevel).add(fieldName);
+    public DeviceSchema<T> array(String fieldName, int size) {
+        field(fieldName);
         arraySize.put(fieldName, size);
         return this;
     }
-
-    public DeviceSchema<T> withDeps(Class<?> klass, Consumer<DeviceSchema<T>> depConsumer) {
+    public DeviceSchema<T> array(String fieldName, int size, Class<?> klass, Consumer<DeviceSchema<T>> depConsumer) {
+        array(fieldName,size);
         this.currentLevel++; //  currentLevel== (this.members.size()-1))  // increment the level
         this.members.add(new ArrayList<>());
         depConsumer.accept(this);
         materialize(representationBuilder, klass);
         return this;
     }
+
 
     // The following recursive method generates an intermediate representation in text form for each level
     // of the hierarchy.
