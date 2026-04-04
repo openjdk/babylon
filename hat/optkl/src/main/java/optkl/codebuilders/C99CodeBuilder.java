@@ -33,7 +33,10 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     public C99CodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
     }
-
+    public C99CodeBuilder(C99CodeBuilder<T> c99CodeBuilder) {
+        super(c99CodeBuilder.scopedCodeBuilderContext());
+        preformatted(c99CodeBuilder.getText());
+    }
     public final T suffix_t(ClassType type){
         String name = type.toClassName();
         int dotIdx = name.lastIndexOf('.');

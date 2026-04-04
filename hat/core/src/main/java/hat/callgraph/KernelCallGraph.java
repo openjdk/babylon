@@ -36,6 +36,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
+import optkl.ifacemapper.MappableIface;
 import optkl.util.carriers.FuncOpCarrier;
 import optkl.util.carriers.LookupCarrier;
 
@@ -54,7 +55,7 @@ public class KernelCallGraph implements LookupCarrier {
     public static final boolean  showKernelIfaceDagProposedTypedefs = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
     public final ComputeCallGraph computeCallGraph;
     public final MethodCallDag callDag;
-    public final IfaceDataDag ifaceDag;
+    public final IfaceDataDag<MappableIface> ifaceDag;
     public final List<AccessType> bufferAccessList;
     public final Set<TypeElement> accessedTypes;
     public final Set<Class<?>> accessedClassTypes;
@@ -110,7 +111,7 @@ public class KernelCallGraph implements LookupCarrier {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
         }
 
-        this.ifaceDag = new IfaceDataDag(lookup(), entrypoint.funcOp());
+        this.ifaceDag = new IfaceDataDag<>(lookup(), entrypoint.funcOp());
         if (showKernelIfaceDag) {
             this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }

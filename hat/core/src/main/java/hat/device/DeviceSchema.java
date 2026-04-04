@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class DeviceSchema<T extends NonMappableIface> {
-    private final IfaceDataDag ifaceDataDag = new IfaceDataDag();
+    private final IfaceDataDag<T> ifaceDataDag = new IfaceDataDag<>();
     private final Class<T> clazz;
     private final List<List<String>> members = new ArrayList<>();
     private final Map<String, Integer> arraySize = new HashMap<>();
@@ -60,10 +60,7 @@ public class DeviceSchema<T extends NonMappableIface> {
     public DeviceSchema(Class<T> clazz) {
         this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(), null));
         this.clazz = clazz;
-        Object o = clazz;
-        var ifaceClazz = (Class<IfaceValue>) o;
-        var root = new IfaceDataDag.IfaceInfo.Impl((ClassType) JavaType.type(clazz.describeConstable().get()), ifaceClazz);
-        this.ifaceDataDag.add(root);
+        this.ifaceDataDag.add(new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz));
         members.add(new ArrayList<>());
     }
 
@@ -72,7 +69,7 @@ public class DeviceSchema<T extends NonMappableIface> {
     public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
         DeviceSchema<T> deviceSchema = new DeviceSchema<>(klass);
         schemaBuilder.accept(deviceSchema);
-        deviceSchema.materialize();
+        deviceSchema.materialize(deviceSchema.representationBuilder,deviceSchema.clazz);
         deviceSchema.ifaceDataDag.closeRanks();
         return deviceSchema;
     }
@@ -94,31 +91,20 @@ public class DeviceSchema<T extends NonMappableIface> {
     }
 
     public DeviceSchema<T> withDeps(Class<?> klass, Consumer<DeviceSchema<T>> depConsumer) {
-        // increment the level
-        this.currentLevel++; //  currentLevel== (this.members.size()-1))
+        this.currentLevel++; //  currentLevel== (this.members.size()-1))  // increment the level
         this.members.add(new ArrayList<>());
         depConsumer.accept(this);
         materialize(representationBuilder, klass);
         return this;
     }
 
-    private boolean isInterfaceType(Class<?> type) {
-        return type.isInterface();
-    }
-
-    // Materialize methods are only reachable within this class.
-    private void materialize() {
-        materialize(representationBuilder, clazz);
-    }
-
-    // The following method generates an intermediate representation in text form for each level
+    // The following recursive method generates an intermediate representation in text form for each level
     // of the hierarchy.
     // It inspects each type and its members. If a member is also a non-primitive type
     // then it recursively inspect its inner members.
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
-    // recursive
-    private void materialize(C99CodeBuilder<?> builder, Class<?> clazz) {
+    private C99CodeBuilder<?> materialize(C99CodeBuilder<?> builder, Class<?> clazz) {
         builder.lt();
         builder.id(clazz.getName()).colon();
         visited.add((Class<IfaceValue>) clazz);
@@ -126,17 +112,8 @@ public class DeviceSchema<T extends NonMappableIface> {
             boolean wasProcessed = false;
             for (Method method : clazz.getDeclaredMethods()) {
                 if (method.getName().equals(fieldName) && method.getReturnType() instanceof Class<?> returnType && !returnType.equals(void.class)) {
-                    if (isInterfaceType(returnType) && !visited.contains(returnType)) {
-                        // inspect the dependency and add it at the front of the string builder
-                        C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(
-                                new ScopedCodeBuilderContext(
-                                        builder.scopedCodeBuilderContext().lookup(),
-                                        builder.scopedCodeBuilderContext().funcOp()
-                                )
-                        );
-                        depsBuilder.preformatted(builder.getText());
-                        materialize(depsBuilder, returnType); // recurses here
-                        builder = depsBuilder;
+                    if (returnType.isInterface() && !visited.contains(returnType)) {
+                        builder = materialize(new C99CodeBuilder<>(builder),returnType);// recurses here
                     }
                     boolean isArray = arraySize.containsKey(method.getName());
                     builder
@@ -158,7 +135,7 @@ public class DeviceSchema<T extends NonMappableIface> {
             }
         }
         currentLevel--;
-        builder.gt();
+        return builder.gt();
     }
 
     public String toText() {
