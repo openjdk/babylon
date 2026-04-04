@@ -45,7 +45,7 @@ public class TestPrivate {
         void array(long index, float value);
         float array(long index);
 
-        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.ofa(PrivateArray.class,
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
                 myPrivateArray -> myPrivateArray
                         .withArray("array", 1));
 

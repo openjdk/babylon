@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
-    interface IfaceInfo {
+    public interface IfaceInfo {
         ClassType classType();
         Class<IfaceValue> clazz();
         record Impl(ClassType classType, Class<IfaceValue> clazz) implements IfaceInfo {
@@ -75,12 +75,15 @@ public class IfaceDataDag extends Dag<IfaceDataDag.IfaceInfo> {
                 .filter(ce -> ce instanceof Op)
                 .map(ce -> ((Op) ce).resultType())
                 .filter(typeElement -> typeElement instanceof ClassType)
-                .map(classType -> new IfaceInfo.Impl((ClassType) classType, (Class<IfaceValue>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) classType)))
+                .map(classType -> new IfaceInfo.Impl((ClassType) classType,
+                        (Class<IfaceValue>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) classType)))
                 .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz)).forEach(iface ->
                         iface.declaredMethodIfaceReturnTypes().forEach(retType ->
                                 addEdge(iface, retType)
                         )
                 );
         closeRanks();
+    }
+    public IfaceDataDag(){
     }
 }

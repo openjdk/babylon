@@ -25,22 +25,23 @@
 
 package hat.backend.ffi;
 
-import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.annotations.Kernel;
+import hat.annotations.Preformatted;
+import hat.annotations.TypeDef;
+import hat.buffer.ArgArray;
+import hat.buffer.KernelBufferContext;
+import hat.callgraph.KernelCallGraph;
+import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.C99VecAndMatHandler;
+import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
-import hat.annotations.TypeDef;
-import hat.buffer.*;
-import hat.codebuilders.C99HATKernelBuilder;
-import hat.callgraph.KernelCallGraph;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.device.DeviceSchema;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BufferState;
@@ -51,6 +52,7 @@ import optkl.ifacemapper.Schema;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -137,7 +139,33 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    private <T extends C99HATKernelBuilder<T>> void generateDeviceTypeStructs(T builder, String toText, Set<String> typedefs) {
+    static Type nameToTypeOrThrow(String name) {
+        return switch (name){
+            case "void"->void.class;
+            case "boolean"->boolean.class;
+            case "byte"->byte.class;
+            case "short"->short.class;
+            case "char"->char.class;
+            case "int"->int.class;
+            case "float"->float.class;
+            case "double"->double.class;
+            case "long"->long.class;
+            default -> {
+                try {
+                    if (Class.forName(name) instanceof Class<?> clazz) {
+                        yield clazz;
+                    } else {
+                        throw new RuntimeException("Not a class");
+                    }
+                }catch (ClassNotFoundException classNotFoundException){
+                    throw new RuntimeException("Not a class");
+                }
+            }
+        };
+
+    }
+
+    private <T extends C99HATKernelBuilder<T>> void generateDeviceTypeStructs(T builder, String toText, Set<Type> types) {
         // From here is text processing
         String[] split = toText.split(">");
         // Each item is a data struct
@@ -145,25 +173,28 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             // curate: remove first character
             final var finalS = ss.substring(1);
             String dsName = finalS.split(":")[0];
-            if (typedefs.add(dsName)){
+            if (types.add(nameToTypeOrThrow(dsName))) {
                 builder.typedefStruct(sanitize(dsName), _ -> {
                     String[] members = finalS.split(";");
-                    builder.indent(_-> {
-                                for (int i = 0, j = 1; i < members.length; i++, j = 0) {
-                                    String[] field = members[i].split(":");
-                                    final boolean isArray = field[j++].equals("[");
-                                    String rawtype = field[j++];
-                                    builder.type(sanitize(rawtype)+((typedefs.contains(rawtype)?"_t":""))).sp().id( field[j++]);
-                                    if (isArray) {
-                                        final String lenValue = field[j];
-                                        builder.sp().sbrace(_ -> builder.id(lenValue));
-                                    }
-                                    builder.semicolon().nl();
-                                }
-                            });
+                    builder.indent(_ -> {
+                        for (int i = 0, j = 1; i < members.length; i++, j = 0) {
+                            String[] field = members[i].split(":");
+                            final boolean isArray = field[j++].equals("[");
+                            String rawtype = field[j++];
+                            Type rawTypeClass = nameToTypeOrThrow(rawtype);
+                            builder.type(sanitize(rawtype) + ((types.contains(rawTypeClass) ? "_t" : ""))).sp().id(field[j++]);
+                            if (isArray) {
+                                final String lenValue = field[j];
+                                builder.sp().sbrace(_ -> builder.id(lenValue));
+                            }
+                            builder.semicolon().nl();
+
+                        }
+                    });
                 });
                 builder.semicolon().nl().nl();
             }
+
         }
     }
 
@@ -194,7 +225,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
             if (typedefAnnotation != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
-                builder.typedefStruct(typedefAnnotation.name(),_-> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
+                builder.typedefStruct(typedefAnnotation.name(), _ -> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
             }
             var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
             if (preformattedAnnotation != null) {
@@ -204,11 +235,11 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(kernelAnnotation.value());
         } else {
-            Set<String> typedefs = new HashSet<>();
+            Set<Type> types = new HashSet<>();
             if (kernelCallGraph.usesFp16) {
                 // Add HAT reserved types
-                typedefs.add(F16.class.getName());
-                typedefs.add(BF16.class.getName());
+                types.add(F16.class);
+                types.add(BF16.class);
             }
 
             // Dynamically build the schema for the user data type we are creating within the kernel.
@@ -228,7 +259,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                                 if (toText != null) {
                                     // <2> just to then parse the text from above.
                                     // Lets get the model in a cleaner form
-                                    generateDeviceTypeStructs(builder, toText, typedefs);
+                                    generateDeviceTypeStructs(builder, toText, types);
                                 } else {
                                     throw new RuntimeException("[ERROR] Could not find valid device schema ");
                                 }

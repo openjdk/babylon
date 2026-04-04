@@ -24,7 +24,11 @@
  */
 package hat.device;
 
+import hat.callgraph.IfaceDataDag;
 import hat.types.F16;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -32,22 +36,20 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
 public class DeviceSchema<T extends NonMappableIface> {
-
-    private final Class<T> klass;
+    private final IfaceDataDag ifaceDataDag = new IfaceDataDag();
+    private final Class<T> clazz;
     private final List<List<String>> members = new ArrayList<>();
     private final Map<String, Integer> arraySize = new HashMap<>();
     private final C99CodeBuilder<?> representationBuilder;
-    private final Set<String> visited = new HashSet<>();
+    private final Set<Class<IfaceValue>> visited = new HashSet<>();
 
     private static final Map<Class<?>, String> specialTypes = new HashMap<>();
 
@@ -55,49 +57,46 @@ public class DeviceSchema<T extends NonMappableIface> {
         specialTypes.put(F16.class, "half");
     }
 
-    public DeviceSchema(Class<T> klass) {
+    public DeviceSchema(Class<T> clazz) {
         this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(), null));
-        this.klass = klass;
+        this.clazz = clazz;
+        Object o = clazz;
+        var ifaceClazz = (Class<IfaceValue>) o;
+        var root = new IfaceDataDag.IfaceInfo.Impl((ClassType) JavaType.type(clazz.describeConstable().get()), ifaceClazz);
+        this.ifaceDataDag.add(root);
+        members.add(new ArrayList<>());
     }
 
     int currentLevel = 0;
 
-    public static <T extends NonMappableIface> DeviceSchema<T> ofa(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
+    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
         DeviceSchema<T> deviceSchema = new DeviceSchema<>(klass);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize();
+        deviceSchema.ifaceDataDag.closeRanks();
         return deviceSchema;
     }
 
-    public DeviceSchema<T> withField(String fieldName) {
-        if (members.isEmpty()) {
-            members.add(new ArrayList<>());
-        }
-        this.members.get(currentLevel).add(fieldName);
+
+    public DeviceSchema<T> withFields(String... fields) {
+        this.members.get(currentLevel).addAll(List.of(fields));
         return this;
     }
 
-    public DeviceSchema<T> withFields(String... fields) {
-        if (members.isEmpty()) {
-            members.add(new ArrayList<>());
-        }
-        this.members.get(currentLevel).addAll(Arrays.stream(fields).toList());
-        return this;
+    public DeviceSchema<T> withField(String fieldName) {
+        return withFields(fieldName);
     }
 
     public DeviceSchema<T> withArray(String fieldName, int size) {
-        if (members.isEmpty()) {
-            members.add(new LinkedList<>());
-        }
-        this.members.get(currentLevel).add(fieldName);
+        withField(fieldName);//this.members.get(currentLevel).add(fieldName);
         arraySize.put(fieldName, size);
         return this;
     }
 
     public DeviceSchema<T> withDeps(Class<?> klass, Consumer<DeviceSchema<T>> depConsumer) {
         // increment the level
-        this.currentLevel++;
-        this.members.add(new LinkedList<>());
+        this.currentLevel++; //  currentLevel== (this.members.size()-1))
+        this.members.add(new ArrayList<>());
         depConsumer.accept(this);
         materialize(representationBuilder, klass);
         return this;
@@ -109,7 +108,7 @@ public class DeviceSchema<T extends NonMappableIface> {
 
     // Materialize methods are only reachable within this class.
     private void materialize() {
-        materialize(representationBuilder, klass);
+        materialize(representationBuilder, clazz);
     }
 
     // The following method generates an intermediate representation in text form for each level
@@ -118,49 +117,44 @@ public class DeviceSchema<T extends NonMappableIface> {
     // then it recursively inspect its inner members.
     // We keep track of all generated data structured by maintaining a visited set. Thus,
     // we avoid duplicates in the text form.
-    private void materialize(C99CodeBuilder<?> builder, Class<?> klass) {
-            Method[] declaredMethods = klass.getDeclaredMethods();
-            builder.lt().id(klass.getName()).colon();
-            visited.add(klass.getName());
-
+    // recursive
+    private void materialize(C99CodeBuilder<?> builder, Class<?> clazz) {
+        builder.lt();
+        builder.id(clazz.getName()).colon();
+        visited.add((Class<IfaceValue>) clazz);
         for (String fieldName : members.get(currentLevel)) {
             boolean wasProcessed = false;
-            for (Method method : declaredMethods) {
-                //method.setAccessible(true);// i think these are always accessible?
-                if (method.getName().equals(fieldName)
-                        && method.getReturnType() instanceof Class<?> returnType // alway true but we want the type below
-                        && !returnType.equals(void.class)
-                        && returnType.getName() instanceof String returnTypeName // always true but we want the name of the type below
-                ) {
-                        if (isInterfaceType(returnType) && !visited.contains(returnTypeName)) {
-                            // inspect the dependency and add it at the front of the string builder
-                            C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(
-                                    new ScopedCodeBuilderContext(
-                                            builder.scopedCodeBuilderContext().lookup(),
-                                            builder.scopedCodeBuilderContext().funcOp()
-                                    )
-                            );
-                            depsBuilder.preformatted(builder.getText());
-                            materialize(depsBuilder, returnType);
-                            builder = depsBuilder;
-                        }
-                        boolean isArray= arraySize.containsKey(method.getName());
-                        builder
-                                .either(isArray,
-                                        CodeBuilder::osbrace,                                           // [==array
-                                        $->$.id("s")                                                // s==scalar
+            for (Method method : clazz.getDeclaredMethods()) {
+                if (method.getName().equals(fieldName) && method.getReturnType() instanceof Class<?> returnType && !returnType.equals(void.class)) {
+                    if (isInterfaceType(returnType) && !visited.contains(returnType)) {
+                        // inspect the dependency and add it at the front of the string builder
+                        C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(
+                                new ScopedCodeBuilderContext(
+                                        builder.scopedCodeBuilderContext().lookup(),
+                                        builder.scopedCodeBuilderContext().funcOp()
                                 )
-                                .colon().type(specialTypes.getOrDefault(klass, returnTypeName))          // type
-                                .colon().id(method.getName())                                            // name
-                                .when(isArray,$-> $
-                                        .colon().id(Integer.toString(arraySize.get(method.getName())))   // Array size
-                                )
-                                .semicolon();                   // member separator
-                        wasProcessed = true;
+                        );
+                        depsBuilder.preformatted(builder.getText());
+                        materialize(depsBuilder, returnType); // recurses here
+                        builder = depsBuilder;
+                    }
+                    boolean isArray = arraySize.containsKey(method.getName());
+                    builder
+                            .either(isArray,
+                                    CodeBuilder::osbrace,                                           // [==array
+                                    $ -> $.id("s")                                                // s==scalar
+                            )
+                            .colon().type(specialTypes.getOrDefault(clazz, returnType.getName()))          // type
+                            .colon().id(method.getName())                                            // name
+                            .when(isArray, $ -> $
+                                    .colon().id(Integer.toString(arraySize.get(method.getName())))   // Array size
+                            )
+                            .semicolon();                   // member separator
+                    wasProcessed = true;
                 }
             }
             if (!wasProcessed) {
-                throw new RuntimeException("could not find method " + fieldName + " in class " + klass.getName());
+                throw new RuntimeException("could not find method " + fieldName + " in class " + clazz.getName());
             }
         }
         currentLevel--;

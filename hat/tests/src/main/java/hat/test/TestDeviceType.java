@@ -55,7 +55,7 @@ public class TestDeviceType {
         void x(float x);
         float x();
 
-        DeviceSchema<MyDeviceArray> deviceSchema = DeviceSchema.ofa(MyDeviceArray.class, builder ->
+        DeviceSchema<MyDeviceArray> deviceSchema = DeviceSchema.of(MyDeviceArray.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(F16.class, half -> half.withField("value"))
                         .withField("x"));
@@ -97,7 +97,7 @@ public class TestDeviceType {
         /**
          * This structure creates an 2D matrix of 2048 x 64 elements.
          */
-        DeviceSchema<MyNDRAnge> deviceSchema = DeviceSchema.ofa(MyNDRAnge.class, builder ->
+        DeviceSchema<MyNDRAnge> deviceSchema = DeviceSchema.of(MyNDRAnge.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(SubRange.class, subrange -> subrange.withArray("range", 64)));
 
@@ -140,7 +140,7 @@ public class TestDeviceType {
             }
         }
 
-        DeviceSchema<MultiDim> deviceSchema = DeviceSchema.ofa(MultiDim.class, builder ->
+        DeviceSchema<MultiDim> deviceSchema = DeviceSchema.of(MultiDim.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(_2D.class,subrange -> subrange.withArray("range2", 64)
                                                                                        .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));
@@ -180,7 +180,7 @@ public class TestDeviceType {
             }
         }
 
-        DeviceSchema<MultiDimFix> deviceSchema = DeviceSchema.ofa(MultiDimFix.class, builder ->
+        DeviceSchema<MultiDimFix> deviceSchema = DeviceSchema.of(MultiDimFix.class, builder ->
                 builder.withArray("array", 2048)
                         .withDeps(_2D.class,subrange -> subrange.withArray("_range2", 64)
                                 .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));

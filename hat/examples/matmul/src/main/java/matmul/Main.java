@@ -123,7 +123,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<MyLocalArrayFixedSize> deviceSchema = DeviceSchema.ofa(MyLocalArrayFixedSize.class,
+        DeviceSchema<MyLocalArrayFixedSize> deviceSchema = DeviceSchema.of(MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray.withArray("array", 256));// It is a bound schema, so we fix the size here
 
 
@@ -187,7 +187,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.ofa(SharedMemory.class,
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
 
         static SharedMemory create(Accelerator accelerator) {
@@ -204,7 +204,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.ofa(PrivateArray.class,
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
                 arr -> arr.withArray("array", 16));
 
         static PrivateArray create(Accelerator accelerator) {
@@ -221,7 +221,7 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<FlatPrivate> deviceSchema = DeviceSchema.ofa(FlatPrivate.class,
+        DeviceSchema<FlatPrivate> deviceSchema = DeviceSchema.of(FlatPrivate.class,
                 arr -> arr.withArray("array", 4));
 
         static FlatPrivate create(Accelerator accelerator) {
@@ -478,7 +478,7 @@ public class Main {
     private interface SharedMemoryHalf extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<SharedMemoryHalf> deviceSchema = DeviceSchema.ofa(SharedMemoryHalf.class,
+        DeviceSchema<SharedMemoryHalf> deviceSchema = DeviceSchema.of(SharedMemoryHalf.class,
                 arr -> arr.withArray("array", 1024)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -494,7 +494,7 @@ public class Main {
     private interface PrivateArrayHalf extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<PrivateArrayHalf> deviceSchema = DeviceSchema.ofa(PrivateArrayHalf.class,
+        DeviceSchema<PrivateArrayHalf> deviceSchema = DeviceSchema.of(PrivateArrayHalf.class,
                 arr -> arr.withArray("array", 16)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -510,7 +510,7 @@ public class Main {
     private interface FlatPrivateHalf extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<FlatPrivateHalf> deviceSchema = DeviceSchema.ofa(FlatPrivateHalf.class,
+        DeviceSchema<FlatPrivateHalf> deviceSchema = DeviceSchema.of(FlatPrivateHalf.class,
                 arr -> arr.withArray("array", 4)
                         .withDeps(F16.class, half -> half.withField("value")));
 

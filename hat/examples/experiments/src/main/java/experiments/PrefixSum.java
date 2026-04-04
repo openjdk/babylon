@@ -62,7 +62,7 @@ public class PrefixSum {
 
         int array(long index);
 
-        DeviceSchema<SharedS32x256Array> deviceSchema = DeviceSchema.ofa(SharedS32x256Array.class, $ -> $.withArray("array", 32));
+        DeviceSchema<SharedS32x256Array> deviceSchema = DeviceSchema.of(SharedS32x256Array.class, $ -> $.withArray("array", 32));
 
         static SharedS32x256Array create(Accelerator accelerator) {
            return null;// return BoundSchema.of(accelerator ,schema).allocate(); // Why would we get here?

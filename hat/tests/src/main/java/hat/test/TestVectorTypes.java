@@ -161,7 +161,7 @@ public class TestVectorTypes {
     private interface SharedMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.ofa(SharedMemory.class,
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
                 arr -> arr.withArray("array", 1024));
         static SharedMemory create(Accelerator accelerator) {
             return null;
@@ -193,7 +193,7 @@ public class TestVectorTypes {
     private interface PrivateMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<PrivateMemory> deviceSchema = DeviceSchema.ofa(PrivateMemory.class,
+        DeviceSchema<PrivateMemory> deviceSchema = DeviceSchema.of(PrivateMemory.class,
                 arr -> arr.withArray("array", 4));
         static PrivateMemory create(Accelerator accelerator) {
             return null;

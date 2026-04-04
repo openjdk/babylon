@@ -151,7 +151,7 @@ public class TestDFT {
         }
         PrivateComplex complex(long index);
         DeviceSchema<ArrayComplexPrivate> deviceSchema =
-                DeviceSchema.ofa(ArrayComplexPrivate.class,
+                DeviceSchema.of(ArrayComplexPrivate.class,
                         complex ->
                                 complex.withArray("complex", 128)
                                         .withDeps(PrivateComplex.class,

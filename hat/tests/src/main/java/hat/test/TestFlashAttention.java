@@ -54,7 +54,7 @@ public class TestFlashAttention {
     private interface SharedF16Array extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<SharedF16Array> deviceSchema = DeviceSchema.ofa(SharedF16Array.class,
+        DeviceSchema<SharedF16Array> deviceSchema = DeviceSchema.of(SharedF16Array.class,
                 arr -> arr.withArray("array", 7168)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -66,7 +66,7 @@ public class TestFlashAttention {
     private interface PrivateF16Array extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<PrivateF16Array> deviceSchema = DeviceSchema.ofa(PrivateF16Array.class,
+        DeviceSchema<PrivateF16Array> deviceSchema = DeviceSchema.of(PrivateF16Array.class,
                 arr -> arr.withArray("array", 64)
                         .withDeps(F16.class, half -> half.withField("value")));
 
@@ -224,7 +224,7 @@ public class TestFlashAttention {
 
         float array(long index);
 
-        DeviceSchema<SharedFloatArray> deviceSchema = DeviceSchema.ofa(SharedFloatArray.class,
+        DeviceSchema<SharedFloatArray> deviceSchema = DeviceSchema.of(SharedFloatArray.class,
                 arr -> arr
                         // final int sharedMemorySize = block_m * head_dim
                         //                + block_n * head_dim
@@ -243,7 +243,7 @@ public class TestFlashAttention {
 
         float array(long index);
 
-        DeviceSchema<PrivateFloatArray> deviceSchema = DeviceSchema.ofa(PrivateFloatArray.class,
+        DeviceSchema<PrivateFloatArray> deviceSchema = DeviceSchema.of(PrivateFloatArray.class,
                 arr -> arr
                         // SIZE = HEAD_DIM (e.g., 64)
                         .withArray("array", 64));
