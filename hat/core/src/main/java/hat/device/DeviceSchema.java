@@ -33,7 +33,6 @@ import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +57,7 @@ public class DeviceSchema<T extends NonMappableIface> {
     }
 
     public DeviceSchema(Class<T> clazz) {
-        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(), null));
+        this.representationBuilder = new C99CodeBuilder<>();
         this.clazz = clazz;
         this.ifaceDataDag.add(new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz));
         members.add(new ArrayList<>());
@@ -119,10 +118,10 @@ public class DeviceSchema<T extends NonMappableIface> {
                     boolean isArray = arraySize.containsKey(method.getName());
                     builder
                             .either(isArray,
-                                    CodeBuilder::osbrace,                                           // [==array
-                                    $ -> $.id("s")                                                // s==scalar
+                                    CodeBuilder::osbrace,                                             // [==array
+                                    $ -> $.id("s")                                               // s==scalar
                             )
-                            .colon().type(specialTypes.getOrDefault(clazz, returnType.getName()))          // type
+                            .colon().type(specialTypes.getOrDefault(clazz, returnType.getName()))     // type
                             .colon().id(method.getName())                                            // name
                             .when(isArray, $ -> $
                                     .colon().id(Integer.toString(arraySize.get(method.getName())))   // Array size
