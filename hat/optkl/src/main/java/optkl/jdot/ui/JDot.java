@@ -677,6 +677,9 @@ public class JDot {
             Path tmp = Files.createTempFile("", ".dot");
             tmp.toFile().deleteOnExit();
             Files.writeString(tmp, dotText);
+            if (Boolean.getBoolean("showDot")){
+                System.out.println(dotText);
+            }
             return dotToJson(tmp);
 
         } catch (IOException e) {

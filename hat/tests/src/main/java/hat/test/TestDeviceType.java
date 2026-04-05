@@ -55,10 +55,9 @@ public class TestDeviceType {
         void x(float x);
         float x();
 
-        DeviceSchema<MyDeviceArray> schema = DeviceSchema.of(MyDeviceArray.class, builder ->
-                builder.withArray("array", 2048)
-                        .withDeps(F16.class, half -> half.withField("value"))
-                        .withField("x"));
+        DeviceSchema<MyDeviceArray> deviceSchema = DeviceSchema.of(MyDeviceArray.class, builder ->
+                builder.array("array", 2048,F16.class, half -> half.field("value"))
+                        .field("x"));
 
         static MyDeviceArray create() {
             return null;
@@ -73,8 +72,7 @@ public class TestDeviceType {
     @HatTest
     @Reflect
     public void testdevice_type_01() {
-        MyDeviceArray myDeviceArray = MyDeviceArray.create();
-        String text = MyDeviceArray.schema.toText();
+        String text = MyDeviceArray.deviceSchema.toText();
         boolean isEquals = text.equals("<hat.types.F16:s:half:value;><hat.test.TestDeviceType$MyDeviceArray:[:hat.types.F16:array:2048;s:float:x;>");
         HATAsserts.assertTrue(isEquals);
     }
@@ -85,7 +83,7 @@ public class TestDeviceType {
      * represents an array of {@link SubRange} objects, where each sub-range
      * also contains an array of integers.
      */
-    public interface MyNDRAnge extends NonMappableIface {
+    public interface MyNDRange extends NonMappableIface {
         SubRange array(int index);
         void array(int index, SubRange value);
 
@@ -97,11 +95,10 @@ public class TestDeviceType {
         /**
          * This structure creates an 2D matrix of 2048 x 64 elements.
          */
-        DeviceSchema<MyNDRAnge> schema = DeviceSchema.of(MyNDRAnge.class, builder ->
-                builder.withArray("array", 2048)
-                        .withDeps(SubRange.class, subrange -> subrange.withArray("range", 64)));
+        DeviceSchema<MyNDRange> deviceSchema = DeviceSchema.of(MyNDRange.class, builder ->
+                builder.array("array", 2048,SubRange.class, subrange -> subrange.array("range", 64)));
 
-        static MyNDRAnge create() {
+        static MyNDRange create() {
             return null;
         }
     }
@@ -109,9 +106,8 @@ public class TestDeviceType {
     @HatTest
     @Reflect
     public void testdevice_type_02() {
-        MyNDRAnge myDeviceArray = MyNDRAnge.create();
-        String text = MyNDRAnge.schema.toText();
-        boolean isEquals = text.equals("<hat.test.TestDeviceType$MyNDRAnge$SubRange:[:int:range:64;><hat.test.TestDeviceType$MyNDRAnge:[:hat.test.TestDeviceType$MyNDRAnge$SubRange:array:2048;>");
+        String text = MyNDRange.deviceSchema.toText();
+        boolean isEquals = text.equals("<hat.test.TestDeviceType$MyNDRange$SubRange:[:int:range:64;><hat.test.TestDeviceType$MyNDRange:[:hat.test.TestDeviceType$MyNDRange$SubRange:array:2048;>");
         HATAsserts.assertTrue(isEquals);
     }
 
@@ -140,10 +136,12 @@ public class TestDeviceType {
             }
         }
 
-        DeviceSchema<MultiDim> schema = DeviceSchema.of(MultiDim.class, builder ->
-                builder.withArray("array", 2048)
-                        .withDeps(_2D.class,subrange -> subrange.withArray("range2", 64)
-                                                                                       .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));
+        DeviceSchema<MultiDim> deviceSchema = DeviceSchema.of(MultiDim.class, builder ->
+                builder.array("array", 2048, _2D.class, subrange ->
+                        subrange.array("range2", 64, _2D._3D.class, f ->
+                                f.array("value", 32))
+                )
+        );
 
         static MultiDim create() {
             return null;
@@ -154,10 +152,9 @@ public class TestDeviceType {
     @Reflect
     public void testdevice_type_03() {
         // This test is expected to fail. It request a member called "range2" from the _2D class.
-        // However, the method name is "_range2". Thus the requested method doen't exits.
+        // However, the method name is "_range2". Thus the requested method doesn't exist.
         try {
-            MultiDim myDeviceArray = MultiDim.create();
-            String text = MultiDim.schema.toText();
+            String text = MultiDim.deviceSchema.toText();
             // If we request the correct method, the result should be as follows:
             boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
             HATAsserts.assertFalse(isEquals);
@@ -180,10 +177,10 @@ public class TestDeviceType {
             }
         }
 
-        DeviceSchema<MultiDimFix> schema = DeviceSchema.of(MultiDimFix.class, builder ->
-                builder.withArray("array", 2048)
-                        .withDeps(_2D.class,subrange -> subrange.withArray("_range2", 64)
-                                .withDeps(_2D._3D.class, f -> f.withArray("value", 32))));
+        DeviceSchema<MultiDimFix> deviceSchema = DeviceSchema.of(MultiDimFix.class, builder ->
+                builder.array("array", 2048,_2D.class,subrange ->
+                        subrange.array("_range2", 64,_2D._3D.class, f -> f.array("value", 32))
+                ));
 
         static MultiDimFix create() {
             return null;
@@ -195,8 +192,7 @@ public class TestDeviceType {
     public void testdevice_type_04() {
         // Same test as the previous one with the correct field names
         try {
-            MultiDimFix myDeviceArray = MultiDimFix.create();
-            String text = MultiDimFix.schema.toText();
+            String text = MultiDimFix.deviceSchema.toText();
             // If we request the correct method, the result should be as follows:
             boolean isEquals = text.equals("<hat.test.TestDeviceType$MultiDim$_2D$_3D:[:int:value:32;><hat.test.TestDeviceType$MultiDim$_2D:[:hat.test.TestDeviceType$MultiDim$_2D$_3D:_range2:64;><hat.test.TestDeviceType$MultiDim:[:hat.test.TestDeviceType$MultiDim$_2D:array:2048;>");
             HATAsserts.assertFalse(isEquals);

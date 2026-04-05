@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-26, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,20 +22,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl.codebuilders;
+package optkl.util;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 
-public abstract class ScopeAwareJavaOrC99StyleCodeBuilder<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>>
-        extends JavaOrC99StyleCodeBuilder<T,ScopedCodeBuilderContext>
-        implements BabylonOpDispatcher<T,ScopedCodeBuilderContext>{
-    private final ScopedCodeBuilderContext scopedCodeBuilderContext;
-    protected ScopeAwareJavaOrC99StyleCodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext){
-      //  if (scopedCodeBuilderContext == null){
-        //    throw new RuntimeException("Where did this come from ");
-       // }
-        this.scopedCodeBuilderContext = scopedCodeBuilderContext;
+public class Interner<N> {
+    protected final Map<N, N> interned = new LinkedHashMap<>();
+
+    public N intern(N n, Consumer<N> ifAbsent) {
+        if (!interned.containsKey(n)) {
+            interned.put(n, n);
+            ifAbsent.accept(n);
+        }
+        return interned.get(n);
     }
-    final public ScopedCodeBuilderContext scopedCodeBuilderContext(){
-        return scopedCodeBuilderContext;
+
+    public boolean add(N n) {
+        boolean[] added ={false};
+        intern(n,_->added[0]=true);
+        return added[0];
     }
 }

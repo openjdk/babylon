@@ -91,10 +91,10 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
     // recursive
     void addEdge(Call from, OpHelper.Invoke invoke) {
         var to = new OtherMethodCall(invoke);
-        add(from,to, _-> // this is only called if from->to is a new 'edge'
-                OpHelper.Invoke.stream(invoke.lookup(), to.funcOp()).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i ->
-                        addEdge(to, i) // recurses here
-                )
+        add(from,to, _-> //only called if from->to is a new 'edge'
+                    OpHelper.Invoke.stream(invoke.lookup(), to.funcOp()).filter((inv) -> inv.targetMethodModelOrNull() != null).forEach(i ->
+                            addEdge(to, i) // recurses here
+                    )
         );
     }
 

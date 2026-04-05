@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import hat.dialect.*;
 import optkl.OpHelper;
 import optkl.Trxfmr;
@@ -254,7 +253,8 @@ public record HATArrayViewPhase() implements HATPhase {
                     // idx location differs between ArrayAccessOp and ArrayLengthOp
                     indices.addFirst(res.op() instanceof JavaOp.ArrayAccessOp
                             ? resultFromOperandN(res.op(), 1)
-                            : resultFromFirstOperandOrThrow(res.op()));
+                            : resultFromOperandN(res.op(), 0)
+                    );
                 }
                 if (!node.edges().isEmpty()) {
                     Node<T> next = node.edges().getFirst(); // we only traverse through the index-related ops
