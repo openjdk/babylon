@@ -111,7 +111,21 @@ public class KernelCallGraph implements LookupCarrier {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
         }
 
-        this.ifaceDag = new IfaceDataDag<>(lookup(), entrypoint.funcOp());
+        this.ifaceDag = new IfaceDataDag<>();
+
+        entrypoint.funcOp().elements()
+                    .filter(ce -> ce instanceof Op)
+                    .map(ce -> ((Op) ce).resultType())
+                    .filter(typeElement -> typeElement instanceof ClassType)
+                    .map(classType -> new IfaceDataDag.IfaceInfo.Impl<>((ClassType) classType,
+                            (Class<MappableIface>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) classType)))
+                    .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz())).forEach(iface ->
+                            iface.declaredMethodIfaceReturnTypes().forEach(retType ->
+                                    ifaceDag.addEdge(iface,  (IfaceDataDag.IfaceInfo<MappableIface>)retType)
+                            )
+                    );
+
+        this.ifaceDag.closeRanks();
         if (showKernelIfaceDag) {
             this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }

@@ -24,15 +24,11 @@
  */
 package hat.callgraph;
 
-import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
-import optkl.OpHelper;
 import optkl.util.Dag;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -72,22 +68,5 @@ public class IfaceDataDag<I extends IfaceValue> extends Dag<IfaceDataDag.IfaceIn
             );
             add(from, to);
         }
-    }
-
-    public IfaceDataDag(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntrypointFuncOp) {
-        inlinedEntrypointFuncOp.elements()
-                .filter(ce -> ce instanceof Op)
-                .map(ce -> ((Op) ce).resultType())
-                .filter(typeElement -> typeElement instanceof ClassType)
-                .map(classType -> new IfaceInfo.Impl<I>((ClassType) classType,
-                        (Class<I>) OpHelper.classTypeToTypeOrThrow(lookup, (ClassType) classType)))
-                .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz)).forEach(iface ->
-                        iface.declaredMethodIfaceReturnTypes().forEach(retType ->
-                                addEdge(iface,  (IfaceInfo<I>)retType)
-                        )
-                );
-        closeRanks();
-    }
-    public IfaceDataDag(){
     }
 }
