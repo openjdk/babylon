@@ -31,7 +31,6 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.CodeBuilder;
-import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -43,10 +42,21 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class DeviceSchema<T extends NonMappableIface> {
-    private final IfaceDataDag<T> ifaceDataDag = new IfaceDataDag<>();
+   // private final IfaceDataDag<T> ifaceDataDag = new IfaceDataDag<>();
     private final Class<T> clazz;
-    private final List<List<String>> members = new ArrayList<>();
-    private final Map<String, Integer> arraySize = new HashMap<>();
+    interface Member{
+        List<NamedMember> members();
+    }
+    interface NamedMember extends Member {
+        Member parent();
+        String name();
+    }
+    record Root<T extends NonMappableIface>(Class<T> clazz,List<NamedMember> members)implements Member{};
+    record Field(Member parent, String name, List<NamedMember> members)implements NamedMember {}
+    record Array(Member parent, String name, int size, List<NamedMember> members) implements NamedMember {}
+    private Root<T> root;
+    private Member current;
+    private final List<List<NamedMember>> members = new ArrayList<>();
     private final C99CodeBuilder<?> representationBuilder;
     private final Set<Class<IfaceValue>> visited = new HashSet<>();
 
@@ -59,23 +69,26 @@ public class DeviceSchema<T extends NonMappableIface> {
     public DeviceSchema(Class<T> clazz) {
         this.representationBuilder = new C99CodeBuilder<>();
         this.clazz = clazz;
-        this.ifaceDataDag.add(new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz));
+        this.root = new Root<>(clazz, new ArrayList<>());
+        this.current = root;
+      //  this.ifaceDataDag.add(new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz));
         members.add(new ArrayList<>());
     }
 
     int currentLevel = 0;
 
-    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
-        DeviceSchema<T> deviceSchema = new DeviceSchema<>(klass);
+    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> clazz, Consumer<DeviceSchema<T>> schemaBuilder) {
+        DeviceSchema<T> deviceSchema = new DeviceSchema<>(clazz);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize(deviceSchema.representationBuilder,deviceSchema.clazz);
-        deviceSchema.ifaceDataDag.closeRanks();
+     //   deviceSchema.ifaceDataDag.closeRanks();
         return deviceSchema;
     }
 
 
-    public DeviceSchema<T> fields(String... fields) {
-        this.members.get(currentLevel).addAll(List.of(fields));
+    public DeviceSchema<T> fields(String... fieldNames) {
+        var fieldNameList = List.of(fieldNames);
+        this.members.get(currentLevel).addAll(fieldNameList.stream().map(fieldName->new Field(current,fieldName,new ArrayList<>())).toList());
         return this;
     }
 
@@ -84,16 +97,18 @@ public class DeviceSchema<T extends NonMappableIface> {
     }
 
     public DeviceSchema<T> array(String fieldName, int size) {
-        field(fieldName);
-        arraySize.put(fieldName, size);
+        this.members.get(currentLevel).add(new Array(current, fieldName,size, new ArrayList<>()));
         return this;
     }
-    public DeviceSchema<T> array(String fieldName, int size, Class<?> klass, Consumer<DeviceSchema<T>> depConsumer) {
+    public DeviceSchema<T> array(String fieldName, int size, Class<?> clazz, Consumer<DeviceSchema<T>> depConsumer) {
         array(fieldName,size);
+        var latest = this.members.get(currentLevel).getLast();//add(new Array(current, fieldName,size, new ArrayList<>()));
+        this.current = latest;
         this.currentLevel++; //  currentLevel== (this.members.size()-1))  // increment the level
         this.members.add(new ArrayList<>());
         depConsumer.accept(this);
-        materialize(representationBuilder, klass);
+        materialize(representationBuilder, clazz);
+        current=latest.parent();
         return this;
     }
 
@@ -108,30 +123,29 @@ public class DeviceSchema<T extends NonMappableIface> {
         builder.lt();
         builder.id(clazz.getName()).colon();
         visited.add((Class<IfaceValue>) clazz);
-        for (String fieldName : members.get(currentLevel)) {
+        for (NamedMember member : members.get(currentLevel)) {
             boolean wasProcessed = false;
             for (Method method : clazz.getDeclaredMethods()) {
-                if (method.getName().equals(fieldName) && method.getReturnType() instanceof Class<?> returnType && !returnType.equals(void.class)) {
+                if (method.getName().equals(member.name()) && method.getReturnType() instanceof Class<?> returnType && !returnType.equals(void.class)) {
                     if (returnType.isInterface() && !visited.contains(returnType)) {
                         builder = materialize(new C99CodeBuilder<>(builder),returnType);// recurses here
                     }
-                    boolean isArray = arraySize.containsKey(method.getName());
                     builder
-                            .either(isArray,
+                            .either(member instanceof Array,
                                     CodeBuilder::osbrace,                                             // [==array
                                     $ -> $.id("s")                                               // s==scalar
                             )
                             .colon().type(specialTypes.getOrDefault(clazz, returnType.getName()))     // type
                             .colon().id(method.getName())                                            // name
-                            .when(isArray, $ -> $
-                                    .colon().id(Integer.toString(arraySize.get(method.getName())))   // Array size
+                            .when(member instanceof Array, $ -> $
+                                    .colon().id(Integer.toString(((Array)member).size()))   // Array size
                             )
                             .semicolon();                   // member separator
                     wasProcessed = true;
                 }
             }
             if (!wasProcessed) {
-                throw new RuntimeException("could not find method " + fieldName + " in class " + clazz.getName());
+                throw new RuntimeException("could not find method " + member.name() + " in class " + clazz.getName());
             }
         }
         currentLevel--;

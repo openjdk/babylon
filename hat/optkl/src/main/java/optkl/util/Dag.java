@@ -42,7 +42,6 @@ public abstract class Dag<N> {
     public final Map<N, Set<N>> fromTo = new LinkedHashMap<>();
     public final  Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
-
     public boolean add(N n) {
          return all.add(n);
     }
