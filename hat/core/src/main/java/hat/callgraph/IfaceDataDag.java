@@ -38,6 +38,10 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class IfaceDataDag<I extends IfaceValue> extends Dag<IfaceDataDag.IfaceInfo<I>> {
+    public IfaceDataDag.IfaceInfo<I>  getNode(Class<I> clazz) {
+        return new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz);
+    }
+
     public interface IfaceInfo<I extends IfaceValue> {
         ClassType classType();
         Class<I> clazz();
@@ -61,7 +65,7 @@ public class IfaceDataDag<I extends IfaceValue> extends Dag<IfaceDataDag.IfaceIn
 
 
     // recursive
-    void addEdge(IfaceInfo<I> from, IfaceInfo<I> to) {
+    public void addEdge(IfaceInfo<I> from, IfaceInfo<I> to) {
         if (!from.equals(to)) {
             to.declaredMethodIfaceReturnTypes().forEach(retType ->
                     addEdge(to, retType)

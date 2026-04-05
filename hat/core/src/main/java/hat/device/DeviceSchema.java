@@ -26,14 +26,17 @@ package hat.device;
 
 import hat.callgraph.IfaceDataDag;
 import hat.types.F16;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
+import optkl.OpHelper;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.CodeBuilder;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,21 +45,28 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class DeviceSchema<T extends NonMappableIface> {
-   // private final IfaceDataDag<T> ifaceDataDag = new IfaceDataDag<>();
+    IfaceDataDag<T> ifaceDataDag = new IfaceDataDag<>();
     private final Class<T> clazz;
-    interface Member{
-        List<NamedMember> members();
+    interface Member<T extends NonMappableIface>{
+        DeviceSchema<T> deviceSchema();
+        Class<?> clazz();
+        List<NamedMember<T>> members();
     }
-    interface NamedMember extends Member {
-        Member parent();
+    interface NamedMember<T extends NonMappableIface> extends Member<T> {
+        Member<T> parent();
         String name();
+        @Override
+        default DeviceSchema<T> deviceSchema() {
+            return parent().deviceSchema();
+        }
     }
-    record Root<T extends NonMappableIface>(Class<T> clazz,List<NamedMember> members)implements Member{};
-    record Field(Member parent, String name, List<NamedMember> members)implements NamedMember {}
-    record Array(Member parent, String name, int size, List<NamedMember> members) implements NamedMember {}
-    private Root<T> root;
-    private Member current;
-    private final List<List<NamedMember>> members = new ArrayList<>();
+    record Root<T extends NonMappableIface>(DeviceSchema<T> deviceSchema,Class<T> clazz,List<NamedMember<T>> members)implements Member<T>{};
+    record Field<T extends NonMappableIface>(Member<T> parent,Class<?> clazz, String name, List<NamedMember<T>> members)implements NamedMember<T> {}
+    record Array<T extends NonMappableIface>(Member<T> parent,Class<?> clazz, String name, int size, List<NamedMember<T>> members) implements NamedMember<T> {}
+    private final Root<T> root;
+    private int currentLevel = 0;
+    private Member<T> current;
+    private final List<List<NamedMember<T>>> members = new ArrayList<>();
     private final C99CodeBuilder<?> representationBuilder;
     private final Set<Class<IfaceValue>> visited = new HashSet<>();
 
@@ -69,13 +79,20 @@ public class DeviceSchema<T extends NonMappableIface> {
     public DeviceSchema(Class<T> clazz) {
         this.representationBuilder = new C99CodeBuilder<>();
         this.clazz = clazz;
-        this.root = new Root<>(clazz, new ArrayList<>());
+        this.root = new Root<>(this,clazz, new ArrayList<>());
         this.current = root;
-      //  this.ifaceDataDag.add(new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz));
+
+        var entryPoint = ifaceDataDag.getNode(clazz);
+        Arrays.stream(clazz.getDeclaredMethods())
+                .filter(m->IfaceValue.class.isAssignableFrom(m.getReturnType())).forEach(m->
+                            ifaceDataDag.addEdge(entryPoint, ifaceDataDag.getNode((Class<T>) m.getReturnType()))
+                );
+        ifaceDataDag.closeRanks();
+        System.out.println(String.join("->",ifaceDataDag.rankOrdered.stream().map(IfaceDataDag.IfaceInfo::dotName).toList()));
+       // ifaceDataDag.rankOrdered.forEach(n->System.out.println(n.dotName()));
         members.add(new ArrayList<>());
     }
 
-    int currentLevel = 0;
 
     public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> clazz, Consumer<DeviceSchema<T>> schemaBuilder) {
         DeviceSchema<T> deviceSchema = new DeviceSchema<>(clazz);
@@ -88,20 +105,26 @@ public class DeviceSchema<T extends NonMappableIface> {
 
     public DeviceSchema<T> fields(String... fieldNames) {
         var fieldNameList = List.of(fieldNames);
-        this.members.get(currentLevel).addAll(fieldNameList.stream().map(fieldName->new Field(current,fieldName,new ArrayList<>())).toList());
+        var list = fieldNameList.stream().map(fieldName->new Field<>(current,current.clazz(),fieldName,new ArrayList<>())).toList();
+        this.members.get(currentLevel).addAll(list);
         return this;
     }
 
     public DeviceSchema<T> field(String fieldName) {
         return fields(fieldName);
     }
-
     public DeviceSchema<T> array(String fieldName, int size) {
-        this.members.get(currentLevel).add(new Array(current, fieldName,size, new ArrayList<>()));
+        // primitive
+        this.members.get(currentLevel).add(new Array<>(current, null,fieldName,size, new ArrayList<>()));
+        return this;
+    }
+
+    public DeviceSchema<T> array(String fieldName, int size, Class<?> clazz) {
+        this.members.get(currentLevel).add(new Array<>(current, clazz,fieldName,size, new ArrayList<>()));
         return this;
     }
     public DeviceSchema<T> array(String fieldName, int size, Class<?> clazz, Consumer<DeviceSchema<T>> depConsumer) {
-        array(fieldName,size);
+        array(fieldName,size,clazz);
         var latest = this.members.get(currentLevel).getLast();
         this.current = latest;
         this.currentLevel++; //  currentLevel== (this.members.size()-1))  // increment the level
@@ -111,7 +134,6 @@ public class DeviceSchema<T extends NonMappableIface> {
         current=latest.parent();
         return this;
     }
-
 
     // The following recursive method generates an intermediate representation in text form for each level
     // of the hierarchy.
