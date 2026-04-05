@@ -102,7 +102,7 @@ public class DeviceSchema<T extends NonMappableIface> {
     }
     public DeviceSchema<T> array(String fieldName, int size, Class<?> clazz, Consumer<DeviceSchema<T>> depConsumer) {
         array(fieldName,size);
-        var latest = this.members.get(currentLevel).getLast();//add(new Array(current, fieldName,size, new ArrayList<>()));
+        var latest = this.members.get(currentLevel).getLast();
         this.current = latest;
         this.currentLevel++; //  currentLevel== (this.members.size()-1))  // increment the level
         this.members.add(new ArrayList<>());

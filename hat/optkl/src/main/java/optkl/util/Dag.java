@@ -37,18 +37,13 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public abstract class Dag<N> {
-    private final Set<N> all = new LinkedHashSet<>();
+public abstract class Dag<N> extends Interner<N> {
     public final Map<N, Set<N>> fromTo = new LinkedHashMap<>();
-    public final  Map<N, Set<N>> toFrom = new LinkedHashMap<>();
-
-    public boolean add(N n) {
-         return all.add(n);
-    }
+    public final Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
     public void add(N from, N to, Consumer<N> ifAbsent) {
-        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
         toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
+        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
         if (add(from)){
             ifAbsent.accept(from);
         }
@@ -76,25 +71,34 @@ public abstract class Dag<N> {
     }
 
     public void closeRanks() {
-        Map<N, Integer> outDegree = new HashMap<>();
-        fromTo.keySet().forEach(parent -> {
-            outDegree.put(parent, fromTo.get(parent).size());
-            fromTo.get(parent).forEach(child ->
-                    outDegree.putIfAbsent(child, 0)
-            );
-        });
-
-        Queue<N> queue = new LinkedList<>(outDegree.entrySet().stream().filter(e -> e.getValue() == 0).map(Map.Entry::getKey).toList());
-
-        while (queue.poll() instanceof N current) { // basically a null check
-            rankOrdered.add(current);
-            toFrom.getOrDefault(current, Collections.emptySet()).forEach(parent -> {
-                int remainingChildren = outDegree.get(parent) - 1;
-                outDegree.put(parent, remainingChildren);
-                if (remainingChildren == 0) {
-                    queue.add(parent);
-                }
+        if (fromTo.isEmpty()){
+            rankOrdered.addAll(interned.values());
+        }else {
+            Map<N, Integer> outDegree = new HashMap<>();
+            fromTo.keySet().forEach(parent -> {
+                outDegree.put(parent, fromTo.get(parent).size());
+                fromTo.get(parent).forEach(child ->
+                        outDegree.putIfAbsent(child, 0)
+                );
             });
+
+            Queue<N> queue = new LinkedList<>(outDegree.entrySet().stream()
+                    .filter(e -> e.getValue() == 0)
+                    .map(Map.Entry::getKey)
+                    .toList()
+            );
+
+            while (queue.poll() instanceof N current) { // basically a null check
+                rankOrdered.add(current);
+                toFrom.getOrDefault(current, Collections.emptySet())
+                        .forEach(parent -> {
+                            int remainingChildren = outDegree.get(parent) - 1;
+                            outDegree.put(parent, remainingChildren);
+                            if (remainingChildren == 0) {
+                                queue.add(parent);
+                            }
+                        });
+            }
         }
     }
 }
