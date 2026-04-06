@@ -101,9 +101,11 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
     MethodCallDag(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
         this.inlined = inlined;
         this.entryPoint = new EntryMethodCall(method,entry);
-        OpHelper.Invoke.stream(lookup, entry).filter((inv)-> inv.targetMethodModelOrNull() != null).forEach(i ->
-                addEdge(entryPoint, i)
-        );
+        OpHelper.Invoke.stream(lookup, entry)
+                .filter((inv)-> inv.targetMethodModelOrNull() != null)
+                .forEach(i ->
+                        addEdge(entryPoint, i)
+                );
         closeRanks();
     }
 

@@ -24,19 +24,13 @@
  */
 package hat.device;
 
-import hat.callgraph.IfaceDataDag;
 import hat.types.F16;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
-import optkl.OpHelper;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.CodeBuilder;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,8 +40,10 @@ import java.util.function.Consumer;
 
 public class DeviceSchema<T extends NonMappableIface> {
     public final Class<T> clazz;
-    interface Member<T extends NonMappableIface>{
+    interface Builder<T extends NonMappableIface>{
         DeviceSchema<T> deviceSchema();
+    }
+    interface Member<T extends NonMappableIface> extends Builder<T>{
         Class<?> clazz();
         List<NamedMember<T>> members();
     }
@@ -59,9 +55,13 @@ public class DeviceSchema<T extends NonMappableIface> {
             return parent().deviceSchema();
         }
     }
+    interface NamedArrayMember<T extends NonMappableIface> extends NamedMember<T>{
+        int size();
+    }
     record Root<T extends NonMappableIface>(DeviceSchema<T> deviceSchema,Class<T> clazz,List<NamedMember<T>> members)implements Member<T>{};
     record Field<T extends NonMappableIface>(Member<T> parent,Class<?> clazz, String name, List<NamedMember<T>> members)implements NamedMember<T> {}
-    record Array<T extends NonMappableIface>(Member<T> parent,Class<?> clazz, String name, int size, List<NamedMember<T>> members) implements NamedMember<T> {}
+    record Array<T extends NonMappableIface>(Member<T> parent,Class<?> clazz, String name, int size, List<NamedMember<T>> members) implements NamedArrayMember<T> {}
+
     private final Root<T> root;
     private int currentLevel = 0;
     private Member<T> current;

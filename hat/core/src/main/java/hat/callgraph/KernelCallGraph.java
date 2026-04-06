@@ -66,18 +66,7 @@ public class KernelCallGraph implements LookupCarrier {
     public final Set<Class<? extends _F16>> accessedFP16Classes;
     public boolean usesBarrier;
     public boolean usesAtomics;
-    public final Set<String> accessedKcFields;
-
-    @Override
-    public String toString() {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("UsesVecTypes:").append(!accessedVecClasses.isEmpty()).append(", ");
-        stringBuilder.append("UsesFp16:").append(!accessedFP16Classes.isEmpty()).append(", ");
-        stringBuilder.append("UsesAtomics:").append(usesAtomics).append(", ");
-        stringBuilder.append("UsesBarrier:").append(usesBarrier).append(", ");
-        stringBuilder.append("AccessedKernelContextFields:").append("[").append(String.join(", ", accessedKcFields)).append("]");
-        return stringBuilder.toString();
-    }
+    public final Set<String> accessedKernelContextFields;
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp e) {
 
@@ -85,31 +74,30 @@ public class KernelCallGraph implements LookupCarrier {
         var inlinedEntryPoint = Inliner.inlineEntrypoint(lookup(), e);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
-        this.accessedKcFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
+        this.accessedKernelContextFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
                 .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList()
         );
         this.accessedTypes = inlinedEntryPoint.elements()
-                .filter(ce -> ce instanceof Op)
-                .map(ce -> ((Op) ce).resultType())
+                .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
                 .collect(Collectors.toSet());
         this.accessedClasses = this.accessedTypes.stream()
-                .filter(te -> te instanceof ClassType)
-                .map(te -> (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) te))
+                .filter(te -> te instanceof ClassType).map(te -> (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) te))
                 .collect(Collectors.toSet());
         this.accessedIfaceClasses =  this.accessedClasses.stream()
-                .filter(c->IfaceValue.class.isAssignableFrom(c))
-                .map(c->(Class<IfaceValue>)c)
+                .filter(c->IfaceValue.class.isAssignableFrom(c)).map(c->(Class<IfaceValue>)c)
                 .collect(Collectors.toSet());
         this.accessedVecClasses =  this.accessedClasses.stream()
-                .filter(c->IfaceValue.vec.class.isAssignableFrom(c))
-                .map(c->(Class<IfaceValue.vec>)c)
+                .filter(c->IfaceValue.vec.class.isAssignableFrom(c)).map(c->(Class<IfaceValue.vec>)c)
                 .collect(Collectors.toSet());
         this.accessedFP16Classes =  this.accessedClasses.stream()
-                .filter(c->_F16.class.isAssignableFrom(c))
-                .map(c->(Class<_F16>)c)
+                .filter(c->_F16.class.isAssignableFrom(c)).map(c->(Class<_F16>)c)
                 .collect(Collectors.toSet());
         this.usesAtomics = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
-                .anyMatch(invoke -> invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex("(atomic.*)Inc"));
+                .anyMatch(invoke ->
+                        invoke instanceof OpHelper.Invoke.Virtual
+                                && invoke.operandCount() == 1
+                                && invoke.returnsInt()
+                                && invoke.nameMatchesRegex("(atomic.*)Inc"));
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
         var entrypoint = new FuncOpCarrier.Impl(e);
@@ -126,8 +114,7 @@ public class KernelCallGraph implements LookupCarrier {
         this.ifaceDag = new IfaceDataDag<>(dag->
             entrypoint.funcOp().elements()
                     .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
-                    .filter(typeElement -> typeElement instanceof ClassType)
-                    .map(typeElement -> dag.getNode(lookup(), (ClassType) typeElement))
+                    .filter(typeElement -> typeElement instanceof ClassType).map(typeElement -> dag.getNode(lookup(), (ClassType) typeElement))
                     .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
                     .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
                             .forEach(retType -> dag.addEdge(iface, retType))
