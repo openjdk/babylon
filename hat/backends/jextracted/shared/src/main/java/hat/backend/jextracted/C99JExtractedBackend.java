@@ -93,9 +93,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
                         }
                     });
                 });
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup()
-                ,kernelCallGraph.callDag.entryPoint.funcOp());
-        builder.nl().kernelEntrypoint(buildContext).nl();
+        builder.nl().kernelEntrypoint().nl();
 
         return builder.toString();
     }

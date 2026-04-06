@@ -39,6 +39,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -99,8 +100,8 @@ public class ComputeCallGraph implements LookupCarrier {
             this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
         }
 
-        callDag.methodCalls()
-                .filter(m->
+            callDag.rankOrdered.stream()
+                    .filter(m->m instanceof MethodCallDag.OtherMethodCall &&
                         this.callDag.entryPoint.method().getDeclaringClass().equals(m.method().getDeclaringClass())
                                 && isValidKernelDispatch(computeContext.lookup(),m.method(),m.funcOp()))
                 .forEach(m-> kernelCallGraphMap.computeIfAbsent( m.methodRef(), _ ->

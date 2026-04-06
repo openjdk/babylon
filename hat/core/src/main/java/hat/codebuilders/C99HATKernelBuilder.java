@@ -386,8 +386,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
 
-    public final  T kernelMethod(ScopedCodeBuilderContext buildContext,CoreOp.FuncOp funcOp) {
-          buildContext.funcScope(funcOp, () -> {
+    public final  T kernelMethod(CoreOp.FuncOp funcOp) {
+          scopedCodeBuilderContext().funcScope(funcOp, () -> {
               nl();
               functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
               parenNlIndented(_ ->
@@ -407,16 +407,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public final  T kernelEntrypoint(ScopedCodeBuilderContext buildContext) {
+    public final  T kernelEntrypoint() {
         nl();
-        buildContext.funcScope(buildContext.funcOp(), () ->
-                kernelDeclaration(buildContext.funcOp())
+        scopedCodeBuilderContext().funcScope(scopedCodeBuilderContext().funcOp(), () ->
+                kernelDeclaration(scopedCodeBuilderContext().funcOp())
                 .parenNlIndented(_ -> commaNlSeparated(
-                    buildContext.paramTable.list(),
+                        scopedCodeBuilderContext().paramTable.list(),
                         this::declareParam)
                 )
                 .braceNlIndented(_ -> nlSeparated(
-                    OpHelper.Statement.statements(buildContext.funcOp().bodies().getFirst().entryBlock()),
+                    OpHelper.Statement.statements(scopedCodeBuilderContext().funcOp().bodies().getFirst().entryBlock()),
                         this::statement
                 )
             )

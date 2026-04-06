@@ -414,8 +414,9 @@ public class CudaBackend extends C99FFIBackend {
         builder.clear();
 
      //   var here = CallSite.of(CudaBackend.class, "createPTX");
-
-        kernelCallGraph.callDag.methodCalls().forEach(f -> {
+        kernelCallGraph.callDag.rankOrdered.stream()
+                .filter(m->m instanceof MethodCallDag.OtherMethodCall)
+                .forEach(f -> {
                     CoreOp.FuncOp loweredFunc = f.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
                     loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
                     invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));

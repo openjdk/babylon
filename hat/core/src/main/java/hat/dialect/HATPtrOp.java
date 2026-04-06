@@ -55,26 +55,23 @@ public abstract sealed class HATPtrOp extends HATOp
                             .map(fieldNode -> fieldNode.name)
                             .toList();
 
-                    if (!retValue.isEmpty()){
+                    if (!retValue.isEmpty()) {
                         retValue = retValue.subList(0, retValue.size() - 1);// remove the "array" field from the fields
                     }
                 }
             } catch (IllegalAccessException | NoSuchFieldException e) {
-                try{
-                    if (bufferClass.getField("deviceSchema").get(null) instanceof DeviceSchema<?> deviceSchema){
+                try {
+                    if (bufferClass.getField("deviceSchema").get(null) instanceof DeviceSchema deviceSchema) {
                         // We did find a device schema !  I think we should not be getting here with device schemas
-                    }else{
+                    } else {
                         throw new RuntimeException("No schema or deviceSchema field ");
                     }
-                }catch (IllegalAccessException | NoSuchFieldException e2){
-                    throw new RuntimeException("No schema field ",e2);
+                } catch (IllegalAccessException | NoSuchFieldException e2) {
+                    throw new RuntimeException("No schema field ", e2);
                 }
-              //  throw new RuntimeException("No schema  "+e);
             }
-        }//else{
-           // throw new RuntimeException("bufferClass "+bufferClass+" not public and or is not Mappable");
-       // }
-        this.strides = retValue;//getFieldsOfBuffer(bufferClass);
+        }
+        this.strides = retValue;
         this.name = name;
     }
 
