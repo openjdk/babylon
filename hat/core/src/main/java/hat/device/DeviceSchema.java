@@ -45,8 +45,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class DeviceSchema<T extends NonMappableIface> {
-    IfaceDataDag<T> ifaceDataDag = new IfaceDataDag<>();
-    private final Class<T> clazz;
+    public final Class<T> clazz;
     interface Member<T extends NonMappableIface>{
         DeviceSchema<T> deviceSchema();
         Class<?> clazz();
@@ -82,14 +81,6 @@ public class DeviceSchema<T extends NonMappableIface> {
         this.root = new Root<>(this,clazz, new ArrayList<>());
         this.current = root;
 
-        var entryPoint = ifaceDataDag.getNode(clazz);
-        Arrays.stream(clazz.getDeclaredMethods())
-                .filter(m->IfaceValue.class.isAssignableFrom(m.getReturnType())).forEach(m->
-                            ifaceDataDag.addEdge(entryPoint, ifaceDataDag.getNode((Class<T>) m.getReturnType()))
-                );
-        ifaceDataDag.closeRanks();
-        System.out.println(String.join("->",ifaceDataDag.rankOrdered.stream().map(IfaceDataDag.IfaceInfo::dotName).toList()));
-       // ifaceDataDag.rankOrdered.forEach(n->System.out.println(n.dotName()));
         members.add(new ArrayList<>());
     }
 
@@ -98,7 +89,6 @@ public class DeviceSchema<T extends NonMappableIface> {
         DeviceSchema<T> deviceSchema = new DeviceSchema<>(clazz);
         schemaBuilder.accept(deviceSchema);
         deviceSchema.materialize(deviceSchema.representationBuilder,deviceSchema.clazz);
-     //   deviceSchema.ifaceDataDag.closeRanks();
         return deviceSchema;
     }
 

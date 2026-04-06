@@ -107,7 +107,5 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
         closeRanks();
     }
 
-    public Stream<Call> methodCalls() {
-        return rankOrdered.stream().filter(f->f instanceof OtherMethodCall);
-    }
+
 }

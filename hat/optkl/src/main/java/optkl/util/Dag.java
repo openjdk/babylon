@@ -67,7 +67,7 @@ public abstract class Dag<N> extends Interner<N> {
     }
 
     public boolean isDag() {
-        return fromTo.size() > 1;
+        return !fromTo.isEmpty();
     }
 
     public void closeRanks() {

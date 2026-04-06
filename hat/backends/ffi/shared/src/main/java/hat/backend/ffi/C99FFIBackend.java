@@ -33,7 +33,9 @@ import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.buffer.ArgArray;
 import hat.buffer.KernelBufferContext;
+import hat.callgraph.IfaceDataDag;
 import hat.callgraph.KernelCallGraph;
+import hat.callgraph.MethodCallDag;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.C99VecAndMatHandler;
 import hat.device.DeviceSchema;
@@ -41,6 +43,7 @@ import hat.device.NonMappableIface;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
+import optkl.IfaceValue;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -56,8 +59,10 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public abstract class C99FFIBackend extends FFIBackend implements BufferTracker {
     public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
@@ -219,9 +224,9 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
         if (kernelAnnotation != null) {
             // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
             kernelCallGraph.usesAtomics = true;
-            kernelCallGraph.usesFp16 = true;
+            kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class,BF16.class));//usesFp16 = true;
             kernelCallGraph.usesBarrier = true;
-            kernelCallGraph.usesVecTypes = false;// maybe?
+
             var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
             if (typedefAnnotation != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
@@ -236,18 +241,52 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             builder.preformatted(kernelAnnotation.value());
         } else {
             Set<Type> types = new HashSet<>();
-            if (kernelCallGraph.usesFp16) {
+            if (!kernelCallGraph.accessedFP16Classes.isEmpty()) {
                 // Add HAT reserved types
                 types.add(F16.class);
                 types.add(BF16.class);
             }
+
+            kernelCallGraph.accessedIfaceClasses.stream()
+                    .filter(NonMappableIface.class::isAssignableFrom)
+                    .map(c->(Class<NonMappableIface>)c)
+                    .forEach(c-> {
+                        var ifaceDataDag = new IfaceDataDag<NonMappableIface>(dag -> {
+                            var entryPoint = dag.getNode(c);
+                            dag.methodsWithIfaceReturnTypes(c)
+                                    .forEach(ifaceInfo ->
+                                            dag.addEdge(entryPoint, dag.getNode(ifaceInfo.clazz())) // this recurses with each added class
+                                    );
+                                  });
+                        Consumer<IfaceDataDag.IfaceInfo<NonMappableIface>> dump = ifaceValue -> {
+                            try {
+                                Field schemaField = c.getDeclaredField("deviceSchema");
+                                schemaField.setAccessible(true);
+                                var s = schemaField.get(schemaField);
+                                if (s instanceof DeviceSchema<?> deviceSchema) {
+                                  //  System.out.println("typedef "+deviceSchema.clazz.getSimpleName()+"{");
+                                   // System.out.println("}");
+                                }
+                            }catch (NoSuchFieldException|IllegalAccessException e) {
+                                throw new RuntimeException(e);
+                            }
+                        };
+                        if (ifaceDataDag.isDag()){
+                       //     System.out.println(String.join(" -> ",ifaceDataDag.rankOrdered.stream().map(IfaceDataDag.IfaceInfo::dotName).toList()));
+                            ifaceDataDag.rankOrdered.forEach(dump);
+                        }else {
+                          //  var node = ifaceDataDag.getNode(c);
+                         //   System.out.println(node.dotName());
+                            ifaceDataDag.rankOrdered.forEach(dump);
+                        }
+                    });
 
             // Dynamically build the schema for the user data type we are creating within the kernel.
             // This is because no allocation was done from the host. This is kernel code, and it is reflected
             // using the code reflection API
             // 1. Add for struct for iface objects
 
-            kernelCallGraph.accessedClassTypes.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
+            kernelCallGraph.accessedIfaceClasses.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
                     c -> {
                         try {
                             Field schemaField = c.getDeclaredField("deviceSchema");
@@ -274,15 +313,14 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
             var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp());
 
-            if (kernelCallGraph.usesVecTypes) {
+            if (!kernelCallGraph.accessedVecClasses.isEmpty()) {
                 C99VecAndMatHandler.createVecFunctions(builder);
             }
 
-            // This provides functions in reverse call order.  There may be none if the entrypojnt does it all
-            kernelCallGraph.callDag.methodCalls().forEach(f ->
-                    builder.nl().kernelMethod(buildContext, f.funcOp()).nl()
-            );
 
+            kernelCallGraph.callDag.rankOrdered.stream()
+                    .filter(m->m instanceof MethodCallDag.OtherMethodCall)
+                    .forEach(m -> builder.nl().kernelMethod(buildContext, m.funcOp()).nl());
             builder.nl().kernelEntrypoint(buildContext).nl();
 
             if (config().showKernelModel()) {

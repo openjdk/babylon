@@ -27,15 +27,30 @@ package hat.callgraph;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
+import optkl.OpHelper;
+import optkl.ifacemapper.MappableIface;
 import optkl.util.Dag;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class IfaceDataDag<I extends IfaceValue> extends Dag<IfaceDataDag.IfaceInfo<I>> {
-    public IfaceDataDag.IfaceInfo<I>  getNode(Class<I> clazz) {
+     public IfaceDataDag.IfaceInfo<I>  getNode(Class<I> clazz) {
         return new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz);
+    }
+
+      public IfaceInfo<I>  getNode(MethodHandles.Lookup lookup, ClassType classType) {
+        return getNode((Class<I>) OpHelper.classTypeToTypeOrThrow(lookup, classType));
+    }
+
+    public Stream<IfaceInfo<I>> methodsWithIfaceReturnTypes(Class<I>clazz) {
+        return Arrays.stream(clazz.getDeclaredMethods())
+                .map(Method::getReturnType)
+                .filter(IfaceValue.class::isAssignableFrom)
+                .map(ifaceClass->getNode(((Class<I>)ifaceClass)));
     }
 
     public interface IfaceInfo<I extends IfaceValue> {
@@ -51,22 +66,20 @@ public class IfaceDataDag<I extends IfaceValue> extends Dag<IfaceDataDag.IfaceIn
             }
             return clazz().getSimpleName();
         }
-        default  Stream<IfaceInfo<I >> declaredMethodIfaceReturnTypes() {
-            return Arrays.stream(clazz().getDeclaredMethods())
-                    .map(Method::getReturnType)
-                    .filter(IfaceValue.class::isAssignableFrom)
-                    .map(clazz -> new IfaceInfo.Impl<I>((ClassType) JavaType.type(clazz.describeConstable().get()), (Class<I>)clazz));
-        }
     }
-
 
     // recursive
     public void addEdge(IfaceInfo<I> from, IfaceInfo<I> to) {
         if (!from.equals(to)) {
-            to.declaredMethodIfaceReturnTypes().forEach(retType ->
+            methodsWithIfaceReturnTypes(to.clazz()).forEach(retType ->
                     addEdge(to, retType)
             );
             add(from, to);
         }
+    }
+
+    public IfaceDataDag(Consumer<IfaceDataDag<I>> init){
+       init.accept(this);
+       closeRanks();
     }
 }
