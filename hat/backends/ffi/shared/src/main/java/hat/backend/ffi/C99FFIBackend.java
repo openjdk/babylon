@@ -145,16 +145,16 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     static Type nameToTypeOrThrow(String name) {
-        return switch (name){
-            case "void"->void.class;
-            case "boolean"->boolean.class;
-            case "byte"->byte.class;
-            case "short"->short.class;
-            case "char"->char.class;
-            case "int"->int.class;
-            case "float"->float.class;
-            case "double"->double.class;
-            case "long"->long.class;
+        return switch (name) {
+            case "void" -> void.class;
+            case "boolean" -> boolean.class;
+            case "byte" -> byte.class;
+            case "short" -> short.class;
+            case "char" -> char.class;
+            case "int" -> int.class;
+            case "float" -> float.class;
+            case "double" -> double.class;
+            case "long" -> long.class;
             default -> {
                 try {
                     if (Class.forName(name) instanceof Class<?> clazz) {
@@ -162,45 +162,12 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                     } else {
                         throw new RuntimeException("Not a class");
                     }
-                }catch (ClassNotFoundException classNotFoundException){
+                } catch (ClassNotFoundException classNotFoundException) {
                     throw new RuntimeException("Not a class");
                 }
             }
         };
 
-    }
-
-    private <T extends C99HATKernelBuilder<T>> void generateDeviceTypeStructs(T builder, String toText, Set<Type> types) {
-        // From here is text processing
-        String[] split = toText.split(">");
-        // Each item is a data struct
-        for (String ss : split) {
-            // curate: remove first character
-            final var finalS = ss.substring(1);
-            String dsName = finalS.split(":")[0];
-            if (types.add(nameToTypeOrThrow(dsName))) {
-                builder.typedefStruct(sanitize(dsName), _ -> {
-                    String[] members = finalS.split(";");
-                    builder.indent(_ -> {
-                        for (int i = 0, j = 1; i < members.length; i++, j = 0) {
-                            String[] field = members[i].split(":");
-                            final boolean isArray = field[j++].equals("[");
-                            String rawtype = field[j++];
-                            Type rawTypeClass = nameToTypeOrThrow(rawtype);
-                            builder.type(sanitize(rawtype) + ((types.contains(rawTypeClass) ? "_t" : ""))).sp().id(field[j++]);
-                            if (isArray) {
-                                final String lenValue = field[j];
-                                builder.sp().sbrace(_ -> builder.id(lenValue));
-                            }
-                            builder.semicolon().nl();
-
-                        }
-                    });
-                });
-                builder.semicolon().nl().nl();
-            }
-
-        }
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
@@ -224,7 +191,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
         if (kernelAnnotation != null) {
             // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
             kernelCallGraph.usesAtomics = true;
-            kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class,BF16.class));//usesFp16 = true;
+            kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class, BF16.class));//usesFp16 = true;
             kernelCallGraph.usesBarrier = true;
 
             var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
@@ -240,78 +207,54 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(kernelAnnotation.value());
         } else {
-            Set<Type> types = new HashSet<>();
-            if (!kernelCallGraph.accessedFP16Classes.isEmpty()) {
-                // Add HAT reserved types
-                types.add(F16.class);
-                types.add(BF16.class);
-            }
-
+            Set<Class<?>> done = new HashSet<>();
+            done.add(F16.class);
+            done.add(BF16.class);
             kernelCallGraph.accessedIfaceClasses.stream()
                     .filter(NonMappableIface.class::isAssignableFrom)
-                    .map(c->(Class<NonMappableIface>)c)
-                    .forEach(c-> {
+                    .map(c -> (Class<NonMappableIface>) c)
+                    .forEach(c -> {
                         var ifaceDataDag = new IfaceDataDag<NonMappableIface>(dag -> {
                             var entryPoint = dag.getNode(c);
                             dag.methodsWithIfaceReturnTypes(c)
                                     .forEach(ifaceInfo ->
                                             dag.addEdge(entryPoint, dag.getNode(ifaceInfo.clazz())) // this recurses with each added class
                                     );
-                                  });
+                        });
                         Consumer<IfaceDataDag.IfaceInfo<NonMappableIface>> dump = ifaceValue -> {
-                            try {
-                                Field schemaField = c.getDeclaredField("deviceSchema");
-                                schemaField.setAccessible(true);
-                                var s = schemaField.get(schemaField);
-                                if (s instanceof DeviceSchema<?> deviceSchema) {
-                                  //  System.out.println("typedef "+deviceSchema.clazz.getSimpleName()+"{");
-                                   // System.out.println("}");
+                            if (!done.contains(ifaceValue.clazz())) {
+                                done.add(ifaceValue.clazz());
+                                try {
+                                    Field schemaField = ifaceValue.clazz().getDeclaredField("deviceSchema");
+                                    schemaField.setAccessible(true);
+                                    if (schemaField.get(schemaField) instanceof DeviceSchema<?> deviceSchema) {
+                                        builder.typedefStruct(deviceSchema.root.clazz(), _ ->
+                                                deviceSchema.root.members().stream().map(m -> (DeviceSchema.NamedMember) m).forEach(m -> builder
+                                                        .either(IfaceValue.class.isAssignableFrom(m.clazz()),
+                                                             _ -> builder.suffix_t(m.clazz().getSimpleName()),
+                                                             _ -> builder.type(m.clazz().getSimpleName())
+                                                        )
+                                                        .sp().id(m.name())
+                                                        .when(m instanceof DeviceSchema.Array,
+                                                                _ ->builder.sbrace(_ -> builder.intConst(((DeviceSchema.Array) m).size()))
+                                                        ).semicolon().nl()
+                                                )
+                                        );
+                                    }
+                                } catch (NoSuchFieldException | IllegalAccessException e) {
+                                    throw new RuntimeException(e);
                                 }
-                            }catch (NoSuchFieldException|IllegalAccessException e) {
-                                throw new RuntimeException(e);
                             }
                         };
-                        if (ifaceDataDag.isDag()){
-                       //     System.out.println(String.join(" -> ",ifaceDataDag.rankOrdered.stream().map(IfaceDataDag.IfaceInfo::dotName).toList()));
+                        if (ifaceDataDag.isDag()) {
                             ifaceDataDag.rankOrdered.forEach(dump);
-                        }else {
-                          //  var node = ifaceDataDag.getNode(c);
-                         //   System.out.println(node.dotName());
-                            ifaceDataDag.rankOrdered.forEach(dump);
+                        } else {
+                            dump.accept(ifaceDataDag.getNode(c));
                         }
                     });
 
-            // Dynamically build the schema for the user data type we are creating within the kernel.
-            // This is because no allocation was done from the host. This is kernel code, and it is reflected
-            // using the code reflection API
-            // 1. Add for struct for iface objects
 
-            kernelCallGraph.accessedIfaceClasses.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
-                    c -> {
-                        try {
-                            Field schemaField = c.getDeclaredField("deviceSchema");
-                            schemaField.setAccessible(true);
-                            var s = schemaField.get(schemaField);
-                            if (s instanceof DeviceSchema<?> deviceSchema) {
-                                // <1> We are creating text form of DeviceType schema
-                                String toText = deviceSchema.toText();
-                                if (toText != null) {
-                                    // <2> just to then parse the text from above.
-                                    // Lets get the model in a cleaner form
-                                    generateDeviceTypeStructs(builder, toText, types);
-                                } else {
-                                    throw new RuntimeException("[ERROR] Could not find valid device schema ");
-                                }
-                            } else if (s instanceof Schema<?> schema) {
-                                throw new RuntimeException("found " + schema + " in NonMappableIface " + c.getName());
-                            }
-                        } catch (ReflectiveOperationException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-            );
-
-            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp());
+          //  var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp());
 
             if (!kernelCallGraph.accessedVecClasses.isEmpty()) {
                 C99VecAndMatHandler.createVecFunctions(builder);
@@ -319,9 +262,9 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
 
             kernelCallGraph.callDag.rankOrdered.stream()
-                    .filter(m->m instanceof MethodCallDag.OtherMethodCall)
-                    .forEach(m -> builder.nl().kernelMethod(buildContext, m.funcOp()).nl());
-            builder.nl().kernelEntrypoint(buildContext).nl();
+                    .filter(m -> m instanceof MethodCallDag.OtherMethodCall)
+                    .forEach(m -> builder.nl().kernelMethod( m.funcOp()).nl());
+            builder.nl().kernelEntrypoint().nl();
 
             if (config().showKernelModel()) {
                 IO.println("Non Lowered");
@@ -333,18 +276,6 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             }
         }
         return builder.toString();
-    }
-
-    private String sanitize(String s) {
-        String[] split1 = s.split("\\.");
-        if (split1.length != 1) {
-            s = split1[split1.length - 1];
-            if (s.split("\\$").length > 1) {
-                int last = s.lastIndexOf("$");
-                s = s.substring(last + 1);
-            }
-        }
-        return s;
     }
 
     @Override
