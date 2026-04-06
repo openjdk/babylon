@@ -34,7 +34,7 @@
 /// consider the following Java code that we want to inspect, a class containing one field and one method, and another
 /// class also containing one field and one method.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// static class Example {
 ///     static Runnable R = () -> IO.println("Example:field:R");
 ///     static int add(int a, int b) {
@@ -47,12 +47,12 @@
 ///         void m() { IO.println("Example.Nested:method:m"); }
 ///     }
 /// }
-/// }
+///}
 ///
 /// We can write a simple stream that uses core reflection and traverses program structure, a tree of annotated
 /// elements, starting from a given class and reporting elements in a topological order.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// static Stream<AnnotatedElement> elements(Class<?> c) {
 ///     return Stream.of(c).mapMulti((e, mapper) -> traverse(e, mapper));
 /// }
@@ -65,7 +65,7 @@
 ///         for (Class<?> dc : c.getDeclaredClasses()) { traverse(dc, mapper); }
 ///     }
 /// }
-/// }
+///}
 ///
 /// ([AnnotatedElement][java.lang.reflect.AnnotatedElement] is the common super type of [Class][java.lang.Class],
 /// [Field][java.lang.reflect.Field], and [Method][java.lang.reflect.Method].)
@@ -73,15 +73,15 @@
 /// The `traverse` method recursively traverses a class's declared fields, methods, and enclosed class. Starting from
 /// `Example`, using a class literal expression, we can print out the fields, methods, and classes we encounter.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// elements(Example.class)
 ///     .forEach(IO::println);
-/// }
+///}
 ///
 /// More interestingly we can perform some simple analysis, such as counting the number of static fields whose type is
 /// [Runnable][java.lang.Runnable].
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// static boolean isStaticRunnableField(Field f) {
 ///     return f.accessFlags().contains(AccessFlag.STATIC)
 ///         && Runnable.class.isAssignableFrom(f.getType());
@@ -89,7 +89,7 @@
 /// assert 2 == elements(Example.class)
 ///     .filter(e -> e instanceof Field f && isStaticRunnableField(f))
 ///     .count();
-/// }
+///}
 ///
 /// However, it is not possible to perform some analysis of the code in the lambda expressions and methods. The core
 /// reflection API can only inspect the classes, fields, and methods – it provides no facility to go deeper and inspect
@@ -100,7 +100,7 @@
 /// Using code reflection we can go deeper. We can update `Example` so that the code of the lambda expressions and
 /// methods is accessible just like the fields and method.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// import jdk.incubator.code.*;
 /// import jdk.incubator.code.bytecode.*;
 /// import jdk.incubator.code.dialect.core.*;
@@ -109,22 +109,19 @@
 /// import static jdk.incubator.code.dialect.java.JavaOp.*;
 ///
 /// static class Example {
-///     @Reflect
-///     static Runnable R = () -> IO.println("Example:field:R");
-///     @Reflect
-///     static int add(int a, int b) {
+///
+/// @Reflect     static Runnable R = () -> IO.println("Example:field:R");
+/// @Reflect     static int add(int a, int b) {
 ///         IO.println("Example:method:add");
 ///         return a + b;
 ///     }
 ///
 ///     static class Nested {
-///         @Reflect
-///         static Runnable R = () -> IO.println("Example.Nested:field:R");
-///         @Reflect
-///         void m() { IO.println("Example.Nested:method:m"); }
+/// @Reflect         static Runnable R = () -> IO.println("Example.Nested:field:R");
+/// @Reflect         void m() { IO.println("Example.Nested:method:m"); }
 ///     }
 /// }
-/// }
+///}
 ///
 /// We declare the lambda expressions and methods are reflectable by annotating their declarations with
 /// [Reflect][jdk.incubator.code.Reflect]. By doing so we grant access to their code. When the source of the `Example`
@@ -138,7 +135,7 @@
 /// We can use code reflection to access the code model of an annotated element, which loads the corresponding code
 /// model that was stored in the related class file.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// static Object getStaticFieldValue(Field f) {
 ///     try { return f.get(null); }
 ///     catch (IllegalAccessException e) { throw new RuntimeException(e); }
@@ -151,7 +148,7 @@
 ///         default -> Optional.empty();
 ///    };
 /// }
-/// }
+///}
 ///
 /// The method `getCodeModel` returns the code model for a reflectable method or lambda expression, a code element that
 /// is the root of the code model tree. By default, methods and lambda expressions are not reflectable, so we return an
@@ -163,17 +160,17 @@
 ///
 /// We can use `getCodeModel` to map from `Example`’s annotated elements to their code models.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// elements(Example.class)
 ///         // AnnotatedElement -> CodeModel?
 ///         .flatMap(ae -> getCodeModel(ae).stream())
 ///         .forEach(IO::println);
-/// }
+///}
 ///
 /// More interestingly we can now perform some simple analysis of code, such as extracting the values of the string
 /// literal expressions that are printed.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// static final MethodRef PRINTLN = MethodRef.method(IO.class, "println", // @link substring="MethodRef" target="jdk.incubator.code.dialect.java.MethodRef"
 ///         void.class, Object.class);
 /// static Optional<String> isPrintConstantString(CodeElement<?, ?> e) {
@@ -192,20 +189,20 @@
 ///             .flatMap(e -> isPrintConstantString(e).stream())
 ///             .toList();
 /// }
-/// }
+///}
 ///
 /// The method `analyzeCodeModel` uses a stream to [traverse](#traversing-heading) over all elements of a code model and
 /// returns the list of string literal values passed to invocations of `IO.println`. We can then use `analyzeCodeModel`
 /// to further refine our steam expression to print out all such string literal values.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// elements(Example.class)
 ///         // AnnotatedElement -> CodeModel?
 ///         .flatMap(ae -> getCodeModel(ae).stream())
 ///         // CodeModel -> List<String>
 ///         .map(codeModel -> analyzeCodeModel(codeModel))
 ///         .forEach(IO::println);
-/// }
+///}
 ///
 /// ## Declaring and accessing reflectable code
 ///
@@ -218,11 +215,11 @@
 /// result is an optional value that contains the code model modeling the method. For example, we can access the
 /// code model for the `Example.add` method as follows:
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// Method addMethod = Example.class.getDeclaredMethod("add", int.class, int.class);
 /// CoreOp.FuncOp codeModel = Op.ofMethod(addMethod).orElseThrow(); // @link substring="CoreOp.FuncOp" target="jdk.incubator.code.dialect.core.CoreOp.FuncOp"
 /// assert codeModel == Op.ofMethod(addMethod).orElseThrow();
-/// }
+///}
 ///
 /// We assert that if we obtain the code model for a second time the _same_ instance is returned. The identity
 /// of code elements (and more generally items) in the code model are stable, and therefore they can be used as
@@ -236,25 +233,24 @@
 /// not declared in the lambda expression. For example, we can access the code model for the lambda expression used to
 /// initialize the `Example.R` field as follows:
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// Field rField = Example.class.getDeclaredField("R", Runnable.class);
 /// Object rFieldInstance = rField.get(null);
 /// Quoted<JavaOp.LambdaOp> quotedCodeModel = Op.ofLambda(rFieldInstance).orElseThrow(); // @link substring="Quoted" target="jdk.incubator.code.Quoted"
 /// JavaOp.LambdaOp codeModel = quotedCodeModel.op(); // @link substring="JavaOp.LambdaOp" target="jdk.incubator.code.dialect.java.JavaOp.LambdaOp"
-/// }
+///}
 ///
 /// If a lambda expression captures values we can additionally access those values. For example,
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// int capture = 42;
-/// @Reflect
-/// Runnable r = () -> IO.println(capture);
+/// @Reflect Runnable r = () -> IO.println(capture);
 /// Quoted<JavaOp.LambdaOp> quotedCodeModel = Op.ofLambda(r).orElseThrow();
 ///
 /// SequencedMap<Value, Object> capturedValues = quotedCodeModel.capturedValues(); // @link substring="capturedValues()" target="jdk.incubator.code.Quoted#capturedValues"
 /// assert capturedValues.size() == 1;
 /// assert capturedValues.values().contains(42);
-/// }
+///}
 ///
 /// ## Code models
 ///
@@ -282,7 +278,7 @@
 /// A code model, a tree of code elements, can be traversed. One approach to write a recursive method that iterates
 /// over code elements and their children. That way we can get a sense of what a code model contains.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// Method addMethod = Example.class.getDeclaredMethod("add", int.class, int.class);
 /// CoreOp.FuncOp codeModel = Op.ofMethod(addMethod).orElseThrow();
 ///
@@ -294,13 +290,13 @@
 ///     }
 /// }
 /// traverse(0, codeModel);
-/// }
+///}
 ///
 /// The `traverse` method prints out the class of the code element it encounters and prefixes that with white space
 /// proportionate to the depth of the element in the code model tree. Invoking the `traverse` method with the code model
 /// of the `Example.add` method prints out the following:
 ///
-/// {@snippet lang="text" :
+/// {@snippet lang = "text":
 /// class jdk.incubator.code.dialect.core.CoreOp$FuncOp
 ///   class jdk.incubator.code.Body
 ///     class jdk.incubator.code.Block
@@ -312,7 +308,7 @@
 ///       class jdk.incubator.code.dialect.core.CoreOp$VarAccessOp$VarLoadOp
 ///       class jdk.incubator.code.dialect.java.JavaOp$AddOp
 ///       class jdk.incubator.code.dialect.core.CoreOp$ReturnOp
-/// }
+///}
 ///
 /// We can observe that the top of the tree is the [FuncOp][jdk.incubator.code.dialect.core.CoreOp.FuncOp] which
 /// contains one child, a [Body][jdk.incubator.code.Body], which in turn contains one child, a
@@ -326,14 +322,14 @@
 /// string literals) in the same topologically sorted order using the
 /// [CodeElement.elements][jdk.incubator.code.CodeElement#elements] method.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// codeModel.elements().forEach((CodeElement<?, ?> e) -> {
 ///     int depth = 0;
 ///     var parent = e;
 ///     while ((parent = parent.parent()) != null) depth++; // @link substring="parent()" target="jdk.incubator.code.CodeElement#parent"
 ///     IO.println("  ".repeat(depth) + e.getClass());
 /// });
-/// }
+///}
 ///
 /// We compute the depth for each code element by traversing back up the code model tree until the root element is
 /// reached. So, it is possible to traverse up and down the code model tree.
@@ -341,13 +337,13 @@
 /// A superior way to view the contents of a code model is to convert the root of the code model, an operation, to code
 /// model text and print it out.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// IO.println(codeModel.toText()); // @link substring="toText()" target="jdk.incubator.code.Op#toText"
-/// }
+///}
 ///
 /// The `toText` method will traverse the code elements in a similar manner as before but print out more detail.
 ///
-/// {@snippet lang="text" :
+/// {@snippet lang = "text":
 /// func @loc="22:5:file:///...Example.java" @"add" (
 ///         %0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
 ///     %2 : Var<java.type:"int"> = var %0 @loc="22:5" @"a";
@@ -359,7 +355,7 @@
 ///     %7 : java.type:"int" = add %5 %6 @loc="25:16";
 ///     return %7 @loc="25:9";
 /// };
-/// }
+///}
 ///
 /// The format of code model’s text is unspsecified. It is designed to be human-readable, and intended for debugging and
 /// testing. It is also invaluable for explaining code models. To aid debugging each operation has line number
@@ -410,17 +406,17 @@
 /// Finally, we can execute the code model by transforming it to byte code, wrapping it in a method handle, and invoking
 /// the handle.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// var handle = BytecodeGenerator.generate(MethodHandles.lookup(), addModel); // @link substring="generate(" target="jdk.incubator.code.bytecode.BytecodeGenerator#generate"
 /// assert ExampleAdd.add(1, 1) == (int) handle.invokeExact(1, 1);
-/// }
+///}
 ///
 /// ## Building
 ///
 /// Code reflection provides functionality to build code models. We can use the API to build an equivalent model of the
 /// `Example.add` method we previously accessed and traversed.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// var builtCodeModel = func( // @link substring="func(" target="jdk.incubator.code.dialect.core.CoreOp#func"
 ///     "add",
 ///     CoreType.functionType(JavaType.INT, JavaType.INT, JavaType.INT))
@@ -449,7 +445,7 @@
 ///                         builder.op(varLoad(varB))))));
 ///     });
 /// IO.println(builtCodeModel.toText());
-/// }
+///}
 ///
 /// The consuming lambda expression passed to the `body` method operates on a
 /// [block builder][jdk.incubator.code.Block.Builder], representing the
@@ -464,13 +460,13 @@
 ///
 /// We can approximately test equivalence with our previously accessed model as follows.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// var builtCodeModelElements = builtCodeModel.elements()
 ///         .map(CodeElement::getClass).toList();
 /// var codeModelElements = addModel.elements()
 ///         .map(CodeElement::getClass).toList();
 /// assert builtCodeModelElements.equals(codeModelElements);
-/// }
+///}
 ///
 /// We don’t anticipate most users will commonly build complete models of Java code, since it’s a rather verbose and
 /// tedious process, although potentially less so than other approaches e.g., building byte code, or method handle
@@ -493,7 +489,7 @@
 /// modeling the `+` operator with an invocation operation modeling an invocation expression to the method
 /// `Integer.sum`.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// final MethodRef SUM = MethodRef.method(Integer.class, "sum", int.class,
 ///         int.class, int.class);
 /// CodeTransformer addToMethodTransformer = CodeTransformer.opTransformer(( // @link substring="opTransformer(" target="jdk.incubator.code.CodeTransformer#opTransformer"
@@ -507,7 +503,7 @@
 ///         default -> builder.apply(inputOp);
 ///     }
 /// });
-/// }
+///}
 ///
 /// The code transformation function, passed as lambda expression to
 /// [CodeTransformer.opTransformer][jdk.incubator.code.CodeTransformer#opTransformer], accepts as parameters a block
@@ -528,14 +524,14 @@
 /// [FuncOp.transform][jdk.incubator.code.dialect.core.CoreOp.FuncOp#transform] method and passing the code transformer
 /// as an argument.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// FuncOp transformedCodeModel = codeModel.transform(addToMethodTransformer);
 /// IO.println(transformedCodeModel.toText());
-/// }
+///}
 ///
 /// The transformed code model is naturally very similar to the input code model.
 ///
-/// {@snippet lang="text" :
+/// {@snippet lang = "text":
 /// func @loc="22:5:file:///...Example.java" @"add" (
 ///         %0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
 ///     %2 : Var<java.type:"int"> = var %0 @loc="22:5" @"a";
@@ -547,7 +543,7 @@
 ///     %7 : java.type:"int" = invoke %5 %6 @java.ref:"java.lang.Integer::sum(int, int):int";
 ///     return %7 @loc="25:9";
 /// };
-/// }
+///}
 ///
 /// We can observe the `add` operation has been replaced with the `invoke` operation. Also, by default, each operation
 /// that was copied preserves line number information. The code transformation function can also be applied unmodified
@@ -563,7 +559,7 @@
 ///
 /// The simple code transformer previously shown can implemented more directly as follows.
 ///
-/// {@snippet lang="java" :
+/// {@snippet lang = "java":
 /// CodeTransformer lowLevelAddToMethodTransformer = (
 ///         Block.Builder builder,
 ///         Op inputOp) -> {
@@ -584,7 +580,7 @@
 ///     // Return the block builder to continue building from for next operation
 ///     return builder;
 /// };
-/// }
+///}
 ///
 /// Here we directly use a [block builder][jdk.incubator.code.Block.Builder]. In the prior example the block builder
 /// was hidden behind an implementation of the functional interface `Function<Op, Op.Result>` that manages the mapping
@@ -653,14 +649,79 @@
 ///
 /// ## Code model behavior
 ///
-/// A code model's modeling of program behaviour is described by the arrangement of operations, bodies, and blocks. This
-/// arrangement has generic modeling of program behaviour common to all code models and specific modeling of program
-/// behaviour of a code model, giving rise to program meaning, as specified each operation's modeling of program
-/// behavior and the operations arrangement within in a code model.
+/// A code model's program behaviour is described by the arrangement of operations, bodies, and blocks. This
+/// arrangement has generic program behaviour common to all code models and specific program behaviour of a code model,
+/// giving rise to program meaning, as specified each operation's modeling of program behavior and the arrangement of
+/// the operations within in a code model.
 ///
-/// We can describe the generic modeling of program behaviour using pseudo-Java code, which in effect serves as a
-/// generic interpreter of code models.
+/// ### Environment and effects
 ///
+/// We can describe the generic program behaviour in terms of an environment where code elements are executed. Execution
+/// of a code element produces an effect that is used to update the environment and pass control to another code
+/// element.
+///
+/// There are three kinds of effect:
+///
+/// 1. An operation result effect, containing a runtime value for the operation result
+/// 2. A terminating operation effect, containing a terminating operation and runtime values for the operation's
+///    operands
+/// 3. A successor block effect, containing the successor block and runtime values for the block's arguments.
+///
+/// Each effect also contains the environment that the effect takes place in. The environment can be updated to a new
+/// environment by binding runtime values to (symbolic) values. The environment can be used to access runtime values
+/// given (symbolic) values.
+///
+/// ### Execution of operations
+///
+/// Execution of a non-terminating operation either completes _normally_ or _abruptly_, according to its specification.
+/// If an operation completes normally it produces an operation result effect. If an operation completes abruptly it
+/// produces a terminating operation effect.
+///
+/// Execution of a terminating operation may produce a successor effect or a terminating operation effect, according to
+/// its specification, An operation that is an of instance of [jdk.incubator.code.Op.BlockTerminating] can produce a
+/// successor effect. An operation that is an of instance of [jdk.incubator.code.Op.BodyTerminating] can produce a
+/// terminating operation effect.
+///
+/// If an operation has one or more bodies it may execute them according to its specification. The effect produced by
+/// executing a body may be used to determine whether to execute further bodies and so on until execution of the
+/// operation completes (normally or abruptly) and produces its own effect.
+///
+/// ### Execution of bodies
+///
+/// Execution of a body produces a terminating operation effect.
+///
+/// Execution first proceeds by selecting the body's entry block for execution with given runtime values as arguments
+/// for the entry block's parameters.
+///
+/// The current environment is updated by binding the selected block's parameters to the given runtime values, then the
+/// selected block is executed:
+///
+/// - If execution produces a successor effect then the effect's successor block becomes the selected block, the
+/// effect's runtime values become the given runtime values, and the effect's environment becomes the current
+/// environment. Execution of the selected block then proceeds in the same manner as previously described.
+///
+/// - If execution of the selected block produces a terminating operation effect then execution of the body completes
+/// and it produces that effect (passing the effect to execution of the parent operation, which may result in execution
+/// completing abruptly).
+///
+/// ### Execution of blocks
+///
+/// Execution of a block produces a successor effect or a terminating operation effect.
+///
+/// Execution first proceeds by selecting the first operation in the block.
+///
+/// If the selected operation is a non-terminating operation then the non-terminating operation is executed:
+///
+/// - If execution of the operation produces an operation result effect then the next operation becomes the selected
+/// operation, and the current environment is updated by binding the operation's result to the effect's runtime value.
+/// Execution of the selected operation then proceeds as previously described.
+///
+/// - If execution of the operation produces a terminating operation effect then execution of the block completes and
+/// it produces that effect (passing the effect to execution of the parent body, which in turn passes the effect to the
+/// execution of the parent operation, and which may result in execution completing abruptly).
+///
+/// If the selected operation is a terminating operation then the terminating operation is executed, producing an
+/// effect, and execution of the block completes with that effect (passing the effect to execution of the parent body).
 ///
 /// ## Dialects
 ///
