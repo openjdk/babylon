@@ -109,19 +109,18 @@
 /// import static jdk.incubator.code.dialect.java.JavaOp.*;
 ///
 /// static class Example {
-///
-/// @Reflect     static Runnable R = () -> IO.println("Example:field:R");
-/// @Reflect     static int add(int a, int b) {
+///     @Reflect static Runnable R = () -> IO.println("Example:field:R"); // @link substring="@Reflect" target="Reflect"
+///     @Reflect static int add(int a, int b) {
 ///         IO.println("Example:method:add");
 ///         return a + b;
 ///     }
 ///
 ///     static class Nested {
-/// @Reflect         static Runnable R = () -> IO.println("Example.Nested:field:R");
-/// @Reflect         void m() { IO.println("Example.Nested:method:m"); }
+///         @Reflect static Runnable R = () -> IO.println("Example.Nested:field:R");
+///         @Reflect void m() { IO.println("Example.Nested:method:m"); }
 ///     }
 /// }
-///}
+/// }
 ///
 /// We declare the lambda expressions and methods are reflectable by annotating their declarations with
 /// [Reflect][jdk.incubator.code.Reflect]. By doing so we grant access to their code. When the source of the `Example`
@@ -357,7 +356,7 @@
 /// };
 ///}
 ///
-/// The format of code model’s text is unspsecified. It is designed to be human-readable, and intended for debugging and
+/// The format of code model’s text is unspecified. It is designed to be human-readable, and intended for debugging and
 /// testing. It is also invaluable for explaining code models. To aid debugging each operation has line number
 /// information, and the root operation also has source information from where the code model originated.
 ///
@@ -435,7 +434,7 @@
 ///         Op.Result varB = builder.op(varOpB);
 ///
 ///         // IO.println("A:method:m")
-///         builder.op(invoke(PRINTLN, // // @link substring="inovoke(" target="jdk.incubator.code.dialect.core.JavaOp#invoke"
+///         builder.op(invoke(PRINTLN, // // @link substring="invoke(" target="jdk.incubator.code.dialect.java.JavaOp#invoke"
 ///                 builder.op(constant(JavaType.J_L_STRING, "A:method:m"))));
 ///
 ///         // return a + b;
@@ -594,9 +593,10 @@
 /// - [normalizing][jdk.incubator.code.dialect.core.NormalizeBlocksTransformer] to remove redundant blocks; and
 /// - constant folding operations modeling Java expressions that are constant expressions.
 ///
-/// Crucially, all of the above code transformers preserve the program behaviour of the input code model. However, in
-/// general, code transformers are not required to preserve program behaviour and some will intentionally not do so as
-/// they may transform into a different ouput programming domain that partially maps from the input programming domain.
+/// Crucially, all of the above code transformers (except for inlining) preserve the program behaviour of the input code
+/// model. However, in general, code transformers are not required to preserve program behaviour and some will
+/// intentionally not do so as they may transform into a different output programming domain that partially maps from
+/// the input programming domain.
 ///
 /// ## Code model structure
 ///
@@ -683,8 +683,8 @@
 /// terminating operation effect.
 ///
 /// If an operation has one or more bodies it may execute them according to its specification. The effect produced by
-/// executing a body may be used to determine whether to execute further bodies and so on until execution of the
-/// operation completes (normally or abruptly) and produces its own effect.
+/// executing a body may be used to determine whether to select and execute another body and so on until execution of
+/// the operation completes (normally or abruptly) and produces its own effect.
 ///
 /// ### Execution of bodies
 ///
