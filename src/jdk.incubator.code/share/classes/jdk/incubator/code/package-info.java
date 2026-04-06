@@ -723,6 +723,84 @@
 /// If the selected operation is a terminating operation then the terminating operation is executed, producing an
 /// effect, and execution of the block completes with that effect (passing the effect to execution of the parent body).
 ///
+/// ### Implementing code model behavior
+///
+/// To enhance our understanding of code model behavior we can describe the environment, effects, and code element
+/// execution using Java code. Such Java code can serve as the basis for a simple interpreter of code models.
+///
+/// The environment can be represented as an interface.
+///
+/// {@snippet lang = "java":
+/// public interface Env {
+///     Env bind(List<? extends Value> symbolicValues, List<Object> runtimeValues);
+///     Env bind(Value symbolicValue, Object runtimeValue);
+///     List<Object> valuesOf(List<? extends Value> symbolicValues);
+///     Object valueOf(Value symbolicValue);
+/// }
+/// }
+///
+/// The effects can be implemented as sealed interfaces and records.
+///
+/// {@snippet lang = "java":
+/// public sealed interface BlockEffect
+///         permits SuccessorEffect, TerminatingOpEffect { }
+/// public sealed interface OpEffect
+///         permits OpResultEffect, TerminatingOpEffect { }
+///
+/// public record SuccessorEffect(Block successor, List<Object> args, Env e)
+///         implements BlockEffect { }
+/// public record TerminatingOpEffect(Op terminatingOp, List<Object> operands, Env e)
+///         implements BlockEffect, OpEffect { }
+/// public record OpResultEffect(Object result, Env e)
+///         implements OpEffect { }
+/// }
+///
+/// The execution of operations can be represented as abstract methods (since each operation specifies its own
+/// behavior).
+///
+/// {@snippet lang = "java":
+/// public abstract OpEffect executeOp(Op op, Env e);
+/// public abstract <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e);
+/// }
+///
+/// The execution of a body can be implemented as follows.
+///
+/// {@snippet lang = "java":
+/// public TerminatingOpEffect executeBody(Body body, List<Object> args, Env e) {
+///     Block block = body.entryBlock();
+///     while (true) {
+///         // bind block parameters
+///         e = e.bind(block.parameters(), args);
+///         switch (executeBlock(block, e)) {
+///             // pass control to sibling block
+///             case SuccessorEffect eff -> {
+///                 block = eff.successor(); args = eff.args(); e = eff.e();
+///             }
+///             // pass control to parent operation
+///             case TerminatingOpEffect eff -> { return eff; }
+///         }
+///     }
+/// }
+/// }
+///
+/// The execution of a block can be implemented as follows:
+///
+/// {@snippet lang = "java":
+/// public BlockEffect executeBlock(Block block, Env e) {
+///     var op = block.firstOp();
+///     for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
+///         switch (executeOp(op, e)) {
+///             // operation completed normally, pass control to next operation
+///             case OpResultEffect eff -> e = e.bind(op.result(), eff.result);
+///             // operation completed abruptly, pass control to parent body
+///             case TerminatingOpEffect eff -> { return eff; }
+///         }
+///     }
+///
+///     return executeTerminatingOp((Op & Op.Terminating) op, e);
+/// }
+/// }
+///
 /// ## Dialects
 ///
 /// ## Java code models
