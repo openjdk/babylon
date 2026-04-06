@@ -803,8 +803,66 @@
 ///
 /// ## Dialects
 ///
+/// A dialect is a set of related operations and type elements. When expressed in a code model they give the model
+/// program meaning. Program meaning is an emergent property determined by generic code model behaviour,
+/// each operation's modeling behaviour, and the operations arrangement in the code model.
+///
+/// Code reflection defines two dialects, the [core][jdk.incubator.code.dialect.core] dialect, and the
+/// [Java][jdk.incubator.code.dialect.java] dialect.
+///
+/// The `core` dialect defines operations, and type elements, whose modeling behaviour is general and common across
+/// programming language platforms. For example, it provides operations for modeling functions, variables, tuples,
+/// declaring constants, block branching, and yielding a result from a body. In support of those operations it provides
+/// types elements to model function types, variable types, and tuple types. Such operations and type elements can be
+/// used to compatibly model Java program behaviour, such as modeling Java method declarations, or the declaration of
+/// Java variables and access to them. A core operation is one that extends from the class
+/// [CoreOp][jdk.incubator.code.dialect.core.CoreOp]. A core type element is one that extends from the class
+/// [CoreType][jdk.incubator.code.dialect.core.CoreType].
+///
+/// The `Java` dialect defines operations, and type elements, whose modeling behaviour is specific to Java. The majority
+/// of the Java operations directly model Java statements and expressions. The Java type elements provide rich modeling
+/// of Java types that are denotable in Java source, and also provide modeling of references to Java declarations that
+/// are composed of Java types and names (fields, methods, and records). A Java operation is one that extends from the
+/// class [JavaOp][jdk.incubator.code.dialect.java.JavaOp]. A Java type element is one that extends from the class
+/// [JavaType][jdk.incubator.code.dialect.java.JavaType] or the class
+/// [JavaRef][jdk.incubator.code.dialect.java.JavaRef].
+///
+/// A `core` or `java` operation capable of modeling a Java expression implements
+/// [JavaExpression][jdk.incubator.code.dialect.java.JavaOp.JavaExpression].
+/// A `core` or `java` operation capable of modeling a Java statement implements
+/// [JavaStatement][jdk.incubator.code.dialect.java.JavaOp.JavaStatement].
+///
+/// Users may provide their own dialect to give program meaning for a particular domain by extending
+/// [Op][jdk.incubator.code.Op] with specific operation implementations, and implementing
+/// [TypeElement][jdk.incubator.code.TypeElement] with specific type element implementations.
+///
 /// ## Java code models
 ///
-/// ## Modeling Java code
+/// Java code models are code models produced by `javac`, stored in class files, and accessed at runtime. Such models
+/// preserve the program meaning of the Java source code they model. They consist of an arrangement of operations and
+/// type elements from the `core` dialect and the `java` dialect.
+///
+/// A Java code model also preserves the nested structure of the Java source code it models. It is guaranteed that a
+/// body only has one block. To achieve this the Java dialect provides Java operations for directly modeling all
+/// statements, expressions, and patterns. When `javac` encounters an expression or statement to model it will select
+/// the corresponding operation.
+///
+/// For example, when `javac` encounters a basic `for` statement to model it will select the
+/// [Java.ForOp][jdk.incubator.code.dialect.java.JavaOp.ForOp]. A `ForOp` operation has four bodies that
+/// respectively model the initialization code, the boolean `Expression`, a `Statement`, and update code of the basic
+/// `for` statement. The `ForOp` operation specifies how it executes its bodies in a manner compatible with the Java
+/// language specification, including normal and abrupt completion.
+///
+/// A `ForOp` is capable of transforming itself by replacing itself and its bodies with a control flow graph of
+/// interconnected basic blocks in its grandparent body. This is termed
+/// [lowering][ jdk.incubator.code.CodeTransformer#LOWERING_TRANSFORMER]. Java program behavior is preserved but the
+/// nested structure of the code is not. The resulting code model elements represent a simplified modeling of the `for`
+/// statement that can be easier to analyze.
+///
+/// Generally, any Java operation that implements [Op.Lowerable][jdk.incubator.code.Op.Lowerable] can lower itself,
+/// replacing itself and its bodies with interconnected basic blocks. This includes the
+/// [JavaOp.TryOp][jdk.incubator.code.dialect.java.JavaOp.TryOp] modeling `try` statements (including those with
+/// `finally` blocks), and the [JavaOp.SwitchExpressionOp][jdk.incubator.code.dialect.java.JavaOp.SwitchExpressionOp]
+/// modeling switch expressions (including those with case patterns).
 ///
 package jdk.incubator.code;
