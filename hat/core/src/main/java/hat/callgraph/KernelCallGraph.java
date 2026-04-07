@@ -27,6 +27,7 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.Inliner;
 import hat.KernelContext;
+import hat.device.NonMappableIface;
 import hat.phases.HATTier;
 import hat.types._F16;
 import jdk.incubator.code.Op;
@@ -62,6 +63,8 @@ public class KernelCallGraph implements LookupCarrier {
     public final Set<TypeElement> accessedTypes;
     public final Set<Class<?>> accessedClasses;
     public final Set<Class<? extends IfaceValue>> accessedIfaceClasses;
+    public final Set<Class<? extends NonMappableIface>> accessedNonMappableIfaceClasses;
+    public final Set<Class<? extends MappableIface>> accessedMappableIfaceClasses;
     public final Set<Class<? extends IfaceValue.vec>> accessedVecClasses;
     public final Set<Class<? extends _F16>> accessedFP16Classes;
     public boolean usesBarrier;
@@ -85,6 +88,12 @@ public class KernelCallGraph implements LookupCarrier {
                 .collect(Collectors.toSet());
         this.accessedIfaceClasses =  this.accessedClasses.stream()
                 .filter(c->IfaceValue.class.isAssignableFrom(c)).map(c->(Class<IfaceValue>)c)
+                .collect(Collectors.toSet());
+        this.accessedMappableIfaceClasses =  this.accessedIfaceClasses.stream()
+                .filter(c->MappableIface.class.isAssignableFrom(c)).map(c->(Class<MappableIface>)c)
+                .collect(Collectors.toSet());
+        this.accessedNonMappableIfaceClasses =  this.accessedIfaceClasses.stream()
+                .filter(c->NonMappableIface.class.isAssignableFrom(c)).map(c->(Class<NonMappableIface>)c)
                 .collect(Collectors.toSet());
         this.accessedVecClasses =  this.accessedClasses.stream()
                 .filter(c->IfaceValue.vec.class.isAssignableFrom(c)).map(c->(Class<IfaceValue.vec>)c)

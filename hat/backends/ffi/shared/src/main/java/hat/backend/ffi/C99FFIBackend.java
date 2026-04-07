@@ -43,8 +43,6 @@ import hat.device.NonMappableIface;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
-import optkl.IfaceValue;
-import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BufferState;
@@ -54,15 +52,12 @@ import optkl.ifacemapper.Schema;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public abstract class C99FFIBackend extends FFIBackend implements BufferTracker {
     public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
@@ -86,6 +81,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
+            // Do we really need this?  We never actually read these
             kernelBufferContext.gsy(1);
             kernelBufferContext.gsz(1);
             switch (kernelContext.ndRange.global()) {
@@ -144,31 +140,6 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    static Type nameToTypeOrThrow(String name) {
-        return switch (name) {
-            case "void" -> void.class;
-            case "boolean" -> boolean.class;
-            case "byte" -> byte.class;
-            case "short" -> short.class;
-            case "char" -> char.class;
-            case "int" -> int.class;
-            case "float" -> float.class;
-            case "double" -> double.class;
-            case "long" -> long.class;
-            default -> {
-                try {
-                    if (Class.forName(name) instanceof Class<?> clazz) {
-                        yield clazz;
-                    } else {
-                        throw new RuntimeException("Not a class");
-                    }
-                } catch (ClassNotFoundException classNotFoundException) {
-                    throw new RuntimeException("Not a class");
-                }
-            }
-        };
-
-    }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
@@ -191,7 +162,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
         if (kernelAnnotation != null) {
             // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
             kernelCallGraph.usesAtomics = true;
-            kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class, BF16.class));//usesFp16 = true;
+            kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class, BF16.class));
             kernelCallGraph.usesBarrier = true;
 
             var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
@@ -207,63 +178,42 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(kernelAnnotation.value());
         } else {
-            Set<Class<?>> done = new HashSet<>();
-            done.add(F16.class);
-            done.add(BF16.class);
-            kernelCallGraph.accessedIfaceClasses.stream()
-                    .filter(NonMappableIface.class::isAssignableFrom)
-                    .map(c -> (Class<NonMappableIface>) c)
+            Set<Class<?>> typedeffed = new HashSet<>();
+            typedeffed.add(F16.class);
+            typedeffed.add(BF16.class);
+            kernelCallGraph.accessedNonMappableIfaceClasses.stream()
+                    .filter(c->!typedeffed.contains(c))
+                    .map(c->(Class<NonMappableIface>) c) // why do we need to do this.
                     .forEach(c -> {
+                        // We create a dag of iface references rooted at c
                         var ifaceDataDag = new IfaceDataDag<NonMappableIface>(dag -> {
                             var entryPoint = dag.getNode(c);
-                            dag.methodsWithIfaceReturnTypes(c)
-                                    .forEach(ifaceInfo ->
-                                            dag.addEdge(entryPoint, dag.getNode(ifaceInfo.clazz())) // this recurses with each added class
-                                    );
+                            dag.methodsWithIfaceReturnTypes(c).forEach(ifaceInfo ->
+                                 dag.addEdge(entryPoint, dag.getNode(ifaceInfo.clazz())) // this recurses with each added class
+                            );
                         });
-                        Consumer<IfaceDataDag.IfaceInfo<NonMappableIface>> dump = ifaceValue -> {
-                            if (!done.contains(ifaceValue.clazz())) {
-                                done.add(ifaceValue.clazz());
-                                try {
-                                    Field schemaField = ifaceValue.clazz().getDeclaredField("deviceSchema");
-                                    schemaField.setAccessible(true);
-                                    if (schemaField.get(schemaField) instanceof DeviceSchema<?> deviceSchema) {
-                                        builder.typedefStruct(deviceSchema.root.clazz(), _ ->
-                                                deviceSchema.root.members().stream().map(m -> (DeviceSchema.NamedMember) m).forEach(m -> builder
-                                                        .either(IfaceValue.class.isAssignableFrom(m.clazz()),
-                                                             _ -> builder.suffix_t(m.clazz().getSimpleName()),
-                                                             _ -> builder.type(m.clazz().getSimpleName())
-                                                        )
-                                                        .sp().id(m.name())
-                                                        .when(m instanceof DeviceSchema.Array,
-                                                                _ ->builder.sbrace(_ -> builder.intConst(((DeviceSchema.Array) m).size()))
-                                                        ).semicolon().nl()
-                                                )
-                                        );
-                                    }
-                                } catch (NoSuchFieldException | IllegalAccessException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        };
+                        // Now we can generate typedefs in rankOrder (so inner typedefs first)
                         if (ifaceDataDag.isDag()) {
-                            ifaceDataDag.rankOrdered.forEach(dump);
-                        } else {
-                            dump.accept(ifaceDataDag.getNode(c));
+                            ifaceDataDag.rankOrdered.stream()
+                                    .filter(ifaceInfo -> !typedeffed.contains(ifaceInfo.clazz()))
+                                    .forEach(ifaceInfo -> typedeffed.add(
+                                            DeviceSchema.getDeviceSchemaOrThrow(ifaceInfo.clazz()).typedef(builder).clazz()
+                                    )
+                            );
+                        } else  {
+                            typedeffed.add(DeviceSchema.getDeviceSchemaOrThrow(c).typedef(builder).clazz());
                         }
                     });
 
-
-          //  var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp());
-
+            // This is a slight hack for Shader support.
             if (!kernelCallGraph.accessedVecClasses.isEmpty()) {
                 C99VecAndMatHandler.createVecFunctions(builder);
             }
 
-
             kernelCallGraph.callDag.rankOrdered.stream()
                     .filter(m -> m instanceof MethodCallDag.OtherMethodCall)
                     .forEach(m -> builder.nl().kernelMethod( m.funcOp()).nl());
+
             builder.nl().kernelEntrypoint().nl();
 
             if (config().showKernelModel()) {
