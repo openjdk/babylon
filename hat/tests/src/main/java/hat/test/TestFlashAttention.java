@@ -55,7 +55,7 @@ public class TestFlashAttention {
         F16 array(int index);
 
         DeviceSchema<SharedF16Array> deviceSchema = DeviceSchema.of(SharedF16Array.class,
-                arr -> arr.array("array", 7168,F16.class, half -> half.field("value")));
+                arr -> arr.array("array", 7168, half -> half.field("value")));
 
         static SharedF16Array createLocal() {
             return null;
@@ -66,7 +66,7 @@ public class TestFlashAttention {
         F16 array(int index);
 
         DeviceSchema<PrivateF16Array> deviceSchema = DeviceSchema.of(PrivateF16Array.class,
-                arr -> arr.array("array", 64,F16.class, half -> half.field("value")));
+                arr -> arr.array("array", 64, half -> half.field("value")));
 
         static PrivateF16Array createPrivate() {
             return null;

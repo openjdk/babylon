@@ -144,7 +144,7 @@ public class TestBFloat16Type {
     public interface LocalArray extends NonMappableIface {
         BF16 array(int index);
         DeviceSchema<LocalArray> deviceSchema = DeviceSchema.of(LocalArray.class,
-                builder -> builder.array("array", 1024,BF16.class, bfloat16 -> bfloat16.field("value")));
+                builder -> builder.array("array", 1024, bfloat16 -> bfloat16.field("value")));
 
         static LocalArray  create(Accelerator accelerator) {
             return null;
@@ -206,7 +206,7 @@ public class TestBFloat16Type {
     public interface PrivateArray extends NonMappableIface {
         BF16 array(int index);
         DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
-                builder -> builder.array("array", 256,BF16.class, bfloat16 -> bfloat16.field("value")));
+                builder -> builder.array("array", 256, bfloat16 -> bfloat16.field("value")));
 
         static PrivateArray  create(Accelerator accelerator) {
             return null;

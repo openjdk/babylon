@@ -52,21 +52,21 @@ public class DeviceSchema<T extends NonMappableIface> {
             return fields(fieldName);
         }
 
+      //  default Builder<T> array(String fieldName, int size) {
+        //    members().add(new Array<>(this,getReturnType(fieldName),fieldName,size,new ArrayList<>()));
+          //  return this;
+       // }
         default Builder<T> array(String fieldName, int size) {
-            members().add(new Array<>(this,getReturnType(fieldName),fieldName,size,new ArrayList<>()));
-            return this;
-        }
-        default Builder<T> array(String fieldName, int size, Class<?> clazz) {
             var retType = getReturnType(fieldName);
-            if (!retType.equals(clazz)){
-                throw new RuntimeException("Oh my");
-            }
+            //if (!retType.equals(clazz)){
+              //  throw new RuntimeException("Oh my");
+            //}
             members().add(new Array<>(this,retType,fieldName,size,new ArrayList<>()));
             return this;
         }
 
-        default Builder<T> array(String fieldName, int size, Class<?> clazz, Consumer<Builder<T>> depConsumer) {
-            array(fieldName,size,clazz);
+        default Builder<T> array(String fieldName, int size, Consumer<Builder<T>> depConsumer) {
+            array(fieldName,size);
             depConsumer.accept(members().getLast());
             return this;
         }

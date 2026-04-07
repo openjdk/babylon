@@ -502,7 +502,7 @@ public class Main {
                 //                + block_n * head_dim
                 //                + block_n * head_dim
                 //                + block_m * block_n;
-                arr -> arr.array("array", 7168, F16.class, half -> half.field("value")));
+                arr -> arr.array("array", 7168,  half -> half.field("value")));
 
         static SharedF16Array createLocal() {
             return null;
@@ -515,7 +515,7 @@ public class Main {
 
         DeviceSchema<PrivateF16Array> deviceSchema = DeviceSchema.of(PrivateF16Array.class,
                 // SIZE = HEAD_DIM (e.g., 64)
-                arr -> arr.array("array", 64,F16.class, half -> half.field("value")));
+                arr -> arr.array("array", 64, half -> half.field("value")));
 
         static PrivateF16Array createPrivate() {
             return null;

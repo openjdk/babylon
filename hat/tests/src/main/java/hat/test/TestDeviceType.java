@@ -56,8 +56,7 @@ public class TestDeviceType {
         float x();
 
         DeviceSchema<MyDeviceArray> deviceSchema = DeviceSchema.of(MyDeviceArray.class, builder ->
-                builder.array("array", 2048,F16.class, half -> half.field("value"))
-                        .field("x"));
+                builder.array("array", 2048, half -> half.field("value")).field("x"));
 
         static MyDeviceArray create() {
             return null;
@@ -96,7 +95,7 @@ public class TestDeviceType {
          * This structure creates an 2D matrix of 2048 x 64 elements.
          */
         DeviceSchema<MyNDRange> deviceSchema = DeviceSchema.of(MyNDRange.class, builder ->
-                builder.array("array", 2048,SubRange.class, subrange -> subrange.array("range", 64)));
+                builder.array("array", 2048, subrange -> subrange.array("range", 64)));
 
         static MyNDRange create() {
             return null;
@@ -137,9 +136,8 @@ public class TestDeviceType {
         }
 
         DeviceSchema<MultiDim> deviceSchema = DeviceSchema.of(MultiDim.class, builder ->
-                builder.array("array", 2048, _2D.class, subrange ->
-                        subrange.array("range2", 64, _2D._3D.class, f ->
-                                f.array("value", 32))
+                builder.array("array", 2048,  subrange ->
+                        subrange.array("range2", 64,  f -> f.array("value", 32))
                 )
         );
 
@@ -178,8 +176,8 @@ public class TestDeviceType {
         }
 
         DeviceSchema<MultiDimFix> deviceSchema = DeviceSchema.of(MultiDimFix.class, builder ->
-                builder.array("array", 2048,_2D.class,subrange ->
-                        subrange.array("_range2", 64,_2D._3D.class, f -> f.array("value", 32))
+                builder.array("array", 2048,_subrange ->
+                        _subrange.array("_range2", 64, f -> f.array("value", 32))
                 ));
 
         static MultiDimFix create() {

@@ -479,7 +479,7 @@ public class Main {
         F16 array(int index);
 
         DeviceSchema<SharedMemoryHalf> deviceSchema = DeviceSchema.of(SharedMemoryHalf.class,
-                arr -> arr.array("array", 1024,F16.class, half -> half.field("value")));
+                arr -> arr.array("array", 1024, half -> half.field("value")));
 
         static SharedMemoryHalf create(Accelerator accelerator) {
             return null;
@@ -494,7 +494,7 @@ public class Main {
         F16 array(int index);
 
         DeviceSchema<PrivateArrayHalf> deviceSchema = DeviceSchema.of(PrivateArrayHalf.class,
-                arr -> arr.array("array", 16,F16.class, half -> half.field("value")));
+                arr -> arr.array("array", 16, half -> half.field("value")));
 
         static PrivateArrayHalf create(Accelerator accelerator) {
             return null;
@@ -509,7 +509,7 @@ public class Main {
         F16 array(int index);
 
         DeviceSchema<FlatPrivateHalf> deviceSchema = DeviceSchema.of(FlatPrivateHalf.class,
-                arr -> arr.array("array", 4,F16.class, half -> half.field("value")));
+                arr -> arr.array("array", 4, half -> half.field("value")));
 
         static FlatPrivateHalf create(Accelerator accelerator) {
             return null;

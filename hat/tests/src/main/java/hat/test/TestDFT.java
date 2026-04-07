@@ -155,7 +155,7 @@ public class TestDFT {
         PrivateComplex complex(long index);
         DeviceSchema<ArrayComplexPrivate> deviceSchema =
                 DeviceSchema.of(ArrayComplexPrivate.class,
-                        complex -> complex.array("complex", 128,PrivateComplex.class, c2 -> c2.fields("real", "imag")));
+                        complex -> complex.array("complex", 128, c2 -> c2.fields("real", "imag")));
         static ArrayComplexPrivate createPrivate() {
             return null;
         }
