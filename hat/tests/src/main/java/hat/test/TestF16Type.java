@@ -149,7 +149,7 @@ public class TestF16Type {
         //void array(int index, F16 value);
 
         DeviceSchema<DeviceLocalArray> deviceSchema = DeviceSchema.of(DeviceLocalArray.class, builder ->
-                builder.array("array", 1024,F16.class, half -> half.field("value"))
+                builder.array("array", 1024, half -> half.field("value"))
         );
 
         static DeviceLocalArray create(Accelerator accelerator) {
@@ -214,7 +214,7 @@ public class TestF16Type {
         F16 array(int index);
 
         DeviceSchema<DevicePrivateArray> deviceSchema = DeviceSchema.of(DevicePrivateArray.class, builder ->
-                builder.array("array", 1024,F16.class, half -> half.field("value"))
+                builder.array("array", 1024, half -> half.field("value"))
         );
 
         static DevicePrivateArray create(Accelerator accelerator) {
@@ -246,7 +246,7 @@ public class TestF16Type {
         void array(int index, F16 value);
 
         DeviceSchema<DevicePrivateArray2> deviceSchema = DeviceSchema.of(DevicePrivateArray2.class, builder ->
-                builder.array("array", 1024,F16.class, half -> half.field("value"))
+                builder.array("array", 1024, half -> half.field("value"))
         );
 
         static DevicePrivateArray2 create(Accelerator accelerator) {

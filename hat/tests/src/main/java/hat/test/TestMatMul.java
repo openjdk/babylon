@@ -851,7 +851,7 @@ public class TestMatMul {
         F16 array(int index);
 
         DeviceSchema<SharedMemoryHalf> deviceSchema = DeviceSchema.of(SharedMemoryHalf.class, arr ->
-                arr.array("array", 1024,F16.class, half -> half.field("value"))
+                arr.array("array", 1024, half -> half.field("value"))
         );
 
         static SharedMemoryHalf create(Accelerator accelerator) {
@@ -867,7 +867,7 @@ public class TestMatMul {
         F16 array(int index);
 
         DeviceSchema<PrivateArrayHalf> deviceSchema = DeviceSchema.of(PrivateArrayHalf.class, arr ->
-                arr.array("array", 16,F16.class, half -> half.field("value"))
+                arr.array("array", 16, half -> half.field("value"))
         );
 
         static PrivateArrayHalf create(Accelerator accelerator) {
@@ -883,7 +883,7 @@ public class TestMatMul {
         F16 array(int index);
 
         DeviceSchema<FlatPrivateHalf> deviceSchema = DeviceSchema.of(FlatPrivateHalf.class, arr ->
-                arr.array("array", 4,F16.class, half -> half.field("value"))
+                arr.array("array", 4, half -> half.field("value"))
         );
 
         static FlatPrivateHalf create(Accelerator accelerator) {
@@ -989,7 +989,7 @@ public class TestMatMul {
         BF16 array(int index);
 
         DeviceSchema<SharedMemoryBfloat16> deviceSchema = DeviceSchema.of(SharedMemoryBfloat16.class, arr ->
-                        arr.array("array", 1024,BF16.class, half -> half.field("value"))
+                        arr.array("array", 1024, half -> half.field("value"))
         );
 
         static SharedMemoryBfloat16 create(Accelerator accelerator) {
@@ -1005,7 +1005,7 @@ public class TestMatMul {
         BF16 array(int index);
 
         DeviceSchema<PrivateArrayBfloat16> deviceSchema = DeviceSchema.of(PrivateArrayBfloat16.class, arr ->
-                arr.array("array", 16,BF16.class, half -> half.field("value"))
+                arr.array("array", 16, half -> half.field("value"))
         );
 
         static PrivateArrayBfloat16 create(Accelerator accelerator) {
@@ -1021,7 +1021,7 @@ public class TestMatMul {
         BF16 array(int index);
 
         DeviceSchema<FlatPrivateBfloat16> deviceSchema = DeviceSchema.of(FlatPrivateBfloat16.class, arr ->
-                arr.array("array", 4,BF16.class, half -> half.field("value"))
+                arr.array("array", 4,half -> half.field("value"))
         );
 
         static FlatPrivateBfloat16 create(Accelerator accelerator) {
