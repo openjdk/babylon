@@ -336,13 +336,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         Value op1 = hatF16BinaryOp.operands().get(0);
         Value op2 = hatF16BinaryOp.operands().get(1);
-        boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), op1);
-        boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), op2);
+        boolean isFirstOperandReference = isArrayReference(lookup(), op1);
+        boolean isSecondOperandReference = isArrayReference(lookup(), op2);
 
         final byte f32Mixed;
-        if (!isFirstOperandReference && HATPhaseUtils.isOperandF32(op1)) {
+        if (!isFirstOperandReference && isOperandF32(op1)) {
             f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
-        } else if (!isSecondOperandReference && HATPhaseUtils.isOperandF32(op2)) {
+        } else if (!isSecondOperandReference && isOperandF32(op2)) {
             f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
         } else {
             f32Mixed = 0x00;

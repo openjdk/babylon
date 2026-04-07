@@ -24,6 +24,10 @@
  */
 package hat.dialect;
 
+import hat.types.BF16;
+import hat.types.F16;
+import optkl.OpHelper;
+
 public interface ReducedFloatType {
 
     interface HalfFloat extends ReducedFloatType {
@@ -36,5 +40,23 @@ public interface ReducedFloatType {
         static BFloat16 of() {
             return new BFloat16() {};
         }
+    }
+
+     static ReducedFloatType categorizeReducedFloatOrThrow(OpHelper.Invoke invoke) {
+         if (invoke.refIs(F16.class)) {
+            return ReducedFloatType.HalfFloat.of();
+        } else if (invoke.refIs(BF16.class)) {
+            return ReducedFloatType.BFloat16.of();
+        }
+        throw new RuntimeException("Can't categorize as ReducedFloatType");
+    }
+
+     static ReducedFloatType categorizeReducedFloatFromResultOrNull(OpHelper.Invoke invoke) {
+        if (invoke.resultTypeIs(F16.class)) {
+            return ReducedFloatType.HalfFloat.of();
+        } else if (invoke.resultTypeIs(BF16.class)) {
+            return ReducedFloatType.BFloat16.of();
+        }
+        return null;
     }
 }

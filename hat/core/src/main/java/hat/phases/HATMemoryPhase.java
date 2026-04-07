@@ -115,7 +115,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         public static final String INTRINSIC_NAME = "createLocal";
         @Override
         protected boolean isIfaceBufferInvokeWithName(Invoke invoke){
-            return invoke.refIs(IfaceValue.class /* DeviceType.class, MappableIface.class, HAType.class*/) && invoke.named(INTRINSIC_NAME);
+            return invoke.refIs(IfaceValue.class ) && invoke.named(INTRINSIC_NAME);
 
         }
 

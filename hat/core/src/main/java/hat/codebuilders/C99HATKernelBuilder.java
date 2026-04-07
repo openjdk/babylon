@@ -24,9 +24,9 @@
  */
 package hat.codebuilders;
 
+import hat.HATMath;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
-import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
@@ -36,8 +36,6 @@ import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.ReducedFloatType;
-import hat.phases.HATFP16Phase;
-import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types._F16;
@@ -57,14 +55,14 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.codebuilders.CodeBuilder;
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import static hat.buffer.F16Array.F16Impl;
-
+import static hat.dialect.ReducedFloatType.categorizeReducedFloatFromResultOrNull;
 import static java.lang.invoke.MethodHandles.lookup;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
@@ -72,6 +70,31 @@ import static optkl.OpHelper.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
     protected  final KernelCallGraph kernelCallGraph;
+
+    protected static boolean isOperandF32(Value v) {
+        return v instanceof Op.Result r && switch (r.op()) {
+            case CoreOp.VarAccessOp varLoadOp -> varLoadOp.varType().valueType() == JavaType.FLOAT; //recurse
+            case CoreOp.VarOp varOp -> varOp.resultType().valueType() == JavaType.FLOAT;
+            default -> false;
+        };
+    }
+
+    //recursive
+    protected static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
+        return v instanceof Op.Result result && switch (result.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(lookup,varLoadOp); // recurse
+            case CoreOp.VarOp varOp ->
+                    varOp.operands().getFirst() instanceof Op.Result varOpResult
+                            && invoke(lookup,varOpResult.op()) instanceof OpHelper.Invoke invoke && invoke.named("array");
+            default -> false;
+        };
+    }
+
+    //recursive
+    private static boolean isArrayReference(MethodHandles.Lookup lookup, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return isArrayReference(lookup,varLoadOp.operands().getFirst());
+    }
+
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
         this.kernelCallGraph = kernelCallGraph;
@@ -478,12 +501,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private final T binaryOperationsForBfloat16( HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
 
-        boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatf16BinaryOp.operands().get(0));
-        boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatf16BinaryOp.operands().get(1));
+        boolean isFirstOperandReference = isArrayReference(lookup(), hatf16BinaryOp.operands().get(0));
+        boolean isSecondOperandReference = isArrayReference(lookup(), hatf16BinaryOp.operands().get(1));
         final byte f32Mixed;
-        if (!isFirstOperandReference && HATPhaseUtils.isOperandF32(hatf16BinaryOp.operands().get(0))) {
+        if (!isFirstOperandReference && isOperandF32(hatf16BinaryOp.operands().get(0))) {
             f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
-        } else if (!isSecondOperandReference && HATPhaseUtils.isOperandF32(hatf16BinaryOp.operands().get(1))) {
+        } else if (!isSecondOperandReference && isOperandF32(hatf16BinaryOp.operands().get(1))) {
             f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
         } else {
             f32Mixed = 0x00;
@@ -540,8 +563,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return brace(_->
             paren(_-> {
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
-                boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatF16BinaryOp.operands().get(0));
-                boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatF16BinaryOp.operands().get(1));
+                boolean isFirstOperandReference = isArrayReference(lookup(), hatF16BinaryOp.operands().get(0));
+                boolean isSecondOperandReference = isArrayReference(lookup(), hatF16BinaryOp.operands().get(1));
                 if (isFirstOperandReference) {
                     rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
@@ -844,7 +867,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     }
                 });
             }
-        } else if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
+        } else if (!invoke.returnsVoid() && invoke.refIs(HATMath.class)) {
                 // codegen for the math operation
                 generateMathIntrinsicOperation(invoke);
             } else {
@@ -871,7 +894,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void generateMathIntrinsicOperation(Invoke invoke) {
         // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-        final ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloatFromResult(invoke);
+        final ReducedFloatType reducedFloatType = categorizeReducedFloatFromResultOrNull(invoke);
         if (reducedFloatType != null) {
             // If special type, then we need to build the type
             // For now this applies to F16 and bFloat16
@@ -881,7 +904,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         // For each operand, obtain if it is a reference from global memory or device memory.
         List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
-                .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), invoke.op().operands().get(i)))
+                .mapToObj(i -> isArrayReference(lookup(), invoke.op().operands().get(i)))
                 .collect(Collectors.toList());
 
         paren( _ -> {

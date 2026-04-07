@@ -107,6 +107,10 @@ public class KernelCallGraph implements LookupCarrier {
                                 && invoke.operandCount() == 1
                                 && invoke.returnsInt()
                                 && invoke.nameMatchesRegex("(atomic.*)Inc"));
+
+
+
+
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
         var entrypoint = new FuncOpCarrier.Impl(e);

@@ -27,6 +27,7 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
@@ -38,6 +39,8 @@ import optkl.Trxfmr;
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
+
+import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.VarAccess;
@@ -47,6 +50,14 @@ import static optkl.OpHelper.copyLocation;
 public abstract sealed class HATVectorStorePhase implements HATPhase
         permits HATVectorStorePhase.Float2StorePhase, HATVectorStorePhase.Float4StorePhase{
     abstract String storeViewName();
+
+
+    public static Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
+        if (invokeOp.operands().get(idx) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return getVectorShape(lookup,varLoadOp.resultType());
+        }
+        return null;
+    }
 
     //recursive
     private String findNameVector(Value v) {
@@ -82,7 +93,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
         return Trxfmr.of(lookup,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (invoke(lookup,op) instanceof Invoke invoke) {
-                Vector.Shape vectorShape  = HATPhaseUtils.getVectorShapeFromOperandN(lookup,invoke.op(), 1);
+                Vector.Shape vectorShape  = getVectorShapeFromOperandN(lookup,invoke.op(), 1);
                 HATVectorOp storeView = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst())
                         ? new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(
                                 findNameVector(invoke.resultFromOperandNOrThrow(1)),
