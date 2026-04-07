@@ -210,7 +210,7 @@
 ///         .forEach(IO::println);
 ///}
 ///
-/// ## Declaring and accessing reflectable code
+/// ## <a id="declaring-and-accessing-reflectable-code-heading"/>Declaring and accessing reflectable code
 ///
 /// In total there are four syntactic locations where the [jdk.incubator.code.Reflect] annotation can appear that
 /// govern what is declared reflectable. The locations are described in detail in the [jdk.incubator.code.Reflect]
@@ -258,7 +258,8 @@
 /// assert capturedValues.values().contains(42);
 ///}
 ///
-/// ## Code models
+/// ## <a id="code-models-heading"/>Code models
+///
 ///
 /// A code model is an _immutable_ instance of data structures that can, in general, model many kinds of code, be it
 /// Java code or foreign code. It has some properties like an Abstract Syntax Tree ([AST][AST]) used by a source
@@ -279,7 +280,7 @@
 /// Code reflection supports representing the data structures of a code model, code elements for modeling Java language
 /// constructs and behavior, traversing code models, building code models, and transforming code models.
 ///
-/// ## Traversing
+/// ## <a id="traversing-heading"/>Traversing
 ///
 /// A code model, a tree of code elements, can be traversed. One approach to write a recursive method that iterates
 /// over code elements and their children. That way we can get a sense of what a code model contains.
@@ -471,7 +472,7 @@
 /// run time uses it to produce models that are accessed. Instead, we anticipate many users will build parts of models
 /// when they transform them.
 ///
-/// ## Transforming
+/// ## <a id="transforming-heading"/> Transforming
 ///
 /// Code reflection supports the transformation of code models by combining traversing and building. A code model
 /// transformation is represented by a function that takes an operation, encountered in the (input) model being
