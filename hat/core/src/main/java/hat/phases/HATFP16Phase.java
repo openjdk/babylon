@@ -24,12 +24,10 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATF16Op;
-import hat.types.BF16;
-import hat.types.F16;
 import hat.dialect.ReducedFloatType;
+import hat.types._F16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -38,6 +36,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.util.Regex;
 
@@ -48,29 +47,46 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static hat.dialect.ReducedFloatType.categorizeReducedFloatOrThrow;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
 
 public record HATFP16Phase() implements HATPhase {
-
-    public static ReducedFloatType categorizeReducedFloat(Invoke invoke) {
-        if (invoke.refIs(F16.class)) {
-            return ReducedFloatType.HalfFloat.of();
-        } else if (invoke.refIs(BF16.class)) {
-            return ReducedFloatType.BFloat16.of();
-        }
-        return null;
+    private static boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
+        return invoke.refIs(_F16.class) && invoke.nameMatchesRegex(methodName);
     }
 
-    public static ReducedFloatType categorizeReducedFloatFromResult(Invoke invoke) {
-        if (invoke.resultTypeIs(F16.class)) {
-            return ReducedFloatType.HalfFloat.of();
-        } else if (invoke.resultTypeIs(BF16.class)) {
-            return ReducedFloatType.BFloat16.of();
-        }
-        return null;
+
+    // recursive
+    private static String findVarNameOrNull(Value v) {
+        return  (v instanceof Op.Result r) ? switch (r.op()){
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp-> findVarNameOrNull(varLoadOp); //recurse
+            case HATF16Op.HATF16VarOp hatf16VarOp -> hatf16VarOp.varName();
+            default -> null;
+        }:null;
     }
+
+    // recursive
+    private static String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findVarNameOrNull(varLoadOp.operands().getFirst());
+    }
+
+    //recursive
+    private static boolean isF16Local(Value v) {
+        return v instanceof Op.Result r && switch (r.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
+            case HATF16Op.HATF16VarOp hatf16VarOp -> true;
+            default -> false;
+        };
+    }
+
+    //recursive
+    private static boolean isF16Local(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return isF16Local(varLoadOp.operands().getFirst());
+    }
+
+
 
     public static void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder, ReducedFloatType reducedFloatType) {
         blockBuilder.context().mapValue(varOp.result(),
@@ -99,7 +115,7 @@ public record HATFP16Phase() implements HATPhase {
         blockBuilder.context().mapValue(varLoadOp.result(),
                 blockBuilder.op(copyLocation(varLoadOp,
                                 new HATF16Op.HATF16VarLoadOp(
-                                        HATPhaseUtils.findVarNameOrNull(varLoadOp),
+                                        findVarNameOrNull(varLoadOp),
                                         varLoadOp.varType(),
                                         blockBuilder.context().getValues(varLoadOp.operands()))
                         )
@@ -112,7 +128,7 @@ public record HATFP16Phase() implements HATPhase {
                 blockBuilder.op(copyLocation(invoke.op(), new HATF16Op.HATF16ToFloatConvOp(
                                 JavaType.FLOAT,
                                 reducedFloatType,
-                                HATPhaseUtils.isF16Local(invoke.op().operands().getFirst()),
+                                isF16Local(invoke.op().operands().getFirst()),
                                 invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                                         && varLoadOp.resultType().equals(JavaType.FLOAT),
                                 blockBuilder.context().getValues(invoke.op().operands()))
@@ -138,12 +154,13 @@ public record HATFP16Phase() implements HATPhase {
         Map<Op, ReducedFloatType> reducedFloatsType = new HashMap<>();
 
         Invoke.stream(lookup, funcOp)
-                .filter(invoke -> HATPhaseUtils.is16BitFloat(invoke, Regex.of(binaryOpEnum.name().toLowerCase())) && !invoke.returnsVoid())
+                .filter(invoke -> is16BitFloat(invoke, Regex.of(binaryOpEnum.name().toLowerCase())) && !invoke.returnsVoid())
                 .forEach(invoke -> {
-                    ReducedFloatType category = categorizeReducedFloat(invoke);
-                    reducedFloatsType.put(invoke.op(), category);
-                    if (invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp varOp) {
-                        reducedFloatsType.put(varOp, category);
+                    if (categorizeReducedFloatOrThrow(invoke) instanceof ReducedFloatType category) {
+                        reducedFloatsType.put(invoke.op(), category);
+                        if (invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp varOp) {
+                            reducedFloatsType.put(varOp, category);
+                        }
                     }
                 });
 
@@ -160,7 +177,7 @@ public record HATFP16Phase() implements HATPhase {
     private CoreOp.FuncOp dialectifyF16Stores(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
         Invoke.stream(lookup, funcOp)
-                .filter(invoke -> HATPhaseUtils.is16BitFloat(invoke, Regex.of("value"))
+                .filter(invoke -> is16BitFloat(invoke, Regex.of("value"))
                         && invoke.returns16BitValue())
                 .forEach(invoke -> {
                     if (invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
@@ -186,13 +203,14 @@ public record HATFP16Phase() implements HATPhase {
 
         Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid()
-                        && HATPhaseUtils.is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)"))
+                        && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)"))
                         && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp
                 )
                 .forEach(invoke -> {
-                    ReducedFloatType reducedFloatType = categorizeReducedFloat(invoke);
-                    reducedFloatsType.put(invoke.opFromOnlyUseOrNull(), reducedFloatType);
-                    reducedFloatsType.put(invoke.op(), reducedFloatType);
+                    if ( categorizeReducedFloatOrThrow(invoke) instanceof ReducedFloatType reducedFloatType) {
+                        reducedFloatsType.put(invoke.opFromOnlyUseOrNull(), reducedFloatType);
+                        reducedFloatsType.put(invoke.op(), reducedFloatType);
+                    }
                 });
 
         return Trxfmr.of(lookup, funcOp).transform(reducedFloatsType::containsKey, (blockBuilder, op) -> {
@@ -212,11 +230,12 @@ public record HATFP16Phase() implements HATPhase {
                 .map(ce -> invoke(lookup, ce))
                 .filter(invoke -> invoke instanceof Invoke.Static)
                 .map(invoke -> (Invoke.Static) invoke)
-                .filter(invoke ->
-                        invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)")
-                                && invoke.returnsFloat())
-                .forEach(invoke ->
-                        reducedFloatsType.put(invoke.op(), categorizeReducedFloat(invoke))
+                .filter(invoke -> invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)") && invoke.returnsFloat())
+                .forEach(invoke -> {
+                            if (categorizeReducedFloatOrThrow(invoke) instanceof ReducedFloatType reducedFloatType) {
+                                reducedFloatsType.put(invoke.op(), reducedFloatType);
+                            }
+                        }
                 );
 
 

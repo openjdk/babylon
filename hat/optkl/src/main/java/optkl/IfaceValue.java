@@ -26,7 +26,9 @@ package optkl;
 
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 
 public interface IfaceValue {
@@ -67,6 +69,22 @@ public interface IfaceValue {
                 };
             }
         }
+
+
+         /**
+          *
+          * @param typeElement
+          *  {@link TypeElement}
+          * @return
+          * {@link Vector.Shape}
+          */
+          static Shape getVectorShape(MethodHandles.Lookup lookup, TypeElement typeElement) {
+             try {
+                 return (Shape)((Class<?>)OpHelper.classTypeToTypeOrThrow(lookup,(ClassType) typeElement)).getField("shape").get(null);
+             }catch (NoSuchFieldException|IllegalAccessException e) {
+                 throw new RuntimeException(e);
+             }
+         }
     }
 
     interface vec {
