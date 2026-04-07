@@ -584,16 +584,20 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * Returns the code model of a reflectable lambda expression or method reference.
+     * Returns the quoted code model of a reflectable lambda expression or method reference.
+     * <p>
+     * Repeated invocations of this method will return a quoted instance containing the same instance of the code model.
+     * Therefore, code elements (and more generally code items) contained within the code model can be reliably compared
+     * using object identity.
      *
      * @param fiInstance a functional interface instance that is the result of a reflectable lambda expression or
      *                   method reference.
-     * @return the code model, or an empty optional if the functional interface instance is not the result of a
+     * @return the quoted code model, or an empty optional if the functional interface instance is not the result of a
      * reflectable lambda expression or method reference.
      * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code
      * model is not the same as the Java version used at runtime to load the code model.
-     * @apiNote if the functional interface instance is a proxy instance, then the code model is unavailable and this
-     * method returns an empty optional.
+     * @apiNote if the functional interface instance is a proxy instance, then the quoted code model is unavailable and
+     * this method returns an empty optional.
      */
     public static Optional<Quoted<JavaOp.LambdaOp>> ofLambda(Object fiInstance) {
         Object oq = fiInstance;
@@ -633,6 +637,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
     /**
      * Returns the code model of a reflectable method.
+     * <p>
+     * Repeated invocations of this method will return the same instance of the code model. Therefore,
+     * code elements (and more generally code items) contained within the code model can be reliably compared using
+     * object identity.
      *
      * @param method the method.
      * @return the code model, or an empty optional if the method is not reflectable.
