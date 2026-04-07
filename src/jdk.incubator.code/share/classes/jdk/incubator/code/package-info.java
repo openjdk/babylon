@@ -28,6 +28,12 @@
 /// Code reflection supports access to a model of code in a method or lambda expression, a
 /// [_code model_](#code-models-heading), that is suited for analysis and [transformation](#transforming-heading).
 ///
+/// This package documentation is organized into three parts. The first part introduces code reflection using
+/// examples and explains how code reflection extends the core reflection API. The second part builds on those examples
+/// and explains how code models can be traversed, executed, built, and transformed. The third part more formally
+/// explains code model structure, code model behaviour, dialects, and the use of `core` and `Java` dialects to define
+/// Java code models.
+///
 /// ## Core reflection API
 ///
 /// The core reflection API is a powerful feature that enables inspection of Java code at run time. For example,
@@ -98,7 +104,7 @@
 /// ## Code reflection
 ///
 /// Using code reflection we can go deeper. We can update `Example` so that the code of the lambda expressions and
-/// methods is accessible just like the fields and method.
+/// methods are accessible just like the fields and methods.
 ///
 /// {@snippet lang = "java":
 /// import jdk.incubator.code.*;
@@ -122,14 +128,15 @@
 /// }
 /// }
 ///
-/// We declare the lambda expressions and methods are reflectable by annotating their declarations with
+/// We declare the lambda expressions and methods to be reflectable by annotating their declarations with
 /// [Reflect][jdk.incubator.code.Reflect]. By doing so we grant access to their code. When the source of the `Example`
 /// class is compiled by javac it translates its internal model of method `add`’s code to a standard model, called a
 /// [_code model_](#code-models-heading), and stores the code model in a class file related to the `Example` class file
 /// where `add`’s code is compiled to bytecode. (The same occurs for the other method and lambda expressions.)
 ///
-/// A code model is an immutable tree of [_code elements_][jdk.incubator.code.CodeElement], where each element models
-/// some Java statement or expression (for further details see the [Code models](#code-models-heading) section).
+/// A code model is an immutable tree of [_code elements_][jdk.incubator.code.CodeElement], where some kinds of code
+/// element, called operations, model Java statements and expressions (for further details see the
+/// [Code models](#code-models-heading) section).
 ///
 /// We can use code reflection to access the code model of an annotated element, which loads the corresponding code
 /// model that was stored in the related class file.
@@ -151,10 +158,10 @@
 ///
 /// The method `getCodeModel` returns the code model for a reflectable method or lambda expression, a code element that
 /// is the root of the code model tree. By default, methods and lambda expressions are not reflectable, so we return an
-/// optional value. If the annotated element is a method we retrieve the code model from the method. If the annotated
-/// element is a static field whose type is `Runnable` we access its value, an instance of `Runnable` whose result is
-/// produced from a lambda expression, and from that instance we retrieve the lambda expression’s code model. The
-/// retrieval is slightly different for lambda expressions since they can capture values (for more details see the
+/// optional value. If the annotated element is a method we retrieve the code model from the method. Otherwise, if the
+/// annotated element is a static field whose type is `Runnable` we access its value, an instance of `Runnable` whose
+/// result is produced from a lambda expression, and from that instance we retrieve the lambda expression’s code model.
+/// The retrieval is slightly different for lambda expressions since they can capture values (for more details see the
 /// [Declaring and accessing reflectable code](#declaring-and-accessing-reflectable-code-heading) section).
 ///
 /// We can use `getCodeModel` to map from `Example`’s annotated elements to their code models.
@@ -192,7 +199,7 @@
 ///
 /// The method `analyzeCodeModel` uses a stream to [traverse](#traversing-heading) over all elements of a code model and
 /// returns the list of string literal values passed to invocations of `IO.println`. We can then use `analyzeCodeModel`
-/// to further refine our steam expression to print out all such string literal values.
+/// to further refine our stream expression to print out all such string literal values.
 ///
 /// {@snippet lang = "java":
 /// elements(Example.class)
@@ -206,7 +213,7 @@
 /// ## Declaring and accessing reflectable code
 ///
 /// In total there are four syntactic locations where the [jdk.incubator.code.Reflect] annotation can appear that
-/// govern what is declared reflectable. The locations are describe in detail in the [jdk.incubator.code.Reflect]
+/// govern what is declared reflectable. The locations are described in detail in the [jdk.incubator.code.Reflect]
 /// documentation.
 ///
 /// The code model of a reflectable method is accessed by invoking [jdk.incubator.code.Op#ofMethod] with an argument
@@ -227,13 +234,13 @@
 /// The code model of a reflectable lambda expression (or method reference) is accessed by invoking
 /// [jdk.incubator.code.Op#ofLambda] with an argument that is an instance of a functional interface associated with the
 /// reflectable lambda expression. The result is an optional value that contains a [jdk.incubator.code.Quoted] instance,
-/// from which may be retrieved the code model modelling the lambda expression. In addition, it is possible to retrieve
+/// from which may be retrieved the code model modeling the lambda expression. In addition, it is possible to retrieve
 /// a mapping of run time values to items in the code model that model final, or effectively final, variables used but
 /// not declared in the lambda expression. For example, we can access the code model for the lambda expression used to
 /// initialize the `Example.R` field as follows:
 ///
 /// {@snippet lang = "java":
-/// Field rField = Example.class.getDeclaredField("R", Runnable.class);
+/// Field rField = Example.class.getDeclaredField("R");
 /// Object rFieldInstance = rField.get(null);
 /// Quoted<JavaOp.LambdaOp> quotedCodeModel = Op.ofLambda(rFieldInstance).orElseThrow(); // @link substring="Quoted" target="jdk.incubator.code.Quoted"
 /// JavaOp.LambdaOp codeModel = quotedCodeModel.op(); // @link substring="JavaOp.LambdaOp" target="jdk.incubator.code.dialect.java.JavaOp.LambdaOp"
@@ -402,12 +409,12 @@
 ///
 /// [java-expressions]: https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html
 ///
-/// Finally, we can execute the code model by transforming it to byte code, wrapping it in a method handle, and invoking
+/// Finally, we can execute the code model by transforming it to bytecode, wrapping it in a method handle, and invoking
 /// the handle.
 ///
 /// {@snippet lang = "java":
-/// var handle = BytecodeGenerator.generate(MethodHandles.lookup(), addModel); // @link substring="generate(" target="jdk.incubator.code.bytecode.BytecodeGenerator#generate"
-/// assert ExampleAdd.add(1, 1) == (int) handle.invokeExact(1, 1);
+/// var handle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel); // @link substring="generate(" target="jdk.incubator.code.bytecode.BytecodeGenerator#generate"
+/// assert Example.add(1, 1) == (int) handle.invokeExact(1, 1);
 ///}
 ///
 /// ## Building
@@ -433,9 +440,9 @@
 ///         VarOp varOpB = var("b", builder.parameters().get(1));
 ///         Op.Result varB = builder.op(varOpB);
 ///
-///         // IO.println("A:method:m")
+///         // IO.println("Example:method:add")
 ///         builder.op(invoke(PRINTLN, // // @link substring="invoke(" target="jdk.incubator.code.dialect.java.JavaOp#invoke"
-///                 builder.op(constant(JavaType.J_L_STRING, "A:method:m"))));
+///                 builder.op(constant(JavaType.J_L_STRING, "Example:method:add"))));
 ///
 ///         // return a + b;
 ///         builder.op(return_(
@@ -450,25 +457,16 @@
 /// [block builder][jdk.incubator.code.Block.Builder], representing the
 /// [entry block][jdk.incubator.code.Block#isEntryBlock()] being built. We use that to append operations to the entry
 /// block. When an operation is appended it produces an operation result that can be _used_ as an _operand_ of a further
-/// operation and so on. When the `body` method returns a [body][jdk.incubator.code.Body] element and the
-/// entry [block][jdk.incubator.code.Block] element it contains will be fully built.
+/// operation and so on. After consuming lambda expression completes the `body` method will then complete the
+/// building of the returned operation, specifically building of entry [block][jdk.incubator.code.Block] element and its
+/// parent [body][jdk.incubator.code.Body] element.
 ///
 /// Building, like the text output, mirrors the source code structure. Building is carefully designed so that
 /// structurally invalid models cannot be built, either because it is correct by construction or because an exception is
 /// produced when given invalid input.
 ///
-/// We can approximately test equivalence with our previously accessed model as follows.
-///
-/// {@snippet lang = "java":
-/// var builtCodeModelElements = builtCodeModel.elements()
-///         .map(CodeElement::getClass).toList();
-/// var codeModelElements = addModel.elements()
-///         .map(CodeElement::getClass).toList();
-/// assert builtCodeModelElements.equals(codeModelElements);
-///}
-///
 /// We don’t anticipate most users will commonly build complete models of Java code, since it’s a rather verbose and
-/// tedious process, although potentially less so than other approaches e.g., building byte code, or method handle
+/// tedious process, although potentially less so than other approaches e.g., building bytecode, or method handle
 /// combinators. `Javac` already knows how to build models. In fact, `javac` uses the same API to build models, and the
 /// run time uses it to produce models that are accessed. Instead, we anticipate many users will build parts of models
 /// when they transform them.
@@ -556,7 +554,7 @@
 /// more complex but are also capable of more complex transformations, such as building new blocks and retaining more
 /// control over associating values in the input and output models.
 ///
-/// The simple code transformer previously shown can implemented more directly as follows.
+/// The simple code transformer previously shown can be implemented more directly as follows.
 ///
 /// {@snippet lang = "java":
 /// CodeTransformer lowLevelAddToMethodTransformer = (
@@ -570,7 +568,7 @@
 ///
 ///             Op.Result r = builder.op(invoke(SUM, outputOperands));
 ///
-///             // Map intput op's result to output result of invocation operation
+///             // Map input op's result to output result of invocation operation
 ///             builder.context().mapValue(inputOp.result(), r);
 ///         }
 ///         // Copy operation
@@ -583,18 +581,17 @@
 ///
 /// Here we directly use a [block builder][jdk.incubator.code.Block.Builder]. In the prior example the block builder
 /// was hidden behind an implementation of the functional interface `Function<Op, Op.Result>` that manages the mapping
-/// of the the input operation's result to the output operation's result.
+/// of the input operation's result to the output operation's result.
 ///
 /// Code reflection provides complex code transformers, such as those for
 /// - progressively [lowering][jdk.incubator.code.CodeTransformer#LOWERING_TRANSFORMER] code models;
 /// - [transforming][jdk.incubator.code.dialect.core.SSA] models into pure SSA-form (where variable related operations
 ///   are removed);
-/// - [inlining][jdk.incubator.code.dialect.core.Inliner] models into other models;
-/// - [normalizing][jdk.incubator.code.dialect.core.NormalizeBlocksTransformer] to remove redundant blocks; and
-/// - constant folding operations modeling Java expressions that are constant expressions.
+/// - [inlining][jdk.incubator.code.dialect.core.Inliner] models into other models; and
+/// - [normalizing][jdk.incubator.code.dialect.core.NormalizeBlocksTransformer] to remove redundant blocks
 ///
-/// Crucially, all of the above code transformers (except for inlining) preserve the program behaviour of the input code
-/// model. However, in general, code transformers are not required to preserve program behaviour and some will
+/// Crucially, all of the above code transformers (except for inlining) preserve the program behavior of the input code
+/// model. However, in general, code transformers are not required to preserve program behavior and some will
 /// intentionally not do so as they may transform into a different output programming domain that partially maps from
 /// the input programming domain.
 ///
@@ -649,26 +646,26 @@
 ///
 /// ## Code model behavior
 ///
-/// A code model's program behaviour is described by the arrangement of operations, bodies, and blocks. This
-/// arrangement has generic program behaviour common to all code models and specific program behaviour of a code model,
+/// A code model's program behavior is described by the arrangement of operations, bodies, and blocks. This
+/// arrangement has generic program behavior common to all code models and specific program behavior of a code model,
 /// giving rise to program meaning, as specified each operation's modeling of program behavior and the arrangement of
 /// the operations within in a code model.
 ///
 /// ### Environment and effects
 ///
-/// We can describe the generic program behaviour in terms of an environment where code elements are executed. Execution
+/// We can describe the generic program behavior in terms of an environment where code elements are executed. Execution
 /// of a code element produces an effect that is used to update the environment and pass control to another code
 /// element.
 ///
 /// There are three kinds of effect:
 ///
-/// 1. An operation result effect, containing a runtime value for the operation result
-/// 2. A terminating operation effect, containing a terminating operation and runtime values for the operation's
+/// 1. An operation result effect, containing a run time value for the operation result
+/// 2. A terminating operation effect, containing a terminating operation and run time values for the operation's
 ///    operands
-/// 3. A successor block effect, containing the successor block and runtime values for the block's arguments.
+/// 3. A successor block effect, containing the successor block and run time values for the block's arguments.
 ///
 /// Each effect also contains the environment that the effect takes place in. The environment can be updated to a new
-/// environment by binding runtime values to (symbolic) values. The environment can be used to access runtime values
+/// environment by binding run time values to (symbolic) values. The environment can be used to access run time values
 /// given (symbolic) values.
 ///
 /// ### Execution of operations
@@ -690,14 +687,14 @@
 ///
 /// Execution of a body produces a terminating operation effect.
 ///
-/// Execution first proceeds by selecting the body's entry block for execution with given runtime values as arguments
+/// Execution first proceeds by selecting the body's entry block for execution with given run time values as arguments
 /// for the entry block's parameters.
 ///
-/// The current environment is updated by binding the selected block's parameters to the given runtime values, then the
+/// The current environment is updated by binding the selected block's parameters to the given run time values, then the
 /// selected block is executed:
 ///
 /// - If execution produces a successor effect then the effect's successor block becomes the selected block, the
-/// effect's runtime values become the given runtime values, and the effect's environment becomes the current
+/// effect's run time values become the given run time values, and the effect's environment becomes the current
 /// environment. Execution of the selected block then proceeds in the same manner as previously described.
 ///
 /// - If execution of the selected block produces a terminating operation effect then execution of the body completes
@@ -713,7 +710,7 @@
 /// If the selected operation is a non-terminating operation then the non-terminating operation is executed:
 ///
 /// - If execution of the operation produces an operation result effect then the next operation becomes the selected
-/// operation, and the current environment is updated by binding the operation's result to the effect's runtime value.
+/// operation, and the current environment is updated by binding the operation's result to the effect's run time value.
 /// Execution of the selected operation then proceeds as previously described.
 ///
 /// - If execution of the operation produces a terminating operation effect then execution of the block completes and
@@ -804,22 +801,22 @@
 /// ## Dialects
 ///
 /// A dialect is a set of related operations and type elements. When expressed in a code model they give the model
-/// program meaning. Program meaning is an emergent property determined by generic code model behaviour,
-/// each operation's modeling behaviour, and the operations arrangement in the code model.
+/// program meaning. Program meaning is an emergent property determined by generic code model behavior,
+/// each operation's modeling behavior, and the operations arrangement in the code model.
 ///
 /// Code reflection defines two dialects, the [core][jdk.incubator.code.dialect.core] dialect, and the
 /// [Java][jdk.incubator.code.dialect.java] dialect.
 ///
-/// The `core` dialect defines operations, and type elements, whose modeling behaviour is general and common across
+/// The `core` dialect defines operations, and type elements, whose modeling behavior is general and common across
 /// programming language platforms. For example, it provides operations for modeling functions, variables, tuples,
 /// declaring constants, block branching, and yielding a result from a body. In support of those operations it provides
 /// types elements to model function types, variable types, and tuple types. Such operations and type elements can be
-/// used to compatibly model Java program behaviour, such as modeling Java method declarations, or the declaration of
+/// used to compatibly model Java program behavior, such as modeling Java method declarations, or the declaration of
 /// Java variables and access to them. A core operation is one that extends from the class
 /// [CoreOp][jdk.incubator.code.dialect.core.CoreOp]. A core type element is one that extends from the class
 /// [CoreType][jdk.incubator.code.dialect.core.CoreType].
 ///
-/// The `Java` dialect defines operations, and type elements, whose modeling behaviour is specific to Java. The majority
+/// The `Java` dialect defines operations, and type elements, whose modeling behavior is specific to Java. The majority
 /// of the Java operations directly model Java statements and expressions. The Java type elements provide rich modeling
 /// of Java types that are denotable in Java source, and also provide modeling of references to Java declarations that
 /// are composed of Java types and names (fields, methods, and records). A Java operation is one that extends from the
@@ -838,7 +835,7 @@
 ///
 /// ## Java code models
 ///
-/// Java code models are code models produced by `javac`, stored in class files, and accessed at runtime. Such models
+/// Java code models are code models produced by `javac`, stored in class files, and accessed at run time. Such models
 /// preserve the program meaning of the Java source code they model. They consist of an arrangement of operations and
 /// type elements from the `core` dialect and the `java` dialect.
 ///
@@ -855,7 +852,7 @@
 ///
 /// A `ForOp` is capable of transforming itself by replacing itself and its bodies with a control flow graph of
 /// interconnected basic blocks in its grandparent body. This is termed
-/// [lowering][ jdk.incubator.code.CodeTransformer#LOWERING_TRANSFORMER]. Java program behavior is preserved but the
+/// [lowering][jdk.incubator.code.CodeTransformer#LOWERING_TRANSFORMER]. Java program behavior is preserved but the
 /// nested structure of the code is not. The resulting code model elements represent a simplified modeling of the `for`
 /// statement that can be easier to analyze.
 ///
