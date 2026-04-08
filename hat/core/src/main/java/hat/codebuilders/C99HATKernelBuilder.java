@@ -35,7 +35,7 @@ import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
-import hat.dialect.ReducedFloatType;
+import hat.types.ReducedFloatType;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types._F16;
@@ -62,7 +62,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static hat.buffer.F16Array.F16Impl;
-import static hat.dialect.ReducedFloatType.categorizeReducedFloatFromResultOrNull;
 import static java.lang.invoke.MethodHandles.lookup;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
@@ -893,32 +892,33 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     private void generateMathIntrinsicOperation(Invoke invoke) {
-        // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-        final ReducedFloatType reducedFloatType = categorizeReducedFloatFromResultOrNull(invoke);
-        if (reducedFloatType != null) {
-            // If special type, then we need to build the type
-            // For now this applies to F16 and bFloat16
-            paren(_ -> genReducedType(reducedFloatType)).obrace();
-        }
-        id(mapMathIntrinsic(invoke.name()));
+        // if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
+         if (invoke.returnsClassType() && ReducedFloatType.typeElementToReducedFloatTypeOrNull(invoke,(ClassType)invoke.returnType()) instanceof ReducedFloatType reducedFloatType){
+             paren(_ ->
+                     genReducedType(reducedFloatType))
+                     .brace(_-> {
+                         id(mapMathIntrinsic(invoke.name()));
+                         // For each operand, obtain if it is a reference from global memory or device memory.
+                         List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
+                                 .mapToObj(i -> isArrayReference(lookup(), invoke.op().operands().get(i)))
+                                 .collect(Collectors.toList());
 
-        // For each operand, obtain if it is a reference from global memory or device memory.
-        List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
-                .mapToObj(i -> isArrayReference(lookup(), invoke.op().operands().get(i)))
-                .collect(Collectors.toList());
-
-        paren( _ -> {
-            int[] counter = new int[] {0};
-            commaSpaceSeparated(invoke.op().operands(), op -> {
-                recurse(OpHelper.asResultOrThrow(op).op());
-                if (reducedFloatType != null) {
-                    genFieldAccess(op, referenceList.get(counter[0]++));
-                }
-            });
-        });
-        if (reducedFloatType != null) {
-            cbrace();
-        }
+                         paren(_ -> {
+                             int[] counter = new int[]{0};
+                             commaSpaceSeparated(invoke.op().operands(), op -> {
+                                 recurse(OpHelper.asResultOrThrow(op).op());
+                                 genFieldAccess(op, referenceList.get(counter[0]++));
+                             });
+                         });
+                     });
+         }else {
+             id(mapMathIntrinsic(invoke.name()));
+             paren(_ ->
+                 commaSpaceSeparated(invoke.op().operands(), op ->
+                     recurse(OpHelper.asResultOrThrow(op).op())
+                 )
+             );
+         }
     }
 
     protected abstract String mapMathIntrinsic(String name);

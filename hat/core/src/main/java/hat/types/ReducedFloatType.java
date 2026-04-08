@@ -22,11 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.types;
 
-import hat.types.BF16;
-import hat.types.F16;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.java.ClassType;
 import optkl.OpHelper;
+
 
 public interface ReducedFloatType {
 
@@ -41,20 +42,11 @@ public interface ReducedFloatType {
             return new BFloat16() {};
         }
     }
-
-     static ReducedFloatType categorizeReducedFloatOrThrow(OpHelper.Invoke invoke) {
-         if (invoke.refIs(F16.class)) {
+    static ReducedFloatType typeElementToReducedFloatTypeOrNull(OpHelper.Invoke invoke, ClassType classType) {
+        Class<?> clazz = (Class<?>) OpHelper.classTypeToTypeOrThrow(invoke.lookup(),classType);
+        if (F16.class.isAssignableFrom(clazz)){
             return ReducedFloatType.HalfFloat.of();
-        } else if (invoke.refIs(BF16.class)) {
-            return ReducedFloatType.BFloat16.of();
-        }
-        throw new RuntimeException("Can't categorize as ReducedFloatType");
-    }
-
-     static ReducedFloatType categorizeReducedFloatFromResultOrNull(OpHelper.Invoke invoke) {
-        if (invoke.resultTypeIs(F16.class)) {
-            return ReducedFloatType.HalfFloat.of();
-        } else if (invoke.resultTypeIs(BF16.class)) {
+        }else if (BF16.class.isAssignableFrom(clazz)){
             return ReducedFloatType.BFloat16.of();
         }
         return null;

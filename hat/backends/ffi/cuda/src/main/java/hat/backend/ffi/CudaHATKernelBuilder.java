@@ -28,8 +28,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
-import hat.dialect.ReducedFloatType;
-import hat.phases.HATPhaseUtils;
+import hat.types.ReducedFloatType;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
@@ -272,18 +271,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        oparen();
         ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
-        genReducedType(reducedFloatType);
-        cparen().obrace();
-
-        buildReducedFloatType(reducedFloatType);
-        oparen();
-        Value param =  hatF16ConvOp.operands().getFirst();
-        if (param instanceof Op.Result r) {
-            recurse( r.op());
-        }
-        cparen().cbrace();
+        paren(_-> genReducedType(reducedFloatType)).brace(_-> {
+            buildReducedFloatType(reducedFloatType);
+            paren(_ -> {
+                //Value param = ;
+                if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
+                    recurse(r.op());
+                }
+            });
+        });
         return self();
     }
 

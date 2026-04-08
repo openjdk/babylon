@@ -24,6 +24,7 @@
  */
 package hat.dialect;
 
+import hat.types.ReducedFloatType;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -37,7 +38,7 @@ import optkl.util.ops.VarLikeOp;
 import java.util.List;
 import java.util.Map;
 
-public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
+public abstract sealed class HATF16Op extends HATOp implements VarLikeOp {
 
     private String varName;
 

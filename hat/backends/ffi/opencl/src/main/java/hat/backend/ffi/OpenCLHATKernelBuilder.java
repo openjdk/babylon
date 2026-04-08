@@ -30,7 +30,7 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.ReducedFloatType;
+import hat.types.ReducedFloatType;
 import jdk.incubator.code.Op;
 
 import java.util.HashMap;

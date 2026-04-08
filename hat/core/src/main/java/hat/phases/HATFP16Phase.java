@@ -26,7 +26,7 @@ package hat.phases;
 
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATF16Op;
-import hat.dialect.ReducedFloatType;
+import hat.types.ReducedFloatType;
 import hat.types._F16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -34,6 +34,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.OpHelper;
@@ -47,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static hat.dialect.ReducedFloatType.categorizeReducedFloatOrThrow;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
@@ -156,11 +156,13 @@ public record HATFP16Phase() implements HATPhase {
         Invoke.stream(lookup, funcOp)
                 .filter(invoke -> is16BitFloat(invoke, Regex.of(binaryOpEnum.name().toLowerCase())) && !invoke.returnsVoid())
                 .forEach(invoke -> {
-                    if (categorizeReducedFloatOrThrow(invoke) instanceof ReducedFloatType category) {
+                    if (ReducedFloatType.typeElementToReducedFloatTypeOrNull(invoke,(ClassType)invoke.refType()) instanceof ReducedFloatType category) {
                         reducedFloatsType.put(invoke.op(), category);
                         if (invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp varOp) {
                             reducedFloatsType.put(varOp, category);
                         }
+                    }else{
+                        throw new RuntimeException("no reduced float type");
                     }
                 });
 
@@ -207,9 +209,11 @@ public record HATFP16Phase() implements HATPhase {
                         && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp
                 )
                 .forEach(invoke -> {
-                    if ( categorizeReducedFloatOrThrow(invoke) instanceof ReducedFloatType reducedFloatType) {
+                    if ( ReducedFloatType.typeElementToReducedFloatTypeOrNull(invoke,(ClassType)invoke.refType())instanceof ReducedFloatType reducedFloatType) {
                         reducedFloatsType.put(invoke.opFromOnlyUseOrNull(), reducedFloatType);
                         reducedFloatsType.put(invoke.op(), reducedFloatType);
+                    }else {
+                        throw new RuntimeException("No reduced float type");
                     }
                 });
 
@@ -232,8 +236,10 @@ public record HATFP16Phase() implements HATPhase {
                 .map(invoke -> (Invoke.Static) invoke)
                 .filter(invoke -> invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)") && invoke.returnsFloat())
                 .forEach(invoke -> {
-                            if (categorizeReducedFloatOrThrow(invoke) instanceof ReducedFloatType reducedFloatType) {
+                            if (ReducedFloatType.typeElementToReducedFloatTypeOrNull(invoke,(ClassType)invoke.refType()) instanceof ReducedFloatType reducedFloatType) {
                                 reducedFloatsType.put(invoke.op(), reducedFloatType);
+                            }else{
+                                throw new RuntimeException("No reduced float type");
                             }
                         }
                 );

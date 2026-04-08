@@ -25,19 +25,21 @@
 package hat.callgraph;
 
 import hat.BufferTagger;
-import hat.Inliner;
 import hat.KernelContext;
 import hat.device.NonMappableIface;
 import hat.phases.HATTier;
 import hat.types._F16;
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.MappableIface;
+import optkl.util.Mutable;
 import optkl.util.carriers.FuncOpCarrier;
 import optkl.util.carriers.LookupCarrier;
 
@@ -45,8 +47,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static optkl.OpHelper.Invoke.invoke;
 
 public class KernelCallGraph implements LookupCarrier {
     @Override public MethodHandles.Lookup lookup(){
@@ -74,7 +79,37 @@ public class KernelCallGraph implements LookupCarrier {
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp e) {
 
         this.computeCallGraph = computeCallGraph;
-        var inlinedEntryPoint = Inliner.inlineEntrypoint(lookup(), e);
+
+        CoreOp.FuncOp ssaFunc =  SSA.transform( e.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
+        var changed  = Mutable.of(true);
+        while (changed.get()) { // loop until no more inline-able functions
+            changed.set(false);
+            ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
+                if (invoke(lookup(), op) instanceof OpHelper.Invoke invoke                         // always but pattern friendly
+                        && invoke.resolvedMethodOrNull() instanceof Method m
+                        && Op.ofMethod(m) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
+                        && optionalFuncOp.isPresent()
+                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
+                ){
+                    var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
+                    var exitBlockBuilder = jdk.incubator.code.dialect.core.Inliner.inline(
+                            blockbuilder, ssaInline,
+                            blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
+                                if (_value != null) {
+                                    blockbuilder.context().mapValue(invoke.op().result(), _value);
+                                }
+                            });
+                    if (!exitBlockBuilder.parameters().isEmpty()) {
+                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                    }
+                    changed.set(true);
+                    return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
+                }
+                blockbuilder.op(op);
+                return blockbuilder;
+            });
+        }
+        var inlinedEntryPoint = ssaFunc;
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
         this.accessedKernelContextFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
