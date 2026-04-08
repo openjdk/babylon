@@ -26,7 +26,6 @@
 import java.lang.classfile.TypeKind;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
@@ -68,7 +67,7 @@ final class SlotToVarTransformer {
             switch (b.terminatingOp()) {
                 case JavaOp.ExceptionRegionEnter ere -> {
                     BitSet entries = new BitSet();
-                    for (Block.Reference cbr : ere.catchBlocks()) {
+                    for (Block.Reference cbr : ere.catchReferences()) {
                         Block cb = cbr.targetBlock();
                         int i = catchBlocks.indexOf(cb);
                         if (i < 0) {
@@ -79,14 +78,14 @@ final class SlotToVarTransformer {
                         entries.set(i);
                     }
                     entries.or(excStack);
-                    map.put(ere.start().targetBlock(), entries);
+                    map.put(ere.startReference().targetBlock(), entries);
                 }
                 case JavaOp.ExceptionRegionExit ere -> {
                     excStack = (BitSet) excStack.clone();
-                    for (Block.Reference cbr : ere.catchBlocks()) {
+                    for (Block.Reference cbr : ere.catchReferences()) {
                         excStack.clear(catchBlocks.indexOf(cbr.targetBlock()));
                     }
-                    map.put(ere.end().targetBlock(), excStack);
+                    map.put(ere.endReference().targetBlock(), excStack);
                 }
                 case Op op -> {
                     for (Block.Reference tbr : op.successors()) {

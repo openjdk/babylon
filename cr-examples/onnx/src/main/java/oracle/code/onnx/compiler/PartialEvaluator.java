@@ -254,7 +254,7 @@ public final class PartialEvaluator {
             switch (to) {
                 case CoreOp.ConditionalBranchOp cb -> {
                     if (isConstant(to)) {
-                        boolean p = switch (bc.getValue(cb.predicate())) {
+                        boolean p = switch (bc.getValue(cb.predicateOperand())) {
                             case Boolean bp -> bp;
                             case Integer ip ->
                                 // @@@ This is required when lifting up from bytecode, since boolean values
