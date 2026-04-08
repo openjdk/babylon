@@ -28,7 +28,8 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
-import hat.types.ReducedFloatType;
+import hat.types.BF16;
+import hat.types.F16;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
@@ -271,9 +272,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
-        paren(_-> genReducedType(reducedFloatType)).brace(_-> {
-            buildReducedFloatType(reducedFloatType);
+        var float16Class = hatF16ConvOp.float16Class();
+        paren(_-> f16OrBF16(float16Class)).brace(_-> {
+            buildFloat16Class(float16Class);
             paren(_ -> {
                 //Value param = ;
                 if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
@@ -286,7 +287,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        buildReducedFloatType(hatF16ToFloatConvOp.reducedFloatType());
+        buildFloat16Class(hatF16ToFloatConvOp.float16Class());
         oparen();
         Value param =  hatF16ToFloatConvOp.operands().getFirst();
         if (param instanceof Op.Result r) {
@@ -329,7 +330,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
 
-        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
+        var float16Class = hatF16BinaryOp.float16Class();
 
         Value op1 = hatF16BinaryOp.operands().get(0);
         Value op2 = hatF16BinaryOp.operands().get(1);
@@ -345,10 +346,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             f32Mixed = 0x00;
         }
 
-        paren( _-> genReducedType(reducedFloatType)).obrace().oparen();
+        paren( _-> f16OrBF16(float16Class)).obrace().oparen();
 
         if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
-            generateReducedFloatConversionToFloat(reducedFloatType).oparen();
+            generateFloat16ConversionToFloat(float16Class).oparen();
         }
 
         if (op1 instanceof Op.Result r) {
@@ -367,7 +368,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         sp().id(hatF16BinaryOp.binaryOperationType().symbol()).sp();
 
         if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
-            generateReducedFloatConversionToFloat(reducedFloatType).oparen();
+            generateFloat16ConversionToFloat(float16Class).oparen();
         }
 
         if (op2 instanceof Op.Result r) {
@@ -389,22 +390,24 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private CudaHATKernelBuilder buildReducedFloatType(ReducedFloatType reducedFloatType) {
-        switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> half2float();
-            case ReducedFloatType.BFloat16 _ -> __nv_bfloat16();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+    private CudaHATKernelBuilder buildFloat16Class(Class<?> float16Class) {
+        if (F16.class.isAssignableFrom(float16Class)) {
+            return half2float();
+        }else if (BF16.class.isAssignableFrom(float16Class)) {
+            return __nv_bfloat16();
+        }else{
+            throw new IllegalStateException("Unexpected value: " + float16Class);
         }
-        return self();
     }
 
-    private CudaHATKernelBuilder generateReducedFloatConversionToFloat(ReducedFloatType reducedFloatType) {
-        switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ ->  half2float();
-            case ReducedFloatType.BFloat16 _ ->  __bfloat162float();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
+    private CudaHATKernelBuilder generateFloat16ConversionToFloat(Class<?> float16Class) {
+        if (F16.class.isAssignableFrom(float16Class)) {
+            return half2float();
+        }else if (BF16.class.isAssignableFrom(float16Class)) {
+            return  __bfloat162float();
+        }else{
+            throw new IllegalStateException("Unexpected value: " + float16Class);
         }
-        return self();
     }
 
     // Mapping between API function names and CUDA intrinsics for the math operations

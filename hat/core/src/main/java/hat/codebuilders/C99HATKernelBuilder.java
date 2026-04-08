@@ -35,7 +35,6 @@ import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
-import hat.types.ReducedFloatType;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
@@ -460,22 +459,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return suffix_t(BF16.class);
     }
 
-    protected final T genReducedType(ReducedFloatType reducedFloatType) {
-        return (switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> f16Type();
-            case ReducedFloatType.BFloat16 _ -> bf16Type();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        });
+     protected T f16OrBF16(Class<?> float16Class){
+        if (F16.class.isAssignableFrom(float16Class)){
+            return f16Type();
+        }else if (BF16.class.isAssignableFrom(float16Class)){
+            return bf16Type();
+        }else {
+            throw new IllegalStateException("Unexpected value: " + float16Class);
+        }
     }
 
     @Override
     public final T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp) {
-        ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
-        return (switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> f16Type();
-            case ReducedFloatType.BFloat16 _ ->  bf16Type();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        }).sp().assign(
+        var float16Class = hatF16VarOp.float16Class();
+        return f16OrBF16(float16Class).sp().assign(
                 _-> id(hatF16VarOp.varName()),
                 _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
     }
@@ -554,8 +551,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
-        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
-        if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+        var float16Class = hatF16BinaryOp.float16Class();
+        if (BF16.class.isAssignableFrom(float16Class)) {
             return binaryOperationsForBfloat16( hatF16BinaryOp);
         }
         paren(_-> f16Type());
@@ -893,9 +890,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void generateMathIntrinsicOperation(Invoke invoke) {
         // if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-         if (invoke.returnsClassType() && ReducedFloatType.typeElementToReducedFloatTypeOrNull(invoke,(ClassType)invoke.returnType()) instanceof ReducedFloatType reducedFloatType){
+         if (invoke.returnsClassType() && S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Class){
              paren(_ ->
-                     genReducedType(reducedFloatType))
+                     f16OrBF16(float16Class))
                      .brace(_-> {
                          id(mapMathIntrinsic(invoke.name()));
                          // For each operand, obtain if it is a reference from global memory or device memory.

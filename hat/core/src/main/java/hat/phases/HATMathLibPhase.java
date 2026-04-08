@@ -25,7 +25,7 @@
 package hat.phases;
 
 import hat.HATMath;
-import hat.types.ReducedFloatType;
+import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -40,7 +40,7 @@ import java.util.Objects;
 public record HATMathLibPhase() implements HATPhase {
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
+        Map<Op, Class<? extends S16ImplOfF16>> setTypeMap = new HashMap<>();
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid() && invoke.returnsClassType() && invoke.refIs(HATMath.class))
                 .forEach(invoke ->
@@ -54,7 +54,7 @@ public record HATMathLibPhase() implements HATPhase {
                                     // to pass to the cogen to do further processing (e.g., build a new type or typecast).
                                     // An alternative is to insert a `stub`, or a code snippet that insert new nodes in the
                                     // IR
-                                    if (ReducedFloatType.typeElementToReducedFloatTypeOrNull(invoke,(ClassType)invoke.returnType()) instanceof ReducedFloatType reducedFloatType) {
+                                    if (S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
                                         setTypeMap.put(result.op(), reducedFloatType);
                                         setTypeMap.put(invoke.op(), reducedFloatType);
                                     }

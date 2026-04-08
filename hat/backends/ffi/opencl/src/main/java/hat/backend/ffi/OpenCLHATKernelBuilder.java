@@ -28,9 +28,10 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
+import hat.types.BF16;
+import hat.types.F16;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.types.ReducedFloatType;
 import jdk.incubator.code.Op;
 
 import java.util.HashMap;
@@ -159,16 +160,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
-        return paren(_->{
-            switch(reducedFloatType){
-                case ReducedFloatType.HalfFloat _ -> f16Type();
-                case ReducedFloatType.BFloat16 _-> bf16Type();
-                default ->   throw new RuntimeException("What is ths reducedType");
-            }
-        }).brace(_-> {
+        var reducedFloatType = hatF16ConvOp.float16Class();
+        return paren(_-> f16OrBF16(reducedFloatType)).brace(_-> {
             var firstOperandOp = hatF16ConvOp.operands().getFirst().result().op();
-            either (reducedFloatType instanceof ReducedFloatType.BFloat16,
+            either (BF16.class.isAssignableFrom(reducedFloatType),
                     _-> builtin_float2bfloat16().paren(_-> recurse(firstOperandOp)),
                     _-> recurse( firstOperandOp)
             );
@@ -190,14 +185,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         // Type conversions: half,bfloat16 -> float
-        ReducedFloatType reducedFloatType = hatF16ToFloatConvOp.reducedFloatType();
+        var reducedFloatType = hatF16ToFloatConvOp.float16Class();
 
-        if (reducedFloatType instanceof ReducedFloatType.HalfFloat) {// half -> float
+        if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
             paren(_->f32Type());
-        } else if (reducedFloatType instanceof ReducedFloatType.BFloat16) {// bfloat16 -> float
+        } else if (BF16.class.isAssignableFrom(reducedFloatType)) {// bfloat16 -> float
             builtin_bfloat16ToFloat();
         }
-        parenWhen(reducedFloatType instanceof ReducedFloatType.BFloat16,_-> {
+        parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
             recurse(hatF16ToFloatConvOp.operands().getFirst().result().op());
             if (!hatF16ToFloatConvOp.isLocal()) {
                 rarrow().id("value");
