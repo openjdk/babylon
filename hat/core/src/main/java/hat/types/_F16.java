@@ -30,4 +30,6 @@ import optkl.IfaceValue;
  * Common interface for F16 implementations
  */
 public interface _F16 extends IfaceValue {
+    short value();
+    void value(short value);
 }
