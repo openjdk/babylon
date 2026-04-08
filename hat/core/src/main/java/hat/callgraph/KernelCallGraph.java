@@ -28,7 +28,7 @@ import hat.BufferTagger;
 import hat.KernelContext;
 import hat.device.NonMappableIface;
 import hat.phases.HATTier;
-import hat.types._F16;
+import hat.types.S16ImplOfF16;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
@@ -71,7 +71,7 @@ public class KernelCallGraph implements LookupCarrier {
     public final Set<Class<? extends NonMappableIface>> accessedNonMappableIfaceClasses;
     public final Set<Class<? extends MappableIface>> accessedMappableIfaceClasses;
     public final Set<Class<? extends IfaceValue.vec>> accessedVecClasses;
-    public final Set<Class<? extends _F16>> accessedFP16Classes;
+    public final Set<Class<? extends S16ImplOfF16>> accessedFP16Classes;
     public boolean usesBarrier;
     public boolean usesAtomics;
     public final Set<String> accessedKernelContextFields;
@@ -134,7 +134,7 @@ public class KernelCallGraph implements LookupCarrier {
                 .filter(c->IfaceValue.vec.class.isAssignableFrom(c)).map(c->(Class<IfaceValue.vec>)c)
                 .collect(Collectors.toSet());
         this.accessedFP16Classes =  this.accessedClasses.stream()
-                .filter(c->_F16.class.isAssignableFrom(c)).map(c->(Class<_F16>)c)
+                .filter(c-> S16ImplOfF16.class.isAssignableFrom(c)).map(c->(Class<S16ImplOfF16>)c)
                 .collect(Collectors.toSet());
         this.usesAtomics = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke ->

@@ -27,7 +27,7 @@ package hat.phases;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATF16Op;
 import hat.types.ReducedFloatType;
-import hat.types._F16;
+import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -54,7 +54,7 @@ import static optkl.OpHelper.copyLocation;
 
 public record HATFP16Phase() implements HATPhase {
     private static boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
-        return invoke.refIs(_F16.class) && invoke.nameMatchesRegex(methodName);
+        return invoke.refIs(S16ImplOfF16.class) && invoke.nameMatchesRegex(methodName);
     }
 
 

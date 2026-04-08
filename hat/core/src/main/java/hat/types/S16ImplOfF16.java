@@ -27,9 +27,9 @@ package hat.types;
 import optkl.IfaceValue;
 
 /**
- * Common interface for F16 implementations
+ * Common interface for F16 implementations which are backed by a java short (S16)
  */
-public interface _F16 extends IfaceValue {
+public interface S16ImplOfF16 extends IfaceValue {
     short value();
     void value(short value);
 }

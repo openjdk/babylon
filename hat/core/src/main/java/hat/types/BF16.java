@@ -24,7 +24,7 @@
  */
 package hat.types;
 
-public interface BF16 extends _F16{
+public interface BF16 extends S16ImplOfF16 {
 
     static BF16 of(float value) {
         return new BF16() {

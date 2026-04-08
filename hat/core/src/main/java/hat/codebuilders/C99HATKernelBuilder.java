@@ -38,7 +38,7 @@ import hat.dialect.HATVectorOp;
 import hat.types.ReducedFloatType;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types._F16;
+import hat.types.S16ImplOfF16;
 import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
@@ -392,7 +392,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             C99VecAndMatHandler.handleType(self(),javaType);
         }else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
-                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
+                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
         ) {
             HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
