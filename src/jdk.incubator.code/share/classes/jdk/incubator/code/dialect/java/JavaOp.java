@@ -5236,7 +5236,7 @@ public sealed abstract class JavaOp extends Op {
         final Body resourcesBody;
         final Body body;
         final List<Body> catchBodies;
-        final Body finalyBody;
+        final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
             List<Body.Builder> bodies = def.bodyDefinitions();
@@ -5277,10 +5277,10 @@ public sealed abstract class JavaOp extends Op {
             this.catchBodies = that.catchBodies.stream()
                     .map(b -> b.transform(cc, ot).build(this))
                     .toList();
-            if (that.finalyBody != null) {
-                this.finalyBody = that.finalyBody.transform(cc, ot).build(this);
+            if (that.finallyBody != null) {
+                this.finallyBody = that.finallyBody.transform(cc, ot).build(this);
             } else {
-                this.finalyBody = null;
+                this.finallyBody = null;
             }
         }
 
@@ -5323,15 +5323,15 @@ public sealed abstract class JavaOp extends Op {
             }
 
             if (finalizerC != null) {
-                this.finalyBody = finalizerC.build(this);
-                if (!finalyBody.bodyType().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Finally should return void: " + finalyBody.bodyType());
+                this.finallyBody = finalizerC.build(this);
+                if (!finallyBody.bodyType().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Finally should return void: " + finallyBody.bodyType());
                 }
-                if (!finalyBody.bodyType().parameterTypes().isEmpty()) {
-                    throw new IllegalArgumentException("Finally should have zero parameters: " + finalyBody.bodyType());
+                if (!finallyBody.bodyType().parameterTypes().isEmpty()) {
+                    throw new IllegalArgumentException("Finally should have zero parameters: " + finallyBody.bodyType());
                 }
             } else {
-                this.finalyBody = null;
+                this.finallyBody = null;
             }
         }
 
@@ -5343,8 +5343,8 @@ public sealed abstract class JavaOp extends Op {
             }
             bodies.add(body);
             bodies.addAll(catchBodies);
-            if (finalyBody != null) {
-                bodies.add(finalyBody);
+            if (finallyBody != null) {
+                bodies.add(finallyBody);
             }
             return bodies;
         }
@@ -5374,7 +5374,7 @@ public sealed abstract class JavaOp extends Op {
          * {@return the finally body, or {@code null} if this try operation has no finally body}
          */
         public Body finallyBody() {
-            return finalyBody;
+            return finallyBody;
         }
 
         @Override
@@ -5387,7 +5387,7 @@ public sealed abstract class JavaOp extends Op {
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             // Simple case with no catch and finally bodies
-            if (catchBodies.isEmpty() && finalyBody == null) {
+            if (catchBodies.isEmpty() && finallyBody == null) {
                 b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(branch(exit.successor()));
@@ -5407,7 +5407,7 @@ public sealed abstract class JavaOp extends Op {
                     .map(catcher -> b.block())
                     .toList();
             Block.Builder catcherFinally;
-            if (finalyBody == null) {
+            if (finallyBody == null) {
                 catcherFinally = null;
             } else {
                 catcherFinally = b.block();
@@ -5422,7 +5422,7 @@ public sealed abstract class JavaOp extends Op {
             b.op(exceptionRegionEnter(tryRegionEnter.successor(), exitHandlers.reversed()));
 
             CodeTransformer tryExitTransformer;
-            if (finalyBody != null) {
+            if (finallyBody != null) {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
@@ -5456,7 +5456,7 @@ public sealed abstract class JavaOp extends Op {
             }));
 
             Block.Builder finallyEnter = null;
-            if (finalyBody != null) {
+            if (finallyBody != null) {
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
@@ -5474,7 +5474,7 @@ public sealed abstract class JavaOp extends Op {
                 // Create the throwable argument
                 Block.Parameter t = catcher.parameter(catcherBody.bodyType().parameterTypes().get(0));
 
-                if (finalyBody != null) {
+                if (finallyBody != null) {
                     Block.Builder catchRegionEnter = b.block();
                     Block.Builder catchRegionExit = b.block();
 
@@ -5521,9 +5521,9 @@ public sealed abstract class JavaOp extends Op {
                 }
             }
 
-            if (finalyBody != null && hasTryRegionExit.get()) {
+            if (finallyBody != null && hasTryRegionExit.get()) {
                 // Inline the finally body
-                finallyEnter.body(finalyBody, List.of(), andThenLowering(opT, (block, op) -> {
+                finallyEnter.body(finallyBody, List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(branch(exit.successor()));
                         return block;
@@ -5534,11 +5534,11 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // Inline the finally body as a catcher of Throwable and adjusting to throw
-            if (finalyBody != null) {
+            if (finallyBody != null) {
                 // Create the throwable argument
                 Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
 
-                catcherFinally.body(finalyBody, List.of(), andThenLowering(opT, (block, op) -> {
+                catcherFinally.body(finallyBody, List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(throw_(t));
                         return block;
@@ -5562,7 +5562,7 @@ public sealed abstract class JavaOp extends Op {
             block1.op(exceptionRegionExit(finallyEnter.successor(), tryHandlers));
 
             // Inline the finally body
-            finallyEnter.body(finalyBody, List.of(), andThenLowering(opT, (block2, op2) -> {
+            finallyEnter.body(finallyBody, List.of(), andThenLowering(opT, (block2, op2) -> {
                 if (op2 instanceof CoreOp.YieldOp) {
                     block2.op(branch(finallyExit.successor()));
                     return block2;
