@@ -271,9 +271,22 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
         static_cast<size_t>(kernelContext->lsz),
     };
 
+    if (kernelContext->tlx > 0) {
+        global_work_size[0] /= kernelContext->tlx;
+    }
+    if (kernelContext->tly > 0) {
+        global_work_size[1] /= kernelContext->tly;
+    }
+    if (kernelContext->tlz > 0) {
+        global_work_size[2] /= kernelContext->tlz;
+    }
+
+    // In the OpenCL backend, we don't currently support warp-sizes to be able to run with OpenCL 1.2 (Apple)
+    // The CUDA backend supports warp-sizes
+
     // Check the local-sizes fit
-    auto backend = dynamic_cast<OpenCLBackend *>(this->backend);
-    checkThreadBlockFits(backend, kernelContext, local_work_size);
+    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
+    checkThreadBlockFits(backendInstance, kernelContext, local_work_size);
 
     if (backend->config->info) {
         backend->shortDeviceInfo();

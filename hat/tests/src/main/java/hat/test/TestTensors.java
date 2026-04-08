@@ -27,6 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -39,6 +40,7 @@ import jdk.incubator.code.Reflect;
 import static hat.NDRange.Global2D;
 import static hat.NDRange.Local2D;
 import static hat.NDRange.NDRange2D;
+import static hat.NDRange.Warp2D;
 import static optkl.ifacemapper.MappableIface.RO;
 import static optkl.ifacemapper.MappableIface.WO;
 
@@ -246,7 +248,7 @@ public class TestTensors {
     public static void mxmTensors(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
         // var ndRange = of2D(2048, 64, 128, 4);  // When we launch using the CUDA backend
         // For the OpenCL backend: [ (size / tile), (size / tile) ]
-        var ndRange = NDRange2D.of(Global2D.of(64, 64), Local2D.of(128, 4));
+        var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize), Local2D.of(128, 4), NDRange.Tile2D.of(16, 16), Warp2D.of(true, false));
         cc.dispatchKernel(ndRange, kc -> mxmTensors(kc, matrixA, matrixB, matrixC, globalSize));
     }
 
