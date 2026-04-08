@@ -238,7 +238,7 @@ final class OnnxPartialEvaluator {
 
             if (to instanceof CoreOp.ConditionalBranchOp cb) {
                 boolean p;
-                Object bop = oc.getValue(cb.predicate());
+                Object bop = oc.getValue(cb.predicateOperand());
                 if (bop instanceof Boolean bp) {
                     p = bp;
                 } else if (bop instanceof Integer ip) {

@@ -133,7 +133,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         /**
          * {@return the function type describing the invokable operation's parameter types and return type.}
          */
-        FunctionType invokableType();
+        default FunctionType invokableType() {
+            return body().bodyType();
+        }
 
         /**
          * {@return the entry block parameters of this operation's body}

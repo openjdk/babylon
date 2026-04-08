@@ -107,12 +107,12 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
             }
             case JavaOp.ExceptionRegionEnter ere -> {
                 // Cannot remove block parameters from exception handlers
-                removeUnusedBlockParameters(b, ere.start());
+                removeUnusedBlockParameters(b, ere.startReference());
                 b.op(op);
             }
             case JavaOp.ExceptionRegionExit ere -> {
                 // Cannot remove block parameters from exception handlers
-                removeUnusedBlockParameters(b, ere.end());
+                removeUnusedBlockParameters(b, ere.endReference());
                 b.op(op);
             }
             case Op.BlockTerminating _ -> {

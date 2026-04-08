@@ -212,7 +212,7 @@ public class AnfTransformer {
 
                     var ifExp = AnfDialect.if_(b.parentBody(),
                                     getBlockReturnType(c.trueBranch().targetBlock()),
-                                    b.context().getValue(c.predicate()))
+                                    b.context().getValue(c.predicateOperand()))
                             .if_((bodyBuilder) -> bindFunApp(bodyBuilder, trueArgs, c.trueBranch().targetBlock()))
                             .else_((bodyBuilder) -> bindFunApp(bodyBuilder, falseArgs, c.falseBranch().targetBlock()));
 
