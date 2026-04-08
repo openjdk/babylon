@@ -6285,7 +6285,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an exception region enter operation
      *
-     * @param start    the reference to the block that enters the the exception region
+     * @param start    the reference to the block that enters the exception region
      * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
      * @return the exception region enter operation
      */
@@ -6296,7 +6296,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an exception region enter operation
      *
-     * @param start    the reference to the first block in the exception region
+     * @param start    the reference to the block that enters the exception region
      * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
      * @return the exception region enter operation
      */
