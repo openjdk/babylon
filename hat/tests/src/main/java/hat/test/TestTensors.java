@@ -217,9 +217,9 @@ public class TestTensors {
         final int ldb = 1024;
         final int ldc = 1024;
 
-        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.Shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
-        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.Shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
-        Tensor acc = Tensor.create(Tensor.ACC, Tensor.Shape(16, 16, 16), float.class);
+        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
+        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
+        Tensor acc = Tensor.create(Tensor.ACC, Tensor.shape(16, 16, 16), float.class);
 
         Tensor.fill(acc, 0.0f);
 

@@ -11,7 +11,7 @@ public record Tensor(int first, Shape shape, Class<?> klass, Access tensorAccess
     public static final int SECOND = 1;
     public static final int ACC = 2;
 
-    public static Shape Shape(int dim1, int dim2, int dim3) {
+    public static Shape shape(int dim1, int dim2, int dim3) {
         return new Shape(dim1, dim2, dim3);
     }
 
@@ -24,7 +24,7 @@ public record Tensor(int first, Shape shape, Class<?> klass, Access tensorAccess
     }
 
     // Do we do a = fill(a, v)? or void fill(a, v)?
-    public static void fill(Tensor acc, float v) {
+    public static void fill(Tensor acc, float value) {
     }
 
     public static void mma(Tensor result, Tensor tensorA, Tensor tensorB, Tensor acc) {
