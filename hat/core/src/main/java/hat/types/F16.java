@@ -115,20 +115,4 @@ public interface F16 extends S16ImplOfF16, IfaceValue.Struct {
     static F16 add(F16 hb, float f32) {
         return F16.of(f16ToFloat(hb) / f32);
     }
-
-    default F16 add(F16 ha) {
-        return F16.add(this, ha);
-    }
-
-    default F16 sub(F16 ha) {
-        return F16.sub(this, ha);
-    }
-
-    default F16 mul(F16 ha) {
-        return F16.mul(this, ha);
-    }
-
-    default F16 div(F16 ha) {
-        return F16.div(this, ha);
-    }
 }

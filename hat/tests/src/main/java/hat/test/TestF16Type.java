@@ -183,18 +183,17 @@ public class TestF16Type {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
-            F16 result = ha.add(hb);
+            F16 result = F16.add(ha,hb);
             c.array(kernelContext.gix).value(result.value());
         }
     }
 
     @Reflect
     public static void f16Ops_13(KernelContext kernelContext, F16Array a, F16Array b,  F16Array c) {
-        // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
-            F16 result = ha.add(hb).sub(hb).mul(ha).div(ha);
+            F16 result = F16.div(F16.mul(F16.sub(F16.add(ha,hb),hb),ha),ha);
             c.array(kernelContext.gix).value(result.value());
         }
     }

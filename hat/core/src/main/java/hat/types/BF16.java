@@ -122,20 +122,4 @@ public interface BF16 extends S16ImplOfF16 {
         return BF16.of(bfloat162float(hb) / f32);
     }
 
-    default BF16 add(BF16 ha) {
-        return BF16.add(this, ha);
-    }
-
-    default BF16 sub(BF16 ha) {
-        return BF16.sub(this, ha);
-    }
-
-    default BF16 mul(BF16 ha) {
-        return BF16.mul(this, ha);
-    }
-
-    default BF16 div(BF16 ha) {
-        return BF16.div(this, ha);
-    }
-
 }
