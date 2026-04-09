@@ -26,15 +26,17 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.NDRange;
 import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.*;
-import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
+import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -43,13 +45,13 @@ public class TestArrays {
 
     @Reflect
     public static int squareit(int v) {
-        return  v * v;
+        return v * v;
 
     }
 
     @Reflect
     public static void squareKernel(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx){
+        if (kc.gix < kc.gsx) {
             int value = array.array(kc.gix);
             array.array(kc.gix, squareit(value));
         }
@@ -182,6 +184,7 @@ public class TestArrays {
     @HatTest
     @Reflect
     public static void testSmallGrid() {
+
         final int size = 50;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = F32Array.create(accelerator, size);

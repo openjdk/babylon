@@ -41,9 +41,14 @@ public class DeviceSchema<T extends NonMappableIface> {
         Class<?> clazz();
         List<NamedMember<T>> members();
         default Class<?> getReturnType(String fieldName){
-            return Arrays.stream(clazz().getDeclaredMethods())
+            var opt = Arrays.stream(clazz().getMethods())
                     .filter(m->m.getName().equals(fieldName) && !m.getReturnType().equals(void.class))
-                    .map(Method::getReturnType).findFirst().orElseThrow();
+                    .map(Method::getReturnType).findFirst();
+            if (opt.isPresent()){
+                return opt.get();
+            }else {
+                throw new RuntimeException("No return value for "+clazz()+" via name "+fieldName);
+            }
         }
 
         default Builder<T> fields(String... fieldNames) {

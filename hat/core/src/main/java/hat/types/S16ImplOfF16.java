@@ -24,10 +24,22 @@
  */
 package hat.types;
 
+import jdk.incubator.code.dialect.java.ClassType;
 import optkl.IfaceValue;
+import optkl.OpHelper;
 
 /**
- * Common interface for F16 implementations
+ * Common interface for F16 implementations which are backed by a java short (S16)
  */
-public interface _F16 extends IfaceValue {
+public interface S16ImplOfF16 extends IfaceValue {
+    short value();
+    void value(short value);
+
+    static <T extends S16ImplOfF16> Class<T> typeElementToFloatClassOrNull(OpHelper.Invoke invoke, ClassType classType) {
+        Class<?> clazz = (Class<?>) OpHelper.classTypeToTypeOrThrow(invoke.lookup(),classType);
+        if (F16.class.isAssignableFrom(clazz) || BF16.class.isAssignableFrom(clazz)){
+            return (Class<T>)clazz;
+        }
+        return null;
+    }
 }
