@@ -492,8 +492,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         if (matrixOrder.equals("accumulator")) {
             gt();
-        } else {
-            // infer from the last parameter
+        } else {// infer from the last parameter
             if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
                 // Expecting an invokeOp
                 var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -716,8 +715,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder generateStoreTensor(List<Value> operands, boolean isColumnMajor) {
-        // style: store_matrix_sync(c + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
-
         Value reference = operands.getFirst();
         f32Type().asterisk().sp().id("ptr_");
         if (reference instanceof Op.Result r) {
