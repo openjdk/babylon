@@ -561,7 +561,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     id(acc).sp().plusEquals().cast( _ -> f32Type()).paren( _-> id(resultTensor).dot().id("value")).semicolon().nl();
                 }).nl().out();
 
-                id(result.varName()).sbrace( _ -> id(varA).sp().mul().id(Integer.toString(shape[0])).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
+                id(result.varName()).sbrace( _ -> id(varA).sp().mul().sp().id(Integer.toString(shape[0])).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
 
             }).semicolon().nl();
 
