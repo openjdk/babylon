@@ -617,9 +617,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     private CudaHATKernelBuilder generateLoadTensor(HATTensorOp.TensorLoadOp tensorLoadOp, boolean isColumnMajor, String tensorName) {
-
-        //wmma::load_matrix_sync(a_frag, a + aRow + aCol * lda, lda);
-
         // First operand is the reference to global memory
         List<Value> operands = tensorLoadOp.operands();
         Value reference = operands.getFirst();
@@ -645,9 +642,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *     wmma::load_matrix_sync(a_frag, a + headSize + aRow + aCol * lda, lda);
+     * </code>
+     * </p>
+     *
+     * @param tensorLoadOp
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
     @Override
     public CudaHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
-
         // Find name tensor of the first argument
         String tensorName = "";
         SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
@@ -692,6 +701,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *     store_matrix_sync(c + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
+     * </code>
+     * </p>
+     *
+     * @param operands
+     * @param isColumnMajor
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
     private CudaHATKernelBuilder generateStoreTensor(List<Value> operands, boolean isColumnMajor) {
         // style: store_matrix_sync(c + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
 

@@ -571,7 +571,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        // Tensor.mma(acc, tensorA, tensorB, acc)
         var resulTensorValue = tensorMMAOp.operands().getFirst();
         var tensorAValue = tensorMMAOp.operands().get(1);
         var tensorBValue = tensorMMAOp.operands().get(2);
@@ -872,8 +871,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      */
     @Override
     public OpenCLHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp) {
-        // Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
-
         // 1. We need the global ptr
         // 2. We need the indexes (i, j)
         // 3. We need leading dimension
