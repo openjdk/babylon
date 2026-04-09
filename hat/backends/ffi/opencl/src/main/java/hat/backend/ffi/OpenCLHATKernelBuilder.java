@@ -561,7 +561,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     id(acc).sp().plusEquals().cast( _ -> f32Type()).paren( _-> id(resultTensor).dot().id("value")).semicolon().nl();
                 }).nl().out();
 
-                id(result.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).sp().plus().id(varB)).assign().id(acc).semicolon().nl();
+                id(result.varName()).sbrace( _ -> id(varA).sp().mul().id(Integer.toString(shape[0])).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
 
             }).semicolon().nl();
 
@@ -707,7 +707,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id("value")).semicolon().nl();
 
                 // store into the acc
-                emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape[0])).plus().id(varB));
+                emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).sp().mul().id(Integer.toString(shape[0])).sp().plus().id(varB));
                 equals().sp().id(r).semicolon().nl();
             }).out();
         }).out();
