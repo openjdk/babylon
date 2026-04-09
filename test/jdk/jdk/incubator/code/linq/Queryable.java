@@ -58,7 +58,7 @@ public interface Queryable<T> {
     @SuppressWarnings("unchecked")
     default <R> Queryable<R> select(Function<T, R> f) {
         JavaOp.LambdaOp l = Op.ofLambda(f).get().op();
-        return (Queryable<R>) insertQuery((JavaType) l.invokableType().returnType(), "select", l);
+        return (Queryable<R>) insertQuery((JavaType) l.invokableSignature().returnType(), "select", l);
     }
 
     private Queryable<?> insertQuery(JavaType elementType, String methodName, JavaOp.LambdaOp lambdaOp) {
@@ -66,7 +66,7 @@ public interface Queryable<T> {
         FuncOp queryExpression = expression();
         JavaType queryableType = parameterized(Queryable.TYPE, elementType);
         FuncOp nextQueryExpression = func("query",
-                functionType(queryableType, queryExpression.invokableType().parameterTypes()))
+                functionType(queryableType, queryExpression.invokableSignature().parameterTypes()))
                 .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
                     Op.Result fi = block.op(lambdaOp);
 
@@ -97,7 +97,7 @@ public interface Queryable<T> {
         FuncOp queryExpression = expression();
         JavaType queryResultType = parameterized(QueryResult.TYPE, resultType);
         FuncOp queryResultExpression = func("queryResult",
-                functionType(queryResultType, queryExpression.invokableType().parameterTypes()))
+                functionType(queryResultType, queryExpression.invokableSignature().parameterTypes()))
                 .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(QueryResult.TYPE));

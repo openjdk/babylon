@@ -138,7 +138,7 @@ public final class Verifier {
                 case JavaOp.ArithmeticOperation _ ->
                         verifyOpHandleExists(op, op.externalizeOpName());
                 case JavaOp.ConvOp _ -> {
-                    verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opType().returnType());
+                    verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opSignature().returnType());
                 }
                 default -> {}
 
@@ -201,10 +201,10 @@ public final class Verifier {
 
     private void verifyOpHandleExists(Op op, String opName) {
         try {
-            var mt = MethodRef.toNominalDescriptor(op.opType()).resolveConstantDesc(lookup).erase();
+            var mt = MethodRef.toNominalDescriptor(op.opSignature()).resolveConstantDesc(lookup).erase();
             CLASS_ARITHMETIC_AND_CONV_OP_IMPLS.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
-            error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opType());
+            error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opSignature());
         } catch (ReflectiveOperationException roe) {
             error("%s %s %s",  op.ancestorBlock(), op, roe.getMessage());
         }

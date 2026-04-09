@@ -64,7 +64,7 @@ public class TestSlotOps {
                 b.op(SlotOp.store(0, nullConstant));
 
                 b.op(CoreOp.conditionalBranch(b.op(CoreOp.constant(JavaType.BOOLEAN, true)),
-                        trueBlock.successor(), falseBlock.successor()));
+                        trueBlock.reference(), falseBlock.reference()));
             }
 
             // True block
@@ -78,7 +78,7 @@ public class TestSlotOps {
                 Value stringConstant = trueBlock.op(CoreOp.constant(JavaType.J_L_STRING, "TRUE"));
                 trueBlock.op(SlotOp.store(0, stringConstant));
 
-                trueBlock.op(CoreOp.branch(exitBlock.successor()));
+                trueBlock.op(CoreOp.branch(exitBlock.reference()));
             }
 
             // False block
@@ -86,7 +86,7 @@ public class TestSlotOps {
                 Value stringConstant = falseBlock.op(CoreOp.constant(JavaType.J_L_STRING, "FALSE"));
                 falseBlock.op(SlotOp.store(0, stringConstant));
 
-                falseBlock.op(CoreOp.branch(exitBlock.successor()));
+                falseBlock.op(CoreOp.branch(exitBlock.reference()));
             }
 
             // Exit block

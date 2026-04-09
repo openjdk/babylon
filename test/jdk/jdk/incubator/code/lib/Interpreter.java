@@ -466,7 +466,7 @@ public final class Interpreter {
                                 "Function " + name + " cannot be resolved: top level op is not a module"));
             }
         } else if (o instanceof JavaOp.InvokeOp co) {
-            MethodType target = resolveToMethodType(l, o.opType());
+            MethodType target = resolveToMethodType(l, o.opSignature());
             MethodHandles.Lookup il = switch (co.invokeKind()) {
                 case STATIC, INSTANCE -> l;
                 case SUPER -> l.in(target.parameterType(0));
@@ -585,12 +585,12 @@ public final class Interpreter {
             return null;
         } else if (o instanceof JavaOp.ArithmeticOperation) {
             // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
+            MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.ConvOp) {
             // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
+            MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.AssertOp _assert) {

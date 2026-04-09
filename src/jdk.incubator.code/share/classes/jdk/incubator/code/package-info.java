@@ -212,9 +212,8 @@
 ///
 /// ## <a id="declaring-and-accessing-reflectable-code-heading"/>Declaring and accessing reflectable code
 ///
-/// In total there are four syntactic locations where the [jdk.incubator.code.Reflect] annotation can appear that
-/// govern what is declared reflectable. The locations are described in detail in the [jdk.incubator.code.Reflect]
-/// documentation.
+/// In total there are four syntactic locations where the [jdk.incubator.code.Reflect] annotation can appear, as
+/// described in the [jdk.incubator.code.Reflect] documentation.
 ///
 /// The code model of a reflectable method is accessed by invoking [jdk.incubator.code.Op#ofMethod] with an argument
 /// that is a `Method` instance (retrieved using the core reflection API) representing the reflectable method. The
@@ -235,8 +234,9 @@
 /// [jdk.incubator.code.Op#ofLambda] with an argument that is an instance of a functional interface associated with the
 /// reflectable lambda expression. The result is an optional value that contains a [jdk.incubator.code.Quoted] instance,
 /// from which may be retrieved the code model modeling the lambda expression. In addition, it is possible to retrieve
-/// a mapping of run time values to items in the code model that model final, or effectively final, variables used but
-/// not declared in the lambda expression. For example, we can access the code model for the lambda expression used to
+/// a mapping from items in the code model that model final, or effectively final, variables used but
+/// not declared in the lambda expression to their corresponding run time values. Such run time values are commonly
+/// referred to as captured values. For example, we can access the code model for the lambda expression used to
 /// initialize the `Example.R` field as follows:
 ///
 /// {@snippet lang = "java":
@@ -394,10 +394,9 @@
 /// In addition to the code model containing code elements forming a tree it also contains other items called
 /// [_code items_][jdk.incubator.code.CodeItem], [values][jdk.incubator.code.Value] (block parameters or operation
 /// results) we previously introduced, that form bidirectional dependency graphs between their declaration and their
-/// use. A value has a [_type element_][jdk.incubator.code.TypeElement], another code item, modeling the set of all
-/// possible values. In our example many of the type elements model Java types, and some model the type of variable
-/// values (the type element of the operation result of a var operation). In summary a code model contains five kinds of
-/// code item, operation, body, block, value, and type element.
+/// use. A value has a [_type element_][jdk.incubator.code.TypeElement], another code item that classifies values.
+/// In our example many of the type elements model Java types, and some model the type of variable
+/// values (the type element of the operation result of a var operation).
 ///
 /// Code models are in Static Single-Assignment ([SSA][SSA]) form, and there is no explicit distinction, as there is in
 /// the source code, between Java [statements][java-statements] and [expressions][java-expressions]. Block parameters
@@ -627,8 +626,7 @@
 /// [operation result][jdk.incubator.code.Op.Result], also a value. [Values][jdk.incubator.code.Value] are variables
 /// assigned exactly once, so code models are in static single-assignment (SSA) form.
 ///
-/// A value declares a [type element][jdk.incubator.code.TypeElement], describing the set of values the value is a
-/// member of.
+/// A value has a [type element][jdk.incubator.code.TypeElement], classifying the value.
 ///
 /// An operation uses zero or more values in a [sequence][jdk.incubator.code.Op#operands()] of operands and in a
 /// [sequence][jdk.incubator.code.Block.Reference#arguments()] of block arguments of any block references (the

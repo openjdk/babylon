@@ -48,9 +48,10 @@ import java.lang.reflect.Method;
  * The code model of a reflectable lambda expression (or method reference) is accessed by invoking
  * {@link Op#ofLambda(Object)} with an argument that is an instance of a functional interface associated with the
  * reflectable lambda expression. The result is an optional value that contains a {@link Quoted quoted} instance, from
- * which may be retrieved the operation modelling the lambda expression. In addition, it is possible to retrieve a
- * mapping of run time values to items in the code model that model final, or effectively final, variables used but not
- * declared in the lambda expression. For example:
+ * which may be retrieved the operation modelling the lambda expression. In addition, it is possible to retrieve
+ * a mapping from {@link Value values} in the code model that model final, or effectively final, variables used but not
+ * declared in the lambda expression to their corresponding run time values. Such run time values are commonly referred
+ * to as captured values. For example:
  * {@snippet lang = java:
  *    int capture = 42;
  *    @Reflect
@@ -65,9 +66,9 @@ import java.lang.reflect.Method;
  *    assert capturedValues.values().contains(42);
  * }
  * <p>
- * There are four syntactic locations where {@code @Reflect} can appear that governs, in increasing scope, what is
- * declared reflectable.
- * <ul>
+ * There are four syntactic locations where {@code @Reflect} can appear, forming three cases in increasing scope of what
+ * is declared reflectable.
+ * <ol>
  * <li>
  * If the annotation appears in a cast expression of a lambda expression (or method reference), annotating the use of
  * the type in the cast operator of the cast expression, then the lambda expression is declared reflectable. For
@@ -96,7 +97,7 @@ import java.lang.reflect.Method;
  *    void reflectableMethod(int i) { ... }
  * }
  * </li>
- * </ul>
+ * </ol>
  * If a method or lambda expression (or method reference) is declared reflectable then the compiler generates an error
  * message if it contains program elements that cannot be modeled (and therefore a code model cannot be produced).
  * <p>
