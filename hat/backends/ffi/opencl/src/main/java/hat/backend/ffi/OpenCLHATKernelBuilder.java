@@ -30,7 +30,6 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import hat.types.F16;
-import hat.types.Tensor;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -180,7 +179,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             switch(reducedFloatType){
                 case ReducedFloatType.HalfFloat _ -> f16Type();
                 case ReducedFloatType.BFloat16 _-> bf16Type();
-                default ->   throw new RuntimeException("What is ths reducedType");
+                default ->   throw new OpenCLCodeGenException("What is ths reducedType");
             }
         }).brace(_-> {
             var firstOperandOp = hatF16ConvOp.operands().getFirst().result().op();
@@ -220,7 +219,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             } else if (!hatF16ToFloatConvOp.wasFloat()) {
                 dot().id("value");
             } else{
-                throw new RuntimeException("Can we get here");
+                throw new OpenCLCodeGenException("Can we get here");
             }
         });
         return self();
@@ -266,7 +265,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
         // We don't need to generate the name at this point, but rather during tensor create.
         // That's the place we know all information, including type, shape, and name
-        // sp().id(tensorVarOp.varName());
         return self();
     }
 
@@ -301,12 +299,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             varTensorName = tensorVarOp.varName();
         }
         int size = shape[0] * shape[1];
-        if (klass instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
-            f16Type();
-        } else if (klass instanceof PrimitiveType primitiveType && primitiveType == PrimitiveType.FLOAT) {
-            type("float");
-        } else {
-            throw new RuntimeException("[ERROR] Codegen. Type " + klass + " not expected");
+        switch (klass) {
+            case ClassType classType when classType.toClassName().equals(F16.class.getCanonicalName()) -> f16Type();
+            case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");
+            case null, default -> throw new OpenCLCodeGenException("[ERROR] Codegen. Type " + klass + " not expected");
         }
         sp().varName(varTensorName).sbrace(_-> constant(Integer.toString(size)));
         return self();
@@ -391,11 +387,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return varA.toString();
     }
 
+    private static final String INDEX_PREFIX = "index_$";
+
     private OpenCLHATKernelBuilder emitForLoopWithBound(int from, int to, HATTensorOp.TensorVarOp tensorVarOp, float initValue) {
         //  emitText("for (int m = 0; m < " + shape[0] + "; m++) { " +
         //           "for (int n = 0; n < " + shape[1] + "; n++) { " +
         //            tensorVarOp.varName() + "[m * " + shape[0] + " + n] = " + initValue + "f;" + "}" + "}");
-        String prefix = "index_$";
+        String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
         forKeyword().sp().paren(_ -> {
@@ -409,16 +407,16 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 id(varB).plusplus();
             }).sp().in();
 
-            brace(_ -> {
-                nl().id(tensorVarOp.varName()).sbrace(_ ->
-                        id(varA).mul()
-                                .id(Integer.toString(to))
-                                .plus()
-                                .id(varB))
-                                .assign()
-                                .constant(Float.toString(initValue)).id("f")
-                                .semicolon().nl();
-            }).out().out();
+            brace(_ -> nl()
+                    .id(tensorVarOp.varName())
+                    .sbrace(_ ->
+                            id(varA).mul()
+                            .id(Integer.toString(to))
+                            .plus()
+                            .id(varB))
+                            .assign()
+                            .constant(Float.toString(initValue)).id("f")
+                            .semicolon().nl()).out().out();
         });
         return self();
     }
@@ -446,7 +444,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var tensorValue = tensorFillOp.operands().getFirst();
         HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorValue);
         if (tensorVarOp == null) {
-            throw new RuntimeException("[Error][Codegen] Expected a tensorVarOp, but found `null` instead");
+            throw new OpenCLCodeGenException("[Error][Codegen] Expected a tensorVarOp, but found `null` instead");
         }
 
         // 2. Access the shape
@@ -469,13 +467,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
             varName(tensorVarOp.varName());
         } else {
-            throw new RuntimeException("[ERROR] Expected HATTensorVarOp");
+            throw new OpenCLCodeGenException("[ERROR] Expected HATTensorVarOp");
         }
         return self();
     }
 
     private OpenCLHATKernelBuilder generateTensorMMA(int[] shape, HATTensorOp.TensorVarOp tensorA, HATTensorOp.TensorVarOp tensorB, HATTensorOp.TensorVarOp tensorC, HATTensorOp.TensorVarOp result) {
-        String prefix = "index_$";
+        String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
         String varC = generateVariableName(prefix);
@@ -536,7 +534,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var tensorC = findTensorVarOp(tensorCValue);
         var tensorResult = findTensorVarOp(resulTensorValue);
         if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
-            throw new RuntimeException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+            throw new OpenCLCodeGenException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
         }
         int[] shape = getShapeFromTensorVarOp(tensorA);
         return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
@@ -581,7 +579,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         //            }
         //            """);
 
-        String prefix = "index_$";
+        String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
         final int to = shape[0];
@@ -619,7 +617,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 }
                 plus().id(varB).semicolon().nl();
 
-                String index = generateVariableName("index_");
+                String index = generateVariableName(INDEX_PREFIX);
                 s32Type().sp().id(index).assign().id(row);
 
                 if (isColumnMajor) plus();
@@ -678,7 +676,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             shape = getShapeFromTensorVarOp(tensorVarOp);
             isColumnMajor = isColumnMajorFromVarOp(tensorVarOp);
         } else {
-            throw new RuntimeException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
+            throw new OpenCLCodeGenException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
         }
         generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
         return self();
@@ -697,7 +695,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         //     }
         //     """);
 
-        String prefix = "index_$";
+        String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
         final int to = shape[0];
@@ -735,7 +733,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 }
                 plus().id(varB).semicolon().nl();
 
-                String index = generateVariableName("index_");
+                String index = generateVariableName(INDEX_PREFIX);
                 s32Type().sp().id(index).assign().id(row);
 
                 if (isColumnMajor) plus();
@@ -782,7 +780,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorValue);
         if (tensorVarOp == null) {
-            throw new RuntimeException("[Error][CodeGen] Expected to find a tensorVarOp, but `null` instead.");
+            throw new OpenCLCodeGenException("[Error][CodeGen] Expected to find a tensorVarOp, but `null` instead.");
         }
 
         int[] shape = getShapeFromTensorVarOp(tensorVarOp);

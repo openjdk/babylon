@@ -502,7 +502,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
                     comma().id(WMMA_ROW_MAJOR).gt();
                 } else {
-                    throw new RuntimeException("[Error]");
+                    throw new CUDACodeGenException("[Error]");
                 }
             }
         }
@@ -569,7 +569,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
             varName(tensorVarOp.varName());
         } else {
-            throw new RuntimeException("[ERROR] Expected HATTensorVarOp");
+            throw new CUDACodeGenException("[ERROR] Expected HATTensorVarOp");
         }
         return self();
     }
