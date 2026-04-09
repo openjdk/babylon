@@ -32,7 +32,7 @@ import java.lang.reflect.Type;
 import java.util.Objects;
 
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 /**
  * An array type
@@ -80,7 +80,7 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizedCodeType externalize() {
         return JavaTypeUtils.arrayType(componentType.externalize());
     }
 

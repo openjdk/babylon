@@ -54,7 +54,7 @@ public record HATMathLibPhase() implements HATPhase {
                                     // to pass to the cogen to do further processing (e.g., build a new type or typecast).
                                     // An alternative is to insert a `stub`, or a code snippet that insert new nodes in the
                                     // IR
-                                    if (S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
+                                    if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
                                         setTypeMap.put(result.op(), reducedFloatType);
                                         setTypeMap.put(invoke.op(), reducedFloatType);
                                     }

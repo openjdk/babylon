@@ -47,7 +47,7 @@ public final class Block implements CodeElement<Block, Op> {
      * A value that is a block parameter
      */
     public static final class Parameter extends Value {
-        Parameter(Block block, TypeElement type) {
+        Parameter(Block block, CodeType type) {
             super(block, type);
         }
 
@@ -172,10 +172,10 @@ public final class Block implements CodeElement<Block, Op> {
         this(parentBody, List.of());
     }
 
-    Block(Body parentBody, List<TypeElement> parameterTypes) {
+    Block(Body parentBody, List<CodeType> parameterTypes) {
         this.parentBody = parentBody;
         this.parameters = new ArrayList<>();
-        for (TypeElement param : parameterTypes) {
+        for (CodeType param : parameterTypes) {
             parameters.add(new Parameter(this, param));
         }
         this.ops = new ArrayList<>();
@@ -244,7 +244,7 @@ public final class Block implements CodeElement<Block, Op> {
      *
      * @return the block parameter types, as am unmodifiable list.
      */
-    public List<TypeElement> parameterTypes() {
+    public List<CodeType> parameterTypes() {
         return parameters.stream().map(Value::type).toList();
     }
 
@@ -557,7 +557,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param params the block's parameter types
          * @return the new block builder
          */
-        public Block.Builder block(TypeElement... params) {
+        public Block.Builder block(CodeType... params) {
             return block(List.of(params));
         }
 
@@ -567,7 +567,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param params the block's parameter types
          * @return the new block builder
          */
-        public Block.Builder block(List<TypeElement> params) {
+        public Block.Builder block(List<CodeType> params) {
             return parentBody.block(params, cc, ot);
         }
 
@@ -586,7 +586,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param p the parameter type
          * @return the appended block parameter
          */
-        public Parameter parameter(TypeElement p) {
+        public Parameter parameter(CodeType p) {
             check();
             return appendBlockParameter(p);
         }
@@ -750,7 +750,7 @@ public final class Block implements CodeElement<Block, Op> {
     // Modifying methods
 
     // Create block parameter associated with this block
-    private Parameter appendBlockParameter(TypeElement type) {
+    private Parameter appendBlockParameter(CodeType type) {
         Parameter blockParameter = new Parameter(this, type);
         parameters.add(blockParameter);
 

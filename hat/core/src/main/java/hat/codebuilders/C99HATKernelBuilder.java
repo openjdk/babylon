@@ -884,7 +884,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void generateMathIntrinsicOperation(Invoke invoke) {
         // if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-         if (invoke.returnsClassType() && S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Class){
+         if (invoke.returnsClassType() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Class){
              paren(_ ->
                      f16OrBF16(float16Class))
                      .brace(_-> {

@@ -263,7 +263,7 @@ public class C99VecAndMatHandler {
         List.of(new NamedMatShape("mat2", mat2.shape), new NamedMatShape("mat3", mat3.shape)).forEach(ns ->
                 builder.typedefKeyword().sp().structKeyword().sp().id(ns.name + "_s").braceNlIndented(_ -> {
                     builder.sep(ns.shape.rowColNames(), _ -> builder.nl(), n ->
-                            builder.type((JavaType) ns.shape.typeElement()).sp().id(n).semicolon()
+                            builder.type((JavaType) ns.shape.codeType()).sp().id(n).semicolon()
                     );
                 }).sp().id(ns.name).snl()
         );

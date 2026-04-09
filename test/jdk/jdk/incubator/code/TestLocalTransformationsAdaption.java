@@ -289,7 +289,7 @@ public class TestLocalTransformationsAdaption {
         return vs.stream().map(v -> formatString(v.type())).collect(Collectors.joining(","));
     }
 
-    static String formatString(TypeElement t) {
+    static String formatString(CodeType t) {
         if (t.equals(INT)) {
             return "%d";
         } else {

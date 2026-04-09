@@ -1,7 +1,7 @@
 package jdk.incubator.code.dialect.core;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 /**
  * A variable type.
@@ -9,22 +9,22 @@ import jdk.incubator.code.extern.ExternalizedTypeElement;
 public final class VarType implements CoreType {
     static final String NAME = "Var";
 
-    final TypeElement valueType;
+    final CodeType valueType;
 
-    VarType(TypeElement valueType) {
+    VarType(CodeType valueType) {
         this.valueType = valueType;
     }
 
     /**
      * {@return the variable type's value type}
      */
-    public TypeElement valueType() {
+    public CodeType valueType() {
         return valueType;
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return ExternalizedTypeElement.of(NAME,
+    public ExternalizedCodeType externalize() {
+        return ExternalizedCodeType.of(NAME,
                 valueType.externalize());
     }
 

@@ -31,7 +31,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.WildcardType;
 import jdk.incubator.code.extern.ExternalizedOp;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
@@ -100,7 +100,7 @@ static class JavaTypeUtils{
          * @param tree the externalized type form
          * @return the kind modelling {@code tree}
          */
-        public static Kind of(ExternalizedTypeElement tree) {
+        public static Kind of(ExternalizedCodeType tree) {
             return switch (tree.identifier()) {
                 case JAVA_TYPE_CLASS_NAME, JAVA_TYPE_ARRAY_NAME,
                      JAVA_TYPE_PRIMITIVE_NAME, JAVA_TYPE_WILDCARD_NAME,
@@ -113,16 +113,16 @@ static class JavaTypeUtils{
             };
         }
     }
-    private static ExternalizedTypeElement nameToType(String name) {
-        return ExternalizedTypeElement.of(name);
+    private static ExternalizedCodeType nameToType(String name) {
+        return ExternalizedCodeType.of(name);
     }
-    private static <T> T select(ExternalizedTypeElement tree, int index, Function<ExternalizedTypeElement, T> valueFunc) {
+    private static <T> T select(ExternalizedCodeType tree, int index, Function<ExternalizedCodeType, T> valueFunc) {
         if (index >= tree.arguments().size()) {
             throw new UnsupportedOperationException();
         }
         return valueFunc.apply(tree.arguments().get(index));
     }
-    private static <T> List<T> selectFrom(ExternalizedTypeElement tree, int startIncl, Function<ExternalizedTypeElement, T> valueFunc) {
+    private static <T> List<T> selectFrom(ExternalizedCodeType tree, int startIncl, Function<ExternalizedCodeType, T> valueFunc) {
         if (startIncl >= tree.arguments().size()) {
             return List.of();
         }
@@ -131,7 +131,7 @@ static class JavaTypeUtils{
                 .toList();
     }
 
-    private static String typeToName(ExternalizedTypeElement tree) {
+    private static String typeToName(ExternalizedCodeType tree) {
         if (!tree.arguments().isEmpty()) {
             throw new UnsupportedOperationException();
         }
@@ -142,7 +142,7 @@ static class JavaTypeUtils{
      * {@return a flat string modelling the provided inflated Java reference form}.
      * @param tree the inflated Java type form
      */
-    public static String toExternalRefString(ExternalizedTypeElement tree) {
+    public static String toExternalRefString(ExternalizedCodeType tree) {
         return switch (tree.identifier()) {
             case JAVA_REF_FIELD_NAME -> {
                 String owner = select(tree, 0, JavaTypeUtils::toExternalTypeString);
@@ -152,7 +152,7 @@ static class JavaTypeUtils{
             }
             case JAVA_REF_METHOD_NAME -> {
                 String owner = select(tree, 0, JavaTypeUtils::toExternalTypeString);
-                ExternalizedTypeElement nameAndArgs = select(tree, 1, Function.identity());
+                ExternalizedCodeType nameAndArgs = select(tree, 1, Function.identity());
                 String methodName = nameAndArgs.identifier();
                 List<String> paramTypes = selectFrom(nameAndArgs, 0, JavaTypeUtils::toExternalTypeString);
                 String restype = select(tree, 2, JavaTypeUtils::toExternalTypeString);
@@ -160,7 +160,7 @@ static class JavaTypeUtils{
             }
             case JAVA_REF_CONSTRUCTOR_NAME -> {
                 String owner = select(tree, 0, JavaTypeUtils::toExternalTypeString);
-                ExternalizedTypeElement nameAndArgs = select(tree, 1, Function.identity());
+                ExternalizedCodeType nameAndArgs = select(tree, 1, Function.identity());
                 List<String> paramTypes = selectFrom(nameAndArgs, 0, JavaTypeUtils::toExternalTypeString);
                 yield String.format("%s::(%s)", owner, String.join(", ", paramTypes));
             }
@@ -178,19 +178,19 @@ static class JavaTypeUtils{
         };
     }
 
-    private static boolean isSameType(ExternalizedTypeElement tree, TypeElement typeElement) {
-        return tree.equals(typeElement.externalize());
+    private static boolean isSameType(ExternalizedCodeType tree, CodeType codeType) {
+        return tree.equals(codeType.externalize());
     }
 
     /**
      * {@return a flat string modelling the provided inflated Java type form}.
      * @param tree the inflated Java type form
      */
-    public static String toExternalTypeString(ExternalizedTypeElement tree) {
+    public static String toExternalTypeString(ExternalizedCodeType tree) {
         return switch (tree.identifier()) {
             case JAVA_TYPE_CLASS_NAME -> {
                 String className = select(tree, 0, JavaTypeUtils::typeToName);
-                ExternalizedTypeElement enclosing = select(tree, 1, Function.identity());
+                ExternalizedCodeType enclosing = select(tree, 1, Function.identity());
                 String typeargs = tree.arguments().size() == 2 ?
                         "" :
                         selectFrom(tree, 2, JavaTypeUtils::toExternalTypeString).stream()
@@ -208,7 +208,7 @@ static class JavaTypeUtils{
             }
             case JAVA_TYPE_WILDCARD_NAME -> {
                 WildcardType.BoundKind boundKind = select(tree, 0, t -> WildcardType.BoundKind.valueOf(typeToName(t)));
-                ExternalizedTypeElement bound = select(tree, 1, Function.identity());
+                ExternalizedCodeType bound = select(tree, 1, Function.identity());
                 yield boundKind == WildcardType.BoundKind.EXTENDS && isSameType(bound, JavaType.J_L_OBJECT) ?
                         "?" :
                         String.format("? %s %s", boundKind.name().toLowerCase(), toExternalTypeString(bound));
@@ -221,7 +221,7 @@ static class JavaTypeUtils{
                             case INFLATED_TYPE -> toExternalTypeString(t);
                             default ->  throw new UnsupportedOperationException();
                         });
-                ExternalizedTypeElement bound = select(tree, 2, Function.identity());
+                ExternalizedCodeType bound = select(tree, 2, Function.identity());
                 yield isSameType(bound, JavaType.J_L_OBJECT) ?
                         String.format("%s::<%s>", owner, tvarName) :
                         String.format("%s::<%s extends %s>", owner, tvarName, toExternalTypeString(bound));
@@ -235,11 +235,11 @@ static class JavaTypeUtils{
      * {@return the flat Java form corresponding to the provided inflated Java form}
      * @param tree the inflated Java form
      */
-    public static ExternalizedTypeElement flatten(ExternalizedTypeElement tree) {
+    public static ExternalizedCodeType flatten(ExternalizedCodeType tree) {
         return switch (Kind.of(tree)) {
             case INFLATED_TYPE -> nameToType(String.format("%s\"%s\"", JAVA_TYPE_FLAT_NAME_PREFIX, toExternalTypeString(tree)));
             case INFLATED_REF -> nameToType(String.format("%s\"%s\"", JAVA_REF_FLAT_NAME_PREFIX, toExternalRefString(tree)));
-            default -> ExternalizedTypeElement.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::flatten).toList());
+            default -> ExternalizedCodeType.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::flatten).toList());
         };
     }
 
@@ -296,7 +296,7 @@ static class JavaTypeUtils{
                     case Double d -> sb.append(d).append('d');
                     case Character c -> sb.append('\'').append(c).append('\'');
                     case Boolean b -> sb.append(b);
-                    case TypeElement te -> sb.append(JavaTypeUtils.flatten(te.externalize()).toString());
+                    case CodeType te -> sb.append(JavaTypeUtils.flatten(te.externalize()).toString());
                     default -> {  // fallback to a string
                         sb.append('"');
                         quote(o.toString(), sb);
@@ -759,7 +759,7 @@ static class JavaTypeUtils{
         }
         return this;
     }
-    OpCodeBuilder writeType(TypeElement te) {
+    OpCodeBuilder writeType(CodeType te) {
         write(JavaTypeUtils.flatten(te.externalize()).toString());
         return this;
     }

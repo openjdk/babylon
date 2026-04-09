@@ -27,7 +27,7 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.ops.Precedence.LoadOrConv;
@@ -45,7 +45,7 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
     }
 
     @Override
-    public final TypeElement resultType() {
+    public final CodeType resultType() {
         return JavaType.INT;
     }
 

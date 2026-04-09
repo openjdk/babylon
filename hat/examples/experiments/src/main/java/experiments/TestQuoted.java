@@ -222,7 +222,7 @@ public class TestQuoted {
                 "doubleValue",
                 "booleanValue");
 
-        //    static final Collection<TypeElement> BOX_TYPES = JavaType.primitiveToWrapper.values();
+        //    static final Collection<CodeType> BOX_TYPES = JavaType.primitiveToWrapper.values();
 
         private static boolean isBoxOrUnboxInvocation(JavaOp.InvokeOp iop) {
             MethodRef mr = iop.invokeReference();

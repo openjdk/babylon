@@ -27,7 +27,7 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 
 import java.util.List;
@@ -52,20 +52,20 @@ public abstract sealed class HATMemoryDefOp extends HATOp permits HATMemoryDefOp
 
     public static final class HATMemoryLoadOp extends HATMemoryDefOp {
 
-        private final TypeElement typeElement;
-        private final TypeElement invokeResultType;
+        private final CodeType codeType;
+        private final CodeType invokeResultType;
         private final String memberName;
 
-        public HATMemoryLoadOp(TypeElement typeElement, TypeElement invokeResultType, String memberName, List<Value> operands) {
+        public HATMemoryLoadOp(CodeType codeType, CodeType invokeResultType, String memberName, List<Value> operands) {
             super("", operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
             this.invokeResultType = invokeResultType;
             this.memberName = memberName;
         }
 
         public HATMemoryLoadOp(HATMemoryLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.resultType();
+            this.codeType = op.resultType();
             this.invokeResultType = op.invokeResultType;
             this.memberName = op.memberName;
         }
@@ -76,13 +76,13 @@ public abstract sealed class HATMemoryDefOp extends HATOp permits HATMemoryDefOp
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatMemoryLoadOp." + memberName, typeElement);
+            return Map.of("hat.dialect.hatMemoryLoadOp." + memberName, codeType);
         }
 
         public String memberName() {

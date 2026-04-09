@@ -27,10 +27,7 @@
  * @run junit TestAttributeSerialization
  */
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 import org.junit.jupiter.api.Assertions;
@@ -65,7 +62,7 @@ public class TestAttributeSerialization {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 

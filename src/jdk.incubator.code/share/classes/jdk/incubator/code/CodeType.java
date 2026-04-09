@@ -1,19 +1,19 @@
 package jdk.incubator.code;
 
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 /**
- * A code item that classifies values.
+ * A code type that classifies values.
  * <p>
  * A {@link Value value}, one of {@link Block.Parameter} or {@link Op.Result}, has a
- * {@code TypeElement} classifying that value.
- * A {@link Body} has a {@code TypeElement}, the {@link Body#yieldType yield type},
+ * {@code CodeType} classifying that value.
+ * A {@link Body} has a {@code CodeType}, the {@link Body#yieldType yield type},
  * classifying values yielded from the body.
  * <p>
- * The {@code equals} method should be used to compare type elements.
+ * The {@code equals} method should be used to compare code types.
  *
  * @apiNote
- * Type elements enable reasoning statically about a code model, approximating
+ * Code types enable reasoning statically about a code model, approximating
  * run time behaviour.
  *
  * @see Value
@@ -21,16 +21,16 @@ import jdk.incubator.code.extern.ExternalizedTypeElement;
  * @see Op.Result
  * @see Body#yieldType()
  */
-public non-sealed interface TypeElement extends CodeItem {
+public non-sealed interface CodeType extends CodeItem {
     // @@@ Common useful methods generally associated with properties of a type
     // e.g., arguments, is an array etc. (dimensions)
 
     /**
-     * Externalizes this type element's content.
+     * Externalizes this code type's content.
      *
-     * @return the type element's content.
+     * @return the code type's content.
      */
-    ExternalizedTypeElement externalize();
+    ExternalizedCodeType externalize();
 
     /**
      * Return a string representation of this Java type.

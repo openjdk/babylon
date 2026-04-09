@@ -27,7 +27,7 @@ package oracle.code.samples;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -272,7 +272,7 @@ public class MathOptimizerWithInlining {
             return analyseType(convOp, typeToMatch);
         } else {
             // Leaf of tree: analyze type
-            TypeElement type = v.type();
+            CodeType type = v.type();
             return type.equals(typeToMatch);
         }
     }

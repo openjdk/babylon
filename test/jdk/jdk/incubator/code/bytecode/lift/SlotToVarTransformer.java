@@ -28,7 +28,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -194,7 +194,7 @@ final class SlotToVarTransformer {
                 for (var it = toInitialize.iterator(); it.hasNext();) {
                     Var var = it.next();
                     if (var.parentBody == op.ancestorBody()) {
-                        var.value = block.op(CoreOp.var(toTypeElement(var.typeKind)));
+                        var.value = block.op(CoreOp.var(toCodeType(var.typeKind)));
                         it.remove();
                     }
                 }
@@ -216,7 +216,7 @@ final class SlotToVarTransformer {
                     if (var.single) {
                         var.value = val;
                     } else if (var.value == null) {
-                        TypeElement varType = switch (val.type()) {
+                        CodeType varType = switch (val.type()) {
                             case UnresolvedType.Ref _ -> UnresolvedType.unresolvedRef();
                             case UnresolvedType.Int _ -> UnresolvedType.unresolvedInt();
                             default -> val.type();
@@ -233,7 +233,7 @@ final class SlotToVarTransformer {
         });
     }
 
-    private static TypeElement toTypeElement(TypeKind tk) {
+    private static CodeType toCodeType(TypeKind tk) {
         return switch (tk) {
             case INT -> UnresolvedType.unresolvedInt();
             case REFERENCE -> UnresolvedType.unresolvedRef();

@@ -28,7 +28,7 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
@@ -72,16 +72,16 @@ public class DialectFMAOp {
     private static class FMA extends Op {
         private static final String NAME = "fma";
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        FMA(List<Value> operands, TypeElement typeElement) {
+        FMA(List<Value> operands, CodeType codeType) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         FMA(Op that, CodeContext cc) {
             super(that, cc);
-            this.typeElement = that.resultType();
+            this.codeType = that.resultType();
         }
 
         @Override
@@ -90,8 +90,8 @@ public class DialectFMAOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override

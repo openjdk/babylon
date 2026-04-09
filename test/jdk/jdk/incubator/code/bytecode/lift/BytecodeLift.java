@@ -23,6 +23,7 @@
  * questions.
  */
 
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
@@ -50,11 +51,8 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.TypeElement;
+
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 
 import java.util.ArrayDeque;
@@ -134,8 +132,8 @@ public final class BytecodeLift {
         }
     }
 
-    private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
-        ArrayList<TypeElement> params = new ArrayList<>(vtis.size());
+    private List<CodeType> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
+        ArrayList<CodeType> params = new ArrayList<>(vtis.size());
         for (int i = vtis.size() - 1; i >= 0; i--) {
             var vti = vtis.get(i);
             switch (vti) {
@@ -534,7 +532,7 @@ public final class BytecodeLift {
                         MethodRef bsmRef = MethodRef.method(JavaType.type(bsmOwner),
                                                             bsm.methodName(),
                                                             JavaType.type(bsmDesc.returnType()),
-                                                            bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
+                                                            bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
 
                         Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, inst.name().toString(), mtd, inst.bootstrapArgs());
                         Value methodHandle = op(JavaOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", MethodHandle.class),
@@ -714,7 +712,7 @@ public final class BytecodeLift {
         assert newStack.isEmpty();
     }
 
-    private Op.Result liftConstantsIntoArray(TypeElement arrayType, Object... constants) {
+    private Op.Result liftConstantsIntoArray(CodeType arrayType, Object... constants) {
         Op.Result array = op(JavaOp.newArray(arrayType, liftConstant(constants.length)));
         for (int i = 0; i < constants.length; i++) {
             op(JavaOp.arrayStoreOp(array, liftConstant(i), liftConstant(constants[i])));
@@ -789,7 +787,7 @@ public final class BytecodeLift {
                 MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
                                                     bsm.methodName(),
                                                     JavaType.type(bsmDesc.returnType()),
-                                                    bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
+                                                    bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
                 yield op(JavaOp.invoke(bsmRef, bootstrapArgs));
             }
             case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
@@ -930,14 +928,14 @@ public final class BytecodeLift {
         return stack.stream().limit(limit.parameters().size()).toList();
     }
 
-    private static TypeElement valueType(Value v) {
+    private static CodeType valueType(Value v) {
         var t = v.type();
         while (t instanceof VarType vt) t = vt.valueType();
         return t;
     }
 
     private static boolean isCategory1(Value v) {
-        TypeElement t = v.type();
+        CodeType t = v.type();
         return !t.equals(JavaType.LONG) && !t.equals(JavaType.DOUBLE);
     }
 

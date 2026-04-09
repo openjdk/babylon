@@ -46,7 +46,7 @@ import java.util.*;
  * <p>
  * A body is built using a {@link Body.Builder body builder} that creates and {@link Builder#entryBlock() exposes} an
  * entry {@link Block.Builder block builder} from which further non-entry sibling blocks in the body may be created and
- * {@link Block.Builder#block(TypeElement...) built}. A block builder can also be used to
+ * {@link Block.Builder#block(CodeType...) built}. A block builder can also be used to
  * {@link Block.Builder#reference(Value...) create} references to non-entry sibling blocks that can be used as
  * successors of terminal operations.
  *
@@ -63,7 +63,7 @@ public final class Body implements CodeElement<Body, Block> {
     // When non-null and body is built, ancestorBody == parentOp.result.block.parentBody
     final Body ancestorBody;
 
-    final TypeElement yieldType;
+    final CodeType yieldType;
 
     // Sorted in reverse postorder
     final List<Block> blocks;
@@ -75,7 +75,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Constructs a body, whose ancestor is the given ancestor body.
      */
-    Body(Body ancestorBody, TypeElement yieldType) {
+    Body(Body ancestorBody, CodeType yieldType) {
         this.ancestorBody = ancestorBody;
         this.yieldType = yieldType;
         this.blocks = new ArrayList<>();
@@ -113,7 +113,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * {@return the yield type of this body}
      */
-    public TypeElement yieldType() {
+    public CodeType yieldType() {
         return yieldType;
     }
 
@@ -604,7 +604,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @return the body builder's signature
          */
         public FunctionType bodySignature() {
-            TypeElement returnType = Body.this.yieldType();
+            CodeType returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return CoreType.functionType(returnType, eb.parameterTypes());
         }
@@ -645,7 +645,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Build new block in body
-        Block.Builder block(List<TypeElement> params, CodeContext cc, CodeTransformer ot) {
+        Block.Builder block(List<CodeType> params, CodeContext cc, CodeTransformer ot) {
             check();
             Block block = Body.this.createBlock(params);
 
@@ -749,7 +749,7 @@ public final class Body implements CodeElement<Body, Block> {
     // Modifying methods
 
     // Create block
-    private Block createBlock(List<TypeElement> params) {
+    private Block createBlock(List<CodeType> params) {
         Block b = new Block(this, params);
         blocks.add(b);
         return b;

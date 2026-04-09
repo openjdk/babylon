@@ -31,7 +31,7 @@ import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -75,7 +75,7 @@ public record HATVectorSelectPhase() implements HATPhase {
             public CoreOp.VarOp varOpFromOperand(int idx){
                 return findVarOpOrNull(invokeOp.operands().get(idx));
             }
-            public TypeElement returnType() {
+            public CodeType returnType() {
                 return invokeOp.resultType();
             }
             int laneIdx() {

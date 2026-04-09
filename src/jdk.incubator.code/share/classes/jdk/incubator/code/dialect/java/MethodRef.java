@@ -37,7 +37,7 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.FunctionType;
 
 import java.util.List;
@@ -66,7 +66,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     /**
      * {@return the owner type of this method reference}
      */
-    TypeElement refType();
+    CodeType refType();
 
     /**
      * {@return the name of this method reference}
@@ -172,7 +172,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * @param name the reference name
      * @param type the reference type
      */
-    static MethodRef method(TypeElement refType, String name, FunctionType type) {
+    static MethodRef method(CodeType refType, String name, FunctionType type) {
         return new MethodRefImpl(refType, name, type);
     }
 
@@ -183,7 +183,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * @param retType the reference return type
      * @param params the reference parameter types
      */
-    static MethodRef method(TypeElement refType, String name, TypeElement retType, TypeElement... params) {
+    static MethodRef method(CodeType refType, String name, CodeType retType, CodeType... params) {
         return method(refType, name, functionType(retType, params));
     }
 
@@ -194,7 +194,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * @param retType the reference return type
      * @param params the reference parameter types
      */
-    static MethodRef method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
+    static MethodRef method(CodeType refType, String name, CodeType retType, List<? extends CodeType> params) {
         return method(refType, name, functionType(retType, params));
     }
 
@@ -241,7 +241,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * @param refType the reference owner type
      * @param params the reference parameter types
      */
-    static MethodRef constructor(TypeElement refType, List<? extends TypeElement> params) {
+    static MethodRef constructor(CodeType refType, List<? extends CodeType> params) {
         return constructor(functionType(refType, params));
     }
 
@@ -250,7 +250,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * @param refType the reference owner type
      * @param params the reference parameter types
      */
-    static MethodRef constructor(TypeElement refType, TypeElement... params) {
+    static MethodRef constructor(CodeType refType, CodeType... params) {
         return constructor(functionType(refType, params));
     }
 
@@ -286,7 +286,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
                 t.parameterTypes().stream().map(MethodRef::toClassDesc).toList());
     }
 
-    private static ClassDesc toClassDesc(TypeElement e) {
+    private static ClassDesc toClassDesc(CodeType e) {
         if (!(e instanceof JavaType jt)) {
             throw new IllegalArgumentException();
         }

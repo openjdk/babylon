@@ -53,14 +53,14 @@ public class OpBuilder {
     static final MethodRef DIALECT_FACTORY_OP_FACTORY = MethodRef.method(DialectFactory.class, "opFactory",
             OpFactory.class);
 
-    static final MethodRef DIALECT_FACTORY_TYPE_ELEMENT_FACTORY = MethodRef.method(DialectFactory.class, "typeElementFactory",
-            TypeElementFactory.class);
+    static final MethodRef DIALECT_FACTORY_CODE_TYPE_FACTORY = MethodRef.method(DialectFactory.class, "codeTypeFactory",
+            CodeTypeFactory.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
             Op.class, ExternalizedOp.class);
 
-    static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
-            TypeElement.class, ExternalizedTypeElement.class);
+    static final MethodRef CODE_TYPE_FACTORY_CONSTRUCT = MethodRef.method(CodeTypeFactory.class, "constructType",
+            CodeType.class, ExternalizedCodeType.class);
 
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
@@ -69,7 +69,7 @@ public class OpBuilder {
             Block.Builder.class);
 
     // instance varargs
-    static final MethodRef BLOCK_BUILDER_SUCCESSOR = MethodRef.method(Block.Builder.class, "reference",
+    static final MethodRef BLOCK_BUILDER_REFERENCE = MethodRef.method(Block.Builder.class, "reference",
             Block.Reference.class, Value[].class);
 
     static final MethodRef BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
@@ -77,14 +77,14 @@ public class OpBuilder {
 
     // instance varargs
     static final MethodRef BLOCK_BUILDER_BLOCK = MethodRef.method(Block.Builder.class, "block",
-            Block.Builder.class, TypeElement[].class);
+            Block.Builder.class, CodeType[].class);
 
     static final MethodRef BLOCK_BUILDER_PARAMETER = MethodRef.method(Block.Builder.class, "parameter",
-            Block.Parameter.class, TypeElement.class);
+            Block.Parameter.class, CodeType.class);
 
     // static varargs
     static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(CoreType.class, "functionType",
-            FunctionType.class, TypeElement.class, TypeElement[].class);
+            FunctionType.class, CodeType.class, CodeType[].class);
 
 
     static final JavaType J_U_LIST = type(List.class);
@@ -103,12 +103,12 @@ public class OpBuilder {
             J_U_MAP, array(J_U_MAP_ENTRY, 1));
 
 
-    static final JavaType EX_TYPE_ELEM = type(ExternalizedTypeElement.class);
+    static final JavaType EX_TYPE_ELEM = type(ExternalizedCodeType.class);
 
     static final FunctionType EXTER_TYPE_BUILDER_F_TYPE = functionType(EX_TYPE_ELEM);
 
-    static final MethodRef EX_TYPE_ELEM_OF_ARRAY = MethodRef.method(ExternalizedTypeElement.class, "of",
-            ExternalizedTypeElement.class, String.class, ExternalizedTypeElement[].class);
+    static final MethodRef EX_TYPE_ELEM_OF_ARRAY = MethodRef.method(ExternalizedCodeType.class, "of",
+            ExternalizedCodeType.class, String.class, ExternalizedCodeType[].class);
 
 
     static final JavaType J_C_LOCATION = type(Op.Location.class);
@@ -119,7 +119,7 @@ public class OpBuilder {
             J_C_LOCATION,
             J_U_LIST,
             J_U_LIST,
-            type(TypeElement.class),
+            type(CodeType.class),
             J_U_MAP,
             J_U_LIST);
 
@@ -180,15 +180,15 @@ public class OpBuilder {
             J_L_OBJECT, // attribute(s): Map<String, Object>, Object or null
             J_L_OBJECT); // body definition(s): Body.Builder, List<Body.Builder> or null
 
-    static final FunctionType TYPE_BUILDER_F_TYPE = functionType(JavaType.type(TypeElement.class), INT);
+    static final FunctionType TYPE_BUILDER_F_TYPE = functionType(JavaType.type(CodeType.class), INT);
 
     final Map<Value, Value> valueMap;
 
     final Map<Block, Value> blockMap;
 
-    final SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes;
+    final SequencedMap<ExternalizedCodeType, List<Integer>> registeredExternalizedTypes;
 
-    final Map<TypeElement, Value> typeElementMap;
+    final Map<CodeType, Value> codeTypeMap;
 
     Block.Builder builder;
 
@@ -207,7 +207,7 @@ public class OpBuilder {
      * This method initially applies the function {@code dialectFactoryF} to
      * the block builder that is used to build resulting code model. The result
      * is a dialect factory value which is subsequently used to build operations
-     * that construct type elements and operations present in the given code model.
+     * that construct code types and operations present in the given code model.
      *
      * @param ops the named code models.
      * @param dialectFactoryF a function that builds code items to produce a dialect factory value.
@@ -215,7 +215,7 @@ public class OpBuilder {
      */
     public static ModuleOp createBuilderFunctions(SequencedMap<String, ? extends Op> ops, Function<Block.Builder, Value> dialectFactoryF) {
         List<FuncOp> funcs = new ArrayList<>();
-        SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes = new LinkedHashMap<>();
+        SequencedMap<ExternalizedCodeType, List<Integer>> registeredExternalizedTypes = new LinkedHashMap<>();
         for (var e : ops.sequencedEntrySet()) {
             OpBuilder opBuilder = new OpBuilder(registeredExternalizedTypes);
             funcs.add(opBuilder.build(e.getKey(), e.getValue()));
@@ -349,15 +349,15 @@ public class OpBuilder {
                             args.get(7),
                             args.get(8)))));
                 }),
-                //  static private TypeElement $type(int typeIndex) {
-                //      return JavaOp.JAVA_DIALECT_FACTORY.typeElementFactory().constructType($exType(typeIndex));
+                //  static private CodeType $type(int typeIndex) {
+                //      return JavaOp.JAVA_DIALECT_FACTORY.codeTypeFactory().constructType($codeType(typeIndex));
                 //  }
-                func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class))).body(b -> {
+                func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(CodeType.class))).body(b -> {
                     var i = b.parameter(INT);
-                    var typeElementFactory = b.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactoryF.apply(b)));
-                    var exterType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, i));
-                    var typeElement = b.op(invoke(MethodRef.method(TypeElementFactory.class, "constructType", TypeElement.class, ExternalizedTypeElement.class), typeElementFactory, exterType));
-                    b.op(return_(typeElement));
+                    var codeTypeFactory = b.op(invoke(DIALECT_FACTORY_CODE_TYPE_FACTORY, dialectFactoryF.apply(b)));
+                    var exCodeType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, i));
+                    var codeType = b.op(invoke(MethodRef.method(CodeTypeFactory.class, "constructType", CodeType.class, ExternalizedCodeType.class), codeTypeFactory, exCodeType));
+                    b.op(return_(codeType));
                 }),
                 func(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID).body(b -> {
                     var compiletimeVersion = Runtime.version().feature();
@@ -384,18 +384,18 @@ public class OpBuilder {
         );
     }
 
-    private static List<FuncOp> createExternTypeHelperFuncs(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExterTypes) {
+    private static List<FuncOp> createExternTypeHelperFuncs(SequencedMap<ExternalizedCodeType, List<Integer>> registeredExterTypes) {
         /*
-        static private ExternalizedTypeElement $exType(int typeIndex) {
+        static private ExternalizedCodeType $exType(int typeIndex) {
             return switch(typeIndex) {
-                case 0 -> ExternalizedTypeElement.of("void");
-                case 1 -> ExternalizedTypeElement.of("java.type.primitive", exType(0));
+                case 0 -> ExternalizedCodeType.of("void");
+                case 1 -> ExternalizedCodeType.of("java.type.primitive", exType(0));
                 default -> throw new IllegalStateException();
             };
         }
         */
         List<FuncOp> funcs = new ArrayList<>();
-        Iterator<Map.Entry<ExternalizedTypeElement, List<Integer>>> typesEnntryIterator = registeredExterTypes.sequencedEntrySet().iterator();
+        Iterator<Map.Entry<ExternalizedCodeType, List<Integer>>> typesEnntryIterator = registeredExterTypes.sequencedEntrySet().iterator();
         int methodCounter = 0;
         do {
             String followUpBuilderName = EXTER_TYPE_BUILDER_F_NAME + (methodCounter + 1);
@@ -403,7 +403,7 @@ public class OpBuilder {
                 Block.Parameter i = b.parameter(INT);
                 List<Body.Builder> swBodies = new ArrayList<>();
                 for (int counter = 0; counter < TYPE_LIMIT && typesEnntryIterator.hasNext();) {
-                    Map.Entry<ExternalizedTypeElement, List<Integer>> e = typesEnntryIterator.next();
+                    Map.Entry<ExternalizedCodeType, List<Integer>> e = typesEnntryIterator.next();
                     counter += e.getValue().size();
                     Body.Builder l = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
                     Block.Parameter target = l.entryBlock().parameter(INT);
@@ -424,8 +424,8 @@ public class OpBuilder {
                     if (e.getKey().arguments().size() < 5) {
                         List<Class<?>> params = new ArrayList<>();
                         params.add(String.class);
-                        params.addAll(Collections.nCopies(e.getKey().arguments().size(), ExternalizedTypeElement.class));
-                        mr = MethodRef.method(ExternalizedTypeElement.class, "of", ExternalizedTypeElement.class, params);
+                        params.addAll(Collections.nCopies(e.getKey().arguments().size(), ExternalizedCodeType.class));
+                        mr = MethodRef.method(ExternalizedCodeType.class, "of", ExternalizedCodeType.class, params);
                         type = expr.entryBlock().op(invoke(mr, args));
                     } else {
                         type = expr.entryBlock().op(invoke(InvokeOp.InvokeKind.STATIC, true, EX_TYPE_ELEM, EX_TYPE_ELEM_OF_ARRAY, args));
@@ -459,10 +459,10 @@ public class OpBuilder {
         return funcs;
     }
 
-    OpBuilder(SequencedMap<ExternalizedTypeElement, List<Integer>> registeredExternalizedTypes) {
+    OpBuilder(SequencedMap<ExternalizedCodeType, List<Integer>> registeredExternalizedTypes) {
         this.valueMap = new HashMap<>();
         this.blockMap = new HashMap<>();
-        this.typeElementMap = new HashMap<>();
+        this.codeTypeMap = new HashMap<>();
         this.registeredExternalizedTypes = registeredExternalizedTypes;
 
         Body.Builder body = Body.Builder.of(null, BUILDER_F_TYPE);
@@ -523,8 +523,8 @@ public class OpBuilder {
             args.addAll(successorArgs);
             Value successor = builder.op(invoke(
                     InvokeOp.InvokeKind.INSTANCE, true,
-                    BLOCK_BUILDER_SUCCESSOR.type().returnType(),
-                    BLOCK_BUILDER_SUCCESSOR, args));
+                    BLOCK_BUILDER_REFERENCE.type().returnType(),
+                    BLOCK_BUILDER_REFERENCE, args));
             successors.add(successor);
         }
 
@@ -546,7 +546,7 @@ public class OpBuilder {
                   Op.Location location,
                   List<Value> operands,
                   List<Value> successors,
-                  TypeElement resultType,
+                  CodeType resultType,
                   Map<String, Object> attributes,
                   List<Value> bodies) {
 
@@ -574,11 +574,11 @@ public class OpBuilder {
                              : funcCall(OP_BUILDER_F_NAME_1, OP_BUILDER_F_OVERRIDE_1, args));
     }
 
-    Value buildFlexibleList(JavaType elementType, List<Value> elements) {
+    Value buildFlexibleList(JavaType javaType, List<Value> elements) {
         return switch (elements.size()) {
-            case 0 -> builder.op(constant(elementType, null));
+            case 0 -> builder.op(constant(javaType, null));
             case 1 -> elements.getFirst();
-            default -> buildList(elementType, elements);
+            default -> buildList(javaType, elements);
         };
     }
 
@@ -631,10 +631,10 @@ public class OpBuilder {
         return body;
     }
 
-    private int registerType(ExternalizedTypeElement ete) {
+    private int registerType(ExternalizedCodeType ete) {
         if (!registeredExternalizedTypes.containsKey(ete)) {
             List<Integer> values = new ArrayList<>();
-            for (ExternalizedTypeElement argument : ete.arguments()) {
+            for (ExternalizedCodeType argument : ete.arguments()) {
                 values.add(registerType(argument));
             }
             values.add(registeredExternalizedTypes.size()); // insertion order of the new key
@@ -643,11 +643,11 @@ public class OpBuilder {
         return registeredExternalizedTypes.get(ete).getLast(); // returns the insertion order of the key
     }
 
-    Value buildType(TypeElement _t) {
-        return typeElementMap.computeIfAbsent(_t, t -> {
+    Value buildType(CodeType _t) {
+        return codeTypeMap.computeIfAbsent(_t, t -> {
             int typeIndex = registerType(_t.externalize());
             Op.Result i = builder.op(constant(INT, typeIndex));
-            return builder.op(funcCall(TYPE_BUILDER_F_NAME, CoreType.functionType(type(TypeElement.class)), i));
+            return builder.op(funcCall(TYPE_BUILDER_F_NAME, CoreType.functionType(type(CodeType.class)), i));
         });
     }
 
@@ -668,7 +668,7 @@ public class OpBuilder {
         return buildMap(J_L_STRING, J_L_OBJECT, keysAndValues);
     }
 
-    private Value box(TypeElement to, Value v) {
+    private Value box(CodeType to, Value v) {
         return builder.op(invoke(MethodRef.method(to, "valueOf", to, v.type()), v));
     }
 
@@ -694,7 +694,7 @@ public class OpBuilder {
                 buildType(JavaType.type(v));
             case String s ->
                 builder.op(constant(J_L_STRING, value));
-            case TypeElement f ->
+            case CodeType f ->
                 buildType(f);
             case InvokeOp.InvokeKind ik -> {
                 FieldRef enumValueRef = FieldRef.field(InvokeOp.InvokeKind.class, ik.name(), InvokeOp.InvokeKind.class);
@@ -732,21 +732,21 @@ public class OpBuilder {
     }
 
 
-    Value buildList(JavaType elementType, List<Value> elements) {
-        JavaType listType = parameterized(J_U_LIST, elementType);
+    Value buildList(JavaType javaType, List<Value> elements) {
+        JavaType listType = parameterized(J_U_LIST, javaType);
         if (elements.size() < 11) {
             MethodRef listOf = MethodRef.method(J_U_LIST, "of",
                     J_U_LIST, Collections.nCopies(elements.size(), J_L_OBJECT));
             return builder.op(invoke(listType, listOf, elements));
         } else {
-            Value array = buildArray(elementType, elements);
+            Value array = buildArray(javaType, elements);
             return builder.op(invoke(listType, LIST_OF_ARRAY, array));
         }
     }
 
 
-    Value buildArray(JavaType elementType, List<Value> elements) {
-        Value array = builder.op(newArray(JavaType.array(elementType),
+    Value buildArray(JavaType javaType, List<Value> elements) {
+        Value array = builder.op(newArray(JavaType.array(javaType),
                 builder.op(constant(INT, elements.size()))));
         for (int i = 0; i < elements.size(); i++) {
             builder.op(arrayStoreOp(

@@ -736,7 +736,7 @@ public final class MLIRGenerator {
         }
     }
 
-    void writeType(TypeElement te) {
+    void writeType(CodeType te) {
         write(TypeConverter.mapType(te.externalize().toString()));
     }
 

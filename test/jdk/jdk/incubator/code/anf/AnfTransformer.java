@@ -82,7 +82,7 @@ public class AnfTransformer {
         var blockReturnType = getBlockReturnType(b);
         var blockFType = CoreType.functionType(blockReturnType);
 
-        List<TypeElement> synthParamTypes = new ArrayList<>();
+        List<CodeType> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
 
         var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
@@ -109,7 +109,7 @@ public class AnfTransformer {
         var blockReturnType = getBlockReturnType(b);
         var blockFType = CoreType.functionType(blockReturnType);
 
-        List<TypeElement> synthParamTypes = new ArrayList<>();
+        List<CodeType> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
 
         var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
@@ -148,7 +148,7 @@ public class AnfTransformer {
 
     }
 
-    private TypeElement getBlockReturnType(Block b) {
+    private CodeType getBlockReturnType(Block b) {
         var op = b.ops().getLast();
         if (op instanceof Op.Terminating) {
             List<Block.Reference> destBlocks = new ArrayList<>();
