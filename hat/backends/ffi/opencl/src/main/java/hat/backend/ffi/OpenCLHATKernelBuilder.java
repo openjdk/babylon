@@ -389,10 +389,25 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     private static final String INDEX_PREFIX = "index_$";
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     *     <code>
+     *          for (int m = 0; m < " + shape[0] + "; m++) {
+     *           for (int n = 0; n < " + shape[1] + "; n++) {
+     *             tensorVarOp.varName() + "[m * " + shape[0] + " + n] = " + initValue + "f;" + "}" + "}");
+     *     </code>
+     * </p>
+     *
+     * @param from
+     * @param to
+     * @param tensorVarOp
+     * @param initValue
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder emitForLoopWithBound(int from, int to, HATTensorOp.TensorVarOp tensorVarOp, float initValue) {
-        //  emitText("for (int m = 0; m < " + shape[0] + "; m++) { " +
-        //           "for (int n = 0; n < " + shape[1] + "; n++) { " +
-        //            tensorVarOp.varName() + "[m * " + shape[0] + " + n] = " + initValue + "f;" + "}" + "}");
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
@@ -426,19 +441,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return emitForLoopWithBound(0, shape[0], tensorVarOp, initValue);
     }
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     *     <code>
+     *       for (int m = 0; m < SHAPE_1; m++)
+     *           for (int n = 0; n < SHAPE_2; n++)
+     *             tensor[m * SHAPE_1 + n] = initValue;
+     *     </code>
+     * </p>
+     *
+     * @param tensorFillOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     @Override
     public OpenCLHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-
-        /*
-         From this expression:
-
-         Tensor.fill(acc, 0.0f);
-
-         We need to generate the following skeleton
-                for (int m = 0; m < SHAPE_1; m++)
-                    for (int n = 0; n < SHAPE_2; n++)
-                        tensor[m * SHAPE_1 + n] = initValue;
-         */
 
         // 1. Access to the variable name
         var tensorValue = tensorFillOp.operands().getFirst();
@@ -472,6 +491,34 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+           for (int n = 0; n < WMMA_N; n++) {
+     *       float sum = acc[m][n];
+     *       for (int k = 0; k < WMMA_K; k++) {
+     *         F16_t ha = a_frag[m * WMMA_M + k];
+     *         F16_t hb = b_frag[k * WMMA_M + n];
+     *         F16_t result = (F16_t){(ha.value * hb.value)};
+     *         sum += (float)(result.value);
+     *       }
+     *       acc[m][n] = sum;
+     *    }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param shape
+     * @param tensorA
+     * @param tensorB
+     * @param tensorC
+     * @param result
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder generateTensorMMA(int[] shape, HATTensorOp.TensorVarOp tensorA, HATTensorOp.TensorVarOp tensorB, HATTensorOp.TensorVarOp tensorC, HATTensorOp.TensorVarOp result) {
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
@@ -540,6 +587,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
     }
 
+
     @Override
     public OpenCLHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp storeLoadOp) {
         List<Value> operands = storeLoadOp.operands();
@@ -563,21 +611,35 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
     }
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *      for (int m = 0; m < WMMA_M; m++) {
+     *         int rowA = aRow + m;
+     *         for (int n = 0; n < WMMA_N; n++) {
+     *           int colA = aCol + n;
+     *           int idxA = rowA + colA * lda;
+     *           HAT_GLOBAL_MEM F16Impl_t* ha = &matrixA->array[idxA];
+     *           F16_t r = (F16_t){ha->value};
+     *           tensorA[m * WMMA_M + n] = r;
+     *           }
+     *     }
+     * </code>
+     * </p>
+     *
+     * @param shape
+     * @param iIndexValue
+     * @param jIndexValue
+     * @param isColumnMajor
+     * @param leadingDimension
+     * @param ptrValue
+     * @param tensorVarOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder generateTensorLoad(int[] shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, HATTensorOp.TensorVarOp tensorVarOp) {
-
-        // Example being generated:
-        //        emitText("""
-        //            for (int m = 0; m < WMMA_M; m++) {
-        //                int rowA = aRow + m;
-        //                for (int n = 0; n < WMMA_N; n++) {
-        //                    int colA = aCol + n;
-        //                    int idxA = rowA + colA * lda;
-        //                    HAT_GLOBAL_MEM F16Impl_t* ha = &matrixA->array[idxA];
-        //                    F16_t r = (F16_t){ha->value};
-        //                    tensorA[m * WMMA_M + n] = r;
-        //                }
-        //            }
-        //            """);
 
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
@@ -653,16 +715,30 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *     for (int m = 0; m < WMMA_M; m++) {
+                int rowB = bRow + m;
+     *          for (int n = 0; n < WMMA_N; n++) {
+     *            int colB = bCol + n;
+     *            int idxB = rowB + colB * ldb;
+     *            HAT_GLOBAL_MEM F16Impl_t* hb = &matrixB->array[idxB];
+     *            F16_t r = (F16_t){hb->value};
+     *            b_frag[m * WMMA_M + n] = r;
+     *          }
+     *      }
+     * </code>
+     * </p>
+     *
+     * @param tensorLoadOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     @Override
     public OpenCLHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
-        // tensorA = Tensor.load(matrixA, aRow, aCol, lda);
-
-        // 1. We need the global ptr
-        // 2. We need the indexes (i, j)
-        // 3. We need leading dimension
-        // 4. We need the name of the tensor
-        // 5. We need the shape
-        // 6. We need the access layout
 
         List<Value> operands = tensorLoadOp.operands();
         var ptrValue = operands.getFirst();
@@ -682,19 +758,33 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     *  `int rowC = cRow + m;
+     *   for (int n = 0; n < WMMA_N; n++) {
+     *      int colC = cCol + n;
+     *      int idxC = (cRow) + (cCol) * ldc;
+     *      matrixC->array[idxC] = acc[m * 16 + n];
+     *   }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param shape
+     * @param iIndexValue
+     * @param jIndexValue
+     * @param isColumnMajor
+     * @param leadingDimension
+     * @param ptrValue
+     * @param tensorVarOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder generateTensorStore(int[] shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, HATTensorOp.TensorVarOp tensorVarOp) {
-        // Example being generated
-        // emitText("""
-        //     for (int m = 0; m < WMMA_M; m++) {
-        //     int rowC = cRow + m;
-        //       for (int n = 0; n < WMMA_N; n++) {
-        //         int colC = cCol + n;
-        //         int idxC = (cRow) + (cCol) * ldc;
-        //         matrixC->array[idxC] = acc[m * 16 + n];
-        //        }
-        //     }
-        //     """);
-
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
@@ -760,6 +850,26 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     *  `int rowC = cRow + m;
+     *   for (int n = 0; n < WMMA_N; n++) {
+     *      int colC = cCol + n;
+     *      int idxC = (cRow) + (cCol) * ldc;
+     *      matrixC->array[idxC] = acc[m * 16 + n];
+     *   }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param tensorStoreOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     @Override
     public OpenCLHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp) {
         // Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
