@@ -224,7 +224,7 @@ public final class Interpreter {
         }
 
         void popExceptionRegion(JavaOp.ExceptionRegionExit ere) {
-            ere.catchBlocks().forEach(catchBlock -> {
+            ere.catchReferences().forEach(catchBlock -> {
                 if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
                     // @@@ Use internal exception type
                     throw interpreterException(new IllegalStateException("Mismatched exception regions"));
@@ -355,7 +355,7 @@ public final class Interpreter {
             Op to = bc.b.terminatingOp();
             if (to instanceof CoreOp.ConditionalBranchOp cb) {
                 boolean p;
-                Object bop = oc.getValue(cb.predicate());
+                Object bop = oc.getValue(cb.predicateOperand());
                 if (bop instanceof Boolean bp) {
                     p = bp;
                 } else if (bop instanceof Integer ip) {
@@ -374,7 +374,7 @@ public final class Interpreter {
 
                 oc.successor(sb);
             } else if (to instanceof JavaOp.ThrowOp _throw) {
-                Throwable t = (Throwable) oc.getValue(_throw.argument());
+                Throwable t = (Throwable) oc.getValue(_throw.argumentOperand());
                 processThrowable(oc, l, t);
             } else if (to instanceof CoreOp.ReturnOp ret) {
                 Value rv = ret.returnValue();
@@ -390,16 +390,16 @@ public final class Interpreter {
                 return yr;
             } else if (to instanceof JavaOp.ExceptionRegionEnter ers) {
                 int erStackDepth = oc.erStack.size();
-                ers.catchBlocks().forEach(catchBlock -> {
+                ers.catchReferences().forEach(catchBlock -> {
                     var er = new ExceptionRegionRecord(oc.stack.peek(), erStackDepth, catchBlock.targetBlock());
                     oc.pushExceptionRegion(er);
                 });
 
-                oc.successor(ers.start());
+                oc.successor(ers.startReference());
             } else if (to instanceof JavaOp.ExceptionRegionExit ere) {
                 oc.popExceptionRegion(ere);
 
-                oc.successor(ere.end());
+                oc.successor(ere.endReference());
             } else {
                 throw interpreterException(
                         new UnsupportedOperationException("Unsupported terminating operation: " + to));

@@ -98,9 +98,9 @@ public class ScopedCodeBuilderContext implements LookupCarrier {
         ForScope(Scope<?> parent, JavaOp.ForOp forOp) {
             super(parent, forOp);
             var loopParams = forOp.loopBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
-            var updateParams = forOp.update().entryBlock().parameters().toArray(new Block.Parameter[0]);
-            var condParams = forOp.cond().entryBlock().parameters().toArray(new Block.Parameter[0]);
-            var lastInitOp = forOp.init().entryBlock().ops().getLast();
+            var updateParams = forOp.updateBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var condParams = forOp.condBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var lastInitOp = forOp.initBody().entryBlock().ops().getLast();
             var lastInitOpOperand0Result = (Op.Result) lastInitOp.operands().getFirst();
             var lastInitOpOperand0ResultOp = lastInitOpOperand0Result.op();
             CoreOp.VarOp[] varOps;

@@ -1048,7 +1048,7 @@ public final class BytecodeGenerator {
                     }
                 }
                 case ExceptionRegionEnter op -> {
-                    List<Block.Reference> enteringCatchBlocks = op.catchBlocks();
+                    List<Block.Reference> enteringCatchBlocks = op.catchReferences();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length + enteringCatchBlocks.size());
                     int i = recentCatchBlocks.length;
                     for (Block.Reference catchRef : enteringCatchBlocks) {
@@ -1056,15 +1056,15 @@ public final class BytecodeGenerator {
                         activeCatchBlocks[i++] = catchRef.targetBlock();
                         setCatchStack(catchRef, recentCatchBlocks);
                     }
-                    setCatchStack(op.start(), activeCatchBlocks);
+                    setCatchStack(op.startReference(), activeCatchBlocks);
 
-                    assignBlockArguments(op.start());
-                    cob.goto_(getLabel(op.start()));
+                    assignBlockArguments(op.startReference());
+                    cob.goto_(getLabel(op.startReference()));
                 }
                 case ExceptionRegionExit op -> {
-                    List<Block.Reference> exitingCatchBlocks = op.catchBlocks();
+                    List<Block.Reference> exitingCatchBlocks = op.catchReferences();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length - exitingCatchBlocks.size());
-                    setCatchStack(op.end(), activeCatchBlocks);
+                    setCatchStack(op.endReference(), activeCatchBlocks);
 
                     // Assert block exits in reverse order
                     int i = recentCatchBlocks.length;
@@ -1072,8 +1072,8 @@ public final class BytecodeGenerator {
                         assert catchRef.targetBlock() == recentCatchBlocks[--i];
                     }
 
-                    assignBlockArguments(op.end());
-                    cob.goto_(getLabel(op.end()));
+                    assignBlockArguments(op.endReference());
+                    cob.goto_(getLabel(op.endReference()));
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
@@ -1156,7 +1156,7 @@ public final class BytecodeGenerator {
     }
 
     private static Op getConditionForCondBrOp(ConditionalBranchOp op) {
-        Value p = op.predicate();
+        Value p = op.predicateOperand();
         if (p.uses().size() != 1) {
             return null;
         }

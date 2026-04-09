@@ -191,11 +191,6 @@ public sealed abstract class CoreOp extends Op {
             return Map.of("", funcName);
         }
 
-        @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
-        }
-
         /**
          * {@return the function name}
          */
@@ -396,7 +391,7 @@ public sealed abstract class CoreOp extends Op {
 
         static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
             try {
-        Method method = invokeOp.invokeReference().resolveToMethod(l);
+                Method method = invokeOp.invokeReference().resolveToMethod(l);
                 return Op.ofMethod(method).orElse(null);
             } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException("Could not resolve invokeOp to method");
@@ -443,7 +438,7 @@ public sealed abstract class CoreOp extends Op {
                     if (op instanceof JavaOp.InvokeOp iop) {
                         Method invokeOpCalledMethod = null;
                         try {
-        invokeOpCalledMethod = iop.invokeReference().resolveToMethod(l);
+                            invokeOpCalledMethod = iop.invokeReference().resolveToMethod(l);
                         } catch (ReflectiveOperationException e) {
                             throw new RuntimeException("Could not resolve invokeOp to method");
                         }
@@ -750,7 +745,7 @@ public sealed abstract class CoreOp extends Op {
             implements Op.BlockTerminating {
         static final String NAME = "branch";
 
-        final Block.Reference b;
+        final Block.Reference branch;
 
         BranchOp(ExternalizedOp def) {
             if (!def.operands().isEmpty() || def.successors().size() != 1) {
@@ -763,7 +758,7 @@ public sealed abstract class CoreOp extends Op {
         BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.b = cc.getSuccessorOrCreate(that.b);
+            this.branch = cc.getSuccessorOrCreate(that.branch);
         }
 
         @Override
@@ -774,19 +769,19 @@ public sealed abstract class CoreOp extends Op {
         BranchOp(Block.Reference successor) {
             super(List.of());
 
-            this.b = successor;
+            this.branch = successor;
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return List.of(b);
+            return List.of(branch);
         }
 
         /**
-         * {@return The branch target}
+         * {@return The block reference to branch to}
          */
         public Block.Reference branch() {
-            return b;
+            return branch;
         }
 
         @Override
@@ -811,8 +806,8 @@ public sealed abstract class CoreOp extends Op {
             implements Op.BlockTerminating {
         static final String NAME = "cbranch";
 
-        final Block.Reference t;
-        final Block.Reference f;
+        final Block.Reference trueBranch;
+        final Block.Reference falseBranch;
 
         ConditionalBranchOp(ExternalizedOp def) {
             if (def.operands().size() != 1 || def.successors().size() != 2) {
@@ -825,8 +820,8 @@ public sealed abstract class CoreOp extends Op {
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.t = cc.getSuccessorOrCreate(that.t);
-            this.f = cc.getSuccessorOrCreate(that.f);
+            this.trueBranch = cc.getSuccessorOrCreate(that.trueBranch);
+            this.falseBranch = cc.getSuccessorOrCreate(that.falseBranch);
         }
 
         @Override
@@ -834,37 +829,37 @@ public sealed abstract class CoreOp extends Op {
             return new ConditionalBranchOp(this, cc);
         }
 
-        ConditionalBranchOp(Value p, Block.Reference t, Block.Reference f) {
+        ConditionalBranchOp(Value p, Block.Reference trueBranch, Block.Reference falseBranch) {
             super(List.of(p));
 
-            this.t = t;
-            this.f = f;
+            this.trueBranch = trueBranch;
+            this.falseBranch = falseBranch;
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return List.of(t, f);
+            return List.of(trueBranch, falseBranch);
         }
 
         /**
          * {@return the branch condition}
          */
-        public Value predicate() {
+        public Value predicateOperand() {
             return operands().get(0);
         }
 
         /**
-         * {@return the branch target when the condition is true}
+         * {@return the block reference to branch to when the condition is true}
          */
         public Block.Reference trueBranch() {
-            return t;
+            return trueBranch;
         }
 
         /**
-         * {@return the branch target when the condition is false}
+         * {@return the block reference to branch to when the condition is false}
          */
         public Block.Reference falseBranch() {
-            return f;
+            return falseBranch;
         }
 
         @Override
@@ -893,7 +888,7 @@ public sealed abstract class CoreOp extends Op {
         static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
-        final TypeElement type;
+        final TypeElement resultType;
 
         ConstantOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
@@ -939,7 +934,7 @@ public sealed abstract class CoreOp extends Op {
         ConstantOp(ConstantOp that, CodeContext cc) {
             super(that, cc);
 
-            this.type = that.type;
+            this.resultType = that.resultType;
             this.value = that.value;
         }
 
@@ -948,10 +943,10 @@ public sealed abstract class CoreOp extends Op {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeElement type, Object value) {
+        ConstantOp(TypeElement resultType, Object value) {
             super(List.of());
 
-            this.type = type;
+            this.resultType = resultType;
             this.value = value;
         }
 
@@ -969,7 +964,7 @@ public sealed abstract class CoreOp extends Op {
 
         @Override
         public TypeElement resultType() {
-            return type;
+            return resultType;
         }
     }
 
@@ -1379,6 +1374,13 @@ public sealed abstract class CoreOp extends Op {
             return index;
         }
 
+        /**
+         * {@return the tuple value}
+         */
+        public Value tupleOperand() {
+            return operands().get(0);
+        }
+
         @Override
         public TypeElement resultType() {
             Value tupleValue = operands().get(0);
@@ -1451,6 +1453,20 @@ public sealed abstract class CoreOp extends Op {
          */
         public int index() {
             return index;
+        }
+
+        /**
+         * {@return the tuple value}
+         */
+        public Value tupleOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the value being updated in the tuple}
+         */
+        public Value valueOperand() {
+            return operands().get(1);
         }
 
         @Override
