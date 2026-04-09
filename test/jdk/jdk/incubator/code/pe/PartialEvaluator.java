@@ -103,7 +103,7 @@ final class PartialEvaluator {
                               Body inBody) {
         Block inEntryBlock = inBody.entryBlock();
 
-        Body.Builder outBody = Body.Builder.of(null, inBody.bodyType());
+        Body.Builder outBody = Body.Builder.of(null, inBody.bodySignature());
         Block.Builder outEntryBlock = outBody.entryBlock();
 
         CodeContext cc = outEntryBlock.context();
@@ -341,7 +341,7 @@ final class PartialEvaluator {
                 }
             }
             case JavaOp.InvokeOp co -> {
-                MethodType target = resolveToMethodType(l, o.opType());
+                MethodType target = resolveToMethodType(l, o.opSignature());
                 MethodHandles.Lookup il = switch (co.invokeKind()) {
                     case STATIC, INSTANCE -> l;
                     case SUPER -> l.in(target.parameterType(0));
@@ -456,13 +456,13 @@ final class PartialEvaluator {
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
                 // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
                 // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }

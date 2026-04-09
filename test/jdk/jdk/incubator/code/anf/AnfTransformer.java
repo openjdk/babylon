@@ -52,7 +52,7 @@ public class AnfTransformer {
 
         var builderEntry = outerBodyBuilder.entryBlock();
 
-        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.ancestorOp()).invokableType());
+        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.ancestorOp()).invokableSignature());
         funMap.put(entry, selfRefP);
 
         for (Block.Parameter p : entry.parameters()) {
@@ -136,7 +136,7 @@ public class AnfTransformer {
             funMap2.put(dblock, fval);
         }
 
-        var letBody = Body.Builder.of(letrecBody, letrecBody.bodyType(), CodeContext.create(letrecBody.entryBlock().context()));
+        var letBody = Body.Builder.of(letrecBody, letrecBody.bodySignature(), CodeContext.create(letrecBody.entryBlock().context()));
         transformBlockOps(b, letBody.entryBlock());
         var let = AnfDialect.let(letBody);
 

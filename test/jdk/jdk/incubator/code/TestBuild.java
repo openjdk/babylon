@@ -66,7 +66,7 @@ public class TestBuild {
     public void testBuiltValueAsBlockArgument() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
         var anotherBlock = block.block(INT, INT);
 
@@ -80,7 +80,7 @@ public class TestBuild {
     public void testUnmappedBuiltValue() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
 
         var freturnOp = f.body().entryBlock().terminatingOp();
@@ -92,7 +92,7 @@ public class TestBuild {
     public void testMappingToBuiltValue() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
 
         var result = f.body().entryBlock().firstOp().result();
@@ -104,7 +104,7 @@ public class TestBuild {
     public void testMappedBuiltValue() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
 
         var a = block.parameters().get(0);
@@ -178,7 +178,7 @@ public class TestBuild {
         var aa = ablock.parameters().get(0);
         var ab = ablock.parameters().get(1);
 
-        var bbody = Body.Builder.of(null, abody.bodyType());
+        var bbody = Body.Builder.of(null, abody.bodySignature());
         var bblock = bbody.entryBlock();
 
         // Operation uses values from another model

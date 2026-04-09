@@ -131,14 +131,18 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         Body body();
 
         /**
-         * {@return the function type describing the invokable operation's parameter types and return type.}
+         * {@return the invokable operation's signature, represented as a function type.}
+         * @implSpec
+         * The default implementation returns the signature of the invokable operation's body.
          */
-        default FunctionType invokableType() {
-            return body().bodyType();
+        default FunctionType invokableSignature() {
+            return body().bodySignature();
         }
 
         /**
          * {@return the entry block parameters of this operation's body}
+         * @implSpec
+         * The default implementation returns the entry block's parameters of the invokable operation's body.
          */
         default List<Block.Parameter> parameters() {
             return body().entryBlock().parameters();
@@ -146,6 +150,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
         /**
          * Computes values captured by this invokable operation's body.
+         * @implSpec
+         * The default implementation returns an empty unmodifiable list.
          *
          * @return the captured values.
          * @see Body#capturedValues()
@@ -478,14 +484,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the operation's function type.
+     * Returns the operation's signature, represented as a function type.
      * <p>
-     * The function type's result type is the operation's result type and its parameter types are the
+     * The signature's return type is the operation's result type and its parameter types are the
      * operation's operand types, in order.
      *
-     * @return the function type
+     * @return the operation's signature
      */
-    public final FunctionType opType() {
+    public final FunctionType opSignature() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
         return CoreType.functionType(resultType(), operandTypes);
     }

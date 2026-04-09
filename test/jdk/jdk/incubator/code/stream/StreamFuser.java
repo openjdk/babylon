@@ -215,7 +215,7 @@ public final class StreamFuser {
             }
             JavaOp.LambdaOp accumulator = quotedAccumulator.op();
 
-            JavaType collectType = (JavaType) supplier.invokableType().returnType();
+            JavaType collectType = (JavaType) supplier.invokableSignature().returnType();
             return func("fused.collect", CoreType.functionType(collectType, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);

@@ -630,19 +630,19 @@ public sealed abstract class JavaOp extends Op {
          */
         public CoreOp.FuncOp toFuncOp(String lambdaName) {
             if (lambdaName == null) lambdaName = "";
-            List<TypeElement> parameters = new ArrayList<>(this.invokableType().parameterTypes());
+            List<TypeElement> parameters = new ArrayList<>(this.invokableSignature().parameterTypes());
             for (Value v : this.capturedValues()) {
                 TypeElement capturedType = v.type() instanceof VarType varType ? varType.valueType() : v.type();
                 parameters.add(capturedType);
             }
-            return CoreOp.func(lambdaName, CoreType.functionType(this.invokableType().returnType(), parameters)).body(builder -> {
-                int idx = this.invokableType().parameterTypes().size();
+            return CoreOp.func(lambdaName, CoreType.functionType(this.invokableSignature().returnType(), parameters)).body(builder -> {
+                int idx = this.invokableSignature().parameterTypes().size();
                 for (Value v : capturedValues()) {
                     Block.Parameter p = builder.parameters().get(idx++);
                     Value functionValue = v.type() instanceof VarType ? builder.op(CoreOp.var(p)) : p;
                     builder.context().mapValue(v, functionValue);
                 }
-                List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableType().parameterTypes().size());
+                List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableSignature().parameterTypes().size());
                 builder.body(this.body(), outputValues, CodeTransformer.COPYING_TRANSFORMER);
             });
         }
@@ -2932,11 +2932,11 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
+            if (!body.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodySignature());
             }
-            if (!body.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodyType());
+            if (!body.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodySignature());
             }
         }
 
@@ -3017,19 +3017,19 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             this.exprBody = exprC.build(this);
-            if (exprBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Expression body should return non-void value: " + exprBody.bodyType());
+            if (exprBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Expression body should return non-void value: " + exprBody.bodySignature());
             }
-            if (!exprBody.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Expression body should have zero parameters: " + exprBody.bodyType());
+            if (!exprBody.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Expression body should have zero parameters: " + exprBody.bodySignature());
             }
 
             this.blockBody = bodyC.build(this);
-            if (!blockBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Block body should return void: " + blockBody.bodyType());
+            if (!blockBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Block body should return void: " + blockBody.bodySignature());
             }
-            if (!blockBody.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Block body should have zero parameters: " + blockBody.bodyType());
+            if (!blockBody.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Block body should have zero parameters: " + blockBody.bodySignature());
             }
         }
 
@@ -3115,7 +3115,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         Block.Builder lowerExpr(Block.Builder b, CodeTransformer opT) {
-            Block.Builder exprExit = b.block(exprBody.bodyType().returnType());
+            Block.Builder exprExit = b.block(exprBody.bodySignature().returnType());
             b.body(exprBody, List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     Value monitorTarget = block.context().getValue(yop.yieldValue());
@@ -3183,11 +3183,11 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
+            if (!body.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodySignature());
             }
-            if (!body.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodyType());
+            if (!body.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodySignature());
             }
         }
 
@@ -3448,12 +3448,12 @@ public sealed abstract class JavaOp extends Op {
                 } else {
                     action = bodies.get(i + 1);
                     Body fromPred = bodies.get(i);
-                    if (!fromPred.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal predicate body type: " + fromPred.bodyType());
+                    if (!fromPred.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
+                throw new IllegalArgumentException("Illegal predicate body signature: " + fromPred.bodySignature());
                     }
                 }
-                if (!action.bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
-                throw new IllegalArgumentException("Illegal action body type: " + action.bodyType());
+                if (!action.bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
+                throw new IllegalArgumentException("Illegal action body signature: " + action.bodySignature());
                 }
             }
         }
@@ -4036,13 +4036,13 @@ public sealed abstract class JavaOp extends Op {
             this.condBody = condC.build(this);
 
             this.updateBody = updateC.build(this);
-            if (!updateBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Update should return void: " + updateBody.bodyType());
+            if (!updateBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Update should return void: " + updateBody.bodySignature());
             }
 
             this.loopBody = bodyC.build(this);
-            if (!loopBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + loopBody.bodyType());
+            if (!loopBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + loopBody.bodySignature());
             }
         }
 
@@ -4301,27 +4301,27 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             this.exprBody = expressionC.build(this);
-            if (exprBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Expression should return non-void value: " + exprBody.bodyType());
+            if (exprBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Expression should return non-void value: " + exprBody.bodySignature());
             }
-            if (!exprBody.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Expression should have zero parameters: " + exprBody.bodyType());
+            if (!exprBody.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Expression should have zero parameters: " + exprBody.bodySignature());
             }
 
             this.initBody = initC.build(this);
-            if (initBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Initialization should return non-void value: " + initBody.bodyType());
+            if (initBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Initialization should return non-void value: " + initBody.bodySignature());
             }
-            if (initBody.bodyType().parameterTypes().size() != 1) {
-                throw new IllegalArgumentException("Initialization should have one parameter: " + initBody.bodyType());
+            if (initBody.bodySignature().parameterTypes().size() != 1) {
+                throw new IllegalArgumentException("Initialization should have one parameter: " + initBody.bodySignature());
             }
 
             this.loopBody = bodyC.build(this);
-            if (!loopBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + loopBody.bodyType());
+            if (!loopBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + loopBody.bodySignature());
             }
-            if (loopBody.bodyType().parameterTypes().size() != 1) {
-                throw new IllegalArgumentException("Body should have one parameter: " + loopBody.bodyType());
+            if (loopBody.bodySignature().parameterTypes().size() != 1) {
+                throw new IllegalArgumentException("Body should have one parameter: " + loopBody.bodySignature());
             }
         }
 
@@ -4356,9 +4356,9 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
             JavaType elementType = (JavaType) initBody.entryBlock().parameters().get(0).type();
-            boolean isArray = exprBody.bodyType().returnType() instanceof ArrayType;
+            boolean isArray = exprBody.bodySignature().returnType() instanceof ArrayType;
 
-            Block.Builder preHeader = b.block(exprBody.bodyType().returnType());
+            Block.Builder preHeader = b.block(exprBody.bodySignature().returnType());
             Block.Builder header = b.block(isArray ? List.of(INT) : List.of());
             Block.Builder init = b.block();
             Block.Builder body = b.block();
@@ -4527,15 +4527,15 @@ public sealed abstract class JavaOp extends Op {
                     .map(bc -> bc.build(this)).toList();
 
             // @@@ This will change with pattern bindings
-            if (!bodies.get(0).bodyType().equals(CoreType.functionType(BOOLEAN))) {
+            if (!bodies.get(0).bodySignature().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body type should be " + CoreType.functionType(BOOLEAN) +
-                                " but is " + bodies.get(0).bodyType());
+                        "Predicate body signature should be " + CoreType.functionType(BOOLEAN) +
+                                " but is " + bodies.get(0).bodySignature());
             }
-            if (!bodies.get(1).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
+            if (!bodies.get(1).bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
                         "Body type should be " + CoreType.functionType(VOID) +
-                                " but is " + bodies.get(1).bodyType());
+                                " but is " + bodies.get(1).bodySignature());
             }
         }
 
@@ -4689,15 +4689,15 @@ public sealed abstract class JavaOp extends Op {
             this.bodies = Stream.of(body, predicate).filter(Objects::nonNull)
                     .map(bc -> bc.build(this)).toList();
 
-            if (!bodies.get(0).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
+            if (!bodies.get(0).bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
                         "Body type should be " + CoreType.functionType(VOID) +
-                                " but is " + bodies.get(1).bodyType());
+                                " but is " + bodies.get(1).bodySignature());
             }
-            if (!bodies.get(1).bodyType().equals(CoreType.functionType(BOOLEAN))) {
+            if (!bodies.get(1).bodySignature().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body type should be " + CoreType.functionType(BOOLEAN) +
-                                " but is " + bodies.get(0).bodyType());
+                        "Predicate body signature should be " + CoreType.functionType(BOOLEAN) +
+                                " but is " + bodies.get(0).bodySignature());
             }
         }
 
@@ -4789,8 +4789,8 @@ public sealed abstract class JavaOp extends Op {
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             for (Body b : bodies) {
-                if (!b.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                    throw new IllegalArgumentException("Body conditional body type: " + b.bodyType());
+                if (!b.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
+                    throw new IllegalArgumentException("Body conditional body signature: " + b.bodySignature());
                 }
             }
         }
@@ -4845,7 +4845,7 @@ public sealed abstract class JavaOp extends Op {
                 if (i == 0) {
                     startBlock.body(fromPred, List.of(), opt::apply);
                 } else {
-                    pred = startBlock.block(fromPred.bodyType().parameterTypes());
+                    pred = startBlock.block(fromPred.bodySignature().parameterTypes());
                     pred.body(fromPred, pred.parameters(), andThen(opT, opt));
                 }
             }
@@ -5051,8 +5051,8 @@ public sealed abstract class JavaOp extends Op {
             }
 
             Body cond = bodies.get(0);
-            if (!cond.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal cond body type: " + cond.bodyType());
+            if (!cond.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
+                throw new IllegalArgumentException("Illegal cond body signature: " + cond.bodySignature());
             }
         }
 
@@ -5243,7 +5243,7 @@ public sealed abstract class JavaOp extends Op {
             Body.Builder first = bodies.getFirst();
             Body.Builder resources;
             Body.Builder body;
-            if (first.bodyType().returnType().equals(VOID)) {
+            if (first.bodySignature().returnType().equals(VOID)) {
                 resources = null;
                 body = first;
             } else {
@@ -5253,7 +5253,7 @@ public sealed abstract class JavaOp extends Op {
 
             Body.Builder last = bodies.getLast();
             Body.Builder finalizer;
-            if (last.bodyType().parameterTypes().isEmpty()) {
+            if (last.bodySignature().parameterTypes().isEmpty()) {
                 finalizer = last;
             } else {
                 finalizer = null;
@@ -5297,38 +5297,38 @@ public sealed abstract class JavaOp extends Op {
 
             if (resourcesC != null) {
                 this.resourcesBody = resourcesC.build(this);
-                if (resourcesBody.bodyType().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Resources should not return void: " + resourcesBody.bodyType());
+                if (resourcesBody.bodySignature().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Resources should not return void: " + resourcesBody.bodySignature());
                 }
-                if (!resourcesBody.bodyType().parameterTypes().isEmpty()) {
-                    throw new IllegalArgumentException("Resources should have zero parameters: " + resourcesBody.bodyType());
+                if (!resourcesBody.bodySignature().parameterTypes().isEmpty()) {
+                    throw new IllegalArgumentException("Resources should have zero parameters: " + resourcesBody.bodySignature());
                 }
             } else {
                 this.resourcesBody = null;
             }
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Try should return void: " + body.bodyType());
+            if (!body.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Try should return void: " + body.bodySignature());
             }
 
             this.catchBodies = catchersC.stream().map(c -> c.build(this)).toList();
             for (Body _catch : catchBodies) {
-                if (!_catch.bodyType().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Catch should return void: " + _catch.bodyType());
+                if (!_catch.bodySignature().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Catch should return void: " + _catch.bodySignature());
                 }
-                if (_catch.bodyType().parameterTypes().size() != 1) {
-                    throw new IllegalArgumentException("Catch should have zero parameters: " + _catch.bodyType());
+                if (_catch.bodySignature().parameterTypes().size() != 1) {
+                    throw new IllegalArgumentException("Catch should have zero parameters: " + _catch.bodySignature());
                 }
             }
 
             if (finalizerC != null) {
                 this.finallyBody = finalizerC.build(this);
-                if (!finallyBody.bodyType().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Finally should return void: " + finallyBody.bodyType());
+                if (!finallyBody.bodySignature().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Finally should return void: " + finallyBody.bodySignature());
                 }
-                if (!finallyBody.bodyType().parameterTypes().isEmpty()) {
-                    throw new IllegalArgumentException("Finally should have zero parameters: " + finallyBody.bodyType());
+                if (!finallyBody.bodySignature().parameterTypes().isEmpty()) {
+                    throw new IllegalArgumentException("Finally should have zero parameters: " + finallyBody.bodySignature());
                 }
             } else {
                 this.finallyBody = null;
@@ -5472,7 +5472,7 @@ public sealed abstract class JavaOp extends Op {
                 Block.Builder catcher = catchers.get(i);
                 Body catcherBody = this.catchBodies.get(i);
                 // Create the throwable argument
-                Block.Parameter t = catcher.parameter(catcherBody.bodyType().parameterTypes().get(0));
+                Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
                 if (finallyBody != null) {
                     Block.Builder catchRegionEnter = b.block();

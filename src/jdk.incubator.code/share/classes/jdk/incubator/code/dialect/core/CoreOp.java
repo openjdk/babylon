@@ -449,7 +449,7 @@ public sealed abstract class CoreOp extends Op {
                                     f -> f.funcName() + "_" + funcNames.size());
                             Op.Result result = blockBuilder.op(CoreOp.funcCall(
                                     funcNames.get(calledFunc),
-                                    calledFunc.invokableType(),
+                                    calledFunc.invokableSignature(),
                                     blockBuilder.context().getValues(iop.operands())));
                             blockBuilder.context().mapValue(op.result(), result);
                             return blockBuilder;
@@ -1577,7 +1577,7 @@ public sealed abstract class CoreOp extends Op {
      * @return the function call operation
      */
     public static FuncCallOp funcCall(FuncOp func, List<Value> args) {
-        return new FuncCallOp(func.funcName(), func.invokableType().returnType(), args);
+        return new FuncCallOp(func.funcName(), func.invokableSignature().returnType(), args);
     }
 
     /**
