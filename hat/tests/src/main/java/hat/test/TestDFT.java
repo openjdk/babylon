@@ -74,7 +74,7 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void dftKernel(KernelContext kc,
+    public static void dftKernel(KernelContext kc,
                                   ArrayComplex input,
                                   ArrayComplex output) {
         int size = input.length();
@@ -143,26 +143,26 @@ public class TestDFT {
 
     // Simple test to check User Data Structures in Private Memory
     public interface ArrayComplexPrivate extends NonMappableIface {
-        interface PrivateComplex extends Struct {
+        interface PrivateComplex extends NonMappableIface {
+            DeviceSchema<PrivateComplex> deviceSchema =
+                    DeviceSchema.of(PrivateComplex.class,
+                            complex -> complex.fields("real", "imag"));
             float real();
             float imag();
             void real(float real);
             void imag(float imag);
         }
         PrivateComplex complex(long index);
-        DeviceSchema<ArrayComplexPrivate> schema =
+        DeviceSchema<ArrayComplexPrivate> deviceSchema =
                 DeviceSchema.of(ArrayComplexPrivate.class,
-                        complex ->
-                                complex.withArray("complex", 128)
-                                        .withDeps(PrivateComplex.class,
-                                                c2 -> c2.withFields("real", "imag")));
+                        complex -> complex.array("complex", 128, c2 -> c2.fields("real", "imag")));
         static ArrayComplexPrivate createPrivate() {
             return null;
         }
     }
 
     @Reflect
-    private static void testPrivateDS(KernelContext kc,
+    public static void testPrivateDS(KernelContext kc,
                                       ArrayComplex input,
                                       ArrayComplex output) {
         int idx = kc.gix;

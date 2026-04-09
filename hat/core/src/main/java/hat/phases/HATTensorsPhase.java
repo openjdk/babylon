@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATTensorOp;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
@@ -35,6 +34,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -47,7 +47,7 @@ import static hat.dialect.HATTensorOp.TensorStoreOp;
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;
 import static hat.dialect.HATTensorOp.TensorVarOp;
 
-public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
+public record HATTensorsPhase() implements HATPhase {
 
     private void transformTensorDeclWithVarOp(Block.Builder blockBuilder, Op op) {
         switch (op) {
@@ -108,10 +108,10 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
         }
     }
 
-    private CoreOp.FuncOp createTensors(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp createTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         // 1. Analyse IR calls to Tensor.create
         Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup(), funcOp)
+        OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("create") || invoke.name().equals("of"))
@@ -125,7 +125,7 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                 });
 
         // 2. Transform the IR
-        return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorDeclWithVarOp(blockBuilder, op);
             return blockBuilder;
         }).funcOp();
@@ -164,10 +164,10 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
         }
     }
 
-    private CoreOp.FuncOp fillTensors(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp fillTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         // 1. Analyse IR calls for Tensor.fill
         Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup(), funcOp)
+        OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(OpHelper.Invoke::returnsVoid)
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("fill"))
@@ -180,15 +180,15 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                 });
 
         // 2. Transform the IR (tensor.fill into dialect.tensor.fill)
-        return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorFillOp(blockBuilder, op);
             return blockBuilder;
         }).funcOp();
     }
 
-    private CoreOp.FuncOp mmaTensor(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp mmaTensor(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup(), funcOp)
+        OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(OpHelper.Invoke::returnsVoid)
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("mma"))
@@ -199,15 +199,15 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                         opsToProcess.add(varLoadOp);
                     }
                 });
-        return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorMMAOp(blockBuilder, op);
             return blockBuilder;
         }).funcOp();
     }
 
-    private CoreOp.FuncOp tensorLoad(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp tensorLoad(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup(), funcOp)
+        OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("load"))
@@ -218,27 +218,27 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
                             .map(result -> (CoreOp.VarAccessOp.VarStoreOp) result.op())
                             .forEach(opsToProcess::add);
                 });
-        return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorLoadOp(blockBuilder, op);
             return blockBuilder;
         }).funcOp();
     }
 
-    private CoreOp.FuncOp tensorStoreOp(CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp tensorStoreOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup(), funcOp)
+        OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(OpHelper.Invoke::returnsVoid)
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("store"))
                 .forEach(invoke -> opsToProcess.add(invoke.op()));
-        return Trxfmr.of(this, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             transformTensorStoreOp(blockBuilder, op);
             return blockBuilder;
         }).funcOp();
     }
 
     @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
 
         // Traverse the code-model and analyse Tensor.create / Tensor.of
         // This will trigger a wma::fragment in the case of NVIDIA/CUDA
@@ -247,11 +247,11 @@ public record HATTensorsPhase(KernelCallGraph kernelCallGraph) implements HATPha
         // The CUDA generator can ignore a TensorVarOp
         // The OpenCL generator can generate the private allocation in FP16
         // Thus, it should enable FP16 as well.
-        funcOp = createTensors(funcOp);
-        funcOp = fillTensors(funcOp);
-        funcOp = mmaTensor(funcOp);
-        funcOp = tensorLoad(funcOp);
-        funcOp = tensorStoreOp(funcOp);
+        funcOp = createTensors(lookup, funcOp);
+        funcOp = fillTensors(lookup, funcOp);
+        funcOp = mmaTensor(lookup, funcOp);
+        funcOp = tensorLoad(lookup, funcOp);
+        funcOp = tensorStoreOp(lookup, funcOp);
         return funcOp;
     }
 }

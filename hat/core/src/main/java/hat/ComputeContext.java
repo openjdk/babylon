@@ -24,7 +24,6 @@
  */
 package hat;
 
-import hat.callgraph.ComputeEntrypoint;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
@@ -80,22 +79,15 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         return accelerator.lookup();
     }
 
-    public ComputeEntrypoint computeEntrypoint() {
-        return computeCallGraph.entrypoint;
-    }
 
     public Config config() {
         return accelerator().config();
     }
 
     public void invokeWithArgs(Object[] args) {
-        computeEntrypoint().invokeWithArgs(args);
+        computeCallGraph.invokeWithArgs(args);
 
     }
-
-    //public void interpretWithArgs(Object[] args) {
-      //  computeEntrypoint().interpretWithArgs( args);
-   // }
 
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");
@@ -180,7 +172,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
             });
         }
-        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method());
+        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
         KernelContext kernelContext = accelerator.range(ndRange);
         args[0] = kernelContext;
         accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);

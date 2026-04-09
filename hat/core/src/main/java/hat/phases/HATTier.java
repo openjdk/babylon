@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,93 +24,56 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
-import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
+import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.function.Function;
 
-public class HATTier implements LookupCarrier {
+public class HATTier  {
+    public static final  List<HATPhase> KernelPhases = List.of(
+                // barrier
+                new HATBarrierPhase(),
+                // array views
+                new HATArrayViewPhase(),
+                // Memory
+                new HATMemoryPhase.LocalMemoryPhase(),
+                new HATMemoryPhase.PrivateMemoryPhase(),
+                new HATMemoryPhase.DeviceTypePhase(),
+                // ID's /thread access
+                new HATThreadsPhase(),
 
-    KernelCallGraph kernelCallGraph;
+                new HATWarpSizePhase(),
+                // MathLib phase
+                new HATMathLibPhase(),
+                // views for vector types
+                new HATVectorPhase.Float4LoadPhase(),
+                new HATVectorPhase.Float2LoadPhase(),
+                new HATVectorPhase.Float4OfPhase(),
+                new HATVectorPhase.AddPhase(),
+                new HATVectorPhase.SubPhase(),
+                new HATVectorPhase.MulPhase(),
+                new HATVectorPhase.DivPhase(),
+                new HATVectorPhase.MakeMutable(),
+                new HATVectorStorePhase.Float4StorePhase(),
+                new HATVectorStorePhase.Float2StorePhase(),
+                // Vector Select individual lines
+                new HATVectorSelectPhase(),
+                // F16 type
+                new HATFP16Phase(),
 
-    @Override
-    public MethodHandles.Lookup lookup(){
-        return kernelCallGraph.lookup();
-    }
+                // Tensors
+                new HATTensorsPhase()
+        );
 
-    private final List<HATPhase> hatPhases = new ArrayList<>();
-
-    public HATTier(KernelCallGraph kernelCallGraph) {
-        this.kernelCallGraph = kernelCallGraph;
-        // barriers
-        hatPhases.add(new HATBarrierPhase(kernelCallGraph));
-
-        // array views
-        hatPhases.add(new HATArrayViewPhase(kernelCallGraph));
-
-        // Memory
-        hatPhases.add(new HATMemoryPhase.LocalMemoryPhase(kernelCallGraph));
-        hatPhases.add(new HATMemoryPhase.PrivateMemoryPhase(kernelCallGraph));
-        hatPhases.add(new HATMemoryPhase.DeviceTypePhase(kernelCallGraph));
-
-        // ID's /thread access
-        hatPhases.add(new HATThreadsPhase(kernelCallGraph));
-
-        // warpSize
-        hatPhases.add(new HATWarpSizePhase(kernelCallGraph));
-
-        // MathLib phase
-        hatPhases.add(new HATMathLibPhase(kernelCallGraph));
-
-        // views for vector types
-        hatPhases.add(new HATVectorPhase.Float4LoadPhase(kernelCallGraph));
-        hatPhases.add(new HATVectorPhase.Float2LoadPhase(kernelCallGraph));
-        hatPhases.add(new HATVectorPhase.Float4OfPhase(kernelCallGraph));
-        hatPhases.add(new HATVectorPhase.AddPhase(kernelCallGraph));
-        hatPhases.add(new HATVectorPhase.SubPhase(kernelCallGraph));
-        hatPhases.add(new HATVectorPhase.MulPhase(kernelCallGraph));
-        hatPhases.add(new HATVectorPhase.DivPhase(kernelCallGraph));
-        hatPhases.add(new HATVectorPhase.MakeMutable(kernelCallGraph));
-        hatPhases.add(new HATVectorStorePhase.Float4StorePhase(kernelCallGraph));
-        hatPhases.add(new HATVectorStorePhase.Float2StorePhase(kernelCallGraph));
-
-        // Vector Select individual lines
-        hatPhases.add(new HATVectorSelectPhase(kernelCallGraph));
-
-        // F16 type
-        hatPhases.add(new HATFP16Phase(kernelCallGraph));
-
-        // Tensors
-        hatPhases.add(new HATTensorsPhase(kernelCallGraph));
-    }
-
-    // It computes a set of function code model transformations from FuncOp to FuncOp'.
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        BlockingQueue<Function<CoreOp.FuncOp,CoreOp.FuncOp>> queue = new ArrayBlockingQueue<>(hatPhases.size());
-        queue.addAll(hatPhases);
-
-        CoreOp.FuncOp f = funcOp;
-        while (!queue.isEmpty()) {
-            try {
-                // TODO Did we just trash side tables ?
-                Function<CoreOp.FuncOp,CoreOp.FuncOp> phase = queue.take();
-                if (kernelCallGraph.config().showCompilationPhases()){
-                    System.out.println("Before PHASE" +phase.getClass().getSimpleName()+"\n"+f.toText());
-                }
-                f = phase.apply(f);
-                if (kernelCallGraph.config().showCompilationPhases()){
-                    System.out.println("After PHASE" +phase.getClass().getSimpleName()+"\n"+f.toText());
-                }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){
+        phases.forEach(phase -> {
+            if (showCompilationPhases) {
+                System.out.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
-        }
-        return f;
+            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp()));
+            if (showCompilationPhases) {
+                System.out.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
+            }
+        });
     }
 }

@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,10 +46,10 @@ import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
 
-public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
+public record HATVectorSelectPhase() implements HATPhase {
 
     @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
             // recursive
             static String vectorNameOrThrow(Value v) {
@@ -84,7 +85,7 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
         }
 
         Map<CodeElement<?,?>, InvokeVar> ceToInvokeVar = new HashMap<>();
-        Invoke.stream(lookup(),funcOp)
+        Invoke.stream(lookup,funcOp)
                 .filter(invoke -> invoke.nameMatchesRegex("[xyzw]")
                                 && invoke.refIs(Vector.class)
                                 && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
@@ -96,9 +97,9 @@ public record HATVectorSelectPhase(KernelCallGraph kernelCallGraph) implements H
                     ceToInvokeVar.put(invokeVar.varLoadOp,invokeVar);
                 });
 
-        return Trxfmr.of(this,funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
+        return Trxfmr.of(lookup,funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (invoke(lookup(),op) instanceof Invoke invoke && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
+            if (invoke(lookup,op) instanceof Invoke invoke && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
                 Op newOp = invoke.returnsVoid() ?
                         // Code Model Pattern:
                         //  %16 : java.type:"hat.types.Float4" = var.load %15 @loc="63:28";

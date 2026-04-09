@@ -328,13 +328,13 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<SharedFloatArray> schema = DeviceSchema.of(SharedFloatArray.class,
+        DeviceSchema<SharedFloatArray> deviceSchema = DeviceSchema.of(SharedFloatArray.class,
                 arr -> arr
                         // final int sharedMemorySize = block_m * head_dim
                         //                + block_n * head_dim
                         //                + block_n * head_dim
                         //                + block_m * block_n;
-                        .withArray("array", 7168));
+                        .array("array", 7168));
 
         static SharedFloatArray createLocal() {
             return null;
@@ -347,10 +347,10 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<PrivateFloatArray> schema = DeviceSchema.of(PrivateFloatArray.class,
+        DeviceSchema<PrivateFloatArray> deviceSchema = DeviceSchema.of(PrivateFloatArray.class,
                 arr -> arr
                         // SIZE = HEAD_DIM (e.g., 64)
-                        .withArray("array", 64));
+                        .array("array", 64));
 
         static PrivateFloatArray createPrivate() {
             return null;
@@ -497,13 +497,12 @@ public class Main {
     private interface SharedF16Array extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<SharedF16Array> schema = DeviceSchema.of(SharedF16Array.class,
+        DeviceSchema<SharedF16Array> deviceSchema = DeviceSchema.of(SharedF16Array.class,
                 // final int sharedMemorySize = block_m * head_dim
                 //                + block_n * head_dim
                 //                + block_n * head_dim
                 //                + block_m * block_n;
-                arr -> arr.withArray("array", 7168)
-                .withDeps(F16.class, half -> half.withField("value")));
+                arr -> arr.array("array", 7168,  half -> half.field("value")));
 
         static SharedF16Array createLocal() {
             return null;
@@ -514,10 +513,9 @@ public class Main {
 
         F16 array(int index);
 
-        DeviceSchema<PrivateF16Array> schema = DeviceSchema.of(PrivateF16Array.class,
+        DeviceSchema<PrivateF16Array> deviceSchema = DeviceSchema.of(PrivateF16Array.class,
                 // SIZE = HEAD_DIM (e.g., 64)
-                arr -> arr.withArray("array", 64)
-                 .withDeps(F16.class, half -> half.withField("value")));
+                arr -> arr.array("array", 64, half -> half.field("value")));
 
         static PrivateF16Array createPrivate() {
             return null;

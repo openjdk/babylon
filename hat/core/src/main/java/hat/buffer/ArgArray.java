@@ -274,8 +274,8 @@ public interface ArgArray extends Buffer {
     }
 
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
-        Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.method().getParameterAnnotations();
-        var bufferAccessList = kernelCallGraph.state.bufferAccessList;
+        Annotation[][] parameterAnnotations = kernelCallGraph.callDag.entryPoint.method().getParameterAnnotations();
+        var bufferAccessList = kernelCallGraph.bufferAccessList;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
@@ -302,7 +302,7 @@ public interface ArgArray extends Buffer {
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
 
-                    if (kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class) != null) {
+                    if (kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class) != null) {
                         // If the annotation is present, then we keep the accessor defined for each parameter
                         buf.access(accessType.value);
                     } else {

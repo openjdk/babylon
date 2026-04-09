@@ -34,32 +34,67 @@ import java.lang.reflect.Method;
  * <p>
  * The code model of a reflectable method is accessed by invoking {@link Op#ofMethod(Method)} with an argument
  * that is a {@link Method} instance (retrieved using core reflection) representing the reflectable method. The result
- * is an optional value that contains a root operation modeling the method.
+ * is an optional value that contains a root operation modeling the method. For example,
+ * {@snippet lang = java:
+ *    static class MyClass {
+ *        @Reflect
+ *        void reflectableMethod(int i) { IO.println(i); }
+ *    }
+ *
+ *    Method m = MyClass.class.getDeclaredMethod("reflectableMethod", int.class);
+ *    CoreOp.FuncOp codeModel = Op.ofMethod(m).orElseThrow();
+ * }
  * <p>
  * The code model of a reflectable lambda expression (or method reference) is accessed by invoking
  * {@link Op#ofLambda(Object)} with an argument that is an instance of a functional interface associated with the
  * reflectable lambda expression. The result is an optional value that contains a {@link Quoted quoted} instance, from
  * which may be retrieved the operation modelling the lambda expression. In addition, it is possible to retrieve a
  * mapping of run time values to items in the code model that model final, or effectively final, variables used but not
- * declared in the lambda expression.
+ * declared in the lambda expression. For example:
+ * {@snippet lang = java:
+ *    int capture = 42;
+ *    @Reflect
+ *    IntConsumer reflectableLambda = i -> { IO.println(i + capture); };
+ *
+ *    Quoted<JavaOp.LambdaOp> quotedCodeModel = Op.ofLambda(reflectableLambda)
+ *        .orElseThrow();
+ *    JavaOp.LambdaOp codeModel = quotedCodeModel.op();
+ *
+ *    SequencedMap<Value, Object> capturedValues = quotedCodeModel.capturedValues();
+ *    assert capturedValues.size() == 1;
+ *    assert capturedValues.values().contains(42);
+ * }
  * <p>
  * There are four syntactic locations where {@code @Reflect} can appear that governs, in increasing scope, what is
  * declared reflectable.
  * <ul>
  * <li>
  * If the annotation appears in a cast expression of a lambda expression (or method reference), annotating the use of
- * the type in the cast operator of the cast expression, then the lambda expression is declared reflectable.
+ * the type in the cast operator of the cast expression, then the lambda expression is declared reflectable. For
+ * example,
+ * {@snippet lang=java :
+ *    method((@Reflect IntConsumer) i -> { ... });
+ * }
  * </li>
  * <li>
  * If the annotation appears as a modifier for a field declaration or a local variable declaration, annotating the
  * field or local variable, then any lambda expressions (or method references) in the variable initializer expression
  * (if present) are declared reflectable. This is useful when cast expressions become verbose and/or types become hard
- * to reason about. For example, with fluent stream-like expressions where many reflectable lambda expressions are
- * passed as arguments.
+ * to reason about, such as with fluent stream-like expressions where many reflectable lambda expressions are
+ * passed as arguments. For example,
+ * {@snippet lang=java :
+ *    @Reflect
+ *    IntConsumer reflectableLambda = i -> { ... };
+ *    method(reflectableLambda);
+ * }
  * </li>
  * <li>
  * Finally, if the annotation appears as a modifier for a non-abstract method declaration, annotating the method, then
- * the method and any lambda expressions (or method references) it contains are declared reflectable.
+ * the method and any lambda expressions (or method references) it contains are declared reflectable. For example,
+ * {@snippet lang=java :
+ *    @Reflect
+ *    void reflectableMethod(int i) { ... }
+ * }
  * </li>
  * </ul>
  * If a method or lambda expression (or method reference) is declared reflectable then the compiler generates an error
@@ -73,6 +108,9 @@ import java.lang.reflect.Method;
  * Declaring a reflectable method reference does not implicitly broaden the scope to the referenced method.
  * A reflectable method reference's code model is the same as the code model of an equivalent reflectable lambda
  * expression whose body invokes the referenced method.
+ *
+ * @see Op#ofMethod(Method)
+ * @see Op#ofLambda(Object)
  */
 @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.METHOD, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)

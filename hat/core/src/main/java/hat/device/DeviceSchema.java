@@ -24,156 +24,97 @@
  */
 package hat.device;
 
-import hat.types.F16;
-import optkl.codebuilders.C99CodeBuilder;
-import optkl.codebuilders.ScopedCodeBuilderContext;
+import hat.codebuilders.C99HATKernelBuilder;
+import optkl.IfaceValue;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class DeviceSchema<T extends NonMappableIface> {
 
-    private final Class<T> klass;
-    private final List<List<String>> members = new ArrayList<>();
-    private final Map<String, Integer> arraySize = new HashMap<>();
-    private final C99CodeBuilder<?> representationBuilder;
-    private final Set<String> visited = new HashSet<>();
-
-    private static final Map<Class<?>, String> specialTypes = new HashMap<>();
-
-    static {
-        specialTypes.put(F16.class, "half");
-    }
-
-    public DeviceSchema(Class<T> klass) {
-        this.representationBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(MethodHandles.lookup(), null));
-        this.klass = klass;
-    }
-
-    int currentLevel = 0;
-
-    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> klass, Consumer<DeviceSchema<T>> schemaBuilder) {
-        DeviceSchema<T> deviceSchema = new DeviceSchema<>(klass);
-        schemaBuilder.accept(deviceSchema);
-        deviceSchema.materialize();
-        return deviceSchema;
-    }
-
-    public DeviceSchema<T> withField(String fieldName) {
-        if (members.isEmpty()) {
-            members.add(new ArrayList<>());
+    public interface Builder<T extends NonMappableIface>{
+        DeviceSchema<T> deviceSchema();
+        Class<?> clazz();
+        List<NamedMember<T>> members();
+        default Class<?> getReturnType(String fieldName){
+            return Arrays.stream(clazz().getDeclaredMethods())
+                    .filter(m->m.getName().equals(fieldName) && !m.getReturnType().equals(void.class))
+                    .map(Method::getReturnType).findFirst().orElseThrow();
         }
-        this.members.get(currentLevel).add(fieldName);
-        return this;
-    }
 
-    public DeviceSchema<T> withFields(String... fields) {
-        if (members.isEmpty()) {
-            members.add(new ArrayList<>());
+        default Builder<T> fields(String... fieldNames) {
+            Stream.of(fieldNames).map(fieldName->new Field<>(this, getReturnType(fieldName), fieldName, new ArrayList<>()))
+                    .forEach(field->members().add(field));
+            return this;
         }
-        this.members.get(currentLevel).addAll(Arrays.stream(fields).toList());
-        return this;
-    }
 
-    public DeviceSchema<T> withArray(String fieldName, int size) {
-        if (members.isEmpty()) {
-            members.add(new LinkedList<>());
+        default Builder<T> field(String fieldName) {
+            return fields(fieldName);
         }
-        this.members.get(currentLevel).add(fieldName);
-        arraySize.put(fieldName, size);
-        return this;
+
+        default Builder<T> array(String fieldName, int size) {
+            members().add(new Array<>(this, getReturnType(fieldName), fieldName,size, new ArrayList<>()));
+            return this;
+        }
+
+        default Builder<T> array(String fieldName, int size, Consumer<Builder<T>> depConsumer) {
+            depConsumer.accept(array(fieldName,size).members().getLast());
+            return this;
+        }
+    }
+    public interface NamedMember<T extends NonMappableIface> extends Builder<T> {
+        Builder<T> parent();
+        String name();
+        @Override default DeviceSchema<T> deviceSchema() {
+            return parent().deviceSchema();
+        }
     }
 
-    public DeviceSchema<T> withDeps(Class<?> klass, Consumer<DeviceSchema<T>> depConsumer) {
-        // increment the level
-        this.currentLevel++;
-        this.members.add(new LinkedList<>());
-        depConsumer.accept(this);
-        materialize(representationBuilder, klass);
-        return this;
+    public record Root<T extends NonMappableIface>(DeviceSchema<T> deviceSchema, Class<T> clazz, List<NamedMember<T>> members)implements Builder<T>{};
+    public record Field<T extends NonMappableIface>(Builder<T> parent, Class<?> clazz, String name, List<NamedMember<T>> members)implements NamedMember<T> {}
+    public record Array<T extends NonMappableIface>(Builder<T> parent, Class<?> clazz, String name, int size, List<NamedMember<T>> members) implements NamedMember<T> {}
+    public final Root<T> root;
+
+    private DeviceSchema(Class<T> clazz,Consumer<Builder<T>> schemaBuilder) {
+        this.root = new Root<>(this, clazz, new ArrayList<>());
+        schemaBuilder.accept(this.root);
     }
 
-    private boolean isInterfaceType(Class<?> type) {
-        return type.isInterface();
+    public static <T extends NonMappableIface> DeviceSchema<T> of(Class<T> clazz, Consumer<Builder<T>> schemaBuilder) {
+        return  new DeviceSchema<>(clazz,schemaBuilder);
     }
 
-    // Materialize methods are only reachable within this class.
-    private void materialize() {
-        materialize(representationBuilder, klass);
+    public <B extends C99HATKernelBuilder<B>> Root<T> typedef(B builder) {
+        builder.typedefStruct(root.clazz(), _ ->
+                root.members().forEach(m -> builder
+                        .either(IfaceValue.class.isAssignableFrom(m.clazz()),
+                                _ -> builder.suffix_t(m.clazz().getSimpleName()),
+                                _ -> builder.type(m.clazz().getSimpleName())
+                        )
+                        .sp().id(m.name())
+                        .when(m instanceof DeviceSchema.Array,
+                                _ ->builder.sbrace(_ -> builder.intConst(((DeviceSchema.Array<?>) m).size()))
+                        ).semicolon().nl()
+                )
+        );
+        return root;
     }
 
-    // The following method generates an intermediate representation in text form for each level
-    // of the hierarchy.
-    // It inspects each type and its members. If a member is also a non-primitive type
-    // then it recursively inspect its inner members.
-    // We keep track of all generated data structured by maintaining a visited set. Thus,
-    // we avoid duplicates in the text form.
-    private void materialize(C99CodeBuilder<?> builder, Class<?> klass) {
-            Method[] declaredMethods = klass.getDeclaredMethods();
-            builder.lt().id(klass.getName()).colon();
-            visited.add(klass.getName());
-
-        for (String fieldName : members.get(currentLevel)) {
-            boolean wasProcessed = false;
-            for (Method method : declaredMethods) {
-                method.setAccessible(true);
-                if (method.getName().equals(fieldName)) {
-                    Class<?> returnType = method.getReturnType();
-                    if (returnType.equals(void.class)) {
-                        continue;
-                    }
-
-                    if (isInterfaceType(returnType) && !visited.contains(returnType.getName())) {
-                        // inspect the dependency and add it at the front of the string builder
-                        C99CodeBuilder<?> depsBuilder = new C99CodeBuilder<>(new ScopedCodeBuilderContext(builder.scopedCodeBuilderContext().lookup(), builder.scopedCodeBuilderContext().funcOp()));
-                        depsBuilder.preformatted(builder.getText());
-                        materialize(depsBuilder, returnType);
-                        builder = depsBuilder;
-                    }
-
-                    String type = returnType.getName();
-                    if (specialTypes.containsKey(klass)) {
-                        type = specialTypes.get(klass);
-                    }
-
-                    if (arraySize.containsKey(method.getName())) {
-                        builder.osbrace()                       // Array indicator
-                                .colon()                        // separator
-                                .type(type)                 // type
-                                .colon()                        // separator
-                                .id(method.getName())   // variableName
-                                .colon()                        // separator
-                                .id(Integer.toString(arraySize.get(method.getName()))) // Array size
-                                .semicolon();                   // member separator
-                    } else {
-                        builder.id("s")            // scalar indicator
-                                .colon()                        // separator
-                                .type(type)                 // type
-                                .colon()                        // separator
-                                .id(method.getName())   // var name
-                                .semicolon();                   // member separator
-                    }
-                    wasProcessed = true;
-                }
+    public static  <T extends NonMappableIface> DeviceSchema<T> getDeviceSchemaOrThrow(Class<NonMappableIface> clazz) {
+        try {
+            var schemaField = clazz.getDeclaredField("deviceSchema");
+            schemaField.setAccessible(true);
+            if (schemaField.get(schemaField) instanceof DeviceSchema<?> deviceSchema) {
+                return (DeviceSchema<T>) deviceSchema;
             }
-            if (!wasProcessed) {
-                throw new RuntimeException("could not find method " + fieldName + " in class " + klass.getName());
-            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-        currentLevel--;
-        builder.gt();
+        throw new RuntimeException("No DeviceSchema in "+clazz);
     }
 
-    public String toText() {
-        return this.representationBuilder.getText();
-    }
 }

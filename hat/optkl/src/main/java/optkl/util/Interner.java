@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-26, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,24 +22,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.callgraph;
+package optkl.util;
 
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.MethodRef;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
+public class Interner<N> {
+    protected final Map<N, N> interned = new LinkedHashMap<>();
 
-public class KernelEntrypoint extends KernelCallGraph.KernelReachableResolvedMethodCall implements Entrypoint {
-    private final MethodHandles.Lookup lookup;
-    @Override
-    public MethodHandles.Lookup lookup() {
-        return lookup;
-    }
-    public KernelEntrypoint(MethodHandles.Lookup lookup,CallGraph<KernelEntrypoint> callGraph,  Method method, CoreOp.FuncOp funcOp) {
-        super(callGraph,  method, funcOp);
-        this.lookup = lookup;
+    public N intern(N n, Consumer<N> ifAbsent) {
+        if (!interned.containsKey(n)) {
+            interned.put(n, n);
+            ifAbsent.accept(n);
+        }
+        return interned.get(n);
     }
 
+    public boolean add(N n) {
+        boolean[] added ={false};
+        intern(n,_->added[0]=true);
+        return added[0];
+    }
 }

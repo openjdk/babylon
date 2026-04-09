@@ -25,22 +25,24 @@
 
 package hat.backend.ffi;
 
-import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.annotations.Kernel;
+import hat.annotations.Preformatted;
+import hat.annotations.TypeDef;
+import hat.buffer.ArgArray;
+import hat.buffer.KernelBufferContext;
+import hat.callgraph.IfaceDataDag;
+import hat.callgraph.KernelCallGraph;
+import hat.callgraph.MethodCallDag;
+import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.C99VecAndMatHandler;
+import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
-import hat.annotations.TypeDef;
-import hat.buffer.*;
-import hat.codebuilders.C99HATKernelBuilder;
-import hat.callgraph.KernelCallGraph;
-import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.device.DeviceSchema;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BufferState;
@@ -50,17 +52,18 @@ import optkl.ifacemapper.Schema;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
-        super(arena,lookup,libName, config);
+public abstract class C99FFIBackend extends FFIBackend implements BufferTracker {
+    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
+        super(arena, lookup, libName, config);
     }
+
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
         public final KernelCallGraph kernelCallGraph;
@@ -72,12 +75,13 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelBufferContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(),kernelCallGraph,  ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeCallGraph.computeContext.accelerator(), kernelCallGraph, ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
+            // Do we really need this?  We never actually read these
             kernelBufferContext.gsy(1);
             kernelBufferContext.gsz(1);
             switch (kernelContext.ndRange.global()) {
@@ -177,189 +181,92 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    private <T extends C99HATKernelBuilder<T>> void generateDeviceTypeStructs(T builder, String toText, Set<String> typedefs) {
-        // From here is text processing
-        String[] split = toText.split(">");
-        // Each item is a data struct
-        for (String s : split) {
-            // curate: remove first character
-            s = s.substring(1);
-            String dsName = s.split(":")[0];
-            if (typedefs.contains(dsName)) {
-                continue;
-            }
-            typedefs.add(dsName);
-            // sanitize dsName
-            dsName = sanitize(dsName);
-            builder.typedefKeyword()
-                    .sp()
-                    .structKeyword()
-                    .sp()
-                    .suffix_s(dsName)
-                    .obrace()
-                    .nl();
-
-            String[] members = s.split(";");
-
-            int j = 0;
-            builder.in();
-            for (int i = 0; i < members.length; i++) {
-                String member = members[i];
-                String[] field = member.split(":");
-                if (i == 0) {
-                    j = 1;
-                }
-                String isArray = field[j++];
-                String type = field[j++];
-                String name = field[j++];
-                String lenValue = "";
-                if (isArray.equals("[")) {
-                    lenValue = field[j];
-                }
-                j = 0;
-                if (typedefs.contains(type))
-                    type = sanitize(type) + "_t";
-                else
-                    type = sanitize(type);
-
-                builder.type(type)
-                        .sp()
-                        .id(name);
-
-                if (isArray.equals("[")) {
-                    builder.sp()
-                            .osbrace()
-                            .id(lenValue)
-                            .csbrace();
-                }
-                builder.semicolon().nl();
-            }
-            builder.out();
-            builder.cbrace().suffix_t(dsName).semicolon().nl().nl();
-        }
-    }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
-        var visitedAlready=  new HashSet<Schema.IfaceType>();
+
+        var visitedAlready = new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema().rootIfaceType.visitUniqueTypes( t -> {
+                    boundSchema.schema().rootIfaceType.visitUniqueTypes(t -> {
                         if (visitedAlready.add(t)) { // true first time we see this type
                             builder.typedef(boundSchema, t);
                         }
                     });
                 });
 
-        var annotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
-        if (annotation != null) {
-            // If we find an annotation we can't trust the data in kernelCllGraph's state.
-            kernelCallGraph.state.usesAtomics = true;
-            kernelCallGraph.state.usesFp16 = true;
-            kernelCallGraph.state.usesBarrier = true;
-            kernelCallGraph.state.usesVecTypes = false; // maybe?
-            var typedef = kernelCallGraph.entrypoint.method().getAnnotation(TypeDef.class);
-            if (typedef != null) {
+
+        var kernelAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class);
+        if (kernelAnnotation != null) {
+            // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
+            kernelCallGraph.usesAtomics = true;
+            kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class, BF16.class));
+            kernelCallGraph.usesBarrier = true;
+
+            var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
+            if (typedefAnnotation != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
-                builder.typedefKeyword().sp().structKeyword().sp().suffix_s(typedef.name()).braceNlIndented(_ ->
-                        builder.preformatted(typedef.body())
-                ).suffix_t(typedef.name()).semicolon().nl();
+                builder.typedefStruct(typedefAnnotation.name(), _ -> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
             }
-            var preformatted = kernelCallGraph.entrypoint.method().getAnnotation(Preformatted.class);
-            if (preformatted != null) {
+            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
+            if (preformattedAnnotation != null) {
                 builder.lineComment("Preformatted text from @Preformatted annotation");
-                builder.preformatted(preformatted.value());
+                builder.preformatted(preformattedAnnotation.value());
             }
             builder.lineComment("Preformatted code body from @Kernel annotation");
-            builder.preformatted(annotation.value());
+            builder.preformatted(kernelAnnotation.value());
         } else {
-            Set<String> typedefs = new HashSet<>();
-
-            if (kernelCallGraph.state.usesFp16) {
-                // Add HAT reserved types
-                typedefs.add(F16.class.getName());
-                typedefs.add(BF16.class.getName());
-            }
-
-            // Dynamically build the schema for the user data type we are creating within the kernel.
-            // This is because no allocation was done from the host. This is kernel code, and it is reflected
-            // using the code reflection API
-            // 1. Add for struct for iface objects
-
-            kernelCallGraph.state.accessedClasses.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
-                    c -> {
-                        try {
-                            Field schemaField = c.getDeclaredField("schema");
-                            schemaField.setAccessible(true);
-                            var s = schemaField.get(schemaField);
-                            if (s instanceof DeviceSchema<?> deviceSchema) {
-                                // <1> We are creating text form of DeviceType schema
-                                String toText = deviceSchema.toText();
-                                if (toText != null) {
-                                    // <2> just to then parse the text from above.
-                                    // Lets get the model in a cleaner form
-                                    generateDeviceTypeStructs(builder, toText, typedefs);
-                                } else {
-                                    throw new RuntimeException("[ERROR] Could not find valid device schema ");
-                                }
-                            }else if (s instanceof Schema<?> schema){
-                                throw new RuntimeException("found "+schema+" in NonMappableIface "+c.getName());
-                            }
-                        } catch (ReflectiveOperationException e) {
-                            throw new RuntimeException(e);
+            Set<Class<?>> typedeffed = new HashSet<>();
+            typedeffed.add(F16.class);
+            typedeffed.add(BF16.class);
+            kernelCallGraph.accessedNonMappableIfaceClasses.stream()
+                    .filter(c->!typedeffed.contains(c))
+                    .map(c->(Class<NonMappableIface>) c) // why do we need to do this.
+                    .forEach(c -> {
+                        // We create a dag of iface references rooted at c
+                        var ifaceDataDag = new IfaceDataDag<NonMappableIface>(dag -> {
+                            var entryPoint = dag.getNode(c);
+                            dag.methodsWithIfaceReturnTypes(c).forEach(ifaceInfo ->
+                                 dag.addEdge(entryPoint, dag.getNode(ifaceInfo.clazz())) // this recurses with each added class
+                            );
+                        });
+                        // Now we can generate typedefs in rankOrder (so inner typedefs first)
+                        if (ifaceDataDag.isDag()) {
+                            ifaceDataDag.rankOrdered.stream()
+                                    .filter(ifaceInfo -> !typedeffed.contains(ifaceInfo.clazz()))
+                                    .forEach(ifaceInfo -> typedeffed.add(
+                                            DeviceSchema.getDeviceSchemaOrThrow(ifaceInfo.clazz()).typedef(builder).clazz()
+                                    )
+                            );
+                        } else  {
+                            typedeffed.add(DeviceSchema.getDeviceSchemaOrThrow(c).typedef(builder).clazz());
                         }
-                    }
-            );
-
-            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.entrypoint.funcOp());
-
-            if (kernelCallGraph.state.usesVecTypes){
-                C99VecAndMatHandler.createVecFunctions(builder);
-            }
-            kernelCallGraph.getModuleOp().functionTable()
-                    .forEach((_, funcOp) -> {
-                        // TODO: did we just trash the callgraph sidetables?
-                        //  Why are we transforming the callgraph here
-                      //  HATFinalDetector finals = new HATFinalDetector(kernelCallGraph);
-                        // Update the build context for this method to use the right constants-map
-                       // buildContext.setFinals(finals.applied(funcOp));
-                        builder.nl().kernelMethod(buildContext, funcOp).nl();
                     });
 
-            // Update the constants-map for the main kernel
-            // Why are we doing this here we should not be mutating the kernel callgraph at this point
-            //HATFinalDetector hatFinalDetector = new HATFinalDetector(kernelCallGraph);
-           // buildContext.setFinals(hatFinalDetector.applied(kernelCallGraph.entrypoint.funcOp()));
+            // This is a slight hack for Shader support.
+            if (!kernelCallGraph.accessedVecClasses.isEmpty()) {
+                C99VecAndMatHandler.createVecFunctions(builder);
+            }
 
+            kernelCallGraph.callDag.rankOrdered.stream()
+                    .filter(m -> m instanceof MethodCallDag.OtherMethodCall)
+                    .forEach(m -> builder.nl().kernelMethod( m.funcOp()).nl());
 
-            builder.nl().kernelEntrypoint(buildContext).nl();
+            builder.nl().kernelEntrypoint().nl();
 
             if (config().showKernelModel()) {
                 IO.println("Non Lowered");
-                IO.println(kernelCallGraph.entrypoint.funcOp().toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp().toText());
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
             }
         }
         return builder.toString();
-    }
-
-    private String sanitize(String s) {
-        String[] split1 = s.split("\\.");
-        if (split1.length == 1) {
-            return s;
-        }
-        s = split1[split1.length - 1];
-        if (s.split("\\$").length > 1) {
-            int last = s.lastIndexOf("$");
-            s = s.substring(last + 1);
-        }
-        return s;
     }
 
     @Override

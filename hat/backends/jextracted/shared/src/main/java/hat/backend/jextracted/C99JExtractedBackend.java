@@ -63,9 +63,9 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
+            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(), kernelCallGraph,  ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeCallGraph.computeContext.accelerator(), kernelCallGraph,  ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
@@ -93,9 +93,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
                         }
                     });
                 });
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup()
-                ,kernelCallGraph.entrypoint.funcOp());
-        builder.nl().kernelEntrypoint(buildContext).nl();
+        builder.nl().kernelEntrypoint().nl();
 
         return builder.toString();
     }

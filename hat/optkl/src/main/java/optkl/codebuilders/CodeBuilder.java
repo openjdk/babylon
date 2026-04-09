@@ -300,7 +300,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     final  public T lt() {
         return symbol("<");
     }
-
+    final  public T ltgt(Consumer<T> consumer) {
+        return lt().accept(consumer).gt();
+    }
     final  public T eq() {
         return equals().equals();
     }

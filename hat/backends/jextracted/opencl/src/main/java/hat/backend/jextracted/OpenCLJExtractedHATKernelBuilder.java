@@ -39,8 +39,8 @@ import java.util.Map;
 
 public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCLJExtractedHATKernelBuilder> {
 
-    protected OpenCLJExtractedHATKernelBuilder(KernelCallGraph.State kernelCallGraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(kernelCallGraphState,scopedCodeBuilderContext);
+    protected OpenCLJExtractedHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(kernelCallGraph,scopedCodeBuilderContext);
     }
 
     @Override

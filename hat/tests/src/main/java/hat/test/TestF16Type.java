@@ -148,9 +148,9 @@ public class TestF16Type {
         F16 array(int index);
         //void array(int index, F16 value);
 
-        DeviceSchema<DeviceLocalArray> schema = DeviceSchema.of(DeviceLocalArray.class,
-builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<DeviceLocalArray> deviceSchema = DeviceSchema.of(DeviceLocalArray.class, builder ->
+                builder.array("array", 1024, half -> half.field("value"))
+        );
 
         static DeviceLocalArray create(Accelerator accelerator) {
             return null;
@@ -212,11 +212,10 @@ builder -> builder.withArray("array", 1024)
 
     interface DevicePrivateArray extends NonMappableIface {
         F16 array(int index);
-        //void array(int index, F16 value);
 
-        DeviceSchema<DevicePrivateArray> schema = DeviceSchema.of(DevicePrivateArray.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<DevicePrivateArray> deviceSchema = DeviceSchema.of(DevicePrivateArray.class, builder ->
+                builder.array("array", 1024, half -> half.field("value"))
+        );
 
         static DevicePrivateArray create(Accelerator accelerator) {
             return null;
@@ -246,9 +245,9 @@ builder -> builder.withArray("array", 1024)
         F16 array(int index);
         void array(int index, F16 value);
 
-        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(DevicePrivateArray2.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<DevicePrivateArray2> deviceSchema = DeviceSchema.of(DevicePrivateArray2.class, builder ->
+                builder.array("array", 1024, half -> half.field("value"))
+        );
 
         static DevicePrivateArray2 create(Accelerator accelerator) {
             return null;
