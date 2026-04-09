@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
-import hat.annotations.Kernel;
+import hat.NDRange.Tile2D;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -38,6 +38,9 @@ import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Reflect;
 
+import java.lang.invoke.MethodHandles;
+import java.util.Random;
+
 import static hat.NDRange.Global2D;
 import static hat.NDRange.Local2D;
 import static hat.NDRange.NDRange2D;
@@ -45,17 +48,14 @@ import static hat.NDRange.Warp2D;
 import static optkl.ifacemapper.MappableIface.RO;
 import static optkl.ifacemapper.MappableIface.WO;
 
-import java.lang.invoke.MethodHandles;
-import java.util.Random;
-
-import static hat.NDRange.of2D;
-
 /**
  * How to run?
  *
+ * <p>
  * <code>
  *     HAT=SHOW_CODE java -cp hat/job.jar hat.java test ffi-cuda hat.test.TestTensors
  * </code>
+ * </p>
  *
  */
 public class TestTensors {
@@ -200,7 +200,12 @@ public class TestTensors {
         // [ (size / tile), (size / tile) ]
         // If warpSize > 1, then each dimension using warp operations is multiplied by the value of the warp-size. This is architecture dependent, but the
         // HAT runtime and HAT JIT compiler handle this automatically.
-        var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize), Local2D.of(128, 4), NDRange.Tile2D.of(16, 16), Warp2D.of(true, false));
+
+        var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize),
+                                   Local2D.of(128, 4),
+                                   Tile2D.of(16, 16),
+                                   Warp2D.of(true, false));
+
         cc.dispatchKernel(ndRange, kc -> mxmTensors(kc, matrixA, matrixB, matrixC, globalSize));
     }
 
