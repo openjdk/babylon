@@ -69,7 +69,7 @@ public class OpBuilder {
             Block.Builder.class);
 
     // instance varargs
-    static final MethodRef BLOCK_BUILDER_SUCCESSOR = MethodRef.method(Block.Builder.class, "successor",
+    static final MethodRef BLOCK_BUILDER_SUCCESSOR = MethodRef.method(Block.Builder.class, "reference",
             Block.Reference.class, Value[].class);
 
     static final MethodRef BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
