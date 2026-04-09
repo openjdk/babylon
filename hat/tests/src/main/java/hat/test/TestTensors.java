@@ -196,8 +196,10 @@ public class TestTensors {
 
     @Reflect
     public static void mxmTensors(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
-        // var ndRange = of2D(2048, 64, 128, 4);  // When we launch using the CUDA backend
-        // For the OpenCL backend: [ (size / tile), (size / tile) ]
+        // The total number of threads is calculated as follows:
+        // [ (size / tile), (size / tile) ]
+        // If warpSize > 1, then each dimension using warp operations is multiplied by the value of the warp-size. This is architecture dependent, but the
+        // HAT runtime and HAT JIT compiler handle this automatically.
         var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize), Local2D.of(128, 4), NDRange.Tile2D.of(16, 16), Warp2D.of(true, false));
         cc.dispatchKernel(ndRange, kc -> mxmTensors(kc, matrixA, matrixB, matrixC, globalSize));
     }
