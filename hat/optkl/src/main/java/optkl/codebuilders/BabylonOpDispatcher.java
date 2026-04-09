@@ -25,6 +25,7 @@
 package optkl.codebuilders;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -92,6 +93,15 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
     T enhancedForOp( JavaOp.EnhancedForOp enhancedForOp);
     T blockOp( JavaOp.BlockOp blockOp);
     T concatOp( JavaOp.ConcatOp concatOp);
+
+    default T recurseResultOrThrow(Value v) {
+        if (v instanceof Op.Result r){
+            return recurse(r.op());
+        }else{
+            throw new RuntimeException("can't recurse on value v, it is not a result");
+        }
+    }
+
     default T recurse( Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp( $);

@@ -106,9 +106,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             } else {
                 varName(hatVectorStoreView);
             }
-            csp().intConstZero().csp().ampersand().recurse(hatVectorStoreView.operands().get(0).result().op());
+            csp().intConstZero().csp().ampersand().recurseResultOrThrow(hatVectorStoreView.operands().get(0));
             either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ ->recurse(hatVectorStoreView.operands().get(2).result().op()));
+            id("array").sbrace(_ ->recurseResultOrThrow(hatVectorStoreView.operands().get(2)));
         });
         return self();
     }
@@ -116,9 +116,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp binOp) {
         return paren(_-> {
-            recurse(binOp.operands().get(0).result().op());
+            recurseResultOrThrow(binOp.operands().get(0));
             sp().id(binOp.operationType().symbol()).sp();
-            recurse(binOp.operands().get(1).result().op());
+            recurseResultOrThrow(binOp.operands().get(1));
         });
     }
 
@@ -126,9 +126,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         vload(hatVectorLoadOp.vectorShape().lanes()).paren(_-> {
             intConstZero().comma().sp().ampersand();
-            recurse( hatVectorLoadOp.operands().get(0).result().op());
+            recurseResultOrThrow( hatVectorLoadOp.operands().get(0));
             either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurse( hatVectorLoadOp.operands().get(1).result().op()));
+            id("array").sbrace(_ -> recurseResultOrThrow( hatVectorLoadOp.operands().get(1)));
         });
         return self();
     }
@@ -154,7 +154,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         dot().id(hatVSelectStoreOp.mapLane()).sp().equals().sp();
         return either (hatVSelectStoreOp.resolvedName() != null,
                 _-> varName(hatVSelectStoreOp.resolvedName()),
-                _-> recurse(hatVSelectStoreOp.operands().get(1).result().op())
+                _-> recurseResultOrThrow(hatVSelectStoreOp.operands().get(1))
         );
     }
 
@@ -162,10 +162,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
         var reducedFloatType = hatF16ConvOp.float16Class();
         return paren(_-> f16OrBF16(reducedFloatType)).brace(_-> {
-            var firstOperandOp = hatF16ConvOp.operands().getFirst().result().op();
             either (BF16.class.isAssignableFrom(reducedFloatType),
-                    _-> builtin_float2bfloat16().paren(_-> recurse(firstOperandOp)),
-                    _-> recurse( firstOperandOp)
+                    _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(hatF16ConvOp.operands().getFirst())),
+                    _-> recurseResultOrThrow( hatF16ConvOp.operands().getFirst())
             );
         });
     }
@@ -173,7 +172,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
         type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp).sp().equals().sp();
-        recurse( hatVectorVarOp.operands().getFirst().result().op());
+        recurseResultOrThrow( hatVectorVarOp.operands().getFirst());
         return self();
     }
 
@@ -193,14 +192,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             builtin_bfloat16ToFloat();
         }
         parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
-            recurse(hatF16ToFloatConvOp.operands().getFirst().result().op());
+            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
             if (!hatF16ToFloatConvOp.isLocal()) {
-                rarrow().id("value");
+                rarrow();//.id("value");
             } else if (!hatF16ToFloatConvOp.wasFloat()) {
-                dot().id("value");
+                dot();//.id("value");
             } else{
-                throw new RuntimeException("Can we get here");
+               throw new RuntimeException("Can we get here");
             }
+            id("value");
         });
         return self();
     }
