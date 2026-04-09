@@ -378,34 +378,6 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns {@code true} if this body is dominated by the given body {@code dom}.
-     * <p>
-     * A body, {@code b} say, is dominated by {@code dom} if {@code b} is the same as {@code dom} or a descendant of
-     * {@code dom}. Specifically, if {@code b} and {@code dom} are not equal then {@code b} becomes the nearest ancestor
-     * body, the result of {@code b.parentOp().parentBlock().parentBody()}, and so on until either:
-     * {@code b == dom}, therefore {@code b} is dominated by {@code dom} and this method returns {@code true};
-     * or {@code b.parentOp().parentBlock() == null}, therefore {@code b} is <b>not</b> dominated
-     * by {@code dom} and this method returns {@code false}.
-     *
-     * @param dom the dominating body
-     * @return {@code true} if this body is dominated by the given body {@code dom}.
-     */
-    public boolean isDominatedBy(Body dom) {
-        return isDominatedBy(this, dom);
-    }
-
-    static boolean isDominatedBy(Body r, Body dom) {
-        while (r != dom) {
-            r = r.ancestorBody();
-            if (r == null) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Computes values captured by this body. A captured value is a value that is used
      * but not declared by any descendant block or operation of this body.
      * <p>

@@ -358,26 +358,27 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns {@code true} if this block is
-     * <a href="https://en.wikipedia.org/wiki/Dominator_(graph_theory)">dominated by</a> the given block {@code dom}.
-     * This block is dominated by {@code dom}, if every path from the root entry block to this block passes through
-     * {@code dom}.
+     * Returns {@code true} if this block is dominated by the given block {@code dom}.
      * <p>
-     * If this block, {@code b} say, and {@code dom} are not in the same parent body,
-     * then {@code b} becomes the nearest ancestor block, result of {@code b.ancestorBlock()},
-     * and so on until either:
-     * {@code b} is {@code null}, therefore {@code b} is <b>not</b> dominated by {@code dom} and this method
-     * returns {@code false}; or
-     * {@code b.parentBody() == dom.parentBody()}, therefore this method returns the result
-     * of {@code b.isDominatedBy(dom)}.
+     * A block {@code b} is dominated by {@code dom} if every path from the entry block of {@code dom}'s
+     * parent body to {@code b} passes through {@code dom}.
      * <p>
-     * If this method returns {@code true} then {@code dom.isDominatedBy(this)}
-     * will return {@code false}. However, if this method returns {@code false} then it
-     * does not imply {@code dom.isDominatedBy(this)} returns {@code true}, as neither
-     * block may dominate the other.
+     * If this block and {@code dom} have different parent bodies, this method first
+     * repeatedly replaces this block with its {@link #ancestorBlock() nearest ancestor} block until:
+     * <ul>
+     * <li>{@code null} is reached, in which case this method returns {@code false}; or</li>
+     * <li>both blocks are in the same parent body, in which case
+     * <a href="https://en.wikipedia.org/wiki/Dominator_(graph_theory)">dominance</a> is tested within that body.</li>
+     * </ul>
+     *
+     * @apiNote
+     * The method {@link Body#immediateDominators()} can be used to test for dominance, by repeatedly querying a block's
+     * immediately dominating block until {@code null} or {@code dom} is reached.
      *
      * @param dom the dominating block
      * @return {@code true} if this block is dominated by the given block.
+     * @see Body#immediateDominators()
+     * @see Value#isDominatedBy
      */
     public boolean isDominatedBy(Block dom) {
         Block b = findBlockForDomBody(this, dom.ancestorBody());
