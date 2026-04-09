@@ -294,8 +294,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         genReducedType(reducedFloatType);
         cparen().obrace();
 
-        buildReducedFloatType(reducedFloatType);
-        oparen();
+        buildReducedFloatType(reducedFloatType).oparen();
         Value param =  hatF16ConvOp.operands().getFirst();
         if (param instanceof Op.Result r) {
             recurse( r.op());
@@ -375,9 +374,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse(r.op());
         }
         if (isFirstOperandReference) {
-            rarrow().id("value");
+            rarrow().id(VALUE);
         } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-            dot().id("value");
+            dot().id(VALUE);
         }
 
         if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
@@ -395,9 +394,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         if (isSecondOperandReference) {
-            rarrow().id("value");
+            rarrow().id(VALUE);
         } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-            dot().id("value");
+            dot().id(VALUE);
         }
 
         if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
@@ -510,23 +509,27 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    private String getMatrixOrder(Value valueParameter) {
+        if (valueParameter instanceof Op.Result r && r.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+            FieldRef fieldRef = fieldLoadOp.fieldReference();
+            if (fieldRef.name().equals("FIRST")) {
+                 return "matrix_a";
+            } else if (fieldRef.name().equals("SECOND")) {
+                return "matrix_b";
+            } else {
+                return "accumulator";
+            }
+        }
+        return null;
+    }
+
     @Override
     public CudaHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
         // infer first parameter
         List<Value> operands = tensorCreateOp.operands();
         Value first = operands.getFirst();
         // The first operand  gives us the matrix order or accumulator
-        String matrixOrder = "";
-        if (first instanceof Op.Result r && r.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-            FieldRef fieldRef = fieldLoadOp.fieldReference();
-            if (fieldRef.name().equals("FIRST")) {
-                matrixOrder = "matrix_a";
-            } else if (fieldRef.name().equals("SECOND")) {
-                matrixOrder = "matrix_b";
-            } else {
-                matrixOrder = "accumulator";
-            }
-        }
+        String matrixOrder = getMatrixOrder(first);
 
         // Second parameters: analysis of the shape
         int[] shape = new int[3];
@@ -552,7 +555,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         String type = "";
         if (klass instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
             type = "half";
-        } else if (klass instanceof PrimitiveType primitiveType && primitiveType == PrimitiveType.FLOAT) {
+        } else if (klass instanceof PrimitiveType primitiveType && primitiveType.equals(PrimitiveType.FLOAT)) {
             type = "float";
         }
 
