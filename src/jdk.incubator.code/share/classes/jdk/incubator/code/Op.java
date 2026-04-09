@@ -592,7 +592,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * Returns the quoted code model of a reflectable lambda expression or method reference.
+     * Returns a quoted instance containing the code model of a reflectable lambda expression or method reference.
+     * <p>
+     * The quoted instance also contains a mapping from {@link Value values} in the code model that model final, or
+     * effectively final, variables used but not declared in the lambda expression to their corresponding run time
+     * values. Such run time values are commonly referred to as captured values.
      * <p>
      * Repeated invocations of this method will return a quoted instance containing the same instance of the code model.
      * Therefore, code elements (and more generally code items) contained within the code model can be reliably compared
@@ -600,8 +604,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @param fiInstance a functional interface instance that is the result of a reflectable lambda expression or
      *                   method reference.
-     * @return the quoted code model, or an empty optional if the functional interface instance is not the result of a
-     * reflectable lambda expression or method reference.
+     * @return the quoted instance containing the code model, or an empty optional if the functional interface instance
+     * is not the result of a reflectable lambda expression or method reference.
      * @throws UnsupportedOperationException if the Java version used at compile time to generate and store the code
      * model is not the same as the Java version used at runtime to load the code model.
      * @apiNote if the functional interface instance is a proxy instance, then the quoted code model is unavailable and

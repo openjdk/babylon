@@ -234,8 +234,9 @@
 /// [jdk.incubator.code.Op#ofLambda] with an argument that is an instance of a functional interface associated with the
 /// reflectable lambda expression. The result is an optional value that contains a [jdk.incubator.code.Quoted] instance,
 /// from which may be retrieved the code model modeling the lambda expression. In addition, it is possible to retrieve
-/// a mapping of run time values to items in the code model that model final, or effectively final, variables used but
-/// not declared in the lambda expression. For example, we can access the code model for the lambda expression used to
+/// a mapping from items in the code model that model final, or effectively final, variables used but
+/// not declared in the lambda expression to their corresponding run time values. Such run time values are commonly
+/// referred to as captured values. For example, we can access the code model for the lambda expression used to
 /// initialize the `Example.R` field as follows:
 ///
 /// {@snippet lang = "java":
