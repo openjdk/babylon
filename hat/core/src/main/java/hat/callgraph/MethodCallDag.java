@@ -108,6 +108,4 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
                 );
         closeRanks();
     }
-
-
 }
