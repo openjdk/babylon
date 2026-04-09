@@ -251,13 +251,13 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * A synthetic block representing the post dominator of all blocks
-     * when two or more blocks in the body have no successors.
+     * A synthetic exit block used when computing immediate post dominators.
+     * It represents the post dominator of all blocks when two or more blocks
+     * in the body have no successors.
      * <p>
      * Computing the immediate post dominators requires a single exit point,
-     * one block that has no successors. When there are two or more blocks
-     * with no successors then this block represents the immediate post
-     * dominator of those blocks
+     * one block with no successors. When a body has two or more blocks
+     * with no successors then this block acts as the single exit point.
      */
     public static final Block IPDOM_EXIT;
     static {

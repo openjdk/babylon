@@ -430,20 +430,21 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns the immediate post dominator of this block, otherwise {@link Body#IPDOM_EXIT} if this block is the
-     * only block with no successors or if this block is one of many blocks that has no successors.
-     * Both this block and the immediate post dominator (if defined) have the same parent body.
+     * Returns the immediate post dominator of this block.
      * <p>
-     * The post immediate dominator is the unique block that strictly post dominates this block, but does not strictly
-     * post dominate any other block that strictly post dominates this block.
+     * If this block has no successors then this method returns the synthetic block
+     * {@link Body#IPDOM_EXIT} representing the synthetic exit used to compute
+     * the immediate post dominators.
+     * <p>
+     * Both this block and the immediate post dominator (if defined) have the same parent body,
+     * except for the synthetic block {@link Body#IPDOM_EXIT}.
+     * <p>
+     * The immediate post dominator is the unique block that strictly post dominates this block,
+     * but does not strictly post dominate any other block that strictly post dominates this block.
      *
-     * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
+     * @return the immediate post dominator of this block, otherwise {@code Body#IPDOM_EXIT}.
      */
     public Block immediatePostDominator() {
-        if (this == ancestorBody().entryBlock()) {
-            return null;
-        }
-
         Map<Block, Block> ipdoms = ancestorBody().immediatePostDominators();
         Block ipdom = ipdoms.get(this);
         return ipdom == this ? Body.IPDOM_EXIT : ipdom;

@@ -220,8 +220,10 @@ public class TestDominate {
         for (Block b : f.body().blocks()) {
             if (b == entry || b == b6) {
                 Assertions.assertEquals(entry, idoms.get(b));
+                Assertions.assertEquals(b == entry ? null : entry, b.immediateDominator());
             } else {
                 Assertions.assertEquals(b6, idoms.get(b));
+                Assertions.assertEquals(b6, b.immediateDominator());
             }
         }
     }
@@ -361,6 +363,11 @@ public class TestDominate {
                                                 node("1",
                                                         node("0"))))));
         Assertions.assertEquals(domTreeExpected, domTree);
+
+        for (Block b : f.body().blocks()) {
+            Block ipb = ipdoms.get(b);
+            Assertions.assertEquals(ipb == b ? Body.IPDOM_EXIT : ipb, b.immediatePostDominator());
+        }
     }
 
     @Test
