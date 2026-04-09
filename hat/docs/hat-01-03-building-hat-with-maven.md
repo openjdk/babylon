@@ -15,6 +15,7 @@
     * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
 * Development
     * [Project Layout](hat-01-01-project-layout.md)
+    * [IntelliJ Code Formatter](hat-development.md)
 * Implementation Details
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
     * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)

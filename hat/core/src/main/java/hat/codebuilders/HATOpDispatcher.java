@@ -34,6 +34,7 @@ import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -102,6 +103,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     T hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp);
 
     T hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp);
+
 
     @Override
     default T recurse(Op op) {

@@ -176,7 +176,7 @@ public class TestBFloat16Type {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
-            BF16 result = ha.add(hb);
+            BF16 result = BF16.add(ha,hb);
             c.array(kernelContext.gix).value(result.value());
         }
     }
@@ -187,7 +187,7 @@ public class TestBFloat16Type {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
-            BF16 result = ha.add(hb).sub(hb).mul(ha).div(ha);
+            BF16 result = BF16.div(BF16.mul(BF16.sub(BF16.add(ha,hb),hb),ha),ha);
             c.array(kernelContext.gix).value(result.value());
         }
     }

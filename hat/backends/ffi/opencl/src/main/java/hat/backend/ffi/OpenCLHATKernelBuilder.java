@@ -29,6 +29,8 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
+import hat.types.BF16;
+import hat.types.F16;
 import hat.types.F16;
 import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
@@ -38,7 +40,6 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
 
 import java.util.HashMap;
@@ -120,9 +121,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             } else {
                 varName(hatVectorStoreView);
             }
-            csp().intConstZero().csp().ampersand().recurse(hatVectorStoreView.operands().get(0).result().op());
+            csp().intConstZero().csp().ampersand().recurseResultOrThrow(hatVectorStoreView.operands().get(0));
             either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ ->recurse(hatVectorStoreView.operands().get(2).result().op()));
+            id("array").sbrace(_ ->recurseResultOrThrow(hatVectorStoreView.operands().get(2)));
         });
         return self();
     }
@@ -130,9 +131,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp binOp) {
         return paren(_-> {
-            recurse(binOp.operands().get(0).result().op());
+            recurseResultOrThrow(binOp.operands().get(0));
             sp().id(binOp.operationType().symbol()).sp();
-            recurse(binOp.operands().get(1).result().op());
+            recurseResultOrThrow(binOp.operands().get(1));
         });
     }
 
@@ -140,9 +141,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         vload(hatVectorLoadOp.vectorShape().lanes()).paren(_-> {
             intConstZero().comma().sp().ampersand();
-            recurse( hatVectorLoadOp.operands().get(0).result().op());
+            recurseResultOrThrow( hatVectorLoadOp.operands().get(0));
             either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurse( hatVectorLoadOp.operands().get(1).result().op()));
+            id("array").sbrace(_ -> recurseResultOrThrow( hatVectorLoadOp.operands().get(1)));
         });
         return self();
     }
@@ -168,32 +169,25 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         dot().id(hatVSelectStoreOp.mapLane()).assign();
         return either (hatVSelectStoreOp.resolvedName() != null,
                 _-> varName(hatVSelectStoreOp.resolvedName()),
-                _-> recurse(hatVSelectStoreOp.operands().get(1).result().op())
+                _-> recurseResultOrThrow(hatVSelectStoreOp.operands().get(1))
         );
     }
 
     @Override
     public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
-        return paren(_->{
-            switch(reducedFloatType){
-                case ReducedFloatType.HalfFloat _ -> f16Type();
-                case ReducedFloatType.BFloat16 _-> bf16Type();
-                default ->   throw new OpenCLCodeGenException("What is ths reducedType");
-            }
-        }).brace(_-> {
-            var firstOperandOp = hatF16ConvOp.operands().getFirst().result().op();
-            either (reducedFloatType instanceof ReducedFloatType.BFloat16,
-                    _-> builtin_float2bfloat16().paren(_-> recurse(firstOperandOp)),
-                    _-> recurse( firstOperandOp)
+        var reducedFloatType = hatF16ConvOp.float16Class();
+        return paren(_-> f16OrBF16(reducedFloatType)).brace(_-> {
+            either (BF16.class.isAssignableFrom(reducedFloatType),
+                    _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(hatF16ConvOp.operands().getFirst())),
+                    _-> recurseResultOrThrow( hatF16ConvOp.operands().getFirst())
             );
         });
     }
 
     @Override
     public OpenCLHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp).assign();
-        recurse( hatVectorVarOp.operands().getFirst().result().op());
+        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp).sp().equals().sp();
+        recurseResultOrThrow( hatVectorVarOp.operands().getFirst());
         return self();
     }
 
@@ -205,22 +199,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         // Type conversions: half,bfloat16 -> float
-        ReducedFloatType reducedFloatType = hatF16ToFloatConvOp.reducedFloatType();
+        var reducedFloatType = hatF16ToFloatConvOp.float16Class();
 
-        if (reducedFloatType instanceof ReducedFloatType.HalfFloat) {// half -> float
+        if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
             paren(_->f32Type());
-        } else if (reducedFloatType instanceof ReducedFloatType.BFloat16) {// bfloat16 -> float
+        } else if (BF16.class.isAssignableFrom(reducedFloatType)) {// bfloat16 -> float
             builtin_bfloat16ToFloat();
         }
-        parenWhen(reducedFloatType instanceof ReducedFloatType.BFloat16,_-> {
-            recurse(hatF16ToFloatConvOp.operands().getFirst().result().op());
+        parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
+            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
             if (!hatF16ToFloatConvOp.isLocal()) {
-                rarrow().id("value");
+                rarrow();//.id("value");
             } else if (!hatF16ToFloatConvOp.wasFloat()) {
-                dot().id("value");
+                dot();//.id("value");
             } else{
                 throw new OpenCLCodeGenException("Can we get here");
             }
+            id("value");
         });
         return self();
     }

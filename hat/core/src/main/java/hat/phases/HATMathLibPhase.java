@@ -25,9 +25,10 @@
 package hat.phases;
 
 import hat.HATMath;
-import hat.dialect.ReducedFloatType;
+import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
@@ -36,17 +37,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static hat.dialect.ReducedFloatType.categorizeReducedFloatFromResultOrNull;
-
 public record HATMathLibPhase() implements HATPhase {
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
+        Map<Op, Class<? extends S16ImplOfF16>> setTypeMap = new HashMap<>();
         OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(invoke -> !invoke.returnsVoid() && invoke.refIs(HATMath.class))
+                .filter(invoke -> !invoke.returnsVoid() && invoke.returnsClassType() && invoke.refIs(HATMath.class))
                 .forEach(invoke ->
                         // This detects a HATMathLib is stored either in a VarOp or a VarStoreOp
                         invoke.op().result().uses().stream()
+
                                 .filter(result -> (result.op() instanceof CoreOp.VarOp) || (result.op() instanceof CoreOp.VarAccessOp.VarStoreOp))
                                 .findFirst()
                                 .ifPresent(result -> {
@@ -54,7 +54,7 @@ public record HATMathLibPhase() implements HATPhase {
                                     // to pass to the cogen to do further processing (e.g., build a new type or typecast).
                                     // An alternative is to insert a `stub`, or a code snippet that insert new nodes in the
                                     // IR
-                                    if (categorizeReducedFloatFromResultOrNull(invoke) instanceof ReducedFloatType reducedFloatType) {
+                                    if (S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
                                         setTypeMap.put(result.op(), reducedFloatType);
                                         setTypeMap.put(invoke.op(), reducedFloatType);
                                     }
