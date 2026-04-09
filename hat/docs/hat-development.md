@@ -30,9 +30,8 @@ In IntelliJ:
 
 1. Import XML for auto-formatter rules: Settings -> Editor -> Code Style ->
    Java -> Scheme (gear) -> Import Scheme -> IntelliJ IDEA code style XML
-2. Select file from `hat/scripts/IDEA-xml-formatter/HAT-Formatter.xml`1
+2. Select file from `hat/scripts/IDEA-xml-formatter/HAT-Formatter.xml`.
 3. Enable Actions on Save: Settings -> Tools -> Actions on Save -> Enable
    `Reformat Code`
 4. Enable Optimize Imports: Settings -> Tools -> Actions on Save -> Enable
    `Optimize Imports`.
-
