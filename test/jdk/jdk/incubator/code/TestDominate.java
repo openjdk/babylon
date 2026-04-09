@@ -57,11 +57,11 @@ public class TestDominate {
             Block.Builder end = entry.block();
 
             Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(conditionalBranch(p, ifBlock.successor(), elseBlock.successor()));
+            entry.op(conditionalBranch(p, ifBlock.reference(), elseBlock.reference()));
 
-            ifBlock.op(branch(end.successor()));
+            ifBlock.op(branch(end.reference()));
 
-            elseBlock.op(branch(end.successor()));
+            elseBlock.op(branch(end.reference()));
 
             end.op(CoreOp.return_());
         });
@@ -87,11 +87,11 @@ public class TestDominate {
             Block.Builder end = entry.block();
 
             Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(conditionalBranch(p, ifBlock.successor(), elseBlock.successor()));
+            entry.op(conditionalBranch(p, ifBlock.reference(), elseBlock.reference()));
 
-            ifBlock.op(branch(end.successor()));
+            ifBlock.op(branch(end.reference()));
 
-            elseBlock.op(branch(end.successor()));
+            elseBlock.op(branch(end.reference()));
 
             end.op(CoreOp.return_());
         });
@@ -116,15 +116,15 @@ public class TestDominate {
             Block.Builder b5 = entry.block();
 
             Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(conditionalBranch(p, b4.successor(), b2.successor()));
+            entry.op(conditionalBranch(p, b4.reference(), b2.reference()));
 
-            b4.op(conditionalBranch(p, b5.successor(), b3.successor()));
+            b4.op(conditionalBranch(p, b5.reference(), b3.reference()));
 
-            b2.op(conditionalBranch(p, b5.successor(), b1.successor()));
+            b2.op(conditionalBranch(p, b5.reference(), b1.reference()));
 
             b5.op(CoreOp.return_());
 
-            b3.op(branch(b1.successor()));
+            b3.op(branch(b1.reference()));
 
             b1.op(CoreOp.return_());
         });
@@ -151,13 +151,13 @@ public class TestDominate {
             Block.Builder end = entry.block();
 
             Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(branch(cond.successor()));
+            entry.op(branch(cond.reference()));
 
-            cond.op(conditionalBranch(p, body.successor(), end.successor()));
+            cond.op(conditionalBranch(p, body.reference(), end.reference()));
 
-            body.op(branch(update.successor()));
+            body.op(branch(update.reference()));
 
-            update.op(branch(cond.successor()));
+            update.op(branch(cond.reference()));
 
             end.op(CoreOp.return_());
 
@@ -196,19 +196,19 @@ public class TestDominate {
             Block.Builder b1 = entry.block();
 
             Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(branch(b6.successor()));
+            entry.op(branch(b6.reference()));
 
-            b6.op(conditionalBranch(p, b5.successor(), b4.successor()));
+            b6.op(conditionalBranch(p, b5.reference(), b4.reference()));
 
-            b5.op(branch(b1.successor()));
+            b5.op(branch(b1.reference()));
 
-            b4.op(conditionalBranch(p, b2.successor(), b3.successor()));
+            b4.op(conditionalBranch(p, b2.reference(), b3.reference()));
 
-            b1.op(branch(b2.successor()));
+            b1.op(branch(b2.reference()));
 
-            b2.op(conditionalBranch(p, b1.successor(), b3.successor()));
+            b2.op(conditionalBranch(p, b1.reference(), b3.reference()));
 
-            b3.op(branch(b2.successor()));
+            b3.op(branch(b2.reference()));
         });
         System.out.println(f.toText());
         Map<Block, Block> idoms = f.body().immediateDominators();
@@ -245,31 +245,31 @@ public class TestDominate {
 
             Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
 
-            entry.op(conditionalBranch(p, exit.successor(), b1.successor()));
+            entry.op(conditionalBranch(p, exit.reference(), b1.reference()));
 
-            b1.op(branch(b2.successor()));
+            b1.op(branch(b2.reference()));
 
-            b2.op(conditionalBranch(p, b3.successor(), b7.successor()));
+            b2.op(conditionalBranch(p, b3.reference(), b7.reference()));
 
-            b3.op(conditionalBranch(p, b4.successor(), b5.successor()));
+            b3.op(conditionalBranch(p, b4.reference(), b5.reference()));
 
-            b4.op(branch(b6.successor()));
+            b4.op(branch(b6.reference()));
 
-            b5.op(branch(b6.successor()));
+            b5.op(branch(b6.reference()));
 
-            b6.op(branch(b8.successor()));
+            b6.op(branch(b8.reference()));
 
-            b7.op(branch(b8.successor()));
+            b7.op(branch(b8.reference()));
 
-            b8.op(branch(b9.successor()));
+            b8.op(branch(b9.reference()));
 
-            b9.op(conditionalBranch(p, b10.successor(), b11.successor()));
+            b9.op(conditionalBranch(p, b10.reference(), b11.reference()));
 
-            b10.op(branch(b11.successor()));
+            b10.op(branch(b11.reference()));
 
-            b11.op(conditionalBranch(p, b12.successor(), b9.successor()));
+            b11.op(conditionalBranch(p, b12.reference(), b9.reference()));
 
-            b12.op(conditionalBranch(p, exit.successor(), b2.successor()));
+            b12.op(conditionalBranch(p, exit.reference(), b2.reference()));
 
             exit.op(CoreOp.return_());
         });

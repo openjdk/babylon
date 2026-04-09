@@ -73,7 +73,7 @@ public class TestBuild {
         var a = f.body().entryBlock().parameters().get(0);
         var b = f.body().entryBlock().parameters().get(1);
         // Passing built values as block arguments of a block reference
-        Assertions.assertThrows(IllegalArgumentException.class, () -> branch(anotherBlock.successor(a, b)));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> branch(anotherBlock.reference(a, b)));
     }
 
     @Test
@@ -156,10 +156,10 @@ public class TestBuild {
 
         var a = block.parameters().get(0);
         var b = block.parameters().get(1);
-        Block.Reference successor = anotherBlock.successor(a, b);
+        Block.Reference successor = anotherBlock.reference(a, b);
         // Access to target block before built
         Assertions.assertThrows(IllegalStateException.class, successor::targetBlock);
-        block.op(branch(anotherBlock.successor(a, b)));
+        block.op(branch(anotherBlock.reference(a, b)));
 
         a = anotherBlock.parameters().get(0);
         b = anotherBlock.parameters().get(1);
@@ -195,7 +195,7 @@ public class TestBuild {
         var bblock = bbody.entryBlock();
 
         // Operation uses header with target block from another model
-        var brOp = branch(ablock.successor());
+        var brOp = branch(ablock.reference());
         Assertions.assertThrows(IllegalStateException.class, () -> bblock.op(brOp));
     }
 
@@ -203,7 +203,7 @@ public class TestBuild {
     public void testReferenceFromEntryBlock() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        Assertions.assertThrows(IllegalStateException.class, block::successor);
+        Assertions.assertThrows(IllegalStateException.class, block::reference);
     }
 
     @Test
@@ -316,7 +316,7 @@ public class TestBuild {
         // Create empty block
         var block = entryBlock.block();
         // Branch to empty block
-        entryBlock.op(branch(block.successor()));
+        entryBlock.op(branch(block.reference()));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -328,7 +328,7 @@ public class TestBuild {
         // Create empty block
         var block = entryBlock.block();
         // Branch to empty block
-        entryBlock.op(branch(block.successor()));
+        entryBlock.op(branch(block.reference()));
         // No terminating op
         block.op(constant(INT, 0));
 

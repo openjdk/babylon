@@ -188,7 +188,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
             }
         }
         Block.Reference adjustedSuccessor = b.context().getBlock(successor.targetBlock())
-                .successor(arguments);
+                .reference(arguments);
         b.context().mapSuccessor(successor, adjustedSuccessor);
     }
 

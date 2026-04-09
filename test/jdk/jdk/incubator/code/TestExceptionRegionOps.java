@@ -76,25 +76,25 @@ public class TestExceptionRegionOps {
                     //
                     var c = fblock.parameters().get(0);
                     fblock.op(exceptionRegionEnter(
-                            enterER1.successor(),
-                            catchER1IAE.successor(), catchER1ISE.successor()));
+                            enterER1.reference(),
+                            catchER1IAE.reference(), catchER1ISE.reference()));
 
                     // Start of exception region
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, 0))));
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, -1))));
                     // End of exception region
-                    enterER1.op(exceptionRegionExit(end.successor(),
-                        catchER1ISE.successor(), catchER1IAE.successor()));
+                    enterER1.op(exceptionRegionExit(end.reference(),
+                        catchER1ISE.reference(), catchER1IAE.reference()));
 
                     // First catch block for exception region
                     catchER1ISE.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1ISE.op(constant(INT, 1))));
                     catchER1ISE.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1ISE.op(constant(INT, -1))));
-                    catchER1ISE.op(branch(end.successor()));
+                    catchER1ISE.op(branch(end.reference()));
 
                     // Second catch for exception region
                     catchER1IAE.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1IAE.op(constant(INT, 2))));
                     catchER1IAE.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1IAE.op(constant(INT, -1))));
-                    catchER1IAE.op(branch(end.successor()));
+                    catchER1IAE.op(branch(end.reference()));
 
                     //
                     end.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, end.op(constant(INT, 3))));
@@ -160,25 +160,25 @@ public class TestExceptionRegionOps {
                     //
                     var c = fblock.parameters().get(0);
                     fblock.op(exceptionRegionEnter(
-                            enterER1.successor(),
-                            catchER1T.successor(), catchER1ISE.successor()));
+                            enterER1.reference(),
+                            catchER1T.reference(), catchER1ISE.reference()));
 
                     // Start of exception region
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, 0))));
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, -1))));
                     // End of exception region
-                    enterER1.op(exceptionRegionExit(end.successor(),
-                        catchER1ISE.successor(), catchER1T.successor()));
+                    enterER1.op(exceptionRegionExit(end.reference(),
+                        catchER1ISE.reference(), catchER1T.reference()));
 
                     // First catch block for exception region
                     catchER1ISE.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1ISE.op(constant(INT, 1))));
                     catchER1ISE.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1ISE.op(constant(INT, -1))));
-                    catchER1ISE.op(branch(end.successor()));
+                    catchER1ISE.op(branch(end.reference()));
 
                     // Second catch for exception region
                     catchER1T.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1T.op(constant(INT, 2))));
                     catchER1T.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1T.op(constant(INT, -1))));
-                    catchER1T.op(branch(end.successor()));
+                    catchER1T.op(branch(end.reference()));
 
                     //
                     end.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, end.op(constant(INT, 3))));
@@ -249,38 +249,38 @@ public class TestExceptionRegionOps {
                     //
                     var c = fblock.parameters().get(0);
                     fblock.op(exceptionRegionEnter(
-                            enterER1.successor(),
-                            catchER1.successor()));
+                            enterER1.reference(),
+                            catchER1.reference()));
 
                     // Start of first exception region
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, 0))));
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, -1))));
                     enterER1.op(exceptionRegionEnter(
-                            enterER2.successor(),
-                            catchER2.successor()));
+                            enterER2.reference(),
+                            catchER2.reference()));
 
                     // Start of second exception region
                     enterER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER2.op(constant(INT, 1))));
                     enterER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER2.op(constant(INT, -1))));
                     // End of second exception region
-                    enterER2.op(exceptionRegionExit(b3.successor(),
-                        catchER2.successor()));
+                    enterER2.op(exceptionRegionExit(b3.reference(),
+                        catchER2.reference()));
 
                     // Catch block for second exception region
                     catchER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER2.op(constant(INT, 2))));
                     catchER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER2.op(constant(INT, -1))));
-                    catchER2.op(branch(b3.successor()));
+                    catchER2.op(branch(b3.reference()));
 
                     b3.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b3.op(constant(INT, 3))));
                     b3.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b3.op(constant(INT, -1))));
                     // End of first exception region
-                    b3.op(exceptionRegionExit(end.successor(),
-                        catchER1.successor()));
+                    b3.op(exceptionRegionExit(end.reference(),
+                        catchER1.reference()));
 
                     // Catch block for first exception region
                     catchER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1.op(constant(INT, 4))));
                     catchER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchER1.op(constant(INT, -1))));
-                    catchER1.op(branch(end.successor()));
+                    catchER1.op(branch(end.reference()));
 
                     //
                     end.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, end.op(constant(INT, 5))));
@@ -361,34 +361,34 @@ public class TestExceptionRegionOps {
                     //
                     var c = fblock.parameters().get(0);
                     fblock.op(exceptionRegionEnter(
-                            enterER1.successor(),
-                            catchAll.successor(), catchRE.successor()));
+                            enterER1.reference(),
+                            catchAll.reference(), catchRE.reference()));
 
                     // Start of exception region
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, 0))));
                     enterER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.op(constant(INT, -1))));
                     // End of exception region
-                    enterER1.op(exceptionRegionExit(exitER1.successor(),
-                        catchRE.successor(), catchAll.successor()));
+                    enterER1.op(exceptionRegionExit(exitER1.reference(),
+                        catchRE.reference(), catchAll.reference()));
                     // Inline finally
                     exitER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, exitER1.op(constant(INT, 2))));
                     exitER1.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, exitER1.op(constant(INT, -1))));
-                    exitER1.op(branch(end.successor()));
+                    exitER1.op(branch(end.reference()));
 
                     // Catch block for RuntimeException
                     catchRE.op(exceptionRegionEnter(
-                            enterER2.successor(),
-                            catchAll.successor()));
+                            enterER2.reference(),
+                            catchAll.reference()));
                     // Start of exception region
                     enterER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER2.op(constant(INT, 1))));
                     enterER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER2.op(constant(INT, -1))));
                     // End of exception region
-                    enterER2.op(exceptionRegionExit(exitER2.successor(),
-                        catchAll.successor()));
+                    enterER2.op(exceptionRegionExit(exitER2.reference(),
+                        catchAll.reference()));
                     // Inline finally
                     exitER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, exitER2.op(constant(INT, 2))));
                     exitER2.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, exitER2.op(constant(INT, -1))));
-                    exitER2.op(branch(end.successor()));
+                    exitER2.op(branch(end.reference()));
 
                     // Catch all block for finally
                     catchAll.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, catchAll.op(constant(INT, 2))));

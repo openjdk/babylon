@@ -150,7 +150,7 @@ public final class StreamFuser {
                         _else.op(JavaOp.continue_());
                     }
 
-                    block.op(conditionalBranch(p, _if.successor(), _else.successor()));
+                    block.op(conditionalBranch(p, _if.reference(), _else.reference()));
 
                     fuseIntermediateOperation(i + 1, _if, element, _else, terminalConsumer);
                 });

@@ -44,9 +44,13 @@ import java.util.*;
  * body when control is passed to it, and describes the return type of values that are yielded when the body passes
  * control back to its parent operation.
  * <p>
- * A body is built using a {@link Body.Builder body builder} that creates and exposes an entry block
- * {@link Block.Builder builder} from which further blocks in the body may be
- * {@link Block.Builder#block(TypeElement...) built}. When a body is {@link Body.Builder#build(Op) built} all blocks
+ * A body is built using a {@link Body.Builder body builder} that creates and {@link Builder#entryBlock() exposes} an
+ * entry {@link Block.Builder block builder} from which further non-entry sibling blocks in the body may be created and
+ * {@link Block.Builder#block(TypeElement...) built}. A block builder can also be used to
+ * {@link Block.Builder#reference(Value...) create} references to non-entry sibling blocks that can be used as
+ * successors of terminal operations.
+ *
+ * When a body is {@link Body.Builder#build(Op) built} all blocks
  * in the body are also built.
  */
 public final class Body implements CodeElement<Body, Block> {

@@ -110,7 +110,7 @@ public final class Inliner {
                     List<Value> arg = rop.returnValue() != null
                             ? List.of(block.context().getValue(rop.returnValue()))
                             : List.of();
-                    block.op(branch(returnBlock.successor(arg)));
+                    block.op(branch(returnBlock.reference(arg)));
                 }
 
                 return block;

@@ -551,7 +551,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Adds a new block to the parent body.
+         * Creates a new sibling block in the same parent body as this block.
          *
          * @param params the block's parameter types
          * @return the new block builder
@@ -561,7 +561,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Adds a new block to the parent body.
+         * Creates a new sibling block in the same parent body as this block.
          *
          * @param params the block's parameter types
          * @return the new block builder
@@ -598,8 +598,8 @@ public final class Block implements CodeElement<Block, Op> {
          * @throws IllegalStateException if this block builder is associated with the entry block.
          * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
          */
-        public Reference successor(Value... args) {
-            return successor(List.of(args));
+        public Reference reference(Value... args) {
+            return reference(List.of(args));
         }
 
         /**
@@ -610,9 +610,9 @@ public final class Block implements CodeElement<Block, Op> {
          * @throws IllegalStateException if this block builder is associated with the entry block.
          * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
          */
-        public Reference successor(List<? extends Value> args) {
+        public Reference reference(List<? extends Value> args) {
             if (isEntryBlock()) {
-                throw new IllegalStateException("Entry block cannot be referred to as a successor");
+                throw new IllegalStateException("Entry block cannot be referenced and used as a successor");
             }
             for (Value operand : args) {
                 if (operand.isBuilt()) {

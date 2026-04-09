@@ -238,9 +238,9 @@ public class OpBuilder {
                 func(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
-                    b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.successor(), b2.successor()));
+                    b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.reference(), b2.reference()));
                     b1.op(return_(b1.op(invoke(LIST_EMPTY))));
-                    b2.op(conditionalBranch(b2.op(instanceOf(J_U_LIST, arg)), b3.successor(), b4.successor()));
+                    b2.op(conditionalBranch(b2.op(instanceOf(J_U_LIST, arg)), b3.reference(), b4.reference()));
                     b3.op(return_(b3.op(cast(J_U_LIST, arg))));
                     b4.op(return_(b4.op(invoke(LIST_OF_OBJECT, arg))));
                 }),
@@ -252,9 +252,9 @@ public class OpBuilder {
                 func(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
-                    b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.successor(), b2.successor()));
+                    b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.reference(), b2.reference()));
                     b1.op(return_(b1.op(invoke(MAP_EMPTY))));
-                    b2.op(conditionalBranch(b2.op(instanceOf(J_U_MAP, arg)), b3.successor(), b4.successor()));
+                    b2.op(conditionalBranch(b2.op(instanceOf(J_U_MAP, arg)), b3.reference(), b4.reference()));
                     b3.op(return_(b3.op(cast(J_U_MAP, arg))));
                     b4.op(return_(b4.op(invoke(MAP_OF_OBJECT_OBJECT, b4.op(constant(J_L_STRING, "")), arg))));
                 }),
