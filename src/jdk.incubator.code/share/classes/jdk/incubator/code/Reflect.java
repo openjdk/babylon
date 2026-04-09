@@ -65,9 +65,9 @@ import java.lang.reflect.Method;
  *    assert capturedValues.values().contains(42);
  * }
  * <p>
- * There are four syntactic locations where {@code @Reflect} can appear that governs, in increasing scope, what is
- * declared reflectable.
- * <ul>
+ * There are four syntactic locations where {@code @Reflect} can appear, forming three cases in increasing scope of what
+ * is declared reflectable.
+ * <ol>
  * <li>
  * If the annotation appears in a cast expression of a lambda expression (or method reference), annotating the use of
  * the type in the cast operator of the cast expression, then the lambda expression is declared reflectable. For
@@ -96,7 +96,7 @@ import java.lang.reflect.Method;
  *    void reflectableMethod(int i) { ... }
  * }
  * </li>
- * </ul>
+ * </ol>
  * If a method or lambda expression (or method reference) is declared reflectable then the compiler generates an error
  * message if it contains program elements that cannot be modeled (and therefore a code model cannot be produced).
  * <p>

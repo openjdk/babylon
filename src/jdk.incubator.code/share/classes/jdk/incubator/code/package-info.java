@@ -212,9 +212,8 @@
 ///
 /// ## <a id="declaring-and-accessing-reflectable-code-heading"/>Declaring and accessing reflectable code
 ///
-/// In total there are four syntactic locations where the [jdk.incubator.code.Reflect] annotation can appear that
-/// govern what is declared reflectable. The locations are described in detail in the [jdk.incubator.code.Reflect]
-/// documentation.
+/// In total there are four syntactic locations where the [jdk.incubator.code.Reflect] annotation can appear, as
+/// described in the [jdk.incubator.code.Reflect] documentation.
 ///
 /// The code model of a reflectable method is accessed by invoking [jdk.incubator.code.Op#ofMethod] with an argument
 /// that is a `Method` instance (retrieved using the core reflection API) representing the reflectable method. The
