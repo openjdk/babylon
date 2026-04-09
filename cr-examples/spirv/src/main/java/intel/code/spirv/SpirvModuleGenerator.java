@@ -126,10 +126,10 @@ public class SpirvModuleGenerator {
     }
 
     private void generateFunction(String moduleName, String fnName, SpirvOps.FuncOp func) {
-        TypeElement returnType = func.invokableType().returnType();
+        TypeElement returnType = func.invokableSignature().returnType();
         SPIRVId functionID = nextId(fnName);
-        String signature = func.invokableType().returnType().toString();
-        List<TypeElement> paramTypes = func.invokableType().parameterTypes();
+        String signature = func.invokableSignature().returnType().toString();
+        List<TypeElement> paramTypes = func.invokableSignature().parameterTypes();
         // build signature string
         for (int i = 0; i < paramTypes.size(); i++) {
             signature += "_" + paramTypes.get(i).toString();

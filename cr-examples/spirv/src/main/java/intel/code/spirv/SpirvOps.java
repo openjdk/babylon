@@ -657,7 +657,7 @@ public class SpirvOps {
         }
 
         @Override
-        public FunctionType invokableType() {
+        public FunctionType invokableSignature() {
             return functionType;
         }
     }

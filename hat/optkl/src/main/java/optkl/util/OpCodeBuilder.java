@@ -683,7 +683,7 @@ static class JavaTypeUtils{
             nl().in().writeCommaSeparatedList(eb.parameters(), this::writeValueDeclaration).out().nl();
         }
         cparen();
-        writeType(body.bodyType().returnType());
+        writeType(body.bodySignature().returnType());
         space().arrow().space();
         obrace().nl().in();
         for (Block b : body.blocks()) {
