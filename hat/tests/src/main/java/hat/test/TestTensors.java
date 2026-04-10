@@ -27,14 +27,14 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.NDRange;
 import hat.NDRange.Tile2D;
-import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.test.annotation.HatTest;
+import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
+import hat.test.exceptions.HATExpectedPrecisionError;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Reflect;
@@ -62,7 +62,7 @@ import static optkl.ifacemapper.MappableIface.WO;
 public class TestTensors {
 
     @Reflect
-    public static void mxmTensors(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+    public static void mxmTensorsCM(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
@@ -101,7 +101,7 @@ public class TestTensors {
     }
 
     @Reflect
-    public static void mxmTensors(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void mxmTensorsCM(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
         // The total number of threads is calculated as follows:
         // [ (size / tile), (size / tile) ]
         // If warpSize > 1, then each dimension using warp operations is multiplied by the value of the warp-size. This is architecture dependent, but the
@@ -112,8 +112,63 @@ public class TestTensors {
                                    Tile2D.of(16, 16),
                                    Warp2D.of(true, false));
 
-        cc.dispatchKernel(ndRange, kc -> mxmTensors(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, kc -> mxmTensorsCM(kc, matrixA, matrixB, matrixC, globalSize));
     }
+
+    @Reflect
+    public static void mxmTensorsRM(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+        final int WMMA_M = 16;
+        final int WMMA_N = 16;
+        final int WMMA_K = 16;
+        int warpM = kc.gix / kc.warpSize;
+        int warpN = kc.giy;
+
+        final int lda = 1024;
+        final int ldb = 1024;
+        final int ldc = 1024;
+
+        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.shape(16, 16, 16), F16.class, Tensor.ofRowMajor());
+        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
+        Tensor acc = Tensor.create(Tensor.ACC, Tensor.shape(16, 16, 16), float.class);
+
+        Tensor.fill(acc, 0.0f);
+
+        for (int i = 0; i < size; i += WMMA_K) {
+            int aRow = warpM * WMMA_M;
+            int aCol = i;
+
+            int bRow = i;
+            int bCol = warpN * WMMA_N;
+
+            if (aRow < lda && aCol < lda && bRow < ldb && bCol < ldb) {
+
+                tensorA = Tensor.load(matrixA, aRow, aCol, lda);
+                tensorB = Tensor.load(matrixB, bRow, bCol, ldb);
+
+                // acc = tensorA * tensorB + acc
+                Tensor.mma(acc, tensorA, tensorB, acc);
+            }
+        }
+        int cRow = warpM * WMMA_M;
+        int cCol = warpN * WMMA_N;
+        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+    }
+
+    @Reflect
+    public static void mxmTensorsRM(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
+        // The total number of threads is calculated as follows:
+        // [ (size / tile), (size / tile) ]
+        // If warpSize > 1, then each dimension using warp operations is multiplied by the value of the warp-size. This is architecture dependent, but the
+        // HAT runtime and HAT JIT compiler handle this automatically.
+
+        var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize),
+                Local2D.of(128, 4),
+                Tile2D.of(16, 16),
+                Warp2D.of(true, false));
+
+        cc.dispatchKernel(ndRange, kc -> mxmTensorsRM(kc, matrixA, matrixB, matrixC, globalSize));
+    }
+
 
     private static void runSequential(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
@@ -132,7 +187,7 @@ public class TestTensors {
 
     @HatTest
     @Reflect
-    public void test_tensors_01() {
+    public void testTensor01() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
 
@@ -148,7 +203,7 @@ public class TestTensors {
         }
 
         for (int i = 0; i < 10; i++) {
-            accelerator.compute(cc -> mxmTensors(cc, matrixAHalf, matrixBHalf, matrixC, size));
+            accelerator.compute(cc -> mxmTensorsCM(cc, matrixAHalf, matrixBHalf, matrixC, size));
         }
 
         runSequential(matrixAHalf, matrixBHalf, resultSequential, size);
@@ -158,7 +213,48 @@ public class TestTensors {
                 final int index = j * size + i;
                 float expectedValue = resultSequential.array(index);
                 float gotValue = matrixC.array(index);
-                HATAsserts.assertEquals(expectedValue, gotValue, 0.1f);
+                try {
+                    HATAsserts.assertEquals(expectedValue, gotValue, 0.1f);
+                } catch (HATAssertionError _) {
+                    throw new HATExpectedPrecisionError("Expected: " + expectedValue + ", but found: " + gotValue);
+                }
+            }
+        }
+    }
+
+    @HatTest
+    @Reflect
+    public void testTensor02() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+
+        F16Array matrixAHalf = F16Array.create(accelerator, size * size);
+        F16Array matrixBHalf = F16Array.create(accelerator, size * size);
+        F32Array matrixC = F32Array.create(accelerator, size * size);
+        F32Array resultSequential = F32Array.create(accelerator, size * size);
+
+        Random r = new Random(19);
+        for (int j = 0; j < matrixAHalf.length(); j++) {
+            matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
+            matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        for (int i = 0; i < 10; i++) {
+            accelerator.compute(cc -> mxmTensorsRM(cc, matrixAHalf, matrixBHalf, matrixC, size));
+        }
+
+        runSequential(matrixAHalf, matrixBHalf, resultSequential, size);
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                final int index = j * size + i;
+                float expectedValue = resultSequential.array(index);
+                float gotValue = matrixC.array(index);
+                try {
+                    HATAsserts.assertEquals(expectedValue, gotValue, 0.1f);
+                } catch (HATAssertionError _) {
+                    throw new HATExpectedPrecisionError("Expected: " + expectedValue + ", but found: " + gotValue);
+                }
             }
         }
     }
