@@ -58,7 +58,7 @@ public class TestBuild {
 
         var a = f.body().entryBlock().parameters().get(0);
         var b = f.body().entryBlock().parameters().get(1);
-        // Passing built values as operands to a new unbound operation
+        // Passing built values as operands to a new unattached operation
         Assertions.assertThrows(IllegalArgumentException.class, () -> JavaOp.add(a, b));
     }
 
@@ -120,7 +120,7 @@ public class TestBuild {
     }
 
     @Test
-    public void testUnbuiltValueAccess() {
+    public void testUnbuiltBlocksViaValue() {
         var body = Body.Builder.of(null, functionType(INT, INT, INT));
         var block = body.entryBlock();
 
@@ -128,13 +128,13 @@ public class TestBuild {
         Block.Parameter b = block.parameters().get(1);
         Op.Result result = block.op(JavaOp.add(a, b));
 
-        // Access the declaring block of unbuilt values before the blocks are built
+        // Declaring block is being built
         Assertions.assertThrows(IllegalStateException.class, a::declaringBlock);
         Assertions.assertThrows(IllegalStateException.class, result::declaringBlock);
         // Access to parent block/body of operation result before they are built
         Assertions.assertThrows(IllegalStateException.class, result.op()::ancestorBlock);
         Assertions.assertThrows(IllegalStateException.class, result.op()::ancestorBody);
-        // Access to set of users before built
+        // Access to set of users while declaring block is being built
         Assertions.assertThrows(IllegalStateException.class, a::uses);
 
         block.op(return_(result));
@@ -149,7 +149,7 @@ public class TestBuild {
     }
 
     @Test
-    public void testUnbuiltReferenceAccess() {
+    public void testUnbuiltBlocksViaReference() {
         var body = Body.Builder.of(null, functionType(INT, INT, INT));
         var block = body.entryBlock();
         var anotherBlock = block.block(INT, INT);
@@ -157,7 +157,7 @@ public class TestBuild {
         var a = block.parameters().get(0);
         var b = block.parameters().get(1);
         Block.Reference successor = anotherBlock.reference(a, b);
-        // Access to target block before built
+        // Target block is being built
         Assertions.assertThrows(IllegalStateException.class, successor::targetBlock);
         block.op(branch(anotherBlock.reference(a, b)));
 

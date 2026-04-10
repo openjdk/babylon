@@ -109,9 +109,6 @@ public final class Block implements CodeElement<Block, Op> {
      * When control is passed from a block to a successor block the values of the block reference's arguments are
      * assigned, in order, to the successor block's parameters.
      * <p>
-     * A block reference is considered unbuilt if it's {@link #targetBlock() target block} is unbuilt and
-     * is therefore in accessible. A block reference is considered built when the target block is built
-     * and therefore is accessible.
      */
     public static final class Reference implements CodeItem {
         final Block target;
@@ -130,11 +127,11 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the target block.}
-         * @throws IllegalStateException if this block reference is unbuilt because its target block is unbuilt.
+         * @throws IllegalStateException if the target block is being built and is not observable.
          */
         public Block targetBlock() {
             if (!isBuilt()) {
-                throw new IllegalStateException("Target block is unbuilt");
+                throw new IllegalStateException("Target block is being built and is not observable");
             }
 
             return target;
@@ -472,6 +469,9 @@ public final class Block implements CodeElement<Block, Op> {
      * <p>
      * A block builder is built when its {@link #parent() parent} body builder is {@link Body.Builder#build(Op) built}.
      * <p>
+     * A block is not observable while it is being built. Attempts to access a block being built through the block's
+     * parameters, appended operations, their operation results, or created block references, result in an exception.
+     * <p>
      * If a built builder is operated on to append a block parameter, append an operation, build a sibling block,
      * then an {@code IllegalStateException} is thrown.
      */
@@ -581,7 +581,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends an unbuilt block parameter to the block's parameters.
+         * Appends a block parameter to the block's parameters.
          *
          * @param p the parameter type
          * @return the appended block parameter
@@ -592,24 +592,30 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Creates an unbuilt block reference to this block that can be used as a successor of a terminating operation.
+         * Creates a block reference to this block that can be used as a successor of a terminating operation.
+         * <p>
+         * A reference can only be constructed with block arguments whose declaring block is being built, otherwise
+         * construction fails with an exception.
          *
-         * @param args the unbuilt block arguments
+         * @param args the block arguments
          * @return the reference to this block
          * @throws IllegalStateException if this block builder is associated with the entry block.
-         * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
+         * @throws IllegalArgumentException if a block argument's declaring block is built.
          */
         public Reference reference(Value... args) {
             return reference(List.of(args));
         }
 
         /**
-         * Creates an unbuilt block reference to this block that can be used as a successor of a terminating operation.
+         * Creates a block reference to this block that can be used as a successor of a terminating operation.
+         * <p>
+         * A reference can only be constructed with block arguments whose declaring block is being built, otherwise
+         * construction fails with an exception.
          *
-         * @param args the unbuilt block arguments
+         * @param args the block arguments
          * @return the reference to this block
          * @throws IllegalStateException if this block builder is associated with the entry block.
-         * @throws IllegalArgumentException if a block argument is built because its declaring block is built.
+         * @throws IllegalArgumentException if a block argument's declaring block is built.
          */
         public Reference reference(List<? extends Value> args) {
             if (isEntryBlock()) {
@@ -617,7 +623,7 @@ public final class Block implements CodeElement<Block, Op> {
             }
             for (Value operand : args) {
                 if (operand.isBuilt()) {
-                    throw new IllegalArgumentException("Operand's declaring block is built: " + operand);
+                    throw new IllegalArgumentException("Argument's declaring block is built: " + operand);
                 }
             }
 
@@ -676,16 +682,18 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends an operation to this block builder, first transforming the operation if it is built or unbuilt-bound.
+         * Appends an operation to this block builder, first transforming the operation if it is attached to a block,
+         * or a root operation.
          * <p>
-         * If the operation is unbuilt, then the operation is appended and bound to this block to become unbuilt-bound.
-         * Otherwise, if the operation is built or unbuilt-bound, the operation is first
+         * If the operation is unattached, then the operation is appended and attached to this block, and the operation
+         * is assigned an operation result.
+         * Otherwise, the operation (an attached or root operation) is first
          * {@link Op#transform(CodeContext, CodeTransformer) transformed} with this builder's context and
-         * code transformer, the resulting transformed unbuilt operation is appended, and the
-         * operation's result mapped to the transformed operation's unbuilt result, using the builder's context.
+         * code transformer, the resulting transformed and unattached operation is attached and appended, and the
+         * operation's result mapped to the transformed operation's result, using the builder's context.
          * <p>
-         * If the unbuilt operation (transformed, or otherwise) is structurally invalid then an
-         * {@code IllegalStateException} is thrown. An unbuilt operation is structurally invalid if:
+         * If the operation (transformed, or otherwise) is structurally invalid then an
+         * {@code IllegalStateException} is thrown. An operation is structurally invalid if:
          * <ul>
          * <li>any of its bodies does not have the same ancestor body as this block's parent body.
          * <li>any of its operands (values) is not reachable from this block.
@@ -699,7 +707,7 @@ public final class Block implements CodeElement<Block, Op> {
          * dominance check that can only be performed when the parent body is built.)
          *
          * @param op the operation to append
-         * @return the unbuilt operation result of the appended operation
+         * @return the operation result of the appended operation
          * @throws IllegalStateException if the operation is structurally invalid
          */
         public Op.Result op(Op op) {
@@ -774,7 +782,7 @@ public final class Block implements CodeElement<Block, Op> {
 
         for (Body b : op.bodies()) {
             if (b.ancestorBody != null && b.ancestorBody != this.parentBody) {
-                throw new IllegalStateException("Body of operation is bound to a different ancestor body: ");
+                throw new IllegalStateException("Body of operation is connected to a different ancestor body: ");
             }
         }
 

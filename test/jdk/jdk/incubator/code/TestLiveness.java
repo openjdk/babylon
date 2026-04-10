@@ -349,7 +349,7 @@ public class TestLiveness {
          * @param descendant the descendant element
          * @return the child that is an ancestor of the given descendant element, otherwise the descendant
          * element if a child of this element, otherwise {@code null}.
-         * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
+         * @throws IllegalStateException if an encountered block is being built and is not observable.
          */
         private static <C extends CodeElement<C, ?>> C findChildAncestor(CodeElement<?, C> parent, CodeElement<?, ?> descendant) {
             Objects.requireNonNull(descendant);
