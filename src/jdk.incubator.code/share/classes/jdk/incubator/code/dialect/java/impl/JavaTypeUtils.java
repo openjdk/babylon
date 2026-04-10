@@ -66,7 +66,7 @@ public class JavaTypeUtils {
     public static final String JAVA_REF_FLAT_NAME_PREFIX = "java.ref:";
 
     /**
-     * An enum modelling the Java type form kind. Useful for switching.
+     * An enum modeling the Java type form kind. Useful for switching.
      */
     public enum Kind {
         /** A flattened type form */
@@ -83,7 +83,7 @@ public class JavaTypeUtils {
         /**
          * Constructs a new kind from an externalized type form
          * @param tree the externalized type form
-         * @return the kind modelling {@code tree}
+         * @return the kind modeling {@code tree}
          */
         public static Kind of(ExternalizedCodeType tree) {
             return switch (tree.identifier()) {
@@ -209,7 +209,7 @@ public class JavaTypeUtils {
     // From externalized Java types/refs into actual Java types/refs
 
     /**
-     * {@return a {@code JavaType} modelling the provided inflated Java type form}.
+     * {@return a {@code JavaType} modeling the provided inflated Java type form}.
      * @param tree the inflated Java type form
      */
     public static JavaType toJavaType(ExternalizedCodeType tree) {
@@ -254,7 +254,7 @@ public class JavaTypeUtils {
     }
 
     /**
-     * {@return a {@code JavaRef} modelling the provided inflated Java reference form}.
+     * {@return a {@code JavaRef} modeling the provided inflated Java reference form}.
      * @param tree the inflated Java reference form
      */
     public static JavaRef toJavaRef(ExternalizedCodeType tree) {
@@ -296,7 +296,7 @@ public class JavaTypeUtils {
     // From externalized Java types/refs into external type/refs strings
 
     /**
-     * {@return a flat string modelling the provided inflated Java type form}.
+     * {@return a flat string modeling the provided inflated Java type form}.
      * @param tree the inflated Java type form
      */
     public static String toExternalTypeString(ExternalizedCodeType tree) {
@@ -345,7 +345,7 @@ public class JavaTypeUtils {
     }
 
     /**
-     * {@return a flat string modelling the provided inflated Java reference form}.
+     * {@return a flat string modeling the provided inflated Java reference form}.
      * @param tree the inflated Java type form
      */
     public static String toExternalRefString(ExternalizedCodeType tree) {

@@ -136,7 +136,7 @@ public final class Quoted<T extends Op> {
     }
 
     /**
-     * Embeds the given operation into a quoting code model whose behaviour quotes the operation.
+     * Embeds the given operation into a quoting code model whose behavior quotes the operation.
      * <p>
      * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp func operation}
      * that has one body with one block (<i>fblock</i>).
@@ -213,7 +213,7 @@ public final class Quoted<T extends Op> {
      * Extracts the quoted operation from a quoting code model with the given runtime arguments.
      * <p>
      * This method behaves as if the quoting code model is executed with the runtime arguments by interpreting the
-     * behaviour of the code elements, as specified, in the code model, but it may be implemented more efficiently.
+     * behavior of the code elements, as specified, in the code model, but it may be implemented more efficiently.
      *
      * @param funcOp the quoting code model
      * @param args   the runtime arguments

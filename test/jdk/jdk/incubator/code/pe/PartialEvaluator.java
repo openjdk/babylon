@@ -365,7 +365,7 @@ final class PartialEvaluator {
                     }
                     return Array.newInstance(resolveToClass(l, nType), lengths);
                 } else {
-                    MethodHandle mh = constructorHandle(l, no.constructorReference().type());
+                    MethodHandle mh = constructorHandle(l, no.constructorReference().signature());
                     return invoke(mh, values);
                 }
             }

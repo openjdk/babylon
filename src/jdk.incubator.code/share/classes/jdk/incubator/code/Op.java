@@ -52,11 +52,11 @@ import java.util.*;
 import java.util.function.BiFunction;
 
 /**
- * An operation modelling a unit of program behaviour.
+ * An operation modeling a unit of program behavior.
  * <p>
  * An operation might model the addition of two integers, or a method invocation expression.
  * Alternatively an operation may model something more complex like method declarations, lambda expressions, or
- * try statements. In such cases an operation will contain one or more bodies modelling the nested structure.
+ * try statements. In such cases an operation will contain one or more bodies modeling the nested structure.
  * <p>
  * An instance of an operation when initially constructed is referred to as an unbuilt operation.
  * An unbuilt operation's state and descendants are all immutable except for its {@link #result result} and

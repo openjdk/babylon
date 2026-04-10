@@ -72,7 +72,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef, InvokeKind kind) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.type());
+        MethodType mt = resolveMethodType(l, methodRef.signature());
         HandleResolver<MethodHandle, MethodType> resolver = switch (kind) {
             case INSTANCE -> HandleResolver.FIND_VIRTUAL;
             case STATIC -> HandleResolver.FIND_STATIC;
@@ -83,7 +83,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.type());
+        MethodType mt = resolveMethodType(l, methodRef.signature());
         return resolveHandle(HandleResolver.FIND_STATIC, l, refC, methodRef.name(), mt)
                 .orElse(() -> resolveHandle(HandleResolver.FIND_VIRTUAL, l, refC, methodRef.name(), mt))
                 .handle();

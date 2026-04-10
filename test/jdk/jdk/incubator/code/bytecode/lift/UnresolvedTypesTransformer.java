@@ -129,7 +129,7 @@ final class UnresolvedTypesTransformer {
                             if (i == 0) yield resolveTo(ut, id.refType());
                             i--;
                         }
-                        yield resolveTo(ut, id.type().parameterTypes().get(i));
+                        yield resolveTo(ut, id.signature().parameterTypes().get(i));
                     }
                     case JavaOp.FieldAccessOp fao ->
                         resolveTo(ut, fao.fieldReference().refType());
@@ -140,7 +140,7 @@ final class UnresolvedTypesTransformer {
                     case CoreOp.VarAccessOp.VarStoreOp vso ->
                         resolveTo(ut, vso.varType().valueType());
                     case JavaOp.NewOp no ->
-                        resolveTo(ut, no.constructorReference().type().parameterTypes().get(i));
+                        resolveTo(ut, no.constructorReference().signature().parameterTypes().get(i));
                     case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
                         resolveTo(ut, toArray(alo.resultType()));
                     case JavaOp.ArrayAccessOp.ArrayStoreOp aso ->

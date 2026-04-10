@@ -39,7 +39,7 @@ import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.extern.ExternalizedCodeType;
 
-public record MethodRefImpl(CodeType refType, String name, FunctionType type) implements MethodRef {
+public record MethodRefImpl(CodeType refType, String name, FunctionType signature) implements MethodRef {
 
     static final MethodHandle MULTI_NEW_ARRAY_MH;
 
@@ -89,14 +89,14 @@ public record MethodRefImpl(CodeType refType, String name, FunctionType type) im
     }
 
     private MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = ResolutionHelper.resolveClass(l, type.returnType());
-        if (type.returnType() instanceof ArrayType at) {
+        Class<?> refC = ResolutionHelper.resolveClass(l, signature.returnType());
+        if (signature.returnType() instanceof ArrayType at) {
             if (at.dimensions() == 1) {
                 return MethodHandles.arrayConstructor(refC);
             } else {
-                int dims = type.parameterTypes().size();
+                int dims = signature.parameterTypes().size();
                 Class<?> elementType = refC;
-                for (int i = 0 ; i < type.parameterTypes().size(); i++) {
+                for (int i = 0; i < signature.parameterTypes().size(); i++) {
                     elementType = elementType.componentType();
                 }
                 // only the use-site knows how many dimensions are specified
@@ -106,7 +106,7 @@ public record MethodRefImpl(CodeType refType, String name, FunctionType type) im
             }
         } else {
             // MH lookup wants a void-returning lookup type
-            MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l).changeReturnType(void.class);
+            MethodType mt = MethodRef.toNominalDescriptor(signature).resolveConstantDesc(l).changeReturnType(void.class);
             return l.findConstructor(refC, mt);
         }
     }
@@ -115,11 +115,11 @@ public record MethodRefImpl(CodeType refType, String name, FunctionType type) im
     public ExternalizedCodeType externalize() {
         if (!isConstructor()) {
             return JavaTypeUtils.methodRef(name, refType.externalize(),
-                    type.returnType().externalize(),
-                    type.parameterTypes().stream().map(CodeType::externalize).toList());
+                    signature.returnType().externalize(),
+                    signature.parameterTypes().stream().map(CodeType::externalize).toList());
         } else {
-            return JavaTypeUtils.constructorRef(type.returnType().externalize(),
-                    type.parameterTypes().stream().map(CodeType::externalize).toList());
+            return JavaTypeUtils.constructorRef(signature.returnType().externalize(),
+                    signature.parameterTypes().stream().map(CodeType::externalize).toList());
         }
     }
 
