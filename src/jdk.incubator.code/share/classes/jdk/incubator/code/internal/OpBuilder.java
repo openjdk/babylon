@@ -474,7 +474,7 @@ public class OpBuilder {
         // check if java version at compile time matches the java version at runtime
         builder.op(funcCall(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID));
         Value result = buildOp(null, ancestorBody, op);
-        // bind as bound root op
+        // build as root op
         builder.op(invoke(MethodRef.method(Op.class, "buildAsRoot", void.class), result));
         builder.op(return_(result));
 

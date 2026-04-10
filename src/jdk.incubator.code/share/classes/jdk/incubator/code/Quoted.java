@@ -158,11 +158,12 @@ public final class Quoted<T extends Op> {
      *
      * @param op the operation
      * @return the quoting code model.
-     * @throws IllegalArgumentException if {@code op} is unbuilt.
+     * @throws IllegalArgumentException if {@code op} is unattached or a root operation.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     public static CoreOp.FuncOp embedOp(Op op) {
         if (op.result() == null) {
-            throw new IllegalArgumentException("Op is unbuilt");
+            throw new IllegalArgumentException("Operation is unattached or a root operation");
         }
 
         // if we don't remove duplicate operands we will have unused params in the new model

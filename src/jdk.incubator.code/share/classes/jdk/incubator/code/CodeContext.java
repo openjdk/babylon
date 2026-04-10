@@ -42,11 +42,10 @@ import static java.util.stream.Collectors.toList;
  * implicitly when an operation is transformed by copying, and can be explicitly defined when a transformation
  * removes operations or adds new operations.
  * <p>
- * Associating an input code item to its corresponding output requires that the output be unbuilt, specifically blocks
- * connected to the output are unbuilt. An output value is an unbuilt value whose declaring block is
- * unbuilt. An output block builder is a block builder that is unbuilt and therefore its block is unbuilt. An
- * output block reference is an unbuilt block reference whose target block is unbuilt with unbuilt arguments whose
- * declaring blocks are unbuilt.
+ * Associating an input code item to its corresponding output requires that an output's blocks are being built. An
+ * output value requires that its declaring block is being built. An output block builder requires that its block is
+ * being built. An output block reference requires that its target block is being built and all arguments declaring
+ * blocks are being built.
  * <p>
  * Unless otherwise specified the passing of a {@code null} argument to the methods of this interface results in a
  * {@code NullPointerException}.
@@ -157,7 +156,7 @@ public final class CodeContext {
         Objects.requireNonNull(output);
 
         if (output.isBuilt()) {
-            throw new IllegalArgumentException("Output value bound: " + output);
+            throw new IllegalArgumentException("Output value's declaring block is built: " + output);
         }
 
         if (valueMap == EMPTY_MAP) {
@@ -182,7 +181,7 @@ public final class CodeContext {
         Objects.requireNonNull(output);
 
         if (output.isBuilt()) {
-            throw new IllegalArgumentException("Output value is bound: " + output);
+            throw new IllegalArgumentException("Output value's declaring block is built: " + output);
         }
 
         if (valueMap == EMPTY_MAP) {
@@ -277,12 +276,12 @@ public final class CodeContext {
         Objects.requireNonNull(output);
 
         if (output.target.isBuilt()) {
-            throw new IllegalArgumentException("Output block reference target is built: " + output);
+            throw new IllegalArgumentException("Output block reference's target block is built: " + output);
         }
 
         for (Value outputArgument : output.arguments()) {
             if (outputArgument.isBuilt()) {
-                throw new IllegalArgumentException("Output block reference argument is bound: " + outputArgument);
+                throw new IllegalArgumentException("Output block reference argument's declaring block is built: " + outputArgument);
             }
         }
 
