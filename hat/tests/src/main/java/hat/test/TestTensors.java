@@ -55,6 +55,7 @@ import static optkl.ifacemapper.MappableIface.WO;
  * <p>
  * <code>
  *     HAT=SHOW_CODE java -cp hat/job.jar hat.java test ffi-cuda hat.test.TestTensors
+ *     HAT=SHOW_CODE java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTensors
  * </code>
  * </p>
  *
