@@ -408,21 +408,21 @@ public sealed abstract class JavaOp extends Op {
          */
         public static class Builder {
             final Body.Builder ancestorBody;
-            final FunctionType funcType;
+            final FunctionType signature;
             final CodeType functionalInterface;
             final boolean isReflectable;
 
-            Builder(Body.Builder ancestorBody, FunctionType funcType, CodeType functionalInterface) {
+            Builder(Body.Builder ancestorBody, FunctionType signature, CodeType functionalInterface) {
                 this.ancestorBody = ancestorBody;
-                this.funcType = funcType;
+                this.signature = signature;
                 this.functionalInterface = functionalInterface;
                 this.isReflectable = false;
             }
 
-            Builder(Body.Builder ancestorBody, FunctionType funcType, CodeType functionalInterface,
+            Builder(Body.Builder ancestorBody, FunctionType signature, CodeType functionalInterface,
                     boolean isReflectable) {
                 this.ancestorBody = ancestorBody;
-                this.funcType = funcType;
+                this.signature = signature;
                 this.functionalInterface = functionalInterface;
                 this.isReflectable = isReflectable;
             }
@@ -434,7 +434,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed lambda operation
              */
             public LambdaOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
+                Body.Builder body = Body.Builder.of(ancestorBody, signature);
                 c.accept(body.entryBlock());
                 return new LambdaOp(functionalInterface, body, isReflectable);
             }
@@ -446,7 +446,7 @@ public sealed abstract class JavaOp extends Op {
              * @see Reflect
              */
             public Builder reflectable() {
-                return new Builder(ancestorBody, funcType, functionalInterface, true);
+                return new Builder(ancestorBody, signature, functionalInterface, true);
             }
         }
 
@@ -1000,7 +1000,7 @@ public sealed abstract class JavaOp extends Op {
                                 // If varargs then we cannot infer invoke kind
                                 throw new UnsupportedOperationException("Unsupported invoke kind value:" + v);
                             }
-                            int paramCount = invokeRef.type().parameterTypes().size();
+                            int paramCount = invokeRef.signature().parameterTypes().size();
                             int argCount = def.operands().size();
                             yield (argCount == paramCount + 1)
                                     ? InvokeKind.INSTANCE
@@ -1038,7 +1038,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         static void validateArgCount(InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeRef, List<Value> operands) {
-            int paramCount = invokeRef.type().parameterTypes().size();
+            int paramCount = invokeRef.signature().parameterTypes().size();
             int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
@@ -1109,7 +1109,7 @@ public sealed abstract class JavaOp extends Op {
 
             int operandCount = operands().size();
             int argCount = operandCount - (invokeKind == InvokeKind.STATIC ? 0 : 1);
-            int paramCount = invokeReference.type().parameterTypes().size();
+            int paramCount = invokeReference.signature().parameterTypes().size();
             int varArgCount = argCount - (paramCount - 1);
             return operands().subList(operandCount - varArgCount, operandCount);
         }
@@ -1121,7 +1121,7 @@ public sealed abstract class JavaOp extends Op {
             if (!isVarArgs) {
                 return operands();
             }
-            int paramCount = invokeReference().type().parameterTypes().size();
+            int paramCount = invokeReference().signature().parameterTypes().size();
             int argOperandsCount = paramCount - (invokeKind() == InvokeKind.STATIC ? 1 : 0);
             return operands().subList(0, argOperandsCount);
         }
@@ -1257,7 +1257,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         static void validateArgCount(boolean isVarArgs, MethodRef ctorRef, List<Value> operands) {
-            int paramCount = ctorRef.type().parameterTypes().size();
+            int paramCount = ctorRef.signature().parameterTypes().size();
             int argCount = operands.size();
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
@@ -3275,9 +3275,9 @@ public sealed abstract class JavaOp extends Op {
     public static final class IfOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
-        static final FunctionType PREDICATE_TYPE = CoreType.functionType(BOOLEAN);
+        static final FunctionType PREDICATE_SIGNATURE = CoreType.functionType(BOOLEAN);
 
-        static final FunctionType ACTION_TYPE = CoreType.FUNCTION_TYPE_VOID;
+        static final FunctionType ACTION_SIGNATURE = CoreType.FUNCTION_TYPE_VOID;
 
         /**
          * Builder for the initial predicate body of an if operation.
@@ -3298,7 +3298,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder if_(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3325,7 +3325,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3337,7 +3337,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then() {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 body.entryBlock().op(core_yield());
                 bodies.add(body);
 
@@ -3364,7 +3364,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder elseif(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3378,7 +3378,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed if operation
              */
             public IfOp else_(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3390,7 +3390,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed if operation
              */
             public IfOp else_() {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 body.entryBlock().op(core_yield());
                 bodies.add(body);
 
@@ -6250,13 +6250,13 @@ public sealed abstract class JavaOp extends Op {
      * Creates a lambda operation.
      *
      * @param ancestorBody        the ancestor of the body of the lambda operation
-     * @param funcType            the lambda operation's function type
+     * @param signature           the lambda operation's signature, represented as a function type
      * @param functionalInterface the lambda operation's functional interface type
      * @return the lambda operation
      */
     public static LambdaOp.Builder lambda(Body.Builder ancestorBody,
-                                          FunctionType funcType, CodeType functionalInterface) {
-        return new LambdaOp.Builder(ancestorBody, funcType, functionalInterface);
+                                          FunctionType signature, CodeType functionalInterface) {
+        return new LambdaOp.Builder(ancestorBody, signature, functionalInterface);
     }
 
     /**
@@ -6409,7 +6409,7 @@ public sealed abstract class JavaOp extends Op {
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeRef, List<Value> args) {
-        return invoke(invokeRef.type().returnType(), invokeRef, args);
+        return invoke(invokeRef.signature().returnType(), invokeRef, args);
     }
 
     /**
@@ -6449,7 +6449,7 @@ public sealed abstract class JavaOp extends Op {
      * @return the invoke super operation
      */
     public static InvokeOp invoke(CodeType returnType, MethodRef invokeRef, List<Value> args) {
-        int paramCount = invokeRef.type().parameterTypes().size();
+        int paramCount = invokeRef.signature().parameterTypes().size();
         int argCount = args.size();
         InvokeOp.InvokeKind ik = (argCount == paramCount + 1)
                 ? InvokeOp.InvokeKind.INSTANCE

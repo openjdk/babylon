@@ -523,7 +523,7 @@ public class OpBuilder {
             args.addAll(successorArgs);
             Value successor = builder.op(invoke(
                     InvokeOp.InvokeKind.INSTANCE, true,
-                    BLOCK_BUILDER_REFERENCE.type().returnType(),
+                    BLOCK_BUILDER_REFERENCE.signature().returnType(),
                     BLOCK_BUILDER_REFERENCE, args));
             successors.add(successor);
         }
@@ -597,7 +597,7 @@ public class OpBuilder {
         Value yieldType = buildType(inputBody.yieldType());
         Value bodyType = builder.op(invoke(
                 InvokeOp.InvokeKind.STATIC, true,
-                FUNCTION_TYPE_FUNCTION_TYPE.type().returnType(),
+                FUNCTION_TYPE_FUNCTION_TYPE.signature().returnType(),
                 FUNCTION_TYPE_FUNCTION_TYPE, List.of(yieldType)));
         Value body = builder.op(invoke(BODY_BUILDER_OF, ancestorBodyValue, bodyType));
 
@@ -609,7 +609,7 @@ public class OpBuilder {
             } else {
                 assert entryBlock != null;
                 block = builder.op(invoke(InvokeOp.InvokeKind.INSTANCE, true,
-                        BLOCK_BUILDER_BLOCK.type().returnType(),
+                        BLOCK_BUILDER_BLOCK.signature().returnType(),
                         BLOCK_BUILDER_BLOCK, List.of(entryBlock)));
             }
             blockMap.put(inputBlock, block);

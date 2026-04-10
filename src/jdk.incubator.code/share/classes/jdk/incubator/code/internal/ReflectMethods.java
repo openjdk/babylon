@@ -458,12 +458,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
         // Label
         Map.Entry<String, Op.Result> label;
 
-        BodyStack(BodyStack parent, JCTree tree, FunctionType bodyType) {
+        BodyStack(BodyStack parent, JCTree tree, FunctionType bodySignature) {
             this.parent = parent;
 
             this.tree = tree;
 
-            this.body = Body.Builder.of(parent != null ? parent.body : null, bodyType);
+            this.body = Body.Builder.of(parent != null ? parent.body : null, bodySignature);
             this.block = body.entryBlock();
 
             this.localToOp = new LinkedHashMap<>(); // order is important for captured values
@@ -505,10 +505,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
             tree.sym.type.getParameterTypes().stream().map(ReflectMethods.this::typeToCodeType).forEach(parameters::add);
 
-            FunctionType bodyType = CoreType.functionType(
+            FunctionType bodySignature = CoreType.functionType(
                     typeToCodeType(tree.sym.type.getReturnType()), parameters);
 
-            this.stack = this.top = new BodyStack(null, tree.body, bodyType);
+            this.stack = this.top = new BodyStack(null, tree.body, bodySignature);
 
             // @@@ this as local variable? (it can never be stored to)
             for (int i = 0 ; i < tree.params.size() ; i++) {
@@ -635,8 +635,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
         }
 
-        void pushBody(JCTree tree, FunctionType bodyType) {
-            stack = new BodyStack(stack, tree, bodyType);
+        void pushBody(JCTree tree, FunctionType bodySignature) {
+            stack = new BodyStack(stack, tree, bodySignature);
             lastOp = null; // reset
         }
 
@@ -1441,11 +1441,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // as the signature of the constructor symbol is not augmented
             // with enclosing this and captured params.
             MethodRef methodRef = symbolToMethodRef(tree.constructor);
-            argtypes.addAll(methodRef.type().parameterTypes());
-            FunctionType constructorType = CoreType.functionType(
+            argtypes.addAll(methodRef.signature().parameterTypes());
+            FunctionType constructorSignature = CoreType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
-            MethodRef constructorRef = MethodRef.constructor(constructorType);
+            MethodRef constructorRef = MethodRef.constructor(constructorSignature);
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 

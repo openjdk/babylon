@@ -125,7 +125,7 @@ public class SpirvOps {
         private MethodRef descriptor;
 
         public CallOp(MethodRef descriptor, List<Value> operands) {
-            super(nameString(descriptor), descriptor.type().returnType(), operands);
+            super(nameString(descriptor), descriptor.signature().returnType(), operands);
             this.descriptor = descriptor;
         }
 

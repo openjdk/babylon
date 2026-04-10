@@ -556,11 +556,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
 
         default boolean returnsVoid() {
-            return op().invokeReference().type().returnType().equals(JavaType.VOID);
+            return op().invokeReference().signature().returnType().equals(JavaType.VOID);
         }
 
         default CodeType returnType() {
-            return op().invokeReference().type().returnType();
+            return op().invokeReference().signature().returnType();
         }
 
         default boolean returnsInt() {

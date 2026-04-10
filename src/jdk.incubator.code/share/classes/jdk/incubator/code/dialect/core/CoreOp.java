@@ -89,12 +89,12 @@ public sealed abstract class CoreOp extends Op {
         public static class Builder {
             final Body.Builder ancestorBody;
             final String funcName;
-            final FunctionType funcType;
+            final FunctionType signature;
 
-            Builder(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
                 this.ancestorBody = ancestorBody;
                 this.funcName = funcName;
-                this.funcType = funcType;
+                this.signature = signature;
             }
 
             /**
@@ -104,7 +104,7 @@ public sealed abstract class CoreOp extends Op {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
+                Body.Builder body = Body.Builder.of(ancestorBody, signature);
                 c.accept(body.entryBlock());
                 return new FuncOp(funcName, body);
             }
@@ -1520,11 +1520,11 @@ public sealed abstract class CoreOp extends Op {
      * Creates a function operation builder.
      *
      * @param funcName the function name
-     * @param funcType the function type
+     * @param signature the function's signature, represented as a function type
      * @return the function operation builder
      */
-    public static FuncOp.Builder func(String funcName, FunctionType funcType) {
-        return new FuncOp.Builder(null, funcName, funcType);
+    public static FuncOp.Builder func(String funcName, FunctionType signature) {
+        return new FuncOp.Builder(null, funcName, signature);
     }
 
     /**
@@ -1542,24 +1542,24 @@ public sealed abstract class CoreOp extends Op {
      * Creates a function call operation.
      *
      * @param funcName the name of the target function
-     * @param funcType the type of the target function
+     * @param signature the signature of the target function, represented as a function type
      * @param args     the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcType, Value... args) {
-        return funcCall(funcName, funcType, List.of(args));
+    public static FuncCallOp funcCall(String funcName, FunctionType signature, Value... args) {
+        return funcCall(funcName, signature, List.of(args));
     }
 
     /**
      * Creates a function call operation.
      *
-     * @param funcName the name of the target function
-     * @param funcType the type of the target function
-     * @param args     the function arguments
+     * @param funcName  the name of the target function
+     * @param signature the signature of the target function, represented as a function type
+     * @param args      the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcType, List<Value> args) {
-        return new FuncCallOp(funcName, funcType.returnType(), args);
+    public static FuncCallOp funcCall(String funcName, FunctionType signature, List<Value> args) {
+        return new FuncCallOp(funcName, signature.returnType(), args);
     }
 
     /**
