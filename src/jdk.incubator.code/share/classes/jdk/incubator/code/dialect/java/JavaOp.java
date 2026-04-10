@@ -61,7 +61,7 @@ import static jdk.incubator.code.internal.ArithmeticAndConvOpImpls.*;
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
  * Java Language Specification.
  * <p>
- * Java operations model specific Java language constructs or Java program behaviour. Some Java operations model
+ * Java operations model specific Java language constructs or Java program behavior. Some Java operations model
  * structured control flow and nested code. These operations are transformable, commonly referred to as lowering, into
  * a sequence of other core or Java operations. Those that implement {@link Op.Lowerable} can transform themselves and
  * will transform associated operations that are not explicitly lowerable.

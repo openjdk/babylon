@@ -14,7 +14,7 @@ import jdk.incubator.code.extern.ExternalizedCodeType;
  *
  * @apiNote
  * Code types enable reasoning statically about a code model, approximating
- * run time behaviour.
+ * run time behavior.
  *
  * @see Value
  * @see Block.Parameter
@@ -33,7 +33,7 @@ public non-sealed interface CodeType extends CodeItem {
     ExternalizedCodeType externalize();
 
     /**
-     * Return a string representation of this Java type.
+     * Return a string representation of this code type.
      */
     @Override
     String toString();

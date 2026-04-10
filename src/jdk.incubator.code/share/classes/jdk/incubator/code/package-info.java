@@ -31,7 +31,7 @@
 /// This package documentation is organized into three parts. The first part introduces code reflection using
 /// examples and explains how code reflection extends the core reflection API. The second part builds on those examples
 /// and explains how code models can be traversed, executed, built, and transformed. The third part more formally
-/// explains code model structure, code model behaviour, dialects, and the use of `core` and `Java` dialects to define
+/// explains code model structure, code model behavior, dialects, and the use of `core` and `Java` dialects to define
 /// Java code models.
 ///
 /// ## Core reflection API

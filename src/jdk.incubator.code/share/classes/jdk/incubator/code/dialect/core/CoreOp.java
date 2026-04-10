@@ -113,7 +113,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "func";
 
         /**
-         * The externalized attribute modelling the function name
+         * The externalized attribute modeling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
@@ -232,7 +232,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "func.call";
 
         /**
-         * The externalized attribute modelling the name of the invoked function
+         * The externalized attribute modeling the name of the invoked function
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
@@ -887,7 +887,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "constant";
 
         /**
-         * The externalized attribute modelling the constant value
+         * The externalized attribute modeling the constant value
          */
         static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
@@ -1019,7 +1019,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "var";
 
         /**
-         * The externalized attribute modelling the variable name
+         * The externalized attribute modeling the variable name
          */
         static final String ATTRIBUTE_NAME = NAME + ".name";
 
@@ -1329,7 +1329,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "tuple.load";
 
         /**
-         * The externalized attribute modelling the tuple index
+         * The externalized attribute modeling the tuple index
          */
         static final String ATTRIBUTE_INDEX = NAME + ".index";
 
@@ -1409,7 +1409,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "tuple.with";
 
         /**
-         * The externalized attribute modelling the tuple index
+         * The externalized attribute modeling the tuple index
          */
         static final String ATTRIBUTE_INDEX = NAME + ".index";
 
