@@ -484,8 +484,8 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public QuotedOp transform(CodeContext cc, CodeTransformer _ignored) {
-            return new QuotedOp(this, cc, CodeTransformer.COPYING_TRANSFORMER);
+        public QuotedOp transform(CodeContext cc, CodeTransformer ot) {
+            return new QuotedOp(this, cc, ot);
         }
 
         QuotedOp(Body.Builder bodyC) {
