@@ -108,11 +108,11 @@ public final class LoweringTransform {
             Block.Builder curr = blocks.get(i);
             curr.body(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
                 case YieldOp _ when swOp instanceof JavaOp.SwitchStatementOp -> {
-                    b.op(branch(exit.successor()));
+                    b.op(branch(exit.reference()));
                     yield b;
                 }
                 case YieldOp yop when swOp instanceof JavaOp.SwitchExpressionOp -> {
-                    b.op(branch(exit.successor(b.context().getValue(yop.yieldValue()))));
+                    b.op(branch(exit.reference(b.context().getValue(yop.yieldValue()))));
                     yield b;
                 }
                 default -> transformer.acceptOp(b, op);
@@ -134,7 +134,7 @@ public final class LoweringTransform {
             labels.add(null);
             blocks.add(exit);
         }
-        block.op(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::successor).toList()));
+        block.op(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
         return exit;
     }
 

@@ -134,7 +134,7 @@ final class UnresolvedTypesTransformer {
                     case JavaOp.FieldAccessOp fao ->
                         resolveTo(ut, fao.fieldReference().refType());
                     case CoreOp.ReturnOp ro ->
-                        resolveTo(ut, ro.ancestorBody().bodyType().returnType());
+                        resolveTo(ut, ro.ancestorBody().bodySignature().returnType());
                     case CoreOp.VarOp vo ->
                         resolveTo(ut, vo.varValueType());
                     case CoreOp.VarAccessOp.VarStoreOp vso ->

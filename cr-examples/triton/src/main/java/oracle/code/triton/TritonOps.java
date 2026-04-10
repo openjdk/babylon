@@ -232,8 +232,8 @@ public class TritonOps {
         }
 
         @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
+        public FunctionType invokableSignature() {
+            return body.bodySignature();
         }
 
         public String funcName() {
@@ -364,7 +364,7 @@ public class TritonOps {
         }
 
         ReduceOp(int axis, Value tensor, Body.Builder reducerBuilder) {
-            super(reducerBuilder.bodyType().returnType(), List.of(tensor));
+            super(reducerBuilder.bodySignature().returnType(), List.of(tensor));
 
             this.axis = axis;
             this.reducer = reducerBuilder.build(this);
@@ -754,7 +754,7 @@ public class TritonOps {
     }
 
     public static CallOp call(FuncOp func, List<Value> args) {
-        return new CallOp(func.funcName(), func.invokableType().returnType(), args);
+        return new CallOp(func.funcName(), func.invokableSignature().returnType(), args);
     }
 
     public static ReduceOp.Builder reduce(Body.Builder ancestorBody, int axis, Value tensor,

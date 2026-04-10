@@ -851,7 +851,7 @@ public final class ArithmeticAndConvOpImpls {
         if (op instanceof JavaOp.ConvOp) {
             mn = mn + "_" + op.resultType();
         }
-        MethodHandle mh = opHandle(mn, op.opType());
+        MethodHandle mh = opHandle(mn, op.opSignature());
         if (mh == null) {
             throw new NonConstantExpression();
         }

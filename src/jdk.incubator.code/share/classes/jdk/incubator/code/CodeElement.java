@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 
 /**
  * A code element, one of {@link Body body}, {@link Block block}, or {@link Op operation}, is an element in a code
- * model.
+ * model tree.
  * <p>
  * Code elements form a tree. A code element may have a parent code element. A root code element is an operation,
  * a root operation, that has no parent element (a block). A code element and all its ancestors can be traversed,
@@ -40,6 +40,9 @@ import java.util.stream.Stream;
  * <p>
  * A code element may have child code elements. A root code element and all its descendants can be
  * traversed, down to and including elements with no children. Bodies and blocks have at least one child element.
+ * <p>
+ * Operations contain child bodies, bodies contain child blocks, and blocks contain child operations, to form
+ * a tree of arbitrary depth.
  *
  * @param <E> the code element type
  * @param <C> the child code element type.
@@ -153,6 +156,7 @@ public sealed interface CodeElement<
      * @param descendant the descendant element.
      * @return true if this element is an ancestor of the descendant element.
      * @throws IllegalStateException if an unbuilt block is encountered.
+     * @see #isDescendantOf
      */
     default boolean isAncestorOf(CodeElement<?, ?> descendant) {
         Objects.requireNonNull(descendant);
@@ -162,6 +166,19 @@ public sealed interface CodeElement<
             e = e.parent();
         }
         return e != null;
+    }
+
+    /**
+     * Returns true if this element is a descendant of the ancestor element.
+     *
+     * @param ancestor the ancestor element.
+     * @return true if this element is a descendant of the ancestor element.
+     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @see #isAncestorOf
+     */
+    default boolean isDescendantOf(CodeElement<?, ?> ancestor) {
+        Objects.requireNonNull(ancestor);
+        return ancestor.isAncestorOf(this);
     }
 
     /**

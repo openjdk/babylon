@@ -111,7 +111,7 @@ public final class BytecodeGenerator {
         }
 
         try {
-            FunctionType ft = iop.invokableType();
+            FunctionType ft = iop.invokableSignature();
             MethodType mt = MethodRef.toNominalDescriptor(ft).resolveConstantDesc(hcl);
             return hcl.findStatic(hcl.lookupClass(), name, mt);
         } catch (ReflectiveOperationException e) {
@@ -214,7 +214,7 @@ public final class BytecodeGenerator {
                                                                      BitSet reflectableLambda) {
         List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(
-                iop.invokableType()).insertParameterTypes(0, capturedValues.stream()
+                iop.invokableSignature()).insertParameterTypes(0, capturedValues.stream()
                         .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor().andThen(new ExceptionTableCompactor()), cob ->
@@ -882,7 +882,7 @@ public final class BytecodeGenerator {
                             throw new IllegalArgumentException("Could not resolve function: " + op.funcName());
                         }
                         processOperands(op);
-                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(fop.invokableType());
+                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(fop.invokableSignature());
                         cob.invoke(
                                 Opcode.INVOKESTATIC,
                                 className,
@@ -939,7 +939,7 @@ public final class BytecodeGenerator {
                     }
                     case LambdaOp op -> {
                         JavaType intfType = (JavaType)op.functionalInterface();
-                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
+                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableSignature());
                         try {
                             Class<?> intfClass = (Class<?>)intfType.erasure().resolve(lookup);
                             Method intfMethod = funcIntfMethod(intfClass, mtd);
