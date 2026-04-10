@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.NDRange.Tile2D;
+import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -62,7 +63,7 @@ public class TestTensors {
 
     @Reflect
 //    @Kernel("""
-//            HAT_KERNEL void matrixMultiplyKernel2DLIF16(
+//            HAT_KERNEL void mxmTensors(
 //                            HAT_GLOBAL_MEM KernelContext_t* kc,
 //                            HAT_GLOBAL_MEM F16Array_t* matrixA,
 //                            HAT_GLOBAL_MEM F16Array_t* matrixB,
@@ -80,14 +81,14 @@ public class TestTensors {
 //
 //                // wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::col_major> a_frag;
 //                //      => Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.Shape(16, 16, 16), F16.class);
-//                F16_t a_frag[256];
+//                __local F16_t a_frag[256];
 //
 //                //wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::col_major> b_frag;
 //                //      -> Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.Shape(16, 16, 16), F16.class);
-//                F16_t b_frag[256];
+//                __local F16_t b_frag[256];
 //
 //                // wmma::fragment<wmma::accumulator, 16, 16, 16, float> acc_frag;
-//                float acc[16][16];
+//                __local float acc[16][16];
 //
 //                //wmma::fill_fragment(acc_frag, 0.0f);
 //                for (int m = 0; m < WMMA_M; m++)
@@ -112,6 +113,7 @@ public class TestTensors {
 //                            a_frag[m * WMMA_M + n] = r;
 //                        }
 //                    }
+//                    barrier(CLK_LOCAL_MEM_FENCE);
 //
 //                    // wmma::load_matrix_sync(b_frag, b + headSize + bRow + bCol * ldb, ldb);
 //                    for (int m = 0; m < WMMA_M; m++) {
@@ -124,6 +126,7 @@ public class TestTensors {
 //                            b_frag[m * WMMA_M + n] = r;
 //                        }
 //                    }
+//                    barrier(CLK_LOCAL_MEM_FENCE);
 //
 //                    // wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
 //                    for (int m = 0; m < WMMA_M; m++) {
@@ -139,7 +142,9 @@ public class TestTensors {
 //                            acc[m][n] = sum;
 //                        }
 //                    }
+//                    barrier(CLK_LOCAL_MEM_FENCE);
 //                }
+//
 //
 //                int cRow = warpM*WMMA_M;
 //                int cCol = warpN*WMMA_N;
@@ -154,6 +159,7 @@ public class TestTensors {
 //                        matrixC->array[idxC] = acc[m][n];
 //                    }
 //                }
+//                barrier(CLK_LOCAL_MEM_FENCE);
 //            }
 //            """)
     public static void mxmTensors(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {

@@ -239,11 +239,14 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
     delete []events;
 }
 
-void checkThreadBlockFits(OpenCLBackend *backend, KernelContext *kernelContext, size_t *local_work_size) {
+void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelContext, size_t global_work_size[], size_t *local_work_size) {
     const PlatformInfo platformInfo(backend);
     size_t max_group_size = platformInfo.deviceInfo.maxWorkGroupSize;
-    long totalThreads = kernelContext->lsx * kernelContext->lsy * kernelContext->lsz;
+    size_t totalThreads = kernelContext->lsx * kernelContext->lsy * kernelContext->lsz;
+
+    // Adjust depending on the total number of threads in the local-work-group
     while (totalThreads > max_group_size) {
+        // Here just a simple heuristic, starting with the first dimension, 16, 4, 1 local group sizxe
         if (local_work_size[0] >= 16) {
             local_work_size[0] /= 2;
         } else if (local_work_size[1] >= 4) {
@@ -253,6 +256,15 @@ void checkThreadBlockFits(OpenCLBackend *backend, KernelContext *kernelContext, 
         }
         totalThreads = local_work_size[0] * local_work_size[1] * local_work_size[2];
         std::cout << "[Warning] Thread-Block size got automatically resized: " << local_work_size[0] << " " << local_work_size[1] << " " << local_work_size[2] << std::endl;
+    }
+
+    // Adjust also depending on the global size. We can't launch more threads as local work than global work for
+    // each dimension
+    for (int i = 0; i < 3; i++) {
+        while (local_work_size[i] > global_work_size[i]) {
+            local_work_size[i] /= 2;
+            std::cout << "[Warning] Thread-Block size got automatically resized: " << local_work_size[0] << " " << local_work_size[1] << " " << local_work_size[2] << std::endl;
+        }
     }
 }
 
@@ -286,7 +298,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
 
     // Check the local-sizes fit
     auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
-    checkThreadBlockFits(backendInstance, kernelContext, local_work_size);
+    checkThreadBlockFits(backendInstance, kernelContext, global_work_size, local_work_size);
 
     if (backend->config->info) {
         backend->shortDeviceInfo();

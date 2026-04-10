@@ -100,9 +100,7 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                     kernelBufferContext.gsz(global3D.z());
                     kernelBufferContext.dimensions(global3D.dimension());
                 }
-                case null, default -> {
-                    throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.global().getClass());
-                }
+                case null, default -> throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.global().getClass());
             }
 
             if (kernelContext.ndRange.hasLocal()) {
@@ -151,7 +149,6 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                     case null, default -> throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.tile().getClass());
                 }
             }
-
 
             // Set warp
             kernelBufferContext.wsx(false);
