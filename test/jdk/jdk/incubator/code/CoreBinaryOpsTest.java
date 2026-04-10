@@ -32,7 +32,7 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -271,7 +271,7 @@ public class CoreBinaryOpsTest {
                 throw new IllegalArgumentException("Only FuncOps with exactly one distinct parameter type are supported");
             }
             // if the return type does not match the input types, we keep it
-            TypeElement retType = functionType.returnType().equals(functionType.parameterTypes().getFirst())
+            CodeType retType = functionType.returnType().equals(functionType.parameterTypes().getFirst())
                     ? type
                     : functionType.returnType();
             return CoreOp.func(original.funcName(), CoreType.functionType(retType, type, type))
@@ -281,7 +281,7 @@ public class CoreBinaryOpsTest {
 
         private static Stream<Arguments> argumentsForMethod(CoreOp.FuncOp funcOp, Method testMethod) {
             Parameter[] testMethodParameters = testMethod.getParameters();
-            List<TypeElement> funcParameters = funcOp.invokableSignature().parameterTypes();
+            List<CodeType> funcParameters = funcOp.invokableSignature().parameterTypes();
             if (testMethodParameters.length - 1 != funcParameters.size()) {
                 throw new IllegalArgumentException("method " + testMethod + " does not take the correct number of parameters");
             }
@@ -298,7 +298,7 @@ public class CoreBinaryOpsTest {
                 }
             }
             List<List<?>> allInputs = new ArrayList<>();
-            for (TypeElement parameterType : funcParameters) {
+            for (CodeType parameterType : funcParameters) {
                 allInputs.add(INTERESTING_INPUTS.get((JavaType) parameterType));
             }
             return cartesianProduct(allInputs)
@@ -309,9 +309,9 @@ public class CoreBinaryOpsTest {
                     .map(Arguments::of);
         }
 
-        private static Class<?> resolveParameter(TypeElement typeElement, MethodHandles.Lookup lookup) {
+        private static Class<?> resolveParameter(CodeType codeType, MethodHandles.Lookup lookup) {
             try {
-                return (Class<?>)((JavaType) typeElement).erasure().resolve(lookup);
+                return (Class<?>)((JavaType) codeType).erasure().resolve(lookup);
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }

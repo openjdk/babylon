@@ -25,8 +25,9 @@
 
 package jdk.incubator.code.dialect.java;
 
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.impl.RecordTypeRefImpl;
-import jdk.incubator.code.TypeElement;
+
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -38,14 +39,14 @@ public sealed interface RecordTypeRef extends JavaRef
     /**
      * {@return the type of the record class modeled by this reference}
      */
-    TypeElement recordType();
+    CodeType recordType();
 
     /**
      * The symbolic reference to a Java record component.
      * @param type the type of the component
      * @param name the name of the component
      */
-    record ComponentRef(TypeElement type, String name) {}
+    record ComponentRef(CodeType type, String name) {}
 
     /**
      * {@return the components of the record class modeled by this reference}
@@ -76,7 +77,7 @@ public sealed interface RecordTypeRef extends JavaRef
      * @param recordType the record type
      * @param components the components of the record
      */
-    static RecordTypeRef recordType(TypeElement recordType, ComponentRef... components) {
+    static RecordTypeRef recordType(CodeType recordType, ComponentRef... components) {
         return recordType(recordType, List.of(components));
     }
 
@@ -85,7 +86,7 @@ public sealed interface RecordTypeRef extends JavaRef
      * @param recordType the record type
      * @param components the components of the record as a list
      */
-    static RecordTypeRef recordType(TypeElement recordType, List<ComponentRef> components) {
+    static RecordTypeRef recordType(CodeType recordType, List<ComponentRef> components) {
         return new RecordTypeRefImpl(recordType, components);
     }
 }

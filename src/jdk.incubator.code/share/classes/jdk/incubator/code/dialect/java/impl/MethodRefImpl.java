@@ -36,10 +36,10 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
-public record MethodRefImpl(TypeElement refType, String name, FunctionType type) implements MethodRef {
+public record MethodRefImpl(CodeType refType, String name, FunctionType type) implements MethodRef {
 
     static final MethodHandle MULTI_NEW_ARRAY_MH;
 
@@ -112,14 +112,14 @@ public record MethodRefImpl(TypeElement refType, String name, FunctionType type)
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizedCodeType externalize() {
         if (!isConstructor()) {
             return JavaTypeUtils.methodRef(name, refType.externalize(),
                     type.returnType().externalize(),
-                    type.parameterTypes().stream().map(TypeElement::externalize).toList());
+                    type.parameterTypes().stream().map(CodeType::externalize).toList());
         } else {
             return JavaTypeUtils.constructorRef(type.returnType().externalize(),
-                    type.parameterTypes().stream().map(TypeElement::externalize).toList());
+                    type.parameterTypes().stream().map(CodeType::externalize).toList());
         }
     }
 

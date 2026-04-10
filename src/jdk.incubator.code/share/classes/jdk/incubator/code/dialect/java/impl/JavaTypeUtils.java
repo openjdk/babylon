@@ -1,7 +1,7 @@
 package jdk.incubator.code.dialect.java.impl;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.impl.Lexer;
 import jdk.incubator.code.extern.impl.Scanner;
@@ -28,12 +28,12 @@ import java.util.stream.Stream;
  *                  java.type.wildcard(EXTENDS,
  *                                     java.type.class(Bar, java.type.primitive(void))))
  * }
- * Inflated type forms are {@link #flatten(ExternalizedTypeElement) flattened}, to derive a form that is more suitable
+ * Inflated type forms are {@link #flatten(ExternalizedCodeType) flattened}, to derive a form that is more suitable
  * for humans. For instance, the above inflated form is flattened as follows:
  * {@snippet
  * java.type:"Foo<? extends Bar>"
  * }
- * Flattened type forms can be {@link #inflate(ExternalizedTypeElement) inflated} to go back to the original
+ * Flattened type forms can be {@link #inflate(ExternalizedCodeType) inflated} to go back to the original
  * inflated form.
  */
 public class JavaTypeUtils {
@@ -85,7 +85,7 @@ public class JavaTypeUtils {
          * @param tree the externalized type form
          * @return the kind modelling {@code tree}
          */
-        public static Kind of(ExternalizedTypeElement tree) {
+        public static Kind of(ExternalizedCodeType tree) {
             return switch (tree.identifier()) {
                 case JAVA_TYPE_CLASS_NAME, JAVA_TYPE_ARRAY_NAME,
                      JAVA_TYPE_PRIMITIVE_NAME, JAVA_TYPE_WILDCARD_NAME,
@@ -107,25 +107,25 @@ public class JavaTypeUtils {
      * @param encl the enclosing type
      * @param typeargs the type arguments
      */
-    public static ExternalizedTypeElement classType(String name, ExternalizedTypeElement encl, List<ExternalizedTypeElement> typeargs) {
+    public static ExternalizedCodeType classType(String name, ExternalizedCodeType encl, List<ExternalizedCodeType> typeargs) {
         if (encl == null) {
             encl = JavaType.VOID.externalize();
         } else {
             // watch out for names like "1Foo"
             name = escapeInnerClassName(name);
         }
-        List<ExternalizedTypeElement> args = Stream.concat(
+        List<ExternalizedCodeType> args = Stream.concat(
                 Stream.of(nameToType(name), encl),
                 typeargs.stream()).toList();
-        return ExternalizedTypeElement.of(JAVA_TYPE_CLASS_NAME, args);
+        return ExternalizedCodeType.of(JAVA_TYPE_CLASS_NAME, args);
     }
 
     /**
      * {@return an inflated Java array type form}
      * @param component the array component type
      */
-    public static ExternalizedTypeElement arrayType(ExternalizedTypeElement component) {
-        return ExternalizedTypeElement.of(JAVA_TYPE_ARRAY_NAME, component);
+    public static ExternalizedCodeType arrayType(ExternalizedCodeType component) {
+        return ExternalizedCodeType.of(JAVA_TYPE_ARRAY_NAME, component);
     }
 
     /**
@@ -133,8 +133,8 @@ public class JavaTypeUtils {
      * @param boundKind the wildcard bound kind
      * @param bound the wildcard bound
      */
-    public static ExternalizedTypeElement wildcardType(BoundKind boundKind, ExternalizedTypeElement bound) {
-        return ExternalizedTypeElement.of(JAVA_TYPE_WILDCARD_NAME,
+    public static ExternalizedCodeType wildcardType(BoundKind boundKind, ExternalizedCodeType bound) {
+        return ExternalizedCodeType.of(JAVA_TYPE_WILDCARD_NAME,
                 nameToType(boundKind.name()), bound);
     }
 
@@ -144,8 +144,8 @@ public class JavaTypeUtils {
      * @param owner the type-variable owner
      * @param bound the type-variable bound
      */
-    public static ExternalizedTypeElement typeVarType(String name, ExternalizedTypeElement owner, ExternalizedTypeElement bound) {
-        return ExternalizedTypeElement.of(JAVA_TYPE_VAR_NAME,
+    public static ExternalizedCodeType typeVarType(String name, ExternalizedCodeType owner, ExternalizedCodeType bound) {
+        return ExternalizedCodeType.of(JAVA_TYPE_VAR_NAME,
                 nameToType(name), owner, bound);
     }
 
@@ -153,8 +153,8 @@ public class JavaTypeUtils {
      * {@return an inflated Java primitive type form}
      * @param name the name of the primitive type
      */
-    public static ExternalizedTypeElement primitiveType(String name) {
-        return ExternalizedTypeElement.of(JAVA_TYPE_PRIMITIVE_NAME,
+    public static ExternalizedCodeType primitiveType(String name) {
+        return ExternalizedCodeType.of(JAVA_TYPE_PRIMITIVE_NAME,
                 nameToType(name));
     }
 
@@ -164,8 +164,8 @@ public class JavaTypeUtils {
      * @param owner the field owner
      * @param type the field type
      */
-    public static ExternalizedTypeElement fieldRef(String name, ExternalizedTypeElement owner, ExternalizedTypeElement type) {
-        return ExternalizedTypeElement.of(JAVA_REF_FIELD_NAME,
+    public static ExternalizedCodeType fieldRef(String name, ExternalizedCodeType owner, ExternalizedCodeType type) {
+        return ExternalizedCodeType.of(JAVA_REF_FIELD_NAME,
                 owner, nameToType(name), type);
     }
 
@@ -176,9 +176,9 @@ public class JavaTypeUtils {
      * @param restype the method return type
      * @param paramtypes the method parameter types
      */
-    public static ExternalizedTypeElement methodRef(String name, ExternalizedTypeElement owner, ExternalizedTypeElement restype, List<ExternalizedTypeElement> paramtypes) {
-        return ExternalizedTypeElement.of(JAVA_REF_METHOD_NAME,
-                owner, ExternalizedTypeElement.of(name, paramtypes), restype);
+    public static ExternalizedCodeType methodRef(String name, ExternalizedCodeType owner, ExternalizedCodeType restype, List<ExternalizedCodeType> paramtypes) {
+        return ExternalizedCodeType.of(JAVA_REF_METHOD_NAME,
+                owner, ExternalizedCodeType.of(name, paramtypes), restype);
     }
 
     /**
@@ -186,9 +186,9 @@ public class JavaTypeUtils {
      * @param owner the constructor owner
      * @param paramtypes the constructor parameter types
      */
-    public static ExternalizedTypeElement constructorRef(ExternalizedTypeElement owner, List<ExternalizedTypeElement> paramtypes) {
-        return ExternalizedTypeElement.of(JAVA_REF_CONSTRUCTOR_NAME,
-                owner, ExternalizedTypeElement.of("", paramtypes));
+    public static ExternalizedCodeType constructorRef(ExternalizedCodeType owner, List<ExternalizedCodeType> paramtypes) {
+        return ExternalizedCodeType.of(JAVA_REF_CONSTRUCTOR_NAME,
+                owner, ExternalizedCodeType.of("", paramtypes));
     }
 
     /**
@@ -197,12 +197,12 @@ public class JavaTypeUtils {
      * @param componentNames the record component names
      * @param componentTypes the record component types
      */
-    public static ExternalizedTypeElement recordRef(ExternalizedTypeElement owner, List<String> componentNames, List<ExternalizedTypeElement> componentTypes) {
-        return ExternalizedTypeElement.of(JAVA_REF_RECORD_NAME,
+    public static ExternalizedCodeType recordRef(ExternalizedCodeType owner, List<String> componentNames, List<ExternalizedCodeType> componentTypes) {
+        return ExternalizedCodeType.of(JAVA_REF_RECORD_NAME,
                 Stream.concat(
                         Stream.of(owner),
                         IntStream.range(0, componentNames.size())
-                                .mapToObj(i -> ExternalizedTypeElement.of(componentNames.get(i), componentTypes.get(i)))
+                                .mapToObj(i -> ExternalizedCodeType.of(componentNames.get(i), componentTypes.get(i)))
                 ).toList());
     }
 
@@ -212,7 +212,7 @@ public class JavaTypeUtils {
      * {@return a {@code JavaType} modelling the provided inflated Java type form}.
      * @param tree the inflated Java type form
      */
-    public static JavaType toJavaType(ExternalizedTypeElement tree) {
+    public static JavaType toJavaType(ExternalizedCodeType tree) {
         return switch (tree.identifier()) {
             case JAVA_TYPE_CLASS_NAME -> {
                 String name = unescapeInnerClassName(select(tree, 0, JavaTypeUtils::typeToName));
@@ -257,7 +257,7 @@ public class JavaTypeUtils {
      * {@return a {@code JavaRef} modelling the provided inflated Java reference form}.
      * @param tree the inflated Java reference form
      */
-    public static JavaRef toJavaRef(ExternalizedTypeElement tree) {
+    public static JavaRef toJavaRef(ExternalizedCodeType tree) {
         return switch (tree.identifier()) {
             case JAVA_REF_FIELD_NAME -> {
                 JavaType owner = select(tree, 0, JavaTypeUtils::toJavaType);
@@ -267,7 +267,7 @@ public class JavaTypeUtils {
             }
             case JAVA_REF_METHOD_NAME -> {
                 JavaType owner = select(tree, 0, JavaTypeUtils::toJavaType);
-                ExternalizedTypeElement nameAndArgs = select(tree, 1, Function.identity());
+                ExternalizedCodeType nameAndArgs = select(tree, 1, Function.identity());
                 String methodName = nameAndArgs.identifier();
                 List<JavaType> paramTypes = selectFrom(nameAndArgs, 0, JavaTypeUtils::toJavaType);
                 JavaType restype = select(tree, 2, JavaTypeUtils::toJavaType);
@@ -275,7 +275,7 @@ public class JavaTypeUtils {
             }
             case JAVA_REF_CONSTRUCTOR_NAME -> {
                 JavaType owner = select(tree, 0, JavaTypeUtils::toJavaType);
-                ExternalizedTypeElement nameAndArgs = select(tree, 1, Function.identity());
+                ExternalizedCodeType nameAndArgs = select(tree, 1, Function.identity());
                 List<JavaType> paramTypes = selectFrom(nameAndArgs, 0, JavaTypeUtils::toJavaType);
                 yield MethodRef.constructor(owner, paramTypes);
             }
@@ -299,11 +299,11 @@ public class JavaTypeUtils {
      * {@return a flat string modelling the provided inflated Java type form}.
      * @param tree the inflated Java type form
      */
-    public static String toExternalTypeString(ExternalizedTypeElement tree) {
+    public static String toExternalTypeString(ExternalizedCodeType tree) {
         return switch (tree.identifier()) {
             case JAVA_TYPE_CLASS_NAME -> {
                 String className = select(tree, 0, JavaTypeUtils::typeToName);
-                ExternalizedTypeElement enclosing = select(tree, 1, Function.identity());
+                ExternalizedCodeType enclosing = select(tree, 1, Function.identity());
                 String typeargs = tree.arguments().size() == 2 ?
                         "" :
                         selectFrom(tree, 2, JavaTypeUtils::toExternalTypeString).stream()
@@ -321,7 +321,7 @@ public class JavaTypeUtils {
             }
             case JAVA_TYPE_WILDCARD_NAME -> {
                 BoundKind boundKind = select(tree, 0, t -> BoundKind.valueOf(typeToName(t)));
-                ExternalizedTypeElement bound = select(tree, 1, Function.identity());
+                ExternalizedCodeType bound = select(tree, 1, Function.identity());
                 yield boundKind == BoundKind.EXTENDS && isSameType(bound, JavaType.J_L_OBJECT) ?
                         "?" :
                         String.format("? %s %s", boundKind.name().toLowerCase(), toExternalTypeString(bound));
@@ -334,7 +334,7 @@ public class JavaTypeUtils {
                             case INFLATED_TYPE -> toExternalTypeString(t);
                             default -> throw unsupported(t);
                         });
-                ExternalizedTypeElement bound = select(tree, 2, Function.identity());
+                ExternalizedCodeType bound = select(tree, 2, Function.identity());
                 yield isSameType(bound, JavaType.J_L_OBJECT) ?
                         String.format("%s::<%s>", owner, tvarName) :
                         String.format("%s::<%s extends %s>", owner, tvarName, toExternalTypeString(bound));
@@ -348,7 +348,7 @@ public class JavaTypeUtils {
      * {@return a flat string modelling the provided inflated Java reference form}.
      * @param tree the inflated Java type form
      */
-    public static String toExternalRefString(ExternalizedTypeElement tree) {
+    public static String toExternalRefString(ExternalizedCodeType tree) {
         return switch (tree.identifier()) {
             case JAVA_REF_FIELD_NAME -> {
                 String owner = select(tree, 0, JavaTypeUtils::toExternalTypeString);
@@ -358,7 +358,7 @@ public class JavaTypeUtils {
             }
             case JAVA_REF_METHOD_NAME -> {
                 String owner = select(tree, 0, JavaTypeUtils::toExternalTypeString);
-                ExternalizedTypeElement nameAndArgs = select(tree, 1, Function.identity());
+                ExternalizedCodeType nameAndArgs = select(tree, 1, Function.identity());
                 String methodName = nameAndArgs.identifier();
                 List<String> paramTypes = selectFrom(nameAndArgs, 0, JavaTypeUtils::toExternalTypeString);
                 String restype = select(tree, 2, JavaTypeUtils::toExternalTypeString);
@@ -366,7 +366,7 @@ public class JavaTypeUtils {
             }
             case JAVA_REF_CONSTRUCTOR_NAME -> {
                 String owner = select(tree, 0, JavaTypeUtils::toExternalTypeString);
-                ExternalizedTypeElement nameAndArgs = select(tree, 1, Function.identity());
+                ExternalizedCodeType nameAndArgs = select(tree, 1, Function.identity());
                 List<String> paramTypes = selectFrom(nameAndArgs, 0, JavaTypeUtils::toExternalTypeString);
                 yield String.format("%s::(%s)", owner, String.join(", ", paramTypes));
             }
@@ -390,7 +390,7 @@ public class JavaTypeUtils {
      * {@return an inflated Java type form, parsed from the provided external type string}
      * @param desc the external type string to be parsed
      */
-    public static ExternalizedTypeElement parseExternalTypeString(String desc) {
+    public static ExternalizedCodeType parseExternalTypeString(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
         return parseExternalTypeString(s);
@@ -400,7 +400,7 @@ public class JavaTypeUtils {
      * {@return an inflated Java reference form, parsed from the provided external reference string}
      * @param desc the external reference string to be parsed
      */
-    public static ExternalizedTypeElement parseExternalRefString(String desc) {
+    public static ExternalizedCodeType parseExternalRefString(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
         return parseExternalRefString(s);
@@ -412,11 +412,11 @@ public class JavaTypeUtils {
      * {@return the flat Java form corresponding to the provided inflated Java form}
      * @param tree the inflated Java form
      */
-    public static ExternalizedTypeElement flatten(ExternalizedTypeElement tree) {
+    public static ExternalizedCodeType flatten(ExternalizedCodeType tree) {
         return switch (Kind.of(tree)) {
             case INFLATED_TYPE -> nameToType(String.format("%s\"%s\"", JAVA_TYPE_FLAT_NAME_PREFIX, toExternalTypeString(tree)));
             case INFLATED_REF -> nameToType(String.format("%s\"%s\"", JAVA_REF_FLAT_NAME_PREFIX, toExternalRefString(tree)));
-            default -> ExternalizedTypeElement.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::flatten).toList());
+            default -> ExternalizedCodeType.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::flatten).toList());
         };
     }
 
@@ -424,11 +424,11 @@ public class JavaTypeUtils {
      * {@return the inflated Java form corresponding to the provided flattened Java form}
      * @param tree the flattened Java form
      */
-    public static ExternalizedTypeElement inflate(ExternalizedTypeElement tree) {
+    public static ExternalizedCodeType inflate(ExternalizedCodeType tree) {
         return switch (Kind.of(tree)) {
             case FLATTENED_TYPE -> parseExternalTypeString(getDesc(tree, JAVA_TYPE_FLAT_NAME_PREFIX));
             case FLATTENED_REF -> parseExternalRefString(getDesc(tree, JAVA_REF_FLAT_NAME_PREFIX));
-            default -> ExternalizedTypeElement.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::inflate).toList());
+            default -> ExternalizedCodeType.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::inflate).toList());
         };
     }
 
@@ -456,33 +456,33 @@ public class JavaTypeUtils {
                 s.substring(1) : s;
     }
 
-    private static ExternalizedTypeElement nameToType(String name) {
-        return ExternalizedTypeElement.of(name);
+    private static ExternalizedCodeType nameToType(String name) {
+        return ExternalizedCodeType.of(name);
     }
 
-    private static String typeToName(ExternalizedTypeElement tree) {
+    private static String typeToName(ExternalizedCodeType tree) {
         if (!tree.arguments().isEmpty()) {
             throw unsupported(tree);
         }
         return tree.identifier();
     }
 
-    private static boolean isSameType(ExternalizedTypeElement tree, TypeElement typeElement) {
-        return tree.equals(typeElement.externalize());
+    private static boolean isSameType(ExternalizedCodeType tree, CodeType codeType) {
+        return tree.equals(codeType.externalize());
     }
 
     private static boolean isPrimitive(String name) {
         return PRIMITIVE_TYPES.containsKey(name);
     }
 
-    private static <T> T select(ExternalizedTypeElement tree, int index, Function<ExternalizedTypeElement, T> valueFunc) {
+    private static <T> T select(ExternalizedCodeType tree, int index, Function<ExternalizedCodeType, T> valueFunc) {
         if (index >= tree.arguments().size()) {
             throw unsupported(tree);
         }
         return valueFunc.apply(tree.arguments().get(index));
     }
 
-    private static <T> List<T> selectFrom(ExternalizedTypeElement tree, int startIncl, Function<ExternalizedTypeElement, T> valueFunc) {
+    private static <T> List<T> selectFrom(ExternalizedCodeType tree, int startIncl, Function<ExternalizedCodeType, T> valueFunc) {
         if (startIncl >= tree.arguments().size()) {
             return List.of();
         }
@@ -491,7 +491,7 @@ public class JavaTypeUtils {
                 .toList();
     }
 
-    private static String getDesc(ExternalizedTypeElement tree, String prefix) {
+    private static String getDesc(ExternalizedCodeType tree, String prefix) {
         String id = tree.identifier();
         return id.substring(prefix.length() + 1, id.length() - 1);
     }
@@ -539,12 +539,12 @@ public class JavaTypeUtils {
     //        '?' 'extends' JavaType                                // covariant type argument
     //        '?' 'super' JavaType                                  // contravariant type argument
     //        JavaType
-    private static ExternalizedTypeElement parseExternalTypeString(Lexer l) {
-        ExternalizedTypeElement type = null;
+    private static ExternalizedCodeType parseExternalTypeString(Lexer l) {
+        ExternalizedCodeType type = null;
         if (l.is(Tokens.TokenKind.AMP)) {
             l.nextToken();
             // method or constructor type variable
-            ExternalizedTypeElement owner = parseExternalRefString(l);
+            ExternalizedCodeType owner = parseExternalRefString(l);
             l.accept(Tokens.TokenKind.COLCOL);
             type = parseTypeVariableRest(owner, l);
         } else if (l.is(Tokens.TokenKind.IDENTIFIER)) {
@@ -564,7 +564,7 @@ public class JavaTypeUtils {
                         className.append(l.token().name());
                         l.nextToken();
                     }
-                    List<ExternalizedTypeElement> typeargs = new ArrayList<>();
+                    List<ExternalizedCodeType> typeargs = new ArrayList<>();
                     if (l.acceptIf(Tokens.TokenKind.LT)) {
                         if (l.token().kind != Tokens.TokenKind.GT) {
                             typeargs.add(parseTypeArgument(l));
@@ -604,11 +604,11 @@ public class JavaTypeUtils {
         return type;
     }
 
-    private static ExternalizedTypeElement parseTypeVariableRest(ExternalizedTypeElement owner, Lexer l) {
+    private static ExternalizedCodeType parseTypeVariableRest(ExternalizedCodeType owner, Lexer l) {
         l.accept(Tokens.TokenKind.LT);
         String name = l.token().name();
         l.nextToken();
-        ExternalizedTypeElement bound = JavaType.J_L_OBJECT.externalize();
+        ExternalizedCodeType bound = JavaType.J_L_OBJECT.externalize();
         if (l.is(Tokens.TokenKind.IDENTIFIER) &&
                 l.token().name().equals("extends")) {
             l.nextToken();
@@ -618,11 +618,11 @@ public class JavaTypeUtils {
         return JavaTypeUtils.typeVarType(name, owner, bound);
     }
 
-    private static ExternalizedTypeElement parseTypeArgument(Lexer l) {
+    private static ExternalizedCodeType parseTypeArgument(Lexer l) {
         if (l.is(Tokens.TokenKind.QUES)) {
             // wildcard
             l.nextToken();
-            ExternalizedTypeElement bound = JavaType.J_L_OBJECT.externalize();
+            ExternalizedCodeType bound = JavaType.J_L_OBJECT.externalize();
             WildcardType.BoundKind bk = BoundKind.EXTENDS;
             if (l.is(Tokens.TokenKind.IDENTIFIER)) {
                 bk = switch (l.token().name()) {
@@ -639,8 +639,8 @@ public class JavaTypeUtils {
         }
     }
 
-    private static List<ExternalizedTypeElement> parseParameterTypes(Lexer l) {
-        List<ExternalizedTypeElement> ptypes = new ArrayList<>();
+    private static List<ExternalizedCodeType> parseParameterTypes(Lexer l) {
+        List<ExternalizedCodeType> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
             ptypes.add(parseExternalTypeString(l));
@@ -660,11 +660,11 @@ public class JavaTypeUtils {
     //
     //    RecordComponent:
     //        JavaType ident
-    private static ExternalizedTypeElement parseExternalRefString(Lexer l) {
+    private static ExternalizedCodeType parseExternalRefString(Lexer l) {
         if (l.acceptIf(Tokens.TokenKind.LPAREN)) {
             // record type reference
             List<String> componentNames = new ArrayList<>();
-            List<ExternalizedTypeElement> componentTypes = new ArrayList<>();
+            List<ExternalizedCodeType> componentTypes = new ArrayList<>();
             if (l.token().kind != Tokens.TokenKind.RPAREN) {
                 do {
                     componentTypes.add(parseExternalTypeString(l));
@@ -672,15 +672,15 @@ public class JavaTypeUtils {
                 } while(l.acceptIf(Tokens.TokenKind.COMMA));
             }
             l.accept(Tokens.TokenKind.RPAREN);
-            ExternalizedTypeElement recordType = parseExternalTypeString(l);
+            ExternalizedCodeType recordType = parseExternalTypeString(l);
             return JavaTypeUtils.recordRef(recordType, componentNames, componentTypes);
         }
-        ExternalizedTypeElement refType = parseExternalTypeString(l);
+        ExternalizedCodeType refType = parseExternalTypeString(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
         if (l.is(Tokens.TokenKind.LPAREN)) {
             // constructor ref
-            List<ExternalizedTypeElement> ptypes = parseParameterTypes(l);
+            List<ExternalizedCodeType> ptypes = parseParameterTypes(l);
             return JavaTypeUtils.constructorRef(refType, ptypes);
         }
 
@@ -688,19 +688,19 @@ public class JavaTypeUtils {
         String memberName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
         if (l.is(Tokens.TokenKind.LPAREN)) {
             // method ref
-            List<ExternalizedTypeElement> params = parseParameterTypes(l);
+            List<ExternalizedCodeType> params = parseParameterTypes(l);
             l.accept(Tokens.TokenKind.COLON);
-            ExternalizedTypeElement rtype = parseExternalTypeString(l);
+            ExternalizedCodeType rtype = parseExternalTypeString(l);
             return JavaTypeUtils.methodRef(memberName, refType, rtype, params);
         } else {
             // field ref
             l.accept(Tokens.TokenKind.COLON);
-            ExternalizedTypeElement ftype = parseExternalTypeString(l);
+            ExternalizedCodeType ftype = parseExternalTypeString(l);
             return JavaTypeUtils.fieldRef(memberName, refType, ftype);
         }
     }
 
-    private static UnsupportedOperationException unsupported(ExternalizedTypeElement tree) {
+    private static UnsupportedOperationException unsupported(ExternalizedCodeType tree) {
         throw new UnsupportedOperationException("Unsupported type: " + tree);
     }
 }

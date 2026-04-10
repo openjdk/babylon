@@ -100,7 +100,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         addressSize().sp().size(addressSize);
     }
 
-    public void functionHeader(String funcName, boolean entry, TypeElement yieldType) {
+    public void functionHeader(String funcName, boolean entry, CodeType yieldType) {
         if (entry) {
             visible().sp().entry().sp();
         } else {
@@ -649,20 +649,20 @@ PTXHATKernelBuilder symbol(Op op) {
         return (addressSize == 32) ? PTXRegister.Type.U32 : PTXRegister.Type.U64;
     }
 
-    public PTXHATKernelBuilder resultType(TypeElement type, boolean signedResult) {
+    public PTXHATKernelBuilder resultType(CodeType type, boolean signedResult) {
         PTXRegister.Type res = getResultType(type);
         if (signedResult && (res == PTXRegister.Type.U32)) return s32();
         return dot().type(getResultType(type).getName());
     }
 
-    public PTXHATKernelBuilder paramType(TypeElement type) {
+    public PTXHATKernelBuilder paramType(CodeType type) {
         PTXRegister.Type res = getResultType(type);
         if (res == PTXRegister.Type.U32) return b32();
         if (res == PTXRegister.Type.U64) return b64();
         return dot().type(getResultType(type).getName());
     }
 
-    public PTXRegister.Type getResultType(TypeElement type) {
+    public PTXRegister.Type getResultType(CodeType type) {
         switch (type.toString()) {
             case "float" -> {
                 return PTXRegister.Type.F32;

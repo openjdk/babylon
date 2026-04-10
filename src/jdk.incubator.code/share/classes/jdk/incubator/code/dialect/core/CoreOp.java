@@ -211,7 +211,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -237,7 +237,7 @@ public sealed abstract class CoreOp extends Op {
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         FuncCallOp(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
@@ -261,7 +261,7 @@ public sealed abstract class CoreOp extends Op {
             return new FuncCallOp(this, cc);
         }
 
-        FuncCallOp(String funcName, TypeElement resultType, List<Value> args) {
+        FuncCallOp(String funcName, CodeType resultType, List<Value> args) {
             super(args);
 
             this.funcName = funcName;
@@ -281,7 +281,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -379,7 +379,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
@@ -515,7 +515,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "quoted";
 
         /**
-         * The Java type element modeling the parameterized type {@code Quoted<Op>}
+         * The Java type modeling the parameterized type {@code Quoted<Op>}
          * that is the result type of a quoted operation.
          */
         public static final JavaType QUOTED_OP_TYPE = JavaType.parameterized(
@@ -569,7 +569,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return QUOTED_OP_TYPE;
         }
 
@@ -634,7 +634,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -675,7 +675,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -731,7 +731,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -789,7 +789,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -867,7 +867,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -892,7 +892,7 @@ public sealed abstract class CoreOp extends Op {
         static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         ConstantOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
@@ -905,7 +905,7 @@ public sealed abstract class CoreOp extends Op {
             this(def.resultType(), value);
         }
 
-        static Object processConstantValue(TypeElement t, Object value) {
+        static Object processConstantValue(CodeType t, Object value) {
             if (t.equals(JavaType.BOOLEAN) && value instanceof Boolean) {
                 return value;
             } else if (t.equals(JavaType.BYTE) && value instanceof Number n) {
@@ -927,7 +927,7 @@ public sealed abstract class CoreOp extends Op {
                         null : (String)value;
             } else if (t.equals(JavaType.J_L_CLASS)) {
                 return value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ?
-                        null : (TypeElement)value;
+                        null : (CodeType)value;
             } else if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
@@ -947,7 +947,7 @@ public sealed abstract class CoreOp extends Op {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeElement resultType, Object value) {
+        ConstantOp(CodeType resultType, Object value) {
             super(List.of());
 
             this.resultType = resultType;
@@ -967,7 +967,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1006,8 +1006,8 @@ public sealed abstract class CoreOp extends Op {
      * A variable operation accepts zero or one operand, corresponding to the initial value of the variable when
      * present.
      * <p>
-     * The result type of a variable operation is the parameterized class type {@code Var<T>},
-     * where {@code T} is the type element modeling the variable's type.
+     * The result type of a variable operation is the parameterized type {@code Var<T>},
+     * where {@code T} is the code type modeling the variable's type.
      *
      * @jls 14.4 Local Variable Declarations
      * @jls 8.4.1 Formal Parameters
@@ -1062,7 +1062,7 @@ public sealed abstract class CoreOp extends Op {
             return new VarOp(this, cc);
         }
 
-        VarOp(String varName, TypeElement type, Value init) {
+        VarOp(String varName, CodeType type, Value init) {
             super(init == null ? List.of() : List.of(init));
 
             this.varName =  varName == null ? "" : varName;
@@ -1096,7 +1096,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * {@return the variable type}
          */
-        public TypeElement varValueType() {
+        public CodeType varValueType() {
             return resultType.valueType();
         }
 
@@ -1213,7 +1213,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return varType().valueType();
             }
         }
@@ -1268,7 +1268,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return JavaType.VOID;
             }
         }
@@ -1309,7 +1309,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return CoreType.tupleTypeFromValues(operands());
         }
     }
@@ -1386,7 +1386,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType t = (TupleType) tupleValue.type();
             return t.componentTypes().get(index);
@@ -1474,12 +1474,12 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType tupleType = (TupleType) tupleValue.type();
             Value value = operands().get(1);
 
-            List<TypeElement> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
+            List<CodeType> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
             tupleComponentTypes.set(index, value.type());
             return CoreType.tupleType(tupleComponentTypes);
         }
@@ -1716,7 +1716,7 @@ public sealed abstract class CoreOp extends Op {
      * @param value the constant value
      * @return the constant operation
      */
-    public static ConstantOp constant(TypeElement type, Object value) {
+    public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
     }
 
@@ -1729,7 +1729,7 @@ public sealed abstract class CoreOp extends Op {
      * @param type the type of the var's value
      * @return the var operation
      */
-    public static VarOp var(TypeElement type) {
+    public static VarOp var(CodeType type) {
         return var(null, type);
     }
 
@@ -1740,7 +1740,7 @@ public sealed abstract class CoreOp extends Op {
      * @param type the variable type
      * @return the var operation
      */
-    public static VarOp var(String name, TypeElement type) {
+    public static VarOp var(String name, CodeType type) {
         return var(name, type, null);
     }
 
@@ -1777,7 +1777,7 @@ public sealed abstract class CoreOp extends Op {
      * @param init the variable's initial value
      * @return the var operation
      */
-    public static VarOp var(String name, TypeElement type, Value init) {
+    public static VarOp var(String name, CodeType type, Value init) {
         return new VarOp(name, type, init);
     }
 

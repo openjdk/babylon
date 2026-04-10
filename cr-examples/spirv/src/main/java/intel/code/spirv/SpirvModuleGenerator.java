@@ -58,7 +58,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVHeader;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVModule;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVFunction;
@@ -126,10 +126,10 @@ public class SpirvModuleGenerator {
     }
 
     private void generateFunction(String moduleName, String fnName, SpirvOps.FuncOp func) {
-        TypeElement returnType = func.invokableSignature().returnType();
+        CodeType returnType = func.invokableSignature().returnType();
         SPIRVId functionID = nextId(fnName);
         String signature = func.invokableSignature().returnType().toString();
-        List<TypeElement> paramTypes = func.invokableSignature().parameterTypes();
+        List<CodeType> paramTypes = func.invokableSignature().parameterTypes();
         // build signature string
         for (int i = 0; i < paramTypes.size(); i++) {
             signature += "_" + paramTypes.get(i).toString();

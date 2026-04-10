@@ -24,7 +24,7 @@ public record ExternalizedOp(String name,
                              Op.Location location,
                              List<Value> operands,
                              List<Block.Reference> successors,
-                             TypeElement resultType,
+                             CodeType resultType,
                              Map<String, Object> attributes,
                              List<Body.Builder> bodyDefinitions) {
 

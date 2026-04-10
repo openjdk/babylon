@@ -37,13 +37,13 @@ import java.util.Map;
 public abstract sealed class HATPtrOp extends HATOp
         permits HATPtrOp.HATPtrLengthOp, HATPtrOp.HATPtrLoadOp, HATPtrOp.HATPtrStoreOp {
 
-    private TypeElement resultType;
+    private CodeType resultType;
     private List<String> strides;
     private String name;
 
     private static final String NAME = "HATPtrOp";
 
-    public HATPtrOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+    public HATPtrOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
         this(operands);
         this.resultType = resultType;
         List<String> retValue = List.of();
@@ -87,7 +87,7 @@ public abstract sealed class HATPtrOp extends HATOp
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return resultType;
     }
 
@@ -108,7 +108,7 @@ public abstract sealed class HATPtrOp extends HATOp
 
         private static final String NAME = "HATPtrStoreOp";
 
-        public HATPtrStoreOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        public HATPtrStoreOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
         }
 
@@ -136,7 +136,7 @@ public abstract sealed class HATPtrOp extends HATOp
 
         private static final String NAME = "HATPtrLoadOp";
 
-        public HATPtrLoadOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        public HATPtrLoadOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
         }
 
@@ -163,7 +163,7 @@ public abstract sealed class HATPtrOp extends HATOp
 
         private static final String NAME = "HATPtrLengthOp";
 
-        public HATPtrLengthOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        public HATPtrLengthOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
         }
 

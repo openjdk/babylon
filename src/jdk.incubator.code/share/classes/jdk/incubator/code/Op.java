@@ -455,7 +455,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return the operation's result type}
      */
-    public abstract TypeElement resultType();
+    public abstract CodeType resultType();
 
 
     /**
@@ -492,7 +492,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the operation's signature
      */
     public final FunctionType opSignature() {
-        List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
+        List<CodeType> operandTypes = operands.stream().map(Value::type).toList();
         return CoreType.functionType(resultType(), operandTypes);
     }
 

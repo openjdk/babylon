@@ -485,7 +485,7 @@ public final class BytecodeGenerator {
         return use.op() instanceof ConditionalBranchOp;
     }
 
-    static ClassDesc toClassDesc(TypeElement t) {
+    static ClassDesc toClassDesc(CodeType t) {
         return switch (t) {
             case VarType vt -> toClassDesc(vt.valueType());
             case JavaType jt -> jt.toNominalDescriptor();
@@ -494,7 +494,7 @@ public final class BytecodeGenerator {
         };
     }
 
-    static TypeKind toTypeKind(TypeElement t) {
+    static TypeKind toTypeKind(CodeType t) {
         return switch (t) {
             case VarType vt -> toTypeKind(vt.valueType());
             case PrimitiveType pt -> TypeKind.from(pt.toNominalDescriptor());
@@ -554,7 +554,7 @@ public final class BytecodeGenerator {
             List<Op> ops = b.ops();
             for (int i = 0; i < ops.size() - 1; i++) {
                 final Op o = ops.get(i);
-                final TypeElement oprType = o.resultType();
+                final CodeType oprType = o.resultType();
                 final TypeKind rvt = toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
@@ -1149,7 +1149,7 @@ public final class BytecodeGenerator {
 
     // the rhs of any shift instruction must be int or smaller -> convert longs
     private void adjustRightTypeToInt(Op op) {
-        TypeElement right = op.operands().getLast().type();
+        CodeType right = op.operands().getLast().type();
         if (right.equals(JavaType.LONG)) {
             cob.conversion(toTypeKind(right), TypeKind.INT);
         }

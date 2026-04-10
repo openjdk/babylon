@@ -25,7 +25,7 @@
 
 package jdk.incubator.code.extern.impl;
 
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import jdk.incubator.code.extern.impl.Tokens.TokenKind;
 
 import java.util.ArrayList;
@@ -35,14 +35,14 @@ public final class DescParser {
     private DescParser() {}
 
     /**
-     * Parse an externalized type element from its serialized textual form.
-     * @param desc the serialized externalized type element
-     * @return the externalized type element
+     * Parse an externalized code type from its serialized textual form.
+     * @param desc the serialized externalized code type
+     * @return the externalized code type
      */
-    public static ExternalizedTypeElement parseExTypeElem(String desc) {
+    public static ExternalizedCodeType parseExCodeType(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseExTypeElem(s);
+        return parseExCodeType(s);
     }
 
     //    ExType:
@@ -60,28 +60,28 @@ public final class DescParser {
     //    ExIdentSep:
     //        '.'
     //        ':'
-    public static ExternalizedTypeElement parseExTypeElem(Lexer l) {
+    public static ExternalizedCodeType parseExCodeType(Lexer l) {
         StringBuilder identifier = new StringBuilder();
-        identifier.append(parseExTypeNamePart(l));
+        identifier.append(parseExCodeTypeNamePart(l));
         while (l.is(TokenKind.DOT) || l.is(TokenKind.COLON)) {
             identifier.append(l.token().kind.name);
             l.nextToken();
-            identifier.append(parseExTypeNamePart(l));
+            identifier.append(parseExCodeTypeNamePart(l));
         }
-        List<ExternalizedTypeElement> args = new ArrayList<>();
+        List<ExternalizedCodeType> args = new ArrayList<>();
         if (l.is(TokenKind.LT)) {
             l.accept(TokenKind.LT);
-            args.add(parseExTypeElem(l));
+            args.add(parseExCodeType(l));
             while (l.is(TokenKind.COMMA)) {
                 l.accept(TokenKind.COMMA);
-                args.add(parseExTypeElem(l));
+                args.add(parseExCodeType(l));
             }
             l.accept(TokenKind.GT);
         }
-        return new ExternalizedTypeElement(identifier.toString(), args);
+        return new ExternalizedCodeType(identifier.toString(), args);
     }
 
-    private static String parseExTypeNamePart(Lexer l) {
+    private static String parseExCodeTypeNamePart(Lexer l) {
         String namePart = switch (l.token().kind) {
             case IDENTIFIER -> l.token().name();
             case STRINGLITERAL -> "\"" + l.token().stringVal() + "\"";

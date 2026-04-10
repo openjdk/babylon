@@ -38,12 +38,12 @@ import java.util.*;
 public sealed abstract class Value implements CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
-    final TypeElement type;
+    final CodeType type;
     // @@@ In topological order?
     //     Can the representation be more efficient e.g. an array?
     final SequencedSet<Op.Result> uses;
 
-    Value(Block block, TypeElement type) {
+    Value(Block block, CodeType type) {
         this.block = block;
         this.type = type;
         this.uses = new LinkedHashSet<>();
@@ -85,7 +85,7 @@ public sealed abstract class Value implements CodeItem
      *
      * @return the type of the value.
      */
-    public TypeElement type() {
+    public CodeType type() {
         return type;
     }
 

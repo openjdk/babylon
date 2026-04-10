@@ -30,7 +30,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -68,7 +68,7 @@ public final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminati
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return JavaType.VOID;
     }
 

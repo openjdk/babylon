@@ -99,13 +99,13 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
                                 findNameVector(invoke.resultFromOperandNOrThrow(1)),
                                 invoke.returnType(),
                                 vectorShape,
-                                //vectorShape.typeElement(),
+                                //vectorShape.codeType(),
                                 context.getValues(invoke.op().operands()))
                         : new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(
                                 findNameVector(invoke.resultFromOperandNOrThrow(1)),
                                 invoke.returnType(),
                                 vectorShape,//.lanes(),
-                               // vectorShape.typeElement(),
+                               // vectorShape.codeType(),
                                 context.getValues(invoke.op().operands()));
                 context.mapValue(invoke.op().result(), blockBuilder.op(copyLocation(invoke.op(),storeView)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

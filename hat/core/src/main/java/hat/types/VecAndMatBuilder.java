@@ -154,7 +154,7 @@ public class VecAndMatBuilder {
         }
 
         VecBuilder lType() {
-            return type((JavaType) config.shape.typeElement());
+            return type((JavaType) config.shape.codeType());
         }
 
         VecBuilder vDecl(String id) {
@@ -227,7 +227,7 @@ public class VecAndMatBuilder {
                             _ -> vb.simpleClassName(vec.Shape.class).sp().id("shape"),
                             _ -> vb.type("Shape").dot().idParen("of", _ -> {
                                 vb.simpleClassName(JavaType.class).dot();
-                                vb.either(config.shape.typeElement() instanceof JavaType javaType && JavaType.FLOAT.equals(javaType),
+                                vb.either(config.shape.codeType() instanceof JavaType javaType && JavaType.FLOAT.equals(javaType),
                                         _ -> vb.type("FLOAT"),
                                         _ -> vb.type("INT"));
                                 vb.csp().intValue(vb.lanes());

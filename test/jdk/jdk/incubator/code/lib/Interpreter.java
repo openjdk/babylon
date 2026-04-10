@@ -288,7 +288,7 @@ public final class Interpreter {
             if (args.size() != 1) {
                 throw interpreterException(new IllegalStateException("Catch block must have one argument"));
             }
-            TypeElement et = args.get(0).type();
+            CodeType et = args.get(0).type();
             if (et instanceof VarType vt) {
                 et = vt.valueType();
             }
@@ -670,12 +670,12 @@ public final class Interpreter {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -712,7 +712,7 @@ public final class Interpreter {
         }
     }
 
-    static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>)jt.erasure().resolve(l);

@@ -56,7 +56,7 @@ public class TritonTestOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 

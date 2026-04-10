@@ -103,7 +103,7 @@ public final class OpWriter {
                     case Double d -> sb.append(d).append('d');
                     case Character c -> sb.append('\'').append(c).append('\'');
                     case Boolean b -> sb.append(b);
-                    case TypeElement te -> sb.append(JavaTypeUtils.flatten(te.externalize()));
+                    case CodeType te -> sb.append(JavaTypeUtils.flatten(te.externalize()));
                     default -> {  // fallback to a string
                         sb.append('"');
                         quote(o.toString(), sb);
@@ -590,7 +590,7 @@ public final class OpWriter {
         }
     }
 
-    void writeType(TypeElement te) {
+    void writeType(CodeType te) {
         write(JavaTypeUtils.flatten(te.externalize()).toString());
     }
 

@@ -27,7 +27,7 @@ package oracle.code.onnx.ir;
 
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.extern.ExternalizedOp;
 
@@ -225,7 +225,7 @@ public abstract class OnnxOp extends Op {
 
     final OnnxSchema schema;
     final Map<String, Object> onnxAttributes;
-    final TypeElement resultType;
+    final CodeType resultType;
     final List<OnnxParameter> optionalInputArguments;
     final List<OnnxParameter> optionalOutputParameters;
 
@@ -266,7 +266,7 @@ public abstract class OnnxOp extends Op {
         this.optionalOutputParameters = List.copyOf(that.optionalOutputParameters);
     }
 
-    OnnxOp(OnnxSchema schema, TypeElement resultType,
+    OnnxOp(OnnxSchema schema, CodeType resultType,
            Set<? extends OnnxParameter> optionalOutputParameters,
            List<Object> inputArguments,
            List<Object> attributeValues) {
@@ -331,7 +331,7 @@ public abstract class OnnxOp extends Op {
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return resultType;
     }
 

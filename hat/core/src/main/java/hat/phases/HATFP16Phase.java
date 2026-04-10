@@ -30,7 +30,7 @@ import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -138,13 +138,13 @@ public record HATFP16Phase() implements HATPhase {
 
     private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpEnum binaryOpEnum, Class<?> reducedFloatType) {
         List<Value> operands = invokeOp.operands();
-        TypeElement typeElement = invokeOp.resultType();
+        CodeType codeType = invokeOp.resultType();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
         HATF16Op.HATF16BinaryOp binaryOp = switch (binaryOpEnum) {
-            case ADD -> new HATF16Op.HATF16BinaryOp.HATF16AddOp(typeElement, reducedFloatType, outputOperands);
-            case SUB -> new HATF16Op.HATF16BinaryOp.HATF16SubOp(typeElement, reducedFloatType, outputOperands);
-            case MUL -> new HATF16Op.HATF16BinaryOp.HATF16MulOp(typeElement, reducedFloatType, outputOperands);
-            case DIV -> new HATF16Op.HATF16BinaryOp.HATF16DivOp(typeElement, reducedFloatType, outputOperands);
+            case ADD -> new HATF16Op.HATF16BinaryOp.HATF16AddOp(codeType, reducedFloatType, outputOperands);
+            case SUB -> new HATF16Op.HATF16BinaryOp.HATF16SubOp(codeType, reducedFloatType, outputOperands);
+            case MUL -> new HATF16Op.HATF16BinaryOp.HATF16MulOp(codeType, reducedFloatType, outputOperands);
+            case DIV -> new HATF16Op.HATF16BinaryOp.HATF16DivOp(codeType, reducedFloatType, outputOperands);
         };
         blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeOp, binaryOp)));
     }
@@ -155,7 +155,7 @@ public record HATFP16Phase() implements HATPhase {
         Invoke.stream(lookup, funcOp)
                 .filter(invoke -> is16BitFloat(invoke, Regex.of(binaryOpEnum.name().toLowerCase())) && !invoke.returnsVoid())
                 .forEach(invoke -> {
-                    if (S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.refType()) instanceof Class<? extends S16ImplOfF16> category) {
+                    if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.refType()) instanceof Class<? extends S16ImplOfF16> category) {
                         reducedFloatsType.put(invoke.op(), category);
                         if (invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp varOp) {
                             reducedFloatsType.put(varOp, category);
@@ -208,7 +208,7 @@ public record HATFP16Phase() implements HATPhase {
                         && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp
                 )
                 .forEach(invoke -> {
-                    if ( S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.refType())instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
+                    if ( S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.refType())instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
                         reducedFloatsType.put(invoke.opFromOnlyUseOrNull(), reducedFloatType);
                         reducedFloatsType.put(invoke.op(), reducedFloatType);
                     }else {
@@ -235,7 +235,7 @@ public record HATFP16Phase() implements HATPhase {
                 .map(invoke -> (Invoke.Static) invoke)
                 .filter(invoke -> invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)") && invoke.returnsFloat())
                 .forEach(invoke -> {
-                            if (S16ImplOfF16.typeElementToFloatClassOrNull(invoke,(ClassType)invoke.refType()) instanceof Class<? extends S16ImplOfF16>  reducedFloatType) {
+                            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.refType()) instanceof Class<? extends S16ImplOfF16>  reducedFloatType) {
                                 reducedFloatsType.put(invoke.op(), reducedFloatType);
                             }else{
                                 throw new RuntimeException("No reduced float type");

@@ -127,7 +127,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Abs(this, cc);
         }
 
-        Abs(TypeElement resultType, Value X) {
+        Abs(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -147,7 +147,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Abs Abs(TypeElement resultType, Value X) {
+    public static Abs Abs(CodeType resultType, Value X) {
         return new Abs(resultType, X);
     }
 
@@ -241,7 +241,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Acos(this, cc);
         }
 
-        Acos(TypeElement resultType, Value input) {
+        Acos(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -261,7 +261,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Acos Acos(TypeElement resultType, Value input) {
+    public static Acos Acos(CodeType resultType, Value input) {
         return new Acos(resultType, input);
     }
 
@@ -355,7 +355,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Acosh(this, cc);
         }
 
-        Acosh(TypeElement resultType, Value input) {
+        Acosh(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -375,7 +375,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Acosh Acosh(TypeElement resultType, Value input) {
+    public static Acosh Acosh(CodeType resultType, Value input) {
         return new Acosh(resultType, input);
     }
 
@@ -501,7 +501,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Adagrad(this, cc);
         }
 
-        Adagrad(TypeElement resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> decay_factor, java.util.Optional<Float> norm_coefficient) {
+        Adagrad(CodeType resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> decay_factor, java.util.Optional<Float> norm_coefficient) {
             super(SCHEMA, resultType, Set.of(), List.of(R, T, inputs), List.of(epsilon, decay_factor, norm_coefficient));
         }
 
@@ -544,7 +544,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Adagrad Adagrad(TypeElement resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> decay_factor, java.util.Optional<Float> norm_coefficient) {
+    public static Adagrad Adagrad(CodeType resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> decay_factor, java.util.Optional<Float> norm_coefficient) {
         return new Adagrad(resultType, R, T, inputs, epsilon, decay_factor, norm_coefficient);
     }
 
@@ -672,7 +672,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Adam(this, cc);
         }
 
-        Adam(TypeElement resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> norm_coefficient_post, java.util.Optional<Float> norm_coefficient, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
+        Adam(CodeType resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> norm_coefficient_post, java.util.Optional<Float> norm_coefficient, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
             super(SCHEMA, resultType, Set.of(), List.of(R, T, inputs), List.of(epsilon, norm_coefficient_post, norm_coefficient, alpha, beta));
         }
 
@@ -725,7 +725,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Adam Adam(TypeElement resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> norm_coefficient_post, java.util.Optional<Float> norm_coefficient, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
+    public static Adam Adam(CodeType resultType, Value R, Value T, List<Value> inputs, java.util.Optional<Float> epsilon, java.util.Optional<Float> norm_coefficient_post, java.util.Optional<Float> norm_coefficient, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
         return new Adam(resultType, R, T, inputs, epsilon, norm_coefficient_post, norm_coefficient, alpha, beta);
     }
 
@@ -820,7 +820,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Add(this, cc);
         }
 
-        Add(TypeElement resultType, Value A, Value B) {
+        Add(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -844,7 +844,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Add Add(TypeElement resultType, Value A, Value B) {
+    public static Add Add(CodeType resultType, Value A, Value B) {
         return new Add(resultType, A, B);
     }
 
@@ -966,7 +966,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new AffineGrid(this, cc);
         }
 
-        AffineGrid(TypeElement resultType, Value theta, Value size, java.util.Optional<Long> align_corners) {
+        AffineGrid(CodeType resultType, Value theta, Value size, java.util.Optional<Long> align_corners) {
             super(SCHEMA, resultType, Set.of(), List.of(theta, size), List.of(align_corners));
         }
 
@@ -995,7 +995,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static AffineGrid AffineGrid(TypeElement resultType, Value theta, Value size, java.util.Optional<Long> align_corners) {
+    public static AffineGrid AffineGrid(CodeType resultType, Value theta, Value size, java.util.Optional<Long> align_corners) {
         return new AffineGrid(resultType, theta, size, align_corners);
     }
 
@@ -1091,7 +1091,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new And(this, cc);
         }
 
-        And(TypeElement resultType, Value A, Value B) {
+        And(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -1115,7 +1115,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static And And(TypeElement resultType, Value A, Value B) {
+    public static And And(CodeType resultType, Value A, Value B) {
         return new And(resultType, A, B);
     }
 
@@ -1237,7 +1237,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ArgMax(this, cc);
         }
 
-        ArgMax(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
+        ArgMax(CodeType resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(keepdims, select_last_index, axis));
         }
 
@@ -1272,7 +1272,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ArgMax ArgMax(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
+    public static ArgMax ArgMax(CodeType resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
         return new ArgMax(resultType, data, keepdims, select_last_index, axis);
     }
 
@@ -1394,7 +1394,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ArgMin(this, cc);
         }
 
-        ArgMin(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
+        ArgMin(CodeType resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(keepdims, select_last_index, axis));
         }
 
@@ -1429,7 +1429,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ArgMin ArgMin(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
+    public static ArgMin ArgMin(CodeType resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
         return new ArgMin(resultType, data, keepdims, select_last_index, axis);
     }
 
@@ -1524,7 +1524,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ArrayFeatureExtractor(this, cc);
         }
 
-        ArrayFeatureExtractor(TypeElement resultType, Value X, Value Y) {
+        ArrayFeatureExtractor(CodeType resultType, Value X, Value Y) {
             super(SCHEMA, resultType, Set.of(), List.of(X, Y), List.of());
         }
 
@@ -1548,7 +1548,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ArrayFeatureExtractor ArrayFeatureExtractor(TypeElement resultType, Value X, Value Y) {
+    public static ArrayFeatureExtractor ArrayFeatureExtractor(CodeType resultType, Value X, Value Y) {
         return new ArrayFeatureExtractor(resultType, X, Y);
     }
 
@@ -1642,7 +1642,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Asin(this, cc);
         }
 
-        Asin(TypeElement resultType, Value input) {
+        Asin(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -1662,7 +1662,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Asin Asin(TypeElement resultType, Value input) {
+    public static Asin Asin(CodeType resultType, Value input) {
         return new Asin(resultType, input);
     }
 
@@ -1756,7 +1756,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Asinh(this, cc);
         }
 
-        Asinh(TypeElement resultType, Value input) {
+        Asinh(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -1776,7 +1776,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Asinh Asinh(TypeElement resultType, Value input) {
+    public static Asinh Asinh(CodeType resultType, Value input) {
         return new Asinh(resultType, input);
     }
 
@@ -1870,7 +1870,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Atan(this, cc);
         }
 
-        Atan(TypeElement resultType, Value input) {
+        Atan(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -1890,7 +1890,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Atan Atan(TypeElement resultType, Value input) {
+    public static Atan Atan(CodeType resultType, Value input) {
         return new Atan(resultType, input);
     }
 
@@ -1984,7 +1984,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Atanh(this, cc);
         }
 
-        Atanh(TypeElement resultType, Value input) {
+        Atanh(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -2004,7 +2004,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Atanh Atanh(TypeElement resultType, Value input) {
+    public static Atanh Atanh(CodeType resultType, Value input) {
         return new Atanh(resultType, input);
     }
 
@@ -2141,7 +2141,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Attention(this, cc);
         }
 
-        Attention(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value Q, Value K, Value V, java.util.Optional<Value> attn_mask, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> nonpad_kv_seqlen, java.util.Optional<Long> qk_matmul_output_mode, java.util.Optional<Float> softcap, java.util.Optional<Long> softmax_precision, java.util.Optional<Float> scale, java.util.Optional<Long> is_causal, java.util.Optional<Long> q_num_heads, java.util.Optional<Long> kv_num_heads) {
+        Attention(CodeType resultType, Set<OutputParameter> optionalOutputs, Value Q, Value K, Value V, java.util.Optional<Value> attn_mask, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> nonpad_kv_seqlen, java.util.Optional<Long> qk_matmul_output_mode, java.util.Optional<Float> softcap, java.util.Optional<Long> softmax_precision, java.util.Optional<Float> scale, java.util.Optional<Long> is_causal, java.util.Optional<Long> q_num_heads, java.util.Optional<Long> kv_num_heads) {
             super(SCHEMA, resultType, optionalOutputs, List.of(Q, K, V, attn_mask, past_key, past_value, nonpad_kv_seqlen), List.of(qk_matmul_output_mode, softcap, softmax_precision, scale, is_causal, q_num_heads, kv_num_heads));
         }
 
@@ -2224,7 +2224,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Attention Attention(TypeElement resultType, Set<Attention.OutputParameter> optionalOutputs, Value Q, Value K, Value V, java.util.Optional<Value> attn_mask, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> nonpad_kv_seqlen, java.util.Optional<Long> qk_matmul_output_mode, java.util.Optional<Float> softcap, java.util.Optional<Long> softmax_precision, java.util.Optional<Float> scale, java.util.Optional<Long> is_causal, java.util.Optional<Long> q_num_heads, java.util.Optional<Long> kv_num_heads) {
+    public static Attention Attention(CodeType resultType, Set<Attention.OutputParameter> optionalOutputs, Value Q, Value K, Value V, java.util.Optional<Value> attn_mask, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> nonpad_kv_seqlen, java.util.Optional<Long> qk_matmul_output_mode, java.util.Optional<Float> softcap, java.util.Optional<Long> softmax_precision, java.util.Optional<Float> scale, java.util.Optional<Long> is_causal, java.util.Optional<Long> q_num_heads, java.util.Optional<Long> kv_num_heads) {
         return new Attention(resultType, optionalOutputs, Q, K, V, attn_mask, past_key, past_value, nonpad_kv_seqlen, qk_matmul_output_mode, softcap, softmax_precision, scale, is_causal, q_num_heads, kv_num_heads);
     }
 
@@ -2350,7 +2350,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new AveragePool(this, cc);
         }
 
-        AveragePool(TypeElement resultType, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> count_include_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
+        AveragePool(CodeType resultType, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> count_include_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape));
         }
 
@@ -2405,7 +2405,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static AveragePool AveragePool(TypeElement resultType, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> count_include_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
+    public static AveragePool AveragePool(CodeType resultType, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> count_include_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new AveragePool(resultType, X, pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape);
     }
 
@@ -2535,7 +2535,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new BatchNormalization(this, cc);
         }
 
-        BatchNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Long> training_mode, java.util.Optional<Float> momentum) {
+        BatchNormalization(CodeType resultType, Set<OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Long> training_mode, java.util.Optional<Float> momentum) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, scale, B, input_mean, input_var), List.of(epsilon, training_mode, momentum));
         }
 
@@ -2586,7 +2586,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static BatchNormalization BatchNormalization(TypeElement resultType, Set<BatchNormalization.OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Long> training_mode, java.util.Optional<Float> momentum) {
+    public static BatchNormalization BatchNormalization(CodeType resultType, Set<BatchNormalization.OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Long> training_mode, java.util.Optional<Float> momentum) {
         return new BatchNormalization(resultType, optionalOutputs, X, scale, B, input_mean, input_var, epsilon, training_mode, momentum);
     }
 
@@ -2708,7 +2708,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Bernoulli(this, cc);
         }
 
-        Bernoulli(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> dtype) {
+        Bernoulli(CodeType resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(seed, dtype));
         }
 
@@ -2738,7 +2738,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Bernoulli Bernoulli(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> dtype) {
+    public static Bernoulli Bernoulli(CodeType resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> dtype) {
         return new Bernoulli(resultType, input, seed, dtype);
     }
 
@@ -2858,7 +2858,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Binarizer(this, cc);
         }
 
-        Binarizer(TypeElement resultType, Value X, java.util.Optional<Float> threshold) {
+        Binarizer(CodeType resultType, Value X, java.util.Optional<Float> threshold) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(threshold));
         }
 
@@ -2883,7 +2883,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Binarizer Binarizer(TypeElement resultType, Value X, java.util.Optional<Float> threshold) {
+    public static Binarizer Binarizer(CodeType resultType, Value X, java.util.Optional<Float> threshold) {
         return new Binarizer(resultType, X, threshold);
     }
 
@@ -3004,7 +3004,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new BitShift(this, cc);
         }
 
-        BitShift(TypeElement resultType, Value X, Value Y, String direction) {
+        BitShift(CodeType resultType, Value X, Value Y, String direction) {
             super(SCHEMA, resultType, Set.of(), List.of(X, Y), List.of(direction));
         }
 
@@ -3033,7 +3033,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static BitShift BitShift(TypeElement resultType, Value X, Value Y, String direction) {
+    public static BitShift BitShift(CodeType resultType, Value X, Value Y, String direction) {
         return new BitShift(resultType, X, Y, direction);
     }
 
@@ -3128,7 +3128,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new BitwiseAnd(this, cc);
         }
 
-        BitwiseAnd(TypeElement resultType, Value A, Value B) {
+        BitwiseAnd(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -3152,7 +3152,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static BitwiseAnd BitwiseAnd(TypeElement resultType, Value A, Value B) {
+    public static BitwiseAnd BitwiseAnd(CodeType resultType, Value A, Value B) {
         return new BitwiseAnd(resultType, A, B);
     }
 
@@ -3246,7 +3246,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new BitwiseNot(this, cc);
         }
 
-        BitwiseNot(TypeElement resultType, Value X) {
+        BitwiseNot(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -3266,7 +3266,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static BitwiseNot BitwiseNot(TypeElement resultType, Value X) {
+    public static BitwiseNot BitwiseNot(CodeType resultType, Value X) {
         return new BitwiseNot(resultType, X);
     }
 
@@ -3361,7 +3361,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new BitwiseOr(this, cc);
         }
 
-        BitwiseOr(TypeElement resultType, Value A, Value B) {
+        BitwiseOr(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -3385,7 +3385,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static BitwiseOr BitwiseOr(TypeElement resultType, Value A, Value B) {
+    public static BitwiseOr BitwiseOr(CodeType resultType, Value A, Value B) {
         return new BitwiseOr(resultType, A, B);
     }
 
@@ -3480,7 +3480,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new BitwiseXor(this, cc);
         }
 
-        BitwiseXor(TypeElement resultType, Value A, Value B) {
+        BitwiseXor(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -3504,7 +3504,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static BitwiseXor BitwiseXor(TypeElement resultType, Value A, Value B) {
+    public static BitwiseXor BitwiseXor(CodeType resultType, Value A, Value B) {
         return new BitwiseXor(resultType, A, B);
     }
 
@@ -3626,7 +3626,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new BlackmanWindow(this, cc);
         }
 
-        BlackmanWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
+        BlackmanWindow(CodeType resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(size), List.of(periodic, output_datatype));
         }
 
@@ -3656,7 +3656,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static BlackmanWindow BlackmanWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
+    public static BlackmanWindow BlackmanWindow(CodeType resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
         return new BlackmanWindow(resultType, size, periodic, output_datatype);
     }
 
@@ -3779,7 +3779,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Cast(this, cc);
         }
 
-        Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to, java.util.Optional<String> round_mode) {
+        Cast(CodeType resultType, Value input, java.util.Optional<Long> saturate, long to, java.util.Optional<String> round_mode) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(saturate, to, round_mode));
         }
 
@@ -3814,7 +3814,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Cast Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to, java.util.Optional<String> round_mode) {
+    public static Cast Cast(CodeType resultType, Value input, java.util.Optional<Long> saturate, long to, java.util.Optional<String> round_mode) {
         return new Cast(resultType, input, saturate, to, round_mode);
     }
 
@@ -3937,7 +3937,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new CastLike(this, cc);
         }
 
-        CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate, java.util.Optional<String> round_mode) {
+        CastLike(CodeType resultType, Value input, Value target_type, java.util.Optional<Long> saturate, java.util.Optional<String> round_mode) {
             super(SCHEMA, resultType, Set.of(), List.of(input, target_type), List.of(saturate, round_mode));
         }
 
@@ -3971,7 +3971,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static CastLike CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate, java.util.Optional<String> round_mode) {
+    public static CastLike CastLike(CodeType resultType, Value input, Value target_type, java.util.Optional<Long> saturate, java.util.Optional<String> round_mode) {
         return new CastLike(resultType, input, target_type, saturate, round_mode);
     }
 
@@ -4094,7 +4094,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new CastMap(this, cc);
         }
 
-        CastMap(TypeElement resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Long> max_map) {
+        CastMap(CodeType resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Long> max_map) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(map_form, cast_to, max_map));
         }
 
@@ -4129,7 +4129,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static CastMap CastMap(TypeElement resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Long> max_map) {
+    public static CastMap CastMap(CodeType resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Long> max_map) {
         return new CastMap(resultType, X, map_form, cast_to, max_map);
     }
 
@@ -4253,7 +4253,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new CategoryMapper(this, cc);
         }
 
-        CategoryMapper(TypeElement resultType, Value X, java.util.Optional<long[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Long> default_int64, java.util.Optional<String> default_string) {
+        CategoryMapper(CodeType resultType, Value X, java.util.Optional<long[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Long> default_int64, java.util.Optional<String> default_string) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(cats_int64s, cats_strings, default_int64, default_string));
         }
 
@@ -4293,7 +4293,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static CategoryMapper CategoryMapper(TypeElement resultType, Value X, java.util.Optional<long[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Long> default_int64, java.util.Optional<String> default_string) {
+    public static CategoryMapper CategoryMapper(CodeType resultType, Value X, java.util.Optional<long[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Long> default_int64, java.util.Optional<String> default_string) {
         return new CategoryMapper(resultType, X, cats_int64s, cats_strings, default_int64, default_string);
     }
 
@@ -4387,7 +4387,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Ceil(this, cc);
         }
 
-        Ceil(TypeElement resultType, Value X) {
+        Ceil(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -4407,7 +4407,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Ceil Ceil(TypeElement resultType, Value X) {
+    public static Ceil Ceil(CodeType resultType, Value X) {
         return new Ceil(resultType, X);
     }
 
@@ -4527,7 +4527,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Celu(this, cc);
         }
 
-        Celu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+        Celu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha));
         }
 
@@ -4552,7 +4552,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Celu Celu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+    public static Celu Celu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
         return new Celu(resultType, X, alpha);
     }
 
@@ -4674,7 +4674,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new CenterCropPad(this, cc);
         }
 
-        CenterCropPad(TypeElement resultType, Value input_data, Value shape, java.util.Optional<long[]> axes) {
+        CenterCropPad(CodeType resultType, Value input_data, Value shape, java.util.Optional<long[]> axes) {
             super(SCHEMA, resultType, Set.of(), List.of(input_data, shape), List.of(axes));
         }
 
@@ -4703,7 +4703,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static CenterCropPad CenterCropPad(TypeElement resultType, Value input_data, Value shape, java.util.Optional<long[]> axes) {
+    public static CenterCropPad CenterCropPad(CodeType resultType, Value input_data, Value shape, java.util.Optional<long[]> axes) {
         return new CenterCropPad(resultType, input_data, shape, axes);
     }
 
@@ -4799,7 +4799,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Clip(this, cc);
         }
 
-        Clip(TypeElement resultType, Value input, java.util.Optional<Value> min, java.util.Optional<Value> max) {
+        Clip(CodeType resultType, Value input, java.util.Optional<Value> min, java.util.Optional<Value> max) {
             super(SCHEMA, resultType, Set.of(), List.of(input, min, max), List.of());
         }
 
@@ -4829,7 +4829,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Clip Clip(TypeElement resultType, Value input, java.util.Optional<Value> min, java.util.Optional<Value> max) {
+    public static Clip Clip(CodeType resultType, Value input, java.util.Optional<Value> min, java.util.Optional<Value> max) {
         return new Clip(resultType, input, min, max);
     }
 
@@ -4953,7 +4953,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Col2Im(this, cc);
         }
 
-        Col2Im(TypeElement resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides) {
+        Col2Im(CodeType resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides) {
             super(SCHEMA, resultType, Set.of(), List.of(input, image_shape, block_shape), List.of(pads, dilations, strides));
         }
 
@@ -4996,7 +4996,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Col2Im Col2Im(TypeElement resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides) {
+    public static Col2Im Col2Im(CodeType resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides) {
         return new Col2Im(resultType, input, image_shape, block_shape, pads, dilations, strides);
     }
 
@@ -5118,7 +5118,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Compress(this, cc);
         }
 
-        Compress(TypeElement resultType, Value input, Value condition, java.util.Optional<Long> axis) {
+        Compress(CodeType resultType, Value input, Value condition, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, condition), List.of(axis));
         }
 
@@ -5147,7 +5147,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Compress Compress(TypeElement resultType, Value input, Value condition, java.util.Optional<Long> axis) {
+    public static Compress Compress(CodeType resultType, Value input, Value condition, java.util.Optional<Long> axis) {
         return new Compress(resultType, input, condition, axis);
     }
 
@@ -5267,7 +5267,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Concat(this, cc);
         }
 
-        Concat(TypeElement resultType, List<Value> inputs, long axis) {
+        Concat(CodeType resultType, List<Value> inputs, long axis) {
             super(SCHEMA, resultType, Set.of(), List.of(inputs), List.of(axis));
         }
 
@@ -5292,7 +5292,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Concat Concat(TypeElement resultType, List<Value> inputs, long axis) {
+    public static Concat Concat(CodeType resultType, List<Value> inputs, long axis) {
         return new Concat(resultType, inputs, axis);
     }
 
@@ -5414,7 +5414,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ConcatFromSequence(this, cc);
         }
 
-        ConcatFromSequence(TypeElement resultType, Value input_sequence, long axis, java.util.Optional<Long> new_axis) {
+        ConcatFromSequence(CodeType resultType, Value input_sequence, long axis, java.util.Optional<Long> new_axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input_sequence), List.of(axis, new_axis));
         }
 
@@ -5444,7 +5444,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ConcatFromSequence ConcatFromSequence(TypeElement resultType, Value input_sequence, long axis, java.util.Optional<Long> new_axis) {
+    public static ConcatFromSequence ConcatFromSequence(CodeType resultType, Value input_sequence, long axis, java.util.Optional<Long> new_axis) {
         return new ConcatFromSequence(resultType, input_sequence, axis, new_axis);
     }
 
@@ -5550,7 +5550,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Constant(this, cc);
         }
 
-        Constant(TypeElement resultType, java.util.Optional<Long> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<long[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<Tensor> value) {
+        Constant(CodeType resultType, java.util.Optional<Long> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<long[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<Tensor> value) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value));
         }
 
@@ -5606,7 +5606,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Constant Constant(TypeElement resultType, java.util.Optional<Long> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<long[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<Tensor> value) {
+    public static Constant Constant(CodeType resultType, java.util.Optional<Long> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<long[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<Tensor> value) {
         return new Constant(resultType, value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value);
     }
 
@@ -5727,7 +5727,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ConstantOfShape(this, cc);
         }
 
-        ConstantOfShape(TypeElement resultType, Value input, java.util.Optional<Tensor> value) {
+        ConstantOfShape(CodeType resultType, Value input, java.util.Optional<Tensor> value) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(value));
         }
 
@@ -5752,7 +5752,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ConstantOfShape ConstantOfShape(TypeElement resultType, Value input, java.util.Optional<Tensor> value) {
+    public static ConstantOfShape ConstantOfShape(CodeType resultType, Value input, java.util.Optional<Tensor> value) {
         return new ConstantOfShape(resultType, input, value);
     }
 
@@ -5879,7 +5879,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Conv(this, cc);
         }
 
-        Conv(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+        Conv(CodeType resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, W, B), List.of(pads, dilations, auto_pad, strides, group, kernel_shape));
         }
 
@@ -5938,7 +5938,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Conv Conv(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+    public static Conv Conv(CodeType resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new Conv(resultType, X, W, B, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
@@ -6068,7 +6068,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ConvInteger(this, cc);
         }
 
-        ConvInteger(TypeElement resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+        ConvInteger(CodeType resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(x, w, x_zero_point, w_zero_point), List.of(pads, dilations, auto_pad, strides, group, kernel_shape));
         }
 
@@ -6132,7 +6132,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ConvInteger ConvInteger(TypeElement resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+    public static ConvInteger ConvInteger(CodeType resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new ConvInteger(resultType, x, w, x_zero_point, w_zero_point, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
@@ -6261,7 +6261,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ConvTranspose(this, cc);
         }
 
-        ConvTranspose(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape, java.util.Optional<long[]> output_padding) {
+        ConvTranspose(CodeType resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape, java.util.Optional<long[]> output_padding) {
             super(SCHEMA, resultType, Set.of(), List.of(X, W, B), List.of(output_shape, pads, dilations, auto_pad, strides, group, kernel_shape, output_padding));
         }
 
@@ -6330,7 +6330,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ConvTranspose ConvTranspose(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape, java.util.Optional<long[]> output_padding) {
+    public static ConvTranspose ConvTranspose(CodeType resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape, java.util.Optional<long[]> output_padding) {
         return new ConvTranspose(resultType, X, W, B, output_shape, pads, dilations, auto_pad, strides, group, kernel_shape, output_padding);
     }
 
@@ -6424,7 +6424,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Cos(this, cc);
         }
 
-        Cos(TypeElement resultType, Value input) {
+        Cos(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -6444,7 +6444,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Cos Cos(TypeElement resultType, Value input) {
+    public static Cos Cos(CodeType resultType, Value input) {
         return new Cos(resultType, input);
     }
 
@@ -6538,7 +6538,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Cosh(this, cc);
         }
 
-        Cosh(TypeElement resultType, Value input) {
+        Cosh(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -6558,7 +6558,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Cosh Cosh(TypeElement resultType, Value input) {
+    public static Cosh Cosh(CodeType resultType, Value input) {
         return new Cosh(resultType, input);
     }
 
@@ -6681,7 +6681,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new CumSum(this, cc);
         }
 
-        CumSum(TypeElement resultType, Value x, Value axis, java.util.Optional<Long> exclusive, java.util.Optional<Long> reverse) {
+        CumSum(CodeType resultType, Value x, Value axis, java.util.Optional<Long> exclusive, java.util.Optional<Long> reverse) {
             super(SCHEMA, resultType, Set.of(), List.of(x, axis), List.of(exclusive, reverse));
         }
 
@@ -6715,7 +6715,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static CumSum CumSum(TypeElement resultType, Value x, Value axis, java.util.Optional<Long> exclusive, java.util.Optional<Long> reverse) {
+    public static CumSum CumSum(CodeType resultType, Value x, Value axis, java.util.Optional<Long> exclusive, java.util.Optional<Long> reverse) {
         return new CumSum(resultType, x, axis, exclusive, reverse);
     }
 
@@ -6839,7 +6839,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new DFT(this, cc);
         }
 
-        DFT(TypeElement resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Long> inverse, java.util.Optional<Long> onesided) {
+        DFT(CodeType resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Long> inverse, java.util.Optional<Long> onesided) {
             super(SCHEMA, resultType, Set.of(), List.of(input, dft_length, axis), List.of(inverse, onesided));
         }
 
@@ -6879,7 +6879,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static DFT DFT(TypeElement resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Long> inverse, java.util.Optional<Long> onesided) {
+    public static DFT DFT(CodeType resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Long> inverse, java.util.Optional<Long> onesided) {
         return new DFT(resultType, input, dft_length, axis, inverse, onesided);
     }
 
@@ -7008,7 +7008,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new DeformConv(this, cc);
         }
 
-        DeformConv(TypeElement resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides, java.util.Optional<Long> offset_group, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+        DeformConv(CodeType resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides, java.util.Optional<Long> offset_group, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, W, offset, B, mask), List.of(pads, dilations, strides, offset_group, group, kernel_shape));
         }
 
@@ -7076,7 +7076,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static DeformConv DeformConv(TypeElement resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides, java.util.Optional<Long> offset_group, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+    public static DeformConv DeformConv(CodeType resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides, java.util.Optional<Long> offset_group, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new DeformConv(resultType, X, W, offset, B, mask, pads, dilations, strides, offset_group, group, kernel_shape);
     }
 
@@ -7197,7 +7197,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new DepthToSpace(this, cc);
         }
 
-        DepthToSpace(TypeElement resultType, Value input, java.util.Optional<String> mode, long blocksize) {
+        DepthToSpace(CodeType resultType, Value input, java.util.Optional<String> mode, long blocksize) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(mode, blocksize));
         }
 
@@ -7227,7 +7227,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static DepthToSpace DepthToSpace(TypeElement resultType, Value input, java.util.Optional<String> mode, long blocksize) {
+    public static DepthToSpace DepthToSpace(CodeType resultType, Value input, java.util.Optional<String> mode, long blocksize) {
         return new DepthToSpace(resultType, input, mode, blocksize);
     }
 
@@ -7353,7 +7353,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new DequantizeLinear(this, cc);
         }
 
-        DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+        DequantizeLinear(CodeType resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
             super(SCHEMA, resultType, Set.of(), List.of(x, x_scale, x_zero_point), List.of(output_dtype, axis, block_size));
         }
 
@@ -7397,7 +7397,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static DequantizeLinear DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+    public static DequantizeLinear DequantizeLinear(CodeType resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
         return new DequantizeLinear(resultType, x, x_scale, x_zero_point, output_dtype, axis, block_size);
     }
 
@@ -7491,7 +7491,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Det(this, cc);
         }
 
-        Det(TypeElement resultType, Value X) {
+        Det(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -7511,7 +7511,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Det Det(TypeElement resultType, Value X) {
+    public static Det Det(CodeType resultType, Value X) {
         return new Det(resultType, X);
     }
 
@@ -7633,7 +7633,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new DictVectorizer(this, cc);
         }
 
-        DictVectorizer(TypeElement resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<long[]> int64_vocabulary) {
+        DictVectorizer(CodeType resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<long[]> int64_vocabulary) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(string_vocabulary, int64_vocabulary));
         }
 
@@ -7663,7 +7663,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static DictVectorizer DictVectorizer(TypeElement resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<long[]> int64_vocabulary) {
+    public static DictVectorizer DictVectorizer(CodeType resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<long[]> int64_vocabulary) {
         return new DictVectorizer(resultType, X, string_vocabulary, int64_vocabulary);
     }
 
@@ -7758,7 +7758,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Div(this, cc);
         }
 
-        Div(TypeElement resultType, Value A, Value B) {
+        Div(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -7782,7 +7782,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Div Div(TypeElement resultType, Value A, Value B) {
+    public static Div Div(CodeType resultType, Value A, Value B) {
         return new Div(resultType, A, B);
     }
 
@@ -7907,7 +7907,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Dropout(this, cc);
         }
 
-        Dropout(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Long> seed) {
+        Dropout(CodeType resultType, Set<OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Long> seed) {
             super(SCHEMA, resultType, optionalOutputs, List.of(data, ratio, training_mode), List.of(seed));
         }
 
@@ -7942,7 +7942,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Dropout Dropout(TypeElement resultType, Set<Dropout.OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Long> seed) {
+    public static Dropout Dropout(CodeType resultType, Set<Dropout.OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Long> seed) {
         return new Dropout(resultType, optionalOutputs, data, ratio, training_mode, seed);
     }
 
@@ -8039,7 +8039,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new DynamicQuantizeLinear(this, cc);
         }
 
-        DynamicQuantizeLinear(TypeElement resultType, Value x) {
+        DynamicQuantizeLinear(CodeType resultType, Value x) {
             super(SCHEMA, resultType, Set.of(), List.of(x), List.of());
         }
 
@@ -8059,7 +8059,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static DynamicQuantizeLinear DynamicQuantizeLinear(TypeElement resultType, Value x) {
+    public static DynamicQuantizeLinear DynamicQuantizeLinear(CodeType resultType, Value x) {
         return new DynamicQuantizeLinear(resultType, x);
     }
 
@@ -8179,7 +8179,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Einsum(this, cc);
         }
 
-        Einsum(TypeElement resultType, List<Value> Inputs, String equation) {
+        Einsum(CodeType resultType, List<Value> Inputs, String equation) {
             super(SCHEMA, resultType, Set.of(), List.of(Inputs), List.of(equation));
         }
 
@@ -8204,7 +8204,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Einsum Einsum(TypeElement resultType, List<Value> Inputs, String equation) {
+    public static Einsum Einsum(CodeType resultType, List<Value> Inputs, String equation) {
         return new Einsum(resultType, Inputs, equation);
     }
 
@@ -8324,7 +8324,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Elu(this, cc);
         }
 
-        Elu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+        Elu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha));
         }
 
@@ -8349,7 +8349,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Elu Elu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+    public static Elu Elu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
         return new Elu(resultType, X, alpha);
     }
 
@@ -8445,7 +8445,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Equal(this, cc);
         }
 
-        Equal(TypeElement resultType, Value A, Value B) {
+        Equal(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -8469,7 +8469,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Equal Equal(TypeElement resultType, Value A, Value B) {
+    public static Equal Equal(CodeType resultType, Value A, Value B) {
         return new Equal(resultType, A, B);
     }
 
@@ -8563,7 +8563,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Erf(this, cc);
         }
 
-        Erf(TypeElement resultType, Value input) {
+        Erf(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -8583,7 +8583,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Erf Erf(TypeElement resultType, Value input) {
+    public static Erf Erf(CodeType resultType, Value input) {
         return new Erf(resultType, input);
     }
 
@@ -8677,7 +8677,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Exp(this, cc);
         }
 
-        Exp(TypeElement resultType, Value input) {
+        Exp(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -8697,7 +8697,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Exp Exp(TypeElement resultType, Value input) {
+    public static Exp Exp(CodeType resultType, Value input) {
         return new Exp(resultType, input);
     }
 
@@ -8792,7 +8792,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Expand(this, cc);
         }
 
-        Expand(TypeElement resultType, Value input, Value shape) {
+        Expand(CodeType resultType, Value input, Value shape) {
             super(SCHEMA, resultType, Set.of(), List.of(input, shape), List.of());
         }
 
@@ -8816,7 +8816,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Expand Expand(TypeElement resultType, Value input, Value shape) {
+    public static Expand Expand(CodeType resultType, Value input, Value shape) {
         return new Expand(resultType, input, shape);
     }
 
@@ -8938,7 +8938,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new EyeLike(this, cc);
         }
 
-        EyeLike(TypeElement resultType, Value input, java.util.Optional<Long> dtype, java.util.Optional<Long> k) {
+        EyeLike(CodeType resultType, Value input, java.util.Optional<Long> dtype, java.util.Optional<Long> k) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(dtype, k));
         }
 
@@ -8968,7 +8968,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static EyeLike EyeLike(TypeElement resultType, Value input, java.util.Optional<Long> dtype, java.util.Optional<Long> k) {
+    public static EyeLike EyeLike(CodeType resultType, Value input, java.util.Optional<Long> dtype, java.util.Optional<Long> k) {
         return new EyeLike(resultType, input, dtype, k);
     }
 
@@ -9088,7 +9088,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new FeatureVectorizer(this, cc);
         }
 
-        FeatureVectorizer(TypeElement resultType, List<Value> X, java.util.Optional<long[]> inputdimensions) {
+        FeatureVectorizer(CodeType resultType, List<Value> X, java.util.Optional<long[]> inputdimensions) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(inputdimensions));
         }
 
@@ -9113,7 +9113,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static FeatureVectorizer FeatureVectorizer(TypeElement resultType, List<Value> X, java.util.Optional<long[]> inputdimensions) {
+    public static FeatureVectorizer FeatureVectorizer(CodeType resultType, List<Value> X, java.util.Optional<long[]> inputdimensions) {
         return new FeatureVectorizer(resultType, X, inputdimensions);
     }
 
@@ -9233,7 +9233,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Flatten(this, cc);
         }
 
-        Flatten(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+        Flatten(CodeType resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -9258,7 +9258,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Flatten Flatten(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+    public static Flatten Flatten(CodeType resultType, Value input, java.util.Optional<Long> axis) {
         return new Flatten(resultType, input, axis);
     }
 
@@ -9352,7 +9352,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Floor(this, cc);
         }
 
-        Floor(TypeElement resultType, Value X) {
+        Floor(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -9372,7 +9372,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Floor Floor(TypeElement resultType, Value X) {
+    public static Floor Floor(CodeType resultType, Value X) {
         return new Floor(resultType, X);
     }
 
@@ -9506,7 +9506,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GRU(this, cc);
         }
 
-        GRU(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Long> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        GRU(CodeType resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Long> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction));
         }
 
@@ -9589,7 +9589,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GRU GRU(TypeElement resultType, Set<GRU.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Long> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+    public static GRU GRU(CodeType resultType, Set<GRU.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Long> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
         return new GRU(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction);
     }
 
@@ -9711,7 +9711,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Gather(this, cc);
         }
 
-        Gather(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
+        Gather(CodeType resultType, Value data, Value indices, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices), List.of(axis));
         }
 
@@ -9740,7 +9740,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Gather Gather(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
+    public static Gather Gather(CodeType resultType, Value data, Value indices, java.util.Optional<Long> axis) {
         return new Gather(resultType, data, indices, axis);
     }
 
@@ -9862,7 +9862,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GatherElements(this, cc);
         }
 
-        GatherElements(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
+        GatherElements(CodeType resultType, Value data, Value indices, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices), List.of(axis));
         }
 
@@ -9891,7 +9891,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GatherElements GatherElements(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
+    public static GatherElements GatherElements(CodeType resultType, Value data, Value indices, java.util.Optional<Long> axis) {
         return new GatherElements(resultType, data, indices, axis);
     }
 
@@ -10012,7 +10012,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GatherND(this, cc);
         }
 
-        GatherND(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> batch_dims) {
+        GatherND(CodeType resultType, Value data, Value indices, java.util.Optional<Long> batch_dims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices), List.of(batch_dims));
         }
 
@@ -10041,7 +10041,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GatherND GatherND(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> batch_dims) {
+    public static GatherND GatherND(CodeType resultType, Value data, Value indices, java.util.Optional<Long> batch_dims) {
         return new GatherND(resultType, data, indices, batch_dims);
     }
 
@@ -10161,7 +10161,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Gelu(this, cc);
         }
 
-        Gelu(TypeElement resultType, Value X, java.util.Optional<String> approximate) {
+        Gelu(CodeType resultType, Value X, java.util.Optional<String> approximate) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(approximate));
         }
 
@@ -10186,7 +10186,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Gelu Gelu(TypeElement resultType, Value X, java.util.Optional<String> approximate) {
+    public static Gelu Gelu(CodeType resultType, Value X, java.util.Optional<String> approximate) {
         return new Gelu(resultType, X, approximate);
     }
 
@@ -10311,7 +10311,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Gemm(this, cc);
         }
 
-        Gemm(TypeElement resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Long> transB, java.util.Optional<Float> beta, java.util.Optional<Long> transA) {
+        Gemm(CodeType resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Long> transB, java.util.Optional<Float> beta, java.util.Optional<Long> transA) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B, C), List.of(alpha, transB, beta, transA));
         }
 
@@ -10360,7 +10360,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Gemm Gemm(TypeElement resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Long> transB, java.util.Optional<Float> beta, java.util.Optional<Long> transA) {
+    public static Gemm Gemm(CodeType resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Long> transB, java.util.Optional<Float> beta, java.util.Optional<Long> transA) {
         return new Gemm(resultType, A, B, C, alpha, transB, beta, transA);
     }
 
@@ -10454,7 +10454,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GlobalAveragePool(this, cc);
         }
 
-        GlobalAveragePool(TypeElement resultType, Value X) {
+        GlobalAveragePool(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -10474,7 +10474,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GlobalAveragePool GlobalAveragePool(TypeElement resultType, Value X) {
+    public static GlobalAveragePool GlobalAveragePool(CodeType resultType, Value X) {
         return new GlobalAveragePool(resultType, X);
     }
 
@@ -10594,7 +10594,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GlobalLpPool(this, cc);
         }
 
-        GlobalLpPool(TypeElement resultType, Value X, java.util.Optional<Long> p) {
+        GlobalLpPool(CodeType resultType, Value X, java.util.Optional<Long> p) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(p));
         }
 
@@ -10619,7 +10619,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GlobalLpPool GlobalLpPool(TypeElement resultType, Value X, java.util.Optional<Long> p) {
+    public static GlobalLpPool GlobalLpPool(CodeType resultType, Value X, java.util.Optional<Long> p) {
         return new GlobalLpPool(resultType, X, p);
     }
 
@@ -10713,7 +10713,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GlobalMaxPool(this, cc);
         }
 
-        GlobalMaxPool(TypeElement resultType, Value X) {
+        GlobalMaxPool(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -10733,7 +10733,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GlobalMaxPool GlobalMaxPool(TypeElement resultType, Value X) {
+    public static GlobalMaxPool GlobalMaxPool(CodeType resultType, Value X) {
         return new GlobalMaxPool(resultType, X);
     }
 
@@ -10856,7 +10856,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Gradient(this, cc);
         }
 
-        Gradient(TypeElement resultType, List<Value> Inputs, String y, java.util.Optional<String[]> zs, String[] xs) {
+        Gradient(CodeType resultType, List<Value> Inputs, String y, java.util.Optional<String[]> zs, String[] xs) {
             super(SCHEMA, resultType, Set.of(), List.of(Inputs), List.of(y, zs, xs));
         }
 
@@ -10891,7 +10891,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Gradient Gradient(TypeElement resultType, List<Value> Inputs, String y, java.util.Optional<String[]> zs, String[] xs) {
+    public static Gradient Gradient(CodeType resultType, List<Value> Inputs, String y, java.util.Optional<String[]> zs, String[] xs) {
         return new Gradient(resultType, Inputs, y, zs, xs);
     }
 
@@ -10987,7 +10987,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Greater(this, cc);
         }
 
-        Greater(TypeElement resultType, Value A, Value B) {
+        Greater(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -11011,7 +11011,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Greater Greater(TypeElement resultType, Value A, Value B) {
+    public static Greater Greater(CodeType resultType, Value A, Value B) {
         return new Greater(resultType, A, B);
     }
 
@@ -11107,7 +11107,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GreaterOrEqual(this, cc);
         }
 
-        GreaterOrEqual(TypeElement resultType, Value A, Value B) {
+        GreaterOrEqual(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -11131,7 +11131,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GreaterOrEqual GreaterOrEqual(TypeElement resultType, Value A, Value B) {
+    public static GreaterOrEqual GreaterOrEqual(CodeType resultType, Value A, Value B) {
         return new GreaterOrEqual(resultType, A, B);
     }
 
@@ -11255,7 +11255,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GridSample(this, cc);
         }
 
-        GridSample(TypeElement resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Long> align_corners, java.util.Optional<String> padding_mode) {
+        GridSample(CodeType resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Long> align_corners, java.util.Optional<String> padding_mode) {
             super(SCHEMA, resultType, Set.of(), List.of(X, grid), List.of(mode, align_corners, padding_mode));
         }
 
@@ -11294,7 +11294,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GridSample GridSample(TypeElement resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Long> align_corners, java.util.Optional<String> padding_mode) {
+    public static GridSample GridSample(CodeType resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Long> align_corners, java.util.Optional<String> padding_mode) {
         return new GridSample(resultType, X, grid, mode, align_corners, padding_mode);
     }
 
@@ -11418,7 +11418,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new GroupNormalization(this, cc);
         }
 
-        GroupNormalization(TypeElement resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, long num_groups) {
+        GroupNormalization(CodeType resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, long num_groups) {
             super(SCHEMA, resultType, Set.of(), List.of(X, scale, bias), List.of(epsilon, stash_type, num_groups));
         }
 
@@ -11461,7 +11461,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static GroupNormalization GroupNormalization(TypeElement resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, long num_groups) {
+    public static GroupNormalization GroupNormalization(CodeType resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, long num_groups) {
         return new GroupNormalization(resultType, X, scale, bias, epsilon, stash_type, num_groups);
     }
 
@@ -11583,7 +11583,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new HammingWindow(this, cc);
         }
 
-        HammingWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
+        HammingWindow(CodeType resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(size), List.of(periodic, output_datatype));
         }
 
@@ -11613,7 +11613,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static HammingWindow HammingWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
+    public static HammingWindow HammingWindow(CodeType resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
         return new HammingWindow(resultType, size, periodic, output_datatype);
     }
 
@@ -11735,7 +11735,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new HannWindow(this, cc);
         }
 
-        HannWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
+        HannWindow(CodeType resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(size), List.of(periodic, output_datatype));
         }
 
@@ -11765,7 +11765,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static HannWindow HannWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
+    public static HannWindow HannWindow(CodeType resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
         return new HannWindow(resultType, size, periodic, output_datatype);
     }
 
@@ -11886,7 +11886,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new HardSigmoid(this, cc);
         }
 
-        HardSigmoid(TypeElement resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
+        HardSigmoid(CodeType resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha, beta));
         }
 
@@ -11916,7 +11916,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static HardSigmoid HardSigmoid(TypeElement resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
+    public static HardSigmoid HardSigmoid(CodeType resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> beta) {
         return new HardSigmoid(resultType, X, alpha, beta);
     }
 
@@ -12010,7 +12010,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new HardSwish(this, cc);
         }
 
-        HardSwish(TypeElement resultType, Value X) {
+        HardSwish(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -12030,7 +12030,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static HardSwish HardSwish(TypeElement resultType, Value X) {
+    public static HardSwish HardSwish(CodeType resultType, Value X) {
         return new HardSwish(resultType, X);
     }
 
@@ -12150,7 +12150,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Hardmax(this, cc);
         }
 
-        Hardmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+        Hardmax(CodeType resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -12175,7 +12175,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Hardmax Hardmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+    public static Hardmax Hardmax(CodeType resultType, Value input, java.util.Optional<Long> axis) {
         return new Hardmax(resultType, input, axis);
     }
 
@@ -12269,7 +12269,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Identity(this, cc);
         }
 
-        Identity(TypeElement resultType, Value input) {
+        Identity(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -12289,7 +12289,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Identity Identity(TypeElement resultType, Value input) {
+    public static Identity Identity(CodeType resultType, Value input) {
         return new Identity(resultType, input);
     }
 
@@ -12410,7 +12410,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ImageDecoder(this, cc);
         }
 
-        ImageDecoder(TypeElement resultType, Value encoded_stream, java.util.Optional<String> pixel_format) {
+        ImageDecoder(CodeType resultType, Value encoded_stream, java.util.Optional<String> pixel_format) {
             super(SCHEMA, resultType, Set.of(), List.of(encoded_stream), List.of(pixel_format));
         }
 
@@ -12435,7 +12435,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ImageDecoder ImageDecoder(TypeElement resultType, Value encoded_stream, java.util.Optional<String> pixel_format) {
+    public static ImageDecoder ImageDecoder(CodeType resultType, Value encoded_stream, java.util.Optional<String> pixel_format) {
         return new ImageDecoder(resultType, encoded_stream, pixel_format);
     }
 
@@ -12558,7 +12558,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Imputer(this, cc);
         }
 
-        Imputer(TypeElement resultType, Value X, java.util.Optional<Long> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<long[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
+        Imputer(CodeType resultType, Value X, java.util.Optional<Long> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<long[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(replaced_value_int64, replaced_value_float, imputed_value_int64s, imputed_value_floats));
         }
 
@@ -12598,7 +12598,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Imputer Imputer(TypeElement resultType, Value X, java.util.Optional<Long> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<long[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
+    public static Imputer Imputer(CodeType resultType, Value X, java.util.Optional<Long> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<long[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
         return new Imputer(resultType, X, replaced_value_int64, replaced_value_float, imputed_value_int64s, imputed_value_floats);
     }
 
@@ -12720,7 +12720,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new InstanceNormalization(this, cc);
         }
 
-        InstanceNormalization(TypeElement resultType, Value input, Value scale, Value B, java.util.Optional<Float> epsilon) {
+        InstanceNormalization(CodeType resultType, Value input, Value scale, Value B, java.util.Optional<Float> epsilon) {
             super(SCHEMA, resultType, Set.of(), List.of(input, scale, B), List.of(epsilon));
         }
 
@@ -12753,7 +12753,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static InstanceNormalization InstanceNormalization(TypeElement resultType, Value input, Value scale, Value B, java.util.Optional<Float> epsilon) {
+    public static InstanceNormalization InstanceNormalization(CodeType resultType, Value input, Value scale, Value B, java.util.Optional<Float> epsilon) {
         return new InstanceNormalization(resultType, input, scale, B, epsilon);
     }
 
@@ -12875,7 +12875,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new IsInf(this, cc);
         }
 
-        IsInf(TypeElement resultType, Value X, java.util.Optional<Long> detect_negative, java.util.Optional<Long> detect_positive) {
+        IsInf(CodeType resultType, Value X, java.util.Optional<Long> detect_negative, java.util.Optional<Long> detect_positive) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(detect_negative, detect_positive));
         }
 
@@ -12905,7 +12905,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static IsInf IsInf(TypeElement resultType, Value X, java.util.Optional<Long> detect_negative, java.util.Optional<Long> detect_positive) {
+    public static IsInf IsInf(CodeType resultType, Value X, java.util.Optional<Long> detect_negative, java.util.Optional<Long> detect_positive) {
         return new IsInf(resultType, X, detect_negative, detect_positive);
     }
 
@@ -13000,7 +13000,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new IsNaN(this, cc);
         }
 
-        IsNaN(TypeElement resultType, Value X) {
+        IsNaN(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -13020,7 +13020,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static IsNaN IsNaN(TypeElement resultType, Value X) {
+    public static IsNaN IsNaN(CodeType resultType, Value X) {
         return new IsNaN(resultType, X);
     }
 
@@ -13143,7 +13143,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LRN(this, cc);
         }
 
-        LRN(TypeElement resultType, Value X, long size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
+        LRN(CodeType resultType, Value X, long size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(size, alpha, bias, beta));
         }
 
@@ -13183,7 +13183,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LRN LRN(TypeElement resultType, Value X, long size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
+    public static LRN LRN(CodeType resultType, Value X, long size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
         return new LRN(resultType, X, size, alpha, bias, beta);
     }
 
@@ -13320,7 +13320,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LSTM(this, cc);
         }
 
-        LSTM(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Long> layout, java.util.Optional<Long> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        LSTM(CodeType resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Long> layout, java.util.Optional<Long> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h, initial_c, P), List.of(layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
         }
 
@@ -13413,7 +13413,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LSTM LSTM(TypeElement resultType, Set<LSTM.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Long> layout, java.util.Optional<Long> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+    public static LSTM LSTM(CodeType resultType, Set<LSTM.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Long> layout, java.util.Optional<Long> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
         return new LSTM(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, initial_c, P, layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
@@ -13545,7 +13545,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LabelEncoder(this, cc);
         }
 
-        LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<long[]> keys_int64s, java.util.Optional<Tensor> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<Tensor> default_tensor, java.util.Optional<Long> default_int64, java.util.Optional<Tensor> values_tensor, java.util.Optional<long[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
+        LabelEncoder(CodeType resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<long[]> keys_int64s, java.util.Optional<Tensor> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<Tensor> default_tensor, java.util.Optional<Long> default_int64, java.util.Optional<Tensor> values_tensor, java.util.Optional<long[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats));
         }
 
@@ -13625,7 +13625,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LabelEncoder LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<long[]> keys_int64s, java.util.Optional<Tensor> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<Tensor> default_tensor, java.util.Optional<Long> default_int64, java.util.Optional<Tensor> values_tensor, java.util.Optional<long[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
+    public static LabelEncoder LabelEncoder(CodeType resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<long[]> keys_int64s, java.util.Optional<Tensor> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<Tensor> default_tensor, java.util.Optional<Long> default_int64, java.util.Optional<Tensor> values_tensor, java.util.Optional<long[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
         return new LabelEncoder(resultType, X, values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats);
     }
 
@@ -13752,7 +13752,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LayerNormalization(this, cc);
         }
 
-        LayerNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
+        LayerNormalization(CodeType resultType, Set<OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, Scale, B), List.of(epsilon, stash_type, axis));
         }
 
@@ -13796,7 +13796,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LayerNormalization LayerNormalization(TypeElement resultType, Set<LayerNormalization.OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
+    public static LayerNormalization LayerNormalization(CodeType resultType, Set<LayerNormalization.OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
         return new LayerNormalization(resultType, optionalOutputs, X, Scale, B, epsilon, stash_type, axis);
     }
 
@@ -13916,7 +13916,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LeakyRelu(this, cc);
         }
 
-        LeakyRelu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+        LeakyRelu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha));
         }
 
@@ -13941,7 +13941,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LeakyRelu LeakyRelu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+    public static LeakyRelu LeakyRelu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
         return new LeakyRelu(resultType, X, alpha);
     }
 
@@ -14037,7 +14037,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Less(this, cc);
         }
 
-        Less(TypeElement resultType, Value A, Value B) {
+        Less(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -14061,7 +14061,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Less Less(TypeElement resultType, Value A, Value B) {
+    public static Less Less(CodeType resultType, Value A, Value B) {
         return new Less(resultType, A, B);
     }
 
@@ -14157,7 +14157,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LessOrEqual(this, cc);
         }
 
-        LessOrEqual(TypeElement resultType, Value A, Value B) {
+        LessOrEqual(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -14181,7 +14181,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LessOrEqual LessOrEqual(TypeElement resultType, Value A, Value B) {
+    public static LessOrEqual LessOrEqual(CodeType resultType, Value A, Value B) {
         return new LessOrEqual(resultType, A, B);
     }
 
@@ -14308,7 +14308,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LinearClassifier(this, cc);
         }
 
-        LinearClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Long> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
+        LinearClassifier(CodeType resultType, Value X, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Long> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(classlabels_ints, post_transform, coefficients, multi_class, intercepts, classlabels_strings));
         }
 
@@ -14358,7 +14358,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LinearClassifier LinearClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Long> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
+    public static LinearClassifier LinearClassifier(CodeType resultType, Value X, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Long> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
         return new LinearClassifier(resultType, X, classlabels_ints, post_transform, coefficients, multi_class, intercepts, classlabels_strings);
     }
 
@@ -14481,7 +14481,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LinearRegressor(this, cc);
         }
 
-        LinearRegressor(TypeElement resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Long> targets, java.util.Optional<float[]> intercepts) {
+        LinearRegressor(CodeType resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Long> targets, java.util.Optional<float[]> intercepts) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(post_transform, coefficients, targets, intercepts));
         }
 
@@ -14521,7 +14521,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LinearRegressor LinearRegressor(TypeElement resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Long> targets, java.util.Optional<float[]> intercepts) {
+    public static LinearRegressor LinearRegressor(CodeType resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Long> targets, java.util.Optional<float[]> intercepts) {
         return new LinearRegressor(resultType, X, post_transform, coefficients, targets, intercepts);
     }
 
@@ -14615,7 +14615,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Log(this, cc);
         }
 
-        Log(TypeElement resultType, Value input) {
+        Log(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -14635,7 +14635,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Log Log(TypeElement resultType, Value input) {
+    public static Log Log(CodeType resultType, Value input) {
         return new Log(resultType, input);
     }
 
@@ -14755,7 +14755,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LogSoftmax(this, cc);
         }
 
-        LogSoftmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+        LogSoftmax(CodeType resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -14780,7 +14780,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LogSoftmax LogSoftmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+    public static LogSoftmax LogSoftmax(CodeType resultType, Value input, java.util.Optional<Long> axis) {
         return new LogSoftmax(resultType, input, axis);
     }
 
@@ -14901,7 +14901,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LpNormalization(this, cc);
         }
 
-        LpNormalization(TypeElement resultType, Value input, java.util.Optional<Long> p, java.util.Optional<Long> axis) {
+        LpNormalization(CodeType resultType, Value input, java.util.Optional<Long> p, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(p, axis));
         }
 
@@ -14931,7 +14931,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LpNormalization LpNormalization(TypeElement resultType, Value input, java.util.Optional<Long> p, java.util.Optional<Long> axis) {
+    public static LpNormalization LpNormalization(CodeType resultType, Value input, java.util.Optional<Long> p, java.util.Optional<Long> axis) {
         return new LpNormalization(resultType, input, p, axis);
     }
 
@@ -15057,7 +15057,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new LpPool(this, cc);
         }
 
-        LpPool(TypeElement resultType, Value X, java.util.Optional<Long> p, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
+        LpPool(CodeType resultType, Value X, java.util.Optional<Long> p, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(p, pads, dilations, auto_pad, ceil_mode, strides, kernel_shape));
         }
 
@@ -15112,7 +15112,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static LpPool LpPool(TypeElement resultType, Value X, java.util.Optional<Long> p, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
+    public static LpPool LpPool(CodeType resultType, Value X, java.util.Optional<Long> p, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new LpPool(resultType, X, p, pads, dilations, auto_pad, ceil_mode, strides, kernel_shape);
     }
 
@@ -15207,7 +15207,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new MatMul(this, cc);
         }
 
-        MatMul(TypeElement resultType, Value A, Value B) {
+        MatMul(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -15231,7 +15231,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static MatMul MatMul(TypeElement resultType, Value A, Value B) {
+    public static MatMul MatMul(CodeType resultType, Value A, Value B) {
         return new MatMul(resultType, A, B);
     }
 
@@ -15330,7 +15330,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new MatMulInteger(this, cc);
         }
 
-        MatMulInteger(TypeElement resultType, Value A, Value B, java.util.Optional<Value> a_zero_point, java.util.Optional<Value> b_zero_point) {
+        MatMulInteger(CodeType resultType, Value A, Value B, java.util.Optional<Value> a_zero_point, java.util.Optional<Value> b_zero_point) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B, a_zero_point, b_zero_point), List.of());
         }
 
@@ -15364,7 +15364,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static MatMulInteger MatMulInteger(TypeElement resultType, Value A, Value B, java.util.Optional<Value> a_zero_point, java.util.Optional<Value> b_zero_point) {
+    public static MatMulInteger MatMulInteger(CodeType resultType, Value A, Value B, java.util.Optional<Value> a_zero_point, java.util.Optional<Value> b_zero_point) {
         return new MatMulInteger(resultType, A, B, a_zero_point, b_zero_point);
     }
 
@@ -15458,7 +15458,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Max(this, cc);
         }
 
-        Max(TypeElement resultType, List<Value> data_0) {
+        Max(CodeType resultType, List<Value> data_0) {
             super(SCHEMA, resultType, Set.of(), List.of(data_0), List.of());
         }
 
@@ -15478,7 +15478,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Max Max(TypeElement resultType, List<Value> data_0) {
+    public static Max Max(CodeType resultType, List<Value> data_0) {
         return new Max(resultType, data_0);
     }
 
@@ -15606,7 +15606,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new MaxPool(this, cc);
         }
 
-        MaxPool(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<Long> storage_order, java.util.Optional<long[]> strides, long[] kernel_shape) {
+        MaxPool(CodeType resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<Long> storage_order, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X), List.of(pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape));
         }
 
@@ -15661,7 +15661,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static MaxPool MaxPool(TypeElement resultType, Set<MaxPool.OutputParameter> optionalOutputs, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<Long> storage_order, java.util.Optional<long[]> strides, long[] kernel_shape) {
+    public static MaxPool MaxPool(CodeType resultType, Set<MaxPool.OutputParameter> optionalOutputs, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<Long> storage_order, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new MaxPool(resultType, optionalOutputs, X, pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape);
     }
 
@@ -15783,7 +15783,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new MaxRoiPool(this, cc);
         }
 
-        MaxRoiPool(TypeElement resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, long[] pooled_shape) {
+        MaxRoiPool(CodeType resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, long[] pooled_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, rois), List.of(spatial_scale, pooled_shape));
         }
 
@@ -15817,7 +15817,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static MaxRoiPool MaxRoiPool(TypeElement resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, long[] pooled_shape) {
+    public static MaxRoiPool MaxRoiPool(CodeType resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, long[] pooled_shape) {
         return new MaxRoiPool(resultType, X, rois, spatial_scale, pooled_shape);
     }
 
@@ -15942,7 +15942,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new MaxUnpool(this, cc);
         }
 
-        MaxUnpool(TypeElement resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> strides, long[] kernel_shape) {
+        MaxUnpool(CodeType resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, I, output_shape), List.of(pads, strides, kernel_shape));
         }
 
@@ -15986,7 +15986,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static MaxUnpool MaxUnpool(TypeElement resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> strides, long[] kernel_shape) {
+    public static MaxUnpool MaxUnpool(CodeType resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new MaxUnpool(resultType, X, I, output_shape, pads, strides, kernel_shape);
     }
 
@@ -16080,7 +16080,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Mean(this, cc);
         }
 
-        Mean(TypeElement resultType, List<Value> data_0) {
+        Mean(CodeType resultType, List<Value> data_0) {
             super(SCHEMA, resultType, Set.of(), List.of(data_0), List.of());
         }
 
@@ -16100,7 +16100,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Mean Mean(TypeElement resultType, List<Value> data_0) {
+    public static Mean Mean(CodeType resultType, List<Value> data_0) {
         return new Mean(resultType, data_0);
     }
 
@@ -16220,7 +16220,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new MeanVarianceNormalization(this, cc);
         }
 
-        MeanVarianceNormalization(TypeElement resultType, Value X, java.util.Optional<long[]> axes) {
+        MeanVarianceNormalization(CodeType resultType, Value X, java.util.Optional<long[]> axes) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(axes));
         }
 
@@ -16245,7 +16245,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static MeanVarianceNormalization MeanVarianceNormalization(TypeElement resultType, Value X, java.util.Optional<long[]> axes) {
+    public static MeanVarianceNormalization MeanVarianceNormalization(CodeType resultType, Value X, java.util.Optional<long[]> axes) {
         return new MeanVarianceNormalization(resultType, X, axes);
     }
 
@@ -16371,7 +16371,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new MelWeightMatrix(this, cc);
         }
 
-        MelWeightMatrix(TypeElement resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Long> output_datatype) {
+        MelWeightMatrix(CodeType resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(num_mel_bins, dft_length, sample_rate, lower_edge_hertz, upper_edge_hertz), List.of(output_datatype));
         }
 
@@ -16412,7 +16412,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static MelWeightMatrix MelWeightMatrix(TypeElement resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Long> output_datatype) {
+    public static MelWeightMatrix MelWeightMatrix(CodeType resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Long> output_datatype) {
         return new MelWeightMatrix(resultType, num_mel_bins, dft_length, sample_rate, lower_edge_hertz, upper_edge_hertz, output_datatype);
     }
 
@@ -16506,7 +16506,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Min(this, cc);
         }
 
-        Min(TypeElement resultType, List<Value> data_0) {
+        Min(CodeType resultType, List<Value> data_0) {
             super(SCHEMA, resultType, Set.of(), List.of(data_0), List.of());
         }
 
@@ -16526,7 +16526,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Min Min(TypeElement resultType, List<Value> data_0) {
+    public static Min Min(CodeType resultType, List<Value> data_0) {
         return new Min(resultType, data_0);
     }
 
@@ -16620,7 +16620,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Mish(this, cc);
         }
 
-        Mish(TypeElement resultType, Value X) {
+        Mish(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -16640,7 +16640,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Mish Mish(TypeElement resultType, Value X) {
+    public static Mish Mish(CodeType resultType, Value X) {
         return new Mish(resultType, X);
     }
 
@@ -16761,7 +16761,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Mod(this, cc);
         }
 
-        Mod(TypeElement resultType, Value A, Value B, java.util.Optional<Long> fmod) {
+        Mod(CodeType resultType, Value A, Value B, java.util.Optional<Long> fmod) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of(fmod));
         }
 
@@ -16790,7 +16790,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Mod Mod(TypeElement resultType, Value A, Value B, java.util.Optional<Long> fmod) {
+    public static Mod Mod(CodeType resultType, Value A, Value B, java.util.Optional<Long> fmod) {
         return new Mod(resultType, A, B, fmod);
     }
 
@@ -16917,7 +16917,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Momentum(this, cc);
         }
 
-        Momentum(TypeElement resultType, Value R, Value T, List<Value> inputs, String mode, float norm_coefficient, float alpha, float beta) {
+        Momentum(CodeType resultType, Value R, Value T, List<Value> inputs, String mode, float norm_coefficient, float alpha, float beta) {
             super(SCHEMA, resultType, Set.of(), List.of(R, T, inputs), List.of(mode, norm_coefficient, alpha, beta));
         }
 
@@ -16965,7 +16965,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Momentum Momentum(TypeElement resultType, Value R, Value T, List<Value> inputs, String mode, float norm_coefficient, float alpha, float beta) {
+    public static Momentum Momentum(CodeType resultType, Value R, Value T, List<Value> inputs, String mode, float norm_coefficient, float alpha, float beta) {
         return new Momentum(resultType, R, T, inputs, mode, norm_coefficient, alpha, beta);
     }
 
@@ -17060,7 +17060,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Mul(this, cc);
         }
 
-        Mul(TypeElement resultType, Value A, Value B) {
+        Mul(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -17084,7 +17084,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Mul Mul(TypeElement resultType, Value A, Value B) {
+    public static Mul Mul(CodeType resultType, Value A, Value B) {
         return new Mul(resultType, A, B);
     }
 
@@ -17207,7 +17207,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Multinomial(this, cc);
         }
 
-        Multinomial(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> sample_size, java.util.Optional<Long> dtype) {
+        Multinomial(CodeType resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> sample_size, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(seed, sample_size, dtype));
         }
 
@@ -17242,7 +17242,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Multinomial Multinomial(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> sample_size, java.util.Optional<Long> dtype) {
+    public static Multinomial Multinomial(CodeType resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> sample_size, java.util.Optional<Long> dtype) {
         return new Multinomial(resultType, input, seed, sample_size, dtype);
     }
 
@@ -17336,7 +17336,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Neg(this, cc);
         }
 
-        Neg(TypeElement resultType, Value X) {
+        Neg(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -17356,7 +17356,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Neg Neg(TypeElement resultType, Value X) {
+    public static Neg Neg(CodeType resultType, Value X) {
         return new Neg(resultType, X);
     }
 
@@ -17480,7 +17480,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new NegativeLogLikelihoodLoss(this, cc);
         }
 
-        NegativeLogLikelihoodLoss(TypeElement resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
+        NegativeLogLikelihoodLoss(CodeType resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
             super(SCHEMA, resultType, Set.of(), List.of(input, target, weight), List.of(ignore_index, reduction));
         }
 
@@ -17519,7 +17519,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static NegativeLogLikelihoodLoss NegativeLogLikelihoodLoss(TypeElement resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
+    public static NegativeLogLikelihoodLoss NegativeLogLikelihoodLoss(CodeType resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
         return new NegativeLogLikelihoodLoss(resultType, input, target, weight, ignore_index, reduction);
     }
 
@@ -17628,7 +17628,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new NonMaxSuppression(this, cc);
         }
 
-        NonMaxSuppression(TypeElement resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Long> center_point_box) {
+        NonMaxSuppression(CodeType resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Long> center_point_box) {
             super(SCHEMA, resultType, Set.of(), List.of(boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold), List.of(center_point_box));
         }
 
@@ -17672,7 +17672,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static NonMaxSuppression NonMaxSuppression(TypeElement resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Long> center_point_box) {
+    public static NonMaxSuppression NonMaxSuppression(CodeType resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Long> center_point_box) {
         return new NonMaxSuppression(resultType, boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold, center_point_box);
     }
 
@@ -17766,7 +17766,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new NonZero(this, cc);
         }
 
-        NonZero(TypeElement resultType, Value X) {
+        NonZero(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -17786,7 +17786,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static NonZero NonZero(TypeElement resultType, Value X) {
+    public static NonZero NonZero(CodeType resultType, Value X) {
         return new NonZero(resultType, X);
     }
 
@@ -17906,7 +17906,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Normalizer(this, cc);
         }
 
-        Normalizer(TypeElement resultType, Value X, java.util.Optional<String> norm) {
+        Normalizer(CodeType resultType, Value X, java.util.Optional<String> norm) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(norm));
         }
 
@@ -17931,7 +17931,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Normalizer Normalizer(TypeElement resultType, Value X, java.util.Optional<String> norm) {
+    public static Normalizer Normalizer(CodeType resultType, Value X, java.util.Optional<String> norm) {
         return new Normalizer(resultType, X, norm);
     }
 
@@ -18025,7 +18025,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Not(this, cc);
         }
 
-        Not(TypeElement resultType, Value X) {
+        Not(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -18045,7 +18045,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Not Not(TypeElement resultType, Value X) {
+    public static Not Not(CodeType resultType, Value X) {
         return new Not(resultType, X);
     }
 
@@ -18169,7 +18169,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new OneHot(this, cc);
         }
 
-        OneHot(TypeElement resultType, Value indices, Value depth, Value values, java.util.Optional<Long> axis) {
+        OneHot(CodeType resultType, Value indices, Value depth, Value values, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(indices, depth, values), List.of(axis));
         }
 
@@ -18202,7 +18202,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static OneHot OneHot(TypeElement resultType, Value indices, Value depth, Value values, java.util.Optional<Long> axis) {
+    public static OneHot OneHot(CodeType resultType, Value indices, Value depth, Value values, java.util.Optional<Long> axis) {
         return new OneHot(resultType, indices, depth, values, axis);
     }
 
@@ -18324,7 +18324,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new OneHotEncoder(this, cc);
         }
 
-        OneHotEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<long[]> cats_int64s, java.util.Optional<Long> zeros) {
+        OneHotEncoder(CodeType resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<long[]> cats_int64s, java.util.Optional<Long> zeros) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(cats_strings, cats_int64s, zeros));
         }
 
@@ -18359,7 +18359,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static OneHotEncoder OneHotEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<long[]> cats_int64s, java.util.Optional<Long> zeros) {
+    public static OneHotEncoder OneHotEncoder(CodeType resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<long[]> cats_int64s, java.util.Optional<Long> zeros) {
         return new OneHotEncoder(resultType, X, cats_strings, cats_int64s, zeros);
     }
 
@@ -18480,7 +18480,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Optional(this, cc);
         }
 
-        Optional(TypeElement resultType, java.util.Optional<Value> input, java.util.Optional<Object> type) {
+        Optional(CodeType resultType, java.util.Optional<Value> input, java.util.Optional<Object> type) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(type));
         }
 
@@ -18506,7 +18506,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Optional Optional(TypeElement resultType, java.util.Optional<Value> input, java.util.Optional<Object> type) {
+    public static Optional Optional(CodeType resultType, java.util.Optional<Value> input, java.util.Optional<Object> type) {
         return new Optional(resultType, input, type);
     }
 
@@ -18601,7 +18601,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new OptionalGetElement(this, cc);
         }
 
-        OptionalGetElement(TypeElement resultType, Value input) {
+        OptionalGetElement(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -18621,7 +18621,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static OptionalGetElement OptionalGetElement(TypeElement resultType, Value input) {
+    public static OptionalGetElement OptionalGetElement(CodeType resultType, Value input) {
         return new OptionalGetElement(resultType, input);
     }
 
@@ -18716,7 +18716,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new OptionalHasElement(this, cc);
         }
 
-        OptionalHasElement(TypeElement resultType, java.util.Optional<Value> input) {
+        OptionalHasElement(CodeType resultType, java.util.Optional<Value> input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -18737,7 +18737,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static OptionalHasElement OptionalHasElement(TypeElement resultType, java.util.Optional<Value> input) {
+    public static OptionalHasElement OptionalHasElement(CodeType resultType, java.util.Optional<Value> input) {
         return new OptionalHasElement(resultType, input);
     }
 
@@ -18833,7 +18833,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Or(this, cc);
         }
 
-        Or(TypeElement resultType, Value A, Value B) {
+        Or(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -18857,7 +18857,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Or Or(TypeElement resultType, Value A, Value B) {
+    public static Or Or(CodeType resultType, Value A, Value B) {
         return new Or(resultType, A, B);
     }
 
@@ -18952,7 +18952,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new PRelu(this, cc);
         }
 
-        PRelu(TypeElement resultType, Value X, Value slope) {
+        PRelu(CodeType resultType, Value X, Value slope) {
             super(SCHEMA, resultType, Set.of(), List.of(X, slope), List.of());
         }
 
@@ -18976,7 +18976,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static PRelu PRelu(TypeElement resultType, Value X, Value slope) {
+    public static PRelu PRelu(CodeType resultType, Value X, Value slope) {
         return new PRelu(resultType, X, slope);
     }
 
@@ -19100,7 +19100,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Pad(this, cc);
         }
 
-        Pad(TypeElement resultType, Value data, Value pads, java.util.Optional<Value> constant_value, java.util.Optional<Value> axes, java.util.Optional<String> mode) {
+        Pad(CodeType resultType, Value data, Value pads, java.util.Optional<Value> constant_value, java.util.Optional<Value> axes, java.util.Optional<String> mode) {
             super(SCHEMA, resultType, Set.of(), List.of(data, pads, constant_value, axes), List.of(mode));
         }
 
@@ -19139,7 +19139,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Pad Pad(TypeElement resultType, Value data, Value pads, java.util.Optional<Value> constant_value, java.util.Optional<Value> axes, java.util.Optional<String> mode) {
+    public static Pad Pad(CodeType resultType, Value data, Value pads, java.util.Optional<Value> constant_value, java.util.Optional<Value> axes, java.util.Optional<String> mode) {
         return new Pad(resultType, data, pads, constant_value, axes, mode);
     }
 
@@ -19235,7 +19235,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Pow(this, cc);
         }
 
-        Pow(TypeElement resultType, Value X, Value Y) {
+        Pow(CodeType resultType, Value X, Value Y) {
             super(SCHEMA, resultType, Set.of(), List.of(X, Y), List.of());
         }
 
@@ -19259,7 +19259,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Pow Pow(TypeElement resultType, Value X, Value Y) {
+    public static Pow Pow(CodeType resultType, Value X, Value Y) {
         return new Pow(resultType, X, Y);
     }
 
@@ -19395,7 +19395,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new QLinearConv(this, cc);
         }
 
-        QLinearConv(TypeElement resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+        QLinearConv(CodeType resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(x, x_scale, x_zero_point, w, w_scale, w_zero_point, y_scale, y_zero_point, B), List.of(pads, dilations, auto_pad, strides, group, kernel_shape));
         }
 
@@ -19478,7 +19478,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static QLinearConv QLinearConv(TypeElement resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
+    public static QLinearConv QLinearConv(CodeType resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new QLinearConv(resultType, x, x_scale, x_zero_point, w, w_scale, w_zero_point, y_scale, y_zero_point, B, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
@@ -19582,7 +19582,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new QLinearMatMul(this, cc);
         }
 
-        QLinearMatMul(TypeElement resultType, Value a, Value a_scale, Value a_zero_point, Value b, Value b_scale, Value b_zero_point, Value y_scale, Value y_zero_point) {
+        QLinearMatMul(CodeType resultType, Value a, Value a_scale, Value a_zero_point, Value b, Value b_scale, Value b_zero_point, Value y_scale, Value y_zero_point) {
             super(SCHEMA, resultType, Set.of(), List.of(a, a_scale, a_zero_point, b, b_scale, b_zero_point, y_scale, y_zero_point), List.of());
         }
 
@@ -19630,7 +19630,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static QLinearMatMul QLinearMatMul(TypeElement resultType, Value a, Value a_scale, Value a_zero_point, Value b, Value b_scale, Value b_zero_point, Value y_scale, Value y_zero_point) {
+    public static QLinearMatMul QLinearMatMul(CodeType resultType, Value a, Value a_scale, Value a_zero_point, Value b, Value b_scale, Value b_zero_point, Value y_scale, Value y_zero_point) {
         return new QLinearMatMul(resultType, a, a_scale, a_zero_point, b, b_scale, b_zero_point, y_scale, y_zero_point);
     }
 
@@ -19758,7 +19758,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new QuantizeLinear(this, cc);
         }
 
-        QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> precision, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+        QuantizeLinear(CodeType resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> precision, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
             super(SCHEMA, resultType, Set.of(), List.of(x, y_scale, y_zero_point), List.of(output_dtype, saturate, precision, axis, block_size));
         }
 
@@ -19812,7 +19812,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static QuantizeLinear QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> precision, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
+    public static QuantizeLinear QuantizeLinear(CodeType resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> precision, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
         return new QuantizeLinear(resultType, x, y_scale, y_zero_point, output_dtype, saturate, precision, axis, block_size);
     }
 
@@ -19936,7 +19936,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RMSNormalization(this, cc);
         }
 
-        RMSNormalization(TypeElement resultType, Value X, Value scale, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
+        RMSNormalization(CodeType resultType, Value X, Value scale, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(X, scale), List.of(epsilon, stash_type, axis));
         }
 
@@ -19975,7 +19975,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RMSNormalization RMSNormalization(TypeElement resultType, Value X, Value scale, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
+    public static RMSNormalization RMSNormalization(CodeType resultType, Value X, Value scale, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
         return new RMSNormalization(resultType, X, scale, epsilon, stash_type, axis);
     }
 
@@ -20108,7 +20108,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RNN(this, cc);
         }
 
-        RNN(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        RNN(CodeType resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
         }
 
@@ -20186,7 +20186,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RNN RNN(TypeElement resultType, Set<RNN.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+    public static RNN RNN(CodeType resultType, Set<RNN.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
         return new RNN(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
@@ -20289,7 +20289,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RandomNormal(this, cc);
         }
 
-        RandomNormal(TypeElement resultType, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
+        RandomNormal(CodeType resultType, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(shape, seed, mean, scale, dtype));
         }
 
@@ -20330,7 +20330,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RandomNormal RandomNormal(TypeElement resultType, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
+    public static RandomNormal RandomNormal(CodeType resultType, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
         return new RandomNormal(resultType, shape, seed, mean, scale, dtype);
     }
 
@@ -20454,7 +20454,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RandomNormalLike(this, cc);
         }
 
-        RandomNormalLike(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
+        RandomNormalLike(CodeType resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(seed, mean, scale, dtype));
         }
 
@@ -20494,7 +20494,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RandomNormalLike RandomNormalLike(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
+    public static RandomNormalLike RandomNormalLike(CodeType resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
         return new RandomNormalLike(resultType, input, seed, mean, scale, dtype);
     }
 
@@ -20597,7 +20597,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RandomUniform(this, cc);
         }
 
-        RandomUniform(TypeElement resultType, java.util.Optional<Float> high, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
+        RandomUniform(CodeType resultType, java.util.Optional<Float> high, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(high, shape, seed, low, dtype));
         }
 
@@ -20638,7 +20638,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RandomUniform RandomUniform(TypeElement resultType, java.util.Optional<Float> high, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
+    public static RandomUniform RandomUniform(CodeType resultType, java.util.Optional<Float> high, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
         return new RandomUniform(resultType, high, shape, seed, low, dtype);
     }
 
@@ -20762,7 +20762,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RandomUniformLike(this, cc);
         }
 
-        RandomUniformLike(TypeElement resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
+        RandomUniformLike(CodeType resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(high, seed, low, dtype));
         }
 
@@ -20802,7 +20802,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RandomUniformLike RandomUniformLike(TypeElement resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
+    public static RandomUniformLike RandomUniformLike(CodeType resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
         return new RandomUniformLike(resultType, input, high, seed, low, dtype);
     }
 
@@ -20898,7 +20898,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Range(this, cc);
         }
 
-        Range(TypeElement resultType, Value start, Value limit, Value delta) {
+        Range(CodeType resultType, Value start, Value limit, Value delta) {
             super(SCHEMA, resultType, Set.of(), List.of(start, limit, delta), List.of());
         }
 
@@ -20926,7 +20926,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Range Range(TypeElement resultType, Value start, Value limit, Value delta) {
+    public static Range Range(CodeType resultType, Value start, Value limit, Value delta) {
         return new Range(resultType, start, limit, delta);
     }
 
@@ -21020,7 +21020,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Reciprocal(this, cc);
         }
 
-        Reciprocal(TypeElement resultType, Value X) {
+        Reciprocal(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -21040,7 +21040,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Reciprocal Reciprocal(TypeElement resultType, Value X) {
+    public static Reciprocal Reciprocal(CodeType resultType, Value X) {
         return new Reciprocal(resultType, X);
     }
 
@@ -21162,7 +21162,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceL1(this, cc);
         }
 
-        ReduceL1(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceL1(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21197,7 +21197,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceL1 ReduceL1(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceL1 ReduceL1(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceL1(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21319,7 +21319,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceL2(this, cc);
         }
 
-        ReduceL2(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceL2(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21354,7 +21354,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceL2 ReduceL2(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceL2 ReduceL2(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceL2(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21476,7 +21476,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceLogSum(this, cc);
         }
 
-        ReduceLogSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceLogSum(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21511,7 +21511,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceLogSum ReduceLogSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceLogSum ReduceLogSum(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceLogSum(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21633,7 +21633,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceLogSumExp(this, cc);
         }
 
-        ReduceLogSumExp(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceLogSumExp(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21668,7 +21668,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceLogSumExp ReduceLogSumExp(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceLogSumExp ReduceLogSumExp(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceLogSumExp(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21790,7 +21790,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceMax(this, cc);
         }
 
-        ReduceMax(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceMax(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21825,7 +21825,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceMax ReduceMax(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceMax ReduceMax(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceMax(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21947,7 +21947,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceMean(this, cc);
         }
 
-        ReduceMean(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceMean(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21982,7 +21982,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceMean ReduceMean(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceMean ReduceMean(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceMean(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -22104,7 +22104,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceMin(this, cc);
         }
 
-        ReduceMin(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceMin(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -22139,7 +22139,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceMin ReduceMin(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceMin ReduceMin(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceMin(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -22261,7 +22261,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceProd(this, cc);
         }
 
-        ReduceProd(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceProd(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -22296,7 +22296,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceProd ReduceProd(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceProd ReduceProd(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceProd(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -22418,7 +22418,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceSum(this, cc);
         }
 
-        ReduceSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceSum(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -22453,7 +22453,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceSum ReduceSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceSum ReduceSum(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceSum(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -22575,7 +22575,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReduceSumSquare(this, cc);
         }
 
-        ReduceSumSquare(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+        ReduceSumSquare(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -22610,7 +22610,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReduceSumSquare ReduceSumSquare(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
+    public static ReduceSumSquare ReduceSumSquare(CodeType resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceSumSquare(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -22731,7 +22731,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RegexFullMatch(this, cc);
         }
 
-        RegexFullMatch(TypeElement resultType, Value X, java.util.Optional<String> pattern) {
+        RegexFullMatch(CodeType resultType, Value X, java.util.Optional<String> pattern) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(pattern));
         }
 
@@ -22756,7 +22756,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RegexFullMatch RegexFullMatch(TypeElement resultType, Value X, java.util.Optional<String> pattern) {
+    public static RegexFullMatch RegexFullMatch(CodeType resultType, Value X, java.util.Optional<String> pattern) {
         return new RegexFullMatch(resultType, X, pattern);
     }
 
@@ -22850,7 +22850,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Relu(this, cc);
         }
 
-        Relu(TypeElement resultType, Value X) {
+        Relu(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -22870,7 +22870,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Relu Relu(TypeElement resultType, Value X) {
+    public static Relu Relu(CodeType resultType, Value X) {
         return new Relu(resultType, X);
     }
 
@@ -22991,7 +22991,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Reshape(this, cc);
         }
 
-        Reshape(TypeElement resultType, Value data, Value shape, java.util.Optional<Long> allowzero) {
+        Reshape(CodeType resultType, Value data, Value shape, java.util.Optional<Long> allowzero) {
             super(SCHEMA, resultType, Set.of(), List.of(data, shape), List.of(allowzero));
         }
 
@@ -23020,7 +23020,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Reshape Reshape(TypeElement resultType, Value data, Value shape, java.util.Optional<Long> allowzero) {
+    public static Reshape Reshape(CodeType resultType, Value data, Value shape, java.util.Optional<Long> allowzero) {
         return new Reshape(resultType, data, shape, allowzero);
     }
 
@@ -23152,7 +23152,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Resize(this, cc);
         }
 
-        Resize(TypeElement resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Long> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<long[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Long> exclude_outside) {
+        Resize(CodeType resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Long> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<long[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Long> exclude_outside) {
             super(SCHEMA, resultType, Set.of(), List.of(X, roi, scales, sizes), List.of(mode, extrapolation_value, nearest_mode, antialias, cubic_coeff_a, axes, coordinate_transformation_mode, keep_aspect_ratio_policy, exclude_outside));
         }
 
@@ -23232,7 +23232,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Resize Resize(TypeElement resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Long> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<long[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Long> exclude_outside) {
+    public static Resize Resize(CodeType resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Long> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<long[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Long> exclude_outside) {
         return new Resize(resultType, X, roi, scales, sizes, mode, extrapolation_value, nearest_mode, antialias, cubic_coeff_a, axes, coordinate_transformation_mode, keep_aspect_ratio_policy, exclude_outside);
     }
 
@@ -23354,7 +23354,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ReverseSequence(this, cc);
         }
 
-        ReverseSequence(TypeElement resultType, Value input, Value sequence_lens, java.util.Optional<Long> time_axis, java.util.Optional<Long> batch_axis) {
+        ReverseSequence(CodeType resultType, Value input, Value sequence_lens, java.util.Optional<Long> time_axis, java.util.Optional<Long> batch_axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, sequence_lens), List.of(time_axis, batch_axis));
         }
 
@@ -23388,7 +23388,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ReverseSequence ReverseSequence(TypeElement resultType, Value input, Value sequence_lens, java.util.Optional<Long> time_axis, java.util.Optional<Long> batch_axis) {
+    public static ReverseSequence ReverseSequence(CodeType resultType, Value input, Value sequence_lens, java.util.Optional<Long> time_axis, java.util.Optional<Long> batch_axis) {
         return new ReverseSequence(resultType, input, sequence_lens, time_axis, batch_axis);
     }
 
@@ -23516,7 +23516,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RoiAlign(this, cc);
         }
 
-        RoiAlign(TypeElement resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Long> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Long> sampling_ratio, java.util.Optional<Long> output_height) {
+        RoiAlign(CodeType resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Long> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Long> sampling_ratio, java.util.Optional<Long> output_height) {
             super(SCHEMA, resultType, Set.of(), List.of(X, rois, batch_indices), List.of(mode, output_width, spatial_scale, coordinate_transformation_mode, sampling_ratio, output_height));
         }
 
@@ -23574,7 +23574,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RoiAlign RoiAlign(TypeElement resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Long> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Long> sampling_ratio, java.util.Optional<Long> output_height) {
+    public static RoiAlign RoiAlign(CodeType resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Long> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Long> sampling_ratio, java.util.Optional<Long> output_height) {
         return new RoiAlign(resultType, X, rois, batch_indices, mode, output_width, spatial_scale, coordinate_transformation_mode, sampling_ratio, output_height);
     }
 
@@ -23700,7 +23700,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new RotaryEmbedding(this, cc);
         }
 
-        RotaryEmbedding(TypeElement resultType, Value X, Value cos_cache, Value sin_cache, java.util.Optional<Value> position_ids, java.util.Optional<Long> num_heads, java.util.Optional<Long> rotary_embedding_dim, java.util.Optional<Long> interleaved) {
+        RotaryEmbedding(CodeType resultType, Value X, Value cos_cache, Value sin_cache, java.util.Optional<Value> position_ids, java.util.Optional<Long> num_heads, java.util.Optional<Long> rotary_embedding_dim, java.util.Optional<Long> interleaved) {
             super(SCHEMA, resultType, Set.of(), List.of(X, cos_cache, sin_cache, position_ids), List.of(num_heads, rotary_embedding_dim, interleaved));
         }
 
@@ -23748,7 +23748,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static RotaryEmbedding RotaryEmbedding(TypeElement resultType, Value X, Value cos_cache, Value sin_cache, java.util.Optional<Value> position_ids, java.util.Optional<Long> num_heads, java.util.Optional<Long> rotary_embedding_dim, java.util.Optional<Long> interleaved) {
+    public static RotaryEmbedding RotaryEmbedding(CodeType resultType, Value X, Value cos_cache, Value sin_cache, java.util.Optional<Value> position_ids, java.util.Optional<Long> num_heads, java.util.Optional<Long> rotary_embedding_dim, java.util.Optional<Long> interleaved) {
         return new RotaryEmbedding(resultType, X, cos_cache, sin_cache, position_ids, num_heads, rotary_embedding_dim, interleaved);
     }
 
@@ -23842,7 +23842,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Round(this, cc);
         }
 
-        Round(TypeElement resultType, Value X) {
+        Round(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -23862,7 +23862,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Round Round(TypeElement resultType, Value X) {
+    public static Round Round(CodeType resultType, Value X) {
         return new Round(resultType, X);
     }
 
@@ -23986,7 +23986,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new STFT(this, cc);
         }
 
-        STFT(TypeElement resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Long> onesided) {
+        STFT(CodeType resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Long> onesided) {
             super(SCHEMA, resultType, Set.of(), List.of(signal, frame_step, window, frame_length), List.of(onesided));
         }
 
@@ -24025,7 +24025,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static STFT STFT(TypeElement resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Long> onesided) {
+    public static STFT STFT(CodeType resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Long> onesided) {
         return new STFT(resultType, signal, frame_step, window, frame_length, onesided);
     }
 
@@ -24157,7 +24157,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SVMClassifier(this, cc);
         }
 
-        SVMClassifier(TypeElement resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<long[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
+        SVMClassifier(CodeType resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<long[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(prob_b, kernel_params, kernel_type, classlabels_ints, post_transform, rho, coefficients, support_vectors, vectors_per_class, prob_a, classlabels_strings));
         }
 
@@ -24232,7 +24232,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SVMClassifier SVMClassifier(TypeElement resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<long[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
+    public static SVMClassifier SVMClassifier(CodeType resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<long[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
         return new SVMClassifier(resultType, X, prob_b, kernel_params, kernel_type, classlabels_ints, post_transform, rho, coefficients, support_vectors, vectors_per_class, prob_a, classlabels_strings);
     }
 
@@ -24359,7 +24359,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SVMRegressor(this, cc);
         }
 
-        SVMRegressor(TypeElement resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Long> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Long> one_class) {
+        SVMRegressor(CodeType resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Long> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Long> one_class) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(kernel_type, kernel_params, n_supports, rho, post_transform, coefficients, support_vectors, one_class));
         }
 
@@ -24419,7 +24419,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SVMRegressor SVMRegressor(TypeElement resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Long> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Long> one_class) {
+    public static SVMRegressor SVMRegressor(CodeType resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Long> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Long> one_class) {
         return new SVMRegressor(resultType, X, kernel_type, kernel_params, n_supports, rho, post_transform, coefficients, support_vectors, one_class);
     }
 
@@ -24540,7 +24540,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Scaler(this, cc);
         }
 
-        Scaler(TypeElement resultType, Value X, java.util.Optional<float[]> offset, java.util.Optional<float[]> scale) {
+        Scaler(CodeType resultType, Value X, java.util.Optional<float[]> offset, java.util.Optional<float[]> scale) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(offset, scale));
         }
 
@@ -24570,7 +24570,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Scaler Scaler(TypeElement resultType, Value X, java.util.Optional<float[]> offset, java.util.Optional<float[]> scale) {
+    public static Scaler Scaler(CodeType resultType, Value X, java.util.Optional<float[]> offset, java.util.Optional<float[]> scale) {
         return new Scaler(resultType, X, offset, scale);
     }
 
@@ -24693,7 +24693,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Scatter(this, cc);
         }
 
-        Scatter(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<Long> axis) {
+        Scatter(CodeType resultType, Value data, Value indices, Value updates, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices, updates), List.of(axis));
         }
 
@@ -24726,7 +24726,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Scatter Scatter(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<Long> axis) {
+    public static Scatter Scatter(CodeType resultType, Value data, Value indices, Value updates, java.util.Optional<Long> axis) {
         return new Scatter(resultType, data, indices, updates, axis);
     }
 
@@ -24850,7 +24850,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ScatterElements(this, cc);
         }
 
-        ScatterElements(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Long> axis) {
+        ScatterElements(CodeType resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices, updates), List.of(reduction, axis));
         }
 
@@ -24888,7 +24888,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ScatterElements ScatterElements(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Long> axis) {
+    public static ScatterElements ScatterElements(CodeType resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Long> axis) {
         return new ScatterElements(resultType, data, indices, updates, reduction, axis);
     }
 
@@ -25010,7 +25010,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ScatterND(this, cc);
         }
 
-        ScatterND(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction) {
+        ScatterND(CodeType resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices, updates), List.of(reduction));
         }
 
@@ -25043,7 +25043,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ScatterND ScatterND(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction) {
+    public static ScatterND ScatterND(CodeType resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction) {
         return new ScatterND(resultType, data, indices, updates, reduction);
     }
 
@@ -25164,7 +25164,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Selu(this, cc);
         }
 
-        Selu(TypeElement resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> gamma) {
+        Selu(CodeType resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> gamma) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha, gamma));
         }
 
@@ -25194,7 +25194,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Selu Selu(TypeElement resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> gamma) {
+    public static Selu Selu(CodeType resultType, Value X, java.util.Optional<Float> alpha, java.util.Optional<Float> gamma) {
         return new Selu(resultType, X, alpha, gamma);
     }
 
@@ -25291,7 +25291,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SequenceAt(this, cc);
         }
 
-        SequenceAt(TypeElement resultType, Value input_sequence, Value position) {
+        SequenceAt(CodeType resultType, Value input_sequence, Value position) {
             super(SCHEMA, resultType, Set.of(), List.of(input_sequence, position), List.of());
         }
 
@@ -25315,7 +25315,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SequenceAt SequenceAt(TypeElement resultType, Value input_sequence, Value position) {
+    public static SequenceAt SequenceAt(CodeType resultType, Value input_sequence, Value position) {
         return new SequenceAt(resultType, input_sequence, position);
     }
 
@@ -25410,7 +25410,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SequenceConstruct(this, cc);
         }
 
-        SequenceConstruct(TypeElement resultType, List<Value> inputs) {
+        SequenceConstruct(CodeType resultType, List<Value> inputs) {
             super(SCHEMA, resultType, Set.of(), List.of(inputs), List.of());
         }
 
@@ -25430,7 +25430,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SequenceConstruct SequenceConstruct(TypeElement resultType, List<Value> inputs) {
+    public static SequenceConstruct SequenceConstruct(CodeType resultType, List<Value> inputs) {
         return new SequenceConstruct(resultType, inputs);
     }
 
@@ -25529,7 +25529,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SequenceEmpty(this, cc);
         }
 
-        SequenceEmpty(TypeElement resultType, java.util.Optional<Long> dtype) {
+        SequenceEmpty(CodeType resultType, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(dtype));
         }
 
@@ -25550,7 +25550,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SequenceEmpty SequenceEmpty(TypeElement resultType, java.util.Optional<Long> dtype) {
+    public static SequenceEmpty SequenceEmpty(CodeType resultType, java.util.Optional<Long> dtype) {
         return new SequenceEmpty(resultType, dtype);
     }
 
@@ -25646,7 +25646,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SequenceErase(this, cc);
         }
 
-        SequenceErase(TypeElement resultType, Value input_sequence, java.util.Optional<Value> position) {
+        SequenceErase(CodeType resultType, Value input_sequence, java.util.Optional<Value> position) {
             super(SCHEMA, resultType, Set.of(), List.of(input_sequence, position), List.of());
         }
 
@@ -25671,7 +25671,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SequenceErase SequenceErase(TypeElement resultType, Value input_sequence, java.util.Optional<Value> position) {
+    public static SequenceErase SequenceErase(CodeType resultType, Value input_sequence, java.util.Optional<Value> position) {
         return new SequenceErase(resultType, input_sequence, position);
     }
 
@@ -25769,7 +25769,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SequenceInsert(this, cc);
         }
 
-        SequenceInsert(TypeElement resultType, Value input_sequence, Value tensor, java.util.Optional<Value> position) {
+        SequenceInsert(CodeType resultType, Value input_sequence, Value tensor, java.util.Optional<Value> position) {
             super(SCHEMA, resultType, Set.of(), List.of(input_sequence, tensor, position), List.of());
         }
 
@@ -25798,7 +25798,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SequenceInsert SequenceInsert(TypeElement resultType, Value input_sequence, Value tensor, java.util.Optional<Value> position) {
+    public static SequenceInsert SequenceInsert(CodeType resultType, Value input_sequence, Value tensor, java.util.Optional<Value> position) {
         return new SequenceInsert(resultType, input_sequence, tensor, position);
     }
 
@@ -25893,7 +25893,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SequenceLength(this, cc);
         }
 
-        SequenceLength(TypeElement resultType, Value input_sequence) {
+        SequenceLength(CodeType resultType, Value input_sequence) {
             super(SCHEMA, resultType, Set.of(), List.of(input_sequence), List.of());
         }
 
@@ -25913,7 +25913,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SequenceLength SequenceLength(TypeElement resultType, Value input_sequence) {
+    public static SequenceLength SequenceLength(CodeType resultType, Value input_sequence) {
         return new SequenceLength(resultType, input_sequence);
     }
 
@@ -26035,7 +26035,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Shape(this, cc);
         }
 
-        Shape(TypeElement resultType, Value data, java.util.Optional<Long> start, java.util.Optional<Long> end) {
+        Shape(CodeType resultType, Value data, java.util.Optional<Long> start, java.util.Optional<Long> end) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(start, end));
         }
 
@@ -26065,7 +26065,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Shape Shape(TypeElement resultType, Value data, java.util.Optional<Long> start, java.util.Optional<Long> end) {
+    public static Shape Shape(CodeType resultType, Value data, java.util.Optional<Long> start, java.util.Optional<Long> end) {
         return new Shape(resultType, data, start, end);
     }
 
@@ -26186,7 +26186,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Shrink(this, cc);
         }
 
-        Shrink(TypeElement resultType, Value input, java.util.Optional<Float> lambd, java.util.Optional<Float> bias) {
+        Shrink(CodeType resultType, Value input, java.util.Optional<Float> lambd, java.util.Optional<Float> bias) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(lambd, bias));
         }
 
@@ -26216,7 +26216,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Shrink Shrink(TypeElement resultType, Value input, java.util.Optional<Float> lambd, java.util.Optional<Float> bias) {
+    public static Shrink Shrink(CodeType resultType, Value input, java.util.Optional<Float> lambd, java.util.Optional<Float> bias) {
         return new Shrink(resultType, input, lambd, bias);
     }
 
@@ -26310,7 +26310,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Sigmoid(this, cc);
         }
 
-        Sigmoid(TypeElement resultType, Value X) {
+        Sigmoid(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -26330,7 +26330,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Sigmoid Sigmoid(TypeElement resultType, Value X) {
+    public static Sigmoid Sigmoid(CodeType resultType, Value X) {
         return new Sigmoid(resultType, X);
     }
 
@@ -26424,7 +26424,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Sign(this, cc);
         }
 
-        Sign(TypeElement resultType, Value input) {
+        Sign(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -26444,7 +26444,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Sign Sign(TypeElement resultType, Value input) {
+    public static Sign Sign(CodeType resultType, Value input) {
         return new Sign(resultType, input);
     }
 
@@ -26538,7 +26538,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Sin(this, cc);
         }
 
-        Sin(TypeElement resultType, Value input) {
+        Sin(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -26558,7 +26558,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Sin Sin(TypeElement resultType, Value input) {
+    public static Sin Sin(CodeType resultType, Value input) {
         return new Sin(resultType, input);
     }
 
@@ -26652,7 +26652,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Sinh(this, cc);
         }
 
-        Sinh(TypeElement resultType, Value input) {
+        Sinh(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -26672,7 +26672,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Sinh Sinh(TypeElement resultType, Value input) {
+    public static Sinh Sinh(CodeType resultType, Value input) {
         return new Sinh(resultType, input);
     }
 
@@ -26767,7 +26767,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Size(this, cc);
         }
 
-        Size(TypeElement resultType, Value data) {
+        Size(CodeType resultType, Value data) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of());
         }
 
@@ -26787,7 +26787,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Size Size(TypeElement resultType, Value data) {
+    public static Size Size(CodeType resultType, Value data) {
         return new Size(resultType, data);
     }
 
@@ -26886,7 +26886,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Slice(this, cc);
         }
 
-        Slice(TypeElement resultType, Value data, Value starts, Value ends, java.util.Optional<Value> axes, java.util.Optional<Value> steps) {
+        Slice(CodeType resultType, Value data, Value starts, Value ends, java.util.Optional<Value> axes, java.util.Optional<Value> steps) {
             super(SCHEMA, resultType, Set.of(), List.of(data, starts, ends, axes, steps), List.of());
         }
 
@@ -26924,7 +26924,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Slice Slice(TypeElement resultType, Value data, Value starts, Value ends, java.util.Optional<Value> axes, java.util.Optional<Value> steps) {
+    public static Slice Slice(CodeType resultType, Value data, Value starts, Value ends, java.util.Optional<Value> axes, java.util.Optional<Value> steps) {
         return new Slice(resultType, data, starts, ends, axes, steps);
     }
 
@@ -27044,7 +27044,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Softmax(this, cc);
         }
 
-        Softmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+        Softmax(CodeType resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -27069,7 +27069,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Softmax Softmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
+    public static Softmax Softmax(CodeType resultType, Value input, java.util.Optional<Long> axis) {
         return new Softmax(resultType, input, axis);
     }
 
@@ -27194,7 +27194,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SoftmaxCrossEntropyLoss(this, cc);
         }
 
-        SoftmaxCrossEntropyLoss(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
+        SoftmaxCrossEntropyLoss(CodeType resultType, Set<OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(scores, labels, weights), List.of(ignore_index, reduction));
         }
 
@@ -27233,7 +27233,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(TypeElement resultType, Set<SoftmaxCrossEntropyLoss.OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
+    public static SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(CodeType resultType, Set<SoftmaxCrossEntropyLoss.OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
         return new SoftmaxCrossEntropyLoss(resultType, optionalOutputs, scores, labels, weights, ignore_index, reduction);
     }
 
@@ -27327,7 +27327,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Softplus(this, cc);
         }
 
-        Softplus(TypeElement resultType, Value X) {
+        Softplus(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -27347,7 +27347,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Softplus Softplus(TypeElement resultType, Value X) {
+    public static Softplus Softplus(CodeType resultType, Value X) {
         return new Softplus(resultType, X);
     }
 
@@ -27441,7 +27441,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Softsign(this, cc);
         }
 
-        Softsign(TypeElement resultType, Value input) {
+        Softsign(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -27461,7 +27461,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Softsign Softsign(TypeElement resultType, Value input) {
+    public static Softsign Softsign(CodeType resultType, Value input) {
         return new Softsign(resultType, input);
     }
 
@@ -27581,7 +27581,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SpaceToDepth(this, cc);
         }
 
-        SpaceToDepth(TypeElement resultType, Value input, long blocksize) {
+        SpaceToDepth(CodeType resultType, Value input, long blocksize) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(blocksize));
         }
 
@@ -27606,7 +27606,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SpaceToDepth SpaceToDepth(TypeElement resultType, Value input, long blocksize) {
+    public static SpaceToDepth SpaceToDepth(CodeType resultType, Value input, long blocksize) {
         return new SpaceToDepth(resultType, input, blocksize);
     }
 
@@ -27728,7 +27728,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Split(this, cc);
         }
 
-        Split(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> num_outputs, java.util.Optional<Long> axis) {
+        Split(CodeType resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> num_outputs, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, split), List.of(num_outputs, axis));
         }
 
@@ -27763,7 +27763,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Split Split(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> num_outputs, java.util.Optional<Long> axis) {
+    public static Split Split(CodeType resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> num_outputs, java.util.Optional<Long> axis) {
         return new Split(resultType, input, split, num_outputs, axis);
     }
 
@@ -27887,7 +27887,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new SplitToSequence(this, cc);
         }
 
-        SplitToSequence(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> keepdims, java.util.Optional<Long> axis) {
+        SplitToSequence(CodeType resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> keepdims, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, split), List.of(keepdims, axis));
         }
 
@@ -27922,7 +27922,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static SplitToSequence SplitToSequence(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> keepdims, java.util.Optional<Long> axis) {
+    public static SplitToSequence SplitToSequence(CodeType resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> keepdims, java.util.Optional<Long> axis) {
         return new SplitToSequence(resultType, input, split, keepdims, axis);
     }
 
@@ -28016,7 +28016,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Sqrt(this, cc);
         }
 
-        Sqrt(TypeElement resultType, Value X) {
+        Sqrt(CodeType resultType, Value X) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of());
         }
 
@@ -28036,7 +28036,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Sqrt Sqrt(TypeElement resultType, Value X) {
+    public static Sqrt Sqrt(CodeType resultType, Value X) {
         return new Sqrt(resultType, X);
     }
 
@@ -28131,7 +28131,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Squeeze(this, cc);
         }
 
-        Squeeze(TypeElement resultType, Value data, java.util.Optional<Value> axes) {
+        Squeeze(CodeType resultType, Value data, java.util.Optional<Value> axes) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of());
         }
 
@@ -28156,7 +28156,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Squeeze Squeeze(TypeElement resultType, Value data, java.util.Optional<Value> axes) {
+    public static Squeeze Squeeze(CodeType resultType, Value data, java.util.Optional<Value> axes) {
         return new Squeeze(resultType, data, axes);
     }
 
@@ -28251,7 +28251,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new StringConcat(this, cc);
         }
 
-        StringConcat(TypeElement resultType, Value X, Value Y) {
+        StringConcat(CodeType resultType, Value X, Value Y) {
             super(SCHEMA, resultType, Set.of(), List.of(X, Y), List.of());
         }
 
@@ -28275,7 +28275,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static StringConcat StringConcat(TypeElement resultType, Value X, Value Y) {
+    public static StringConcat StringConcat(CodeType resultType, Value X, Value Y) {
         return new StringConcat(resultType, X, Y);
     }
 
@@ -28383,7 +28383,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new StringNormalizer(this, cc);
         }
 
-        StringNormalizer(TypeElement resultType, Value X, java.util.Optional<Long> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
+        StringNormalizer(CodeType resultType, Value X, java.util.Optional<Long> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(is_case_sensitive, locale, stopwords, case_change_action));
         }
 
@@ -28423,7 +28423,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static StringNormalizer StringNormalizer(TypeElement resultType, Value X, java.util.Optional<Long> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
+    public static StringNormalizer StringNormalizer(CodeType resultType, Value X, java.util.Optional<Long> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
         return new StringNormalizer(resultType, X, is_case_sensitive, locale, stopwords, case_change_action);
     }
 
@@ -28547,7 +28547,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new StringSplit(this, cc);
         }
 
-        StringSplit(TypeElement resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Long> maxsplit) {
+        StringSplit(CodeType resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Long> maxsplit) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(delimiter, maxsplit));
         }
 
@@ -28577,7 +28577,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static StringSplit StringSplit(TypeElement resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Long> maxsplit) {
+    public static StringSplit StringSplit(CodeType resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Long> maxsplit) {
         return new StringSplit(resultType, X, delimiter, maxsplit);
     }
 
@@ -28672,7 +28672,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Sub(this, cc);
         }
 
-        Sub(TypeElement resultType, Value A, Value B) {
+        Sub(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -28696,7 +28696,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Sub Sub(TypeElement resultType, Value A, Value B) {
+    public static Sub Sub(CodeType resultType, Value A, Value B) {
         return new Sub(resultType, A, B);
     }
 
@@ -28790,7 +28790,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Sum(this, cc);
         }
 
-        Sum(TypeElement resultType, List<Value> data_0) {
+        Sum(CodeType resultType, List<Value> data_0) {
             super(SCHEMA, resultType, Set.of(), List.of(data_0), List.of());
         }
 
@@ -28810,7 +28810,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Sum Sum(TypeElement resultType, List<Value> data_0) {
+    public static Sum Sum(CodeType resultType, List<Value> data_0) {
         return new Sum(resultType, data_0);
     }
 
@@ -28930,7 +28930,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Swish(this, cc);
         }
 
-        Swish(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+        Swish(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha));
         }
 
@@ -28955,7 +28955,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Swish Swish(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+    public static Swish Swish(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
         return new Swish(resultType, X, alpha);
     }
 
@@ -29049,7 +29049,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Tan(this, cc);
         }
 
-        Tan(TypeElement resultType, Value input) {
+        Tan(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -29069,7 +29069,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Tan Tan(TypeElement resultType, Value input) {
+    public static Tan Tan(CodeType resultType, Value input) {
         return new Tan(resultType, input);
     }
 
@@ -29163,7 +29163,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Tanh(this, cc);
         }
 
-        Tanh(TypeElement resultType, Value input) {
+        Tanh(CodeType resultType, Value input) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of());
         }
 
@@ -29183,7 +29183,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Tanh Tanh(TypeElement resultType, Value input) {
+    public static Tanh Tanh(CodeType resultType, Value input) {
         return new Tanh(resultType, input);
     }
 
@@ -29306,7 +29306,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new TensorScatter(this, cc);
         }
 
-        TensorScatter(TypeElement resultType, Value past_cache, Value update, java.util.Optional<Value> write_indices, java.util.Optional<String> mode, java.util.Optional<Long> axis) {
+        TensorScatter(CodeType resultType, Value past_cache, Value update, java.util.Optional<Value> write_indices, java.util.Optional<String> mode, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(past_cache, update, write_indices), List.of(mode, axis));
         }
 
@@ -29345,7 +29345,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static TensorScatter TensorScatter(TypeElement resultType, Value past_cache, Value update, java.util.Optional<Value> write_indices, java.util.Optional<String> mode, java.util.Optional<Long> axis) {
+    public static TensorScatter TensorScatter(CodeType resultType, Value past_cache, Value update, java.util.Optional<Value> write_indices, java.util.Optional<String> mode, java.util.Optional<Long> axis) {
         return new TensorScatter(resultType, past_cache, update, write_indices, mode, axis);
     }
 
@@ -29474,7 +29474,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new TfIdfVectorizer(this, cc);
         }
 
-        TfIdfVectorizer(TypeElement resultType, Value X, long[] ngram_counts, long min_gram_length, java.util.Optional<String[]> pool_strings, String mode, long max_gram_length, long max_skip_count, java.util.Optional<long[]> pool_int64s, java.util.Optional<float[]> weights, long[] ngram_indexes) {
+        TfIdfVectorizer(CodeType resultType, Value X, long[] ngram_counts, long min_gram_length, java.util.Optional<String[]> pool_strings, String mode, long max_gram_length, long max_skip_count, java.util.Optional<long[]> pool_int64s, java.util.Optional<float[]> weights, long[] ngram_indexes) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(ngram_counts, min_gram_length, pool_strings, mode, max_gram_length, max_skip_count, pool_int64s, weights, ngram_indexes));
         }
 
@@ -29539,7 +29539,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static TfIdfVectorizer TfIdfVectorizer(TypeElement resultType, Value X, long[] ngram_counts, long min_gram_length, java.util.Optional<String[]> pool_strings, String mode, long max_gram_length, long max_skip_count, java.util.Optional<long[]> pool_int64s, java.util.Optional<float[]> weights, long[] ngram_indexes) {
+    public static TfIdfVectorizer TfIdfVectorizer(CodeType resultType, Value X, long[] ngram_counts, long min_gram_length, java.util.Optional<String[]> pool_strings, String mode, long max_gram_length, long max_skip_count, java.util.Optional<long[]> pool_int64s, java.util.Optional<float[]> weights, long[] ngram_indexes) {
         return new TfIdfVectorizer(resultType, X, ngram_counts, min_gram_length, pool_strings, mode, max_gram_length, max_skip_count, pool_int64s, weights, ngram_indexes);
     }
 
@@ -29659,7 +29659,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ThresholdedRelu(this, cc);
         }
 
-        ThresholdedRelu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+        ThresholdedRelu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(alpha));
         }
 
@@ -29684,7 +29684,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ThresholdedRelu ThresholdedRelu(TypeElement resultType, Value X, java.util.Optional<Float> alpha) {
+    public static ThresholdedRelu ThresholdedRelu(CodeType resultType, Value X, java.util.Optional<Float> alpha) {
         return new ThresholdedRelu(resultType, X, alpha);
     }
 
@@ -29780,7 +29780,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Tile(this, cc);
         }
 
-        Tile(TypeElement resultType, Value input, Value repeats) {
+        Tile(CodeType resultType, Value input, Value repeats) {
             super(SCHEMA, resultType, Set.of(), List.of(input, repeats), List.of());
         }
 
@@ -29804,7 +29804,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Tile Tile(TypeElement resultType, Value input, Value repeats) {
+    public static Tile Tile(CodeType resultType, Value input, Value repeats) {
         return new Tile(resultType, input, repeats);
     }
 
@@ -29929,7 +29929,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new TopK(this, cc);
         }
 
-        TopK(TypeElement resultType, Value X, Value K, java.util.Optional<Long> largest, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
+        TopK(CodeType resultType, Value X, Value K, java.util.Optional<Long> largest, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(X, K), List.of(largest, sorted, axis));
         }
 
@@ -29968,7 +29968,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static TopK TopK(TypeElement resultType, Value X, Value K, java.util.Optional<Long> largest, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
+    public static TopK TopK(CodeType resultType, Value X, Value K, java.util.Optional<Long> largest, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
         return new TopK(resultType, X, K, largest, sorted, axis);
     }
 
@@ -30088,7 +30088,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Transpose(this, cc);
         }
 
-        Transpose(TypeElement resultType, Value data, java.util.Optional<long[]> perm) {
+        Transpose(CodeType resultType, Value data, java.util.Optional<long[]> perm) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(perm));
         }
 
@@ -30113,7 +30113,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Transpose Transpose(TypeElement resultType, Value data, java.util.Optional<long[]> perm) {
+    public static Transpose Transpose(CodeType resultType, Value data, java.util.Optional<long[]> perm) {
         return new Transpose(resultType, data, perm);
     }
 
@@ -30248,7 +30248,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new TreeEnsemble(this, cc);
         }
 
-        TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Long> aggregate_function, java.util.Optional<Tensor> nodes_hitrates, long[] nodes_featureids, long[] nodes_falseleafs, java.util.Optional<Long> post_transform, long[] nodes_trueleafs, Tensor nodes_modes, long[] nodes_falsenodeids, long[] nodes_truenodeids, Tensor leaf_weights, long[] leaf_targetids, long[] tree_roots, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<Tensor> membership_values, Tensor nodes_splits) {
+        TreeEnsemble(CodeType resultType, Value X, java.util.Optional<Long> aggregate_function, java.util.Optional<Tensor> nodes_hitrates, long[] nodes_featureids, long[] nodes_falseleafs, java.util.Optional<Long> post_transform, long[] nodes_trueleafs, Tensor nodes_modes, long[] nodes_falsenodeids, long[] nodes_truenodeids, Tensor leaf_weights, long[] leaf_targetids, long[] tree_roots, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<Tensor> membership_values, Tensor nodes_splits) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits));
         }
 
@@ -30348,7 +30348,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static TreeEnsemble TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Long> aggregate_function, java.util.Optional<Tensor> nodes_hitrates, long[] nodes_featureids, long[] nodes_falseleafs, java.util.Optional<Long> post_transform, long[] nodes_trueleafs, Tensor nodes_modes, long[] nodes_falsenodeids, long[] nodes_truenodeids, Tensor leaf_weights, long[] leaf_targetids, long[] tree_roots, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<Tensor> membership_values, Tensor nodes_splits) {
+    public static TreeEnsemble TreeEnsemble(CodeType resultType, Value X, java.util.Optional<Long> aggregate_function, java.util.Optional<Tensor> nodes_hitrates, long[] nodes_featureids, long[] nodes_falseleafs, java.util.Optional<Long> post_transform, long[] nodes_trueleafs, Tensor nodes_modes, long[] nodes_falsenodeids, long[] nodes_truenodeids, Tensor leaf_weights, long[] leaf_targetids, long[] tree_roots, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<Tensor> membership_values, Tensor nodes_splits) {
         return new TreeEnsemble(resultType, X, aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits);
     }
 
@@ -30490,7 +30490,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new TreeEnsembleClassifier(this, cc);
         }
 
-        TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<long[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<Tensor> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<long[]> class_nodeids, java.util.Optional<long[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
+        TreeEnsembleClassifier(CodeType resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<long[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<Tensor> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<long[]> class_nodeids, java.util.Optional<long[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor));
         }
 
@@ -30615,7 +30615,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static TreeEnsembleClassifier TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<long[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<Tensor> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<long[]> class_nodeids, java.util.Optional<long[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
+    public static TreeEnsembleClassifier TreeEnsembleClassifier(CodeType resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<long[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<Tensor> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<long[]> class_nodeids, java.util.Optional<long[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
         return new TreeEnsembleClassifier(resultType, X, classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor);
     }
 
@@ -30755,7 +30755,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new TreeEnsembleRegressor(this, cc);
         }
 
-        TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<Tensor> target_weights_as_tensor, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> target_treeids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<long[]> target_ids, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> target_nodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
+        TreeEnsembleRegressor(CodeType resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<Tensor> target_weights_as_tensor, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> target_treeids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<long[]> target_ids, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> target_nodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor));
         }
 
@@ -30880,7 +30880,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static TreeEnsembleRegressor TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<Tensor> target_weights_as_tensor, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> target_treeids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<long[]> target_ids, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> target_nodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
+    public static TreeEnsembleRegressor TreeEnsembleRegressor(CodeType resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<Tensor> target_weights_as_tensor, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> target_treeids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<long[]> target_ids, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> target_nodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<Tensor> nodes_hitrates_as_tensor, java.util.Optional<Tensor> base_values_as_tensor, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor> nodes_values_as_tensor) {
         return new TreeEnsembleRegressor(resultType, X, aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor);
     }
 
@@ -31001,7 +31001,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Trilu(this, cc);
         }
 
-        Trilu(TypeElement resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Long> upper) {
+        Trilu(CodeType resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Long> upper) {
             super(SCHEMA, resultType, Set.of(), List.of(input, k), List.of(upper));
         }
 
@@ -31031,7 +31031,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Trilu Trilu(TypeElement resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Long> upper) {
+    public static Trilu Trilu(CodeType resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Long> upper) {
         return new Trilu(resultType, input, k, upper);
     }
 
@@ -31155,7 +31155,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Unique(this, cc);
         }
 
-        Unique(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
+        Unique(CodeType resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X), List.of(sorted, axis));
         }
 
@@ -31185,7 +31185,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Unique Unique(TypeElement resultType, Set<Unique.OutputParameter> optionalOutputs, Value X, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
+    public static Unique Unique(CodeType resultType, Set<Unique.OutputParameter> optionalOutputs, Value X, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
         return new Unique(resultType, optionalOutputs, X, sorted, axis);
     }
 
@@ -31280,7 +31280,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Unsqueeze(this, cc);
         }
 
-        Unsqueeze(TypeElement resultType, Value data, Value axes) {
+        Unsqueeze(CodeType resultType, Value data, Value axes) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of());
         }
 
@@ -31304,7 +31304,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Unsqueeze Unsqueeze(TypeElement resultType, Value data, Value axes) {
+    public static Unsqueeze Unsqueeze(CodeType resultType, Value data, Value axes) {
         return new Unsqueeze(resultType, data, axes);
     }
 
@@ -31425,7 +31425,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Upsample(this, cc);
         }
 
-        Upsample(TypeElement resultType, Value X, Value scales, java.util.Optional<String> mode) {
+        Upsample(CodeType resultType, Value X, Value scales, java.util.Optional<String> mode) {
             super(SCHEMA, resultType, Set.of(), List.of(X, scales), List.of(mode));
         }
 
@@ -31454,7 +31454,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Upsample Upsample(TypeElement resultType, Value X, Value scales, java.util.Optional<String> mode) {
+    public static Upsample Upsample(CodeType resultType, Value X, Value scales, java.util.Optional<String> mode) {
         return new Upsample(resultType, X, scales, mode);
     }
 
@@ -31551,7 +31551,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Where(this, cc);
         }
 
-        Where(TypeElement resultType, Value condition, Value X, Value Y) {
+        Where(CodeType resultType, Value condition, Value X, Value Y) {
             super(SCHEMA, resultType, Set.of(), List.of(condition, X, Y), List.of());
         }
 
@@ -31579,7 +31579,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Where Where(TypeElement resultType, Value condition, Value X, Value Y) {
+    public static Where Where(CodeType resultType, Value condition, Value X, Value Y) {
         return new Where(resultType, condition, X, Y);
     }
 
@@ -31675,7 +31675,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new Xor(this, cc);
         }
 
-        Xor(TypeElement resultType, Value A, Value B) {
+        Xor(CodeType resultType, Value A, Value B) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of());
         }
 
@@ -31699,7 +31699,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static Xor Xor(TypeElement resultType, Value A, Value B) {
+    public static Xor Xor(CodeType resultType, Value A, Value B) {
         return new Xor(resultType, A, B);
     }
 
@@ -31820,7 +31820,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
             return new ZipMap(this, cc);
         }
 
-        ZipMap(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
+        ZipMap(CodeType resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(classlabels_int64s, classlabels_strings));
         }
 
@@ -31850,7 +31850,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     }
 
-    public static ZipMap ZipMap(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
+    public static ZipMap ZipMap(CodeType resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
         return new ZipMap(resultType, X, classlabels_int64s, classlabels_strings);
     }
 

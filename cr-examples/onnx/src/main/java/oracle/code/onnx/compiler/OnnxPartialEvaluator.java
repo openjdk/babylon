@@ -524,12 +524,12 @@ final class OnnxPartialEvaluator {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -558,7 +558,7 @@ final class OnnxPartialEvaluator {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    public static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>) jt.erasure().resolve(l);

@@ -144,9 +144,9 @@ public final class Quoted<T extends Op> {
      * <i>fblock</i> will have a block parameter, in order, for every value in the key set of the map of operands and
      * captured values.
      * If the value is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp var operation} then the
-     * parameter's type element is the var operation's value type, and <i>fblock</i> will have a var operation whose
+     * parameter's code type is the var operation's value type, and <i>fblock</i> will have a var operation whose
      * operand is the block parameter.
-     * Otherwise, the parameter's type element is the value's type element.
+     * Otherwise, the parameter's code type is the value's code type.
      * <br>
      * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp quoted operation}
      * that has one body with one block (<i>qblock</i>). Inside <i>qblock</i> there is a copy of {@code op}
@@ -172,7 +172,7 @@ public final class Quoted<T extends Op> {
         List<Value> inputOperandsAndCaptures = s.stream().toList();
 
         // Build the function type
-        List<TypeElement> params = inputOperandsAndCaptures.stream()
+        List<CodeType> params = inputOperandsAndCaptures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
         FunctionType ft = CoreType.functionType(CoreOp.QuotedOp.QUOTED_OP_TYPE, params);

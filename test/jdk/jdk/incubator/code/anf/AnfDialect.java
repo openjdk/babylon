@@ -41,9 +41,9 @@ public final class AnfDialect {
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final TypeElement yieldType;
+            final CodeType yieldType;
 
-            Builder(Body.Builder ancestorBody, TypeElement yieldType) {
+            Builder(Body.Builder ancestorBody, CodeType yieldType) {
                 this.ancestorBody = ancestorBody;
                 this.yieldType = yieldType;
             }
@@ -87,7 +87,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.bindings.yieldType();
         }
     }
@@ -98,9 +98,9 @@ public final class AnfDialect {
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final TypeElement yieldType;
+            final CodeType yieldType;
 
-            Builder(Body.Builder ancestorBody, TypeElement yieldType) {
+            Builder(Body.Builder ancestorBody, CodeType yieldType) {
                 this.ancestorBody = ancestorBody;
                 this.yieldType = yieldType;
             }
@@ -144,7 +144,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.bindings.yieldType();
         }
 
@@ -164,10 +164,10 @@ public final class AnfDialect {
 
         public static class ThenBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement yieldType;
+            final CodeType yieldType;
             final Value test;
 
-            ThenBuilder(Body.Builder ancestorBody, TypeElement yieldType, Value test) {
+            ThenBuilder(Body.Builder ancestorBody, CodeType yieldType, Value test) {
                 this.ancestorBody = ancestorBody;
                 this.yieldType = yieldType;
                 this.test = test;
@@ -245,7 +245,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.then_.yieldType();
         }
     }
@@ -336,7 +336,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return invokableType();
         }
     }
@@ -358,7 +358,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             FunctionType ft = (FunctionType) operands().get(0).type();
             return ft.returnType();
         }
@@ -382,7 +382,7 @@ public final class AnfDialect {
         public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";
 
         public final String callSiteName;
-        public final TypeElement resultType;
+        public final CodeType resultType;
 
         public static AnfApplyStub create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
@@ -413,7 +413,7 @@ public final class AnfDialect {
             return new AnfApplyStub(this, cc);
         }
 
-        public AnfApplyStub(String callSiteName, List<Value> arguments, TypeElement resultType) {
+        public AnfApplyStub(String callSiteName, List<Value> arguments, CodeType resultType) {
             super(arguments);
             this.resultType = resultType;
             this.callSiteName = callSiteName;
@@ -423,7 +423,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.resultType;
         }
 
@@ -450,7 +450,7 @@ public final class AnfDialect {
 
     static final OpFactory FACTORY = AnfDialect::createOp;
 
-    public static AnfLetRecOp.Builder letrec(Body.Builder ancestorBody, TypeElement yieldType) {
+    public static AnfLetRecOp.Builder letrec(Body.Builder ancestorBody, CodeType yieldType) {
         return new AnfLetRecOp.Builder(ancestorBody, yieldType);
     }
 
@@ -458,7 +458,7 @@ public final class AnfDialect {
         return new AnfLetRecOp(body);
     }
 
-    public static AnfLetOp.Builder let(Body.Builder ancestorBody, TypeElement yieldType) {
+    public static AnfLetOp.Builder let(Body.Builder ancestorBody, CodeType yieldType) {
         return new AnfLetOp.Builder(ancestorBody, yieldType);
     }
 
@@ -466,7 +466,7 @@ public final class AnfDialect {
         return new AnfLetOp(body);
     }
 
-    public static AnfIfOp.ThenBuilder if_(Body.Builder ancestorBody, TypeElement yieldType, Value test) {
+    public static AnfIfOp.ThenBuilder if_(Body.Builder ancestorBody, CodeType yieldType, Value test) {
         return new AnfIfOp.ThenBuilder(ancestorBody, yieldType, test);
     }
 
@@ -475,7 +475,7 @@ public final class AnfDialect {
     }
 
     public static AnfFuncOp.Builder func(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
-        List<TypeElement> params = new ArrayList<>();
+        List<CodeType> params = new ArrayList<>();
         params.add(funcType.returnType());
         params.addAll(funcType.parameterTypes());
         return new AnfFuncOp.Builder(ancestorBody, funcName, CoreType.functionType(funcType.returnType(), params));
@@ -488,5 +488,5 @@ public final class AnfDialect {
     public static AnfApply apply(List<Value> arguments) {
         return new AnfApply(arguments);
     }
-    //public static AnfApplyStub applyStub(String name, List<Value> arguments, TypeElement type) { return new AnfApplyStub(name, arguments, type);}
+    //public static AnfApplyStub applyStub(String name, List<Value> arguments, CodeType type) { return new AnfApplyStub(name, arguments, type);}
 }

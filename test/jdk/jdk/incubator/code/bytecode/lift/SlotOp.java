@@ -84,7 +84,7 @@ sealed abstract class SlotOp extends Op {
             return NAME;
         }
 
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public SlotLoadOp(ExternalizedOp def) {
             int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
@@ -106,13 +106,13 @@ sealed abstract class SlotOp extends Op {
             return new SlotLoadOp(this, cc);
         }
 
-        SlotLoadOp(int slot, TypeElement resultType) {
+        SlotLoadOp(int slot, CodeType resultType) {
             super(List.of(), slot);
             this.resultType = resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
 
@@ -160,7 +160,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
@@ -175,7 +175,7 @@ sealed abstract class SlotOp extends Op {
         }
     }
 
-    private static TypeKind toTypeKind(TypeElement type) {
+    private static TypeKind toTypeKind(CodeType type) {
         return switch (type) {
             case UnresolvedType.Int _ ->
                 TypeKind.INT;

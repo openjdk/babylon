@@ -36,7 +36,7 @@ import java.util.stream.LongStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -285,7 +285,7 @@ final class JavaTemplate {
         }
     }
 
-    private static String toJavaType(TypeElement t) {
+    private static String toJavaType(CodeType t) {
         return switch (t) {
             case OnnxType.TensorType tt ->
                 "Tensor<" + switch (tt.eType()) {
