@@ -120,61 +120,6 @@ public class Main {
     }
 
     @Reflect
-    @Kernel("""
-            #include <mma.h>
-            using namespace nvcuda;
-            HAT_KERNEL void matrixMultiplyKernel2DLIF16(
-                HAT_GLOBAL_MEM KernelContext_t* kc,
-                HAT_GLOBAL_MEM F16Array_t* matrixA,
-                HAT_GLOBAL_MEM F16Array_t* matrixB,
-                HAT_GLOBAL_MEM F32Array_t* matrixC,
-                int size
-            ){
-                int warpM = (blockIdx.x * blockDim.x + threadIdx.x) / warpSize;
-                int warpN = (blockIdx.y * blockDim.y + threadIdx.y);
-                int lda = 1024;
-                int ldb = 1024;
-                int ldc = 1024;
-
-                wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::col_major> a_frag;
-                wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::col_major> b_frag;
-                wmma::fragment<wmma::accumulator, 16, 16, 16, float> acc_frag;
-
-                wmma::fill_fragment(acc_frag, 0.0f);
-
-                half *a = (half *)matrixA;
-                half *b = (half *)matrixB;
-                float *c = (float *)matrixC;
-
-                const int headSize = 2; // header is one `int`, which is 2 `half` floats.
-
-                if(HAT_GIX<HAT_GSX){
-                    if(HAT_GIY<HAT_GSY){
-                        for(int i = 0; i<size; i += 16){
-                            int aRow = warpM * 16;
-                            int aCol = i;
-
-                            int bRow = i;
-                            int bCol = warpN * 16;
-
-                            if (aRow < 1024 && aCol < 1024 && bRow < 1024 && bCol < 1024) {
-                                // Load tensor
-                                wmma::load_matrix_sync(a_frag, a + headSize + aRow + aCol * lda, lda);
-                                wmma::load_matrix_sync(b_frag, b + headSize + bRow + bCol * ldb, ldb);
-
-                                wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
-                            }
-                        }
-                        int cRow = warpM * 16;
-                        int cCol = warpN * 16;
-
-                        const int headerC = 1; // the header for the output is 1 integer.
-                        wmma::store_matrix_sync(c + headerC + cRow + cCol * ldc, acc_frag, ldc, wmma::mem_col_major);
-                    }
-                }
-                return;
-            }
-            """)
     public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
