@@ -46,11 +46,10 @@ public record HATWarpSizePhase() implements HATPhase {
         return Trxfmr.of(lookup, funcOp)
                 .transform(c -> {
                     if (fieldAccess(lookup, c.op()) instanceof OpHelper.FieldAccess.Instance fieldAccess
-                            && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("warpSize")) {
+                            && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("wrs")) {
                         varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());
                         c.replace(HATThreadOp.create(fieldAccess.name()));
-                    }
-                })
+                    }})
                 .remap(varAccessesToBeRemoved)
                 .remove(varAccessesToBeRemoved::contains)
                 .funcOp();

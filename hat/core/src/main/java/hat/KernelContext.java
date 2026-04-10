@@ -68,13 +68,18 @@ public class KernelContext {
     public int bsy;
     public int bsz;
 
+    // Warp size
+    public int wrs;
+
     final int dimensions;
 
-    public int warpSize;
-
-    final public NDRange ndRange;
+    public final NDRange ndRange;
 
     public KernelContext(NDRange ndRange) {
+        if (ndRange == null) {
+            throw new NullPointerException("ndRange is null");
+        }
+
         this.ndRange = ndRange;
         switch (ndRange) {
             case NDRange.NDRange1D ndRange1D -> {
@@ -95,8 +100,7 @@ public class KernelContext {
                 this.gsz = ((NDRange.M3D)(ndRange3D.global())).z();
                 this.dimensions = ((NDRange.M3D)(ndRange3D.global())).dimension();
             }
-            case null, default ->
-                throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
+            default -> throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
 
         }
     }
@@ -104,6 +108,8 @@ public class KernelContext {
     /**
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.
      */
-    public void barrier() { }
+    public void barrier() {
+        // this method is intentionally empty and used just a marker for the GPU/accelerator code.
+    }
 
 }

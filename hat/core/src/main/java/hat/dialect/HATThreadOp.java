@@ -69,7 +69,7 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
             case "bsx" -> new HATThreadOp.HAT_BS.HAT_BSX();
             case "bsy" -> new HATThreadOp.HAT_BS.HAT_BSY();
             case "bsz" -> new HATThreadOp.HAT_BS.HAT_BSZ();
-            case "warpSize" -> new HATThreadOp.HAT_WARP_SIZE();
+            case "wrs" -> new HATThreadOp.HAT_WARP_SIZE();
             default -> throw new RuntimeException("[ERROR] Illegal/unsupported parallel construct: " + name);
         };
     }

@@ -36,6 +36,7 @@ package hat;
  * </ul>
  */
 public interface NDRange {
+
     Local local();
 
     Global global();

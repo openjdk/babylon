@@ -31,7 +31,6 @@ import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types.F16;
 import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import jdk.incubator.code.Value;
@@ -209,9 +208,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
             recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
             if (!hatF16ToFloatConvOp.isLocal()) {
-                rarrow();//.id("value");
+                rarrow();
             } else if (!hatF16ToFloatConvOp.wasFloat()) {
-                dot();//.id("value");
+                dot();
             } else{
                 throw new OpenCLCodeGenException("Can we get here");
             }

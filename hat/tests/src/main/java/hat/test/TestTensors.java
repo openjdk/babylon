@@ -67,7 +67,7 @@ public class TestTensors {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.warpSize;
+        int warpM = kc.gix / kc.wrs;
         int warpN = kc.giy;
 
         final int lda = 1024;
@@ -121,7 +121,7 @@ public class TestTensors {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.warpSize;
+        int warpM = kc.gix / kc.wrs;
         int warpN = kc.giy;
 
         final int lda = 1024;
