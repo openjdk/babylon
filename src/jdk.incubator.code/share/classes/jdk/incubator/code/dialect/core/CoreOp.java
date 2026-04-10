@@ -135,7 +135,7 @@ public sealed abstract class CoreOp extends Op {
                                         case String s -> s;
                                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
                                     });
-                            yield MethodRef.method(null, funcName, def.bodyDefinitions().get(0).bodyType());
+                            yield MethodRef.method(JavaType.VOID, funcName, def.bodyDefinitions().get(0).bodyType());
                         }
                     });
 
@@ -186,7 +186,7 @@ public sealed abstract class CoreOp extends Op {
             super(List.of());
 
             this.body = bodyBuilder.build(this);
-            this.mref = MethodRef.method(null, funcName, body.bodyType());
+            this.mref = MethodRef.method(JavaType.VOID, funcName, body.bodyType());
         }
 
         FuncOp(MethodRef mref, Body.Builder bodyBuilder) {
@@ -204,7 +204,7 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             Map<String, Object> m = new HashMap<>();
-            if (mref.refType() != null) { // mref.refType can be null e.g. a user built model providing the name only
+            if (!mref.refType().equals(JavaType.VOID)) { // mref.refType can be VOID e.g. if FuncOp is created by providing name only
                 m.put(ATTRIBUTE_FUNC_MREF, mref);
             } else {
                 m.put("", mref.name());
@@ -242,7 +242,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         public Optional<MethodRef> mref() {
-            return mref.refType() == null ? Optional.empty() : Optional.of(mref);
+            return mref.refType().equals(JavaType.VOID) ? Optional.empty() : Optional.of(mref);
         }
     }
 
