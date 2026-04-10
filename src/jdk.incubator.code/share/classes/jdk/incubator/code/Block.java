@@ -469,9 +469,8 @@ public final class Block implements CodeElement<Block, Op> {
      * <p>
      * A block builder is built when its {@link #parent() parent} body builder is {@link Body.Builder#build(Op) built}.
      * <p>
-     * A block is not observable while it is being built. Attempts to access a block being built through appended
-     * operations, their operation results, or created block references, result in an exception.
-     *
+     * A block is not observable while it is being built. Attempts to access a block being built through the block's
+     * parameters, appended operations, their operation results, or created block references, result in an exception.
      * <p>
      * If a built builder is operated on to append a block parameter, append an operation, build a sibling block,
      * then an {@code IllegalStateException} is thrown.
