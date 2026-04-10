@@ -294,7 +294,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             varTensorName = tensorVarOp.varName();
         }
         int size = shape[0] * shape[1];
-        HAT_LOCAL_MEM().sp();
+
+        if (tensorCreateOp.operands().size() > 3) {
+            // Share memory only for the input tiles (tensors)
+            // The accumulator is stored in private memory
+            HAT_LOCAL_MEM().sp();
+        }
+
         switch (klass) {
             case ClassType classType when classType.toClassName().equals(F16.class.getCanonicalName()) -> f16Type();
             case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");
@@ -472,8 +478,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         float initValue = getValueConstantTensor(tensorInitValue);
 
         emitTensorFill(shape, tensorVarOp, initValue);
-        HAT_BARRIER();
-
         return self();
     }
 
@@ -563,7 +567,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             }).semicolon().nl();
 
         }).out().out();
-        HAT_BARRIER();
         return self();
     }
 
@@ -895,7 +898,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final boolean isColumnMajor = isColumnMajor(accessLayout);
 
         generateTensorStore(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
-        HAT_BARRIER();
         return self();
     }
 
