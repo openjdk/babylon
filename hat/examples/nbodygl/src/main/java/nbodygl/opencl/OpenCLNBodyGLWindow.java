@@ -70,7 +70,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
 
     @Reflect
-    static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernel(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
@@ -101,7 +101,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
     }
     @Reflect
-    static public void nbodyKernelf4(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernelf4(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
         var acc = Float4.of(0,0,0,0);
         var posArr = universe.posArrView();
         var velArr = universe.velArrView();

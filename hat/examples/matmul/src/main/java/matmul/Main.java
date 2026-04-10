@@ -84,7 +84,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
@@ -106,7 +106,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DLI(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
@@ -123,8 +123,8 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<MyLocalArrayFixedSize> schema = DeviceSchema.of(MyLocalArrayFixedSize.class,
-                myPrivateArray -> myPrivateArray.withArray("array", 256));// It is a bound schema, so we fix the size here
+        DeviceSchema<MyLocalArrayFixedSize> deviceSchema = DeviceSchema.of(MyLocalArrayFixedSize.class,
+                myPrivateArray -> myPrivateArray.array("array", 256));// It is a bound schema, so we fix the size here
 
 
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
@@ -141,7 +141,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DTiling(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
 
         final int tileSize = 16;
         MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal();
@@ -187,8 +187,8 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
-                arr -> arr.withArray("array", 1024));
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.array("array", 1024));
 
         static SharedMemory create(Accelerator accelerator) {
             return null;
@@ -204,8 +204,8 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
-                arr -> arr.withArray("array", 16));
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
+                arr -> arr.array("array", 16));
 
         static PrivateArray create(Accelerator accelerator) {
             return null;
@@ -221,8 +221,8 @@ public class Main {
 
         float array(long index);
 
-        DeviceSchema<FlatPrivate> schema = DeviceSchema.of(FlatPrivate.class,
-                arr -> arr.withArray("array", 4));
+        DeviceSchema<FlatPrivate> deviceSchema = DeviceSchema.of(FlatPrivate.class,
+                arr -> arr.array("array", 4));
 
         static FlatPrivate create(Accelerator accelerator) {
             return null;
@@ -254,7 +254,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTiling(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -376,7 +376,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO F32ArrayPadded matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingVectorized(KernelContext kc, F32ArrayPadded matrixA, F32ArrayPadded matrixB, F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -478,9 +478,8 @@ public class Main {
     private interface SharedMemoryHalf extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<SharedMemoryHalf> schema = DeviceSchema.of(SharedMemoryHalf.class,
-                arr -> arr.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<SharedMemoryHalf> deviceSchema = DeviceSchema.of(SharedMemoryHalf.class,
+                arr -> arr.array("array", 1024, half -> half.field("value")));
 
         static SharedMemoryHalf create(Accelerator accelerator) {
             return null;
@@ -494,9 +493,8 @@ public class Main {
     private interface PrivateArrayHalf extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<PrivateArrayHalf> schema = DeviceSchema.of(PrivateArrayHalf.class,
-                arr -> arr.withArray("array", 16)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<PrivateArrayHalf> deviceSchema = DeviceSchema.of(PrivateArrayHalf.class,
+                arr -> arr.array("array", 16, half -> half.field("value")));
 
         static PrivateArrayHalf create(Accelerator accelerator) {
             return null;
@@ -510,9 +508,8 @@ public class Main {
     private interface FlatPrivateHalf extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<FlatPrivateHalf> schema = DeviceSchema.of(FlatPrivateHalf.class,
-                arr -> arr.withArray("array", 4)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<FlatPrivateHalf> deviceSchema = DeviceSchema.of(FlatPrivateHalf.class,
+                arr -> arr.array("array", 4, half -> half.field("value")));
 
         static FlatPrivateHalf create(Accelerator accelerator) {
             return null;
@@ -524,7 +521,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F16Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingHalf(KernelContext kc, F16Array matrixA, F16Array matrixB, F16Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -648,7 +645,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel1D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
@@ -664,7 +661,7 @@ public class Main {
      * 1D Matrix Multiply with function calls passing the kernel context ID. This is just for testing purposes.
      */
     @Reflect
-    public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel1DWithFunctionCalls(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);

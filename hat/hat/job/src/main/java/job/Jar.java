@@ -296,7 +296,6 @@ public class Jar extends DependencyImpl<Jar> implements Dependency.Buildable, De
                    "--class-path", classPathWithThisLast(depsInOrder),
                    "-Djava.library.path=" + id().project().buildPath()
                 )
-                .add(javaConfig.vmOpts())
                 .add(javaConfig.mainClassName());
                 stringList.add(javaConfig.args());
         if (javaConfig.command()) {

@@ -52,7 +52,7 @@ public class TestArrayView {
      * simple square kernel example using S32Array's ArrayView
      */
     @Reflect
-    public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
+    public static void squareKernel( KernelContext kc, S32Array s32Array) {
         if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
             arr[kc.gix] *= arr[kc.gix];
@@ -60,7 +60,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
+    public static void square(@RO ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernel(kc, s32Array)
         );
@@ -87,7 +87,7 @@ public class TestArrayView {
      * making sure arrayviews aren't reliant on varOps
      */
     @Reflect
-    public static void squareKernelNoVarOp(@RO  KernelContext kc, @RW S32Array s32Array) {
+    public static void squareKernelNoVarOp(KernelContext kc, S32Array s32Array) {
         if (kc.gix<kc.gsx){
             s32Array.arrayView()[kc.gix] *= s32Array.arrayView()[kc.gix];
         }
@@ -117,7 +117,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void square2DKernel(@RO  KernelContext kc, @RW S32Array2D s32Array2D) {
+    public static void square2DKernel(KernelContext kc, S32Array2D s32Array2D) {
         if (kc.gix < kc.gsx){
             int[][] arr = s32Array2D.arrayView();
             arr[kc.gix][kc.giy] *= arr[kc.gix][kc.giy];
@@ -247,7 +247,7 @@ public class TestArrayView {
     public static class Compute {
         @Reflect
         // TODO: switch cellGridRes to WO
-        public static void lifePerIdx(int idx, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
+        public static void lifePerIdx(int idx, CellGrid cellGrid, CellGrid cellGridRes) {
             int w = cellGrid.width();
             int h = cellGrid.height();
             int x = idx % w;
@@ -290,7 +290,7 @@ public class TestArrayView {
         }
 
         @Reflect
-        public static void life(@RO KernelContext kc, @RO CellGrid cellGrid, @RW CellGrid cellGridRes) {
+        public static void life(KernelContext kc, CellGrid cellGrid, CellGrid cellGridRes) {
             if (kc.gix < kc.gsx) {
                 Compute.lifePerIdx(kc.gix, cellGrid, cellGridRes);
             }
@@ -388,7 +388,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
+    public static void mandel(KernelContext kc, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
         if (kc.gix < kc.gsx) {
             int[] pal = pallette.arrayView();
             int[][] s32 = s32Array2D.arrayView();
@@ -459,12 +459,12 @@ public class TestArrayView {
      * simplified version of BlackScholes using ArrayView
      */
     @Reflect
-    public static void blackScholesKernel(@RO KernelContext kc,
-                                          @RW F32Array call,
-                                          @RW F32Array put,
-                                          @RO F32Array sArray,
-                                          @RO F32Array xArray,
-                                          @RO F32Array tArray,
+    public static void blackScholesKernel(KernelContext kc,
+                                          F32Array call,
+                                          F32Array put,
+                                          F32Array sArray,
+                                          F32Array xArray,
+                                          F32Array tArray,
                                           float r,
                                           float v) {
         if (kc.gix<kc.gsx){
@@ -586,8 +586,8 @@ public class TestArrayView {
     private interface SharedMemory extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
-                arr -> arr.withArray("array", 1024));
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.array("array", 1024));
 
         static SharedMemory createLocal() { return null; }
 
@@ -603,8 +603,8 @@ public class TestArrayView {
     public interface PrivateArray extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
-                arr -> arr.withArray("array", 16));
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
+                arr -> arr.array("array", 16));
 
         static PrivateArray createPrivate() { return null; }
 
@@ -618,7 +618,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void squareKernelWithPrivateAndLocal(@RO  KernelContext kc, @RW S32Array s32Array) {
+    public static void squareKernelWithPrivateAndLocal(KernelContext kc, S32Array s32Array) {
         SharedMemory shared = SharedMemory.createLocal();
         if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
@@ -667,8 +667,8 @@ public class TestArrayView {
     public interface SharedNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedNonMappableIface> schema = DeviceSchema.of(SharedNonMappableIface.class,
-                arr -> arr.withArray("array", 1024));
+        DeviceSchema<SharedNonMappableIface> deviceSchema = DeviceSchema.of(SharedNonMappableIface.class,
+                arr -> arr.array("array", 1024));
         static SharedNonMappableIface create(Accelerator accelerator) {
             return null;
         }
@@ -684,8 +684,8 @@ public class TestArrayView {
     public interface PrivateNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateNonMappableIface> schema = DeviceSchema.of(PrivateNonMappableIface.class,
-                arr -> arr.withArray("array", 32));
+        DeviceSchema<PrivateNonMappableIface> deviceSchema = DeviceSchema.of(PrivateNonMappableIface.class,
+                arr -> arr.array("array", 32));
         static PrivateNonMappableIface create(Accelerator accelerator) {
             return null;
         }
@@ -699,7 +699,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void kernelBasicDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
+    public static void kernelBasicDeviceType( KernelContext kc, S32Array s32Array) {
         SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
         if (kc.gix < kc.gsx){
             PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();
@@ -737,7 +737,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void squareKernelDeviceType(@RO  KernelContext kc, @RW S32Array s32Array) {
+    public static void squareKernelDeviceType( KernelContext kc, S32Array s32Array) {
         SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
         if (kc.gix < kc.gsx){
             PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();

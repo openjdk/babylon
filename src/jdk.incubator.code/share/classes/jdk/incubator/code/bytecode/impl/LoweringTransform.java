@@ -53,6 +53,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  * Lowering transformer generates models supported by {@code BytecodeGenerator}.
  * Constant-labeled switch statements and switch expressions are lowered to
  * {@code ConstantLabelSwitchOp} with evaluated labels.
+ * We expect label value to be the second operand to the operation that perform equality check.
  */
 public final class LoweringTransform {
 
@@ -107,11 +108,11 @@ public final class LoweringTransform {
             Block.Builder curr = blocks.get(i);
             curr.body(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
                 case YieldOp _ when swOp instanceof JavaOp.SwitchStatementOp -> {
-                    b.op(branch(exit.successor()));
+                    b.op(branch(exit.reference()));
                     yield b;
                 }
                 case YieldOp yop when swOp instanceof JavaOp.SwitchExpressionOp -> {
-                    b.op(branch(exit.successor(b.context().getValue(yop.yieldValue()))));
+                    b.op(branch(exit.reference(b.context().getValue(yop.yieldValue()))));
                     yield b;
                 }
                 default -> transformer.acceptOp(b, op);
@@ -133,7 +134,7 @@ public final class LoweringTransform {
             labels.add(null);
             blocks.add(exit);
         }
-        block.op(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::successor).toList()));
+        block.op(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
         return exit;
     }
 
@@ -175,22 +176,11 @@ public final class LoweringTransform {
         MethodRef objectsEquals = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
         switch (r.op()) {
             case JavaOp.EqOp eqOp -> {
-                Value labelValue = getLabelValue(eqOp);
-                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, labelValue);
+                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, eqOp.operands().getLast());
                 v.ifPresent(o -> labels.add(toInteger(o)));
             }
             case JavaOp.InvokeOp ie when ie.invokeReference().equals(objectsEquals) -> {
-                Value labelValue;
-                if (ie.operands().getLast() instanceof Op.Result opr && opr.op() instanceof JavaOp.InvokeOp ib
-                        && integralReferenceTypes.contains(ib.invokeReference().refType()) && ib.invokeReference().name().equals("valueOf")) {
-                    // workaround the modeling of switch that has a selector of type primitive wrapper and a case constant of type primitive
-                    // we skip the boxing operation that's contained in the model
-                    // invoking a boxing method is not a valid operation in a constant expr
-                    labelValue = ib.operands().getFirst();
-                } else {
-                    labelValue = getLabelValue(ie);
-                }
-                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, labelValue);
+                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, ie.operands().getLast());
                 v.ifPresent(o -> labels.add(toInteger(o)));
             }
             case JavaOp.ConditionalOrOp cor -> {
@@ -209,21 +199,6 @@ public final class LoweringTransform {
             }
         }
         return labels;
-    }
-
-    private static Value getLabelValue(Op equalityOp) {
-        if (equalityOp.operands().size() != 2) {
-            throw new IllegalArgumentException("Expect operation to have two operands");
-        }
-        Value labelValue;
-        if (equalityOp.operands().getFirst() instanceof Block.Parameter && equalityOp.operands().getLast() instanceof Op.Result) {
-            labelValue = equalityOp.operands().getLast();
-        } else if (equalityOp.operands().getFirst() instanceof Op.Result && equalityOp.operands().getLast() instanceof Block.Parameter) {
-            labelValue = equalityOp.operands().getFirst();
-        } else {
-            throw new IllegalArgumentException("Switch label model not valid");
-        }
-        return labelValue;
     }
 
     private static Integer toInteger(Object o) {

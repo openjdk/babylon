@@ -43,7 +43,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        computeContext.computeEntrypoint().funcOp(injectBufferTracking(config(),lookup(),computeContext.computeEntrypoint().funcOp()));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
 
     @Override
@@ -55,7 +55,7 @@ public class OpenCLBackend extends C99FFIBackend {
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.name());
+                var kernel = compilationUnit.getKernel( kernelCallGraph.callDag.entryPoint.method().getName());
                 return new CompiledKernel(this, kernelCallGraph, kernel, args);
             } else {
                 // TODO: We should capture the log from OpenCL and provide as exception message
@@ -66,7 +66,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     String createC99(KernelCallGraph kernelCallGraph,  Object[] args){
-        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph.state, new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
+        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), args);
     }
 
 }

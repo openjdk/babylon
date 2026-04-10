@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.callgraph;
-
+package optkl.util.carriers;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
 
-public interface Entrypoint extends MethodCall, LookupCarrier {
+public interface FuncOpCarrier {
     CoreOp.FuncOp funcOp();
+    void funcOp(CoreOp.FuncOp funcOp);
+
+      class Impl implements FuncOpCarrier{
+        private CoreOp.FuncOp funcOp;
+
+        @Override
+        public CoreOp.FuncOp funcOp() {
+            return funcOp;
+        }
+
+        @Override
+        public void funcOp(CoreOp.FuncOp funcOp) {
+            this.funcOp=funcOp;
+        }
+        public Impl(CoreOp.FuncOp funcOp){
+            this.funcOp = funcOp;
+        }
+    }
 }

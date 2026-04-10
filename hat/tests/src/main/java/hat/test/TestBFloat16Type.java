@@ -46,7 +46,7 @@ import java.util.Random;
 public class TestBFloat16Type {
 
     @Reflect
-    public static void kernel_copy(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void kernel_copy(KernelContext kernelContext, BF16Array a, BF16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             b.array(kernelContext.gix).value(ha.value());
@@ -54,7 +54,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_02(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void bf16_02(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
@@ -65,7 +65,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_03(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void bf16_03(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
@@ -77,7 +77,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_04(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void bf16_04(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
@@ -93,7 +93,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_05(@RO KernelContext kernelContext, @WO BF16Array a) {
+    public static void bf16_05(KernelContext kernelContext, BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 initVal = BF16.of( 2.1f);
@@ -102,7 +102,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_06(@RO KernelContext kernelContext, @WO BF16Array a) {
+    public static void bf16_06(KernelContext kernelContext, BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 initVal = BF16.of(kernelContext.gix);
             BF16 ha = a.array(kernelContext.gix);
@@ -111,7 +111,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_08(@RO KernelContext kernelContext, @WO BF16Array a) {
+    public static void bf16_08(KernelContext kernelContext, BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 initVal = BF16.float2bfloat16(kernelContext.gix);
             BF16 ha = a.array(kernelContext.gix);
@@ -120,7 +120,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_09(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void bf16_09(KernelContext kernelContext, BF16Array a, BF16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             float f = BF16.bfloat162float(ha);
@@ -131,7 +131,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_10(@RO KernelContext kernelContext, @WO BF16Array a) {
+    public static void bf16_10(KernelContext kernelContext, BF16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 f16 = BF16.of(1.1f);
@@ -143,9 +143,8 @@ public class TestBFloat16Type {
 
     public interface LocalArray extends NonMappableIface {
         BF16 array(int index);
-        DeviceSchema<LocalArray> schema = DeviceSchema.of(LocalArray.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
+        DeviceSchema<LocalArray> deviceSchema = DeviceSchema.of(LocalArray.class,
+                builder -> builder.array("array", 1024, bfloat16 -> bfloat16.field("value")));
 
         static LocalArray  create(Accelerator accelerator) {
             return null;
@@ -157,7 +156,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_11(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void bf16_11(KernelContext kernelContext, BF16Array a, BF16Array b) {
         LocalArray sm = LocalArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -172,29 +171,29 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_12(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void bf16_12(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
         // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
-            BF16 result = ha.add(hb);
+            BF16 result = BF16.add(ha,hb);
             c.array(kernelContext.gix).value(result.value());
         }
     }
 
     @Reflect
-    public static void bf16_13(@RO KernelContext kernelContext, @RO BF16Array a, @RO BF16Array b,  @WO BF16Array c) {
+    public static void bf16_13(KernelContext kernelContext, BF16Array a, BF16Array b,  BF16Array c) {
         // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
-            BF16 result = ha.add(hb).sub(hb).mul(ha).div(ha);
+            BF16 result = BF16.div(BF16.mul(BF16.sub(BF16.add(ha,hb),hb),ha),ha);
             c.array(kernelContext.gix).value(result.value());
         }
     }
 
     @Reflect
-    public static void bf16_14(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void bf16_14(KernelContext kernelContext, BF16Array a, BF16Array b) {
         // Testing mixed float types
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
@@ -206,9 +205,8 @@ public class TestBFloat16Type {
 
     public interface PrivateArray extends NonMappableIface {
         BF16 array(int index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
-                builder -> builder.withArray("array", 256)
-                        .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
+                builder -> builder.array("array", 256, bfloat16 -> bfloat16.field("value")));
 
         static PrivateArray  create(Accelerator accelerator) {
             return null;
@@ -220,7 +218,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_15(@RO KernelContext kernelContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void bf16_15(KernelContext kernelContext, BF16Array a, BF16Array b) {
         PrivateArray privateArray = PrivateArray.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -232,7 +230,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_16(@RO KernelContext kernelContext, @RW BF16Array a) {
+    public static void bf16_16(KernelContext kernelContext, BF16Array a) {
         BF16 ha = a.array(0);
         BF16 hre = BF16.add(ha, ha);
         hre = BF16.add(hre, hre);
@@ -240,7 +238,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_17(@RO KernelContext kernelContext, @RW BF16Array a) {
+    public static void bf16_17(KernelContext kernelContext, BF16Array a) {
 
         BF16 ha = a.array(0);
         PrivateArray privateArray = PrivateArray.createPrivate();

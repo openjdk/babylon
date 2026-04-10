@@ -138,7 +138,7 @@ public final class Verifier {
                 case JavaOp.ArithmeticOperation _ ->
                         verifyOpHandleExists(op, op.externalizeOpName());
                 case JavaOp.ConvOp _ -> {
-                    verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opType().returnType());
+                    verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opSignature().returnType());
                 }
                 default -> {}
 
@@ -190,10 +190,10 @@ public final class Verifier {
         return Object.class;
     }
 
-    static final Class<?> CLASS_INVOKABLE_LEAF_OPS;
+    static final Class<?> CLASS_ARITHMETIC_AND_CONV_OP_IMPLS;
     static {
         try {
-            CLASS_INVOKABLE_LEAF_OPS = Class.forName("jdk.incubator.code.interpreter.InvokableLeafOps");
+            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS = Class.forName("ArithmeticAndConvOpImpls");
         } catch (ReflectiveOperationException roe) {
             throw new InternalError(roe);
         }
@@ -201,10 +201,10 @@ public final class Verifier {
 
     private void verifyOpHandleExists(Op op, String opName) {
         try {
-            var mt = MethodRef.toNominalDescriptor(op.opType()).resolveConstantDesc(lookup).erase();
-            CLASS_INVOKABLE_LEAF_OPS.getDeclaredMethod(opName, mt.parameterArray());
+            var mt = MethodRef.toNominalDescriptor(op.opSignature()).resolveConstantDesc(lookup).erase();
+            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
-            error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opType());
+            error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opSignature());
         } catch (ReflectiveOperationException roe) {
             error("%s %s %s",  op.ancestorBlock(), op, roe.getMessage());
         }
@@ -227,18 +227,18 @@ public final class Verifier {
                 case JavaOp.ExceptionRegionEnter ere -> {
                     List<Block> newCatchBlocks = new ArrayList<>();
                     newCatchBlocks.addAll(catchBlocks);
-                    for (Block.Reference cb : ere.catchBlocks()) {
+                    for (Block.Reference cb : ere.catchReferences()) {
                         newCatchBlocks.add(cb.targetBlock());
                         verifyCatchStack(b, ere, cb, catchBlocks, map);
                     }
-                    verifyCatchStack(b, ere, ere.start(), newCatchBlocks, map);
+                    verifyCatchStack(b, ere, ere.startReference(), newCatchBlocks, map);
                 }
                 case JavaOp.ExceptionRegionExit ere -> {
-                    List<Block> exitedCatchBlocks = ere.catchBlocks().stream().map(Block.Reference::targetBlock).toList();
+                    List<Block> exitedCatchBlocks = ere.catchReferences().stream().map(Block.Reference::targetBlock).toList();
                     if (exitedCatchBlocks.size() > catchBlocks.size() || !catchBlocks.reversed().subList(0, exitedCatchBlocks.size()).equals(exitedCatchBlocks)) {
                         error("%s %s exited catch blocks %s does not match actual stack %s", b, ere, exitedCatchBlocks, catchBlocks);
                     } else {
-                        verifyCatchStack(b, ere, ere.end(), catchBlocks.subList(0, catchBlocks.size() - exitedCatchBlocks.size()), map);
+                        verifyCatchStack(b, ere, ere.endReference(), catchBlocks.subList(0, catchBlocks.size() - exitedCatchBlocks.size()), map);
                     }
                 }
                 default -> {}

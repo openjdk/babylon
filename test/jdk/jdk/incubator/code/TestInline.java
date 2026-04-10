@@ -27,7 +27,6 @@ import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -43,6 +42,7 @@ import static jdk.incubator.code.dialect.java.JavaType.INT;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit TestInline
  */
 

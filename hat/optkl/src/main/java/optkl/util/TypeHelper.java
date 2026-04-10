@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +22,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.types;
+package optkl.util;
 
-import optkl.IfaceValue;
 
-/**
- * Common interface for F16 implementations
- */
-public interface _F16 extends IfaceValue {
+import java.lang.reflect.Type;
+
+public abstract class TypeHelper {
+
+
+    public static Type nameToTypeOrThrow(String name) {
+        return switch (name) {
+            case "void" -> void.class;
+            case "boolean" -> boolean.class;
+            case "byte" -> byte.class;
+            case "short" -> short.class;
+            case "char" -> char.class;
+            case "int" -> int.class;
+            case "float" -> float.class;
+            case "double" -> double.class;
+            case "long" -> long.class;
+            default -> {
+                try {
+                    if (Class.forName(name) instanceof Class<?> clazz) {
+                        yield clazz;
+                    } else {
+                        throw new RuntimeException("Not a class");
+                    }
+                } catch (ClassNotFoundException classNotFoundException) {
+                    throw new RuntimeException("Not a class");
+                }
+            }
+        };
+
+    }
 }

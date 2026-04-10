@@ -245,7 +245,7 @@ public final class OpParser {
     }
 
     static Block.Reference nodeToSuccessor(SuccessorNode n, Context c) {
-        return c.getBlock(n.blockName).successor(n.arguments().stream().map(c::getValue).toList());
+        return c.getBlock(n.blockName).reference(n.arguments().stream().map(c::getValue).toList());
     }
 
     // @@@ Add tokens to access position of nodes on error

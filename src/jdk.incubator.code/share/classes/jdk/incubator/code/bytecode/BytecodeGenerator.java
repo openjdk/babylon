@@ -111,7 +111,7 @@ public final class BytecodeGenerator {
         }
 
         try {
-            FunctionType ft = iop.invokableType();
+            FunctionType ft = iop.invokableSignature();
             MethodType mt = MethodRef.toNominalDescriptor(ft).resolveConstantDesc(hcl);
             return hcl.findStatic(hcl.lookupClass(), name, mt);
         } catch (ReflectiveOperationException e) {
@@ -214,7 +214,7 @@ public final class BytecodeGenerator {
                                                                      BitSet reflectableLambda) {
         List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(
-                iop.invokableType()).insertParameterTypes(0, capturedValues.stream()
+                iop.invokableSignature()).insertParameterTypes(0, capturedValues.stream()
                         .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor().andThen(new ExceptionTableCompactor()), cob ->
@@ -882,7 +882,7 @@ public final class BytecodeGenerator {
                             throw new IllegalArgumentException("Could not resolve function: " + op.funcName());
                         }
                         processOperands(op);
-                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(fop.invokableType());
+                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(fop.invokableSignature());
                         cob.invoke(
                                 Opcode.INVOKESTATIC,
                                 className,
@@ -939,7 +939,7 @@ public final class BytecodeGenerator {
                     }
                     case LambdaOp op -> {
                         JavaType intfType = (JavaType)op.functionalInterface();
-                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
+                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableSignature());
                         try {
                             Class<?> intfClass = (Class<?>)intfType.erasure().resolve(lookup);
                             Method intfMethod = funcIntfMethod(intfClass, mtd);
@@ -1048,7 +1048,7 @@ public final class BytecodeGenerator {
                     }
                 }
                 case ExceptionRegionEnter op -> {
-                    List<Block.Reference> enteringCatchBlocks = op.catchBlocks();
+                    List<Block.Reference> enteringCatchBlocks = op.catchReferences();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length + enteringCatchBlocks.size());
                     int i = recentCatchBlocks.length;
                     for (Block.Reference catchRef : enteringCatchBlocks) {
@@ -1056,15 +1056,15 @@ public final class BytecodeGenerator {
                         activeCatchBlocks[i++] = catchRef.targetBlock();
                         setCatchStack(catchRef, recentCatchBlocks);
                     }
-                    setCatchStack(op.start(), activeCatchBlocks);
+                    setCatchStack(op.startReference(), activeCatchBlocks);
 
-                    assignBlockArguments(op.start());
-                    cob.goto_(getLabel(op.start()));
+                    assignBlockArguments(op.startReference());
+                    cob.goto_(getLabel(op.startReference()));
                 }
                 case ExceptionRegionExit op -> {
-                    List<Block.Reference> exitingCatchBlocks = op.catchBlocks();
+                    List<Block.Reference> exitingCatchBlocks = op.catchReferences();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length - exitingCatchBlocks.size());
-                    setCatchStack(op.end(), activeCatchBlocks);
+                    setCatchStack(op.endReference(), activeCatchBlocks);
 
                     // Assert block exits in reverse order
                     int i = recentCatchBlocks.length;
@@ -1072,8 +1072,8 @@ public final class BytecodeGenerator {
                         assert catchRef.targetBlock() == recentCatchBlocks[--i];
                     }
 
-                    assignBlockArguments(op.end());
-                    cob.goto_(getLabel(op.end()));
+                    assignBlockArguments(op.endReference());
+                    cob.goto_(getLabel(op.endReference()));
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
@@ -1156,7 +1156,7 @@ public final class BytecodeGenerator {
     }
 
     private static Op getConditionForCondBrOp(ConditionalBranchOp op) {
-        Value p = op.predicate();
+        Value p = op.predicateOperand();
         if (p.uses().size() != 1) {
             return null;
         }

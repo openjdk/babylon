@@ -54,9 +54,8 @@ public class TestFlashAttention {
     private interface SharedF16Array extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<SharedF16Array> schema = DeviceSchema.of(SharedF16Array.class,
-                arr -> arr.withArray("array", 7168)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<SharedF16Array> deviceSchema = DeviceSchema.of(SharedF16Array.class,
+                arr -> arr.array("array", 7168, half -> half.field("value")));
 
         static SharedF16Array createLocal() {
             return null;
@@ -66,9 +65,8 @@ public class TestFlashAttention {
     private interface PrivateF16Array extends NonMappableIface {
         F16 array(int index);
 
-        DeviceSchema<PrivateF16Array> schema = DeviceSchema.of(PrivateF16Array.class,
-                arr -> arr.withArray("array", 64)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<PrivateF16Array> deviceSchema = DeviceSchema.of(PrivateF16Array.class,
+                arr -> arr.array("array", 64, half -> half.field("value")));
 
         static PrivateF16Array createPrivate() {
             return null;
@@ -81,9 +79,9 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttentionF16(@MappableIface.RO KernelContext kernelContext,
-                                         @MappableIface.RO F16Array Q, @MappableIface.RO F16Array K, @MappableIface.RO F16Array V,
-                                         @MappableIface.WO F16Array O, @MappableIface.RW F16Array m, @MappableIface.RW F16Array l,
+    public static void flashAttentionF16(KernelContext kernelContext,
+                                         F16Array Q, F16Array K, F16Array V,
+                                         F16Array O, F16Array m, F16Array l,
                                          final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;
@@ -224,13 +222,13 @@ public class TestFlashAttention {
 
         float array(long index);
 
-        DeviceSchema<SharedFloatArray> schema = DeviceSchema.of(SharedFloatArray.class,
+        DeviceSchema<SharedFloatArray> deviceSchema = DeviceSchema.of(SharedFloatArray.class,
                 arr -> arr
                         // final int sharedMemorySize = block_m * head_dim
                         //                + block_n * head_dim
                         //                + block_n * head_dim
                         //                + block_m * block_n;
-                        .withArray("array", 7168));
+                        .array("array", 7168));
 
         static SharedFloatArray createLocal() {
             return null;
@@ -243,10 +241,10 @@ public class TestFlashAttention {
 
         float array(long index);
 
-        DeviceSchema<PrivateFloatArray> schema = DeviceSchema.of(PrivateFloatArray.class,
+        DeviceSchema<PrivateFloatArray> deviceSchema = DeviceSchema.of(PrivateFloatArray.class,
                 arr -> arr
                         // SIZE = HEAD_DIM (e.g., 64)
-                        .withArray("array", 64));
+                        .array("array", 64));
 
         static PrivateFloatArray createPrivate() {
             return null;
@@ -254,9 +252,9 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttention(@MappableIface.RO KernelContext kernelContext,
-                                      @MappableIface.RO F32Array Q, @MappableIface.RO F32Array K, @MappableIface.RO F32Array V,
-                                      @MappableIface.WO F32Array O, @MappableIface.RW F32Array m, @MappableIface.RW F32Array l,
+    public static void flashAttention(KernelContext kernelContext,
+                                      F32Array Q, F32Array K, F32Array V,
+                                      F32Array O, F32Array m, F32Array l,
                                       final int N, final int d, final float softmaxScale) {
         int bx = kernelContext.bix;
         int tid = kernelContext.lix;

@@ -30,7 +30,6 @@ import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.internal.OpBuilder;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -45,6 +44,7 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @modules jdk.incubator.code/jdk.incubator.code.internal
+ * @library ../lib
  * @run junit TestCodeBuilder
  */
 

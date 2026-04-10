@@ -24,6 +24,7 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit CoreBinaryOpsTest
  * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
@@ -38,7 +39,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.function.ThrowingSupplier;
@@ -262,7 +262,7 @@ public class CoreBinaryOpsTest {
 
         private static CoreOp.FuncOp retype(CoreOp.FuncOp original, Class<?> newType) {
             JavaType type = JavaType.type(newType);
-            FunctionType functionType = original.invokableType();
+            FunctionType functionType = original.invokableSignature();
             if (functionType.parameterTypes().stream().allMatch(t -> t.equals(type))) {
                 return original; // already expected type
             }
@@ -281,14 +281,14 @@ public class CoreBinaryOpsTest {
 
         private static Stream<Arguments> argumentsForMethod(CoreOp.FuncOp funcOp, Method testMethod) {
             Parameter[] testMethodParameters = testMethod.getParameters();
-            List<TypeElement> funcParameters = funcOp.invokableType().parameterTypes();
+            List<TypeElement> funcParameters = funcOp.invokableSignature().parameterTypes();
             if (testMethodParameters.length - 1 != funcParameters.size()) {
                 throw new IllegalArgumentException("method " + testMethod + " does not take the correct number of parameters");
             }
             if (testMethodParameters[0].getType() != CoreOp.FuncOp.class) {
                 throw new IllegalArgumentException("method " + testMethod + " does not take a leading FuncOp argument");
             }
-            Named<CoreOp.FuncOp> opNamed = Named.of(funcOp.funcName() + "{" + funcOp.invokableType() + "}", funcOp);
+            Named<CoreOp.FuncOp> opNamed = Named.of(funcOp.funcName() + "{" + funcOp.invokableSignature() + "}", funcOp);
             MethodHandles.Lookup lookup = MethodHandles.lookup();
             for (int i = 1; i < testMethodParameters.length; i++) {
                 Class<?> resolved = resolveParameter(funcParameters.get(i - 1), lookup);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,6 @@
  */
 package hat;
 
-import optkl.util.Regex;
-
 /**
  * An NDRange specifies the number of threads to deploy on an hardware accelerator.
  * An NDRange has two main properties:
@@ -37,55 +35,58 @@ import optkl.util.Regex;
  * value.
  * </ul>
  */
-public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
+public interface NDRange {
     Local local();
+
     Global global();
+
     boolean hasLocal();
 
-    sealed interface Dim permits _1D,_2D,_3D{
-        default int dimension(){
-            return switch ((Dim)this){
-                case _1D _ -> 1;
-                case _2D _ -> 2;
-                case _3D _ -> 3;
+    sealed interface Dim permits Marker1D, Marker2D, Marker3D {
+        default int dimension() {
+            return switch (this) {
+                case Marker1D _ -> 1;
+                case Marker2D _ -> 2;
+                case Marker3D _ -> 3;
             };
         }
     }
 
-    sealed interface _1D extends Dim  {
+    sealed interface Marker1D extends Dim {
     }
 
-    sealed interface _2D extends Dim {
+    sealed interface Marker2D extends Dim {
     }
 
-    sealed interface _3D extends Dim {
+    sealed interface Marker3D extends Dim {
     }
 
-    sealed  interface _1DX extends _1D {
+    sealed interface M1D extends Marker1D {
         int x();
     }
 
-    sealed interface _2DXY extends _2D {
+    sealed interface M2D extends Marker2D {
         int x();
+
         int y();
     }
 
-    sealed interface _3DXYZ extends _3D {
+    sealed interface M3D extends Marker3D {
         int x();
+
         int y();
+
         int z();
     }
 
     sealed interface Range permits Local, Global, Block {
     }
+
     sealed interface Local extends Range {
 
     }
 
-    sealed interface Block extends Range{
-        // We need this to seal the interface hierarchy
-        record Impl() implements Block {
-        }
+    non-sealed interface Block extends Range {
 
     }
 
@@ -93,37 +94,38 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
 
     }
 
-    sealed interface Global1D extends _1DX, Global {
+    sealed interface Global1D extends M1D, Global {
         record Impl(int x) implements Global1D {
         }
+
         static Global1D of(int x) {
 
             return new Impl(x);
         }
     }
 
-    sealed interface Global2D extends _2DXY, Global {
+    sealed interface Global2D extends M2D, Global {
         record Impl(int x, int y) implements Global2D {
         }
+
         static Global2D of(int x, int y) {
             return new Impl(x, y);
         }
     }
 
-    sealed interface Global3D extends _3DXYZ, Global {
+    sealed interface Global3D extends M3D, Global {
         record Impl(int x, int y, int z) implements Global3D {
         }
+
         static Global3D of(int x, int y, int z) {
             return new Impl(x, y, z);
         }
     }
 
+    sealed interface Local1D extends M1D, Local {
+        record Impl(int x) implements Local1D {
+        }
 
-
-
-  sealed  interface Local1D extends _1DX, Local {
-      record Impl(int x) implements Local1D {
-      }
         static Local1D of(int x) {
 
             return new Impl(x);
@@ -132,9 +134,10 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         Local1D EMPTY = Local1D.of(0);
     }
 
-    sealed interface Local2D extends _2DXY, Local {
+    sealed interface Local2D extends M2D, Local {
         record Impl(int x, int y) implements Local2D {
         }
+
         static Local2D of(int x, int y) {
 
             return new Impl(x, y);
@@ -144,9 +147,10 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
 
     }
 
-    sealed interface Local3D extends _3DXYZ, Local {
+    sealed interface Local3D extends M3D, Local {
         record Impl(int x, int y, int z) implements Local3D {
         }
+
         static Local3D of(int x, int y, int z) {
 
             return new Impl(x, y, z);
@@ -155,7 +159,7 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         Local3D EMPTY = Local3D.of(0, 0, 0);
     }
 
-    sealed interface NDRange1D extends NDRange<Global1D, Local1D>, _1D {
+    sealed interface NDRange1D extends NDRange, Marker1D {
         @Override
         default boolean hasLocal() {
             return local() != Local1D.EMPTY;
@@ -173,7 +177,6 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         }
     }
 
-
     static NDRange1D of1D(int gsx, int lsx) {
         return NDRange1D.of(Global1D.of(gsx), Local1D.of(lsx));
     }
@@ -182,7 +185,7 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         return NDRange1D.of(Global1D.of(gsx), Local1D.EMPTY);
     }
 
-    sealed interface NDRange2D extends NDRange<Global2D, Local2D>, _2D {
+    sealed interface NDRange2D extends NDRange, Marker2D {
         @Override
         default boolean hasLocal() {
             return local() != Local2D.EMPTY;
@@ -200,7 +203,6 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         }
     }
 
-
     static NDRange2D of2D(int gsx, int gsy, int lsx, int lsy) {
         return NDRange2D.of(Global2D.of(gsx, gsy), Local2D.of(lsx, lsy));
     }
@@ -209,7 +211,7 @@ public interface NDRange<G extends NDRange.Global, L extends NDRange.Local> {
         return NDRange2D.of(Global2D.of(gsx, gsy), Local2D.EMPTY);
     }
 
-   sealed interface NDRange3D extends NDRange<Global3D, Local3D>, _3D {
+    sealed interface NDRange3D extends NDRange, Marker3D {
         @Override
         default boolean hasLocal() {
             return local() != Local3D.EMPTY;

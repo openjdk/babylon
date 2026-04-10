@@ -79,7 +79,7 @@ public class Config {
     }
     private static final Bit SHOW_KERNEL_MODEL = Bit.nextBit(SHOW_CODE,"SHOW_KERNEL_MODEL", "SKM","Show (via OpWriter) Kernel Model");
     public boolean showKernelModel() {
-        return SHOW_COMPUTE_MODEL.isSet(this);
+        return SHOW_KERNEL_MODEL.isSet(this);
     }
     private static final Bit SHOW_COMPUTE_MODEL = Bit.nextBit(SHOW_KERNEL_MODEL,"SHOW_COMPUTE_MODEL", "SCM","Show (via OpWriter) Compute Model");
     public boolean showComputeModel() {

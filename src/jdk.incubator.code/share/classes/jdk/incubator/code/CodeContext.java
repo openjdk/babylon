@@ -316,7 +316,7 @@ public final class CodeContext {
         if (outputBlock == null) {
             throw new IllegalArgumentException("No mapping for input reference target block" + input.targetBlock());
         }
-        return outputBlock.successor(getValues(input.arguments()));
+        return outputBlock.reference(getValues(input.arguments()));
     }
 
 

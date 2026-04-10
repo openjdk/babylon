@@ -22,7 +22,6 @@
  */
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +34,7 @@ import java.lang.invoke.StringConcatFactory;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.internal
+ * @library ../../lib
  * @enablePreview
  * @run junit TestLiftCustomBytecode
  */

@@ -45,7 +45,7 @@ public class Main {
     }
 
     @Reflect
-    public static void squareKernel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array s32Array) {
+    public static void squareKernel(KernelContext kc, S32Array s32Array) {
         if (kc.gix < kc.gsx){
            int value = s32Array.array(kc.gix);       // arr[cc.x]
            s32Array.array(kc.gix, squareit(value));  // arr[cc.x]=value*value

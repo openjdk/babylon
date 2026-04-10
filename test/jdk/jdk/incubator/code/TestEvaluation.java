@@ -6,7 +6,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,6 +25,7 @@ import static jdk.incubator.code.dialect.java.PrimitiveType.*;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit TestEvaluation
  * @run main Unreflect TestEvaluation
  * @run junit TestEvaluation
@@ -367,9 +367,9 @@ public class TestEvaluation {
                 MethodHandles.Lookup l = MethodHandles.lookup();
                 Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (JavaOp.ConvOp) op);
                 if ((to.equals(BOOLEAN) && !from.equals(BOOLEAN)) || (from.equals(BOOLEAN) && !to.equals(BOOLEAN))) {
-                    Assertions.assertTrue(v.isEmpty());
+                    Assertions.assertTrue(v.isEmpty(), from + " -> " + to);
                 } else {
-                    Assertions.assertTrue(v.isPresent());
+                    Assertions.assertTrue(v.isPresent(), from + " -> " + to);
                     Object expected = Interpreter.invoke(l, f);
                     Assertions.assertEquals(expected, v.get());
                 }

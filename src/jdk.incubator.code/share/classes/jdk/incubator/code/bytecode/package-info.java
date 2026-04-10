@@ -24,6 +24,6 @@
  */
 
 /**
- * Functionality for generating bytecode from code models and for generating code models from bytecode.
+ * Functionality for generating bytecode from code models.
  */
 package jdk.incubator.code.bytecode;

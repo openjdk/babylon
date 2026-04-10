@@ -33,7 +33,6 @@ import jdk.incubator.code.Op;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.Reflect;
 import org.junit.jupiter.api.Assertions;

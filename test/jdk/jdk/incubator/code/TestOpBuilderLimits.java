@@ -26,13 +26,13 @@ import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit TestOpBuilderLimits
  * @run main Unreflect TestOpBuilderLimits
  * @run junit TestOpBuilderLimits

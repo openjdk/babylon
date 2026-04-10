@@ -24,6 +24,7 @@
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit TestTransitiveInvokeModule
  * @run junit/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
  */
@@ -35,7 +36,6 @@ import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -127,7 +127,7 @@ public class TestTransitiveInvokeModule {
                             // Replace invocation with function call
                             Op.Result result = block.op(CoreOp.funcCall(
                                     call.r.toString(),
-                                    call.f.invokableType(),
+                                    call.f.invokableSignature(),
                                     block.context().getValues(iop.operands())));
                             // Map invocation result to function call result
                             block.context().mapValue(op.result(), result);

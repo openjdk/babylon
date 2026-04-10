@@ -194,11 +194,11 @@ public class ComputeHeal {
 
     @Reflect
     public static void bestFitCore(int id,
-                                   @RO S32Array2D s32Array2D,
-                                   @RO Box searchArea,
-                                   @RO Box selBox,
-                                   @RO XYRGBList xyrgbList,
-                                   @RW F32Array sumArray) {
+                                   S32Array2D s32Array2D,
+                                   Box searchArea,
+                                   Box selBox,
+                                   XYRGBList xyrgbList,
+                                   F32Array sumArray) {
         int x = searchArea.x1() + id % searchArea.width();
         int y = searchArea.y1() + id / searchArea.width();
         float sum = 0;
@@ -233,12 +233,12 @@ public class ComputeHeal {
     }
 
     @Reflect
-    public static void bestFitKernel(@RO KernelContext kc,
-                                     @RO S32Array2D s32Array2D,
-                                     @RO Box searchArea,
-                                     @RO Box selectionBox,
-                                     @RO XYRGBList xyrgbList,
-                                     @RO F32Array sumArray) {
+    public static void bestFitKernel(KernelContext kc,
+                                     S32Array2D s32Array2D,
+                                     Box searchArea,
+                                     Box selectionBox,
+                                     XYRGBList xyrgbList,
+                                     F32Array sumArray) {
         bestFitCore(kc.gix, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 

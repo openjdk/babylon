@@ -44,9 +44,13 @@ import java.util.*;
  * body when control is passed to it, and describes the return type of values that are yielded when the body passes
  * control back to its parent operation.
  * <p>
- * A body is built using a {@link Body.Builder body builder} that creates and exposes an entry block
- * {@link Block.Builder builder} from which further blocks in the body may be
- * {@link Block.Builder#block(TypeElement...) built}. When a body is {@link Body.Builder#build(Op) built} all blocks
+ * A body is built using a {@link Body.Builder body builder} that creates and {@link Builder#entryBlock() exposes} an
+ * entry {@link Block.Builder block builder} from which further non-entry sibling blocks in the body may be created and
+ * {@link Block.Builder#block(TypeElement...) built}. A block builder can also be used to
+ * {@link Block.Builder#reference(Value...) create} references to non-entry sibling blocks that can be used as
+ * successors of terminal operations.
+ *
+ * When a body is {@link Body.Builder#build(Op) built} all blocks
  * in the body are also built.
  */
 public final class Body implements CodeElement<Body, Block> {
@@ -114,13 +118,14 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns the body's function type.
-     * <p>The function type is composed of the body's entry block parameter types and
-     * the body's yield type.
+     * Returns the body's signature, represented as a function type.
+     * <p>
+     * The signature's return type is the body's yield type and its parameter types are the
+     * body's entry block parameter types, in order.
      *
-     * @return the body type.
+     * @return the body's signature.
      */
-    public FunctionType bodyType() {
+    public FunctionType bodySignature() {
         Block entryBlock = entryBlock();
         return CoreType.functionType(yieldType, entryBlock.parameterTypes());
     }
@@ -246,13 +251,13 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * A synthetic block representing the post dominator of all blocks
-     * when two or more blocks in the body have no successors.
+     * A synthetic exit block used when computing immediate post dominators.
+     * It represents the post dominator of all blocks when two or more blocks
+     * in the body have no successors.
      * <p>
      * Computing the immediate post dominators requires a single exit point,
-     * one block that has no successors. When there are two or more blocks
-     * with no successors then this block represents the immediate post
-     * dominator of those blocks
+     * one block with no successors. When a body has two or more blocks
+     * with no successors then this block acts as the single exit point.
      */
     public static final Block IPDOM_EXIT;
     static {
@@ -378,34 +383,6 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns {@code true} if this body is dominated by the given body {@code dom}.
-     * <p>
-     * A body, {@code b} say, is dominated by {@code dom} if {@code b} is the same as {@code dom} or a descendant of
-     * {@code dom}. Specifically, if {@code b} and {@code dom} are not equal then {@code b} becomes the nearest ancestor
-     * body, the result of {@code b.parentOp().parentBlock().parentBody()}, and so on until either:
-     * {@code b == dom}, therefore {@code b} is dominated by {@code dom} and this method returns {@code true};
-     * or {@code b.parentOp().parentBlock() == null}, therefore {@code b} is <b>not</b> dominated
-     * by {@code dom} and this method returns {@code false}.
-     *
-     * @param dom the dominating body
-     * @return {@code true} if this body is dominated by the given body {@code dom}.
-     */
-    public boolean isDominatedBy(Body dom) {
-        return isDominatedBy(this, dom);
-    }
-
-    static boolean isDominatedBy(Body r, Body dom) {
-        while (r != dom) {
-            r = r.ancestorBody();
-            if (r == null) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Computes values captured by this body. A captured value is a value that is used
      * but not declared by any descendant block or operation of this body.
      * <p>
@@ -459,29 +436,29 @@ public final class Body implements CodeElement<Body, Block> {
         /**
          * Creates a body build with a new context, and a copying transformer.
          *
-         * @param ancestorBody the nearest ancestor body builder, may be null if isolated
-         * @param bodyType     the body's function type
+         * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
+         * @param bodySignature the body's signature
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder ancestorBody, FunctionType bodyType) {
+        public static Builder of(Builder ancestorBody, FunctionType bodySignature) {
             // @@@ Creation of CodeContext
-            return of(ancestorBody, bodyType, CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
+            return of(ancestorBody, bodySignature, CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
         }
 
         /**
          * Creates a body build with a copying transformer.
          *
-         * @param ancestorBody the nearest ancestor body builder, may be null if isolated
-         * @param bodyType     the body's function type
-         * @param cc           the context
+         * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
+         * @param bodySignature the body's signature
+         * @param cc            the context
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder ancestorBody, FunctionType bodyType, CodeContext cc) {
-            return of(ancestorBody, bodyType, cc, CodeTransformer.COPYING_TRANSFORMER);
+        public static Builder of(Builder ancestorBody, FunctionType bodySignature, CodeContext cc) {
+            return of(ancestorBody, bodySignature, cc, CodeTransformer.COPYING_TRANSFORMER);
         }
 
         /**
@@ -490,8 +467,8 @@ public final class Body implements CodeElement<Body, Block> {
          * Structurally, the created body builder must be built before its ancestor body builder (if non-null) is built,
          * otherwise an {@code IllegalStateException} will occur.
          * <p>
-         * A function type, referred to as the body type, defines the body's yield type and the initial sequence of
-         * entry block parameters.
+         * A function type, referred to as the body's signature, defines the body's yield type and the initial sequence
+         * of entry block parameters.
          * The body's yield type is the function type's return type.
          * An entry block builder is created with appended block parameters corresponding, in order, to
          * the function type's parameter types.
@@ -500,18 +477,18 @@ public final class Body implements CodeElement<Body, Block> {
          * use values declared within the created body builder. Otherwise, operations
          * may use reachable values declared in the ancestor body builders (outside the created body builder).
          *
-         * @param ancestorBody the nearest ancestor body builder, may be null if isolated
-         * @param bodyType     the body's function type
-         * @param cc           the context
-         * @param ot           the transformer
+         * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
+         * @param bodySignature the body's signature
+         * @param cc            the context
+         * @param ot            the transformer
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder ancestorBody, FunctionType bodyType,
+        public static Builder of(Builder ancestorBody, FunctionType bodySignature,
                                  CodeContext cc, CodeTransformer ot) {
-            Body body = new Body(ancestorBody != null ? ancestorBody.target() : null, bodyType.returnType());
-            return body.new Builder(ancestorBody, bodyType, cc, ot);
+            Body body = new Body(ancestorBody != null ? ancestorBody.target() : null, bodySignature.returnType());
+            return body.new Builder(ancestorBody, bodySignature, cc, ot);
         }
 
         // The ancestor body, may be null
@@ -526,7 +503,7 @@ public final class Body implements CodeElement<Body, Block> {
         // True when built
         boolean closed;
 
-        Builder(Builder ancestorBody, FunctionType bodyType,
+        Builder(Builder ancestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ot) {
             // Structural check
             // The ancestor body should not be built before this body is created
@@ -537,7 +514,7 @@ public final class Body implements CodeElement<Body, Block> {
 
             this.ancestorBody = ancestorBody;
             // Create entry block from the body's function type
-            Block eb = Body.this.createBlock(bodyType.parameterTypes());
+            Block eb = Body.this.createBlock(bodySignature.parameterTypes());
             this.entryBlock = eb.new Builder(this, cc, ot);
         }
 
@@ -619,14 +596,14 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Returns the body builder's function type.
+         * Returns the body builder's signature, represented as a function type.
          * <p>
-         * The function type is composed of the body builder's yield type, as the function type's return type, and the
-         * currently built entry block's parameter types, in order, as the function type's parameter types.
+         * The signature's return type is the body builder's yield type and parameter types are
+         * the currently built entry block's parameter types, in order.
          *
-         * @return the body builder's function type
+         * @return the body builder's signature
          */
-        public FunctionType bodyType() {
+        public FunctionType bodySignature() {
             TypeElement returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return CoreType.functionType(returnType, eb.parameterTypes());
@@ -705,7 +682,7 @@ public final class Body implements CodeElement<Body, Block> {
         Builder ancestorBodyBuilder = ancestorBlockBuilder != null
                 ? ancestorBlockBuilder.parentBody() : null;
         Builder bodyBuilder = Builder.of(ancestorBodyBuilder,
-                bodyType(),
+                bodySignature(),
                 // Create child context for mapped code items contained in this body
                 // thereby not polluting the given context
                 CodeContext.create(cc), ot);

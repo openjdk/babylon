@@ -276,7 +276,7 @@ public final class BytecodeLift {
                     Block.Builder branch = targetBlockForBranch(inst.target());
                     Block.Builder next = entryBlock.block();
                     op(CoreOp.conditionalBranch(op(cop),
-                            next.successor(),
+                            next.reference(),
                             successorWithStack(branch)));
                     currentBlock = next;
                 }
@@ -840,7 +840,7 @@ public final class BytecodeLift {
                 op(CoreOp.conditionalBranch(
                         op(JavaOp.eq(v, liftConstant(sc.caseValue()))),
                         successorWithStack(targetBlockForBranch(sc.target())),
-                        next.successor()));
+                        next.reference()));
                 currentBlock = next;
             }
         }
@@ -897,7 +897,7 @@ public final class BytecodeLift {
 
         if (transits.isEmpty()) {
             // Join with branch
-            initialBlock.op(CoreOp.branch(targetBlock.successor(values)));
+            initialBlock.op(CoreOp.branch(targetBlock.reference(values)));
         } else {
             // Insert ERE transitions
             Block.Builder currentBlock = initialBlock;
@@ -915,15 +915,15 @@ public final class BytecodeLift {
     }
 
     private void ereTransit(Block.Builder initialBlock, Block.Builder currentBlock, boolean enter, Block.Builder targetBlock, List<? extends Value> values, int ehi, int targetExceptionHandlerIndex, BitSet handlerEreStack) {
-        Block.Reference ref = targetBlock.successor(values);
+        Block.Reference ref = targetBlock.reference(values);
         Block.Reference catcher = (ehi == targetExceptionHandlerIndex
                 ? initialBlock
-                : targetBlockForExceptionHandler(handlerEreStack, ehi)).successor();
+                : targetBlockForExceptionHandler(handlerEreStack, ehi)).reference();
         currentBlock.op(enter ? JavaOp.exceptionRegionEnter(ref, catcher) : JavaOp.exceptionRegionExit(ref, catcher));
     }
 
     Block.Reference successorWithStack(Block.Builder next) {
-        return next.successor(stackValues(next));
+        return next.reference(stackValues(next));
     }
 
     private List<Value> stackValues(Block.Builder limit) {

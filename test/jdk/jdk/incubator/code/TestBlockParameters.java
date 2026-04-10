@@ -28,7 +28,6 @@
  */
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -50,7 +49,7 @@ public class TestBlockParameters {
                             });
                     fe.op(lop);
                     Block.Builder b = fe.block(INT, INT);
-                    fe.op(branch(b.successor(fe.parameters())));
+                    fe.op(branch(b.reference(fe.parameters())));
 
                     b.op(return_(b.parameters().get(0)));
                 });

@@ -1,9 +1,6 @@
 import jdk.incubator.code.*;
 import jdk.incubator.code.bytecode.impl.LoweringTransform;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

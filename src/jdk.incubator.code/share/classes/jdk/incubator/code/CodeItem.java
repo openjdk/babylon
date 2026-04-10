@@ -26,11 +26,18 @@
 package jdk.incubator.code;
 
 /**
- * A code item, one of {@link CodeElement}, {@link Value}, or {@link TypeElement}, is
- * an item in a code model.
+ * A code item, one of {@link CodeElement}, {@link Value value},
+ * {@link Block.Reference block reference}, or {@link TypeElement type element},
+ * is an item in a code model.
+ * <p>
+ * Code elements form a tree.
+ * Values and block references form graph-like relationships
+ * (dependency/use graphs and control flow graphs, respectively).
+ * Type elements classify values.
+ *
  * @sealedGraph
  */
 public sealed interface CodeItem
-        permits CodeElement, Value, TypeElement, Block.Reference {
+        permits CodeElement, Value, Block.Reference, TypeElement  {
     // @@@ Common functionality between elements and values?
 }

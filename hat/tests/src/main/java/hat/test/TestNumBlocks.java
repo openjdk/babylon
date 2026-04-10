@@ -45,7 +45,7 @@ import static hat.NDRange.NDRange1D;
 public class TestNumBlocks {
 
     @Reflect
-    private static void kernel_numblocks_X(@RO KernelContext kernelContext, @WO F32Array output) {
+    private static void kernel_numblocks_X(KernelContext kernelContext, F32Array output) {
         int idx = kernelContext.gix;
         int bsx = kernelContext.bsx;
         // Write the number of blocks

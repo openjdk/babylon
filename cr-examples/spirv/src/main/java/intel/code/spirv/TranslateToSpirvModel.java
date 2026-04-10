@@ -47,7 +47,7 @@ public class TranslateToSpirvModel  {
         CoreOp.FuncOp lowFunc = lowerMethod(func);
         TranslateToSpirvModel instance = new TranslateToSpirvModel();
         Body.Builder bodyBuilder = instance.translateBody(lowFunc.body(), lowFunc, null);
-        return new SpirvOps.FuncOp(lowFunc.funcName(), lowFunc.invokableType(), bodyBuilder);
+        return new SpirvOps.FuncOp(lowFunc.funcName(), lowFunc.invokableSignature(), bodyBuilder);
     }
 
     public TranslateToSpirvModel() {
@@ -56,7 +56,7 @@ public class TranslateToSpirvModel  {
     }
 
     private Body.Builder translateBody(Body body, Op parentOp, Body.Builder parentBody) {
-        Body.Builder bodyBuilder = Body.Builder.of(parentBody, body.bodyType());
+        Body.Builder bodyBuilder = Body.Builder.of(parentBody, body.bodySignature());
         Block.Builder spirvBlock = bodyBuilder.entryBlock();
         blockMap.put(body.entryBlock(), spirvBlock);
         List<Block> blocks = body.blocks();
@@ -255,14 +255,14 @@ public class TranslateToSpirvModel  {
                         valueMap.put(flo.result(), load.result());
                     }
                     case CoreOp.BranchOp bop -> {
-                        Block.Reference successor = blockMap.get(bop.branch().targetBlock()).successor();
+                        Block.Reference successor = blockMap.get(bop.branch().targetBlock()).reference();
                         spirvBlock.op(new SpirvOps.BranchOp(successor));
                     }
                     case CoreOp.ConditionalBranchOp cbop -> {
                         Block trueBlock = cbop.trueBranch().targetBlock();
                         Block falseBlock = cbop.falseBranch().targetBlock();
-                        Block.Reference spvTrueBlock = blockMap.get(trueBlock).successor();
-                        Block.Reference spvFalseBlock = blockMap.get(falseBlock).successor();
+                        Block.Reference spvTrueBlock = blockMap.get(trueBlock).reference();
+                        Block.Reference spvFalseBlock = blockMap.get(falseBlock).reference();
                         spirvBlock.op(new SpirvOps.ConditionalBranchOp(spvTrueBlock, spvFalseBlock, mapOperands(cbop)));
                     }
                     default -> unsupported("op", op.getClass());

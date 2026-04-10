@@ -24,9 +24,8 @@
  */
 package hat.types;
 
-public interface BF16 extends _F16{
-    short value();
-    void value(short value);
+public interface BF16 extends S16ImplOfF16 {
+
     static BF16 of(float value) {
         return new BF16() {
             @Override
@@ -121,22 +120,6 @@ public interface BF16 extends _F16{
 
     static BF16 add(BF16 hb, float f32) {
         return BF16.of(bfloat162float(hb) / f32);
-    }
-
-    default BF16 add(BF16 ha) {
-        return BF16.add(this, ha);
-    }
-
-    default BF16 sub(BF16 ha) {
-        return BF16.sub(this, ha);
-    }
-
-    default BF16 mul(BF16 ha) {
-        return BF16.mul(this, ha);
-    }
-
-    default BF16 div(BF16 ha) {
-        return BF16.div(this, ha);
     }
 
 }

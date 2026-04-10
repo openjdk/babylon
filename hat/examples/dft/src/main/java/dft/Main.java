@@ -103,7 +103,7 @@ public class Main {
     }
 
     @Reflect
-    private static void dftKernel(@RW KernelContext kc, @RO ComplexArray input, @WO ComplexArray output) {
+    private static void dftKernel(KernelContext kc, ComplexArray input, ComplexArray output) {
         int size = input.length();
         int idx = kc.gix;
         if (idx < kc.gsx) {
@@ -130,7 +130,7 @@ public class Main {
     }
 
     @Reflect
-    private static void dftPlainKernel(@RW KernelContext kc, @RO F32Array inReal, @RO F32Array inImag, @WO F32Array outReal, @WO F32Array outImag) {
+    private static void dftPlainKernel(KernelContext kc, F32Array inReal, F32Array inImag, F32Array outReal, F32Array outImag) {
         int size = inReal.length();
         int idx = kc.gix;
         if (idx < kc.gsx) {

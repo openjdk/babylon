@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,11 +22,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.callgraph;
-import java.lang.reflect.Method;
-public interface MethodCall {
-     Method method();
-     default String name(){
-         return method().getName();
-     }
+package hat.types;
+
+import jdk.incubator.code.dialect.java.ClassType;
+import optkl.IfaceValue;
+import optkl.OpHelper;
+
+/**
+ * Common interface for F16 implementations which are backed by a java short (S16)
+ */
+public interface S16ImplOfF16 extends IfaceValue {
+    short value();
+    void value(short value);
+
+    static <T extends S16ImplOfF16> Class<T> typeElementToFloatClassOrNull(OpHelper.Invoke invoke, ClassType classType) {
+        Class<?> clazz = (Class<?>) OpHelper.classTypeToTypeOrThrow(invoke.lookup(),classType);
+        if (F16.class.isAssignableFrom(clazz) || BF16.class.isAssignableFrom(clazz)){
+            return (Class<T>)clazz;
+        }
+        return null;
+    }
 }

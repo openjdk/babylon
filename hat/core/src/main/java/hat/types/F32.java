@@ -38,18 +38,13 @@ public interface F32 {
     static float floor(float f){return (float)Math.floor(f);}
     static float mix(float x, float y, float a){return x*(1f-a)+y*a; }
     static float pow(float x, float pow){return (float)Math.pow(x,pow); }
-    static float smoothstep(float edge0, float edge1, float x ){
-        float t = (edge1>edge0)
-                ? Math.clamp((x - edge1) / (edge0 - edge1), 0f, 1f)
-                : Math.clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
+    static float smoothstep(float edge0, float edge1, float x){
+        float t=clamp((x - edge0) / (edge1 - edge0), 0f, 1f);
         return t * t * (3.0f - 2.0f * t);
-
     }
-    static float step(float edge, float x ){
-        return x<edge?0f:1f;
-    }
+    static float step(float edge, float x ){return x<edge?0:1f;}
     static float abs(float f){return Math.abs(f);}
-    static float mod(float x, float y){return x - y * floor(x/y);}
+    static float mod(float x, float y){return x - y * floor(x/y);}//  x - y * floor(x/y)
     static float fract(float f) {
         return f - floor(f);
     }
@@ -57,7 +52,6 @@ public interface F32 {
     static float log(float f) {return (float)Math.log(f);}
     static float min(float lhs, float rhs){ return Math.min(lhs,rhs);}
     static float max(float lhs, float rhs){ return Math.max(lhs,rhs);}
-    // watch out ! Shader version is min,max, value!!
     static float clamp(float value,float min, float max){return Math.clamp(value,min,max);}
     static float round(float f) {return Math.round(f);}
 }

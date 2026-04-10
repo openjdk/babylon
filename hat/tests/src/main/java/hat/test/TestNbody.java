@@ -78,7 +78,7 @@ public class TestNbody {
     }
 
     @Reflect
-    static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernel(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;

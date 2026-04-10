@@ -324,7 +324,7 @@ public final class AnfDialect {
         }
 
         public FunctionType invokableType() {
-            return body.bodyType();
+            return body.bodySignature();
         }
 
         public String funcName() {

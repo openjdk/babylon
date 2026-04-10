@@ -199,9 +199,9 @@ public final class TritonTransformer {
                     SimpleCountedForLoopInfo li = new SimpleCountedForLoopInfo(fop);
                     opData.put(fop, li);
 
-                    TypeElement type = fop.init().yieldType();
+                    TypeElement type = fop.initBody().yieldType();
                     if (type instanceof VarType vt && vt.valueType().equals(JavaType.INT)) {
-                        for (Body b : List.of(fop.cond(), fop.update(), fop.loopBody())) {
+                        for (Body b : List.of(fop.condBody(), fop.updateBody(), fop.loopBody())) {
                             valueTypeMap.put(b.entryBlock().parameters().get(0), JavaType.INT);
                         }
                     } else {

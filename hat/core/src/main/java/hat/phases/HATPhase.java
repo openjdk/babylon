@@ -24,17 +24,11 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
-import java.util.function.Function;
 
-public sealed interface HATPhase extends Function<CoreOp.FuncOp,CoreOp.FuncOp>,LookupCarrier
+public sealed interface HATPhase
         permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
-    KernelCallGraph kernelCallGraph();
-    @Override default MethodHandles.Lookup lookup(){
-        return kernelCallGraph().lookup();
-    }
+    CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp);
 }

@@ -48,7 +48,7 @@ import java.util.Random;
 public class TestF16Type {
 
     @Reflect
-    public static void copy01(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
+    public static void copy01(KernelContext kernelContext, F16Array a, F16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             b.array(kernelContext.gix).value(ha.value());
@@ -56,7 +56,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_02(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
+    public static void f16Ops_02(KernelContext kernelContext, F16Array a, F16Array b, F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
@@ -68,7 +68,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_03(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
+    public static void f16Ops_03(KernelContext kernelContext, F16Array a, F16Array b, F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
@@ -80,7 +80,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_04(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
+    public static void f16Ops_04(KernelContext kernelContext, F16Array a, F16Array b, F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
@@ -96,7 +96,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_05(@RO KernelContext kernelContext, @WO F16Array a) {
+    public static void f16Ops_05(KernelContext kernelContext, F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 initVal = F16.of( 2.1f);
@@ -105,7 +105,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_06(@RO KernelContext kernelContext, @WO F16Array a) {
+    public static void f16Ops_06(KernelContext kernelContext, F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 initVal = F16.of(kernelContext.gix);
             F16 ha = a.array(kernelContext.gix);
@@ -114,7 +114,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_08(@RO KernelContext kernelContext, @WO F16Array a) {
+    public static void f16Ops_08(KernelContext kernelContext, F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 initVal = F16.floatToF16(kernelContext.gix);
             F16 ha = a.array(kernelContext.gix);
@@ -123,7 +123,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_09(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
+    public static void f16Ops_09(KernelContext kernelContext, F16Array a, F16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             float f = F16.f16ToFloat(ha);
@@ -134,7 +134,7 @@ public class TestF16Type {
     }
 
     @Reflect
-    public static void f16Ops_10(@RO KernelContext kernelContext, @WO F16Array a) {
+    public static void f16Ops_10(KernelContext kernelContext, F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 f16 = F16.of(1.1f);
@@ -148,9 +148,9 @@ public class TestF16Type {
         F16 array(int index);
         //void array(int index, F16 value);
 
-        DeviceSchema<DeviceLocalArray> schema = DeviceSchema.of(DeviceLocalArray.class,
-builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<DeviceLocalArray> deviceSchema = DeviceSchema.of(DeviceLocalArray.class, builder ->
+                builder.array("array", 1024, half -> half.field("value"))
+        );
 
         static DeviceLocalArray create(Accelerator accelerator) {
             return null;
@@ -162,7 +162,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_11(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
+    public static void f16Ops_11(KernelContext kernelContext, F16Array a, F16Array b) {
         DeviceLocalArray sm = DeviceLocalArray.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -178,29 +178,28 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_12(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b,  @WO F16Array c) {
+    public static void f16Ops_12(KernelContext kernelContext, F16Array a, F16Array b,  F16Array c) {
         // Test the fluent API style
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
-            F16 result = ha.add(hb);
+            F16 result = F16.add(ha,hb);
             c.array(kernelContext.gix).value(result.value());
         }
     }
 
     @Reflect
-    public static void f16Ops_13(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b,  @WO F16Array c) {
-        // Test the fluent API style
+    public static void f16Ops_13(KernelContext kernelContext, F16Array a, F16Array b,  F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
             F16 hb = b.array(kernelContext.gix);
-            F16 result = ha.add(hb).sub(hb).mul(ha).div(ha);
+            F16 result = F16.div(F16.mul(F16.sub(F16.add(ha,hb),hb),ha),ha);
             c.array(kernelContext.gix).value(result.value());
         }
     }
 
     @Reflect
-    public static void f16Ops_14(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
+    public static void f16Ops_14(KernelContext kernelContext, F16Array a, F16Array b) {
         // Testing mixed float types
         if (kernelContext.gix < kernelContext.gsx) {
             F16 ha = a.array(kernelContext.gix);
@@ -212,11 +211,10 @@ builder -> builder.withArray("array", 1024)
 
     interface DevicePrivateArray extends NonMappableIface {
         F16 array(int index);
-        //void array(int index, F16 value);
 
-        DeviceSchema<DevicePrivateArray> schema = DeviceSchema.of(DevicePrivateArray.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<DevicePrivateArray> deviceSchema = DeviceSchema.of(DevicePrivateArray.class, builder ->
+                builder.array("array", 1024, half -> half.field("value"))
+        );
 
         static DevicePrivateArray create(Accelerator accelerator) {
             return null;
@@ -228,7 +226,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_15(@RO KernelContext kernelContext, @RO F16Array a, @WO F16Array b) {
+    public static void f16Ops_15(KernelContext kernelContext, F16Array a, F16Array b) {
         DevicePrivateArray privateArray = DevicePrivateArray.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -246,9 +244,9 @@ builder -> builder.withArray("array", 1024)
         F16 array(int index);
         void array(int index, F16 value);
 
-        DeviceSchema<DevicePrivateArray2> schema = DeviceSchema.of(DevicePrivateArray2.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(F16.class, half -> half.withField("value")));
+        DeviceSchema<DevicePrivateArray2> deviceSchema = DeviceSchema.of(DevicePrivateArray2.class, builder ->
+                builder.array("array", 1024, half -> half.field("value"))
+        );
 
         static DevicePrivateArray2 create(Accelerator accelerator) {
             return null;
@@ -260,7 +258,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_16(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+    public static void f16Ops_16(KernelContext kernelContext, F16Array a, F16Array b) {
         DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int lix = kernelContext.lix;
@@ -279,7 +277,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_17(@RO KernelContext kernelContext, @RW F16Array a) {
+    public static void f16Ops_17(KernelContext kernelContext, F16Array a) {
         F16 ha = a.array(0);
         F16 hre = F16.add(ha, ha);
         hre = F16.add(hre, hre);
@@ -287,7 +285,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_18(@RO KernelContext kernelContext, @RW F16Array a) {
+    public static void f16Ops_18(KernelContext kernelContext, F16Array a) {
 
         F16 ha = a.array(0);
         DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
@@ -304,7 +302,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_19(@RO KernelContext kernelContext, @RO F16Array a, @RO F32Array b, @WO F32Array c) {
+    public static void f16Ops_19(KernelContext kernelContext, F16Array a, F32Array b, F32Array c) {
         if (kernelContext.gix < a.length()) {
             float mul = F16.f16ToFloat(a.array(kernelContext.gix)) * b.array(kernelContext.gix);
             c.array(kernelContext.gix, mul);
@@ -312,7 +310,7 @@ builder -> builder.withArray("array", 1024)
     }
 
     @Reflect
-    public static void f16Ops_20(@RO KernelContext kernelContext, @RO F16Array a, @RO F32Array b, @WO F32Array c) {
+    public static void f16Ops_20(KernelContext kernelContext, F16Array a, F32Array b, F32Array c) {
         if (kernelContext.gix < a.length()) {
             float mul = b.array(kernelContext.gix) * F16.f16ToFloat(a.array(kernelContext.gix));
                     c.array(kernelContext.gix, mul);

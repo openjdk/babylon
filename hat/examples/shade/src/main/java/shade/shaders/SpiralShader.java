@@ -103,7 +103,8 @@ public class SpiralShader{
             U =U/2.;                                     // but small times
             id = mod(floor(I.x/2.)+I.y,5.);
         }
-        U = abs(fract(U)*2.-1.); float v = max(U.x,U.y);          // dist to border
+        U = abs(fract(U)*2.-1.);
+         float v = max(U.x,U.y);          // dist to border
         fragColor =   smoothstep(.7,-.7, (v-.95)/( abs(z.x-z.y)>1.?.1:z.y*8.))  // draw AA tiles
             * (id<0.?vec4(1): .6 + .6 * cos( id  + vec4(0,23,21,0)  ) );// color
     }
@@ -127,7 +128,7 @@ public class SpiralShader{
                     dot(U, U)
             );
             // offset   spiral, zoom   phase            // spiraling
-            U = add(U, vec2(.5f, 0f));
+            U = add(U, .5f);
             //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
             U = add(
                     add(
@@ -147,8 +148,9 @@ public class SpiralShader{
             vec2 I = floor(U);
             U = fract(U);             // subdiv big square in 5x5
             I = vec2(mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
-            U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
-            float id = -1f;
+          //  U =  vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f);     // recombine big tiles
+        U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
+        float id = -1f;
             if (I.x() != 4f) {
                 U = div(U, 2f);                                     // but small times
                 id = mod(floor(I.x() / 2f) + I.y(), 5f);
@@ -157,7 +159,7 @@ public class SpiralShader{
             float v = max(U.x(), U.y());          // dist to border
 
             return
-                    normalize(
+                    //normalize(
                             smoothstep(
                                     vec4(.7f),
                                     vec4(-.7f),
@@ -171,18 +173,18 @@ public class SpiralShader{
                                                     cos(add(vec4(id), vec4(0f, 23f, 21f, 0f)))
                                             )
                                     )
-                            )
+                         //   )
                     );// color
         }
     @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){
-        return createPixel(
-                vec2(uniforms.iResolution().x(), uniforms.iResolution().y()),  uniforms.iTime(),vec2(uniforms.iMouse().x(), uniforms.iMouse().y()), fragCoord);
+        return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
 
     @Reflect
     public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
         int width = (int) uniforms.iResolution().x();
-        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(kc.gix / width)));
+        int height = (int) uniforms.iResolution().y();
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(height-(kc.gix / width))));
         f32Array.array(kc.gix * 3, fragColor.x());
         f32Array.array(kc.gix * 3+1, fragColor.y());
         f32Array.array(kc.gix * 3+2, fragColor.z());
@@ -199,7 +201,7 @@ public class SpiralShader{
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, SpiralShader.class,1024, 1024, true);
-        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getWidth()));
+        var shader = ShaderViewer.of(acc, SpiralShader.class,1024, 1024);
+        shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getHeight()));
     }
 }

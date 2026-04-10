@@ -48,14 +48,14 @@ public class TestMissingReflectAnnotation {
     }
 
     @Reflect
-    public static void squareKernel(@RO KernelContext kc, @RW S32Array array) {
+    public static void squareKernel(KernelContext kc, S32Array array) {
         if (kc.gix < kc.gsx){
             int value = array.array(kc.gix);
             array.array(kc.gix, squareit(value));
         }
     }
 
-    public static void squareKernelWithoutReflectAnnotation(@RO KernelContext kc, @RW S32Array array) {
+    public static void squareKernelWithoutReflectAnnotation(KernelContext kc, S32Array array) {
         if (kc.gix < kc.gsx){
             int value = array.array(kc.gix);
             array.array(kc.gix, squareit(value));

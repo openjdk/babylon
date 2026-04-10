@@ -43,7 +43,7 @@ import optkl.ifacemapper.MappableIface.RW;
 
 public class Main {
     @Reflect
-    public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
+    public static void mandel(KernelContext kc, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
         if (kc.gix < kc.gsx) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();

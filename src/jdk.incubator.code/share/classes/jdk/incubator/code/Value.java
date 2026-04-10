@@ -137,7 +137,7 @@ public sealed abstract class Value implements CodeItem
      */
     public SequencedSet<Op.Result> uses() {
         if (!isBuilt()) {
-            throw new IllegalStateException("Users are are unbuilt");
+            throw new IllegalStateException("Users are unbuilt");
         }
 
         return Collections.unmodifiableSequencedSet(uses);
@@ -146,20 +146,23 @@ public sealed abstract class Value implements CodeItem
     /**
      * Returns {@code true} if this value is dominated by the given value {@code dom}.
      * <p>
-     * If {@code v} and {@code dom} are in not declared in the same block then, domination is the result of
-     * if the declaring block of {@code v} is dominated by the declaring block of {@code dom}.
+     * If this value and {@code dom} are declared in different blocks, then this method
+     * returns the result of testing whether this value's declaring block is
+     * {@link Block#isDominatedBy dominated by} {@code dom}'s declaring block.
      * <p>
-     * Otherwise, if {@code v} and {@code dom} are declared in the same block then (in order):
+     * Otherwise, if both values are declared in the same block then:
      * <ul>
-     * <li>if {@code dom} is a block parameter, then {@code v} is dominated by {@code dom}.
-     * <li>if {@code v} is a block parameter, then {@code v} is <b>not</b> dominated by {@code dom}.
-     * <li>otherwise, both {@code v} and {@code dom} are operation results, then {@code v} is dominated by {@code dom}
-     * if {@code v} is the same as {@code dom} or {@code v} occurs after {@code dom} in the declaring block.
+     * <li>if {@code dom} is a block parameter, then this value is dominated by {@code dom}.
+     * <li>if this value is a block parameter, then this value is <b>not</b> dominated by {@code dom}.
+     * <li>otherwise, both values are operation results, then this value is dominated by
+     * {@code dom} if this value is the same as {@code dom} or this value's operation occurs
+     * after {@code dom}'s operation in the declaring block.
      * </ul>
      *
      * @param dom the dominating value
      * @return {@code true} if this value is dominated by the given value {@code dom}.
      * @throws IllegalStateException if an unbuilt block is encountered.
+     * @see Block#isDominatedBy
      */
     public boolean isDominatedBy(Value dom) {
         if (this == dom) {

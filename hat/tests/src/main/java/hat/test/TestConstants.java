@@ -42,7 +42,7 @@ public class TestConstants {
     public static final int CONSTANT = 100;
 
     @Reflect
-    public static void vectorWithConstants(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
+    public static void vectorWithConstants(KernelContext kc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         final int BM = 100;
         if (kc.gix < kc.gsx) {
             final int valueA = arrayA.array(kc.gix);
@@ -92,7 +92,7 @@ public class TestConstants {
     }
 
     @Reflect
-    public static void vectorWithConstants2(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
+    public static void vectorWithConstants2(KernelContext kc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         if (kc.gix < kc.gsx) {
             final int valueA = arrayA.array(kc.gix);
             final int valueB = arrayB.array(kc.gix);

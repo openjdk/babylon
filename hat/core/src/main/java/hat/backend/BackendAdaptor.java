@@ -28,7 +28,6 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -48,7 +47,7 @@ public abstract class BackendAdaptor extends Backend {
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         try {
-            computeContext.computeCallGraph().entrypoint.method().invoke(null, args);
+            computeContext.computeCallGraph().callDag.entryPoint.method().invoke(null, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
@@ -56,11 +55,11 @@ public abstract class BackendAdaptor extends Backend {
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
+      //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
                 args[0] = kernelContext;
-                kernelEntrypoint.method().invoke(null, args);
+                kernelCallGraph.callDag.entryPoint.method().invoke(null, args);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             } catch (InvocationTargetException e) {

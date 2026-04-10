@@ -1,4 +1,5 @@
 /model.onnx.data
+/model_q4.onnx_data
 /tokenizer_config.json
 /tokenizer.json
 

@@ -372,12 +372,12 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     public final T forOp( JavaOp.ForOp forOp) {
         scopedCodeBuilderContext().forScope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    forOp.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
+                    forOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
                     semicolon().sp();
-                    forOp.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
+                    forOp.condBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
                     semicolon().sp();
                     commaSpaceSeparated(
-                            OpHelper.Statement.statements(forOp.update().entryBlock()),
+                            OpHelper.Statement.statements(forOp.updateBody().entryBlock()),
                             op -> recurse( op)
                     );
                 }).braceNlIndented(_ ->
@@ -456,11 +456,11 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
     @Override
     public T newOp( JavaOp.NewOp newOp) {
-         newKeyword().sp().type((JavaType) newOp.type());
+         newKeyword().sp().type((JavaType) newOp.resultType());
        if (newOp.operands().isEmpty()){
            ocparen();
        }else {
-           if (newOp.type() instanceof ArrayType){
+           if (newOp.resultType() instanceof ArrayType){
                brace(_ -> {
                    commaSpaceSeparated(newOp.operands(),
                            op -> {
@@ -501,9 +501,9 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     @Override
     public T enhancedForOp(JavaOp.EnhancedForOp enhancedForOp){
         forKeyword().paren(_-> {
-            enhancedForOp.initialization().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
+            enhancedForOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
             sp().colon().sp().blockInlineComment("Get rid of = before this");
-            enhancedForOp.expression().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
+            enhancedForOp.exprBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
         }).braceNlIndented(_->
             nlSeparated(OpHelper.Statement.bodyStatements(enhancedForOp.loopBody()),
                     this::statement

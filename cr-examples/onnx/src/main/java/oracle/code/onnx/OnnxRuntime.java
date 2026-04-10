@@ -185,7 +185,7 @@ public final class OnnxRuntime {
         List<Tensor> ret = model.session().run(arena, arguments);
 
         var lambdaOp = q.op();
-        TypeElement type = lambdaOp.invokableType().returnType();
+        TypeElement type = lambdaOp.invokableSignature().returnType();
         if (type instanceof ArrayType) {
             return (T) ret.toArray(Tensor[]::new);
         }
@@ -536,7 +536,7 @@ public final class OnnxRuntime {
 
             return new SessionWithReturnType(
                     session,
-                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType(),
+                    mi.module().functionTable().lastEntry().getValue().invokableSignature().returnType(),
                     bypassInits ? initValues : List.of());
 
 

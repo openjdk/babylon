@@ -241,7 +241,7 @@ public interface vec2 extends IfaceValue.vec{
     }
 
     static vec2 reflect(vec2 l, vec2 r){
-        return vec2.sub(l, mul(mul(r, l), 2.0f));
+        return vec2.sub(l, mul(2f*dot(r, l),r));
     }
 
     static float distance(vec2 l, vec2 r){
@@ -294,8 +294,15 @@ public interface vec2 extends IfaceValue.vec{
 
     static vec2 mul(vec2 l, mat2 r){
         return vec2(
-            l.x()*r._00()+l.x()*r._01(),
-            l.y()*r._10()+l.y()*r._11()
+                l.x()*r._00()+l.y()*r._01(),
+                l.x()*r._10()+l.y()*r._11()
+        );
+    }
+
+    static vec2 mul(mat2 l, vec2 r){
+        return vec2(
+                l._00() * r.x() + l._10() * r.y(),
+                l._01() * r.x() + l._11() * r.y()
         );
     }
 

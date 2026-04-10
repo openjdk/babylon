@@ -28,7 +28,6 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +40,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @library ../lib
  * @enablePreview
  * @run junit TestForwardAutoDiff
  * @run junit/othervm -Dbabylon.ssa=cytron TestForwardAutoDiff

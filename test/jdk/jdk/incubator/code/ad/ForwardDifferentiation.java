@@ -223,7 +223,7 @@ public final class ForwardDifferentiation {
             }
 
             // Map successor with appended arguments
-            Block.Reference to = cc.getBlock(from.targetBlock()).successor(outputArgs);
+            Block.Reference to = cc.getBlock(from.targetBlock()).reference(outputArgs);
             cc.mapSuccessor(from, to);
         }
     }

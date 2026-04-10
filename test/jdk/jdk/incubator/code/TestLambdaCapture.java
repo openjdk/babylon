@@ -25,6 +25,7 @@
  * @test
  * @summary Smoke test for captured values in reflectable lambdas.
  * @modules jdk.incubator.code
+ * @library lib
  * @run junit TestLambdaCapture
  */
 
@@ -36,7 +37,6 @@ import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp.Var;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Iterator;

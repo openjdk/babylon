@@ -80,7 +80,7 @@ public class TestAncestors {
 
         List<List<CodeElement<?, ?>>> paths = new ArrayList<>();
         // path has pattern of [op, body, block, ... ,body, block, op]
-        computedPaths(paths,List.of(), f);
+        computedPaths(paths, List.of(), f);
 
         testPathPrefix(paths.getFirst());
         paths.forEach(TestAncestors::testPathAncestors);
@@ -133,6 +133,7 @@ public class TestAncestors {
         Assertions.assertTrue(isSameOrAncestorUsingParent(e, a));
         if (a != e) {
             Assertions.assertTrue(a.isAncestorOf(e));
+            Assertions.assertTrue(e.isDescendantOf(a));
         }
 
         switch (a) {

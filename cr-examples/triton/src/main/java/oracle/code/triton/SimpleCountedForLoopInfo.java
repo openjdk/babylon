@@ -44,7 +44,7 @@ public class SimpleCountedForLoopInfo {
     SimpleCountedForLoopInfo(JavaOp.ForOp fop) {
         this.fop = fop;
 
-        if (fop.init().yieldType().equals(JavaType.VOID)) {
+        if (fop.initBody().yieldType().equals(JavaType.VOID)) {
             throw new IllegalArgumentException("Loop variable externally initialized");
         }
         if (fop.loopBody().entryBlock().parameters().size() > 1) {
@@ -66,7 +66,7 @@ public class SimpleCountedForLoopInfo {
                         opResultP()));
 
         // match against yieldOp
-        Op yieldOp = fop.init().entryBlock().ops().getLast();
+        Op yieldOp = fop.initBody().entryBlock().ops().getLast();
         List<Value> matches = Patterns.match(null, yieldOp, p, (matchState, o) -> {
             return matchState.matchedOperands();
         });
@@ -95,7 +95,7 @@ public class SimpleCountedForLoopInfo {
                         opResultP()));
 
         // match against yieldOp
-        Op yieldOp = fop.cond().entryBlock().ops().getLast();
+        Op yieldOp = fop.condBody().entryBlock().ops().getLast();
         List<Value> matches = Patterns.match(null, yieldOp, p, (matchState, o) -> {
             return matchState.matchedOperands();
         });
@@ -126,7 +126,7 @@ public class SimpleCountedForLoopInfo {
 
         // Match against last store op
         // @@@ Add Block.prevOp()
-        Op storeOp = fop.update().entryBlock().ops().get(fop.update().entryBlock().ops().size() - 2);
+        Op storeOp = fop.updateBody().entryBlock().ops().get(fop.updateBody().entryBlock().ops().size() - 2);
         List<Value> matches = Patterns.match(null, storeOp, p, (matchState, r) -> {
             return matchState.matchedOperands();
         });
