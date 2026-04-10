@@ -293,8 +293,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (tensorVarValue.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
             varTensorName = tensorVarOp.varName();
         }
-        int size = shape[0] * shape[1];
-
+        final int size = shape[0] * shape[1];
         if (tensorCreateOp.operands().size() > 3) {
             // Share memory only for the input tiles (tensors)
             // The accumulator is stored in private memory
@@ -624,7 +623,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *           HAT_GLOBAL_MEM F16Impl_t* ha = &matrixA->array[idxA];
      *           F16_t r = (F16_t){ha->value};
      *           tensorA[m * WMMA_M + n] = r;
-     *           }
+     *         }
      *     }
      * </code>
      * </p>
@@ -680,17 +679,21 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 plus().id(varB).semicolon().nl();
 
                 String index = generateVariableName(INDEX_PREFIX);
-                s32Type().sp().id(index).assign().id(row);
+                s32Type().sp().id(index).assign();
 
-                if (isColumnMajor) plus();
-                else mul();
-                id(col);
-                if (isColumnMajor) mul();
-                else plus();
+                String aVal = row;
+                String bVal = col;
+                if (isColumnMajor) {
+                    aVal = col;
+                    bVal = row;
+                }
+
+                id(aVal).sp().mul().sp();
                 if (leadingDimension instanceof Op.Result r) {
                     recurse(r.op());
                 }
-                semicolon().nl();
+                sp().plus().id(bVal).semicolon().nl();
+
 
                 // TODO: We assume a load from global memory. In
                 // future version, we will process loads from other
@@ -825,17 +828,20 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 plus().id(varB).semicolon().nl();
 
                 String index = generateVariableName(INDEX_PREFIX);
-                s32Type().sp().id(index).assign().id(row);
+                s32Type().sp().id(index).assign();
 
-                if (isColumnMajor) plus();
-                else mul();
-                id(col);
-                if (isColumnMajor) mul();
-                else plus();
+                String aVal = row;
+                String bVal = col;
+                if (isColumnMajor) {
+                    aVal = col;
+                    bVal = row;
+                }
+
+                id(aVal).sp().mul().sp();
                 if (leadingDimension instanceof Op.Result r) {
                     recurse(r.op());
                 }
-                semicolon().nl();
+                sp().plus().id(bVal).semicolon().nl();
 
                 // TODO: We assume a load from global memory. In
                 // future version, we will process loads from other
