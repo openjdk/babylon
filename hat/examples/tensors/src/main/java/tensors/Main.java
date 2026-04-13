@@ -182,7 +182,29 @@ public class Main {
                         }));
     }
 
-    static void run(Options options) {
+    private static boolean checkResult(F32Array reference, F32Array output, int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                final float expected = reference.array(i * size + j);
+                final float got = output.array(i * size + j);
+                if (Math.abs(expected - got) > 0.1f) {
+                    IO.println("GOT: " + got + " - but expected: " + expected);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static void printResult(String version, boolean check) {
+        if (check) {
+            IO.println("Result-" + version + " is correct!");
+        } else {
+            IO.println("Result-" + version + " is wrong!");
+        }
+    }
+
+    static void runBenchmark(Options options) {
         final int size = options.size();
         final int numIterations = options.iterations();
 
@@ -203,7 +225,8 @@ public class Main {
         F32Array resultNativeF32 = F32Array.create(accelerator, size * size);
         F32Array resultNativeF16 = F32Array.create(accelerator, size * size);
         F32Array resultTensor = F32Array.create(accelerator, size * size);
-        F32Array matrixCSeq = F32Array.create(accelerator, size * size);
+        F32Array matrixReference = F32Array.create(accelerator, size * size);
+        F32Array resultStreams = F32Array.create(accelerator, size * size);
 
         Random r = new Random(19);
         for (int j = 0; j < matrixAHalf.length(); j++) {
@@ -219,7 +242,7 @@ public class Main {
         if (!options.skipSequential()) {
             for (int i = 0; i < numIterations; i++) {
                 long start = System.nanoTime();
-                runSequential(matrixA, matrixB, matrixCSeq, size);
+                runSequential(matrixA, matrixB, matrixReference, size);
                 long end = System.nanoTime();
                 if (options.verbose()) {
                     IO.println("Java Seq Timer: " + (end - start));
@@ -231,7 +254,7 @@ public class Main {
         // Java Parallel Streams
         for (int i = 0; i < numIterations; i++) {
             long start = System.nanoTime();
-            runMultiThreadedWithStreams(matrixA, matrixB, matrixCSeq, size);
+            runMultiThreadedWithStreams(matrixA, matrixB, resultStreams, size);
             long end = System.nanoTime();
             if (options.verbose()) {
                 IO.println("Java Parallel-Stream Timer: " + (end - start));
@@ -272,6 +295,13 @@ public class Main {
             timersHATTensors.add((end - start));
         }
 
+        if (options.checkResult() && !options.skipSequential()) {
+            printResult("streams", checkResult(matrixReference, resultStreams, size));
+            printResult("HAT-NaiveF32", checkResult(matrixReference, resultNativeF32, size));
+            printResult("HAT-NaiveF16", checkResult(matrixReference, resultNativeF16, size));
+            printResult("HAT-Tensors", checkResult(matrixReference, resultTensor, size));
+        }
+
         // Write CSV table for all the results
         List<List<Long>> timers = options.skipSequential() ?
                 List.of(timersParallelStreams, timersHATNaiveF32, timersHATNaiveF16, timersHATTensors) :
@@ -292,7 +322,13 @@ public class Main {
         int numIterations = 100;
         ParseArgs parseArgs = new ParseArgs(args);
         Options options = parseArgs.parseWithDefaults(defaultSize, numIterations);
-        run(options);
+
+        // check input size
+        if (options.size() % 16 != 0 || options.size() < 128) {
+            throw new RuntimeException("Input size must of a multiple of 16, and larger than 128");
+        }
+
+        runBenchmark(options);
 
     }
 
