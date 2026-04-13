@@ -52,6 +52,14 @@ import static hat.NDRange.Warp2D;
 import static hat.NDRange.of2D;
 import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 
+/**
+ * Example to test the Tensor/Tile API vs the Thread API.
+ *
+ * <p>
+ * How to run?
+ * <code>java @hat/run ffi-opencl tensors --iterations=10 --verbose --size=2048</code>
+ * </p>
+ */
 public class Main {
 
     @Reflect
