@@ -327,9 +327,6 @@ public class Main {
         if (options.size() % 16 != 0 || options.size() < 128) {
             throw new RuntimeException("Input size must of a multiple of 16, and larger than 128");
         }
-
         runBenchmark(options);
-
     }
-
 }
