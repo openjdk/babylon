@@ -63,7 +63,7 @@ public final class OnnxTransformer {
         assert lambda.parameters().isEmpty();
 
         List<Value> captures = lambda.capturedValues();
-        List<TypeElement> normalizedCaptureTypes = captures.stream()
+        List<CodeType> normalizedCaptureTypes = captures.stream()
                 .map(v -> v instanceof Op.Result r &&
                         r.op() instanceof CoreOp.VarOp vop &&
                         vop.initOperand() instanceof Block.Parameter p ? p : v)
@@ -150,7 +150,7 @@ public final class OnnxTransformer {
 
     static ModuleAndInitializers remapInitializers(TypeConvertor tc, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
-        record TI(TypeElement type, int index) {}
+        record TI(CodeType type, int index) {}
         LinkedHashMap<FieldRef, TI> initializers = new LinkedHashMap();
         module.elements().forEach(op -> {
             if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flo
@@ -173,7 +173,7 @@ public final class OnnxTransformer {
         }
 
         // map all initializers field loads into additional arguments
-        List<TypeElement> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
+        List<CodeType> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
         return new ModuleAndInitializers(CoreOp.module(module.functionTable().sequencedValues().stream().map(f -> {
             var ft = f.invokableSignature();
             int argsSize = ft.parameterTypes().size();

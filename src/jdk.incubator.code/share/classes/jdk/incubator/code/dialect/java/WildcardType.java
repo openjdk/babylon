@@ -26,7 +26,7 @@
 package jdk.incubator.code.dialect.java;
 
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
@@ -74,7 +74,7 @@ public final class WildcardType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizedCodeType externalize() {
         return JavaTypeUtils.wildcardType(boundKind(), boundType.externalize());
     }
 

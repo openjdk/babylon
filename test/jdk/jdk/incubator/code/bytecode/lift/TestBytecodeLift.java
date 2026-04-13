@@ -641,7 +641,7 @@ public class TestBytecodeLift {
         argl.addAll(Arrays.asList(args));
         Object ret = Interpreter.invoke(MethodHandles.lookup(), func, argl);
         if (ret instanceof Integer i) {
-            TypeElement rt = func.invokableSignature().returnType();
+            CodeType rt = func.invokableSignature().returnType();
             if (rt.equals(JavaType.BOOLEAN)) {
                 return i != 0;
             } else if (rt.equals(JavaType.BYTE)) {

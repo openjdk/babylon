@@ -31,7 +31,7 @@
 /// This package documentation is organized into three parts. The first part introduces code reflection using
 /// examples and explains how code reflection extends the core reflection API. The second part builds on those examples
 /// and explains how code models can be traversed, executed, built, and transformed. The third part more formally
-/// explains code model structure, code model behaviour, dialects, and the use of `core` and `Java` dialects to define
+/// explains code model structure, code model behavior, dialects, and the use of `core` and `Java` dialects to define
 /// Java code models.
 ///
 /// ## Core reflection API
@@ -394,14 +394,14 @@
 /// In addition to the code model containing code elements forming a tree it also contains other items called
 /// [_code items_][jdk.incubator.code.CodeItem], [values][jdk.incubator.code.Value] (block parameters or operation
 /// results) we previously introduced, that form bidirectional dependency graphs between their declaration and their
-/// use. A value has a [_type element_][jdk.incubator.code.TypeElement], another code item that classifies values.
-/// In our example many of the type elements model Java types, and some model the type of variable
-/// values (the type element of the operation result of a var operation).
+/// use. A value has a [_code type_][jdk.incubator.code.CodeType], another code item that classifies values.
+/// In our example many of the code types model Java types, and some model the type of variable
+/// values (the code type of the operation result of a var operation).
 ///
 /// Code models are in Static Single-Assignment ([SSA][SSA]) form, and there is no explicit distinction, as there is in
 /// the source code, between Java [statements][java-statements] and [expressions][java-expressions]. Block parameters
 /// and operation results are declared before they are used and cannot be reassigned (and we therefore require special
-/// operations and type elements to model variables as previously shown).
+/// operations and code types to model variables as previously shown).
 ///
 /// [SSA]: https://en.wikipedia.org/wiki/Static_single-assignment_form
 ///
@@ -626,7 +626,7 @@
 /// [operation result][jdk.incubator.code.Op.Result], also a value. [Values][jdk.incubator.code.Value] are variables
 /// assigned exactly once, so code models are in static single-assignment (SSA) form.
 ///
-/// A value has a [type element][jdk.incubator.code.TypeElement], classifying the value.
+/// A value has a [code type][jdk.incubator.code.CodeType], classifying the value.
 ///
 /// An operation uses zero or more values in a [sequence][jdk.incubator.code.Op#operands()] of operands and in a
 /// [sequence][jdk.incubator.code.Block.Reference#arguments()] of block arguments of any block references (the
@@ -799,27 +799,27 @@
 ///
 /// ## Dialects
 ///
-/// A dialect is a set of related operations and type elements. When expressed in a code model they give the model
+/// A dialect is a set of related operations and code types. When expressed in a code model they give the model
 /// program meaning. Program meaning is an emergent property determined by generic code model behavior,
 /// each operation's modeling behavior, and the operations arrangement in the code model.
 ///
 /// Code reflection defines two dialects, the [core][jdk.incubator.code.dialect.core] dialect, and the
 /// [Java][jdk.incubator.code.dialect.java] dialect.
 ///
-/// The `core` dialect defines operations, and type elements, whose modeling behavior is general and common across
+/// The `core` dialect defines operations, and code types, whose modeling behavior is general and common across
 /// programming language platforms. For example, it provides operations for modeling functions, variables, tuples,
 /// declaring constants, block branching, and yielding a result from a body. In support of those operations it provides
-/// types elements to model function types, variable types, and tuple types. Such operations and type elements can be
+/// code types to model function types, variable types, and tuple types. Such operations and code types can be
 /// used to compatibly model Java program behavior, such as modeling Java method declarations, or the declaration of
 /// Java variables and access to them. A core operation is one that extends from the class
-/// [CoreOp][jdk.incubator.code.dialect.core.CoreOp]. A core type element is one that extends from the class
+/// [CoreOp][jdk.incubator.code.dialect.core.CoreOp]. A core code type is one that extends from the class
 /// [CoreType][jdk.incubator.code.dialect.core.CoreType].
 ///
-/// The `Java` dialect defines operations, and type elements, whose modeling behavior is specific to Java. The majority
-/// of the Java operations directly model Java statements and expressions. The Java type elements provide rich modeling
+/// The `Java` dialect defines operations, and code types, whose modeling behavior is specific to Java. The majority
+/// of the Java operations directly model Java statements and expressions. The Java code types provide rich modeling
 /// of Java types that are denotable in Java source, and also provide modeling of references to Java declarations that
 /// are composed of Java types and names (fields, methods, and records). A Java operation is one that extends from the
-/// class [JavaOp][jdk.incubator.code.dialect.java.JavaOp]. A Java type element is one that extends from the class
+/// class [JavaOp][jdk.incubator.code.dialect.java.JavaOp]. A Java code type is one that extends from the class
 /// [JavaType][jdk.incubator.code.dialect.java.JavaType] or the class
 /// [JavaRef][jdk.incubator.code.dialect.java.JavaRef].
 ///
@@ -830,13 +830,13 @@
 ///
 /// Users may provide their own dialect to give program meaning for a particular domain by extending
 /// [Op][jdk.incubator.code.Op] with specific operation implementations, and implementing
-/// [TypeElement][jdk.incubator.code.TypeElement] with specific type element implementations.
+/// [CodeType][jdk.incubator.code.CodeType] with specific code type implementations.
 ///
 /// ## Java code models
 ///
 /// Java code models are code models produced by `javac`, stored in class files, and accessed at run time. Such models
 /// preserve the program meaning of the Java source code they model. They consist of an arrangement of operations and
-/// type elements from the `core` dialect and the `java` dialect.
+/// code types from the `core` dialect and the `java` dialect.
 ///
 /// A Java code model also preserves the nested structure of the Java source code it models. It is guaranteed that a
 /// body only has one block. To achieve this the Java dialect provides Java operations for directly modeling all

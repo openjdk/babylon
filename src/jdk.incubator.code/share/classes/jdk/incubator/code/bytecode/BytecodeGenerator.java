@@ -424,7 +424,7 @@ public final class BytecodeGenerator {
             // When there is no next operation
             case null -> false;
             // New object cannot use first operand from stack, new array fall through to the default
-            case NewOp op when !(op.constructorReference().type().returnType() instanceof ArrayType) ->
+            case NewOp op when !(op.constructorReference().signature().returnType() instanceof ArrayType) ->
                 false;
             // For lambda the effective operands are captured values
             case LambdaOp op ->
@@ -485,7 +485,7 @@ public final class BytecodeGenerator {
         return use.op() instanceof ConditionalBranchOp;
     }
 
-    static ClassDesc toClassDesc(TypeElement t) {
+    static ClassDesc toClassDesc(CodeType t) {
         return switch (t) {
             case VarType vt -> toClassDesc(vt.valueType());
             case JavaType jt -> jt.toNominalDescriptor();
@@ -494,7 +494,7 @@ public final class BytecodeGenerator {
         };
     }
 
-    static TypeKind toTypeKind(TypeElement t) {
+    static TypeKind toTypeKind(CodeType t) {
         return switch (t) {
             case VarType vt -> toTypeKind(vt.valueType());
             case PrimitiveType pt -> TypeKind.from(pt.toNominalDescriptor());
@@ -554,7 +554,7 @@ public final class BytecodeGenerator {
             List<Op> ops = b.ops();
             for (int i = 0; i < ops.size() - 1; i++) {
                 final Op o = ops.get(i);
-                final TypeElement oprType = o.resultType();
+                final CodeType oprType = o.resultType();
                 final TypeKind rvt = toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
@@ -772,7 +772,7 @@ public final class BytecodeGenerator {
                         // Processing is deferred to the CondBrOp, do not process the op result
                     }
                     case NewOp op -> {
-                        switch (op.constructorReference().type().returnType()) {
+                        switch (op.constructorReference().signature().returnType()) {
                             case ArrayType at -> {
                                 processOperands(op);
                                 if (at.dimensions() == 1) {
@@ -793,12 +793,12 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        MethodRef.toNominalDescriptor(op.constructorReference().type())
+                                        MethodRef.toNominalDescriptor(op.constructorReference().signature())
                                                  .changeReturnType(ConstantDescs.CD_void));
                             }
                             default ->
                                 throw new IllegalArgumentException("Invalid return type: "
-                                                                    + op.constructorReference().type().returnType());
+                                                                    + op.constructorReference().signature().returnType());
                         }
                         push(op.result());
                     }
@@ -807,7 +807,7 @@ public final class BytecodeGenerator {
                         MethodRef md = op.invokeReference();
                         JavaType refType = (JavaType)md.refType();
                         ClassDesc specialCaller = lookup.lookupClass().describeConstable().get();
-                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
+                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.signature());
                         if (op.invokeKind() == InvokeOp.InvokeKind.SUPER) {
                             // constructs method handle via lookup.findSpecial using the lookup's class as the specialCaller
                             // original lookup is stored in class data
@@ -826,7 +826,7 @@ public final class BytecodeGenerator {
                             processOperands(op.argOperands());
                             var varArgOperands = op.varArgOperands();
                             cob.loadConstant(varArgOperands.size());
-                            var compType = ((ArrayType) op.invokeReference().type().parameterTypes().getLast()).componentType();
+                            var compType = ((ArrayType) op.invokeReference().signature().parameterTypes().getLast()).componentType();
                             var compTypeDesc = compType.toNominalDescriptor();
                             var typeKind = TypeKind.from(compTypeDesc);
                             if (compTypeDesc.isPrimitive()) {
@@ -1149,7 +1149,7 @@ public final class BytecodeGenerator {
 
     // the rhs of any shift instruction must be int or smaller -> convert longs
     private void adjustRightTypeToInt(Op op) {
-        TypeElement right = op.operands().getLast().type();
+        CodeType right = op.operands().getLast().type();
         if (right.equals(JavaType.LONG)) {
             cob.conversion(toTypeKind(right), TypeKind.INT);
         }

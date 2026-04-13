@@ -52,39 +52,30 @@ import java.util.*;
 import java.util.function.BiFunction;
 
 /**
- * An operation modelling a unit of program behaviour.
+ * An operation modeling a unit of program behavior.
  * <p>
  * An operation might model the addition of two integers, or a method invocation expression.
  * Alternatively an operation may model something more complex like method declarations, lambda expressions, or
- * try statements. In such cases an operation will contain one or more bodies modelling the nested structure.
+ * try statements. In such cases an operation will contain one or more bodies modeling the nested structure.
  * <p>
- * An instance of an operation when initially constructed is referred to as an unbuilt operation.
- * An unbuilt operation's state and descendants are all immutable except for its {@link #result result} and
- * {@link #parent parent}, which are initially set to {@code null}.
+ * An operation when initially constructed is unattached from any parent block.
+ * An unattached operation's state and descendant elements are all immutable except for the operation's
+ * {@link #result result}, {@link #parent parent} block, and {@link #location}, which are all initially {@code null}.
  * <p>
- * An unbuilt operation transitions to a built operation in one of two ways:
- * <ol>
- * <li>
- * {@link #buildAsRoot() building} the unbuilt operation to become a built {@link #isRoot() root} operation. The
- * operation's {@link #result result} and {@link #parent parent} are always {@code null}.
- * </li>
- * <li>
- * {@link Block.Builder#op(Op) appending} the unbuilt operation to a block builder to first become an unbuilt-bound
- * operation that is bound to an operation result and parent block.
- * The unbuilt-bound operation has a non-{@code null} unbuilt {@link #result result} that never changes, an unbuilt
- * value that can be used by subsequent constructed operations.
- * An unbuilt-bound operation transitions to a built bound operation when the block builder it was appended to builds
- * the block, after which the built bound operation has a non-{@code null} {@link #parent parent} that never changes and
- * a built {@link #result}.
- * Before then the unbuilt-bound operation's {@link #parent parent} is inaccessible, as is unbuilt result's
- * {@link Value#declaringBlock() declaring block}) (since both refer to the same block).
- * </li>
- * </ol>
- * A built operation is fully immutable either as a root operation, the root of a code model, or as a bound operation
- * within a code model.
+ * An unattached operation can be attached to a block by {@link Block.Builder#op(Op) appending} it to a block that is
+ * being built. Once attached the operation has a permanently non-{@code null} operation {@link #result} that can be
+ * used as an operand of subsequent constructed operations.
+ * After the block is built the operation has a permanently non-{@code null} {@link #parent}. Before then, the block
+ * being built is not observable through this operation and any attempt to access the block results in an exception.
  * <p>
- * An operation can only be constructed with unbuilt values as operands (if any) and unbuilt block references as
- * successors (if any), otherwise construction fails with an exception.
+ * An unattached operation can be built as a {@link #isRoot() root} operation. Once built the operation's
+ * {@link #result result} and {@link #parent parent} are always {@code null}.
+ * <p>
+ * The {@link #location} may be {@link #setLocation set} while the operation is unattached or attached to a block being
+ * built.
+ * <p>
+ * An operation can only be constructed with operands whose declaring block is being built, otherwise construction fails
+ * with an exception.
  */
 public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
@@ -335,7 +326,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
-    // Set when op is unbuilt-bound or root, otherwise null when unbuilt
+    // Set when op is attached to a block or root, otherwise null when unattached
     // @@@ stable value?
     Result result;
 
@@ -357,7 +348,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     protected Op(Op that, CodeContext cc) {
         List<Value> outputOperands = cc.getValues(that.operands);
-        // Values should be guaranteed to connect to unbuilt blocks since
+        // Values should be guaranteed to connect to blocks being built since
         // the context only allows such mappings, assert for clarity
         assert outputOperands.stream().noneMatch(Value::isBuilt);
         this.operands = List.copyOf(outputOperands);
@@ -383,7 +374,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * Constructs an operation with a list of operands.
      *
      * @param operands the list of operands, a copy of the list is performed if required.
-     * @throws IllegalArgumentException if an operand is built because its declaring block is built.
+     * @throws IllegalArgumentException if an operand's declaring block is built.
      */
     protected Op(List<? extends Value> operands) {
         for (Value operand : operands) {
@@ -417,12 +408,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if this operation is unbuilt or a root.
+     * Returns this operation's parent block, otherwise {@code null} if this operation is unattached to a block or a
+     * root operation.
      * <p>
      * The operation's parent block is the same as the operation result's {@link Value#declaringBlock declaring block}.
      *
-     * @return operation's parent block, or {@code null} if this operation is unbuilt or a root.
-     * @throws IllegalStateException if this operation is unbuilt-bound.
+     * @return operation's parent block, or {@code null} if this operation is unattached or a root operation.
+     * @throws IllegalStateException if this operation is attached and the parent block is being built and is not
+     * observable.
      * @see Value#declaringBlock()
      */
     @Override
@@ -432,7 +425,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Unbuilt-bound operation");
+            throw new IllegalStateException("Parent block is being built and is not observable");
         }
 
         return result.block;
@@ -455,14 +448,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return the operation's result type}
      */
-    public abstract TypeElement resultType();
+    public abstract CodeType resultType();
 
 
     /**
-     * Returns the operation's result, otherwise {@code null} if this operation is unbuilt or a
-     * root.
-     *
-     * @return the operation's result, or {@code null} if this operation is unbuilt or a root.
+     * {@return the operation's result, or {@code null} if this operation is unattached or a
+     * root operation.}
      */
     public final Result result() {
         return result == Result.ROOT_RESULT ? null : result;
@@ -492,7 +483,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the operation's signature
      */
     public final FunctionType opSignature() {
-        List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
+        List<CodeType> operandTypes = operands.stream().map(Value::type).toList();
         return CoreType.functionType(resultType(), operandTypes);
     }
 
@@ -504,6 +495,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * first search of this operation's descendant operations.
      *
      * @return the list of captured values, modifiable
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      * @see Body#capturedValues()
      */
     public final List<Value> capturedValues() {
@@ -522,7 +514,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * <p>
      * This method is idempotent.
      *
-     * @throws IllegalStateException if this operation is unbuilt-bound.
+     * @throws IllegalStateException if this operation is attached to a block.
      * @see #isRoot()
      */
     public final void buildAsRoot() {
@@ -530,7 +522,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             return;
         }
         if (result != null) {
-            throw new IllegalStateException("Operation is unbuilt-bound to a parent block");
+            throw new IllegalStateException("Operation is attached to a block");
         }
         result = Result.ROOT_RESULT;
     }
@@ -538,18 +530,18 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return {@code true} if this operation is a root operation.}
      * @see #buildAsRoot()
-     * @see #isBound()
+     * @see #isAttached()
      * */
     public final boolean isRoot() {
         return result == Result.ROOT_RESULT;
     }
 
     /**
-     * {@return {@code true} if this operation is a bound to a result and parent block.}
+     * {@return {@code true} if this operation is attached to a block.}
      * @see #buildAsRoot()
      * @see #isRoot()
      * */
-    public final boolean isBound() {
+    public final boolean isAttached() {
         return !isRoot() && result != null;
     }
 

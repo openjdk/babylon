@@ -26,7 +26,7 @@ package optkl.codebuilders;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -101,8 +101,8 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
                 .braceNlIndented(body::accept);
     }
 
-    public final T literal(TypeElement typeElement, String string){
-        if (typeElement.toString().equals("java.lang.String")){
+    public final T literal(CodeType codeType, String string){
+        if (codeType.toString().equals("java.lang.String")){
             dquote().escaped(string).dquote();
         }else{
             literal(string);

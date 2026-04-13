@@ -56,11 +56,11 @@ public class TestBuildOp {
         });
 
         Assertions.assertFalse(funcOp.isRoot());
-        Assertions.assertFalse(funcOp.isBound());
+        Assertions.assertFalse(funcOp.isAttached());
         funcOp.buildAsRoot();
 
         Assertions.assertTrue(funcOp.isRoot());
-        Assertions.assertFalse(funcOp.isBound());
+        Assertions.assertFalse(funcOp.isAttached());
         funcOp.buildAsRoot();
     }
 
@@ -73,7 +73,7 @@ public class TestBuildOp {
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorOp();
 
         Assertions.assertTrue(funcOp.isRoot());
-        Assertions.assertFalse(funcOp.isBound());
+        Assertions.assertFalse(funcOp.isAttached());
     }
 
     @Test
@@ -83,11 +83,11 @@ public class TestBuildOp {
         body.entryBlock().op(CoreOp.return_());
 
         Assertions.assertThrows(IllegalStateException.class, () -> r.op().buildAsRoot());
-        Assertions.assertTrue(r.op().isBound());
+        Assertions.assertTrue(r.op().isAttached());
         Assertions.assertFalse(r.op().isRoot());
 
         CoreOp.func("f", body);
-        Assertions.assertTrue(r.op().isBound());
+        Assertions.assertTrue(r.op().isAttached());
     }
 
     @Test

@@ -32,7 +32,7 @@ import java.util.*;
 /**
  * A body containing a sequence of (basic) blocks.
  * <p>
- * The sequence of blocks form a graph topologically sorted in reserve postorder.
+ * The sequence of blocks form a graph topologically sorted in reverse postorder.
  * The first block in the sequence is the entry block, and no other blocks refer to it as a successor.
  * The last operation in a block, a terminating operation, may refer to other blocks in the sequence as successors,
  * thus forming the graph. Otherwise, the last operation defines how the body passes control back to the parent
@@ -46,12 +46,11 @@ import java.util.*;
  * <p>
  * A body is built using a {@link Body.Builder body builder} that creates and {@link Builder#entryBlock() exposes} an
  * entry {@link Block.Builder block builder} from which further non-entry sibling blocks in the body may be created and
- * {@link Block.Builder#block(TypeElement...) built}. A block builder can also be used to
+ * {@link Block.Builder#block(CodeType...) built}. A block builder can also be used to
  * {@link Block.Builder#reference(Value...) create} references to non-entry sibling blocks that can be used as
  * successors of terminal operations.
- *
- * When a body is {@link Body.Builder#build(Op) built} all blocks
- * in the body are also built.
+ * When a body completes {@link Body.Builder#build(Op) building} with a given operation all blocks in the body are also
+ * built. The given operation becomes the body's {@link #parent()}.
  */
 public final class Body implements CodeElement<Body, Block> {
     // @Stable?
@@ -63,7 +62,7 @@ public final class Body implements CodeElement<Body, Block> {
     // When non-null and body is built, ancestorBody == parentOp.result.block.parentBody
     final Body ancestorBody;
 
-    final TypeElement yieldType;
+    final CodeType yieldType;
 
     // Sorted in reverse postorder
     final List<Block> blocks;
@@ -75,7 +74,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Constructs a body, whose ancestor is the given ancestor body.
      */
-    Body(Body ancestorBody, TypeElement yieldType) {
+    Body(Body ancestorBody, CodeType yieldType) {
         this.ancestorBody = ancestorBody;
         this.yieldType = yieldType;
         this.blocks = new ArrayList<>();
@@ -87,9 +86,7 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns this body's parent operation.
-     *
-     * @return the body's parent operation.
+     * {@return the body's parent operation.}
      */
     @Override
     public Op parent() {
@@ -113,7 +110,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * {@return the yield type of this body}
      */
-    public TypeElement yieldType() {
+    public CodeType yieldType() {
         return yieldType;
     }
 
@@ -434,7 +431,7 @@ public final class Body implements CodeElement<Body, Block> {
      */
     public final class Builder {
         /**
-         * Creates a body build with a new context, and a copying transformer.
+         * Creates a body builder with a new context, and a copying transformer.
          *
          * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
          * @param bodySignature the body's signature
@@ -448,7 +445,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Creates a body build with a copying transformer.
+         * Creates a body builder with a copying transformer.
          *
          * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
          * @param bodySignature the body's signature
@@ -534,7 +531,7 @@ public final class Body implements CodeElement<Body, Block> {
          * a non-entry block with no predecessors.
          *
          * @param op the parent operation
-         * @return the build body
+         * @return the built body
          * @throws IllegalStateException if this body builder is built
          * @throws IllegalStateException if any descendant body builders are not built
          * @throws IllegalStateException if a block has no terminal operation, unless unreferenced and empty
@@ -551,6 +548,8 @@ public final class Body implements CodeElement<Body, Block> {
         //     Since blocks are already sorted in reverse postorder the work to compute the immediate dominator map
         //     is incremental and can it be represented efficiently as an integer array of block indexes.
         public Body build(Op op) {
+            Objects.requireNonNull(op);
+
             // Structural check
             // This body should not be closed
             check();
@@ -604,7 +603,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @return the body builder's signature
          */
         public FunctionType bodySignature() {
-            TypeElement returnType = Body.this.yieldType();
+            CodeType returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return CoreType.functionType(returnType, eb.parameterTypes());
         }
@@ -645,7 +644,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Build new block in body
-        Block.Builder block(List<TypeElement> params, CodeContext cc, CodeTransformer ot) {
+        Block.Builder block(List<CodeType> params, CodeContext cc, CodeTransformer ot) {
             check();
             Block block = Body.this.createBlock(params);
 
@@ -749,7 +748,7 @@ public final class Body implements CodeElement<Body, Block> {
     // Modifying methods
 
     // Create block
-    private Block createBlock(List<TypeElement> params) {
+    private Block createBlock(List<CodeType> params) {
         Block b = new Block(this, params);
         blocks.add(b);
         return b;

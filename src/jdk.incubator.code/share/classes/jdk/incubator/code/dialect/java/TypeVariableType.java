@@ -25,11 +25,9 @@
 
 package jdk.incubator.code.dialect.java;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
-import jdk.incubator.code.dialect.java.impl.MethodRefImpl;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
@@ -105,7 +103,7 @@ public final class TypeVariableType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizedCodeType externalize() {
         return JavaTypeUtils.typeVarType(name, owner.externalize(), bound.externalize());
     }
 
@@ -141,5 +139,5 @@ public final class TypeVariableType implements JavaType {
     /**
      * The owner of a type variable, either a class or a method.
      */
-    public sealed interface Owner extends TypeElement permits ClassType, MethodRef { }
+    public sealed interface Owner extends CodeType permits ClassType, MethodRef { }
 }

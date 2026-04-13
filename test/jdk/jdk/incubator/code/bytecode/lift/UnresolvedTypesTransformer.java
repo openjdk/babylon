@@ -96,14 +96,14 @@ final class UnresolvedTypesTransformer {
         };
     }
 
-    private TypeElement toComponent(TypeElement te) {
+    private CodeType toComponent(CodeType te) {
         if (te instanceof UnresolvedType ut) {
             te = resolvedMap.get(ut);
         }
         return te instanceof ArrayType at ? at.componentType() : null;
     }
 
-    private TypeElement toArray(TypeElement te) {
+    private CodeType toArray(CodeType te) {
         if (te instanceof UnresolvedType ut) {
             te = resolvedMap.get(ut);
         }
@@ -129,7 +129,7 @@ final class UnresolvedTypesTransformer {
                             if (i == 0) yield resolveTo(ut, id.refType());
                             i--;
                         }
-                        yield resolveTo(ut, id.type().parameterTypes().get(i));
+                        yield resolveTo(ut, id.signature().parameterTypes().get(i));
                     }
                     case JavaOp.FieldAccessOp fao ->
                         resolveTo(ut, fao.fieldReference().refType());
@@ -140,7 +140,7 @@ final class UnresolvedTypesTransformer {
                     case CoreOp.VarAccessOp.VarStoreOp vso ->
                         resolveTo(ut, vso.varType().valueType());
                     case JavaOp.NewOp no ->
-                        resolveTo(ut, no.constructorReference().type().parameterTypes().get(i));
+                        resolveTo(ut, no.constructorReference().signature().parameterTypes().get(i));
                     case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
                         resolveTo(ut, toArray(alo.resultType()));
                     case JavaOp.ArrayAccessOp.ArrayStoreOp aso ->
@@ -192,8 +192,8 @@ final class UnresolvedTypesTransformer {
         return changed;
     }
 
-    private boolean resolveFrom(UnresolvedType unresolved, TypeElement from) {
-        TypeElement type = from instanceof UnresolvedType utt ? resolvedMap.get(utt) : from;
+    private boolean resolveFrom(UnresolvedType unresolved, CodeType from) {
+        CodeType type = from instanceof UnresolvedType utt ? resolvedMap.get(utt) : from;
         JavaType resolved = resolvedMap.get(unresolved);
         return switch (unresolved) {
             // Only care about arrays
@@ -212,8 +212,8 @@ final class UnresolvedTypesTransformer {
 
     private static final List<PrimitiveType> INT_TYPES = List.of(JavaType.INT, JavaType.CHAR, JavaType.SHORT, JavaType.BYTE, JavaType.BOOLEAN);
 
-    private boolean resolveTo(UnresolvedType unresolved, TypeElement to) {
-        TypeElement type = to instanceof UnresolvedType utt ? resolvedMap.get(utt) : to;
+    private boolean resolveTo(UnresolvedType unresolved, CodeType to) {
+        CodeType type = to instanceof UnresolvedType utt ? resolvedMap.get(utt) : to;
         JavaType resolved = resolvedMap.get(unresolved);
         return switch (unresolved) {
             case UnresolvedType.Ref _ when (resolved == null || resolved.equals(JavaType.J_L_OBJECT)) && type instanceof JavaType jt && !jt.equals(resolved) -> {
@@ -273,7 +273,7 @@ final class UnresolvedTypesTransformer {
                     // Override blocks with changed parameter types
                     for (int i = 1; i < sourceBlocks.size(); i++) {
                         Block sourceBlock = sourceBlocks.get(i);
-                        List<TypeElement> paramTypes = sourceBlock.parameterTypes();
+                        List<CodeType> paramTypes = sourceBlock.parameterTypes();
                         if (paramTypes.stream().anyMatch(UnresolvedType.class::isInstance)) {
                             Block.Builder newBlock = block.block(paramTypes.stream()
                                     .map(pt -> pt instanceof UnresolvedType ut  ? resolvedMap.get(ut) : pt)
@@ -334,7 +334,7 @@ final class UnresolvedTypesTransformer {
         };
     }
 
-    private static void unify(Block.Builder block, Op op, TypeElement firstType, TypeElement secondType) {
+    private static void unify(Block.Builder block, Op op, CodeType firstType, CodeType secondType) {
         List<Value> operands = op.operands();
         CodeContext cc = CodeContext.create(block.context());
         Value first = operands.getFirst();

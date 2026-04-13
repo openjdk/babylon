@@ -1,7 +1,7 @@
 package jdk.incubator.code.dialect.core;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.util.List;
 
@@ -11,23 +11,23 @@ import java.util.List;
 public final class TupleType implements CoreType {
     static final String NAME = "Tuple";
 
-    final List<TypeElement> componentTypes;
+    final List<CodeType> componentTypes;
 
-    TupleType(List<? extends TypeElement> componentTypes) {
+    TupleType(List<? extends CodeType> componentTypes) {
         this.componentTypes = List.copyOf(componentTypes);
     }
 
     /**
      * {@return the tuple's component types, in order}
      */
-    public List<TypeElement> componentTypes() {
+    public List<CodeType> componentTypes() {
         return componentTypes;
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return ExternalizedTypeElement.of(NAME,
-                componentTypes.stream().map(TypeElement::externalize).toList());
+    public ExternalizedCodeType externalize() {
+        return ExternalizedCodeType.of(NAME,
+                componentTypes.stream().map(CodeType::externalize).toList());
     }
 
     @Override

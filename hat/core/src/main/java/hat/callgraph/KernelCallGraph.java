@@ -32,7 +32,7 @@ import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -66,7 +66,7 @@ public class KernelCallGraph implements LookupCarrier {
 
     public final IfaceDataDag<MappableIface> ifaceDag;
     public final List<AccessType> bufferAccessList;
-    public final Set<TypeElement> accessedTypes;
+    public final Set<CodeType> accessedTypes;
     public final Set<Class<?>> accessedClasses;
     public final Set<Class<? extends IfaceValue>> accessedIfaceClasses;
     public final Set<Class<? extends NonMappableIface>> accessedNonMappableIfaceClasses;
@@ -166,7 +166,7 @@ public class KernelCallGraph implements LookupCarrier {
         this.ifaceDag = new IfaceDataDag<>(dag->
             entrypoint.funcOp().elements()
                     .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
-                    .filter(typeElement -> typeElement instanceof ClassType).map(typeElement -> dag.getNode(lookup(), (ClassType) typeElement))
+                    .filter(codeType -> codeType instanceof ClassType).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
                     .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
                     .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
                             .forEach(retType -> dag.addEdge(iface, retType))

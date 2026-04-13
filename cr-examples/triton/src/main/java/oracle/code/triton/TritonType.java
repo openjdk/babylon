@@ -25,8 +25,8 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 
-public abstract sealed class TritonType implements TypeElement
+public abstract sealed class TritonType implements CodeType
         permits ConstantType, PtrType, TensorType {
 }

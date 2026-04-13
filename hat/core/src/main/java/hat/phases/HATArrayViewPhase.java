@@ -25,7 +25,7 @@
 package hat.phases;
 
 import hat.dialect.*;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.Trxfmr;
@@ -47,7 +47,7 @@ import static optkl.OpHelper.Invoke.invoke;
 public record HATArrayViewPhase() implements HATPhase {
     static public boolean isVectorOp(MethodHandles.Lookup lookup, Op op) {
         if (!op.operands().isEmpty()) {
-            TypeElement type = switch(op) {
+            CodeType type = switch(op) {
                 case JavaOp.ArrayAccessOp.ArrayLoadOp load -> load.resultType();
                 case JavaOp.ArrayAccessOp.ArrayStoreOp store -> store.operands().getLast().type();
                 default -> OpHelper.firstOperandOrThrow(op).type();
@@ -101,7 +101,7 @@ public record HATArrayViewPhase() implements HATPhase {
         );
     }
 
-    static public HATVectorOp buildArrayViewVector(Op op, String name, TypeElement resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operands) {
+    static public HATVectorOp buildArrayViewVector(Op op, String name, CodeType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operands) {
         if (isLocalSharedOrPrivate(op)) {
             if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
                 return new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(name, resultType, vectorShape, operands);

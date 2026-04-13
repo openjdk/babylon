@@ -27,14 +27,14 @@ package jdk.incubator.code.dialect.java.impl;
 
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.RecordTypeRef;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.util.List;
 
-public record RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> components) implements RecordTypeRef {
+public record RecordTypeRefImpl(CodeType recordType, List<ComponentRef> components) implements RecordTypeRef {
 
-    public RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> components) {
+    public RecordTypeRefImpl(CodeType recordType, List<ComponentRef> components) {
         this.recordType = recordType;
         this.components = List.copyOf(components);
     }
@@ -50,7 +50,7 @@ public record RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> compo
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizedCodeType externalize() {
         return JavaTypeUtils.recordRef(recordType.externalize(),
                 components.stream().map(ComponentRef::name).toList(),
                 components.stream().map(c -> c.type().externalize()).toList());

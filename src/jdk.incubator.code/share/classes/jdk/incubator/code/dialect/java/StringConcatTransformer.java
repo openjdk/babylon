@@ -93,7 +93,7 @@ public final class StringConcatTransformer implements CodeTransformer {
     private static Op append(Block.Builder block, Value builder, Value arg) {
         // Check if we need to widen unsupported integer types in the StringBuilder API
         // Strings are fed in as-is, everything else given as an Object.
-        TypeElement type = arg.type();
+        CodeType type = arg.type();
         if (type instanceof PrimitiveType) {
             //Widen Short and Byte to Int.
             if (type.equals(JavaType.BYTE) || type.equals(JavaType.SHORT)) {

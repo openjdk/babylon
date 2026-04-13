@@ -164,7 +164,7 @@ public final class Verifier {
         }
     }
 
-    private boolean isAssignable(TypeElement toType, Value fromValue,  Object toContext, Object fromContext) {
+    private boolean isAssignable(CodeType toType, Value fromValue, Object toContext, Object fromContext) {
         if (toType.equals(fromValue.type())) return true;
         var to = resolveToClass(toType, toContext);
         var from = resolveToClass(fromValue.type(), fromContext);
@@ -177,7 +177,7 @@ public final class Verifier {
         }
     }
 
-    public Class<?> resolveToClass(TypeElement d, Object context) {
+    public Class<?> resolveToClass(CodeType d, Object context) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>)jt.erasure().resolve(lookup);
