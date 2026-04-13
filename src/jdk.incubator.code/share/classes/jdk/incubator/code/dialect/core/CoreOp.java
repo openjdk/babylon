@@ -95,6 +95,11 @@ public sealed abstract class CoreOp extends Op {
                 this.mref = mref;
             }
 
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType functionType) {
+                this.ancestorBody = ancestorBody;
+                this.mref = MethodRef.method(NO_REF_TYPE, funcName, functionType);
+            }
+
             /**
              * Completes the function operation by adding the function body.
              *
@@ -115,6 +120,7 @@ public sealed abstract class CoreOp extends Op {
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
         static final String ATTRIBUTE_FUNC_MREF = NAME + ".mref";
+        private static final JavaType NO_REF_TYPE = null;
 
         final Body body;
         final MethodRef mref;
@@ -133,7 +139,7 @@ public sealed abstract class CoreOp extends Op {
                                         case String s -> s;
                                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
                                     });
-                            yield MethodRef.method(JavaType.VOID, funcName, def.bodyDefinitions().get(0).bodyType());
+                            yield MethodRef.method(NO_REF_TYPE, funcName, def.bodyDefinitions().get(0).bodyType());
                         }
                     });
 
@@ -187,6 +193,13 @@ public sealed abstract class CoreOp extends Op {
             this.mref = mref;
         }
 
+        FuncOp(String funcName, Body.Builder bodyBuilder) {
+            super(List.of());
+
+            this.body = bodyBuilder.build(this);
+            this.mref = MethodRef.method(NO_REF_TYPE, funcName, bodyBuilder.bodyType());
+        }
+
         @Override
         public List<Body> bodies() {
             return List.of(body);
@@ -195,8 +208,11 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             Map<String, Object> m = new HashMap<>();
-            m.put("", mref.name());
-            m.put(ATTRIBUTE_FUNC_MREF, mref);
+            if (mref.refType() == NO_REF_TYPE) {
+                m.put("", mref.name());
+            } else {
+                m.put(ATTRIBUTE_FUNC_MREF, mref);
+            }
             return m;
         }
 
@@ -230,7 +246,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         public Optional<MethodRef> mref() {
-            return mref.refType().equals(JavaType.VOID) ? Optional.empty() : Optional.of(mref);
+            return mref.refType() == NO_REF_TYPE ? Optional.empty() : Optional.of(mref);
         }
     }
 
@@ -1517,7 +1533,7 @@ public sealed abstract class CoreOp extends Op {
      * @return the function operation builder
      */
     public static FuncOp.Builder func(String funcName, FunctionType funcType) {
-        return new FuncOp.Builder(null, MethodRef.method(JavaType.VOID, funcName, funcType));
+        return new FuncOp.Builder(null, funcName, funcType);
     }
 
     /**
@@ -1533,6 +1549,16 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
+     * Creates a function operation builder.
+     *
+     * @param mref the function method reference
+     * @return the function operation builder
+     */
+    public static FuncOp.Builder func(MethodRef mref) {
+        return new FuncOp.Builder(null, mref);
+    }
+
+    /**
      * Creates a function operation.
      *
      * @param funcName the function name
@@ -1540,7 +1566,7 @@ public sealed abstract class CoreOp extends Op {
      * @return the function operation
      */
     public static FuncOp func(String funcName, Body.Builder body) {
-        return new FuncOp(MethodRef.method(JavaType.VOID, funcName, body.bodyType()), body);
+        return new FuncOp(funcName, body);
     }
 
     /**
