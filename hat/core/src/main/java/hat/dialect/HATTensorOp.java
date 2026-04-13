@@ -27,7 +27,7 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
 import optkl.util.ops.Precedence;
@@ -49,19 +49,19 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorVarOp extends HATTensorOp implements VarLikeOp, StatementLikeOp {
 
-        private final VarType typeElement;
+        private final VarType codeType;
         private final String varName;
 
-        public TensorVarOp(String varName, VarType typeElement, List<Value> operands) {
+        public TensorVarOp(String varName, VarType codeType, List<Value> operands) {
             super(operands);
             this.varName = varName;
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         public TensorVarOp(TensorVarOp op, CodeContext copyContext) {
             super(op, copyContext);
             this.varName = op.varName;
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -70,13 +70,13 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.TensorVarOp." + varName, typeElement);
+            return Map.of("hat.dialect.TensorVarOp." + varName, codeType);
         }
 
         @Override
@@ -87,16 +87,16 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorCreateOp extends HATTensorOp implements Precedence.Invoke {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        public TensorCreateOp(TypeElement typeElement, List<Value> operands) {
+        public TensorCreateOp(CodeType codeType, List<Value> operands) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         public TensorCreateOp(TensorCreateOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -105,8 +105,8 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
@@ -117,17 +117,17 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorVarLoadOp extends HATTensorOp implements Precedence.LoadOrConv  {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        public TensorVarLoadOp(TypeElement typeElement, List<Value> operands) {
+        public TensorVarLoadOp(CodeType codeType, List<Value> operands) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
 
         }
 
         public TensorVarLoadOp(TensorVarLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -136,8 +136,8 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
@@ -148,16 +148,16 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorFillOp extends HATTensorOp implements Precedence.Invoke {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        public TensorFillOp(TypeElement typeElement, List<Value> operands) {
+        public TensorFillOp(CodeType codeType, List<Value> operands) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         public TensorFillOp(TensorFillOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -166,8 +166,8 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
@@ -178,16 +178,16 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorMMAOp extends HATTensorOp implements Precedence.Invoke {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        public TensorMMAOp(TypeElement typeElement, List<Value> operands) {
+        public TensorMMAOp(CodeType codeType, List<Value> operands) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         public TensorMMAOp(TensorMMAOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -196,8 +196,8 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
@@ -208,17 +208,17 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorStoreLoadOp extends HATTensorOp implements Precedence.Store  {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        public TensorStoreLoadOp(TypeElement typeElement, List<Value> operands) {
+        public TensorStoreLoadOp(CodeType codeType, List<Value> operands) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
 
         }
 
         public TensorStoreLoadOp(TensorStoreLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -227,8 +227,8 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
@@ -239,16 +239,16 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorLoadOp extends HATTensorOp implements Precedence.LoadOrConv {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        public TensorLoadOp(TypeElement typeElement, List<Value> operands) {
+        public TensorLoadOp(CodeType codeType, List<Value> operands) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         public TensorLoadOp(TensorLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -257,8 +257,8 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
@@ -269,16 +269,16 @@ public abstract sealed class HATTensorOp extends HATOp {
 
     public static final class TensorStoreOp extends HATTensorOp implements Precedence.LoadOrConv {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
 
-        public TensorStoreOp(TypeElement typeElement, List<Value> operands) {
+        public TensorStoreOp(CodeType codeType, List<Value> operands) {
             super(operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         public TensorStoreOp(TensorStoreOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -287,8 +287,8 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
