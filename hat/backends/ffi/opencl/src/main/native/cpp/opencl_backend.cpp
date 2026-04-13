@@ -177,7 +177,6 @@ std::string* OpenCLBackend::getDeviceVendor() {
     clGetDeviceInfo(device_id, CL_DEVICE_VENDOR, 0, nullptr, &vendor_len);
     auto *vendor = new std::string(vendor_len, '\0');
     clGetDeviceInfo(device_id, CL_DEVICE_VENDOR, vendor_len, vendor->data(), nullptr);
-    showDeviceInfo()
     return vendor;
 }
 
