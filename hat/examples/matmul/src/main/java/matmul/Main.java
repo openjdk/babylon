@@ -30,19 +30,18 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
-import hat.annotations.Kernel;
 import hat.backend.Backend;
-import hat.examples.common.HATExampleException;
-import hat.examples.common.ParseArgs;
-import hat.types.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
-import hat.types.Float4;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface.WO;
+import hat.examples.common.HATExampleException;
+import hat.examples.common.ParseArgs;
+import hat.types.F16;
+import hat.types.Float4;
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -143,7 +142,6 @@ public class Main {
 
         DeviceSchema<MyLocalArrayFixedSize> deviceSchema = DeviceSchema.of(MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray.array("array", 256));// It is a bound schema, so we fix the size here
-
 
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
             return null;
@@ -690,7 +688,7 @@ public class Main {
 
     @Reflect
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(of1D(globalSize,16),
+        cc.dispatchKernel(of1D(globalSize, 16),
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -700,21 +698,21 @@ public class Main {
 
     @Reflect
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
-        cc.dispatchKernel(of1D(size,16),
+        cc.dispatchKernel(of1D(size, 16),
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @Reflect
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
+        cc.dispatchKernel(of2D(globalSize, globalSize, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
-        cc.dispatchKernel(of2D(globalSize, globalSize,BLOCK_SIZE, BLOCK_SIZE),
+        cc.dispatchKernel(of2D(globalSize, globalSize, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -750,7 +748,7 @@ public class Main {
     public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO F32ArrayPadded matrixC, int globalSize) {
         // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
         int size = ceil(globalSize, BM) * BLOCK_SIZE;
-        cc.dispatchKernel(of2D(size, size ,BLOCK_SIZE, BLOCK_SIZE),
+        cc.dispatchKernel(of2D(size, size, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -965,8 +963,10 @@ public class Main {
         if (checkResult) {
             // Run the sequential version for reference
             switch (configuration) {
-                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
-                case Configuration.ALG_2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
+                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED ->
+                        runSequential(matrixAPad, matrixBPad, resultSeq, size);
+                case Configuration.ALG_2DREGISTER_TILING_FP16 ->
+                        runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
                 case Configuration.ALG_2DLIF16 -> runSequential(matrixAHalf, matrixBHalf, resultSeq, size);
                 default -> runSequential(matrixA, matrixB, resultSeq, size);
             }
@@ -998,7 +998,7 @@ public class Main {
                 default -> throw new HATExampleException("Unknown configuration: " + configuration);
             }
             long end = System.nanoTime();
-            timers.add((end-start));
+            timers.add((end - start));
             if (verbose) {
                 IO.println("Elapsed Time: " + (end - start) + " ns");
             }
@@ -1042,7 +1042,7 @@ public class Main {
         }
 
         // Write CSV table with all results
-        List<String> header = List.of(configuration.toName() + "-" + + size);
+        List<String> header = List.of(configuration.toName() + "-" + +size);
         String fileName = "table-results-mxm-" + configuration.toName() + "-" + size + ".csv";
         dumpStatsToCSVFile(List.of(timers), header, fileName);
     }

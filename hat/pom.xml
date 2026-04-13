@@ -45,6 +45,7 @@ questions.
     <module>extractions</module>
     <module>wraps</module>
     <module>tests</module>
+      <module>examples/tensors</module>
   </modules>
   <build>
     <plugins>

@@ -86,5 +86,14 @@ public class ParseArgs {
 
     }
 
-    public record Options(boolean verbose, int size, int iterations, boolean skipSequential, boolean checkResult) {}
+    public record Options(boolean verbose, int size, int iterations, boolean skipSequential, boolean checkResult) {
+        public void printOptions() {
+            IO.println("Options:");
+            IO.println("Size           : " + size);
+            IO.println("Iterations     : " + iterations);
+            IO.println("Verbose        : " + verbose);
+            IO.println("Skip Sequential: " + skipSequential);
+            IO.println("Check Result   : " + checkResult);
+        }
+    }
 }
