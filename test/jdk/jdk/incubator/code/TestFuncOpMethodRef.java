@@ -29,6 +29,7 @@
  * @run junit TestFuncOpMethodRef
  */
 
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -49,39 +50,29 @@ import java.util.Map;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 
 public class TestFuncOpMethodRef {
-    // create, use, write, parse, use
+    private final JavaType thisType = JavaType.type(this.getClass().describeConstable().get());
+    private final MethodRef MR = MethodRef.method(thisType, "f", FunctionType.FUNCTION_TYPE_VOID);
 
     @Test
     void test() {
-        FuncOp f = func("f", CoreType.FUNCTION_TYPE_VOID).body(b -> {
+        FuncOp f = func(MR.name(), CoreType.FUNCTION_TYPE_VOID).body(b -> {
             b.op(return_());
         });
         Assertions.assertTrue(f.mref().isEmpty());
 
-        ModuleOp mop = OpBuilder.createBuilderFunctions(new LinkedHashMap<>(Map.of(f.funcName(), f)),
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        CoreOp.FuncOp cf = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                mop.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(f.funcName()));
+        CoreOp.FuncOp cf = externalizeAndCreate(f);
         Assertions.assertTrue(cf.mref().isEmpty());
     }
 
-    private final JavaType thisType = JavaType.type(this.getClass().describeConstable().get());
-
     @Test
     void test2() {
-        MethodRef mr = MethodRef.method(thisType, "f", FunctionType.FUNCTION_TYPE_VOID);
-        FuncOp f = func(mr.refType(), mr.name(), mr.signature()).body(b -> {
+        FuncOp f = func(MR.refType(), MR.name(), MR.signature()).body(b -> {
             b.op(return_());
         });
         Assertions.assertTrue(f.mref().isPresent());
-        Assertions.assertEquals(mr, f.mref().get());
+        Assertions.assertEquals(MR, f.mref().get());
 
-        ModuleOp mop = OpBuilder.createBuilderFunctions(new LinkedHashMap<>(Map.of(f.funcName(), f)),
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        CoreOp.FuncOp cf = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                mop.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(f.funcName()));
+        CoreOp.FuncOp cf = externalizeAndCreate(f);
         Assertions.assertTrue(cf.mref().isPresent());
 
         Assertions.assertEquals(f.mref().get(), cf.mref().get());
@@ -89,20 +80,59 @@ public class TestFuncOpMethodRef {
 
     @Test
     void test3() {
-        MethodRef mr = MethodRef.method(thisType, "f", FunctionType.FUNCTION_TYPE_VOID);
-        FuncOp f = func(mr).body(b -> {
+        FuncOp f = func(MR).body(b -> {
             b.op(return_());
         });
         Assertions.assertTrue(f.mref().isPresent());
-        Assertions.assertEquals(mr, f.mref().get());
+        Assertions.assertEquals(MR, f.mref().get());
 
+        CoreOp.FuncOp cf = externalizeAndCreate(f);
+        Assertions.assertEquals(f.mref().get(), cf.mref().get());
+    }
+
+    @Test
+    void test4() {
+        Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
+        bb.entryBlock().op(return_());
+        FuncOp f = func(MR, bb);
+        Assertions.assertTrue(f.mref().isPresent());
+        Assertions.assertEquals(MR, f.mref().get());
+
+        FuncOp cf = externalizeAndCreate(f);
+        Assertions.assertTrue(cf.mref().isPresent());
+        Assertions.assertEquals(f.mref().get(), cf.mref().get());
+    }
+
+    @Test
+    void test5() {
+        Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
+        bb.entryBlock().op(return_());
+        FuncOp f = func(MR.refType(), MR.name(), bb);
+        Assertions.assertTrue(f.mref().isPresent());
+        Assertions.assertEquals(MR, f.mref().get());
+
+        FuncOp cf = externalizeAndCreate(f);
+        Assertions.assertTrue(cf.mref().isPresent());
+        Assertions.assertEquals(f.mref().get(), cf.mref().get());
+    }
+
+    @Test
+    void test6() {
+        Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
+        bb.entryBlock().op(return_());
+        FuncOp f = func(MR.name(), bb);
+        Assertions.assertTrue(f.mref().isEmpty());
+
+        FuncOp cf = externalizeAndCreate(f);
+        Assertions.assertTrue(cf.mref().isEmpty());
+    }
+
+    private static FuncOp externalizeAndCreate(FuncOp f) {
         ModuleOp mop = OpBuilder.createBuilderFunctions(new LinkedHashMap<>(Map.of(f.funcName(), f)),
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
         CoreOp.FuncOp cf = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
                 mop.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(f.funcName()));
-        Assertions.assertTrue(cf.mref().isPresent());
-
-        Assertions.assertEquals(f.mref().get(), cf.mref().get());
+        return cf;
     }
 }
