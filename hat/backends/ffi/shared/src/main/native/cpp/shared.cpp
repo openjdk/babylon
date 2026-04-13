@@ -146,9 +146,7 @@ extern "C" long compile(long backendHandle, int len, char *source) {
 
 extern "C" const char* getDeviceVendor(long backendHandle) {
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
-    const std::string * str = backend->getDeviceVendor();
-    // std::string * str = new std::string("hello from native");
-    std::cout << "getDeviceVendor() returning: " << str->data() << std::endl;
+    const std::string* str = backend->getDeviceVendor();
     return str->data();
 }
 
