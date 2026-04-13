@@ -24,7 +24,6 @@
  */
 package hat.backend.ffi;
 
-
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
@@ -36,13 +35,13 @@ import java.lang.invoke.MethodHandles;
 public class MockBackend extends FFIBackend {
 
     public MockBackend(Arena arena, MethodHandles.Lookup lookup) {
-        super(arena,lookup,"mock_backend", Config.fromIntBits(0));
+        super(arena, lookup, "mock_backend", Config.fromIntBits(0));
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend received closed closure");
-       computeContext.computeCallGraph().callDag.entryPoint.funcOp((injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp())));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp((injectBufferTracking(config(), lookup(), computeContext.computeCallGraph().callDag.entryPoint.funcOp())));
     }
 
     @Override

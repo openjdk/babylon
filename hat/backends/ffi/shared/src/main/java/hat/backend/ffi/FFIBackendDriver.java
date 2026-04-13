@@ -24,7 +24,6 @@
  */
 package hat.backend.ffi;
 
-
 import hat.Config;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
@@ -32,6 +31,7 @@ import optkl.ifacemapper.MappableIface;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,6 +55,7 @@ public abstract class FFIBackendDriver extends Backend {
                 final FFILib.VoidHandleMethodPtr releaseKernel_MPtr;
                 String name;
                 final FFILib.LongHandleLongAddressMethodPtr ndrange_MPtr;
+
                 KernelBridge(CompilationUnitBridge compilationUnitBridge, String name, long handle) {
                     this.compilationUnitBridge = compilationUnitBridge;
                     this.handle = handle;
@@ -62,9 +63,11 @@ public abstract class FFIBackendDriver extends Backend {
                     this.ndrange_MPtr = compilationUnitBridge.backendBridge.ffiLib.longHandleLongAddressFunc("ndrange");
                     this.name = name;
                 }
+
                 public void ndRange(ArgArray argArray) {
                     this.ndrange_MPtr.invoke(handle, MappableIface.getMemorySegment(argArray));
                 }
+
                 void release() {
                     releaseKernel_MPtr.invoke(handle);
                 }
@@ -86,12 +89,15 @@ public abstract class FFIBackendDriver extends Backend {
                 this.compilationUnitOK_MPtr = backendBridge.ffiLib.booleanHandleFunc("compilationUnitOK");
                 this.getKernel_MPtr = backendBridge.ffiLib.longHandleIntAddressFunc("getKernel");
             }
+
             void release() {
                 this.releaseCompilationUnit_MPtr.invoke(handle);
             }
+
             boolean ok() {
                 return this.compilationUnitOK_MPtr.invoke(handle);
             }
+
             public KernelBridge getKernel(String kernelName) {
                 return kernels.computeIfAbsent(kernelName, _ ->
                         new KernelBridge(this, kernelName,
@@ -111,6 +117,9 @@ public abstract class FFIBackendDriver extends Backend {
 
         final FFILib.VoidHandleMethodPtr showDeviceInfo_MPtr;
         final FFILib.BooleanHandleAddressLongMethodPtr getBufferFromDeviceIfDirty_MPtr;
+        final FFILib.StringFunctionMethodPtr getVendorFunction;
+        final FFILib.StringFunctionLengthMethodPtr stringFunctionLength;
+
         BackendBridge(FFILib ffiLib, Config config) {
             this.ffiLib = ffiLib;
             this.getBackend_MPtr = ffiLib.longHandleIntFunc("getBackend");
@@ -122,10 +131,13 @@ public abstract class FFIBackendDriver extends Backend {
             this.showDeviceInfo_MPtr = ffiLib.voidHandleFunc("showDeviceInfo");
             this.computeStart_MPtr = ffiLib.voidHandleFunc("computeStart");
             this.computeEnd_MPtr = ffiLib.voidHandleFunc("computeEnd");
+            this.getVendorFunction = ffiLib.stringHandleFunc("getDeviceVendor");
+            this.stringFunctionLength = ffiLib.stringFunctionLengthMethodPtr("getStringLength");
             this.getBufferFromDeviceIfDirty_MPtr = ffiLib.booleanHandleAddressLongFunc("getBufferFromDeviceIfDirty");
         }
 
-        void release() {}
+        void release() {
+        }
 
         public long getBackend(int configBits) {
             return getBackend_MPtr.invoke(configBits);
@@ -142,20 +154,29 @@ public abstract class FFIBackendDriver extends Backend {
             return compilationUnit(compilationUnitHandle, source);
         }
 
+        public Vendor getDeviceVendor() {
+            MemorySegment vendorNameSegment = getVendorFunction.invoke(handle);
+            long sizeString = stringFunctionLength.invoke(vendorNameSegment);
+            byte[] content = vendorNameSegment.reinterpret(sizeString).toArray(ValueLayout.JAVA_BYTE);
+            return Vendor.of(new String(content));
+        }
+
         public MappableIface getBufferFromDeviceIfDirty(MappableIface buffer) {
             MemorySegment memorySegment = MappableIface.getMemorySegment(buffer);
-            if (!getBufferFromDeviceIfDirty_MPtr.invoke(handle, memorySegment, memorySegment.byteSize())){
+            if (!getBufferFromDeviceIfDirty_MPtr.invoke(handle, memorySegment, memorySegment.byteSize())) {
                 throw new IllegalStateException("Failed to get buffer from backend");
             }
             return buffer;
-
         }
+
         public void computeStart() {
             computeStart_MPtr.invoke(handle);
         }
+
         public void computeEnd() {
             computeEnd_MPtr.invoke(handle);
         }
+
         public void showDeviceInfo() {
             showDeviceInfo_MPtr.invoke(handle);
         }
@@ -164,8 +185,8 @@ public abstract class FFIBackendDriver extends Backend {
     public final FFILib ffiLib;
     public final BackendBridge backendBridge;
 
-    public FFIBackendDriver(Arena arena, MethodHandles.Lookup lookup,String libName, Config config) {
-        super(arena,lookup,config);
+    protected FFIBackendDriver(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
+        super(arena, lookup, config);
         this.ffiLib = new FFILib(libName);
         this.backendBridge = new BackendBridge(ffiLib, config);
     }

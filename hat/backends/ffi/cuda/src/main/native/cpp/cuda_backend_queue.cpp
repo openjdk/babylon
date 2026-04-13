@@ -69,6 +69,12 @@ void CudaBackend::CudaQueue::release() {
 
 }
 
+std::string* CudaBackend::getDeviceVendor() {
+    // The CUDA Backend is owned by NVIDIA. Thus, no need to query
+    std::string *vendor = new std::string("NVIDIA");
+    return reinterpret_cast<std::string *>(vendor->data());
+}
+
 CudaBackend::CudaQueue::~CudaQueue() {
     CUDA_CHECK(cuStreamDestroy(cuStream), "cuStreamDestroy");
 }

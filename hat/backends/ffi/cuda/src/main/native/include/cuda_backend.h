@@ -128,6 +128,8 @@ class CudaQueue final : public Backend::Queue {
 
         void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
 
+        std::string* getDeviceVendor() override;
+
         ~CudaQueue() override;
 };
 

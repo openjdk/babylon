@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,26 +22,39 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package hat.backend.ffi;
 
-package hat.backend.java;
+import java.util.Locale;
 
-import hat.KernelContext;
-import hat.callgraph.KernelCallGraph;
+public interface Vendor {
 
-import java.lang.reflect.InvocationTargetException;
+    String name();
 
-public class JavaSequentialBackend extends JavaBackend {
-    @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
-            try {
-                args[0] = kernelContext;
-                kernelCallGraph.callDag.entryPoint.method().invoke(null, args);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
+    record Apple(String name) implements Vendor {
+    }
 
+    record NVIDIA(String name) implements Vendor {
+    }
+
+    record Intel(String name) implements Vendor {
+    }
+
+    record AMD(String name) implements Vendor {
+
+    }
+
+    static Vendor of(String name) {
+        String canonicalName = name.toLowerCase(Locale.ENGLISH);
+        if (canonicalName.startsWith("apple")) {
+            return new Apple(name);
+        } else if (canonicalName.startsWith("nvidia")) {
+            return new NVIDIA(name);
+        } else if (canonicalName.startsWith("amd")) {
+            return new AMD(name);
+        } else if (canonicalName.startsWith("intel")) {
+            return new Intel(name);
+        } else {
+            throw new RuntimeException("Backend Vendor: " + name + " not implemented yet.");
         }
     }
 }

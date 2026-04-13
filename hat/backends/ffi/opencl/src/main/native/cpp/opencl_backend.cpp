@@ -172,6 +172,15 @@ void OpenCLBackend::computeEnd() {
     }
 }
 
+std::string* OpenCLBackend::getDeviceVendor() {
+    size_t vendor_len;
+    clGetDeviceInfo(device_id, CL_DEVICE_VENDOR, 0, nullptr, &vendor_len);
+    auto *vendor = new std::string(vendor_len, '\0');
+    clGetDeviceInfo(device_id, CL_DEVICE_VENDOR, vendor_len, vendor->data(), nullptr);
+    showDeviceInfo()
+    return vendor;
+}
+
 OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(OpenCLSource &openclSource) {
     return compileProgram(&openclSource);
 }

@@ -26,12 +26,13 @@ package hat.callgraph;
 
 import hat.BufferTagger;
 import hat.KernelContext;
+import hat.backend.ffi.Vendor;
 import hat.device.NonMappableIface;
 import hat.phases.HATTier;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -54,12 +55,17 @@ import java.util.stream.Collectors;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class KernelCallGraph implements LookupCarrier {
-    @Override public MethodHandles.Lookup lookup(){
+
+    private Vendor vendor;
+
+    @Override
+    public MethodHandles.Lookup lookup() {
         return computeCallGraph.lookup();
     }
-    public static final boolean  showKernelCallDag = Boolean.getBoolean("showKernelCallDag");
-    public static final  boolean  showKernelIfaceDag = Boolean.getBoolean("showKernelIfaceDag");
-    public static final boolean  showKernelIfaceDagProposedTypedefs = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
+
+    public static final boolean showKernelCallDag = Boolean.getBoolean("showKernelCallDag");
+    public static final boolean showKernelIfaceDag = Boolean.getBoolean("showKernelIfaceDag");
+    public static final boolean showKernelIfaceDagProposedTypedefs = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
     public final ComputeCallGraph computeCallGraph;
     public final MethodCallDag callDag;
 
@@ -80,18 +86,18 @@ public class KernelCallGraph implements LookupCarrier {
 
         this.computeCallGraph = computeCallGraph;
 
-        CoreOp.FuncOp ssaFunc =  SSA.transform( e.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
-        var changed  = Mutable.of(true);
+        CoreOp.FuncOp ssaFunc = SSA.transform(e.transform(CodeTransformer.LOWERING_TRANSFORMER));
+        var changed = Mutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
-            ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
+            ssaFunc = ssaFunc.transform((blockbuilder, op) -> {
                 if (invoke(lookup(), op) instanceof OpHelper.Invoke invoke                         // always but pattern friendly
                         && invoke.resolvedMethodOrNull() instanceof Method m
                         && Op.ofMethod(m) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
                         && optionalFuncOp.isPresent()
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
-                ){
-                    var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
+                ) {
+                    var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
                     var exitBlockBuilder = jdk.incubator.code.dialect.core.Inliner.inline(
                             blockbuilder, ssaInline,
                             blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
@@ -121,20 +127,20 @@ public class KernelCallGraph implements LookupCarrier {
         this.accessedClasses = this.accessedTypes.stream()
                 .filter(te -> te instanceof ClassType).map(te -> (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) te))
                 .collect(Collectors.toSet());
-        this.accessedIfaceClasses =  this.accessedClasses.stream()
-                .filter(c->IfaceValue.class.isAssignableFrom(c)).map(c->(Class<IfaceValue>)c)
+        this.accessedIfaceClasses = this.accessedClasses.stream()
+                .filter(c -> IfaceValue.class.isAssignableFrom(c)).map(c -> (Class<IfaceValue>) c)
                 .collect(Collectors.toSet());
-        this.accessedMappableIfaceClasses =  this.accessedIfaceClasses.stream()
-                .filter(c->MappableIface.class.isAssignableFrom(c)).map(c->(Class<MappableIface>)c)
+        this.accessedMappableIfaceClasses = this.accessedIfaceClasses.stream()
+                .filter(c -> MappableIface.class.isAssignableFrom(c)).map(c -> (Class<MappableIface>) c)
                 .collect(Collectors.toSet());
-        this.accessedNonMappableIfaceClasses =  this.accessedIfaceClasses.stream()
-                .filter(c->NonMappableIface.class.isAssignableFrom(c)).map(c->(Class<NonMappableIface>)c)
+        this.accessedNonMappableIfaceClasses = this.accessedIfaceClasses.stream()
+                .filter(c -> NonMappableIface.class.isAssignableFrom(c)).map(c -> (Class<NonMappableIface>) c)
                 .collect(Collectors.toSet());
-        this.accessedVecClasses =  this.accessedClasses.stream()
-                .filter(c->IfaceValue.vec.class.isAssignableFrom(c)).map(c->(Class<IfaceValue.vec>)c)
+        this.accessedVecClasses = this.accessedClasses.stream()
+                .filter(c -> IfaceValue.vec.class.isAssignableFrom(c)).map(c -> (Class<IfaceValue.vec>) c)
                 .collect(Collectors.toSet());
-        this.accessedFP16Classes =  this.accessedClasses.stream()
-                .filter(c-> S16ImplOfF16.class.isAssignableFrom(c)).map(c->(Class<S16ImplOfF16>)c)
+        this.accessedFP16Classes = this.accessedClasses.stream()
+                .filter(c -> S16ImplOfF16.class.isAssignableFrom(c)).map(c -> (Class<S16ImplOfF16>) c)
                 .collect(Collectors.toSet());
         this.usesAtomics = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke ->
@@ -142,9 +148,6 @@ public class KernelCallGraph implements LookupCarrier {
                                 && invoke.operandCount() == 1
                                 && invoke.returnsInt()
                                 && invoke.nameMatchesRegex("(atomic.*)Inc"));
-
-
-
 
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
@@ -159,14 +162,14 @@ public class KernelCallGraph implements LookupCarrier {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
         }
 
-        this.ifaceDag = new IfaceDataDag<>(dag->
-            entrypoint.funcOp().elements()
-                    .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
-                    .filter(codeType -> codeType instanceof ClassType).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
-                    .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
-                    .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
-                            .forEach(retType -> dag.addEdge(iface, retType))
-                    )
+        this.ifaceDag = new IfaceDataDag<>(dag ->
+                entrypoint.funcOp().elements()
+                        .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
+                        .filter(codeType -> codeType instanceof ClassType).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
+                        .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
+                        .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
+                                .forEach(retType -> dag.addEdge(iface, retType))
+                        )
         );
         if (showKernelIfaceDag) {
             this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
@@ -174,5 +177,13 @@ public class KernelCallGraph implements LookupCarrier {
         if (showKernelIfaceDagProposedTypedefs) {
             ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType()));
         }
+    }
+
+    public void setDeviceVendor(Vendor vendor) {
+        this.vendor = vendor;
+    }
+
+    public Vendor getDeviceVendor() {
+        return this.vendor;
     }
 }

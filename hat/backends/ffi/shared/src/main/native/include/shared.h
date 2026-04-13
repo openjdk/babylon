@@ -567,6 +567,8 @@ public:
     virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) = 0;
 
     virtual ~Backend() = default;
+
+    virtual std::string* getDeviceVendor() = 0;
 };
 
 template<typename T>
